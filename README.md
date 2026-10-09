@@ -108,7 +108,9 @@ tests inject fakes and nothing hits the network.
   only when it's opened (24 hours, newest request wins), so a typo can't lock anyone out. The new address
   counts as confirmed, the old one gets a "your email was changed" notice, and confirmation links, reset links
   and invitations addressed to the old address stop working. Changing or resetting the password cancels a
-  pending change. Accounts with no password (Google-only) add one first.
+  pending change. Accounts with no password (Google-only) add one first. The notice to the old address has a
+  **"this wasn't me"** link (7 days, while the account still has the address it moved to): on a button press it
+  restores the old address, signs out every device and emails a password-reset link there.
 - **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few

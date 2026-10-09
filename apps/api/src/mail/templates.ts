@@ -158,18 +158,30 @@ If you didn't ask for this, you can ignore this email and nothing will change.`,
   }
 }
 
-/** Goes to the *old* address, so a change the owner didn't make is noticed. No link that acts on the account. */
-export function emailChangedEmail(input: { name: string; newEmail: string }): Content {
-  const { name, newEmail } = input
+/**
+ * Goes to the *old* address, so a change the owner didn't make is noticed and can be undone. The link
+ * only opens a page with a button: acting on a bare GET would let a mail scanner undo a real change.
+ */
+export function emailChangedEmail(input: {
+  name: string
+  newEmail: string
+  undoLink: string
+  undoDays: number
+}): Content {
+  const { name, newEmail, undoLink, undoDays } = input
   return {
     subject: 'Your email address was changed',
     text: `Hi ${name},
 
 The email address for your Long-form Writing Assistant account was just changed to ${newEmail}. You'll sign in with the new address from now on, and we'll send account emails there instead of here.
 
-If that was you, there's nothing to do. If it wasn't, someone knows your password: use "Forgot your password?" with the new address if you have access to it, and treat this password as compromised anywhere else you've used it.`,
+If that was you, there's nothing to do. If it wasn't, someone knows your password. Within ${undoDays} days you can put this address back, sign everyone out and choose a new password here:
+
+${undoLink}`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
 <p>The email address for your Long-form Writing Assistant account was just changed to <strong>${escapeHtml(newEmail)}</strong>. You'll sign in with the new address from now on, and we'll send account emails there instead of here.</p>
-<p>If that was you, there's nothing to do. If it wasn't, someone knows your password: use "Forgot your password?" with the new address if you have access to it, and treat this password as compromised anywhere else you've used it.</p>`),
+<p>If that was you, there's nothing to do. If it wasn't, someone knows your password. Within ${undoDays} days you can put this address back, sign everyone out and choose a new password.</p>
+<p><a href="${escapeHtml(undoLink)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">This wasn't me</a></p>
+<p style="font-size:14px">If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(undoLink)}</span></p>`),
   }
 }

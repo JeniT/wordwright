@@ -50,6 +50,9 @@ export class TokenStore {
         'DELETE FROM email_verifications WHERE expires_at <= ? OR used_at IS NOT NULL',
       ),
       emailChanges: count('DELETE FROM email_changes WHERE expires_at <= ? OR used_at IS NOT NULL'),
+      emailChangeUndos: count(
+        'DELETE FROM email_change_undos WHERE expires_at <= ? OR used_at IS NOT NULL',
+      ),
     }
   }
 
@@ -165,5 +168,55 @@ export class TokenStore {
   /** Cancels a pending change that hasn't been confirmed yet. */
   deleteUserEmailChanges(userId: string) {
     this.db.prepare('DELETE FROM email_changes WHERE user_id = ? AND used_at IS NULL').run(userId)
+  }
+
+  // -- undoing an email change
+  createEmailChangeUndo(
+    tokenHash: string,
+    userId: string,
+    oldEmail: string,
+    newEmail: string,
+    expiresAt: Date,
+  ) {
+    this.db
+      .prepare(
+        'INSERT INTO email_change_undos (token_hash, user_id, old_email, new_email, expires_at) VALUES (?, ?, ?, ?, ?)',
+      )
+      .run(tokenHash, userId, oldEmail, newEmail, expiresAt.toISOString())
+  }
+
+  findEmailChangeUndo(
+    tokenHash: string,
+  ):
+    | { userId: string; oldEmail: string; newEmail: string; expiresAt: Date; used: boolean }
+    | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT user_id, old_email, new_email, expires_at, used_at FROM email_change_undos WHERE token_hash = ?',
+      )
+      .get(tokenHash) as
+      | {
+          user_id: string
+          old_email: string
+          new_email: string
+          expires_at: string
+          used_at: string | null
+        }
+      | undefined
+    return (
+      row && {
+        userId: row.user_id,
+        oldEmail: row.old_email,
+        newEmail: row.new_email,
+        expiresAt: new Date(row.expires_at),
+        used: row.used_at !== null,
+      }
+    )
+  }
+
+  markEmailChangeUndoUsed(tokenHash: string) {
+    this.db
+      .prepare('UPDATE email_change_undos SET used_at = ? WHERE token_hash = ?')
+      .run(nowIso(), tokenHash)
   }
 }

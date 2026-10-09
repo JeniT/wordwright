@@ -100,6 +100,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     changeEmail: (newEmail: string, password: string) =>
       act('POST', '/account/email', { newEmail, password }),
     confirmEmailChange: (token: string) => act('POST', '/auth/confirm-email-change', { token }),
+    undoEmailChange: (token: string) => act('POST', '/auth/undo-email-change', { token }),
     requestPasswordSetup: () => act('POST', '/account/password/setup-email', {}),
     deleteAccount: (confirmEmail: string, password?: string) =>
       act('DELETE', '/account', { confirmEmail, password }),

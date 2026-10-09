@@ -16,9 +16,11 @@ import {
 } from '../mail/templates'
 import { removeUserAndOwnedData } from './remove-user'
 
+const DAY_MS = 24 * 60 * 60 * 1000
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
 export const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
+export const UNDO_EMAIL_CHANGE_TTL_DAYS = 7
 
 /** Domain errors; the routes map `code` to an HTTP status. */
 export class AccountError extends Error {
@@ -27,6 +29,7 @@ export class AccountError extends Error {
       | 'email_in_use'
       | 'email_unchanged'
       | 'invalid_email_change_token'
+      | 'invalid_undo_token'
       | 'password_required'
       | 'handle_in_use'
       | 'invalid_credentials'
@@ -229,6 +232,7 @@ export class AccountService {
     }
     if (found.expiresAt <= this.now()) throw invalidEmailChange()
     const oldEmail = user.email
+    const undoToken = generateToken()
     try {
       store.transaction(() => {
         const owner = store.users.findByEmail(found.newEmail)
@@ -238,6 +242,13 @@ export class AccountService {
         store.tokens.deleteUserVerifications(user.id)
         store.tokens.deleteUserResets(user.id)
         store.invitations.deleteForEmail(oldEmail)
+        store.tokens.createEmailChangeUndo(
+          hashToken(undoToken),
+          user.id,
+          oldEmail,
+          found.newEmail,
+          new Date(this.now().getTime() + UNDO_EMAIL_CHANGE_TTL_DAYS * DAY_MS),
+        )
       })
     } catch (err) {
       if (String(err).includes('UNIQUE')) throw emailInUse() // lost a race for the address
@@ -245,7 +256,60 @@ export class AccountService {
     }
     this.sendInBackground(user.id, 'email change notice', {
       to: oldEmail,
-      ...emailChangedEmail({ name: user.name, newEmail: found.newEmail }),
+      ...emailChangedEmail({
+        name: user.name,
+        newEmail: found.newEmail,
+        undoLink: `${this.d.publicUrl}/undo-email-change?token=${undoToken}`,
+        undoDays: UNDO_EMAIL_CHANGE_TTL_DAYS,
+      }),
+    })
+  }
+
+  /**
+   * "This wasn't me": puts the old address back, signs out every device, cancels links that were out,
+   * and emails the old address a reset link, because whoever made the change knew the password.
+   * Only works while the account still has the address that change moved it to, so it can't undo
+   * something older or be replayed after a later change. Works signed in or not.
+   */
+  undoEmailChange(token: string): void {
+    const { store } = this.d
+    const tokenHash = hashToken(token)
+    const found = store.tokens.findEmailChangeUndo(tokenHash)
+    const user = found && store.users.findById(found.userId)
+    if (!found || !user) throw invalidUndo()
+    if (found.used) {
+      if (user.email === found.oldEmail) return // a double click got there first
+      throw invalidUndo()
+    }
+    if (found.expiresAt <= this.now() || user.email !== found.newEmail) throw invalidUndo()
+    const resetToken = generateToken()
+    try {
+      store.transaction(() => {
+        const owner = store.users.findByEmail(found.oldEmail)
+        if (owner && owner.id !== user.id) throw emailInUse()
+        // They opened a link sent to this inbox, so it is proven.
+        store.users.setVerifiedEmail(user.id, found.oldEmail)
+        store.tokens.markEmailChangeUndoUsed(tokenHash)
+        store.tokens.deleteUserSessions(user.id)
+        store.tokens.deleteUserVerifications(user.id)
+        store.tokens.deleteUserEmailChanges(user.id)
+        store.tokens.createReset(
+          hashToken(resetToken),
+          user.id,
+          new Date(this.now().getTime() + RESET_TTL_MS),
+        )
+      })
+    } catch (err) {
+      if (String(err).includes('UNIQUE')) throw emailInUse()
+      throw err
+    }
+    this.sendInBackground(user.id, 'email change undo', {
+      to: found.oldEmail,
+      ...passwordResetEmail({
+        name: user.name,
+        link: `${this.d.publicUrl}/reset-password?token=${resetToken}`,
+        ttlMinutes: RESET_TTL_MS / 60_000,
+      }),
     })
   }
 
@@ -454,6 +518,8 @@ export class AccountService {
 
 const invalidVerification = () =>
   new AccountError('invalid_verification_token', 'This verification link is invalid or has expired')
+const invalidUndo = () =>
+  new AccountError('invalid_undo_token', 'This link is invalid or has expired')
 const invalidEmailChange = () =>
   new AccountError('invalid_email_change_token', 'This link is invalid or has expired')
 const handleInUse = () =>

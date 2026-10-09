@@ -222,6 +222,43 @@ test('changes the email address once the new one is confirmed', async ({ page })
   await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 })
 
+test('"this wasn\'t me" puts the old address back and forces a new password', async ({ page }) => {
+  const oldEmail = await registerUser(page)
+  const newEmail = `intruder-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByLabel('New email address').fill(newEmail)
+  await page.getByLabel('Confirm with your password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
+  const confirm = linkIn(
+    await waitForEmail(newEmail, 'Confirm your new email address'),
+    '/confirm-email-change',
+  )!
+  await page.goto(confirm)
+  await expect(page.getByText('your email address has been changed')).toBeVisible()
+
+  // The owner, from the notice at the old address.
+  const undo = linkIn(
+    await waitForEmail(oldEmail, 'Your email address was changed'),
+    '/undo-email-change',
+  )!
+  await page.goto(undo)
+  await page.getByRole('button', { name: "Yes, this wasn't me" }).click()
+  await expect(page.getByRole('status')).toContainText('old email address is back')
+
+  const reset = linkIn(await waitForEmail(oldEmail, 'Reset your password'), '/reset-password')!
+  await page.goto(reset)
+  await page.getByLabel('New password').fill('my brand new password')
+  await page.getByRole('button', { name: 'Change password' }).click()
+  await expect(page.getByText('Your password has been changed')).toBeVisible()
+
+  await page.goto('/login')
+  await page.getByLabel('Email').fill(oldEmail)
+  await page.getByLabel('Password').fill('my brand new password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+})
+
 test('confirms an email address from the signup email', async ({ page }) => {
   const email = await registerUser(page)
   const banner = page.getByRole('region', { name: 'Email confirmation' })

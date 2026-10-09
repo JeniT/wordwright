@@ -138,3 +138,43 @@ describe('confirm-new-email page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/incomplete/)
   })
 })
+
+describe('undo-email-change page', () => {
+  it('explains first, and does nothing until the button is pressed', async () => {
+    let sent: unknown
+    server.use(
+      signedInAs(null),
+      http.post('*/api/auth/undo-email-change', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json({ ok: true })
+      }),
+    )
+    await renderAt('/undo-email-change?token=abc123')
+    await screen.findByRole('button', { name: "Yes, this wasn't me" })
+    expect(sent).toBeUndefined()
+
+    await fireEvent.click(screen.getByRole('button', { name: "Yes, this wasn't me" }))
+    expect(await screen.findByRole('status')).toHaveTextContent('old email address is back')
+    expect(sent).toEqual({ token: 'abc123' })
+    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+  })
+
+  it('shows an expired link and what to do', async () => {
+    server.use(
+      signedInAs(null),
+      http.post('*/api/auth/undo-email-change', () =>
+        HttpResponse.json({ error: 'This link is invalid or has expired' }, { status: 400 }),
+      ),
+    )
+    await renderAt('/undo-email-change?token=old')
+    await fireEvent.click(await screen.findByRole('button', { name: "Yes, this wasn't me" }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('invalid or has expired')
+    expect(screen.getByRole('button', { name: "Yes, this wasn't me" })).toBeEnabled()
+  })
+
+  it('flags a link with no token', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/undo-email-change')
+    expect(await screen.findByRole('alert')).toHaveTextContent(/incomplete/)
+  })
+})

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { hashToken } from './auth/secrets'
-import { VERIFY_TTL_MS } from './services/accounts'
+import { UNDO_EMAIL_CHANGE_TTL_DAYS, VERIFY_TTL_MS } from './services/accounts'
 import {
   lastEmailChangeToken,
   lastResetToken,
+  lastUndoToken,
   lastVerificationToken,
   PASSWORD,
   register,
@@ -57,7 +58,7 @@ describe('changing your email address', () => {
     ).toBe(200)
   })
 
-  it('tells the old address, without a link that acts on the account', async () => {
+  it('tells the old address, with a way to undo it', async () => {
     const { ctx, request, confirm } = await world()
     await request()
     await confirm(lastEmailChangeToken(ctx.mailer))
@@ -67,7 +68,8 @@ describe('changing your email address', () => {
       subject: 'Your email address was changed',
     })
     expect(notice.text).toContain(NEW)
-    expect(notice.text).not.toMatch(/token=/)
+    expect(notice.text).toMatch(/\/undo-email-change\?token=[\w-]+/)
+    expect(notice.text).not.toContain('confirm-email-change')
   })
 
   it('needs the correct password, and sends nothing otherwise', async () => {
@@ -248,5 +250,90 @@ describe('deleting an account with a pending change', () => {
     expect(ctx.store.tokens.findEmailChange(hashToken(token))).toBeDefined()
     await client.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
     expect(ctx.store.tokens.findEmailChange(hashToken(token))).toBeUndefined()
+  })
+})
+
+describe('"this wasn\'t me" after an email change', () => {
+  async function changed() {
+    const w = await world()
+    await w.request()
+    await w.confirm(lastEmailChangeToken(w.ctx.mailer))
+    const undoToken = lastUndoToken(w.ctx.mailer)
+    const undo = (token = undoToken, c: TestClient = w.ctx.client()) =>
+      c.post('/api/auth/undo-email-change', { token })
+    return { ...w, undoToken, undo }
+  }
+
+  it('puts the old address back, signs everyone out and emails a reset link there', async () => {
+    const { ctx, client, undo } = await changed()
+    expect((await undo()).status).toBe(200)
+
+    expect((await client.get('/api/auth/me')).status).toBe(401) // signed out everywhere
+    const mail = ctx.mailer.outbox.at(-1)!
+    expect(mail).toMatchObject({ to: 'ada@example.com', subject: 'Reset your password' })
+    // The password the intruder knew is replaced via the emailed link.
+    const reset = await ctx.client().post('/api/auth/reset-password', {
+      token: lastResetToken(ctx.mailer),
+      password: 'a completely new password',
+    })
+    expect(reset.status).toBe(200)
+    const login = await ctx
+      .client()
+      .post('/api/auth/login', { email: 'ada@example.com', password: 'a completely new password' })
+    expect(login.status).toBe(200)
+    expect((await login.json()).emailVerified).toBe(true)
+    expect(
+      (
+        await ctx
+          .client()
+          .post('/api/auth/login', { email: NEW, password: 'a completely new password' })
+      ).status,
+    ).toBe(401)
+  })
+
+  it('treats opening the link twice as success', async () => {
+    const { ctx, undo } = await changed()
+    await undo()
+    const sent = ctx.mailer.outbox.length
+    expect((await undo()).status).toBe(200)
+    expect(ctx.mailer.outbox).toHaveLength(sent) // but no second reset email
+  })
+
+  it('expires after a week', async () => {
+    const { ctx, undo } = await changed()
+    ctx.clock.now = new Date(
+      ctx.clock.now.getTime() + (UNDO_EMAIL_CHANGE_TTL_DAYS * 24 * 3600 + 1) * 1000,
+    )
+    expect((await undo()).status).toBe(400)
+    expect(ctx.store.users.findByEmail(NEW)).toBeDefined()
+  })
+
+  it('does nothing once the address has been changed again', async () => {
+    const { ctx, client, undo } = await changed()
+    await client.post('/api/account/email', { newEmail: 'third@example.com', password: PASSWORD })
+    const token = lastEmailChangeToken(ctx.mailer)
+    await ctx.client().post('/api/auth/confirm-email-change', { token })
+    expect((await undo()).status).toBe(400)
+    expect(ctx.store.users.findByEmail('third@example.com')).toBeDefined()
+  })
+
+  it('refuses if someone has registered the old address meanwhile', async () => {
+    const { ctx, undo } = await changed()
+    await signUp(ctx.client(), 'ada@example.com', 'Imposter')
+    expect((await undo()).status).toBe(409)
+    expect(ctx.store.users.findByEmail(NEW)).toBeDefined()
+  })
+
+  it('rejects a made-up token', async () => {
+    const { undo } = await changed()
+    expect((await undo('nope')).status).toBe(400)
+  })
+
+  it('goes away with the account', async () => {
+    const { ctx, undoToken } = await changed()
+    const c = ctx.client()
+    await c.post('/api/auth/login', { email: NEW, password: PASSWORD })
+    await c.delete('/api/account', { confirmEmail: NEW, password: PASSWORD })
+    expect(ctx.store.tokens.findEmailChangeUndo(hashToken(undoToken))).toBeUndefined()
   })
 })

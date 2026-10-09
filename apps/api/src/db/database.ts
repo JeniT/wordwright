@@ -153,6 +153,19 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE drafts ADD COLUMN idea_id TEXT REFERENCES ideas(id) ON DELETE CASCADE;
   CREATE INDEX drafts_idea ON drafts(idea_id);
   `,
+  `
+  -- "This wasn't me" links sent to the *old* address after an email change. Valid only while the
+  -- account still has the address the change moved it to.
+  CREATE TABLE email_change_undos (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    old_email TEXT NOT NULL,
+    new_email TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+  );
+  CREATE INDEX email_change_undos_user ON email_change_undos(user_id);
+  `,
 ]
 
 /**

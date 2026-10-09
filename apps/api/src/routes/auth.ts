@@ -43,6 +43,7 @@ const STATUS = {
   email_in_use: 409,
   email_unchanged: 400,
   invalid_email_change_token: 400,
+  invalid_undo_token: 400,
   password_required: 400,
   handle_in_use: 409,
   invalid_credentials: 401,
@@ -151,6 +152,15 @@ export function authRoutes(d: AuthRouteDeps) {
       .post('/confirm-email-change', zValidator('json', VerifyEmailInputSchema), (c) => {
         try {
           d.accounts.confirmEmailChange(c.req.valid('json').token)
+        } catch (err) {
+          toHttpError(err)
+        }
+        return c.json({ ok: true })
+      })
+
+      .post('/undo-email-change', zValidator('json', VerifyEmailInputSchema), (c) => {
+        try {
+          d.accounts.undoEmailChange(c.req.valid('json').token)
         } catch (err) {
           toHttpError(err)
         }

@@ -49,6 +49,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/undo-email-change',
+    name: 'undo-email-change',
+    component: () => import('./views/UndoEmailChangeView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/accept-invite',
     name: 'accept-invite',
     component: () => import('./views/AcceptInviteView.vue'),
