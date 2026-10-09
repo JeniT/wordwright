@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IdeaLinkItem from '../components/IdeaLinkItem.vue'
@@ -32,6 +32,15 @@ watch(
   },
   { immediate: true },
 )
+
+// Whether the AI has been talking to the person about this idea already.
+const conversation = useQuery({
+  queryKey: ['conversation', () => props.profileId, () => props.id],
+  queryFn: () => api.getConversation(props.profileId, props.id),
+})
+const hasConversation = computed(() => (conversation.data.value?.messages.length ?? 0) > 0)
+/** Pressing Brainstorm on an idea with no conversation begins one straight away, with the AI's questions. */
+const startsAtOnce = computed(() => !!conversation.data.value && !hasConversation.value)
 
 const refreshLists = () => queryClient.invalidateQueries({ queryKey: ['ideas'] })
 const setIdea = (saved: Awaited<ReturnType<typeof api.getIdea>>) => {
@@ -183,17 +192,21 @@ const button =
 
     <section aria-labelledby="brainstorm-heading" class="mb-10">
       <h2 id="brainstorm-heading" class="mb-1 font-serif text-xl font-semibold">Brainstorm</h2>
-      <p id="brainstorm-hint" class="mb-3 text-sm text-stone-700">
-        Talk the idea through with your AI assistant. This isn't ready yet.
+      <p class="mb-3 text-sm text-stone-700">
+        Talk the idea through with an editor (your AI assistant). It questions the idea and can
+        suggest a sharper title or notes, or a separate new idea, but nothing changes unless you
+        accept it.
       </p>
-      <button
-        type="button"
-        :class="[button, 'border border-accent text-accent']"
-        disabled
-        aria-describedby="brainstorm-hint"
+      <RouterLink
+        :to="{
+          name: 'brainstorm',
+          params: { profileId, id },
+          query: startsAtOnce ? { start: '1' } : {},
+        }"
+        :class="[button, 'inline-block border border-accent text-accent hover:bg-stone-100']"
       >
-        Brainstorm
-      </button>
+        {{ hasConversation ? 'Continue brainstorming' : 'Brainstorm' }}
+      </RouterLink>
     </section>
 
     <section aria-labelledby="idea-drafts-heading" class="mb-10">

@@ -90,8 +90,8 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save link' })).toHaveCount(0)
 
-  // Brainstorming isn't built yet, and says so rather than failing silently.
-  await expect(page.getByRole('button', { name: 'Brainstorm' })).toBeDisabled()
+  // Brainstorming has its own page (see brainstorm.spec.ts); from here it is a link.
+  await expect(page.getByRole('link', { name: 'Brainstorm' })).toBeVisible()
 
   // Two drafts make a linked set; each opens in the editor and links back.
   await startDraft(page)

@@ -1,7 +1,9 @@
 import {
   AcceptInvitationResultSchema,
   AuthConfigSchema,
+  BrainstormEventSchema,
   BrainstormPromptSchema,
+  ConversationSchema,
   CritiqueSchema,
   DraftSchema,
   HandleAvailabilitySchema,
@@ -12,9 +14,11 @@ import {
   InvitationSchema,
   LlmSettingsSchema,
   ProfileSchema,
+  ProposalSchema,
   SourceListSchema,
   SourceSchema,
   UserSchema,
+  type BrainstormEvent,
   type DraftInput,
   type IdeaInput,
   type IdeaUpdate,
@@ -23,8 +27,10 @@ import {
   type ProfileInput,
   type ProfileUpdate,
   type RegisterInput,
+  type SendMessageInput,
 } from '@lfwa/core'
 import type { z } from 'zod'
+import { readSse } from './sse'
 
 export class ApiError extends Error {
   constructor(
@@ -77,6 +83,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
   const ProfileList = ProfileSchema.array()
   const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
   const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
+  const conversation = (profileId: string, ideaId: string) =>
+    `${ideas(profileId)}/${ideaId}/conversation`
 
   return {
     // auth
@@ -184,6 +192,62 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** `ids` is every source, in the new order. Answers with the list as saved. */
     reorderSources: (profileId: string, ids: string[]) =>
       get(SourceListSchema, 'PUT', `/profiles/${profileId}/sources/order`, { ids }),
+
+    // brainstorming: one conversation per idea, shared by the profile's members
+    getConversation: (profileId: string, ideaId: string) =>
+      get(ConversationSchema, 'GET', conversation(profileId, ideaId)),
+    /**
+     * Sends a message (or `{start: true}` / `{retry: true}`) and reads the AI's reply as it is written,
+     * calling `onEvent` for each event. Resolves when the reply ends; rejects with an `ApiError` if it
+     * couldn't begin (no key, someone else's reply in progress, too many messages...), and with an
+     * `AbortError` if `signal` is aborted. Failures during the reply arrive as an `error` event.
+     */
+    streamReply: async (
+      profileId: string,
+      ideaId: string,
+      body: SendMessageInput,
+      onEvent: (event: BrainstormEvent) => void,
+      signal?: AbortSignal,
+    ) => {
+      const res = await fetchImpl(`/api${conversation(profileId, ideaId)}/messages`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        signal,
+      })
+      await checked(res)
+      if (!res.body)
+        throw new ApiError(res.status, 'The reply could not be read. Please try again.')
+      for await (const message of readSse(res.body, signal)) {
+        let json: unknown
+        try {
+          json = JSON.parse(message.data)
+        } catch {
+          continue
+        }
+        const event = BrainstormEventSchema.safeParse(json)
+        if (event.success) onEvent(event.data)
+      }
+      signal?.throwIfAborted() // a stopped reply ends quietly inside readSse; report it as the abort it was
+    },
+    /** `overwrite` applies a suggestion made against text that has since changed. */
+    acceptProposal: (profileId: string, ideaId: string, proposalId: string, overwrite = false) =>
+      get(
+        ProposalSchema,
+        'POST',
+        `${conversation(profileId, ideaId)}/proposals/${proposalId}/accept`,
+        overwrite ? { overwrite: true } : {},
+      ),
+    dismissProposal: (profileId: string, ideaId: string, proposalId: string) =>
+      get(
+        ProposalSchema,
+        'POST',
+        `${conversation(profileId, ideaId)}/proposals/${proposalId}/dismiss`,
+        {},
+      ),
+    /** Deletes the whole conversation, for everyone in the profile. */
+    restartConversation: (profileId: string, ideaId: string) =>
+      act('DELETE', conversation(profileId, ideaId)),
 
     // drafts
     getDraft: (profileId: string, id: string) =>

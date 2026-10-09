@@ -14,14 +14,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T20b4 · Brainstorm: the chat page
-
-claimed: claude-session-3 · branch: T20b4
-
-`/p/:profile/ideas/:idea/brainstorm` with the thread, proposal cards (diffs, Accept/Dismiss), streaming, Stop, Try
-again, "someone else is waiting", Start again; Markdown rendering via `markdown-it` with HTML and images off; the
-idea page's Brainstorm button becomes a link. Component + e2e tests and axe checks. Needs T20b2 and T20b3 (both done). The API and the event stream it will use are described in `docs/brainstorming.md`; `FAKE_LLM`'s default `chat()` just echoes, so give it a scripted reply that includes a suggestion for the e2e test.
-
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -136,6 +128,12 @@ Per the owner: possibly host an open model for users without their own key. Need
 
 ## Done
 
+- **T20b4** · The brainstorm page (`/p/:profile/ideas/:idea/brainstorm`): the shared thread with names and models,
+  the editor's words streaming in (read over `fetch`, with Stop), Markdown rendered safely (`markdown-it`, HTML and
+  images off), suggestion cards with a line diff of the notes and Accept / Dismiss / Apply anyway, Try again,
+  "someone is waiting", Start again with confirmation, a message refused before it starts goes back in the box; the
+  idea page's Brainstorm button is now a link that starts the conversation at once; `FAKE_LLM` has a scripted editor.
+  (COMMIT)
 - **T20b2** · Brainstorming API: a shared thread per idea (`idea_messages`, `idea_proposals`); the service builds the
   system prompt (the person's prompt + the app's rules), the idea snapshot (title, notes, related links, venue,
   draft titles only; sent again only when the idea changes) and replays the thread in a provider-neutral format;

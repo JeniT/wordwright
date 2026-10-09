@@ -144,11 +144,47 @@ describe('idea page', () => {
     )
   })
 
-  it('has a Brainstorm button that is not available yet, and says so', async () => {
-    await open()
-    const button = await screen.findByRole('button', { name: 'Brainstorm' })
-    expect(button).toBeDisabled()
-    expect(button).toHaveAccessibleDescription(/isn't ready yet/)
+  describe('the Brainstorm link', () => {
+    const conversationUrl = '*/api/profiles/ada-substack/ideas/i1/conversation'
+    const withConversation = (messages: unknown[]) =>
+      http.get(conversationUrl, () => HttpResponse.json({ messages, replyingNow: null }))
+
+    it('begins a conversation straight away when there is none yet', async () => {
+      await open([withConversation([])])
+      const link = await screen.findByRole('link', { name: 'Brainstorm' })
+      await waitFor(() =>
+        expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/brainstorm?start=1'),
+      )
+    })
+
+    it('goes back to the existing conversation, without restarting it', async () => {
+      await open([
+        withConversation([
+          {
+            id: 'm1',
+            role: 'user',
+            kind: 'kickoff',
+            text: '',
+            authorName: 'Ada',
+            model: null,
+            status: 'complete',
+            stopReason: null,
+            proposals: [],
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ]),
+      ])
+      const link = await screen.findByRole('link', { name: 'Continue brainstorming' })
+      expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/brainstorm')
+    })
+
+    it('does not start anything while it is still unknown whether there is a conversation', async () => {
+      await open([
+        http.get(conversationUrl, () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      ])
+      const link = await screen.findByRole('link', { name: 'Brainstorm' })
+      expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/brainstorm')
+    })
   })
 
   it('explains when the idea cannot be opened', async () => {

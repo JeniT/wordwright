@@ -211,7 +211,11 @@ holds one thread per idea, shared by the profile's members. `GET` reads it; `POS
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
 AI's suggestions (a new title or notes for the idea, or a new idea: it can never touch drafts); `DELETE` starts
 again. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
-person accepts it. There is no page for this yet (T20b4).
+person accepts it. The page is `/p/<profile>/ideas/<idea>/brainstorm` (the idea page's **Brainstorm** button): the editor's reply
+streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
+never shown), and each suggestion is a card with a line-by-line comparison against the idea as it is now. With
+`FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "suggest notes" and
+"suggest a new idea" with the matching suggestion.
 
 ## Notes and next steps
 

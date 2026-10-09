@@ -1,0 +1,550 @@
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
+import { http, HttpResponse } from 'msw'
+import { describe, expect, it } from 'vitest'
+import type { BrainstormEvent, ConversationMessage, Proposal } from '@lfwa/core'
+import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+
+useMockServer()
+
+const idea = {
+  id: 'i1',
+  profileId: 'ada-substack',
+  name: 'Why rivers meander',
+  notes: 'Erosion loops.\nSecond line.',
+  links: [{ id: 'l1', url: 'https://example.org/paper', title: 'A paper' }],
+  drafts: [],
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-02T00:00:00Z',
+}
+const conversationUrl = '*/api/profiles/ada-substack/ideas/i1/conversation'
+const page = '/p/ada-substack/ideas/i1/brainstorm'
+
+let counter = 0
+const userMessage = (
+  text: string,
+  overrides: Partial<ConversationMessage> = {},
+): ConversationMessage => ({
+  id: `u${++counter}`,
+  role: 'user',
+  kind: 'message',
+  text,
+  authorName: 'Ada',
+  model: null,
+  status: 'complete',
+  stopReason: null,
+  proposals: [],
+  createdAt: '2026-01-01T00:00:00Z',
+  ...overrides,
+})
+const kickoff = () => userMessage('', { kind: 'kickoff' })
+const aiMessage = (
+  text: string,
+  overrides: Partial<ConversationMessage> = {},
+): ConversationMessage => ({
+  ...userMessage(text),
+  id: `a${++counter}`,
+  role: 'assistant',
+  authorName: null,
+  model: 'claude-sonnet-5-5',
+  stopReason: 'end',
+  ...overrides,
+})
+const proposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: `p${++counter}`,
+  tool: 'update_idea',
+  input: { name: 'Why rivers loop' },
+  status: 'pending',
+  stale: false,
+  createdIdeaId: null,
+  decidedByName: null,
+  decidedAt: null,
+  ...overrides,
+})
+
+/** A server-sent event stream, delivered as the real API does. */
+const sse = (events: BrainstormEvent[]) =>
+  new HttpResponse(
+    new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder()
+        for (const e of events) {
+          controller.enqueue(encoder.encode(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`))
+        }
+        controller.close()
+      },
+    }),
+    { headers: { 'content-type': 'text/event-stream' } },
+  )
+const words = (text: string): BrainstormEvent[] =>
+  (text.match(/\S+\s*/g) ?? []).map((t) => ({ type: 'text', text: t }))
+
+interface Server {
+  messages: ConversationMessage[]
+  replyingNow: { name: string } | null
+  posts: unknown[]
+  /** What the next POST answers; by default the AI replies "Noted." and the exchange is saved. */
+  respond: (body: Record<string, unknown>) => Response
+}
+
+/** A pretend API that keeps the thread, so that what the page re-reads after a reply is what was streamed. */
+function mockConversation(
+  initial: ConversationMessage[] = [],
+  extra: Parameters<typeof server.use> = [],
+) {
+  const state: Server = {
+    messages: [...initial],
+    replyingNow: null,
+    posts: [],
+    respond: (body) => {
+      const sent = body.start ? kickoff() : userMessage(String(body.text ?? ''))
+      const reply = aiMessage('Noted.')
+      if (!body.retry) state.messages.push(sent)
+      state.messages.push(reply)
+      return sse([
+        ...(body.retry ? [] : [{ type: 'message' as const, message: sent }]),
+        ...words('Noted.'),
+        { type: 'done', message: reply },
+      ])
+    },
+  }
+  server.use(
+    signedInAs(testUser),
+    // Overrides come first: the first matching handler wins.
+    ...extra,
+    http.get('*/api/profiles', () => HttpResponse.json([])),
+    http.get('*/api/profiles/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
+    http.get(conversationUrl, () =>
+      HttpResponse.json({ messages: state.messages, replyingNow: state.replyingNow }),
+    ),
+    http.post(`${conversationUrl}/messages`, async ({ request }) => {
+      const body = (await request.json()) as Record<string, unknown>
+      state.posts.push(body)
+      return state.respond(body)
+    }),
+  )
+  return state
+}
+
+const type = async (text: string) => {
+  await fireEvent.update(await screen.findByLabelText('Your message'), text)
+}
+const sendWithKeyboard = async () =>
+  fireEvent.keyDown(screen.getByLabelText('Your message'), { key: 'Enter', ctrlKey: true })
+
+describe('the brainstorm page', () => {
+  it('shows the idea and who sees what, and invites a start when there is no conversation', async () => {
+    mockConversation()
+    await renderAt(page)
+    expect(await screen.findByRole('heading', { name: 'Brainstorm' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '← Back to the idea' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas/i1',
+    )
+    expect(screen.getByText(/the text of your\s+drafts never is/)).toBeInTheDocument()
+    expect(screen.getByText(/Everyone in this profile sees this conversation/)).toBeInTheDocument()
+
+    const summary = screen.getByText('The idea being discussed').closest('details')!
+    expect(within(summary).getByText(/Erosion loops/)).toBeInTheDocument()
+    expect(within(summary).getByText('A paper')).toBeInTheDocument()
+
+    expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Your message')).toBeNull() // nothing to answer yet
+  })
+
+  it('starts when asked, streaming the first questions, and then holds the saved exchange', async () => {
+    const api = mockConversation()
+    api.respond = () => {
+      const sent = kickoff()
+      const reply = aiMessage('What is the **one** claim?')
+      api.messages.push(sent, reply)
+      return sse([
+        { type: 'message', message: sent },
+        ...words('What is the **one** claim?'),
+        { type: 'done', message: reply },
+      ])
+    }
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: 'Start brainstorming' }))
+
+    expect(await screen.findByText('Brainstorm started by Ada')).toBeInTheDocument()
+    await screen.findByText(/What is the/)
+    // The bold only appears once its closing ** has arrived (and the live text is swapped for the saved message).
+    await waitFor(() => expect(document.querySelector('.markdown strong')).toHaveTextContent('one'))
+    expect(api.posts).toEqual([{ start: true }])
+    await waitFor(() => expect(screen.getByLabelText('Your message')).toBeEnabled())
+    expect(screen.queryByRole('button', { name: 'Start brainstorming' })).toBeNull()
+  })
+
+  it('starts by itself when sent here from the idea page (?start=1), once, and not again on reload', async () => {
+    const api = mockConversation()
+    const { router } = await renderAt(`${page}?start=1`)
+    expect(await screen.findByText('Brainstorm started by Ada')).toBeInTheDocument()
+    expect(api.posts).toEqual([{ start: true }])
+    await waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
+  })
+
+  it('does not start a second conversation when one exists', async () => {
+    const api = mockConversation([kickoff(), aiMessage('Hello.')])
+    await renderAt(`${page}?start=1`)
+    await screen.findByText('Hello.')
+    expect(api.posts).toEqual([])
+  })
+
+  it('sends what is typed with Ctrl+Enter, shows who said it, and renders the reply safely', async () => {
+    const api = mockConversation([kickoff(), aiMessage('Go on.')])
+    api.respond = (body) => {
+      const sent = userMessage(String(body.text))
+      const reply = aiMessage('Good. <img src=x onerror=alert(1)> **Strong** point.')
+      api.messages.push(sent, reply)
+      return sse([
+        { type: 'message', message: sent },
+        ...words(reply.text),
+        { type: 'done', message: reply },
+      ])
+    }
+    await renderAt(page)
+    await screen.findByText('Go on.')
+    const send = screen.getByRole('button', { name: 'Send' })
+    expect(send).toBeDisabled() // nothing typed
+    await type('It is about erosion.')
+    expect(send).toBeEnabled()
+    await sendWithKeyboard()
+
+    expect(await screen.findByText('It is about erosion.')).toBeInTheDocument()
+    expect(api.posts).toEqual([{ text: 'It is about erosion.' }])
+    expect(screen.getByLabelText('Your message')).toHaveValue('')
+    const reply = (await screen.findByText(/Strong/)).closest('.markdown')!
+    expect(reply.querySelector('img')).toBeNull() // raw HTML never reaches the page
+    expect(reply.textContent).toContain('<img src=x onerror=alert(1)>')
+    expect(reply.querySelector('strong')).toHaveTextContent('Strong')
+    expect(screen.getAllByText('Ada').length).toBeGreaterThan(0)
+  })
+
+  it('does not send a message that is only spaces', async () => {
+    const api = mockConversation([kickoff(), aiMessage('Go on.')])
+    await renderAt(page)
+    await screen.findByText('Go on.')
+    await type('   ')
+    await sendWithKeyboard()
+    expect(api.posts).toEqual([])
+  })
+
+  it('shows that the editor is thinking, then the words as they arrive, and can be stopped', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const api = mockConversation([kickoff(), aiMessage('Go on.')])
+    api.respond = (body) => {
+      const sent = userMessage(String(body.text))
+      return new HttpResponse(
+        new ReadableStream({
+          async start(controller) {
+            const encoder = new TextEncoder()
+            const emit = (e: BrainstormEvent) =>
+              controller.enqueue(encoder.encode(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`))
+            emit({ type: 'message', message: sent })
+            api.messages.push(sent)
+            await gate
+            for (const w of words('Half a thought ')) emit(w)
+          },
+        }),
+        { headers: { 'content-type': 'text/event-stream' } },
+      )
+    }
+    await renderAt(page)
+    await screen.findByText('Go on.')
+    await type('Tell me more')
+    await sendWithKeyboard()
+
+    expect(await screen.findByText('Thinking…')).toBeInTheDocument()
+    expect(screen.getByLabelText('Your message')).toBeDisabled()
+    release()
+    expect(await screen.findByText(/Half a thought/)).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    await waitFor(() => expect(screen.getByLabelText('Your message')).toBeEnabled())
+    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+  })
+
+  describe('when a reply fails', () => {
+    it('says what happened, keeps the message, and offers to try again without resending it', async () => {
+      const api = mockConversation([kickoff(), aiMessage('Go on.')])
+      api.respond = (body) => {
+        const sent = userMessage(String(body.text))
+        api.messages.push(sent)
+        return sse([
+          { type: 'message', message: sent },
+          {
+            type: 'error',
+            code: 'rate_limit',
+            message:
+              'Your AI provider is limiting requests for your key right now. Try again in a minute.',
+          },
+        ])
+      }
+      await renderAt(page)
+      await screen.findByText('Go on.')
+      await type('A hard question')
+      await sendWithKeyboard()
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('limiting requests for your key')
+      expect(screen.getByText('A hard question')).toBeInTheDocument()
+      expect(
+        await screen.findByText("The editor hasn't replied to the last message."),
+      ).toBeInTheDocument()
+
+      api.respond = () => {
+        const reply = aiMessage('Here I am.')
+        api.messages.push(reply)
+        return sse([...words('Here I am.'), { type: 'done', message: reply }])
+      }
+      await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText('Here I am.')).toBeInTheDocument()
+      expect(api.posts.at(-1)).toEqual({ retry: true })
+      expect(screen.queryByText("The editor hasn't replied to the last message.")).toBeNull()
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('points to account settings when the key is missing or rejected, and puts the message back', async () => {
+      const api = mockConversation([kickoff(), aiMessage('Go on.')])
+      api.respond = () =>
+        HttpResponse.json(
+          { error: 'Add your Anthropic API key in your account settings to use this feature' },
+          { status: 409 },
+        ) as unknown as Response
+      await renderAt(page)
+      await screen.findByText('Go on.')
+      await type('Please answer')
+      await sendWithKeyboard()
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Add your Anthropic API key')
+      expect(screen.getByRole('link', { name: 'Go to account settings' })).toHaveAttribute(
+        'href',
+        '/account',
+      )
+      expect(screen.getByLabelText('Your message')).toHaveValue('Please answer') // not lost
+    })
+
+    it('says so when it was too many messages, or someone else is mid-reply', async () => {
+      const api = mockConversation([kickoff(), aiMessage('Go on.')])
+      api.respond = () =>
+        HttpResponse.json(
+          { error: 'Bob is waiting for a reply. Try again in a moment.' },
+          { status: 409 },
+        ) as unknown as Response
+      await renderAt(page)
+      await screen.findByText('Go on.')
+      await type('Hello?')
+      await sendWithKeyboard()
+      expect(await screen.findByRole('alert')).toHaveTextContent('Bob is waiting for a reply')
+      expect(screen.queryByRole('link', { name: 'Go to account settings' })).toBeNull()
+    })
+  })
+
+  it('shows when someone else is waiting for a reply, and does not let a second message be sent', async () => {
+    const api = mockConversation([
+      kickoff(),
+      aiMessage('Go on.'),
+      userMessage('Bob here', { authorName: 'Bob' }),
+    ])
+    api.replyingNow = { name: 'Bob' }
+    await renderAt(page)
+    expect(await screen.findByText('Bob is waiting for a reply…')).toBeInTheDocument()
+    expect(screen.getByLabelText('Your message')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.queryByText("The editor hasn't replied to the last message.")).toBeNull()
+  })
+
+  it('names the sender of each message, and says when it was cut short, stopped or declined', async () => {
+    mockConversation([
+      kickoff(),
+      aiMessage('Long answer', { stopReason: 'max_tokens' }),
+      userMessage('Hm', { authorName: 'Bob' }),
+      aiMessage('Partly', { status: 'stopped', stopReason: null }),
+      userMessage('Rude question', { authorName: null }),
+      aiMessage('', { stopReason: 'refusal' }),
+    ])
+    await renderAt(page)
+    expect(await screen.findByText('Bob')).toBeInTheDocument()
+    expect(screen.getByText('Someone')).toBeInTheDocument() // an account that has gone
+    expect(screen.getByText(/This reply was cut short/)).toBeInTheDocument()
+    expect(screen.getByText('The reply was stopped here.')).toBeInTheDocument()
+    expect(screen.getByText(/declined to answer that/)).toBeInTheDocument()
+    expect(screen.getAllByText(/claude-sonnet-5-5/).length).toBeGreaterThan(0)
+  })
+
+  describe('suggestions', () => {
+    const withProposals = (...proposals: Proposal[]) =>
+      mockConversation([kickoff(), aiMessage('Try this.', { proposals })])
+
+    it('show a title and notes change against what is there now, with accept and dismiss', async () => {
+      withProposals(
+        proposal({
+          input: { name: 'Why rivers loop', notes: 'Erosion loops.\nA new second line.' },
+        }),
+      )
+      await renderAt(page)
+      const card = (
+        await screen.findByRole('heading', { name: 'Suggested change to this idea' })
+      ).closest('section')!
+      expect(within(card).getByText('Why rivers meander')).toHaveClass('line-through') // what it replaces
+      expect(within(card).getByText('Why rivers loop')).toBeInTheDocument()
+      // The notes show only what changes, in words as well as colour.
+      expect(within(card).getByText(/Removed:/)).toBeInTheDocument()
+      expect(within(card).getByText(/Added:/)).toBeInTheDocument()
+      expect(card.textContent).toContain('Second line.')
+      expect(card.textContent).toContain('A new second line.')
+      expect(
+        within(card).getByRole('button', { name: 'Accept: a new title and new notes' }),
+      ).toBeInTheDocument()
+      expect(
+        within(card).getByRole('button', { name: 'Dismiss: a new title and new notes' }),
+      ).toBeInTheDocument()
+    })
+
+    it('are accepted with one press, and then show who accepted them', async () => {
+      let accepted: unknown
+      const api = withProposals(proposal({ id: 'p-upd' }))
+      server.use(
+        http.post(`${conversationUrl}/proposals/p-upd/accept`, async ({ request }) => {
+          accepted = await request.json()
+          api.messages[1]!.proposals = [
+            proposal({ id: 'p-upd', status: 'accepted', decidedByName: 'Ada' }),
+          ]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Accept:/ }))
+      expect(await screen.findByText('Accepted by Ada.')).toBeInTheDocument()
+      expect(accepted).toEqual({})
+      expect(screen.queryByRole('button', { name: /^Accept:/ })).toBeNull()
+    })
+
+    it('are dismissed with one press', async () => {
+      const api = withProposals(proposal({ id: 'p-no' }))
+      server.use(
+        http.post(`${conversationUrl}/proposals/p-no/dismiss`, () => {
+          api.messages[1]!.proposals = [
+            proposal({ id: 'p-no', status: 'dismissed', decidedByName: 'Ada' }),
+          ]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Dismiss:/ }))
+      expect(await screen.findByText('Dismissed by Ada.')).toBeInTheDocument()
+    })
+
+    it('warn when the idea has changed, and say "apply anyway" instead of "accept"', async () => {
+      let body: unknown
+      const api = withProposals(
+        proposal({ id: 'p-stale', stale: true, input: { notes: 'New notes.' } }),
+      )
+      server.use(
+        http.post(`${conversationUrl}/proposals/p-stale/accept`, async ({ request }) => {
+          body = await request.json()
+          api.messages[1]!.proposals = [
+            proposal({ id: 'p-stale', status: 'accepted', decidedByName: 'Ada' }),
+          ]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      expect(
+        await screen.findByText(/The idea has changed since this was suggested/),
+      ).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^Accept:/ })).toBeNull()
+      await fireEvent.click(screen.getByRole('button', { name: 'Apply anyway: new notes' }))
+      expect(await screen.findByText('Accepted by Ada.')).toBeInTheDocument()
+      expect(body).toEqual({ overwrite: true })
+    })
+
+    it('show a refusal from the server, and stay available', async () => {
+      withProposals(proposal({ id: 'p-gone' }))
+      server.use(
+        http.post(`${conversationUrl}/proposals/p-gone/accept`, () =>
+          HttpResponse.json({ error: 'This suggestion was already dismissed.' }, { status: 409 }),
+        ),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Accept:/ }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('already dismissed')
+    })
+
+    it('offer a new idea, and link to it once accepted', async () => {
+      withProposals(
+        proposal({
+          tool: 'create_idea',
+          input: { name: 'Oxbow lakes', notes: 'Where meanders end.' },
+        }),
+        proposal({
+          tool: 'create_idea',
+          input: { name: 'Deltas', notes: '' },
+          status: 'accepted',
+          decidedByName: 'Bob',
+          createdIdeaId: 'i2',
+        }),
+      )
+      await renderAt(page)
+      const cards = await screen.findAllByRole('heading', { name: 'Suggested new idea' })
+      expect(cards).toHaveLength(2)
+      expect(screen.getByText('Oxbow lakes')).toBeInTheDocument()
+      expect(screen.getByText('Where meanders end.')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /^Accept: a new idea, “Oxbow lakes”/ }),
+      ).toBeInTheDocument()
+      expect(screen.getByText('No notes yet.')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Open the new idea' })).toHaveAttribute(
+        'href',
+        '/p/ada-substack/ideas/i2',
+      )
+      expect(screen.getByText('Accepted by Bob.')).toBeInTheDocument()
+    })
+  })
+
+  it('starts again only after asking, and then shows the invitation to start', async () => {
+    const api = mockConversation([kickoff(), aiMessage('Go on.')])
+    let wiped = false
+    server.use(
+      http.delete(conversationUrl, () => {
+        wiped = true
+        api.messages = []
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    await renderAt(page)
+    await screen.findByText('Go on.')
+    await fireEvent.click(screen.getByRole('button', { name: 'Start again' }))
+    const dialog = screen.getByRole('dialog', { name: 'Start the conversation again?' })
+    expect(dialog).toHaveTextContent('for everyone in this profile')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(wiped).toBe(false)
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Start again' }))
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, start again' }),
+    )
+    expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
+    expect(wiped).toBe(true)
+  })
+
+  it('says so when the idea or the conversation cannot be loaded', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([])),
+      http.get('*/api/profiles/ada-substack/ideas/i1', () =>
+        HttpResponse.json({ error: 'Not found' }, { status: 404 }),
+      ),
+    )
+    await renderAt(page)
+    expect(await screen.findByRole('alert')).toHaveTextContent("couldn't open that idea")
+  })
+
+  it('says what to do when the conversation will not load', async () => {
+    mockConversation(
+      [],
+      [http.get(conversationUrl, () => HttpResponse.json({ error: 'x' }, { status: 500 }))],
+    )
+    await renderAt(page)
+    expect(await screen.findByText(/couldn't load the conversation/)).toBeInTheDocument()
+  })
+})
