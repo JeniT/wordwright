@@ -27,6 +27,15 @@ claimed: claude-session-2 · branch: T3c
 Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
 address they were sent to).
 
+### T20 · Ideas with brainstorm conversations and staged drafts
+
+claimed: claude-session-3 · branch: T20
+
+First step only: ideas with a name, notes, links to related work, and one or more drafts (a single post or a
+linked set). The Brainstorm button is a placeholder; the conversation itself, idea generation (T6) and the
+sources workflow (T19) come later. Original scope also listed image downscaling on upload and a storage port
+for pictures (if D3 picks object storage); those stay open as follow-ups.
+
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -111,13 +120,6 @@ Per the owner: possibly host an open model for users without their own key. Need
 
 The set of sources scanned for articles that could spark ideas for a profile. Depends on the `SearchProvider` /
 news-source decision in D2 and is the input to T6.
-
-### T20 · Ideas with brainstorm conversations and staged drafts (needs T6 design)
-
-Each profile holds ideas; each idea has a brainstorming conversation and several drafts at different stages.
-Drafts currently belong directly to a profile, so this adds an idea level and moves drafts under it (migration
-plan needed for existing drafts). Also: image downscaling on upload, and moving pictures behind a storage port
-if/when D3 picks object storage.
 
 ## Done
 
