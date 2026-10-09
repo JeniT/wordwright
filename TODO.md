@@ -15,6 +15,8 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 ## In progress
 
 - **T2** · Email verification at signup · claimed: Claude (this session) · branch: main (sole agent)
+- **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
+  claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
 ## Ready
 
