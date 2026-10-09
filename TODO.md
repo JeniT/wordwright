@@ -138,7 +138,7 @@ Per the owner: possibly host an open model for users without their own key. Need
   streams a reply over server-sent events; the AI can only propose (`update_idea`, `create_idea`), proposals are
   accepted (with a stale-text check) or dismissed by any member, and answered to the AI on its next turn; one reply
   in flight per idea, 30 messages per 10 minutes per person, 3-minute reply timeout, Stop keeps what was said, Try
-  again after a failure, Start again wipes the thread. Reader (audience) descriptions arrive with T16. (COMMIT)
+  again after a failure, Start again wipes the thread. Reader (audience) descriptions arrive with T16. (`6532148`)
 - **T20b3** · Brainstorming prompt on the account page: each person can edit, save and reset their own version of the
   default commissioning-editor prompt (`prompts/brainstorm-default.md`); a version identical to the default isn't
   stored, so improvements to the default reach everyone who hasn't changed theirs; `BrainstormPromptService.effective()`
