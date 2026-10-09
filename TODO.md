@@ -133,7 +133,7 @@ Per the owner: possibly host an open model for users without their own key. Need
   images off), suggestion cards with a line diff of the notes and Accept / Dismiss / Apply anyway, Try again,
   "someone is waiting", Start again with confirmation, a message refused before it starts goes back in the box; the
   idea page's Brainstorm button is now a link that starts the conversation at once; `FAKE_LLM` has a scripted editor.
-  (COMMIT)
+  (`3840a28`)
 - **T20b2** · Brainstorming API: a shared thread per idea (`idea_messages`, `idea_proposals`); the service builds the
   system prompt (the person's prompt + the app's rules), the idea snapshot (title, notes, related links, venue,
   draft titles only; sent again only when the idea changes) and replays the thread in a provider-neutral format;
