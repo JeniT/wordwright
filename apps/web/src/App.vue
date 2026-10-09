@@ -28,7 +28,7 @@ const reload = () => window.location.reload()
 
 function switchProfile(event: Event) {
   const profileId = (event.target as HTMLSelectElement).value
-  if (profileId) router.push({ name: 'drafts', params: { profileId } })
+  if (profileId) router.push({ name: 'profile', params: { profileId } })
 }
 </script>
 

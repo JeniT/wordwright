@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { User } from '@lfwa/core'
+import { firstAvailable, suggestHandle, type User } from '@lfwa/core'
 import { nowIso } from './database'
 
 export interface UserRecord {
   id: string
+  handle: string
   name: string
   email: string
   emailVerified: boolean
@@ -13,14 +14,25 @@ export interface UserRecord {
 export class UserStore {
   constructor(private readonly db: DatabaseSync) {}
 
+  /**
+   * The handle is derived from the name and made unique here. Call inside a transaction (as
+   * registration does) so two sign-ups can't pick the same one.
+   */
   create(input: { name: string; email: string; emailVerified: boolean }): UserRecord {
     const id = randomUUID()
+    const handle = firstAvailable(suggestHandle(input.name, input.email), (h) =>
+      this.handleTaken(h),
+    )
     this.db
       .prepare(
-        'INSERT INTO users (id, name, email, email_verified, created_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO users (id, handle, name, email, email_verified, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
-      .run(id, input.name, input.email, input.emailVerified ? 1 : 0, nowIso())
-    return { id, ...input }
+      .run(id, handle, input.name, input.email, input.emailVerified ? 1 : 0, nowIso())
+    return { id, handle, ...input }
+  }
+
+  private handleTaken(handle: string): boolean {
+    return this.db.prepare('SELECT 1 FROM users WHERE handle = ?').get(handle) !== undefined
   }
 
   findById(id: string): UserRecord | undefined {
@@ -43,6 +55,7 @@ export class UserStore {
   toPublic(user: UserRecord): User {
     return {
       id: user.id,
+      handle: user.handle,
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
@@ -105,6 +118,7 @@ export class UserStore {
     const r = row as Record<string, unknown>
     return {
       id: r.id as string,
+      handle: r.handle as string,
       name: r.name as string,
       email: r.email as string,
       emailVerified: r.email_verified === 1,

@@ -50,9 +50,20 @@ export const routes: RouteRecordRaw[] = [
   },
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue') },
   {
+    path: '/profiles/new',
+    name: 'new-profile',
+    component: () => import('./views/NewProfileView.vue'),
+  },
+  {
     path: '/p/:profileId',
-    name: 'drafts',
-    component: () => import('./views/DraftsView.vue'),
+    name: 'profile',
+    component: () => import('./views/ProfileView.vue'),
+    props: true,
+  },
+  {
+    path: '/p/:profileId/settings',
+    name: 'profile-settings',
+    component: () => import('./views/ProfileSettingsView.vue'),
     props: true,
   },
   {

@@ -3,6 +3,7 @@ import type { Mailer } from './mail/mailer'
 import {
   lastResetToken,
   PASSWORD,
+  PNG_BYTES,
   register,
   saveKey,
   setup,
@@ -347,12 +348,15 @@ describe('account deletion', () => {
     await c.post(`/api/profiles/${profileId}/drafts`, { title: 'Mine', body: 'x' })
     const second = await (await c.post('/api/profiles', { name: 'Second' })).json()
     await c.post(`/api/profiles/${second.id}/drafts`, { title: 'Also mine', body: 'y' })
+    await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
+    expect(store.profiles.getImage(second.id)).toBeDefined()
 
     const res = await c.delete('/api/account', {
       confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(res.status).toBe(204)
+    expect(store.profiles.getImage(second.id)).toBeUndefined()
 
     expect(store.users.findById(user.id)).toBeUndefined()
     expect(store.profiles.listIdsForUser(user.id)).toEqual([])

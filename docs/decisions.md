@@ -66,6 +66,31 @@ The first version of the e2e suite passed while the dev server was broken, becau
 `apps/web/e2e/fixtures.ts` now fails any test on uncaught exceptions, `console.error`, failed requests or 5xx.
 The e2e API also runs on a real SQLite file so migrations are exercised.
 
+## Profiles are venues, and ids are `<handle>-<slug>`
+
+The existing profile (a container with members and drafts) _is_ the publishing venue the owner described, so it
+was extended rather than adding a second concept. Profile URLs get shared, so ids are readable: users get a
+`handle`, and a profile's id is `<creator's handle>-<slug of name>`. **Handles contain no `-`**, which makes the
+split unambiguous: otherwise handle `jen` + profile `it-substack` and handle `jenit` + profile `substack` would
+both be `jenit-substack`. The id is fixed at creation (renaming doesn't change it, so links keep working) and
+belongs to the creator's handle even if ownership later moves (T11). Handles are generated, not chosen, for now
+(changing one is T16); the migration also rewrote old UUID ids to this form. Alternatives rejected: per-user
+uniqueness on the name alone (URLs would need the user in the path anyway), and globally unique names (squatting,
+and the `substack` clash the owner wanted to avoid).
+
+## Profile pictures live in SQLite, are raster-only, and are sniffed
+
+A picture is up to 1 MB, in its own table (so listing profiles never reads image bytes), served by an authenticated
+route with `nosniff`. The type comes from the file's leading bytes, not the declared Content-Type, and SVG is not
+accepted (script, same origin). No object-storage port yet: nothing else needs one, and moving it behind a port is
+easy when it does (hosting is D3). The per-user cap on owned profiles (25) bounds storage.
+
+## Validation errors answer `{ error: "message" }`
+
+The `zValidator` default returns a raw zod object, which the UI showed as "[object Object]" (found by an e2e test;
+the component tests mocked the server and missed it). `validateJson` (`apps/api/src/validate.ts`) returns the first
+problem as a plain message. Only the profile routes use it so far; the rest is T17.
+
 ## Email: provider-neutral SMTP; sent after responding; zero-setup default
 
 `SmtpMailer` (nodemailer) works with any provider, so choosing Resend/Postmark/SES is configuration, not code.

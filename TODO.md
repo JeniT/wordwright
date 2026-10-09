@@ -15,8 +15,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 ## In progress
 
 - **T3b** · Purge never-confirmed accounts · claimed: Claude (T3b session) · branch: T3b (worktree `.worktrees/T3b`)
-- **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
-  claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
 ## Ready
 
@@ -40,6 +38,26 @@ address they were sent to).
 
 Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
 protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
+
+### T16 · Audiences / reader personas per profile
+
+Why: part of the venue-profile spec that T15 didn't build. Each profile has a set of target readers.
+
+- Table + store + routes under `/api/profiles/:id/audiences` (name, short description; members read, owner edits).
+- Schemas in `packages/core/src/domain.ts`; section on the profile page with empty/loading/error states.
+- Cascade on profile deletion; tests incl. account deletion and an e2e flow.
+
+### T17 · Use `validateJson` on every route (readable 400 messages)
+
+Why: `zValidator`'s default 400 body is a zod object, which the UI shows as "[object Object]" (fixed for the
+profile routes only; see `docs/decisions.md`). Switch `auth`, `account`, `drafts`, `llm`, `assist` routes, check
+schema messages read well for people (e.g. `PasswordSchema`), and add an e2e check on the register form.
+
+### T18 · Let people choose or change their handle
+
+Why: handles are generated at sign-up (`jenit`). Add an account setting with availability check, the existing
+rules (`HandleSchema`), and a rule for what happens to existing profile ids (they stay; only new ones use it).
+Consider a reserved-words list and a rate limit.
 
 ## Backlog
 
@@ -83,6 +101,18 @@ Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace
 
 Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
 
+### T19 · Idea sources per profile (needs D2)
+
+The set of sources scanned for articles that could spark ideas for a profile. Depends on the `SearchProvider` /
+news-source decision in D2 and is the input to T6.
+
+### T20 · Ideas with brainstorm conversations and staged drafts (needs T6 design)
+
+Each profile holds ideas; each idea has a brainstorming conversation and several drafts at different stages.
+Drafts currently belong directly to a profile, so this adds an idea level and moves drafts under it (migration
+plan needed for existing drafts). Also: image downscaling on upload, and moving pictures behind a storage port
+if/when D3 picks object storage.
+
 ## Done
 
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
@@ -94,6 +124,9 @@ Per the owner: possibly host an open model for users without their own key. Need
   recovery test (`15d87c0`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
+- **T15** · Venue profiles: user handles and readable ids (`jenit-substack`), website link, picture with
+  monogram fallback, profile list on the home page, create page, profile page, settings page (sharing and deletion
+  moved here from Account), id migration for existing data. Audiences, sources and ideas are T16/T19/T20.
 - **T4** · Change password while signed in (current password required, other devices signed out, notice
   email) and add a password to Google-only accounts via an emailed link (`ecff6ed`)
 - **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,

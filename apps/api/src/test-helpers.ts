@@ -26,16 +26,18 @@ export class TestClient {
     body?: unknown,
     headers: Record<string, string> = {},
   ) {
+    const raw = body instanceof Uint8Array
+    const payload = body === undefined ? undefined : raw ? body : JSON.stringify(body)
     const cookie = [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ')
     const res = await this.app.request(path, {
       method,
       redirect: 'manual',
       headers: {
-        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...(body === undefined || raw ? {} : { 'content-type': 'application/json' }),
         ...(cookie ? { cookie } : {}),
         ...headers,
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: payload as NonNullable<ConstructorParameters<typeof Request>[1]>['body'],
     })
     for (const line of res.headers.getSetCookie()) {
       const [pair, ...attrs] = line.split('; ')
@@ -50,6 +52,7 @@ export class TestClient {
       setCookies: res.headers.getSetCookie(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       json: () => res.json() as Promise<any>,
+      bytes: async () => new Uint8Array(await res.arrayBuffer()),
     }
   }
 
@@ -59,6 +62,9 @@ export class TestClient {
   put = (path: string, body: unknown) => this.request('PUT', path, body)
   patch = (path: string, body: unknown) => this.request('PATCH', path, body)
   delete = (path: string, body?: unknown) => this.request('DELETE', path, body)
+  /** Sends `bytes` as the whole request body, as a browser does when uploading a file. */
+  putBytes = (path: string, bytes: Uint8Array, contentType = 'application/octet-stream') =>
+    this.request('PUT', path, bytes, { 'content-type': contentType })
 }
 
 export function setup(options: TestOptions = {}) {
@@ -102,6 +108,9 @@ export function setup(options: TestOptions = {}) {
 export type TestContext = ReturnType<typeof setup>
 
 export const PASSWORD = 'correct horse battery'
+
+/** The smallest valid PNG header; enough for the server to recognise the type. */
+export const PNG_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
 
 export async function register(
   client: TestClient,

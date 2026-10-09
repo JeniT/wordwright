@@ -10,6 +10,7 @@ import { createAppRouter } from './router'
 
 export const testUser = {
   id: 'u1',
+  handle: 'adalovelace',
   name: 'Ada Lovelace',
   email: 'ada@example.com',
   emailVerified: true,
@@ -39,6 +40,10 @@ export async function renderAt(path: string, component?: Component) {
   await router.push(path)
   await router.isReady()
   const App = (await import('./App.vue')).default
-  const view = render(component ?? App, { global: { plugins: [pinia, VueQueryPlugin, router] } })
+  // No retries: a failing request should show its error state at once, not after backoff.
+  const queries = { queryClientConfig: { defaultOptions: { queries: { retry: false } } } }
+  const view = render(component ?? App, {
+    global: { plugins: [pinia, [VueQueryPlugin, queries], router] },
+  })
   return { ...view, router }
 }

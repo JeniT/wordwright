@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
@@ -8,6 +8,8 @@ useMockServer()
 const profile = {
   id: 'p1',
   name: "Ada's writing",
+  siteUrl: null,
+  imageUrl: null,
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }],
 }
@@ -45,15 +47,18 @@ describe('AccountView', () => {
     expect(screen.getByText(/Linked sign-in: google/)).toBeInTheDocument()
   })
 
-  it('lists profiles with their members', async () => {
+  it('shows the handle that profile addresses start with, and links to the profiles', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/profiles', () => HttpResponse.json([profile])),
-      http.get('*/api/profiles/p1/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/account')
-    await screen.findByText(/ada@example.com, owner/)
-    expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument()
+    const section = (await screen.findByRole('heading', { name: 'Profiles' })).closest('section')!
+    expect(section).toHaveTextContent('adalovelace')
+    expect(within(section).getByRole('link', { name: 'your profiles' })).toHaveAttribute(
+      'href',
+      '/',
+    )
   })
 })
 

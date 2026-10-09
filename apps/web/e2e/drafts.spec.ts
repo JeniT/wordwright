@@ -15,8 +15,25 @@ async function registerUser(page: Page, name = 'Ada Lovelace') {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
   return email
+}
+
+/** From the profile list, opens the profile every new account starts with. */
+async function openFirstProfile(page: Page) {
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /writing/ })
+    .click()
+  await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+}
+
+/** The first profile's settings page, where it is shared. */
+async function openSettings(page: Page) {
+  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Profile settings' })).toBeVisible()
 }
 
 type Mail = { to: string; subject: string; text: string }
@@ -50,7 +67,7 @@ async function confirmEmail(page: Page, email: string) {
   await page.goto(link!)
   await expect(page.getByText('your email address is confirmed')).toBeVisible()
   await page.getByRole('link', { name: 'Continue writing' }).click()
-  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 }
 
 test('redirects signed-out visitors to sign in', async ({ page }) => {
@@ -60,6 +77,7 @@ test('redirects signed-out visitors to sign in', async ({ page }) => {
 
 test('register, write, save and request a critique', async ({ page }) => {
   await registerUser(page)
+  await openFirstProfile(page)
 
   await page.getByRole('button', { name: 'New draft' }).click()
   await page.getByLabel('Title').fill('Why rivers meander')
@@ -80,10 +98,8 @@ test('register, write, save and request a critique', async ({ page }) => {
   ).toBeVisible()
   await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "Replace…"
 
-  await page
-    .getByRole('link', { name: /Lovelace.s writing/ })
-    .first()
-    .click()
+  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await openFirstProfile(page)
   await page.getByRole('link', { name: 'Why rivers meander' }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
   await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
@@ -93,7 +109,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 test('sign out and back in, and the session survives a reload', async ({ page }) => {
   const email = await registerUser(page)
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
@@ -105,7 +121,7 @@ test('sign out and back in, and the session survives a reload', async ({ page })
 
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 })
 
 test('recovers a forgotten password from the emailed link', async ({ page }) => {
@@ -134,7 +150,7 @@ test('recovers a forgotten password from the emailed link', async ({ page }) => 
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
   await page.getByLabel('Password').fill('my brand new password')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await page.goto(link!)
@@ -149,7 +165,7 @@ test('confirms an email address from the signup email', async ({ page }) => {
   await expect(banner).toContainText(email)
 
   // Until they confirm, sharing is explained rather than offered.
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await openSettings(page)
   await expect(page.getByText('Confirm your email address to invite people')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
 
@@ -163,7 +179,7 @@ test('confirms an email address from the signup email', async ({ page }) => {
   await expect(page.getByText('your email address is confirmed')).toBeVisible()
 
   await page.getByRole('link', { name: 'Continue writing' }).click()
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await openSettings(page)
   await expect(page.getByRole('button', { name: 'Send invitation' })).toBeVisible()
 })
 
@@ -184,7 +200,7 @@ test('resends the confirmation email, and only the newest link works', async ({ 
 
 /** Ada (signed in, confirmed) invites `email` from her account page, and we read the email they get. */
 async function invite(page: Page, email: string, inviter = 'Ada') {
-  await page.getByRole('link', { name: inviter, exact: true }).click()
+  await openSettings(page)
   await page
     .getByLabel(/Invite someone to/)
     .first()
@@ -225,7 +241,7 @@ test('invites someone who has no account yet: they register from the email and j
 
   // Registering brings them straight back to the invitation, where they choose to join.
   await newbie.getByRole('button', { name: /^Join / }).click()
-  await expect(newbie.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(newbie.getByRole('heading', { name: 'Drafts' })).toBeVisible()
   // Accepting proved they own the address, so there is no "please confirm" banner.
   await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
   await expect(newbie.getByLabel('Profile').locator('option', { hasText: '(shared)' })).toHaveCount(
@@ -260,10 +276,11 @@ test('invites someone who already has an account; the link only works for that a
 
   await bobPage.goto(link)
   await bobPage.getByRole('button', { name: /^Join / }).click()
-  await expect(bobPage.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(bobPage.getByRole('heading', { name: 'Drafts' })).toBeVisible()
   await expect(
     bobPage.getByLabel('Profile').locator('option', { hasText: '(shared)' }),
   ).toHaveCount(1)
+  await expect(bobPage.getByText('Shared with 1 person')).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
@@ -282,7 +299,7 @@ test('revoking an invitation stops its link working', async ({ page, browser }) 
 
 test('unconfirmed owners are told to confirm before inviting', async ({ page }) => {
   await registerUser(page, 'Ada')
-  await page.getByRole('link', { name: 'Ada', exact: true }).click()
+  await openSettings(page)
   await expect(page.getByText('Confirm your email address to invite people')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
 })
@@ -298,7 +315,7 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await phone.getByLabel('Email').fill(email)
   await phone.getByLabel('Password').fill(PASSWORD)
   await phone.getByRole('button', { name: 'Sign in' }).click()
-  await expect(phone.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(phone.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
   // A wrong current password is explained and changes nothing.
@@ -327,7 +344,7 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
   await page.getByLabel('Password').fill('my brand new password')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
   expect(phoneProblems, "The phone's browser problems").toEqual([])
 })
 

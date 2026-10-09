@@ -1,9 +1,13 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { firstAvailable, profileIdFor, suggestHandle } from '@lfwa/core'
+
+/** SQL, or a function when the change needs logic SQL can't express. Either runs in one transaction. */
+type Migration = string | ((db: DatabaseSync) => void)
 
 /** Ordered, append-only. The schema version is the number of migrations applied. */
-const MIGRATIONS: string[] = [
+export const MIGRATIONS: Migration[] = [
   `
   CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -103,7 +107,67 @@ const MIGRATIONS: string[] = [
   CREATE INDEX invitations_profile ON invitations(profile_id);
   CREATE INDEX invitations_email ON invitations(email);
   `,
+  addHandlesAndVenueProfiles,
 ]
+
+/**
+ * Profiles become publishing venues with human-readable ids, `<owner handle>-<name slug>`.
+ * Every user gets a unique handle (letters and digits only), and existing profiles, which had
+ * random ids, are renamed to match. `users.handle` stays nullable in the schema because SQLite
+ * can't add a NOT NULL column without a default; the unique index and the store enforce it.
+ */
+export function addHandlesAndVenueProfiles(db: DatabaseSync) {
+  db.exec(`
+    ALTER TABLE users ADD COLUMN handle TEXT;
+    ALTER TABLE profiles ADD COLUMN site_url TEXT;
+    -- Kept apart from profiles so listing profiles never reads image bytes.
+    CREATE TABLE profile_images (
+      profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+      content_type TEXT NOT NULL,
+      data BLOB NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `)
+
+  const handles = new Map<string, string>()
+  const takenHandles = new Set<string>()
+  const users = db
+    .prepare('SELECT id, name, email FROM users ORDER BY created_at, rowid')
+    .all() as { id: string; name: string; email: string }[]
+  const setHandle = db.prepare('UPDATE users SET handle = ? WHERE id = ?')
+  for (const u of users) {
+    const handle = firstAvailable(suggestHandle(u.name, u.email), (h) => takenHandles.has(h))
+    takenHandles.add(handle)
+    handles.set(u.id, handle)
+    setHandle.run(handle, u.id)
+  }
+  db.exec('CREATE UNIQUE INDEX users_handle ON users(handle)')
+
+  // Rewriting a primary key means rewriting its children too; check foreign keys only at commit.
+  db.exec('PRAGMA defer_foreign_keys = ON')
+  const profiles = db
+    .prepare(
+      `SELECT p.id, p.name,
+         (SELECT m.user_id FROM profile_members m WHERE m.profile_id = p.id
+          ORDER BY m.role = 'owner' DESC, m.joined_at, m.rowid LIMIT 1) AS owner_id
+       FROM profiles p ORDER BY p.created_at, p.rowid`,
+    )
+    .all() as { id: string; name: string; owner_id: string | null }[]
+  const takenIds = new Set<string>()
+  const rename = [
+    db.prepare('UPDATE profiles SET id = ? WHERE id = ?'),
+    db.prepare('UPDATE profile_members SET profile_id = ? WHERE profile_id = ?'),
+    db.prepare('UPDATE drafts SET profile_id = ? WHERE profile_id = ?'),
+    db.prepare('UPDATE invitations SET profile_id = ? WHERE profile_id = ?'),
+  ]
+  for (const p of profiles) {
+    const handle = p.owner_id ? handles.get(p.owner_id) : undefined
+    if (!handle) continue // no members, so nobody can reach it anyway; leave it be
+    const id = firstAvailable(profileIdFor(handle, p.name), (c) => takenIds.has(c), '-')
+    takenIds.add(id)
+    for (const statement of rename) statement.run(id, p.id)
+  }
+}
 
 /** A problem with the database file that a person needs to act on (not a bug). */
 export class DatabaseError extends Error {}
@@ -123,7 +187,11 @@ export function openDatabase(path: string): DatabaseSync {
 }
 
 /** Brings the schema up to date, one atomic step per migration. */
-export function migrate(db: DatabaseSync, path = 'the database', migrations = MIGRATIONS) {
+export function migrate(
+  db: DatabaseSync,
+  path = 'the database',
+  migrations: Migration[] = MIGRATIONS,
+) {
   const { user_version: current } = db.prepare('PRAGMA user_version').get() as {
     user_version: number
   }
@@ -150,7 +218,9 @@ export function migrate(db: DatabaseSync, path = 'the database', migrations = MI
   for (let v = current; v < migrations.length; v++) {
     db.exec('BEGIN')
     try {
-      db.exec(migrations[v]!)
+      const step = migrations[v]!
+      if (typeof step === 'string') db.exec(step)
+      else step(db)
       db.exec(`PRAGMA user_version = ${v + 1}`)
       db.exec('COMMIT')
     } catch (err) {

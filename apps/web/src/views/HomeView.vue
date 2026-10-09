@@ -1,21 +1,63 @@
 <script setup lang="ts">
-import { watchEffect } from 'vue'
-import { useRouter } from 'vue-router'
-import { useProfiles } from '../lib/useProfiles'
+import { RouterLink } from 'vue-router'
+import ProfileImage from '../components/ProfileImage.vue'
+import { displayHost, useProfiles } from '../lib/useProfiles'
 
-const router = useRouter()
 const profiles = useProfiles()
-
-watchEffect(() => {
-  if (!profiles.data.value) return
-  const first = profiles.data.value[0]
-  router.replace(first ? { name: 'drafts', params: { profileId: first.id } } : { name: 'account' })
-})
+const newProfileLink =
+  'rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 </script>
 
 <template>
-  <p v-if="profiles.isError.value" role="alert" class="text-red-700">
-    Couldn't load your profiles.
-  </p>
-  <p v-else>Loading…</p>
+  <section aria-labelledby="profiles-heading">
+    <div class="mb-6 flex items-center justify-between gap-4">
+      <h1 id="profiles-heading" class="font-serif text-2xl font-semibold">Your profiles</h1>
+      <RouterLink :to="{ name: 'new-profile' }" :class="newProfileLink">New profile</RouterLink>
+    </div>
+
+    <p v-if="profiles.isPending.value">Loading…</p>
+    <div
+      v-else-if="profiles.isError.value"
+      role="alert"
+      class="rounded border border-red-200 bg-red-50 p-4"
+    >
+      <p class="text-red-900">We couldn't load your profiles.</p>
+      <button type="button" class="mt-2 text-sm underline" @click="profiles.refetch()">
+        Try again
+      </button>
+    </div>
+    <div
+      v-else-if="!profiles.data.value?.length"
+      class="rounded border border-dashed border-stone-300 p-8 text-center"
+    >
+      <p class="font-serif text-lg">No profiles yet</p>
+      <p class="mx-auto mt-2 max-w-md text-stone-700">
+        A profile is a place you publish, like a Substack or a blog. It keeps its own ideas, readers
+        and drafts together.
+      </p>
+      <RouterLink :to="{ name: 'new-profile' }" :class="[newProfileLink, 'mt-4 inline-block']">
+        Create your first profile
+      </RouterLink>
+    </div>
+    <ul v-else class="grid gap-4 sm:grid-cols-2">
+      <li v-for="p in profiles.data.value" :key="p.id">
+        <RouterLink
+          :to="{ name: 'profile', params: { profileId: p.id } }"
+          class="flex h-full items-center gap-4 rounded-lg border border-stone-200 bg-white p-4 hover:border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <ProfileImage :id="p.id" :name="p.name" :image-url="p.imageUrl" />
+          <span class="min-w-0">
+            <span class="block truncate font-serif text-lg font-semibold">{{ p.name }}</span>
+            <span v-if="p.siteUrl" class="block truncate text-sm text-stone-600">
+              {{ displayHost(p.siteUrl) }}
+            </span>
+            <span v-if="p.members.length > 1" class="block text-sm text-stone-600">
+              Shared with {{ p.members.length - 1 }}
+              {{ p.members.length === 2 ? 'person' : 'people' }}
+            </span>
+          </span>
+        </RouterLink>
+      </li>
+    </ul>
+  </section>
 </template>

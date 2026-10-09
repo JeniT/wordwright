@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it } from 'vitest'
-import { DatabaseError, migrate, openDatabase } from './database'
+import {
+  addHandlesAndVenueProfiles,
+  DatabaseError,
+  MIGRATIONS,
+  migrate,
+  openDatabase,
+} from './database'
 
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -46,6 +52,92 @@ describe('migrations', () => {
     expect(version(db)).toBe(2)
     expect(db.prepare('SELECT id FROM a').all()).toHaveLength(1)
     expect(tableNames(db)).toContain('b')
+  })
+
+  describe('handles and readable profile ids', () => {
+    const before = MIGRATIONS.slice(0, MIGRATIONS.indexOf(addHandlesAndVenueProfiles))
+
+    function legacyDb() {
+      const db = new DatabaseSync(':memory:')
+      db.exec('PRAGMA foreign_keys = ON')
+      migrate(db, 'test', before)
+      const user = (id: string, name: string, email: string) =>
+        db
+          .prepare('INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)')
+          .run(id, name, email, `2026-01-0${id.length}T00:00:00Z`)
+      user('u1', 'Ada Lovelace', 'ada@example.com')
+      user('u22', 'Ada Lovelace', 'ada2@example.com') // same name: needs a distinct handle
+      user('u333', '日本語', 'sam.smith@example.com') // no Latin letters: falls back to the email
+      const profile = (id: string, name: string, createdAt: string) =>
+        db
+          .prepare('INSERT INTO profiles (id, name, created_at) VALUES (?, ?, ?)')
+          .run(id, name, createdAt)
+      const member = (profileId: string, userId: string, role: string, joinedAt: string) =>
+        db
+          .prepare('INSERT INTO profile_members VALUES (?, ?, ?, ?)')
+          .run(profileId, userId, role, joinedAt)
+      profile('3f2a-uuid-1', "Ada's writing", '2026-01-01T00:00:00Z')
+      member('3f2a-uuid-1', 'u1', 'owner', '2026-01-01T00:00:00Z')
+      profile('9b7c-uuid-2', "Ada's writing", '2026-01-02T00:00:00Z') // same name, same owner
+      member('9b7c-uuid-2', 'u1', 'owner', '2026-01-02T00:00:00Z')
+      member('9b7c-uuid-2', 'u22', 'editor', '2026-01-02T00:00:01Z') // shared with another user
+      profile('abcd-uuid-3', 'Notes', '2026-01-03T00:00:00Z')
+      member('abcd-uuid-3', 'u333', 'owner', '2026-01-03T00:00:00Z')
+      db.prepare(
+        'INSERT INTO drafts (id, profile_id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      ).run('d1', '9b7c-uuid-2', 'Keep me', 'body', 'x', 'x')
+      db.prepare(
+        `INSERT INTO invitations (id, profile_id, invited_by, email, token_hash, created_at, expires_at)
+         VALUES ('i1', '9b7c-uuid-2', 'u1', 'new@example.com', 'hash', 'x', 'x')`,
+      ).run()
+      return db
+    }
+
+    it('gives existing users unique handles and renames profiles, keeping members and drafts', () => {
+      const db = legacyDb()
+      migrate(db, 'test', MIGRATIONS)
+
+      const handles = db.prepare('SELECT id, handle FROM users ORDER BY id').all()
+      expect(handles).toEqual([
+        { id: 'u1', handle: 'adalovelace' },
+        { id: 'u22', handle: 'adalovelace2' },
+        { id: 'u333', handle: 'samsmith' },
+      ])
+      expect(db.prepare('SELECT id, name FROM profiles ORDER BY id').all()).toEqual([
+        { id: 'adalovelace-adas-writing', name: "Ada's writing" },
+        { id: 'adalovelace-adas-writing-2', name: "Ada's writing" },
+        { id: 'samsmith-notes', name: 'Notes' },
+      ])
+      // Children moved with their parents.
+      expect(
+        db.prepare('SELECT profile_id, user_id FROM profile_members ORDER BY 1, 2').all(),
+      ).toEqual([
+        { profile_id: 'adalovelace-adas-writing', user_id: 'u1' },
+        { profile_id: 'adalovelace-adas-writing-2', user_id: 'u1' },
+        { profile_id: 'adalovelace-adas-writing-2', user_id: 'u22' },
+        { profile_id: 'samsmith-notes', user_id: 'u333' },
+      ])
+      expect(db.prepare('SELECT profile_id FROM drafts').all()).toEqual([
+        { profile_id: 'adalovelace-adas-writing-2' },
+      ])
+      expect(db.prepare('SELECT profile_id FROM invitations').all()).toEqual([
+        { profile_id: 'adalovelace-adas-writing-2' },
+      ])
+      expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+    })
+
+    it('enforces unique handles afterwards', () => {
+      const db = legacyDb()
+      migrate(db, 'test', MIGRATIONS)
+      expect(() => db.exec("UPDATE users SET handle = 'samsmith' WHERE id = 'u1'")).toThrow(
+        /UNIQUE/,
+      )
+    })
+
+    it('works on an empty database', () => {
+      const db = new DatabaseSync(':memory:')
+      expect(() => migrate(db, 'test', MIGRATIONS)).not.toThrow()
+    })
   })
 
   it('roll back a failing migration completely and leave the version unchanged', () => {

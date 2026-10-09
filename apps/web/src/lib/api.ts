@@ -11,6 +11,8 @@ import {
   type DraftInput,
   type LlmSettingsInput,
   type LoginInput,
+  type ProfileInput,
+  type ProfileUpdate,
   type RegisterInput,
 } from '@lfwa/core'
 import type { z } from 'zod'
@@ -39,6 +41,18 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       headers: body === undefined ? {} : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     })
+    return checked(res)
+  }
+  /** Sends a file as the whole request body (not multipart), as the profile image endpoint expects. */
+  async function sendFile(method: string, path: string, file: File): Promise<Response> {
+    const res = await fetchImpl(`/api${path}`, {
+      method,
+      headers: { 'content-type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    return checked(res)
+  }
+  async function checked(res: Response): Promise<Response> {
     if (!res.ok) {
       const detail = (await res.json().catch(() => null)) as { error?: string } | null
       throw new ApiError(res.status, detail?.error ?? `Request failed (${res.status})`)
@@ -80,9 +94,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
 
     // profiles
     listProfiles: () => get(ProfileList, 'GET', '/profiles'),
-    createProfile: (name: string) => get(ProfileSchema, 'POST', '/profiles', { name }),
-    renameProfile: (id: string, name: string) =>
-      get(ProfileSchema, 'PATCH', `/profiles/${id}`, { name }),
+    createProfile: (input: ProfileInput) => get(ProfileSchema, 'POST', '/profiles', input),
+    updateProfile: (id: string, changes: ProfileUpdate) =>
+      get(ProfileSchema, 'PATCH', `/profiles/${id}`, changes),
+    setProfileImage: async (id: string, file: File) =>
+      ProfileSchema.parse(await (await sendFile('PUT', `/profiles/${id}/image`, file)).json()),
+    removeProfileImage: (id: string) => act('DELETE', `/profiles/${id}/image`),
     deleteProfile: (id: string) => act('DELETE', `/profiles/${id}`),
     invite: (profileId: string, email: string) =>
       act('POST', `/profiles/${profileId}/invitations`, { email }),

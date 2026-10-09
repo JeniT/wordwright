@@ -1,16 +1,33 @@
 import { z } from 'zod'
+import { HANDLE_MAX, HANDLE_MIN, HANDLE_PATTERN } from './ids'
 
 // ---- Shared field rules -------------------------------------------------
 
 export const EmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254))
 /** Max length bounds the cost of hashing attacker-supplied input. */
 export const PasswordSchema = z.string().min(10, 'Use at least 10 characters').max(128)
-export const NameSchema = z.string().trim().min(1).max(100)
+export const NameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Enter a name')
+  .max(100, 'Use 100 characters or fewer for the name')
+export const HandleSchema = z.string().min(HANDLE_MIN).max(HANDLE_MAX).regex(HANDLE_PATTERN)
+
+/** People type "mysite.substack.com"; assume https. Only web addresses are accepted, never e.g. javascript:. */
+const withScheme = (text: string) => (/^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`)
+export const SiteUrlSchema = z
+  .string()
+  .trim()
+  .max(300, 'That web address is too long')
+  .transform(withScheme)
+  .pipe(z.url({ protocol: /^https?$/, message: 'Enter a web address, like https://example.com' }))
 
 // ---- Accounts -----------------------------------------------------------
 
 export const UserSchema = z.object({
   id: z.string(),
+  /** Short, unique, lower-case name that prefixes the ids of profiles this person creates. */
+  handle: HandleSchema,
   name: z.string(),
   email: z.string(),
   /** Whether we've confirmed the person controls this address. */
@@ -74,15 +91,30 @@ export const ProfileMemberSchema = z.object({
 export type ProfileMember = z.infer<typeof ProfileMemberSchema>
 
 export const ProfileSchema = z.object({
+  /** Human-readable and shareable, e.g. `jenit-substack`. Never changes after creation. */
   id: z.string(),
   name: z.string(),
+  /** Where content for this profile gets published. */
+  siteUrl: z.string().nullable(),
+  /** Same-origin URL of the uploaded image, or null (the UI then draws a placeholder). */
+  imageUrl: z.string().nullable(),
   /** The current user's role in this profile. */
   role: ProfileRoleSchema,
   members: z.array(ProfileMemberSchema),
 })
 export type Profile = z.infer<typeof ProfileSchema>
 
-export const ProfileInputSchema = z.object({ name: NameSchema })
+/** Bounds how much one account can store (each profile may hold an image). */
+export const MAX_OWNED_PROFILES = 25
+
+export const ProfileInputSchema = z.object({ name: NameSchema, siteUrl: SiteUrlSchema.nullish() })
+export type ProfileInput = z.infer<typeof ProfileInputSchema>
+/** Omitted fields are left alone; `siteUrl: null` clears it. */
+export const ProfileUpdateSchema = z.object({
+  name: NameSchema.optional(),
+  siteUrl: SiteUrlSchema.nullable().optional(),
+})
+export type ProfileUpdate = z.infer<typeof ProfileUpdateSchema>
 
 // ---- Invitations (how people join a shared profile) ---------------------
 

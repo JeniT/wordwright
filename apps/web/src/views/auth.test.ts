@@ -57,7 +57,7 @@ describe('sign in', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/not verified/)
   })
 
-  it('signs in and lands on the first profile', async () => {
+  it('signs in and lands on the list of profiles', async () => {
     let signedIn = false
     server.use(
       http.get('*/api/auth/me', () =>
@@ -69,16 +69,28 @@ describe('sign in', () => {
         return HttpResponse.json(testUser)
       }),
       http.get('*/api/profiles', () =>
-        HttpResponse.json([{ id: 'p1', name: "Ada's writing", role: 'owner', members: [] }]),
+        HttpResponse.json([
+          {
+            id: 'p1',
+            name: "Ada's writing",
+            siteUrl: null,
+            imageUrl: null,
+            role: 'owner',
+            members: [],
+          },
+        ]),
       ),
-      http.get('*/api/profiles/p1/drafts', () => HttpResponse.json([])),
     )
     const { router } = await renderAt('/login')
     await fireEvent.update(await screen.findByLabelText('Email'), 'ada@example.com')
     await fireEvent.update(screen.getByLabelText('Password'), 'a good password')
     await fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-    await screen.findByText(/Nothing here yet/)
-    expect(router.currentRoute.value.fullPath).toBe('/p/p1')
+    await screen.findByRole('heading', { name: 'Your profiles' })
+    expect(await screen.findByRole('link', { name: /Ada's writing/ })).toHaveAttribute(
+      'href',
+      '/p/p1',
+    )
+    expect(router.currentRoute.value.fullPath).toBe('/')
   })
 })
 

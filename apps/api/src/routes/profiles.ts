@@ -1,9 +1,16 @@
-import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
-import { ProfileInputSchema } from '@lfwa/core'
+import {
+  detectImageType,
+  MAX_IMAGE_BYTES,
+  MAX_OWNED_PROFILES,
+  ProfileInputSchema,
+  ProfileUpdateSchema,
+} from '@lfwa/core'
 import { requireMember, type AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
+import { validateJson } from '../validate'
 import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
 import { profileInvitationRoutes } from './invitations'
@@ -24,9 +31,15 @@ export function profileRoutes(
     new Hono<AppEnv>()
       .get('/', (c) => c.json(store.profiles.listForUser(c.get('user').id)))
 
-      .post('/', zValidator('json', ProfileInputSchema), (c) => {
+      .post('/', validateJson(ProfileInputSchema), (c) => {
         const user = c.get('user')
-        const id = store.profiles.create(c.req.valid('json').name, user.id)
+        if (store.profiles.countOwnedBy(user.id) >= MAX_OWNED_PROFILES) {
+          throw new HTTPException(409, {
+            message: `You can have up to ${MAX_OWNED_PROFILES} profiles. Delete one you no longer use to make room.`,
+          })
+        }
+        const { name, siteUrl } = c.req.valid('json')
+        const id = store.profiles.create(name, user.id, siteUrl ?? null)
         return c.json(store.profiles.get(id, user.id), 201)
       })
 
@@ -34,14 +47,58 @@ export function profileRoutes(
         c.json(store.profiles.get(c.req.param('profileId'), c.get('user').id)),
       )
 
-      .patch('/:profileId', owner, zValidator('json', ProfileInputSchema), (c) => {
+      .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), (c) => {
         const id = c.req.param('profileId')
-        store.profiles.rename(id, c.req.valid('json').name)
+        store.profiles.update(id, c.req.valid('json'))
         return c.json(store.profiles.get(id, c.get('user').id))
       })
 
       .delete('/:profileId', owner, (c) => {
         store.profiles.delete(c.req.param('profileId'))
+        return c.body(null, 204)
+      })
+
+      // The picture is raw bytes in the request body. What it is gets decided by looking at the
+      // bytes, never by the Content-Type the client claims.
+      .get('/:profileId/image', member, (c) => {
+        const image = store.profiles.getImage(c.req.param('profileId'))
+        if (!image) throw new HTTPException(404, { message: 'Not found' })
+        return c.body(image.data as Uint8Array<ArrayBuffer>, 200, {
+          'Content-Type': image.contentType,
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "default-src 'none'; sandbox",
+          // The URL carries a version that changes on upload, so this can be cached for long.
+          'Cache-Control': 'private, max-age=31536000, immutable',
+        })
+      })
+
+      .put(
+        '/:profileId/image',
+        owner,
+        bodyLimit({
+          maxSize: MAX_IMAGE_BYTES,
+          onError: () => {
+            throw new HTTPException(413, {
+              message: `That image is too large. Choose one under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+            })
+          },
+        }),
+        async (c) => {
+          const id = c.req.param('profileId')
+          const data = new Uint8Array(await c.req.arrayBuffer())
+          const contentType = detectImageType(data)
+          if (!contentType) {
+            throw new HTTPException(415, {
+              message: 'That file is not a PNG, JPEG, WebP or GIF image. Choose a different one.',
+            })
+          }
+          store.profiles.setImage(id, { contentType, data })
+          return c.json(store.profiles.get(id, c.get('user').id))
+        },
+      )
+
+      .delete('/:profileId/image', owner, (c) => {
+        store.profiles.deleteImage(c.req.param('profileId'))
         return c.body(null, 204)
       })
 

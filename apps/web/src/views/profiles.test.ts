@@ -1,0 +1,445 @@
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
+import { http, HttpResponse } from 'msw'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+
+useMockServer()
+
+const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
+const editor = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'editor' }
+
+const substack = {
+  id: 'adalovelace-substack',
+  name: 'Substack',
+  siteUrl: 'https://ada.substack.com/about',
+  imageUrl: '/api/profiles/adalovelace-substack/image?v=1',
+  role: 'owner',
+  members: [owner],
+}
+const blog = {
+  id: 'adalovelace-blog',
+  name: 'Blog',
+  siteUrl: null,
+  imageUrl: null,
+  role: 'owner',
+  members: [owner, editor],
+}
+
+const listProfiles = (profiles: unknown[]) =>
+  http.get('*/api/profiles', () => HttpResponse.json(profiles))
+/** For tests that end on a profile page, which loads its drafts. */
+const noDrafts = http.get('*/api/profiles/:id/drafts', () => HttpResponse.json([]))
+
+describe('profile list (home)', () => {
+  it('shows each profile with its picture, website and sharing', async () => {
+    server.use(signedInAs(testUser), listProfiles([substack, blog]))
+    await renderAt('/')
+    const main = within(await screen.findByRole('main'))
+    await main.findByRole('heading', { name: 'Your profiles' })
+
+    const cards = await main.findAllByRole('listitem')
+    expect(cards).toHaveLength(2)
+    const first = within(cards[0]!)
+    expect(first.getByRole('link')).toHaveAttribute('href', '/p/adalovelace-substack')
+    expect(first.getByText('ada.substack.com')).toBeInTheDocument() // host only, no "https://"
+    expect(cards[0]!.querySelector('img')).toHaveAttribute('src', substack.imageUrl)
+
+    const second = within(cards[1]!)
+    expect(second.getByText('Shared with 1 person')).toBeInTheDocument()
+    expect(cards[1]!.querySelector('img')).toBeNull() // placeholder tile instead
+    expect(second.getByText('B')).toBeInTheDocument()
+  })
+
+  it('links to the create page', async () => {
+    server.use(signedInAs(testUser), listProfiles([substack]))
+    await renderAt('/')
+    expect(await screen.findByRole('link', { name: 'New profile' })).toHaveAttribute(
+      'href',
+      '/profiles/new',
+    )
+  })
+
+  it('explains what a profile is when there are none', async () => {
+    server.use(signedInAs(testUser), listProfiles([]))
+    await renderAt('/')
+    await screen.findByText('No profiles yet')
+    expect(screen.getByRole('link', { name: 'Create your first profile' })).toHaveAttribute(
+      'href',
+      '/profiles/new',
+    )
+  })
+
+  it('says what went wrong and lets you try again', async () => {
+    let attempts = 0
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () =>
+        ++attempts === 1
+          ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+          : HttpResponse.json([substack]),
+      ),
+    )
+    await renderAt('/')
+    expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load your profiles")
+    await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await screen.findByRole('link', { name: /Substack/ })
+  })
+})
+
+describe('new profile', () => {
+  it('previews the address, then creates the profile and opens it', async () => {
+    let sent: unknown
+    server.use(
+      signedInAs(testUser),
+      listProfiles([]),
+      noDrafts,
+      http.post('*/api/profiles', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json(substack, { status: 201 })
+      }),
+    )
+    const { router } = await renderAt('/profiles/new')
+    await fireEvent.update(await screen.findByLabelText('Name'), "Ada's Weekly Letters!")
+    expect(screen.getByText('/p/adalovelace-adas-weekly-letters')).toBeInTheDocument()
+    await fireEvent.update(screen.getByLabelText(/Website/), ' ada.substack.com ')
+    await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack'))
+    expect(sent).toEqual({ name: "Ada's Weekly Letters!", siteUrl: 'ada.substack.com' })
+  })
+
+  it('leaves the website out when it is blank', async () => {
+    let sent: unknown
+    server.use(
+      signedInAs(testUser),
+      listProfiles([]),
+      noDrafts,
+      http.post('*/api/profiles', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json(blog, { status: 201 })
+      }),
+    )
+    await renderAt('/profiles/new')
+    await fireEvent.update(await screen.findByLabelText('Name'), 'Blog')
+    await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+    await waitFor(() => expect(sent).toEqual({ name: 'Blog', siteUrl: null }))
+  })
+
+  it('uploads the chosen picture after creating the profile', async () => {
+    let uploaded: Blob | undefined
+    let uploadedType: string | null = null
+    server.use(
+      signedInAs(testUser),
+      listProfiles([]),
+      noDrafts,
+      http.post('*/api/profiles', () => HttpResponse.json(substack, { status: 201 })),
+      http.put('*/api/profiles/adalovelace-substack/image', async ({ request }) => {
+        uploadedType = request.headers.get('content-type')
+        uploaded = await request.blob()
+        return HttpResponse.json(substack)
+      }),
+    )
+    const { router } = await renderAt('/profiles/new')
+    await fireEvent.update(await screen.findByLabelText('Name'), 'Substack')
+    const file = new File([new Uint8Array([1, 2, 3])], 'cover.png', { type: 'image/png' })
+    await fireEvent.change(screen.getByLabelText(/Picture/), { target: { files: [file] } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack'))
+    expect(uploadedType).toBe('image/png')
+    expect(uploaded?.size).toBe(3)
+  })
+
+  it('rejects a file that is not a supported image before sending anything', async () => {
+    server.use(signedInAs(testUser), listProfiles([]), noDrafts)
+    await renderAt('/profiles/new')
+    const input = await screen.findByLabelText(/Picture/)
+    const svg = new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })
+    await fireEvent.change(input, { target: { files: [svg] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('PNG, JPEG, WebP or GIF')
+  })
+
+  it('explains why a profile could not be created', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([]),
+      noDrafts,
+      http.post('*/api/profiles', () =>
+        HttpResponse.json(
+          { error: 'Enter a web address, like https://example.com' },
+          { status: 400 },
+        ),
+      ),
+    )
+    const { router } = await renderAt('/profiles/new')
+    await fireEvent.update(await screen.findByLabelText('Name'), 'Blog')
+    await fireEvent.update(screen.getByLabelText(/Website/), 'javascript:1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a web address')
+    expect(router.currentRoute.value.path).toBe('/profiles/new')
+  })
+
+  it('keeps the profile it made if only the picture fails, rather than making a second one', async () => {
+    let creates = 0
+    server.use(
+      signedInAs(testUser),
+      listProfiles([]),
+      noDrafts,
+      http.post('*/api/profiles', () => {
+        creates++
+        return HttpResponse.json(substack, { status: 201 })
+      }),
+      http.put('*/api/profiles/adalovelace-substack/image', () =>
+        HttpResponse.json(
+          { error: 'That image is too large. Choose one under 1 MB.' },
+          { status: 413 },
+        ),
+      ),
+    )
+    await renderAt('/profiles/new')
+    await fireEvent.update(await screen.findByLabelText('Name'), 'Substack')
+    const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' })
+    await fireEvent.change(screen.getByLabelText(/Picture/), { target: { files: [file] } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Your profile was created, but its picture')
+    expect(alert).toHaveTextContent('too large')
+    await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+    await screen.findByRole('alert')
+    expect(creates).toBe(1)
+  })
+})
+
+describe('profile page', () => {
+  const drafts = [
+    {
+      id: 'd1',
+      profileId: substack.id,
+      title: 'Why rivers meander',
+      body: '',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-02T00:00:00Z',
+    },
+  ]
+
+  it('shows the profile, links out to its website, and lists its drafts', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.get('*/api/profiles/adalovelace-substack/drafts', () => HttpResponse.json(drafts)),
+    )
+    await renderAt('/p/adalovelace-substack')
+    const main = within(await screen.findByRole('main'))
+    await main.findByRole('heading', { level: 1, name: 'Substack' })
+    const site = main.getByRole('link', { name: /ada\.substack\.com/ })
+    expect(site).toHaveAttribute('href', 'https://ada.substack.com/about')
+    expect(site).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(main.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/p/adalovelace-substack/settings',
+    )
+    expect(await main.findByRole('link', { name: /Why rivers meander/ })).toHaveAttribute(
+      'href',
+      '/p/adalovelace-substack/drafts/d1',
+    )
+  })
+
+  it('shows an empty state for a profile with no drafts', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([blog]),
+      http.get('*/api/profiles/adalovelace-blog/drafts', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/adalovelace-blog')
+    await screen.findByText(/Nothing here yet/)
+    expect(screen.queryByRole('link', { name: /substack|blog\./i })).toBeNull() // no website
+  })
+
+  it('says so when the profile does not exist or is not yours', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.get('*/api/profiles/someone-else/drafts', () =>
+        HttpResponse.json({ error: 'Not found' }, { status: 404 }),
+      ),
+    )
+    await renderAt('/p/someone-else')
+    expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that profile")
+    expect(screen.getByRole('link', { name: 'Back to your profiles' })).toHaveAttribute('href', '/')
+  })
+
+  it('starts a new draft in this profile', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.get('*/api/profiles/adalovelace-substack/drafts', () => HttpResponse.json([])),
+      http.post('*/api/profiles/adalovelace-substack/drafts', () =>
+        HttpResponse.json({ ...drafts[0], title: 'Untitled' }, { status: 201 }),
+      ),
+      http.get('*/api/profiles/adalovelace-substack/drafts/d1', () => HttpResponse.json(drafts[0])),
+    )
+    const { router } = await renderAt('/p/adalovelace-substack')
+    await fireEvent.click(await screen.findByRole('button', { name: 'New draft' }))
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack/drafts/d1'),
+    )
+  })
+})
+
+describe('profile settings', () => {
+  beforeAll(() => {
+    vi.stubGlobal('confirm', () => true)
+  })
+
+  it('lets the owner change the name and website, showing the address as stored', async () => {
+    let sent: unknown
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.patch('*/api/profiles/adalovelace-substack', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json({
+          ...substack,
+          name: 'Renamed',
+          siteUrl: 'https://new.example.com',
+        })
+      }),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    expect(await screen.findByText('/p/adalovelace-substack')).toBeInTheDocument()
+    await fireEvent.update(screen.getByLabelText('Name'), 'Renamed')
+    await fireEvent.update(screen.getByLabelText('Website'), 'new.example.com')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+    await screen.findByText('Saved')
+    expect(sent).toEqual({ name: 'Renamed', siteUrl: 'new.example.com' })
+    expect(screen.getByLabelText('Website')).toHaveValue('https://new.example.com')
+  })
+
+  it('clears the website when the field is emptied, and shows why a change was refused', async () => {
+    const bodies: unknown[] = []
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.patch('*/api/profiles/adalovelace-substack', async ({ request }) => {
+        bodies.push(await request.json())
+        return bodies.length === 1
+          ? HttpResponse.json(
+              { error: 'Enter a web address, like https://example.com' },
+              { status: 400 },
+            )
+          : HttpResponse.json({ ...substack, siteUrl: null })
+      }),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    const website = await screen.findByLabelText('Website')
+    await fireEvent.update(website, 'javascript:1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a web address')
+
+    await fireEvent.update(website, '   ')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+    await waitFor(() => expect(bodies[1]).toEqual({ name: 'Substack', siteUrl: null }))
+  })
+
+  it('uploads and removes the picture', async () => {
+    let removed = false
+    let uploads = 0
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.put('*/api/profiles/adalovelace-substack/image', () => {
+        uploads++
+        return HttpResponse.json(substack)
+      }),
+      http.delete('*/api/profiles/adalovelace-substack/image', () => {
+        removed = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    const file = new File([new Uint8Array([1])], 'cover.webp', { type: 'image/webp' })
+    await fireEvent.change(await screen.findByLabelText('Choose a picture'), {
+      target: { files: [file] },
+    })
+    await waitFor(() => expect(uploads).toBe(1))
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove picture' }))
+    await waitFor(() => expect(removed).toBe(true))
+  })
+
+  it('shows what the server said when the picture is refused', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([blog]),
+      http.put('*/api/profiles/adalovelace-blog/image', () =>
+        HttpResponse.json(
+          { error: 'That file is not a PNG, JPEG, WebP or GIF image. Choose a different one.' },
+          { status: 415 },
+        ),
+      ),
+    )
+    await renderAt('/p/adalovelace-blog/settings')
+    const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' })
+    await fireEvent.change(await screen.findByLabelText('Choose a picture'), {
+      target: { files: [file] },
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent('not a PNG, JPEG, WebP or GIF')
+  })
+
+  it('lets the owner share the profile', async () => {
+    let shared: unknown
+    server.use(
+      signedInAs(testUser),
+      listProfiles([blog]),
+      http.post('*/api/profiles/adalovelace-blog/members', async ({ request }) => {
+        shared = await request.json()
+        return HttpResponse.json(blog, { status: 201 })
+      }),
+    )
+    await renderAt('/p/adalovelace-blog/settings')
+    await screen.findByText(/bob@example.com, editor/)
+    await fireEvent.update(screen.getByLabelText(/Share/), 'carol@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: 'Share' }))
+    await waitFor(() => expect(shared).toEqual({ email: 'carol@example.com' }))
+  })
+
+  it('deletes the profile after confirmation and returns to the list', async () => {
+    let deleted = false
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json(deleted ? [] : [blog])),
+      http.delete('*/api/profiles/adalovelace-blog', () => {
+        deleted = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const { router } = await renderAt('/p/adalovelace-blog/settings')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Delete this profile' }))
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
+    await screen.findByText('No profiles yet')
+  })
+
+  it('gives an editor a read-only view and a way to leave', async () => {
+    let left = false
+    const bob = { ...owner, userId: 'u2', name: 'Bob', email: 'bob@example.com' }
+    const me = { ...owner, role: 'editor' }
+    const shared = { ...blog, role: 'editor', members: [bob, me] }
+    server.use(
+      signedInAs(testUser),
+      listProfiles([shared]),
+      http.delete('*/api/profiles/adalovelace-blog/members/u1', () => {
+        left = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const { router } = await renderAt('/p/adalovelace-blog/settings')
+    await screen.findByRole('heading', { name: 'Profile settings' })
+    expect(screen.queryByLabelText('Name')).toBeNull()
+    expect(screen.queryByLabelText('Choose a picture')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete this profile' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull()
+    await fireEvent.click(screen.getByRole('button', { name: 'Leave' }))
+    await waitFor(() => expect(left).toBe(true))
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
+  })
+})

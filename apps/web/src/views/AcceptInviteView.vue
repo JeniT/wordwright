@@ -25,7 +25,7 @@ const accept = useMutation({
     // Their sign-in may have just been confirmed by the invitation, and they have a new profile.
     session.set(await api.me())
     await queryClient.invalidateQueries({ queryKey: ['profiles'] })
-    await router.push({ name: 'drafts', params: { profileId } })
+    await router.push({ name: 'profile', params: { profileId } })
   },
 })
 

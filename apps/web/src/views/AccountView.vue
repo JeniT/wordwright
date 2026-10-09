@@ -4,17 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PasswordSection from '../components/PasswordSection.vue'
-import ProfileInvitations from '../components/ProfileInvitations.vue'
+
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
-import { useProfiles } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
 
 const session = useSessionStore()
 const router = useRouter()
 const queryClient = useQueryClient()
-const profiles = useProfiles()
-const refresh = () => queryClient.invalidateQueries({ queryKey: ['profiles'] })
 
 // ---- AI provider (bring your own key)
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
@@ -44,33 +41,6 @@ const removeLlmKey = useMutation({
   mutationFn: () => api.removeLlmKey(),
   onSuccess: () => queryClient.invalidateQueries({ queryKey: ['llm'] }),
 })
-
-// ---- profiles
-const newProfileName = ref('')
-const createProfile = useMutation({
-  mutationFn: () => api.createProfile(newProfileName.value),
-  onSuccess: () => {
-    newProfileName.value = ''
-    return refresh()
-  },
-})
-
-const removeMember = useMutation({
-  mutationFn: (v: { profileId: string; userId: string }) => api.removeMember(v.profileId, v.userId),
-  onSuccess: refresh,
-})
-const deleteProfile = useMutation({
-  mutationFn: (id: string) => api.deleteProfile(id),
-  onSuccess: refresh,
-})
-
-function confirmDeleteProfile(id: string, name: string) {
-  if (
-    confirm(`Delete "${name}" and all its drafts for everyone who shares it? This can't be undone.`)
-  ) {
-    deleteProfile.mutate(id)
-  }
-}
 
 // ---- account deletion
 const confirmEmail = ref('')
@@ -166,72 +136,13 @@ const deleteAccount = useMutation({
     </section>
 
     <section aria-labelledby="profiles-heading">
-      <h2 id="profiles-heading" class="mb-3 font-serif text-xl font-semibold">Profiles</h2>
-      <ul class="space-y-4">
-        <li
-          v-for="p in profiles.data.value"
-          :key="p.id"
-          class="rounded border border-stone-200 bg-white p-4"
-        >
-          <div class="flex items-baseline justify-between">
-            <RouterLink
-              :to="{ name: 'drafts', params: { profileId: p.id } }"
-              class="font-serif text-lg underline"
-            >
-              {{ p.name }}
-            </RouterLink>
-            <span class="text-sm text-stone-600">{{ p.role }}</span>
-          </div>
-          <ul class="mt-2 text-sm">
-            <li
-              v-for="m in p.members"
-              :key="m.userId"
-              class="flex items-center justify-between py-1"
-            >
-              <span
-                >{{ m.name }}
-                <span class="text-stone-600">({{ m.email }}, {{ m.role }})</span></span
-              >
-              <button
-                v-if="
-                  (p.role === 'owner' && m.role !== 'owner') ||
-                  (m.userId === session.user.id && p.role !== 'owner')
-                "
-                type="button"
-                class="underline"
-                @click="removeMember.mutate({ profileId: p.id, userId: m.userId })"
-              >
-                {{ m.userId === session.user.id ? 'Leave' : 'Remove' }}
-              </button>
-            </li>
-          </ul>
-          <template v-if="p.role === 'owner'">
-            <ProfileInvitations
-              :profile-id="p.id"
-              :profile-name="p.name"
-              :confirmed="session.user.emailVerified"
-            />
-            <button
-              type="button"
-              class="text-sm text-red-700 underline"
-              @click="confirmDeleteProfile(p.id, p.name)"
-            >
-              Delete profile
-            </button>
-          </template>
-        </li>
-      </ul>
-      <form class="mt-6 flex items-end gap-2" @submit.prevent="createProfile.mutate()">
-        <div class="flex-1">
-          <TextField v-model="newProfileName" label="New profile name" required />
-        </div>
-        <button
-          type="submit"
-          class="mb-4 rounded bg-accent px-4 py-2 text-sm font-medium text-white"
-        >
-          Create profile
-        </button>
-      </form>
+      <h2 id="profiles-heading" class="mb-1 font-serif text-xl font-semibold">Profiles</h2>
+      <p class="text-sm text-stone-700">
+        Create, share and manage profiles from
+        <RouterLink to="/" class="underline">your profiles</RouterLink>. Profile addresses start
+        with your handle, <code class="rounded bg-stone-100 px-1">{{ session.user.handle }}</code
+        >.
+      </p>
     </section>
 
     <section aria-labelledby="delete-heading" class="rounded border border-red-200 bg-red-50 p-4">

@@ -68,6 +68,18 @@ tests inject fakes and nothing hits the network.
 
 - **Model:** a user has any number of _profiles_; drafts belong to a profile. Profiles are shared by
   adding members (`owner` or `editor`). Registering creates a default personal profile.
+- **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
+  optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
+  `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
+  and deletes it. Still to come: reader personas, idea sources and ideas (see `TODO.md`).
+- **Handles and profile ids:** every user has a unique `handle` (letters and digits only, derived from
+  their name at sign-up, e.g. `jenit`). A profile's id is `<creator's handle>-<slug of its name>`, such as
+  `jenit-substack`; if that's taken by the same person a number is added (`jenit-substack-2`). Ids never
+  change, even when the profile is renamed, so shared links keep working. Two people can each have a
+  `substack` because their handles differ.
+- **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
+  `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
+  claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
 - **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after
