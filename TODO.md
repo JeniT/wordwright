@@ -27,6 +27,13 @@ claimed: claude-session-3 · branch: T20c
 Wrap each existing standalone draft in an idea, require an idea to create a draft, and retire the profile
 page's standalone draft list and "New draft". Reordering the drafts in a linked set is split out as T20e.
 
+### T3d · Declining and blocking invitations
+
+claimed: claude-session-2 · branch: T3d
+
+Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
+protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
+
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -38,11 +45,6 @@ summary. Also consider PRs with required CI (branch protection on private repos 
 
 Email a warning a few days before the cleanup (needs a "reminded at" marker on the user), so a late confirmer
 isn't surprised. Low priority: the signup email already states the rule.
-
-### T3d · Declining and blocking invitations
-
-Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
-protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
 
 ### T16 · Audiences / reader personas per profile
 
