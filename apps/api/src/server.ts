@@ -6,6 +6,7 @@ import { loadConfig } from './config'
 import { DatabaseError } from './db/database'
 import { openStore } from './db/store'
 import { fakeLlmFactory, realLlmFactory } from './llm-factory'
+import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
@@ -58,6 +59,7 @@ if (mailer instanceof SmtpMailer) {
 const app = createApp({
   store,
   providers,
+  feeds: createFeedFetcher(config),
   // Users bring their own API keys; there is deliberately no server-wide LLM key.
   llmFactory: config.FAKE_LLM ? fakeLlmFactory : realLlmFactory,
   keyEncryptionSecret: config.KEY_ENCRYPTION_SECRET,

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
-import type { LLMFactory, Providers } from '@lfwa/core'
+import type { FeedFetcher, LLMFactory, Providers } from '@lfwa/core'
 import type { IdentityProvider } from './auth/identity'
 import { requireUser, sameOriginOnly, type AppEnv } from './auth/middleware'
 import { createScryptHasher, type PasswordHasher } from './auth/password'
@@ -21,6 +21,8 @@ import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
 export interface AppDeps {
   store: Store
   providers: Providers
+  /** Reads RSS/Atom feeds when a source is added. */
+  feeds: FeedFetcher
   /** Creates an LLM client from a user's own credentials. */
   llmFactory: LLMFactory
   /** Encrypts stored API keys. Keep separate from `sessionSecret`. */
@@ -108,7 +110,20 @@ export function createApp(deps: AppDeps) {
     deps.now && (() => deps.now!().getTime()),
   )
   api.route('/invitations', invitationRoutes(invitations, accounts))
-  api.route('/profiles', signedIn(profileRoutes(store, llmKeys, invitations, inviteLimiter)))
+  api.route(
+    '/profiles',
+    signedIn(
+      profileRoutes(
+        store,
+        llmKeys,
+        invitations,
+        inviteLimiter,
+        deps.feeds,
+        // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
+        new RateLimiter(30, 60 * 60 * 1000, deps.now && (() => deps.now!().getTime())),
+      ),
+    ),
+  )
   app.route('/api', api)
 
   app.onError((err, c) => {

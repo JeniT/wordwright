@@ -16,6 +16,11 @@ const ConfigSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /** Replace reading feeds from the internet with a canned fake (development and e2e tests only). */
+  FAKE_FEEDS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   /**
    * How emails are delivered. `console` (default) just prints them to the server log, so local
    * development needs no email provider. `file` writes them to MAIL_OUTBOX_DIR. `smtp` really sends.
@@ -50,6 +55,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       throw new Error('KEY_ENCRYPTION_SECRET (at least 32 characters) is required in production')
     }
     if (config.FAKE_LLM) throw new Error('FAKE_LLM must not be enabled in production')
+    if (config.FAKE_FEEDS) throw new Error('FAKE_FEEDS must not be enabled in production')
     if (config.MAIL_TRANSPORT !== 'smtp') {
       throw new Error(
         'MAIL_TRANSPORT must be smtp in production, or password reset emails will never arrive',

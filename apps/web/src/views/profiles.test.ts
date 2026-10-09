@@ -1,11 +1,19 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import {
+  llmSettings,
+  renderAt,
+  server,
+  signedInAs,
+  sourcesList,
+  testUser,
+  useMockServer,
+} from '../test-utils'
 
 useMockServer()
 // The landing page asks whether a key is saved; these tests are about profiles.
-beforeEach(() => server.use(llmSettings(true)))
+beforeEach(() => server.use(llmSettings(true), sourcesList()))
 
 const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
 const editor = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'editor' }

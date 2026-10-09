@@ -172,3 +172,68 @@ test('profile pages for a signed-in user have no detectable accessibility violat
   await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
   await noViolations(page) // the profile page
 })
+
+test('manages the ordered list of idea sources on the settings page', async ({ page }) => {
+  await registerUser(page, uniqueName('Tess'))
+  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Reading list')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('link', { name: 'Settings' }).click()
+
+  const sources = page.getByRole('region', { name: 'Idea sources' })
+  await expect(sources.getByText('No sources yet')).toBeVisible()
+  const add = async (address: string) => {
+    await sources.getByLabel('Add a feed').fill(address)
+    await sources.getByRole('button', { name: 'Add source' }).click()
+  }
+
+  // Bad addresses are explained; good ones are read, named and added at the end.
+  await add('not a feed')
+  await expect(sources.getByRole('alert')).toContainText('web address of a feed')
+  await add('nothing.example/notafeed')
+  await expect(sources.getByRole('alert')).toContainText('RSS or Atom')
+  for (const feed of ['one.example/feed', 'two.example/rss', 'three.example/atom']) {
+    await add(feed)
+    await expect(
+      sources.getByRole('listitem').filter({ hasText: `Feed of ${feed.split('/')[0]}` }),
+    ).toBeVisible()
+  }
+  await add('https://two.example/rss')
+  await expect(sources.getByRole('alert')).toContainText('already in your list')
+
+  // Each shows what the feed said about itself, and its picture.
+  const first = sources.getByRole('listitem').first()
+  await expect(first).toContainText('Posts from one.example')
+  await expect(first).toContainText('one.example/feed')
+  const icon = first.locator('img')
+  await expect(icon).toBeVisible()
+  expect(await icon.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1)
+  await noViolations(page)
+
+  const hosts = async () =>
+    (await sources.getByRole('listitem').allInnerTexts()).map((t) => t.match(/\w+\.example/)![0])
+  expect(await hosts()).toEqual(['one.example', 'two.example', 'three.example'])
+
+  // Reordering works from the keyboard and keeps focus on the moved source.
+  const up = sources.getByRole('button', { name: 'Move Feed of three.example up' })
+  await up.focus()
+  await page.keyboard.press('Enter')
+  await expect.poll(hosts).toEqual(['one.example', 'three.example', 'two.example'])
+  await expect(up).toBeFocused() // still on the source that moved, so Enter can move it again
+  await page.keyboard.press('Enter')
+  await expect.poll(hosts).toEqual(['three.example', 'one.example', 'two.example'])
+
+  // ...and by dragging a source by its grip.
+  await sources
+    .getByRole('listitem')
+    .nth(2)
+    .getByTestId('grip')
+    .dragTo(sources.getByRole('listitem').first(), { targetPosition: { x: 40, y: 3 } })
+  await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
+
+  // The order, and removals, survive a reload.
+  await sources.getByRole('button', { name: 'Remove Feed of three.example' }).click()
+  await expect.poll(hosts).toEqual(['two.example', 'one.example'])
+  await page.reload()
+  await expect.poll(hosts).toEqual(['two.example', 'one.example'])
+})

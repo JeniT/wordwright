@@ -8,17 +8,13 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 - **D1: Email provider for production.** The SMTP adapter is built and works with any provider, so this only
   affects what you configure (`SMTP_URL`, `MAIL_FROM`). Which will you use? Needed before deploying.
-- **D2: Source for idea generation.** News API (which?), RSS/feeds, web search, or scholarly (OpenAlex/Crossref,
-  free, no key). Needed before T6.
+- **D2: Source for idea generation.** _Partly decided:_ RSS/feeds first (T19, list management built). Still open: whether
+  to add a news API, web search or scholarly (OpenAlex/Crossref, free, no key) later. Needed before T6.
 - **D3: Hosting target** (affects Docker/deploy tasks and whether SQLite stays): single VM/Fly/Render/other?
 
 ## In progress
 
-### T19 · Idea sources per profile (RSS feeds, ordered)
-
-claimed: claude-session-1 · branch: T19
-
-First step only: managing the list. Scanning/fetching feeds comes later (T6).
+_Nothing claimed._
 
 ### T20c · Every draft belongs to an idea
 
@@ -75,6 +71,13 @@ posts; people need to change it.
 Why: split out of the original T20. Downscale profile pictures on upload; move pictures behind a storage port
 if/when D3 picks object storage.
 
+### T19c · Keep idea-source details fresh
+
+Why: T19b reads a feed once, when it is added. Add a "refresh" for a source (and for those added before feeds were
+read, which show only their address), re-check periodically that feeds still work and flag ones that don't. Also
+let a source carry an optional name of the person's own, a "needs filtering" flag (broad sources like news sites
+vs. specialist ones) and per-source topic filters, for T6. See `docs/research/idea-source-feeds.md`.
+
 ## Backlog
 
 ### T6 · Idea generation (needs D2)
@@ -117,17 +120,15 @@ Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace
 
 Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
 
-### T19 · Idea sources per profile (needs D2)
-
-The set of sources scanned for articles that could spark ideas for a profile. Depends on the `SearchProvider` /
-news-source decision in D2 and is the input to T6.
-
 ## Done
 
 - **T20** · Ideas, first step: each profile has ideas with a name, notes, links to related work and one or more
   drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
   Brainstorm button present but disabled. Existing drafts stay standalone. (`f954432`)
-
+- **T19b** · Feed details for idea sources: feeds are read when added (`FeedFetcher` port, fake, contract suite, SSRF-safe
+  HTTP adapter); title, description and icon shown; members (not just owners) edit; drag-and-drop reordering (`TBD`)
+- **T19** · Idea sources per profile: ordered list of RSS feed addresses (add, remove, reorder)
+  on the profile settings page (`TBD`)
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
   profiles with sharing, CSRF/origin check, rate limiting (`968bc75`)

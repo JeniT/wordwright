@@ -172,3 +172,36 @@ an idea deletes its drafts, which the page says before it asks for confirmation.
 (http/https only, with `https://` assumed when someone types `example.org`); the field is a text input, because
 `type="url"` makes the browser refuse that. Having an idea counts as "using" an account, so the unconfirmed-account
 cleanup never deletes someone's ideas.
+
+## Idea sources: an ordered list of feeds, edited by any member
+
+Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the
+priority later used to rank posts, so it is stored as a dense `position` and changed by sending the whole list of
+ids (`PUT .../sources/order`) rather than "move X to N": the server refuses (409) unless the ids are exactly the
+profile's current sources, so a stale screen can't drop or resurrect a feed, and drag, buttons and two editors
+all use the one operation. The UI offers drag and drop (HTML5, grip handle, whole-row drag image, a line shows
+where it will land) and, as the keyboard and touch route, up/down buttons; native drag and drop does not work on
+most touch screens, and a library for it wasn't worth a dependency. Like drafts, the list is shared working
+material, so **any member** can change it, not just the owner. Addresses are normalised (https assumed, fragment
+dropped) so the same feed can't be listed twice.
+
+## Feeds are read through a port, with the address checked at connection time
+
+When a source is added the server reads the feed (`FeedFetcher` in `@lfwa/core`; fake and shared contract tests
+as for other adapters) to refuse things that aren't feeds and to keep the title, description, website and a
+picture. The address is typed by a user, so the fetch is an SSRF risk: `HttpFeedFetcher` uses `node:http(s)` with its
+own DNS `lookup` that refuses loopback, private, link-local (cloud metadata), carrier-grade NAT, multicast and
+mapped/NAT64 IPv6 ranges, so the check applies to the address actually connected to (checking the name first and
+connecting later is open to DNS rebinding). Numeric addresses are checked directly, redirects are followed by
+hand (max 5) so every hop is checked, only http(s) is allowed, time is capped at 10 s and size at 3 MB, and
+`Accept-Encoding: identity` keeps the size we count equal to the size we hold. The XML parser (`fast-xml-parser`,
+the one new dependency: parsing XML by hand is a worse risk) has entity expansion limits. If a pasted address is a
+web page that advertises a feed (`<link rel="alternate" type="application/rss+xml">`) that feed is used, one hop only.
+Adding is throttled (30/hour/person) because each add makes outbound requests.
+
+Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
+once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
+served from our own origin like profile pictures. Pointing browsers at the other site's image directly would tell
+that site who is looking at the list and when. Failure to get a picture never blocks adding: a lettered tile
+stands in. Feed details are read only at the time of adding, so they can go stale and sources added before this
+existed have none (they show their address); refreshing is a follow-up (T19c).

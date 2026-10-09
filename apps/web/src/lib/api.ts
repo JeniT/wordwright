@@ -11,6 +11,8 @@ import {
   InvitationSchema,
   LlmSettingsSchema,
   ProfileSchema,
+  SourceListSchema,
+  SourceSchema,
   UserSchema,
   type DraftInput,
   type IdeaInput,
@@ -156,6 +158,16 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
+    // idea sources (the list is in priority order, highest first)
+    listSources: (profileId: string) =>
+      get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),
+    addSource: (profileId: string, url: string) =>
+      get(SourceSchema, 'POST', `/profiles/${profileId}/sources`, { url }),
+    removeSource: (profileId: string, id: string) =>
+      act('DELETE', `/profiles/${profileId}/sources/${id}`),
+    /** `ids` is every source, in the new order. Answers with the list as saved. */
+    reorderSources: (profileId: string, ids: string[]) =>
+      get(SourceListSchema, 'PUT', `/profiles/${profileId}/sources/order`, { ids }),
 
     // drafts
     listDrafts: (profileId: string) => get(DraftList, 'GET', drafts(profileId)),

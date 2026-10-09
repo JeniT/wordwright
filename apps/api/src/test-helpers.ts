@@ -1,11 +1,13 @@
 import {
   FakeLLMProvider,
+  type FeedFetcher,
   LLMAuthError,
   suggestHandle,
   type LLMConfig,
   type LLMRequest,
 } from '@lfwa/core'
 import { createApp } from './app'
+import { exampleFeeds } from './feeds/factory'
 import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
 import { openStore } from './db/store'
@@ -17,6 +19,8 @@ export interface TestOptions {
   mailer?: Mailer
   unconfirmedAccountTtlDays?: number
   logger?: Pick<Console, 'error'>
+  /** Defaults to a fake that treats every `*.example` address as a feed. */
+  feeds?: FeedFetcher
 
   identityProviders?: IdentityProvider[]
 }
@@ -87,6 +91,7 @@ export function setup(options: TestOptions = {}) {
       if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
       return `Critique from ${config.model}: needs a stronger opening.`
     })
+  const feeds = options.feeds ?? exampleFeeds()
   const clock = { now: new Date('2026-01-01T00:00:00Z') }
   const app = createApp({
     store,
@@ -94,6 +99,7 @@ export function setup(options: TestOptions = {}) {
     logger: options.logger,
     unconfirmedAccountTtlDays: options.unconfirmedAccountTtlDays,
     providers: { search: [] },
+    feeds,
     llmFactory,
     keyEncryptionSecret: 'test-key-secret-test-key-secret!!',
     identityProviders: options.identityProviders,
@@ -107,6 +113,7 @@ export function setup(options: TestOptions = {}) {
     store,
     mailer: memoryMailer,
     llmCalls,
+    feeds,
     clock,
     /** A fresh "browser" with its own cookie jar. */
     client: () => new TestClient(app),

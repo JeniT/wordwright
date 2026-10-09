@@ -176,6 +176,31 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE UNIQUE INDEX invitation_blocks_unique ON invitation_blocks(email, COALESCE(sender_id, ''));
   `,
+  `
+  -- Feeds a profile watches for ideas. position is the priority (0 first); the store keeps it dense.
+  CREATE TABLE profile_sources (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE (profile_id, url)
+  );
+  CREATE INDEX profile_sources_profile ON profile_sources(profile_id, position);
+  `,
+  `
+  -- What each feed says about itself, read when it was added. Null for sources added before that.
+  ALTER TABLE profile_sources ADD COLUMN title TEXT;
+  ALTER TABLE profile_sources ADD COLUMN description TEXT;
+  ALTER TABLE profile_sources ADD COLUMN site_url TEXT;
+  -- The picture kept for a source, in its own table so listing sources never reads image bytes.
+  CREATE TABLE profile_source_icons (
+    source_id TEXT PRIMARY KEY REFERENCES profile_sources(id) ON DELETE CASCADE,
+    content_type TEXT NOT NULL,
+    data BLOB NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ]
 
 /**

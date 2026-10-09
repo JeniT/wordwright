@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
 import {
   detectImageType,
+  type FeedFetcher,
   MAX_IMAGE_BYTES,
   MAX_OWNED_PROFILES,
   ProfileInputSchema,
@@ -14,6 +15,7 @@ import { validateJson } from '../validate'
 import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
 import { ideaRoutes } from './ideas'
+import { sourceRoutes } from './sources'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { InvitationService } from '../services/invitations'
@@ -24,6 +26,8 @@ export function profileRoutes(
   llmKeys: LlmKeyService,
   invitations: InvitationService,
   inviteLimiter: RateLimiter,
+  feeds: FeedFetcher,
+  feedLimiter: RateLimiter,
 ) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
@@ -129,6 +133,7 @@ export function profileRoutes(
       )
       .route('/:profileId/drafts', new Hono<AppEnv>().use(member).route('/', draftRoutes(store)))
       .route('/:profileId/ideas', new Hono<AppEnv>().use(member).route('/', ideaRoutes(store)))
+      .route('/:profileId/sources', sourceRoutes(store, feeds, feedLimiter, member))
       .route(
         '/:profileId/assist',
         new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),

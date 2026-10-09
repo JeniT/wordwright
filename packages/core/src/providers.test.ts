@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { FakeFeedFetcher } from './providers/feeds'
 import { FakeLLMProvider } from './providers/fake-llm'
 import { FakeSearchProvider } from './providers/search'
-import { llmProviderContract, searchProviderContract } from './testing'
+import { feedFetcherContract, llmProviderContract, searchProviderContract } from './testing'
 
 llmProviderContract('fake', () => new FakeLLMProvider())
 searchProviderContract(
@@ -11,6 +12,13 @@ searchProviderContract(
       { title: 'anything', url: 'https://x.test', snippet: '', source: 'fake' },
     ]),
 )
+
+feedFetcherContract('fake', async () => ({
+  fetcher: new FakeFeedFetcher({ 'https://a.example/feed': { title: 'A feed', icon: true } }),
+  feed: 'https://a.example/feed',
+  notAFeed: 'https://a.example/page',
+  unreachable: 'https://unreachable.example/feed',
+}))
 
 describe('FakeLLMProvider', () => {
   it('records calls and supports custom responses', async () => {

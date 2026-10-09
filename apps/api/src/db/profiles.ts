@@ -95,6 +95,7 @@ export class ProfileStore {
         ['profile_images', 'profile_id'],
         ['drafts', 'profile_id'],
         ['invitations', 'profile_id'],
+        ['profile_sources', 'profile_id'],
       ]) {
         this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(next, id)
       }
@@ -115,7 +116,7 @@ export class ProfileStore {
   }
 
   delete(id: string) {
-    this.db.prepare('DELETE FROM profiles WHERE id = ?').run(id) // cascades to members, drafts, image
+    this.db.prepare('DELETE FROM profiles WHERE id = ?').run(id) // cascades to members, drafts, image, sources
   }
 
   // -- image

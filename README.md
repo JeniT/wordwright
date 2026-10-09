@@ -94,6 +94,16 @@ tests inject fakes and nothing hits the network.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.
+- **Idea sources:** each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile
+  settings page by any member: paste a feed link, or the address of a site that has one, and the server reads
+  it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
+  its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
+  `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
+  server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
+  Nothing scans the feeds for articles yet; that is idea generation (T6).
+  API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `PUT .../sources/order`
+  (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
+  `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
 - **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after

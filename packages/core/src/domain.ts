@@ -139,6 +139,54 @@ export const ProfileUpdateSchema = z.object({
 })
 export type ProfileUpdate = z.infer<typeof ProfileUpdateSchema>
 
+// ---- Idea sources (feeds scanned for articles that could spark ideas) ---
+
+/** Bounds how much one profile can store, and how many feeds a later scan has to fetch. */
+export const MAX_SOURCES_PER_PROFILE = 50
+
+/** An RSS/Atom address. People paste "example.com/feed"; assume https, and drop any #fragment. */
+export const FeedUrlSchema = z
+  .string()
+  .trim()
+  .min(1, 'Paste the web address of an RSS feed')
+  .max(500, 'That web address is too long')
+  .transform(withScheme)
+  .pipe(
+    z.url({
+      protocol: /^https?$/,
+      message: 'Enter the web address of a feed, like https://example.com/feed',
+    }),
+  )
+  .transform((text) => {
+    const url = new URL(text)
+    url.hash = ''
+    return url.href
+  })
+
+export const SourceSchema = z.object({
+  id: z.string(),
+  /** The feed's own address. */
+  url: z.string(),
+  /** What the feed calls itself; null for sources added before we started reading feeds. */
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  /** The website the feed belongs to. */
+  siteUrl: z.string().nullable(),
+  /** Same-origin URL of the picture we kept for it, or null (the UI then draws a placeholder). */
+  iconUrl: z.string().nullable(),
+})
+export type Source = z.infer<typeof SourceSchema>
+
+/** The list in priority order: the first source matters most. */
+export const SourceListSchema = z.array(SourceSchema)
+
+export const SourceInputSchema = z.object({ url: FeedUrlSchema })
+export type SourceInput = z.infer<typeof SourceInputSchema>
+
+/** Every source id, in the new order. Must name exactly the sources the profile has. */
+export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })
+export type SourceOrder = z.infer<typeof SourceOrderSchema>
+
 // ---- Invitations (how people join a shared profile) ---------------------
 
 export const InviteInputSchema = z.object({ email: EmailSchema })

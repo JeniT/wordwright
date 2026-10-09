@@ -22,3 +22,17 @@ export function detectImageType(bytes: Uint8Array): ImageType | undefined {
     return 'image/webp' // "RIFF....WEBP"
   return undefined
 }
+
+/**
+ * Small pictures that stand for a source (a feed's logo or a site's favicon). Same rule as above,
+ * plus the .ico format that many sites still use for favicons; browsers display it in an <img>.
+ */
+export const ICON_TYPES = [...IMAGE_TYPES, 'image/x-icon'] as const
+export type IconType = (typeof ICON_TYPES)[number]
+
+export const MAX_ICON_BYTES = 256 * 1024
+
+export function detectIconType(bytes: Uint8Array): IconType | undefined {
+  if (startsWith(bytes, [0x00, 0x00, 0x01, 0x00])) return 'image/x-icon'
+  return detectImageType(bytes)
+}

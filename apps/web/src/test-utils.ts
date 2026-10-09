@@ -50,6 +50,10 @@ export const llmSettings = (hasKey: boolean) =>
     }),
   )
 
+/** A profile's idea sources, for pages (like profile settings) that list them. */
+export const sourcesList = (sources: { id: string; url: string }[] = []) =>
+  http.get('*/api/profiles/:profileId/sources', () => HttpResponse.json(sources))
+
 /** Renders `component` inside the real router (with guards), app plugins and a fresh pinia. */
 export async function renderAt(path: string, component?: Component) {
   const pinia = createPinia()

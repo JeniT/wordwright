@@ -1,9 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
-import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
+// Profile settings also lists the profile's idea sources.
+beforeEach(() => server.use(sourcesList()))
 
 const preview = {
   profileName: 'Joint piece',

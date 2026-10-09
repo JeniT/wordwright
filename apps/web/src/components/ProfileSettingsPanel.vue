@@ -9,6 +9,7 @@ import { useSessionStore } from '../stores/session'
 import ImageField from './ImageField.vue'
 import ProfileImage from './ProfileImage.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
+import ProfileSources from './ProfileSources.vue'
 import TextField from './TextField.vue'
 
 /** Mount with a key per profile: the form starts from the profile as it is on arrival. */
@@ -165,6 +166,8 @@ const primaryButton =
         {{ errorMessage(removeImage.error.value) }}
       </p>
     </section>
+
+    <ProfileSources :profile-id="profile.id" />
 
     <section aria-labelledby="sharing-heading">
       <h2 id="sharing-heading" class="mb-3 font-serif text-xl font-semibold">Sharing</h2>

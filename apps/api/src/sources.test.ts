@@ -1,0 +1,286 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+import { FakeFeedFetcher, MAX_SOURCES_PER_PROFILE, TINY_PNG } from '@lfwa/core'
+import { register, setup, shareProfile, verifyAccounts, type TestClient } from './test-helpers'
+
+describe('idea sources', () => {
+  let ctx: ReturnType<typeof setup>
+  let ada: TestClient
+  let bob: TestClient
+  let base: string
+
+  const list = async (c = ada, path = base) => (await c.get(path)).json()
+  const add = (url: string, c = ada) => c.post(base, { url })
+  const urls = async () => (await list()).map((s: { url: string }) => s.url)
+
+  beforeEach(async () => {
+    ctx = setup()
+    ada = ctx.client()
+    bob = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com')
+    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
+  })
+
+  it('starts empty, and keeps sources in the order they were added', async () => {
+    expect(await list()).toEqual([])
+    const first = await add('https://a.example/feed.xml')
+    expect(first.status).toBe(201)
+    expect(await first.json()).toMatchObject({
+      id: expect.any(String),
+      url: 'https://a.example/feed.xml',
+    })
+    await add('https://b.example/rss')
+    await add('https://c.example/atom')
+    expect(await urls()).toEqual([
+      'https://a.example/feed.xml',
+      'https://b.example/rss',
+      'https://c.example/atom',
+    ])
+  })
+
+  it('tidies the pasted address: assumes https, trims, drops the fragment', async () => {
+    const res = await add('  blog.example/feed#top ')
+    expect((await res.json()).url).toBe('https://blog.example/feed')
+  })
+
+  it('refuses addresses that are not web pages, with a message a person can act on', async () => {
+    for (const url of ['javascript:alert(1)', 'ftp://a.example/feed', 'not a url', '   ', '']) {
+      const res = await add(url)
+      expect(res.status, url).toBe(400)
+      expect(typeof (await res.json()).error).toBe('string')
+    }
+    expect(await list()).toEqual([])
+  })
+
+  it('refuses a feed that is already listed, even if written differently', async () => {
+    await add('https://a.example/feed')
+    const again = await add('a.example/feed#x')
+    expect(again.status).toBe(409)
+    expect((await again.json()).error).toContain('already')
+    expect(await list()).toHaveLength(1)
+  })
+
+  it('limits how many sources a profile can have', async () => {
+    const profileId = base.split('/')[3]!
+    for (let i = 0; i < MAX_SOURCES_PER_PROFILE; i++) {
+      ctx.store.sources.add(profileId, `https://s${i}.example/feed`)
+    }
+    const res = await add('https://one-too-many.example/feed')
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toContain(`${MAX_SOURCES_PER_PROFILE}`)
+  })
+
+  it('removes a source and keeps the rest in order, so later additions go last', async () => {
+    const [a, b, c] = await Promise.all(
+      ['a', 'b', 'c'].map(async (n) => (await (await add(`https://${n}.example/f`)).json()).id),
+    )
+    expect(a).toBeTruthy()
+    expect((await ada.delete(`${base}/${b}`)).status).toBe(204)
+    await add('https://d.example/f')
+    expect(await urls()).toEqual([
+      'https://a.example/f',
+      'https://c.example/f',
+      'https://d.example/f',
+    ])
+    expect((await ada.delete(`${base}/${b}`)).status).toBe(404) // already gone
+    expect(c).toBeTruthy()
+  })
+
+  it('reorders: the new order is what the list then returns', async () => {
+    const ids: string[] = []
+    for (const n of ['a', 'b', 'c'])
+      ids.push((await (await add(`https://${n}.example/f`)).json()).id)
+    const res = await ada.put(`${base}/order`, { ids: [ids[2], ids[0], ids[1]] })
+    expect(res.status).toBe(200)
+    const expected = ['https://c.example/f', 'https://a.example/f', 'https://b.example/f']
+    expect((await res.json()).map((s: { url: string }) => s.url)).toEqual(expected)
+    expect(await urls()).toEqual(expected)
+  })
+
+  it('refuses an order that is out of date, changing nothing', async () => {
+    const ids: string[] = []
+    for (const n of ['a', 'b']) ids.push((await (await add(`https://${n}.example/f`)).json()).id)
+    const before = await urls()
+    for (const bad of [[ids[0]], [ids[0], ids[0]], [ids[0], ids[1], 'nope'], [ids[0], 'nope']]) {
+      expect((await ada.put(`${base}/order`, { ids: bad })).status).toBe(409)
+    }
+    expect((await ada.put(`${base}/order`, { ids: 'a' })).status).toBe(400)
+    expect(await urls()).toEqual(before)
+  })
+
+  it('lets any member of the profile read and change the list', async () => {
+    const { id } = await (await add('https://a.example/f')).json()
+    await shareProfile(ctx, ada, base.split('/')[3]!, bob, 'bob@example.com')
+
+    expect(await list(bob)).toHaveLength(1)
+    const added = await (await add('https://b.example/f', bob)).json()
+    expect(await urls()).toEqual(['https://a.example/f', 'https://b.example/f'])
+    expect((await bob.put(`${base}/order`, { ids: [added.id, id] })).status).toBe(200)
+    expect(await urls()).toEqual(['https://b.example/f', 'https://a.example/f'])
+    expect((await bob.delete(`${base}/${id}`)).status).toBe(204)
+    expect(await urls()).toEqual(['https://b.example/f'])
+  })
+
+  it("hides one profile's sources from people who aren't in it, and can't be reached through another", async () => {
+    const { id } = await (await add('https://a.example/f')).json()
+    expect((await bob.get(base)).status).toBe(404)
+    expect((await add('https://x.example/f', bob)).status).toBe(404)
+    expect((await bob.delete(`${base}/${id}`)).status).toBe(404)
+
+    // Bob's own profile cannot be used to delete Ada's source by guessing its id.
+    const bobBase = `/api/profiles/${(await (await bob.get('/api/profiles')).json())[0].id}/sources`
+    expect((await bob.delete(`${bobBase}/${id}`)).status).toBe(404)
+    expect(await list()).toHaveLength(1)
+    expect(await list(bob, bobBase)).toEqual([])
+  })
+
+  it('reads each feed when it is added and keeps its title, description and website', async () => {
+    const fetcher = new FakeFeedFetcher({
+      'https://slow.example/feed': {
+        title: 'The Slow Reader',
+        description: 'Essays on reading',
+        siteUrl: 'https://slow.example/',
+      },
+    })
+    const c = setup({ feeds: fetcher })
+    const user = c.client()
+    await register(user)
+    const profile = (await (await user.get('/api/profiles')).json())[0].id
+    const res = await user.post(`/api/profiles/${profile}/sources`, { url: 'slow.example/feed' })
+    expect(res.status).toBe(201)
+    expect(await res.json()).toEqual({
+      id: expect.any(String),
+      url: 'https://slow.example/feed',
+      title: 'The Slow Reader',
+      description: 'Essays on reading',
+      siteUrl: 'https://slow.example/',
+      iconUrl: null,
+    })
+    expect(fetcher.inspected).toEqual(['https://slow.example/feed'])
+  })
+
+  it('keeps the feed’s icon and serves it to members only', async () => {
+    const fetcher = new FakeFeedFetcher({
+      'https://pic.example/feed': { title: 'Pic', icon: true },
+    })
+    const c = setup({ feeds: fetcher })
+    const user = c.client()
+    const outsider = c.client()
+    await register(user)
+    await register(outsider, 'eve@example.com', 'Eve')
+    const profile = (await (await user.get('/api/profiles')).json())[0].id
+    const source = await (
+      await user.post(`/api/profiles/${profile}/sources`, { url: 'https://pic.example/feed' })
+    ).json()
+    expect(source.iconUrl).toMatch(
+      new RegExp(`^/api/profiles/${profile}/sources/${source.id}/icon\\?v=\\d+$`),
+    )
+
+    const image = await user.get(source.iconUrl)
+    expect(image.status).toBe(200)
+    expect(image.headers.get('content-type')).toBe('image/png')
+    expect(image.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(await image.bytes()).toEqual(TINY_PNG)
+    expect((await outsider.get(source.iconUrl)).status).toBe(404)
+    expect((await user.get(`/api/profiles/${profile}/sources/nope/icon`)).status).toBe(404)
+
+    // It goes when the source does.
+    await user.delete(`/api/profiles/${profile}/sources/${source.id}`)
+    expect((await user.get(source.iconUrl)).status).toBe(404)
+  })
+
+  it('has no icon when the feed offers none', async () => {
+    const fetcher = new FakeFeedFetcher({ 'https://noicon.example/f': { title: 'No icon' } })
+    const c = setup({ feeds: fetcher })
+    const user = c.client()
+    await register(user)
+    const profile = (await (await user.get('/api/profiles')).json())[0].id
+    const res = await user.post(`/api/profiles/${profile}/sources`, {
+      url: 'https://noicon.example/f',
+    })
+    expect((await res.json()).iconUrl).toBeNull()
+  })
+
+  it('explains, and adds nothing, when the address is not a feed or cannot be reached', async () => {
+    const notAFeed = await add('https://x.example/notafeed')
+    expect(notAFeed.status).toBe(422)
+    expect((await notAFeed.json()).error).toContain('RSS or Atom')
+    const down = await add('https://unreachable.example/f')
+    expect(down.status).toBe(422)
+    expect((await down.json()).error).toContain('reach')
+    expect(await list()).toEqual([])
+  })
+
+  it('stores the feed found on a website, and spots when it is already listed', async () => {
+    const fetcher = new FakeFeedFetcher({
+      'https://site.example/': { url: 'https://site.example/feed.xml', title: 'Site' },
+    })
+    const c = setup({ feeds: fetcher })
+    const user = c.client()
+    await register(user)
+    const profile = (await (await user.get('/api/profiles')).json())[0].id
+    const path = `/api/profiles/${profile}/sources`
+    expect((await (await user.post(path, { url: 'https://site.example/' })).json()).url).toBe(
+      'https://site.example/feed.xml',
+    )
+    const again = await user.post(path, { url: 'https://site.example/' })
+    expect(again.status).toBe(409)
+    expect((await user.get(path).then((r) => r.json())).length).toBe(1)
+  })
+
+  it('does not read the internet for an address that is already listed or invalid', async () => {
+    const fetcher = new FakeFeedFetcher({}, () => ({ title: 'T' }))
+    const c = setup({ feeds: fetcher })
+    const user = c.client()
+    await register(user)
+    const path = `/api/profiles/${(await (await user.get('/api/profiles')).json())[0].id}/sources`
+    await user.post(path, { url: 'https://a.example/f' })
+    await user.post(path, { url: 'https://a.example/f' })
+    await user.post(path, { url: 'ftp://a.example/f' })
+    expect(fetcher.inspected).toEqual(['https://a.example/f'])
+  })
+
+  it('limits how fast one person can add sources, since each add reads the internet', async () => {
+    const statuses: number[] = []
+    const profileId = base.split('/')[3]!
+    for (let i = 0; i < 32; i++) {
+      statuses.push((await add(`https://r${i}.example/f`)).status)
+      if (statuses.length === 25)
+        ctx.store.sources.remove(profileId, ctx.store.sources.list(profileId)[0]!.id)
+    }
+    expect(statuses.slice(0, 30).every((s) => s === 201)).toBe(true)
+    expect(statuses.slice(30)).toEqual([429, 429])
+  })
+
+  it('requires signing in', async () => {
+    expect((await ctx.client().get(base)).status).toBe(401)
+  })
+
+  it('goes with the profile when it is renamed, and when it is deleted', async () => {
+    await add('https://a.example/f')
+    const profileId = base.split('/')[3]!
+    const renamed = await (
+      await ada.patch(`/api/profiles/${profileId}`, { name: 'Renamed' })
+    ).json()
+    expect(renamed.id).not.toBe(profileId)
+    expect(await list(ada, `/api/profiles/${renamed.id}/sources`)).toHaveLength(1)
+
+    await ada.delete(`/api/profiles/${renamed.id}`)
+    expect(ctx.store.sources.count(renamed.id)).toBe(0)
+  })
+
+  it('is removed with the account of a profile’s only member', async () => {
+    await add('https://a.example/f')
+    const profileId = base.split('/')[3]!
+    expect(
+      (
+        await ada.delete('/api/account', {
+          confirmEmail: 'ada@example.com',
+          password: 'correct horse battery',
+        })
+      ).status,
+    ).toBe(204)
+    expect(ctx.store.sources.count(profileId)).toBe(0)
+  })
+})
