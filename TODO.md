@@ -14,13 +14,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T25 · Extract the email-change flows from `AccountService`
-
-claimed: claude session (refactor review) · branch: T25
-
-Why: `AccountService` is 500+ lines. Requesting, confirming and undoing an email change are self-contained and
-security-sensitive, so they suit their own service (and test file). No behaviour change.
-
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -134,6 +127,10 @@ Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace
 Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
 
 ## Done
+
+- **T25** · Refactor, no behaviour change: requesting, confirming and undoing an email change moved out of
+  `AccountService` (530 → 374 lines) into `EmailChangeService` (`services/email-change.ts`: `request` / `confirm` /
+  `undo`), wired in `createApp`. Routes, error codes and tests are unchanged apart from one import. (`da1831d`)
 
 - **T26** · Shared button styles, no behaviour change: `btn` plus `btn-primary` / `btn-outline` / `btn-neutral` /
   `btn-danger` / `btn-sm` in `style.css` replace the copied class strings in 18 components and views, so the focus ring
