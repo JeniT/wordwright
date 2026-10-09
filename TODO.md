@@ -14,6 +14,13 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
+### T27 · Tidy `BrainstormService` and the route helpers
+
+claimed: claude session (refactor review) · branch: T27
+
+Share one reply context between `reply`, `saveReply` and `saveStopped`; build the "is waiting for a reply" 409
+once; type the `profileId` / `find` helpers in the idea routes so the `!` assertions go.
+
 ## Ready
 
 ### T25 · Extract the email-change flows from `AccountService`
@@ -25,11 +32,6 @@ security-sensitive, so they suit their own service (and test file). No behaviour
 
 Why: the long `focus-visible:outline-2 …` class string is copied as `const button = …` in four components. A
 `<AppButton>` (or a Tailwind `@utility`) defines the focus ring once. Check axe and phone-width layouts.
-
-### T27 · Tidy `BrainstormService` and the route helpers
-
-Share one reply context between `reply`, `saveReply` and `saveStopped`; build the "is waiting for a reply" 409
-once; type the `profileId` / `find` helpers in the idea routes so the `!` assertions go.
 
 ### T5b · Move task tracking to GitHub Issues (optional)
 
