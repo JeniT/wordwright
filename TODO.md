@@ -20,17 +20,19 @@ claimed: claude-session-1 · branch: T19
 
 First step only: managing the list. Scanning/fetching feeds comes later (T6).
 
+### T3c · Change email address
+
+claimed: claude-session-2 · branch: T3c
+
+Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
+address they were sent to).
+
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
 summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
-
-### T3c · Change email address
-
-Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
-address they were sent to).
 
 ### T3e · Reminder before an unconfirmed account is deleted
 
