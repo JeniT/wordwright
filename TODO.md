@@ -92,7 +92,7 @@ Per the owner: possibly host an open model for users without their own key. Need
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
 - **T4** · Change password while signed in (current password required, other devices signed out, notice
-  email) and add a password to Google-only accounts via an emailed link (`TBD`)
+  email) and add a password to Google-only accounts via an emailed link (`ecff6ed`)
 - **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,
   pending list with resend/revoke, uniform responses (no account lookup), per-person send cap, safe
   post-login redirect (`083b5d8`)
