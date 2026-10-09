@@ -135,7 +135,6 @@ unusable anyway). The old address gets a notice with a "this wasn't me" link (7 
 (Google-only) can't change it yet: with only a session as proof there is nothing to stop a hijacked session
 redirecting the email, so they add a password first (which already needs an emailed link). "Address already in
 use" is revealed, as at registration, because the person has to be told; it is behind sign-in and throttled.
-Known gap: the notice can't undo a change made by someone who knew the password (T3f).
 
 ## Abandoned unconfirmed accounts are deleted after 14 days of no use
 

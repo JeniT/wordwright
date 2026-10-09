@@ -20,14 +20,6 @@ claimed: claude-session-1 · branch: T19
 
 First step only: managing the list. Scanning/fetching feeds comes later (T6).
 
-### T3f · Undo an email change from the old address
-
-claimed: claude-session-2 · branch: T3f
-
-The "your email was changed" notice has no way back: if someone who knew the password redirected the account,
-the owner can't recover it. Add a time-limited "this wasn't me" link to the notice that restores the old address
-and signs everything out (needs a decision on how long it should stay valid).
-
 ### T20c · Every draft belongs to an idea
 
 claimed: claude-session-3 · branch: T20c
@@ -152,6 +144,8 @@ news-source decision in D2 and is the input to T6.
   via an in-process 6-hourly job sharing the account-deletion code (`6ba8af2`)
 - **T3c** · Change email address: password check, link to the new address, old address notified and its links
   retired, pending change cancelled by a password change/reset (`52b6d7b`)
+- **T3f** · "This wasn't me" link in the email-change notice: restores the old address, signs out all devices,
+  emails a reset link (7-day link, button-confirmed) (`HASH`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name
