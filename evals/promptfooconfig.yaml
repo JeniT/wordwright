@@ -1,0 +1,21 @@
+# Prompt-quality evals. Run with an ANTHROPIC_API_KEY set:
+#   pnpm dlx promptfoo@latest eval -c evals/promptfooconfig.yaml
+# Grow this with real examples of your own writing and rubrics for "keeps my voice".
+description: Critique prompt
+prompts:
+  - |
+    You are a thoughtful editor. Critique the argument and structure of the draft.
+    Preserve the author's voice: suggest changes, do not rewrite the piece. Be specific and constructive.
+
+    {{draft}}
+providers:
+  - anthropic:messages:claude-sonnet-5-5
+tests:
+  - vars:
+      draft: |
+        Remote work is good. Many people like it. Some companies disagree. In conclusion, it is good.
+    assert:
+      - type: llm-rubric
+        value: Identifies that the argument lacks evidence and a clear thesis, and gives specific suggestions.
+      - type: llm-rubric
+        value: Does not rewrite the whole draft in a different voice.

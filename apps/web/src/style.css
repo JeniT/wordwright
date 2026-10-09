@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --color-ink: #1f2328;
+  --color-paper: #fbfaf7;
+  --color-accent: #2f5d62;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Editor typography: a calm, book-like reading and writing surface. */
+.prose-editor .ProseMirror {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  min-height: 24rem;
+  outline: none;
+}
+.prose-editor .ProseMirror p {
+  margin: 0 0 1em;
+}
+.prose-editor .ProseMirror h1,
+.prose-editor .ProseMirror h2,
+.prose-editor .ProseMirror h3 {
+  font-weight: 600;
+  margin: 1.5em 0 0.5em;
+  line-height: 1.25;
+}
+.prose-editor .ProseMirror h2 {
+  font-size: 1.5rem;
+}
+.prose-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 1em;
+  color: #555;
+}
+.prose-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #6b7280;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

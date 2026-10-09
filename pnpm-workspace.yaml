@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+minimumReleaseAgeExclude:
+  - vite@8.3.4
+allowBuilds:
+  esbuild: true
+  vue-demi: false
+  msw: false
