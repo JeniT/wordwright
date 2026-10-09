@@ -14,7 +14,7 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-_Nothing claimed._
+- **T2** · Email verification at signup · claimed: Claude (this session) · branch: main (sole agent)
 
 ## Ready
 
