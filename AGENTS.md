@@ -69,11 +69,14 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
 
 - **Claim before starting:** in `TODO.md` move the task to _In progress_, add `claimed: <agent/session> · branch: <name>`,
   and commit that alone (`git commit -m "claim T7"`). Only take tasks whose dependencies are Done.
-- **Isolate:** `git worktree add ../lfwa-T7 -b T7` and work there, run `pnpm install` once in it.
+- **Isolate:** `git worktree add .worktrees/T7 -b T7` (the folder is git-ignored) and work there, run `pnpm install` once in it.
 - **Merge:** rebase on `main`, rerun `pnpm check` + e2e, then fast-forward `main` and `git push origin main`.
   Don't force-push `main`. CI runs on every push (`gh run list`); a red run on `main` is the next thing to fix.
   The remote is `origin` (private GitHub repo `JeniT/writing-assistant`). Only push `main`, never another
   session's in-progress branch.
+- **Clean up when the task is merged:** from the main checkout, run `git worktree remove .worktrees/T7` and
+  `git branch -d T7`, so finished worktrees (each with its own `node_modules`) don't pile up. Remove only your own;
+  other sessions' worktrees may still be in use. If the task isn't merged, leave the worktree and say why in `TODO.md`.
 - **Likely conflict spots:** `packages/core/src/domain.ts`, `apps/api/src/app.ts`, `server.ts`, and the
   `MIGRATIONS` array. If two branches add a migration, the second to merge **renumbers** theirs (append after
   the other) and reruns the tests. Keep changes to those files small and additive.
