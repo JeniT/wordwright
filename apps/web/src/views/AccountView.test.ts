@@ -32,8 +32,53 @@ describe('AccountView', () => {
       'my password 123',
     )
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
+    expect(body).toBeUndefined() // nothing is deleted until the person confirms
+    await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
     expect(body).toEqual({ confirmEmail: 'ada@example.com', password: 'my password 123' })
+  })
+
+  it('keeps the account if the person cancels the confirmation', async () => {
+    let deleted = false
+    server.use(
+      signedInAs({ ...testUser, hasPassword: false }),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.delete('*/api/account', () => {
+        deleted = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const { router } = await renderAt('/account')
+    await fireEvent.update(await screen.findByLabelText(/Type your email/), 'ada@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    await fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(deleted).toBe(false)
+    expect(router.currentRoute.value.name).toBe('account')
+  })
+
+  it('closes the confirmation and shows the problem if the deletion is refused', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.delete('*/api/account', () =>
+        HttpResponse.json({ error: 'That password is not right.' }, { status: 400 }),
+      ),
+    )
+    await renderAt('/account')
+    await fireEvent.update(await screen.findByLabelText(/Type your email/), 'ada@example.com')
+    await fireEvent.update(screen.getByLabelText('Password', { selector: 'input' }), 'wrong')
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    await fireEvent.click(await screen.findByRole('button', { name: /Yes, delete my account/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/password/)
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('does not ask for a password if the account has none', async () => {

@@ -3,6 +3,7 @@ import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import PasswordSection from '../components/PasswordSection.vue'
 
 import TextField from '../components/TextField.vue'
@@ -45,12 +46,17 @@ const removeLlmKey = useMutation({
 // ---- account deletion
 const confirmEmail = ref('')
 const deletePassword = ref('')
+const confirmingDelete = ref(false)
 const deleteAccount = useMutation({
   mutationFn: () => api.deleteAccount(confirmEmail.value, deletePassword.value || undefined),
   onSuccess: async () => {
     session.set(null)
     queryClient.clear()
     await router.push('/register')
+  },
+  // Back to the form, where the error (e.g. a wrong password) is shown.
+  onError: () => {
+    confirmingDelete.value = false
   },
 })
 </script>
@@ -153,7 +159,7 @@ const deleteAccount = useMutation({
         This permanently deletes your account, and every profile (with its drafts) that only you
         belong to. In profiles you share, you're removed, and the others keep their work.
       </p>
-      <form @submit.prevent="deleteAccount.mutate()">
+      <form @submit.prevent="confirmingDelete = true">
         <TextField
           v-model="confirmEmail"
           :label="`Type your email (${session.user.email}) to confirm`"
@@ -175,6 +181,19 @@ const deleteAccount = useMutation({
           Delete my account
         </button>
       </form>
+      <ConfirmDialog
+        :open="confirmingDelete"
+        title="Delete your account?"
+        confirm-label="Yes, delete my account"
+        :busy="deleteAccount.isPending.value"
+        @confirm="deleteAccount.mutate()"
+        @cancel="confirmingDelete = false"
+      >
+        <p>
+          This can't be undone. Your account and the profiles (with their drafts) that only you
+          belong to will be permanently deleted.
+        </p>
+      </ConfirmDialog>
     </section>
   </div>
 </template>

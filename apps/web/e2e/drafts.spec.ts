@@ -354,6 +354,12 @@ test('deletes an account', async ({ page }) => {
   await page.getByLabel(/Type your email/).fill(email)
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await page.getByRole('button', { name: 'Delete my account' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Delete your account?' })
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toBeHidden()
+  await page.getByRole('button', { name: 'Delete my account' }).click()
+  await dialog.getByRole('button', { name: 'Yes, delete my account' }).click()
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
 
   await page.goto('/login')
