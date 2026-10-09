@@ -145,7 +145,7 @@ news-source decision in D2 and is the input to T6.
 - **T3c** · Change email address: password check, link to the new address, old address notified and its links
   retired, pending change cancelled by a password change/reset (`52b6d7b`)
 - **T3f** · "This wasn't me" link in the email-change notice: restores the old address, signs out all devices,
-  emails a reset link (7-day link, button-confirmed) (`1ac5524`)
+  emails a reset link (7-day link, button-confirmed) (`14e3422`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name
