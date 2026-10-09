@@ -20,12 +20,14 @@ import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken } from '../auth/secrets'
 import { validateJson } from '../validate'
 import { AccountError, type AccountService, type Session } from '../services/accounts'
+import type { EmailChangeService } from '../services/email-change'
 
 const OAUTH_COOKIE = 'lfwa_oauth'
 const OAUTH_TTL_SECONDS = 600
 
 export interface AuthRouteDeps {
   accounts: AccountService
+  emailChanges: EmailChangeService
   identityProviders: IdentityProvider[]
   /** Origin the web app is served from (also the origin the OAuth redirect URI lives on). */
   publicUrl: string
@@ -151,7 +153,7 @@ export function authRoutes(d: AuthRouteDeps) {
 
       .post('/confirm-email-change', zValidator('json', VerifyEmailInputSchema), (c) => {
         try {
-          d.accounts.confirmEmailChange(c.req.valid('json').token)
+          d.emailChanges.confirm(c.req.valid('json').token)
         } catch (err) {
           toHttpError(err)
         }
@@ -160,7 +162,7 @@ export function authRoutes(d: AuthRouteDeps) {
 
       .post('/undo-email-change', zValidator('json', VerifyEmailInputSchema), (c) => {
         try {
-          d.accounts.undoEmailChange(c.req.valid('json').token)
+          d.emailChanges.undo(c.req.valid('json').token)
         } catch (err) {
           toHttpError(err)
         }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { hashToken } from './auth/secrets'
-import { UNDO_EMAIL_CHANGE_TTL_DAYS, VERIFY_TTL_MS } from './services/accounts'
+import { VERIFY_TTL_MS } from './services/accounts'
+import { UNDO_EMAIL_CHANGE_TTL_DAYS } from './services/email-change'
 import {
   lastEmailChangeToken,
   lastResetToken,

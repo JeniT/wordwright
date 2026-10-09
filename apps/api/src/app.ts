@@ -25,6 +25,7 @@ import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { IdeaLinkService } from './services/idea-links'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
+import { EmailChangeService } from './services/email-change'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
 
 const MINUTE = 60 * 1000
@@ -62,14 +63,24 @@ export function createApp(deps: AppDeps) {
     box: createSecretBox(deps.keyEncryptionSecret),
     factory: deps.llmFactory,
   })
+  const hasher = deps.hasher ?? createScryptHasher()
   const accounts = new AccountService({
     store,
-    hasher: deps.hasher ?? createScryptHasher(),
+    hasher,
     mailer: deps.mailer,
     publicUrl,
     now: deps.now,
     logger: deps.logger,
     unconfirmedTtlDays: deps.unconfirmedAccountTtlDays ?? DEFAULT_UNCONFIRMED_TTL_DAYS,
+  })
+
+  const emailChanges = new EmailChangeService({
+    store,
+    hasher,
+    mailer: deps.mailer,
+    publicUrl,
+    now: deps.now,
+    logger: deps.logger,
   })
 
   const clock = deps.now && (() => deps.now!().getTime())
@@ -86,6 +97,7 @@ export function createApp(deps: AppDeps) {
     '/auth',
     authRoutes({
       accounts,
+      emailChanges,
       identityProviders: deps.identityProviders ?? [],
       publicUrl,
       sessionSecret: deps.sessionSecret,
@@ -96,7 +108,7 @@ export function createApp(deps: AppDeps) {
     }),
   )
   const brainstormPrompts = new BrainstormPromptService(store)
-  api.route('/account', accountRoutes(accounts, attempts(), brainstormPrompts))
+  api.route('/account', accountRoutes(accounts, emailChanges, attempts(), brainstormPrompts))
   const signedIn = (routes: Hono<AppEnv>) =>
     new Hono<AppEnv>().use(requireUser(accounts)).route('/', routes)
   api.route('/llm', signedIn(llmRoutes(llmKeys, attempts())))

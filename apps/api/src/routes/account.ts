@@ -11,12 +11,14 @@ import {
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { AccountService } from '../services/accounts'
+import type { EmailChangeService } from '../services/email-change'
 import type { BrainstormPromptService } from '../services/brainstorm-prompt'
 import { validateJson } from '../validate'
 import { toHttpError } from './auth'
 
 export function accountRoutes(
   accounts: AccountService,
+  emailChanges: EmailChangeService,
   limiter: RateLimiter,
   brainstormPrompts: BrainstormPromptService,
 ) {
@@ -39,7 +41,7 @@ export function accountRoutes(
         const user = c.get('user')
         if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
         const { newEmail, password } = c.req.valid('json')
-        await accounts.requestEmailChange(user, newEmail, password).catch(toHttpError)
+        await emailChanges.request(user, newEmail, password).catch(toHttpError)
         return c.json({ ok: true })
       })
       .post('/password/setup-email', (c) => {
