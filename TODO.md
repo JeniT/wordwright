@@ -14,19 +14,22 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T24 · Refactor: remove duplication in the API and web app
-
-claimed: claude session (refactor review) · branch: T24
-
-Why: a review found repeated wiring and copy-pasted helpers. No behaviour change; existing tests must stay green.
-
-- `createApp`: a `limiter(max, windowMs)` helper and named limits; `profileRoutes` takes an options object.
-- `TokenStore`: share the row mapping for the one-time-link tables.
-- `AccountService`: `expiresIn(ms)`, `isUniqueViolation(err)`, one `sendInBackground` path.
-- One `imageResponse` helper for the profile image and source icon routes.
-- Later, separate tasks: extract the email-change flows from `AccountService`; a shared button component in the web app.
-
 ## Ready
+
+### T25 · Extract the email-change flows from `AccountService`
+
+Why: `AccountService` is 500+ lines. Requesting, confirming and undoing an email change are self-contained and
+security-sensitive, so they suit their own service (and test file). No behaviour change.
+
+### T26 · One shared button component in the web app
+
+Why: the long `focus-visible:outline-2 …` class string is copied as `const button = …` in four components. A
+`<AppButton>` (or a Tailwind `@utility`) defines the focus ring once. Check axe and phone-width layouts.
+
+### T27 · Tidy `BrainstormService` and the route helpers
+
+Share one reply context between `reply`, `saveReply` and `saveStopped`; build the "is waiting for a reply" 409
+once; type the `profileId` / `find` helpers in the idea routes so the `!` assertions go.
 
 ### T5b · Move task tracking to GitHub Issues (optional)
 
@@ -139,6 +142,11 @@ Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace
 Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
 
 ## Done
+
+- **T24** · Refactor, no behaviour change: `createApp` builds limiters through one helper with named durations,
+  `profileRoutes` takes an options object, `imageResponse` serves profile pictures and source icons with one set
+  of security headers, `AccountService` has `expiresIn` / `isUniqueViolation` and one background-mail path,
+  and `TokenStore` shares its one-time-link row mapping. (`4a53595`)
 
 - **T20b4** · The brainstorm page (`/p/:profile/ideas/:idea/brainstorm`): the shared thread with names and models,
   the editor's words streaming in (read over `fetch`, with Stop), Markdown rendered safely (`markdown-it`, HTML and
