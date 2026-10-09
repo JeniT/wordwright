@@ -28,6 +28,13 @@ The "your email was changed" notice has no way back: if someone who knew the pas
 the owner can't recover it. Add a time-limited "this wasn't me" link to the notice that restores the old address
 and signs everything out (needs a decision on how long it should stay valid).
 
+### T20c · Every draft belongs to an idea
+
+claimed: claude-session-3 · branch: T20c
+
+Wrap each existing standalone draft in an idea, require an idea to create a draft, and retire the profile
+page's standalone draft list and "New draft". Reordering the drafts in a linked set is split out as T20e.
+
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -71,11 +78,10 @@ Consider a reserved-words list and a rate limit.
 Why: the button on the idea page is a placeholder. Needs the conversation design (owner to describe how
 brainstorming should work), a stored message thread per idea, and calls on the requesting user's own key.
 
-### T20c · Move standalone drafts under ideas
+### T20e · Reorder the drafts in a linked set
 
-Why: drafts can now belong to an idea (`drafts.idea_id`), but earlier drafts and "New draft" on the profile page
-are still standalone. Decide whether every draft should have an idea (wrap each existing draft in one, or let
-people attach/move a draft), then retire the standalone list. Also: reorder the drafts in a linked set.
+Why: an idea's drafts are shown in the order they were added, which is the reading order for a linked set of
+posts; people need to change it.
 
 ### T20d · Pictures: downscale on upload, and a storage port
 
