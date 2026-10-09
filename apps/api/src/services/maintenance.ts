@@ -63,7 +63,8 @@ export class MaintenanceService {
     )
     return {
       expiredSessions: tokens.sessions,
-      expiredLinks: tokens.passwordResets + tokens.emailVerifications + invitations,
+      expiredLinks:
+        tokens.passwordResets + tokens.emailVerifications + tokens.emailChanges + invitations,
     }
   }
 

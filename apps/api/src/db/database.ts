@@ -116,6 +116,19 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX profile_aliases_profile ON profile_aliases(profile_id);
   `,
+  `
+  -- A requested change of email address, waiting for the link sent to the *new* address to be opened.
+  -- The address lives with the token, so a link can only ever switch the account to the address it
+  -- was sent to.
+  CREATE TABLE email_changes (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    new_email TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+  );
+  CREATE INDEX email_changes_user ON email_changes(user_id);
+  `,
 ]
 
 /**

@@ -97,6 +97,11 @@ tests inject fakes and nothing hits the network.
   reset link already out, and emails a "your password was changed" notice with a link to reset if it wasn't
   you. Google-only accounts can **add** a password: instead of typing one on the page, they're emailed a link
   (the reset flow), so a hijacked session alone can't add a password and keep access.
+- **Changing your email** (Account page) needs the password. We email a link to the _new_ address and switch
+  only when it's opened (24 hours, newest request wins), so a typo can't lock anyone out. The new address
+  counts as confirmed, the old one gets a "your email was changed" notice, and confirmation links, reset links
+  and invitations addressed to the old address stop working. Changing or resetting the password cancels a
+  pending change. Accounts with no password (Google-only) add one first.
 - **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few

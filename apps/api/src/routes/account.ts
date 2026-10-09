@@ -2,7 +2,11 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { deleteCookie, getCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
-import { ChangePasswordInputSchema, DeleteAccountInputSchema } from '@lfwa/core'
+import {
+  ChangeEmailInputSchema,
+  ChangePasswordInputSchema,
+  DeleteAccountInputSchema,
+} from '@lfwa/core'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { AccountService } from '../services/accounts'
@@ -21,6 +25,14 @@ export function accountRoutes(accounts: AccountService, limiter: RateLimiter) {
         await accounts
           .changePassword(user, sessionToken, currentPassword, newPassword)
           .catch(toHttpError)
+        return c.json({ ok: true })
+      })
+      // Guessing the password is the attack here too; and each request emails a stranger.
+      .post('/email', zValidator('json', ChangeEmailInputSchema), async (c) => {
+        const user = c.get('user')
+        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        const { newEmail, password } = c.req.valid('json')
+        await accounts.requestEmailChange(user, newEmail, password).catch(toHttpError)
         return c.json({ ok: true })
       })
       .post('/password/setup-email', (c) => {

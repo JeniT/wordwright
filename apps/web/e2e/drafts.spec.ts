@@ -183,6 +183,45 @@ test('recovers a forgotten password from the emailed link', async ({ page }) => 
   await expect(page.getByRole('alert')).toContainText('invalid or has expired')
 })
 
+test('changes the email address once the new one is confirmed', async ({ page }) => {
+  const oldEmail = await registerUser(page)
+  const newEmail = `changed-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByLabel('New email address').fill(newEmail)
+  await page.getByLabel('Confirm with your password').fill('the wrong password')
+  await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
+  await expect(page.getByRole('alert')).toContainText('password is incorrect')
+
+  await page.getByLabel('Confirm with your password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
+  await expect(page.getByRole('status').filter({ hasText: newEmail })).toBeVisible()
+
+  // Nothing has changed until the link is opened.
+  await expect(page.getByText(`Ada Lovelace · ${oldEmail}`)).toBeVisible()
+  const link = linkIn(
+    await waitForEmail(newEmail, 'Confirm your new email address'),
+    '/confirm-email-change',
+  )
+  expect(link, 'confirmation link in the email').toBeTruthy()
+  await page.goto(link!)
+  await expect(page.getByText('your email address has been changed')).toBeVisible()
+  await page.getByRole('link', { name: 'Back to your account' }).click()
+  await expect(page.getByText(`Ada Lovelace · ${newEmail}`)).toBeVisible()
+  await waitForEmail(oldEmail, 'Your email address was changed')
+
+  // The new address signs in; the old one no longer does.
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.goto('/login')
+  await page.getByLabel('Email').fill(oldEmail)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
+  await page.getByLabel('Email').fill(newEmail)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+})
+
 test('confirms an email address from the signup email', async ({ page }) => {
   const email = await registerUser(page)
   const banner = page.getByRole('region', { name: 'Email confirmation' })

@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { nowIso } from './database'
 
-/** Sessions and password-reset tokens. Callers pass in the *hash* of the secret token. */
+/** Sessions and the emailed one-time links (password reset, email confirmation, email change). Callers pass in the *hash* of the secret token. */
 export class TokenStore {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -49,6 +49,7 @@ export class TokenStore {
       emailVerifications: count(
         'DELETE FROM email_verifications WHERE expires_at <= ? OR used_at IS NOT NULL',
       ),
+      emailChanges: count('DELETE FROM email_changes WHERE expires_at <= ? OR used_at IS NOT NULL'),
     }
   }
 
@@ -118,5 +119,51 @@ export class TokenStore {
     this.db
       .prepare('UPDATE email_verifications SET used_at = ? WHERE token_hash = ?')
       .run(nowIso(), tokenHash)
+  }
+
+  /** Cancels any outstanding "confirm your email" links (they were sent to the old address). */
+  deleteUserVerifications(userId: string) {
+    this.db.prepare('DELETE FROM email_verifications WHERE user_id = ?').run(userId)
+  }
+
+  // -- email address changes
+  createEmailChange(tokenHash: string, userId: string, newEmail: string, expiresAt: Date) {
+    // Only the most recent request should work.
+    this.deleteUserEmailChanges(userId)
+    this.db
+      .prepare(
+        'INSERT INTO email_changes (token_hash, user_id, new_email, expires_at) VALUES (?, ?, ?, ?)',
+      )
+      .run(tokenHash, userId, newEmail, expiresAt.toISOString())
+  }
+
+  findEmailChange(
+    tokenHash: string,
+  ): { userId: string; newEmail: string; expiresAt: Date; used: boolean } | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT user_id, new_email, expires_at, used_at FROM email_changes WHERE token_hash = ?',
+      )
+      .get(tokenHash) as
+      { user_id: string; new_email: string; expires_at: string; used_at: string | null } | undefined
+    return (
+      row && {
+        userId: row.user_id,
+        newEmail: row.new_email,
+        expiresAt: new Date(row.expires_at),
+        used: row.used_at !== null,
+      }
+    )
+  }
+
+  markEmailChangeUsed(tokenHash: string) {
+    this.db
+      .prepare('UPDATE email_changes SET used_at = ? WHERE token_hash = ?')
+      .run(nowIso(), tokenHash)
+  }
+
+  /** Cancels a pending change that hasn't been confirmed yet. */
+  deleteUserEmailChanges(userId: string) {
+    this.db.prepare('DELETE FROM email_changes WHERE user_id = ? AND used_at IS NULL').run(userId)
   }
 }

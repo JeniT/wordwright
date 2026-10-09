@@ -75,6 +75,11 @@ export class UserStore {
     this.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(id)
   }
 
+  /** Switches the address. Only call once the new inbox has been proven, hence verified. */
+  setVerifiedEmail(id: string, email: string) {
+    this.db.prepare('UPDATE users SET email = ?, email_verified = 1 WHERE id = ?').run(email, id)
+  }
+
   delete(id: string) {
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id)
   }

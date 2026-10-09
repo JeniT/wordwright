@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import EmailSection from '../components/EmailSection.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import PasswordSection from '../components/PasswordSection.vue'
 
@@ -41,6 +42,8 @@ const deleteAccount = useMutation({
         Linked sign-in: {{ session.user.linkedProviders.join(', ') }}
       </p>
     </section>
+
+    <EmailSection />
 
     <PasswordSection />
 

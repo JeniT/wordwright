@@ -7,6 +7,8 @@ import type { UserRecord } from '../db/users'
 import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
 import {
+  changeEmailEmail,
+  emailChangedEmail,
   passwordChangedEmail,
   passwordResetEmail,
   passwordSetupEmail,
@@ -23,6 +25,9 @@ export class AccountError extends Error {
   constructor(
     readonly code:
       | 'email_in_use'
+      | 'email_unchanged'
+      | 'invalid_email_change_token'
+      | 'password_required'
       | 'handle_in_use'
       | 'invalid_credentials'
       | 'invalid_reset_token'
@@ -165,6 +170,85 @@ export class AccountService {
     })
   }
 
+  // ---- changing the email address ----------------------------------------
+
+  /**
+   * Starts a change of address: emails a link to the *new* address, and switches nothing until it is
+   * opened, so a typo can't lock anyone out. The password is re-checked, as for changing it, so a
+   * stolen session alone can't redirect the account's email. Accounts with no password can't change
+   * it (the session would be the only proof); they add a password first.
+   */
+  async requestEmailChange(user: UserRecord, newEmail: string, password: string): Promise<void> {
+    const { store, hasher } = this.d
+    const hash = store.users.getPasswordHash(user.id)
+    if (!hash) {
+      throw new AccountError(
+        'password_required',
+        'Add a password to your account first; then you can change your email address.',
+      )
+    }
+    if (!(await hasher.verify(password, hash))) {
+      throw new AccountError('confirmation_failed', 'Your password is incorrect')
+    }
+    if (newEmail === user.email) {
+      throw new AccountError('email_unchanged', 'That is already your email address')
+    }
+    if (store.users.findByEmail(newEmail)) throw emailInUse()
+    const token = generateToken()
+    store.tokens.createEmailChange(
+      hashToken(token),
+      user.id,
+      newEmail,
+      new Date(this.now().getTime() + VERIFY_TTL_MS),
+    )
+    this.sendInBackground(user.id, 'email change', {
+      to: newEmail,
+      ...changeEmailEmail({
+        name: user.name,
+        link: `${this.d.publicUrl}/confirm-email-change?token=${token}`,
+        ttlHours: VERIFY_TTL_MS / 3_600_000,
+      }),
+    })
+  }
+
+  /**
+   * Completes the change. Works signed in or not (people open the link on their phone); the link
+   * only proves the new inbox, and the password was checked when it was requested. The new address
+   * counts as confirmed. Everything addressed to the old one stops working: confirmation and reset
+   * links, and invitations other people sent to it. Opening the link twice is harmless.
+   */
+  confirmEmailChange(token: string): void {
+    const { store } = this.d
+    const tokenHash = hashToken(token)
+    const found = store.tokens.findEmailChange(tokenHash)
+    const user = found && store.users.findById(found.userId)
+    if (!found || !user) throw invalidEmailChange()
+    if (found.used) {
+      if (user.email === found.newEmail) return // a scanner or double click got there first
+      throw invalidEmailChange()
+    }
+    if (found.expiresAt <= this.now()) throw invalidEmailChange()
+    const oldEmail = user.email
+    try {
+      store.transaction(() => {
+        const owner = store.users.findByEmail(found.newEmail)
+        if (owner && owner.id !== user.id) throw emailInUse()
+        store.users.setVerifiedEmail(user.id, found.newEmail)
+        store.tokens.markEmailChangeUsed(tokenHash)
+        store.tokens.deleteUserVerifications(user.id)
+        store.tokens.deleteUserResets(user.id)
+        store.invitations.deleteForEmail(oldEmail)
+      })
+    } catch (err) {
+      if (String(err).includes('UNIQUE')) throw emailInUse() // lost a race for the address
+      throw err
+    }
+    this.sendInBackground(user.id, 'email change notice', {
+      to: oldEmail,
+      ...emailChangedEmail({ name: user.name, newEmail: found.newEmail }),
+    })
+  }
+
   // ---- password recovery -------------------------------------------------
 
   /**
@@ -221,6 +305,7 @@ export class AccountService {
       store.users.setPasswordHash(user.id, newHash)
       store.tokens.deleteUserSessionsExcept(user.id, hashToken(sessionToken))
       store.tokens.deleteUserResets(user.id)
+      store.tokens.deleteUserEmailChanges(user.id)
     })
     sendInBackground(
       this.d.mailer,
@@ -277,6 +362,7 @@ export class AccountService {
       store.users.markEmailVerified(userId) // they received the email, so they own it
       store.tokens.markResetUsed(tokenHash)
       store.tokens.deleteUserSessions(userId) // sign out anyone who had the old password
+      store.tokens.deleteUserEmailChanges(userId) // ...and drop a redirect they may have started
     })
   }
 
@@ -368,6 +454,8 @@ export class AccountService {
 
 const invalidVerification = () =>
   new AccountError('invalid_verification_token', 'This verification link is invalid or has expired')
+const invalidEmailChange = () =>
+  new AccountError('invalid_email_change_token', 'This link is invalid or has expired')
 const handleInUse = () =>
   new AccountError('handle_in_use', 'That username is already taken. Try another.')
 const emailInUse = () =>

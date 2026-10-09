@@ -82,6 +82,13 @@ export const ChangePasswordInputSchema = z.object({
   newPassword: PasswordSchema,
 })
 
+/** Changing the email address re-checks the password, like changing the password does. */
+export const ChangeEmailInputSchema = z.object({
+  newEmail: EmailSchema,
+  password: z.string().min(1).max(128),
+})
+export type ChangeEmailInput = z.infer<typeof ChangeEmailInputSchema>
+
 /** Deleting an account needs deliberate confirmation (and the password, if there is one). */
 export const DeleteAccountInputSchema = z.object({
   confirmEmail: EmailSchema,

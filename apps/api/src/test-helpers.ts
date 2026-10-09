@@ -196,3 +196,5 @@ export async function shareProfile(
     200,
   )
 }
+export const lastEmailChangeToken = (mailer: MemoryMailer) =>
+  lastEmailToken(mailer, 'confirm-email-change')

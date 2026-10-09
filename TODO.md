@@ -20,13 +20,6 @@ claimed: claude-session-1 · branch: T19
 
 First step only: managing the list. Scanning/fetching feeds comes later (T6).
 
-### T3c · Change email address
-
-claimed: claude-session-2 · branch: T3c
-
-Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
-address they were sent to).
-
 ### T20 · Ideas with brainstorm conversations and staged drafts
 
 claimed: claude-session-3 · branch: T20
@@ -42,6 +35,12 @@ for pictures (if D3 picks object storage); those stay open as follow-ups.
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
 summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
+
+### T3f · Undo an email change from the old address
+
+The "your email was changed" notice has no way back: if someone who knew the password redirected the account,
+the owner can't recover it. Add a time-limited "this wasn't me" link to the notice that restores the old address
+and signs everything out (needs a decision on how long it should stay valid).
 
 ### T3e · Reminder before an unconfirmed account is deleted
 
@@ -132,6 +131,8 @@ news-source decision in D2 and is the input to T6.
   recovery test (`15d87c0`)
 - **T3b** · Cleanup of unused, unconfirmed accounts (14 days, configurable) plus expired sessions/links/invitations,
   via an in-process 6-hourly job sharing the account-deletion code (`6ba8af2`)
+- **T3c** · Change email address: password check, link to the new address, old address notified and its links
+  retired, pending change cancelled by a password change/reset (`HASH`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name

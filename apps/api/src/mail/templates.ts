@@ -137,3 +137,39 @@ If you didn't ask for this, you can ignore this email.`,
 <p style="font-size:14px">If you didn't ask for this, you can ignore this email.</p>`),
   }
 }
+
+/** Goes to the *new* address: opening the link proves the person can read mail there. */
+export function changeEmailEmail(input: { name: string; link: string; ttlHours: number }): Content {
+  const { name, link, ttlHours } = input
+  return {
+    subject: 'Confirm your new email address',
+    text: `Hi ${name},
+
+You asked to use this address for your Long-form Writing Assistant account. Confirm it here (the link expires in ${ttlHours} hours; until then your account keeps its current address):
+
+${link}
+
+If you didn't ask for this, you can ignore this email and nothing will change.`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>You asked to use this address for your Long-form Writing Assistant account.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Confirm this address</a></p>
+<p style="font-size:14px">The link expires in ${ttlHours} hours; until then your account keeps its current address. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
+<p style="font-size:14px">If you didn't ask for this, you can ignore this email and nothing will change.</p>`),
+  }
+}
+
+/** Goes to the *old* address, so a change the owner didn't make is noticed. No link that acts on the account. */
+export function emailChangedEmail(input: { name: string; newEmail: string }): Content {
+  const { name, newEmail } = input
+  return {
+    subject: 'Your email address was changed',
+    text: `Hi ${name},
+
+The email address for your Long-form Writing Assistant account was just changed to ${newEmail}. You'll sign in with the new address from now on, and we'll send account emails there instead of here.
+
+If that was you, there's nothing to do. If it wasn't, someone knows your password: use "Forgot your password?" with the new address if you have access to it, and treat this password as compromised anywhere else you've used it.`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>The email address for your Long-form Writing Assistant account was just changed to <strong>${escapeHtml(newEmail)}</strong>. You'll sign in with the new address from now on, and we'll send account emails there instead of here.</p>
+<p>If that was you, there's nothing to do. If it wasn't, someone knows your password: use "Forgot your password?" with the new address if you have access to it, and treat this password as compromised anywhere else you've used it.</p>`),
+  }
+}
