@@ -15,23 +15,29 @@ export class UserStore {
   constructor(private readonly db: DatabaseSync) {}
 
   /**
-   * The handle is derived from the name and made unique here. Call inside a transaction (as
-   * registration does) so two sign-ups can't pick the same one.
+   * Uses the chosen handle (the unique index rejects a duplicate), or, for sign-ups that didn't
+   * pick one (e.g. via Google), derives one from the name and makes it unique. Call inside a
+   * transaction so two sign-ups can't pick the same one.
    */
-  create(input: { name: string; email: string; emailVerified: boolean }): UserRecord {
+  create(input: {
+    name: string
+    email: string
+    emailVerified: boolean
+    handle?: string
+  }): UserRecord {
     const id = randomUUID()
-    const handle = firstAvailable(suggestHandle(input.name, input.email), (h) =>
-      this.handleTaken(h),
-    )
+    const handle =
+      input.handle ??
+      firstAvailable(suggestHandle(input.name, input.email), (h) => this.handleTaken(h))
     this.db
       .prepare(
         'INSERT INTO users (id, handle, name, email, email_verified, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
       .run(id, handle, input.name, input.email, input.emailVerified ? 1 : 0, nowIso())
-    return { id, handle, ...input }
+    return { id, handle, name: input.name, email: input.email, emailVerified: input.emailVerified }
   }
 
-  private handleTaken(handle: string): boolean {
+  handleTaken(handle: string): boolean {
     return this.db.prepare('SELECT 1 FROM users WHERE handle = ?').get(handle) !== undefined
   }
 

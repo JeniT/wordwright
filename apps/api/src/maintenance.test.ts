@@ -63,6 +63,7 @@ describe('purging unconfirmed, unused accounts', () => {
       name: 'Typo Fixed',
       email: 'typo@example.com',
       password: PASSWORD,
+      handle: 'typo',
     })
     expect(again.status).toBe(201)
   })

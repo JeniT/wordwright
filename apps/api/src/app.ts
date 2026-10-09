@@ -72,6 +72,11 @@ export function createApp(deps: AppDeps) {
       sessionSecret: deps.sessionSecret,
       loginLimiter: attempts(),
       resetLimiter: attempts(),
+      handleCheckLimiter: new RateLimiter(
+        120,
+        60 * 1000,
+        deps.now && (() => deps.now!().getTime()),
+      ),
       verificationLimiter: new RateLimiter(
         3,
         60 * 60 * 1000,

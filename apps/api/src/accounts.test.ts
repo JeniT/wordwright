@@ -8,16 +8,18 @@ import {
   saveKey,
   setup,
   shareProfile,
+  signUp,
   verifyAccounts,
 } from './test-helpers'
 
 describe('registration', () => {
-  it('creates an account, a default profile and a session', async () => {
+  it('creates an account with the chosen username and a session, but no profile yet', async () => {
     const { client } = setup()
     const c = client()
-    const user = await register(c)
+    const user = await signUp(c, 'ada@example.com', 'Ada', PASSWORD, 'countess')
     expect(user).toMatchObject({
-      name: 'Ada Lovelace',
+      name: 'Ada',
+      handle: 'countess',
       email: 'ada@example.com',
       hasPassword: true,
     })
@@ -27,9 +29,51 @@ describe('registration', () => {
     expect(me.status).toBe(200)
     expect((await me.json()).email).toBe('ada@example.com')
 
-    const profiles = await (await c.get('/api/profiles')).json()
-    expect(profiles).toHaveLength(1)
-    expect(profiles[0]).toMatchObject({ role: 'owner' })
+    // The person creates their first profile themselves, so they can set it up as they like.
+    expect(await (await c.get('/api/profiles')).json()).toEqual([])
+  })
+
+  it('lowercases and trims the username', async () => {
+    const { client } = setup()
+    const user = await signUp(client(), 'ada@example.com', 'Ada', PASSWORD, '  CountessAda ')
+    expect(user.handle).toBe('countessada')
+  })
+
+  it('refuses a username that is taken, however it is capitalised, and creates nothing', async () => {
+    const { client, store } = setup()
+    await signUp(client(), 'ada@example.com', 'Ada', PASSWORD, 'countess')
+    const res = await client().post('/api/auth/register', {
+      name: 'Imposter',
+      email: 'bob@example.com',
+      password: PASSWORD,
+      handle: 'Countess',
+    })
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/username.*taken/i)
+    expect(store.users.findByEmail('bob@example.com')).toBeUndefined()
+  })
+
+  it('explains what is wrong with a username in words', async () => {
+    const res = await setup().client().post('/api/auth/register', {
+      name: 'Ada',
+      email: 'ada@example.com',
+      password: PASSWORD,
+      handle: 'ada lovelace',
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Use only letters and numbers in your username')
+  })
+
+  it('says whether a username is available, without needing to sign in', async () => {
+    const { client } = setup()
+    await signUp(client(), 'ada@example.com', 'Ada', PASSWORD, 'countess')
+    const check = async (handle: string) =>
+      (await client().get(`/api/auth/handle-available?handle=${handle}`)).json()
+    expect(await check('countess')).toEqual({ available: false })
+    expect(await check('COUNTESS')).toEqual({ available: false })
+    expect(await check('lovelace')).toEqual({ available: true })
+    expect((await client().get('/api/auth/handle-available?handle=a!')).status).toBe(400)
+    expect((await client().get('/api/auth/handle-available')).status).toBe(400)
   })
 
   it('sets an HttpOnly, SameSite session cookie', async () => {
@@ -38,6 +82,7 @@ describe('registration', () => {
       name: 'A',
       email: 'a@example.com',
       password: PASSWORD,
+      handle: 'aaa',
     })
     const cookie = res.setCookies.find((c) => c.startsWith('lfwa_session='))!
     expect(cookie).toMatch(/HttpOnly/i)
@@ -51,6 +96,7 @@ describe('registration', () => {
       name: 'Imposter',
       email: '  ADA@Example.com ',
       password: PASSWORD,
+      handle: 'imposter',
     })
     expect(res.status).toBe(409)
     expect(store.users.findByEmail('ada@example.com')?.name).toBe('Ada Lovelace')
@@ -59,8 +105,17 @@ describe('registration', () => {
   it.each([
     ['short password', { name: 'A', email: 'a@example.com', password: 'short' }],
     ['bad email', { name: 'A', email: 'not-an-email', password: PASSWORD }],
-    ['empty name', { name: '  ', email: 'a@example.com', password: PASSWORD }],
-    ['huge password', { name: 'A', email: 'a@example.com', password: 'x'.repeat(5000) }],
+    ['empty name', { name: '  ', email: 'a@example.com', password: PASSWORD, handle: 'aaa' }],
+    [
+      'huge password',
+      { name: 'A', email: 'a@example.com', password: 'x'.repeat(5000), handle: 'aaa' },
+    ],
+    ['no username', { name: 'A', email: 'a@example.com', password: PASSWORD }],
+    ['short username', { name: 'A', email: 'a@example.com', password: PASSWORD, handle: 'ab' }],
+    [
+      'username with punctuation',
+      { name: 'A', email: 'a@example.com', password: PASSWORD, handle: 'a-b_c' },
+    ],
   ])('rejects %s', async (_label, body) => {
     expect((await setup().client().post('/api/auth/register', body)).status).toBe(400)
   })

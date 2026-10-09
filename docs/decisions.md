@@ -77,8 +77,8 @@ both be `jenit-substack`. The id follows the name: renaming a profile gives it a
 to the new one, but only for members, so a stranger gets the same 404 as for an unknown id and can't learn that a
 profile was renamed. Retired ids are never reused for another profile (a new "Blog" gets `-2`), but renaming back to
 an earlier name reclaims its id. The web app moves the address bar when it meets an id that isn't in the person's
-list (`useProfileAddressRedirect`). The id belongs to the creator's handle even if ownership later moves (T11). Handles are generated, not chosen, for now
-(changing one is T16); the migration also rewrote old UUID ids to this form. Alternatives rejected: per-user
+list (`useProfileAddressRedirect`). The id belongs to the creator's handle even if ownership later moves (T11). Handles are chosen at sign-up (checked live for availability); only sign-ups through an identity provider
+get a generated one. Changing one later is T18; the migration also rewrote old UUID ids to this form. Alternatives rejected: per-user
 uniqueness on the name alone (URLs would need the user in the path anyway), and globally unique names (squatting,
 and the `substack` clash the owner wanted to avoid).
 

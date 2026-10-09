@@ -67,16 +67,23 @@ tests inject fakes and nothing hits the network.
 ## Accounts and sign-in
 
 - **Model:** a user has any number of _profiles_; drafts belong to a profile. Profiles are shared by
-  adding members (`owner` or `editor`). Registering creates a default personal profile.
+  adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
   and deletes it. Still to come: reader personas, idea sources and ideas (see `TODO.md`).
-- **Handles and profile ids:** every user has a unique `handle` (letters and digits only, derived from
-  their name at sign-up, e.g. `jenit`). A profile's id is `<creator's handle>-<slug of its name>`, such as
+- **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
+  _username_. They choose it when they sign up, and the form checks it against everyone else's as they
+  type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
+  identity provider have no form to choose it on, so they get one derived from their name, e.g. `jenit`. A profile's id is `<creator's handle>-<slug of its name>`, such as
   `jenit-substack`; if that's taken by the same person a number is added (`jenit-substack-2`). Renaming a
   profile renames its id too; the old id permanently redirects to the new one, so shared links keep working. Two people can each have a
   `substack` because their handles differ.
+- **Sign-up and first steps:** the form asks "What should we call you?" (`autocomplete="given-name"`, so
+  browsers fill in a first name rather than a full one), a username, an email and a password. The landing
+  page shows step-by-step instructions for getting an Anthropic API key, with a field to paste it into, until
+  a key is saved (new users have to do this before the AI features work); a new user with no profile is also
+  prompted to create one.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.

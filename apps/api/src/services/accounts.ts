@@ -23,6 +23,7 @@ export class AccountError extends Error {
   constructor(
     readonly code:
       | 'email_in_use'
+      | 'handle_in_use'
       | 'invalid_credentials'
       | 'invalid_reset_token'
       | 'invalid_verification_token'
@@ -68,6 +69,7 @@ export class AccountService {
   async register(input: RegisterInput): Promise<Session> {
     const { store } = this.d
     if (store.users.findByEmail(input.email)) throw emailInUse()
+    if (store.users.handleTaken(input.handle)) throw handleInUse()
     const hash = await this.d.hasher.hash(input.password)
     try {
       const user = store.transaction(() => {
@@ -75,15 +77,16 @@ export class AccountService {
           name: input.name,
           email: input.email,
           emailVerified: false,
+          handle: input.handle,
         })
         store.users.setPasswordHash(created.id, hash)
-        store.profiles.create(defaultProfileName(created.name), created.id)
         return created
       })
       this.sendVerificationEmail(user)
       return this.startSession(user)
     } catch (err) {
-      // Lost a race with a concurrent registration for the same email.
+      // Lost a race with a concurrent registration for the same email or username.
+      if (String(err).includes('users.handle')) throw handleInUse()
       if (String(err).includes('UNIQUE')) throw emailInUse()
       throw err
     }
@@ -108,6 +111,10 @@ export class AccountService {
     if (!sessionToken) return undefined
     const userId = this.d.store.tokens.findSessionUser(hashToken(sessionToken), this.now())
     return userId ? this.d.store.users.findById(userId) : undefined
+  }
+
+  handleTaken(handle: string): boolean {
+    return this.d.store.users.handleTaken(handle)
   }
 
   toPublic(user: UserRecord): User {
@@ -318,7 +325,6 @@ export class AccountService {
         emailVerified: true,
       })
       store.users.linkIdentity(created.id, provider, claims.subject)
-      store.profiles.create(defaultProfileName(created.name), created.id)
       return created
     })
     return this.startSession(user)
@@ -362,6 +368,7 @@ export class AccountService {
 
 const invalidVerification = () =>
   new AccountError('invalid_verification_token', 'This verification link is invalid or has expired')
+const handleInUse = () =>
+  new AccountError('handle_in_use', 'That username is already taken. Try another.')
 const emailInUse = () =>
   new AccountError('email_in_use', 'An account with this email already exists')
-const defaultProfileName = (name: string) => `${name}'s writing`

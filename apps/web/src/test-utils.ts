@@ -32,6 +32,17 @@ export const signedInAs = (user: typeof testUser | null) =>
     user ? HttpResponse.json(user) : HttpResponse.json({ error: 'Not signed in' }, { status: 401 }),
   )
 
+/** The saved AI-provider settings, for pages (like the landing page) that check for a key. */
+export const llmSettings = (hasKey: boolean) =>
+  http.get('*/api/llm', () =>
+    HttpResponse.json({
+      provider: 'anthropic',
+      model: 'claude-sonnet-5-5',
+      hasKey,
+      keyHint: hasKey ? '…7890' : null,
+    }),
+  )
+
 /** Renders `component` inside the real router (with guards), app plugins and a fresh pinia. */
 export async function renderAt(path: string, component?: Component) {
   const pinia = createPinia()

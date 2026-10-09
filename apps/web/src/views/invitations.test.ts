@@ -120,7 +120,8 @@ describe('sign-up and sign-in from an invitation', () => {
     const { router } = await renderAt(
       '/register?email=bob%40example.com&next=%2Faccept-invite%3Ftoken%3Dabc',
     )
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Bob')
+    await fireEvent.update(await screen.findByLabelText('What should we call you?'), 'Bob')
+    await fireEvent.update(screen.getByLabelText('Username'), 'bob')
     await fireEvent.update(screen.getByLabelText('Password'), 'a good password')
     await fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
     await screen.findByRole('button', { name: 'Join Joint piece' })

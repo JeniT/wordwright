@@ -3,6 +3,7 @@ import {
   AuthConfigSchema,
   CritiqueSchema,
   DraftSchema,
+  HandleAvailabilitySchema,
   InvitationPreviewSchema,
   InvitationSchema,
   LlmSettingsSchema,
@@ -74,6 +75,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     authConfig: () => get(AuthConfigSchema, 'GET', '/auth/config'),
     me: () => get(UserSchema, 'GET', '/auth/me'),
     register: (input: RegisterInput) => get(UserSchema, 'POST', '/auth/register', input),
+    /** Whether a username is free (the server also checks again when the account is created). */
+    handleAvailable: (handle: string) =>
+      get(
+        HandleAvailabilitySchema,
+        'GET',
+        `/auth/handle-available?handle=${encodeURIComponent(handle)}`,
+      ),
     login: (input: LoginInput) => get(UserSchema, 'POST', '/auth/login', input),
     logout: () => act('POST', '/auth/logout', {}),
     verifyEmail: (token: string) => act('POST', '/auth/verify-email', { token }),

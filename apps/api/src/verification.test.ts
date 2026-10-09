@@ -175,9 +175,12 @@ describe('failure and cleanup', () => {
     }
     const logger = { error: vi.fn() }
     const ctx = setup({ mailer: failing, logger })
-    const res = await ctx
-      .client()
-      .post('/api/auth/register', { name: 'Ada', email: 'ada@example.com', password: PASSWORD })
+    const res = await ctx.client().post('/api/auth/register', {
+      name: 'Ada',
+      email: 'ada@example.com',
+      password: PASSWORD,
+      handle: 'ada',
+    })
     expect(res.status).toBe(201)
     await vi.waitFor(() => expect(logger.error).toHaveBeenCalled())
     const logged = String(logger.error.mock.calls[0]![0])

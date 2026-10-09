@@ -7,6 +7,11 @@ defineProps<{
   autocomplete?: string
   hint?: string
   required?: boolean
+  /** Marks the hint as an error message for the field. */
+  invalid?: boolean
+  autocapitalize?: string
+  spellcheck?: boolean
+  maxlength?: number
 }>()
 const model = defineModel<string>({ required: true })
 const id = useId()
@@ -21,9 +26,22 @@ const id = useId()
       :type="type ?? 'text'"
       :autocomplete="autocomplete"
       :required="required"
+      :autocapitalize="autocapitalize"
+      :spellcheck="spellcheck"
+      :maxlength="maxlength"
+      :aria-invalid="invalid || undefined"
       :aria-describedby="hint ? `${id}-hint` : undefined"
       class="w-full rounded border border-stone-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
     />
-    <p v-if="hint" :id="`${id}-hint`" class="mt-1 text-sm text-stone-600">{{ hint }}</p>
+    <!-- Live, so a changing hint (e.g. "That username is taken") is read out as the person types. -->
+    <p
+      v-if="hint"
+      :id="`${id}-hint`"
+      aria-live="polite"
+      class="mt-1 text-sm"
+      :class="invalid ? 'text-red-700' : 'text-stone-600'"
+    >
+      {{ hint }}
+    </p>
   </div>
 </template>

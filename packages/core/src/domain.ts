@@ -12,6 +12,18 @@ export const NameSchema = z
   .min(1, 'Enter a name')
   .max(100, 'Use 100 characters or fewer for the name')
 export const HandleSchema = z.string().min(HANDLE_MIN).max(HANDLE_MAX).regex(HANDLE_PATTERN)
+/** What people type as a username: tolerant of case and stray spaces, strict about the result. */
+export const UsernameInputSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(
+    z
+      .string()
+      .min(HANDLE_MIN, `Use at least ${HANDLE_MIN} characters for your username`)
+      .max(HANDLE_MAX, `Use ${HANDLE_MAX} characters or fewer for your username`)
+      .regex(HANDLE_PATTERN, 'Use only letters and numbers in your username'),
+  )
 
 /** People type "mysite.substack.com"; assume https. Only web addresses are accepted, never e.g. javascript:. */
 const withScheme = (text: string) => (/^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`)
@@ -41,10 +53,14 @@ export type User = z.infer<typeof UserSchema>
 
 export const RegisterInputSchema = z.object({
   name: NameSchema,
+  handle: UsernameInputSchema,
   email: EmailSchema,
   password: PasswordSchema,
 })
 export type RegisterInput = z.infer<typeof RegisterInputSchema>
+
+export const HandleAvailabilitySchema = z.object({ available: z.boolean() })
+export type HandleAvailability = z.infer<typeof HandleAvailabilitySchema>
 
 export const LoginInputSchema = z.object({
   email: EmailSchema,

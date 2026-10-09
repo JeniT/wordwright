@@ -1,9 +1,11 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
+// The landing page asks whether a key is saved; these tests are about profiles.
+beforeEach(() => server.use(llmSettings(true)))
 
 const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
 const editor = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'editor' }
@@ -62,7 +64,7 @@ describe('profile list (home)', () => {
   it('explains what a profile is when there are none', async () => {
     server.use(signedInAs(testUser), listProfiles([]))
     await renderAt('/')
-    await screen.findByText('No profiles yet')
+    await screen.findByText('Next, create your first profile')
     expect(screen.getByRole('link', { name: 'Create your first profile' })).toHaveAttribute(
       'href',
       '/profiles/new',
@@ -414,7 +416,7 @@ describe('profile settings', () => {
     const { router } = await renderAt('/p/adalovelace-blog/settings')
     await fireEvent.click(await screen.findByRole('button', { name: 'Delete this profile' }))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
-    await screen.findByText('No profiles yet')
+    await screen.findByText('Next, create your first profile')
   })
 
   it('gives an editor a read-only view and a way to leave', async () => {

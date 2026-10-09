@@ -95,17 +95,106 @@ describe('sign in', () => {
 })
 
 describe('registration', () => {
+  const fill = async (username: string) => {
+    await fireEvent.update(await screen.findByLabelText('What should we call you?'), 'Ada')
+    await fireEvent.update(screen.getByLabelText('Username'), username)
+    await fireEvent.update(screen.getByLabelText('Email'), 'ada@example.com')
+    await fireEvent.update(screen.getByLabelText('Password'), 'a good password')
+  }
+
+  it('asks what to call them, and asks browsers to autofill just a first name', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/register')
+    const name = await screen.findByLabelText('What should we call you?')
+    expect(name).toHaveAttribute('autocomplete', 'given-name')
+    expect(screen.queryByLabelText('Name')).toBeNull()
+    expect(screen.getByLabelText('Username')).toHaveAttribute('autocomplete', 'off')
+  })
+
+  it('sends the chosen username with the rest of the details', async () => {
+    let body: unknown
+    server.use(
+      signedInAs(null),
+      http.get('*/api/auth/handle-available', () => HttpResponse.json({ available: true })),
+      http.post('*/api/auth/register', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ error: 'stop here' }, { status: 400 })
+      }),
+    )
+    await renderAt('/register')
+    await fill('countess')
+    await screen.findByText(/“countess” is available/)
+    await fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+    await screen.findByRole('alert')
+    expect(body).toEqual({
+      name: 'Ada',
+      handle: 'countess',
+      email: 'ada@example.com',
+      password: 'a good password',
+    })
+  })
+
+  it('tells them as they type when a username is taken, and will not submit it', async () => {
+    server.use(
+      signedInAs(null),
+      http.get('*/api/auth/handle-available', ({ request }) =>
+        HttpResponse.json({
+          available: new URL(request.url).searchParams.get('handle') !== 'countess',
+        }),
+      ),
+    )
+    await renderAt('/register')
+    await fill('countess')
+    const hint = await screen.findByText('That username is already taken. Try another.')
+    expect(screen.getByLabelText('Username')).toBeInvalid()
+    expect(hint).toHaveAttribute('aria-live', 'polite')
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled()
+
+    await fireEvent.update(screen.getByLabelText('Username'), 'lovelace')
+    await screen.findByText(/“lovelace” is available/)
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled()
+  })
+
+  it('explains an unusable username without asking the server', async () => {
+    let asked = false
+    server.use(
+      signedInAs(null),
+      http.get('*/api/auth/handle-available', () => {
+        asked = true
+        return HttpResponse.json({ available: true })
+      }),
+    )
+    await renderAt('/register')
+    await fill('ada lovelace')
+    await screen.findByText('Use only letters and numbers in your username')
+    await new Promise((r) => setTimeout(r, 500)) // longer than the typing pause
+    expect(asked).toBe(false)
+  })
+
+  it('still lets them submit if the availability check fails (the server decides)', async () => {
+    server.use(
+      signedInAs(null),
+      http.get('*/api/auth/handle-available', () => HttpResponse.error()),
+    )
+    await renderAt('/register')
+    await fill('countess')
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled(),
+    )
+    await new Promise((r) => setTimeout(r, 500))
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled()
+  })
+
   it('shows a duplicate-email error from the server', async () => {
     server.use(
       signedInAs(null),
+      http.get('*/api/auth/handle-available', () => HttpResponse.json({ available: true })),
       http.post('*/api/auth/register', () =>
         HttpResponse.json({ error: 'An account with this email already exists' }, { status: 409 }),
       ),
     )
     await renderAt('/register')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Ada')
-    await fireEvent.update(screen.getByLabelText('Email'), 'ada@example.com')
-    await fireEvent.update(screen.getByLabelText('Password'), 'a good password')
+    await fill('countess')
     await fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/already exists/)
   })

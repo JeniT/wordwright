@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_IMAGE_BYTES, MAX_OWNED_PROFILES } from '@lfwa/core'
 import {
+  PASSWORD,
   PNG_BYTES,
   register,
   saveKey,
@@ -93,8 +94,8 @@ describe('profile ids', () => {
   it('give every user a unique handle, and build readable ids from it', async () => {
     const ctx = setup()
     const [sam, other] = [ctx.client(), ctx.client()]
-    const user = await register(sam, 'sam@example.com', 'Sam')
-    const second = await register(other, 'sam2@example.com', 'Sam')
+    const user = await register(sam, 'sam@example.com', 'Sam', PASSWORD, 'sam')
+    const second = await register(other, 'sam2@example.com', 'Sam', PASSWORD, 'sam2')
     expect(user.handle).toBe('sam')
     expect(second.handle).toBe('sam2')
     expect((await sam.get('/api/auth/me').then((r) => r.json())).handle).toBe('sam')

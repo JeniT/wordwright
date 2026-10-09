@@ -7,6 +7,8 @@ import {
   ForgotPasswordInputSchema,
   LoginInputSchema,
   RegisterInputSchema,
+  UsernameInputSchema,
+  type HandleAvailability,
   ResetPasswordInputSchema,
   safeNextPath,
   VerifyEmailInputSchema,
@@ -16,6 +18,7 @@ import type { IdentityProvider } from '../auth/identity'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken } from '../auth/secrets'
+import { validateJson } from '../validate'
 import { AccountError, type AccountService, type Session } from '../services/accounts'
 
 const OAUTH_COOKIE = 'lfwa_oauth'
@@ -32,10 +35,13 @@ export interface AuthRouteDeps {
   resetLimiter: RateLimiter
   /** Throttles "resend verification email" per user. */
   verificationLimiter: RateLimiter
+  /** Throttles username availability checks (one shared bucket: the API doesn't see client IPs). */
+  handleCheckLimiter: RateLimiter
 }
 
 const STATUS = {
   email_in_use: 409,
+  handle_in_use: 409,
   invalid_credentials: 401,
   invalid_reset_token: 400,
   invalid_verification_token: 400,
@@ -82,7 +88,20 @@ export function authRoutes(d: AuthRouteDeps) {
 
       .get('/me', requireUser(d.accounts), (c) => c.json(d.accounts.toPublic(c.get('user'))))
 
-      .post('/register', zValidator('json', RegisterInputSchema), async (c) => {
+      // Unauthenticated so it works on the sign-up form. Usernames are already public (they start
+      // every profile address), so this reveals nothing new, but it is throttled all the same.
+      .get('/handle-available', (c) => {
+        throttle(d.handleCheckLimiter, 'handle-check')
+        const parsed = UsernameInputSchema.safeParse(c.req.query('handle') ?? '')
+        if (!parsed.success) {
+          throw new HTTPException(400, { message: parsed.error.issues[0]?.message })
+        }
+        return c.json({
+          available: !d.accounts.handleTaken(parsed.data),
+        } satisfies HandleAvailability)
+      })
+
+      .post('/register', validateJson(RegisterInputSchema), async (c) => {
         const session = await d.accounts.register(c.req.valid('json')).catch(toHttpError)
         setSession(c, session)
         return c.json(d.accounts.toPublic(session.user), 201)

@@ -13,14 +13,15 @@ const PNG = Buffer.from(
 async function registerUser(page: Page, name: string) {
   const email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
   await page.goto('/register')
-  await page.getByLabel('Name').fill(name)
+  await page.getByLabel('What should we call you?').fill(name)
+  await page.getByLabel('Username').fill(name.toLowerCase()) // so profile addresses start with it
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 }
 
-/** A different name each time, because handles are shared between parallel tests. */
+/** A different name each time, because usernames are shared between parallel tests. */
 const uniqueName = (prefix: string) => `${prefix}${Math.random().toString(36).slice(2, 8)}`
 
 const noViolations = async (page: Page) =>
@@ -164,11 +165,10 @@ test('profile pages for a signed-in user have no detectable accessibility violat
   page,
 }) => {
   await registerUser(page, uniqueName('Sam'))
-  await noViolations(page) // the list
-  await page
-    .getByRole('main')
-    .getByRole('link', { name: /writing/ })
-    .click()
+  await noViolations(page) // the list, with the API key set-up and the first-profile prompt
+  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Sam writing')
+  await page.getByRole('button', { name: 'Create profile' }).click()
   await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
   await noViolations(page) // the profile page
 })

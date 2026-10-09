@@ -1,4 +1,10 @@
-import { FakeLLMProvider, LLMAuthError, type LLMConfig, type LLMRequest } from '@lfwa/core'
+import {
+  FakeLLMProvider,
+  LLMAuthError,
+  suggestHandle,
+  type LLMConfig,
+  type LLMRequest,
+} from '@lfwa/core'
 import { createApp } from './app'
 import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
@@ -114,15 +120,34 @@ export const PASSWORD = 'correct horse battery'
 /** The smallest valid PNG header; enough for the server to recognise the type. */
 export const PNG_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
 
+/** Signs up exactly as the web form does: no profile is created. */
+export async function signUp(
+  client: TestClient,
+  email = 'ada@example.com',
+  name = 'Ada Lovelace',
+  password = PASSWORD,
+  handle = suggestHandle(name, email),
+) {
+  const res = await client.post('/api/auth/register', { name, email, password, handle })
+  expectStatus(res.status, 201)
+  return res.json()
+}
+
+/**
+ * Signs up and creates a first profile ("<name>'s writing"), since most tests are about what
+ * happens inside a profile. Use `signUp` for tests about the brand-new account.
+ */
 export async function register(
   client: TestClient,
   email = 'ada@example.com',
   name = 'Ada Lovelace',
   password = PASSWORD,
+  handle = suggestHandle(name, email),
 ) {
-  const res = await client.post('/api/auth/register', { name, email, password })
+  const user = await signUp(client, email, name, password, handle)
+  const res = await client.post('/api/profiles', { name: `${name}'s writing` })
   expectStatus(res.status, 201)
-  return res.json()
+  return user
 }
 
 function expectStatus(actual: number, expected: number) {

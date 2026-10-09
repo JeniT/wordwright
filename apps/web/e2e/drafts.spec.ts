@@ -7,19 +7,43 @@ import { expect, test, watchForProblems } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
-/** Each test registers its own user, so tests are independent and can run in parallel. */
-async function registerUser(page: Page, name = 'Ada Lovelace') {
+/** Usernames are unique across the whole database, and tests run in parallel. */
+const uniqueUsername = () => `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+
+/** Fills in the sign-up form (without submitting). Returns the email used. */
+async function fillSignUp(page: Page, name: string, username = uniqueUsername()) {
   const email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
-  await page.goto('/register')
-  await page.getByLabel('Name').fill(name)
+  await page.getByLabel('What should we call you?').fill(name)
+  await page.getByLabel('Username').fill(username)
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
   return email
 }
 
-/** From the profile list, opens the profile every new account starts with. */
+/** From the landing page, creates a profile named "<name>'s writing" and opens it. */
+async function createFirstProfile(page: Page, name: string) {
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill(`${name}'s writing`)
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+}
+
+/**
+ * Each test registers its own user, so tests are independent and can run in parallel. Most tests
+ * are about what happens after set-up, so this also creates a first profile, "<name>'s writing".
+ */
+async function registerUser(page: Page, name = 'Ada Lovelace', { withProfile = true } = {}) {
+  await page.goto('/register')
+  const email = await fillSignUp(page, name)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  if (withProfile) await createFirstProfile(page, name)
+  return email
+}
+
+/** From the profile list, opens the first profile ("<name>'s writing"). */
 async function openFirstProfile(page: Page) {
   await page
     .getByRole('main')
@@ -235,7 +259,8 @@ test('invites someone who has no account yet: they register from the email and j
   ).toEqual([])
   await newbie.getByRole('link', { name: 'Create an account' }).click()
   await expect(newbie.getByLabel('Email')).toHaveValue(newbieEmail) // prefilled from the invitation
-  await newbie.getByLabel('Name').fill('Newbie')
+  await newbie.getByLabel('What should we call you?').fill('Newbie')
+  await newbie.getByLabel('Username').fill(uniqueUsername())
   await newbie.getByLabel('Password').fill(PASSWORD)
   await newbie.getByRole('button', { name: 'Create account' }).click()
 
@@ -346,6 +371,56 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
   expect(phoneProblems, "The phone's browser problems").toEqual([])
+})
+
+test('a new account chooses a username, connects an API key, then creates its first profile', async ({
+  page,
+  browser,
+}) => {
+  const taken = uniqueUsername()
+  await registerUser(page, 'Grace', { withProfile: false })
+
+  // Sign-up asks what to call them, and checks the username against everyone else's.
+  const other = await (await browser.newContext()).newPage()
+  await other.goto('/register')
+  const name = other.getByLabel('What should we call you?')
+  await expect(name).toHaveAttribute('autocomplete', 'given-name')
+  await name.fill('Someone')
+  await other.getByLabel('Username').fill('Not Valid!')
+  await expect(other.getByText('Use only letters and numbers in your username')).toBeVisible()
+  await other.getByLabel('Username').fill(taken)
+  await expect(other.getByText(`“${taken}” is available`)).toBeVisible()
+  await expect((await new AxeBuilder({ page: other }).analyze()).violations).toEqual([])
+  await other.getByLabel('Email').fill(`dup-${Date.now()}@example.com`)
+  await other.getByLabel('Password').fill(PASSWORD)
+  await other.getByRole('button', { name: 'Create account' }).click()
+  await expect(other.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+
+  const third = await (await browser.newContext()).newPage()
+  await third.goto('/register')
+  await third.getByLabel('Username').fill(taken)
+  await expect(third.getByText('That username is already taken. Try another.')).toBeVisible()
+  await expect(third.getByRole('button', { name: 'Create account' })).toBeDisabled()
+
+  // No profile was made for them. The landing page explains how to get a key, with a field for it.
+  await expect(page.getByText('Welcome, Grace')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'First, connect your AI assistant' }),
+  ).toBeVisible()
+  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(5)
+  await expect(page.getByText('Next, create your first profile')).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'landing page').toEqual([])
+
+  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-onboarding-key-4321')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
+  await expect(page.getByLabel('Anthropic API key')).toHaveCount(0)
+
+  // Then they create (and set up) their first profile.
+  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Grace letters')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Grace letters' })).toBeVisible()
 })
 
 test('deletes an account', async ({ page }) => {

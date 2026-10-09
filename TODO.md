@@ -54,8 +54,9 @@ schema messages read well for people (e.g. `PasswordSchema`), and add an e2e che
 
 ### T18 · Let people choose or change their handle
 
-Why: handles are generated at sign-up (`jenit`). Add an account setting with availability check, the existing
-rules (`HandleSchema`), and a rule for what happens to existing profile ids (they stay; only new ones use it).
+Why: people now choose their username at sign-up, but can't change it, and sign-ups through Google still get a
+generated one (`jenit`) with no chance to pick. Add an account setting (reusing `GET /api/auth/handle-available`,
+`UsernameInputSchema`), perhaps prompting Google sign-ups once, and a rule for what happens to existing profile ids (they stay; only new ones use it).
 Consider a reserved-words list and a rate limit.
 
 ## Backlog
@@ -125,6 +126,9 @@ if/when D3 picks object storage.
   via an in-process 6-hourly job sharing the account-deletion code (`6ba8af2`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
+- **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name
+  autofill; no profile created at sign-up (the landing page prompts for one); API-key instructions and field on
+  the landing page until a key is saved
 - **T15** · Venue profiles: user handles and readable ids (`jenit-substack`), website link, picture with
   monogram fallback, profile list on the home page, create page, profile page, settings page (sharing and deletion
   moved here from Account), id migration for existing data. Audiences, sources and ideas are T16/T19/T20.

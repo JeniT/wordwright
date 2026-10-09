@@ -1,14 +1,36 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import ProfileImage from '../components/ProfileImage.vue'
+import { api } from '../lib/api'
 import { displayHost, useProfiles } from '../lib/useProfiles'
+import { useSessionStore } from '../stores/session'
 
+const session = useSessionStore()
 const profiles = useProfiles()
+// Shares the cache with the setup form, which updates it when a key is saved.
+const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
+const justConnected = ref(false)
 const newProfileLink =
   'rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 </script>
 
 <template>
+  <div
+    v-if="llm.data.value && !llm.data.value.hasKey"
+    class="mb-10 rounded-lg border border-stone-200 bg-white p-5"
+  >
+    <p v-if="session.user && !profiles.data.value?.length" class="mb-4 font-serif text-lg">
+      Welcome, {{ session.user.name }}. Two quick steps and you're ready to write.
+    </p>
+    <LlmSettingsSection guide @saved="justConnected = true" />
+  </div>
+  <p v-else-if="justConnected" role="status" class="mb-6 rounded bg-stone-100 p-3 text-sm">
+    Your Anthropic key is saved. The writing assistant is ready to use.
+  </p>
+
   <section aria-labelledby="profiles-heading">
     <div class="mb-6 flex items-center justify-between gap-4">
       <h1 id="profiles-heading" class="font-serif text-2xl font-semibold">Your profiles</h1>
@@ -30,10 +52,11 @@ const newProfileLink =
       v-else-if="!profiles.data.value?.length"
       class="rounded border border-dashed border-stone-300 p-8 text-center"
     >
-      <p class="font-serif text-lg">No profiles yet</p>
+      <p class="font-serif text-lg">Next, create your first profile</p>
       <p class="mx-auto mt-2 max-w-md text-stone-700">
         A profile is a place you publish, like a Substack or a blog. It keeps its own ideas, readers
-        and drafts together.
+        and drafts together. You can give it a name, a website and a picture, and share it with
+        others later.
       </p>
       <RouterLink :to="{ name: 'new-profile' }" :class="[newProfileLink, 'mt-4 inline-block']">
         Create your first profile
