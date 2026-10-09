@@ -14,7 +14,8 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-_Nothing claimed._
+- **T21** · Bug: renaming a profile should rename its readable id/URL, with permanent redirects from old ids ·
+  claimed: Claude (T21 session) · branch: T21 (worktree `.worktrees/T21`)
 
 ## Ready
 
