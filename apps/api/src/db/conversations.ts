@@ -1,0 +1,220 @@
+import { randomUUID } from 'node:crypto'
+import type { DatabaseSync } from 'node:sqlite'
+import type { LLMContentBlock, LLMStopReason, ProposalStatus, ProposalTool } from '@lfwa/core'
+import { nowIso } from './database'
+
+export interface MessageRecord {
+  id: string
+  seq: number
+  role: 'user' | 'assistant'
+  kind: 'kickoff' | 'message'
+  authorId: string | null
+  /** The author's name now (null if the account is gone). */
+  authorName: string | null
+  provider: string | null
+  model: string | null
+  content: LLMContentBlock[]
+  displayText: string
+  snapshot: string | null
+  status: 'complete' | 'stopped'
+  stopReason: LLMStopReason | null
+  createdAt: string
+}
+
+export interface NewMessage {
+  role: 'user' | 'assistant'
+  kind: 'kickoff' | 'message'
+  authorId: string
+  provider?: string
+  model?: string
+  content: LLMContentBlock[]
+  displayText: string
+  snapshot?: string
+  status?: 'complete' | 'stopped'
+  stopReason?: LLMStopReason
+  usage?: { inputTokens: number; outputTokens: number; cachedInputTokens?: number }
+}
+
+export interface ProposalRecord {
+  id: string
+  messageId: string
+  toolCallId: string
+  tool: ProposalTool
+  input: { name?: string; notes?: string }
+  base: { name: string; notes: string } | null
+  status: ProposalStatus
+  decidedByName: string | null
+  decidedAt: string | null
+  createdIdeaId: string | null
+}
+
+/** The brainstorming thread of each idea. Callers check that the person belongs to the idea's profile first. */
+export class ConversationStore {
+  constructor(private readonly db: DatabaseSync) {}
+
+  messages(ideaId: string): MessageRecord[] {
+    return this.db
+      .prepare(
+        `SELECT m.*, u.name AS author_name FROM idea_messages m
+         LEFT JOIN users u ON u.id = m.author_id
+         WHERE m.idea_id = ? ORDER BY m.seq`,
+      )
+      .all(ideaId)
+      .map(toMessage)
+  }
+
+  message(ideaId: string, id: string): MessageRecord | undefined {
+    const row = this.db
+      .prepare(
+        `SELECT m.*, u.name AS author_name FROM idea_messages m
+         LEFT JOIN users u ON u.id = m.author_id WHERE m.idea_id = ? AND m.id = ?`,
+      )
+      .get(ideaId, id)
+    return row ? toMessage(row) : undefined
+  }
+
+  /** The snapshot carried by the most recent message that had one: what the model last saw of the idea. */
+  lastSnapshot(ideaId: string): string | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT snapshot FROM idea_messages WHERE idea_id = ? AND snapshot IS NOT NULL ORDER BY seq DESC LIMIT 1',
+      )
+      .get(ideaId) as { snapshot: string } | undefined
+    return row?.snapshot
+  }
+
+  append(ideaId: string, message: NewMessage): string {
+    const id = randomUUID()
+    this.db
+      .prepare(
+        `INSERT INTO idea_messages (id, idea_id, seq, role, kind, author_id, provider, model, content,
+           display_text, snapshot, status, stop_reason, input_tokens, output_tokens, cached_tokens, created_at)
+         VALUES (?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM idea_messages WHERE idea_id = ?),
+           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        ideaId,
+        ideaId,
+        message.role,
+        message.kind,
+        message.authorId,
+        message.provider ?? null,
+        message.model ?? null,
+        JSON.stringify(message.content),
+        message.displayText,
+        message.snapshot ?? null,
+        message.status ?? 'complete',
+        message.stopReason ?? null,
+        message.usage?.inputTokens ?? null,
+        message.usage?.outputTokens ?? null,
+        message.usage?.cachedInputTokens ?? null,
+        nowIso(),
+      )
+    return id
+  }
+
+  /** Removes the whole thread (its suggestions go with it). */
+  deleteAll(ideaId: string) {
+    this.db.prepare('DELETE FROM idea_messages WHERE idea_id = ?').run(ideaId)
+  }
+
+  addProposal(
+    messageId: string,
+    p: Pick<ProposalRecord, 'toolCallId' | 'tool' | 'input' | 'base'>,
+  ): string {
+    const id = randomUUID()
+    this.db
+      .prepare(
+        `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base) VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        messageId,
+        p.toolCallId,
+        p.tool,
+        JSON.stringify(p.input),
+        p.base && JSON.stringify(p.base),
+      )
+    return id
+  }
+
+  /** The suggestions made in one message, in the order they were made. */
+  proposals(messageId: string): ProposalRecord[] {
+    return this.db
+      .prepare(this.proposalSql('WHERE p.message_id = ?') + ' ORDER BY p.rowid')
+      .all(messageId)
+      .map(toProposal)
+  }
+
+  /** A suggestion, only if it belongs to this idea's thread. */
+  proposal(ideaId: string, id: string): ProposalRecord | undefined {
+    const row = this.db
+      .prepare(
+        this.proposalSql(
+          'JOIN idea_messages m ON m.id = p.message_id WHERE m.idea_id = ? AND p.id = ?',
+        ),
+      )
+      .get(ideaId, id)
+    return row ? toProposal(row) : undefined
+  }
+
+  /**
+   * Records a decision, but only if it is still pending, so two people can't both decide it.
+   * Returns whether this call was the one that decided.
+   */
+  decide(
+    id: string,
+    status: 'accepted' | 'dismissed',
+    userId: string,
+    createdIdeaId?: string,
+  ): boolean {
+    return (
+      this.db
+        .prepare(
+          `UPDATE idea_proposals SET status = ?, decided_by = ?, decided_at = ?, created_idea_id = ?
+           WHERE id = ? AND status = 'pending'`,
+        )
+        .run(status, userId, nowIso(), createdIdeaId ?? null, id).changes > 0
+    )
+  }
+
+  private proposalSql(rest: string) {
+    return `SELECT p.*, u.name AS decided_by_name FROM idea_proposals p
+            LEFT JOIN users u ON u.id = p.decided_by ${rest}`
+  }
+}
+
+function toMessage(row: Record<string, unknown>): MessageRecord {
+  return {
+    id: row.id as string,
+    seq: row.seq as number,
+    role: row.role as 'user' | 'assistant',
+    kind: row.kind as 'kickoff' | 'message',
+    authorId: (row.author_id as string | null) ?? null,
+    authorName: (row.author_name as string | null) ?? null,
+    provider: (row.provider as string | null) ?? null,
+    model: (row.model as string | null) ?? null,
+    content: JSON.parse(row.content as string) as LLMContentBlock[],
+    displayText: row.display_text as string,
+    snapshot: (row.snapshot as string | null) ?? null,
+    status: row.status as 'complete' | 'stopped',
+    stopReason: (row.stop_reason as LLMStopReason | null) ?? null,
+    createdAt: row.created_at as string,
+  }
+}
+
+function toProposal(row: Record<string, unknown>): ProposalRecord {
+  return {
+    id: row.id as string,
+    messageId: row.message_id as string,
+    toolCallId: row.tool_call_id as string,
+    tool: row.tool as ProposalTool,
+    input: JSON.parse(row.input as string),
+    base: row.base ? JSON.parse(row.base as string) : null,
+    status: row.status as ProposalStatus,
+    decidedByName: (row.decided_by_name as string | null) ?? null,
+    decidedAt: (row.decided_at as string | null) ?? null,
+    createdIdeaId: (row.created_idea_id as string | null) ?? null,
+  }
+}

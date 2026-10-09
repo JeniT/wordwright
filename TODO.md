@@ -14,18 +14,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T20b2 · Brainstorm: storage, context, proposals and streaming API
-
-claimed: claude-session-3 · branch: T20b2
-
-Tables `idea_messages` and `idea_proposals`; a service that builds the system prompt and idea snapshot (title,
-notes, related links, venue name/site/audiences when T16 exists, draft titles only), stores the thread in the
-neutral format (no thinking blocks), handles kick-off, retry, stop, proposals (accept with a stale-text check,
-dismiss, create idea), one reply in flight per idea, per-person throttling; SSE endpoint; cascade tests incl.
-account deletion. Needs T20b1; uses `BrainstormPromptService.effective(userId)` from T20b3 for the user's prompt.
-
-## Ready
-
 ### T5b · Move task tracking to GitHub Issues (optional)
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
@@ -71,7 +59,7 @@ five stages, each its own task and commit; do them in order.
 
 `/p/:profile/ideas/:idea/brainstorm` with the thread, proposal cards (diffs, Accept/Dismiss), streaming, Stop, Try
 again, "someone else is waiting", Start again; Markdown rendering via `markdown-it` with HTML and images off; the
-idea page's Brainstorm button becomes a link. Component + e2e tests and axe checks. Needs T20b2 and T20b3.
+idea page's Brainstorm button becomes a link. Component + e2e tests and axe checks. Needs T20b2 and T20b3 (both done). The API and the event stream it will use are described in `docs/brainstorming.md`; `FAKE_LLM`'s default `chat()` just echoes, so give it a scripted reply that includes a suggestion for the e2e test.
 
 ### T20b5 · Brainstorm: evals and tuning the default prompt
 
@@ -144,6 +132,13 @@ Per the owner: possibly host an open model for users without their own key. Need
 
 ## Done
 
+- **T20b2** · Brainstorming API: a shared thread per idea (`idea_messages`, `idea_proposals`); the service builds the
+  system prompt (the person's prompt + the app's rules), the idea snapshot (title, notes, related links, venue,
+  draft titles only; sent again only when the idea changes) and replays the thread in a provider-neutral format;
+  streams a reply over server-sent events; the AI can only propose (`update_idea`, `create_idea`), proposals are
+  accepted (with a stale-text check) or dismissed by any member, and answered to the AI on its next turn; one reply
+  in flight per idea, 30 messages per 10 minutes per person, 3-minute reply timeout, Stop keeps what was said, Try
+  again after a failure, Start again wipes the thread. Reader (audience) descriptions arrive with T16. (COMMIT)
 - **T20b3** · Brainstorming prompt on the account page: each person can edit, save and reset their own version of the
   default commissioning-editor prompt (`prompts/brainstorm-default.md`); a version identical to the default isn't
   stored, so improvements to the default reach everyone who hasn't changed theirs; `BrainstormPromptService.effective()`

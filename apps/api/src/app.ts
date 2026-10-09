@@ -20,6 +20,7 @@ import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
 import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
+import { BrainstormService } from './services/brainstorm'
 import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { IdeaLinkService } from './services/idea-links'
 import { InvitationService } from './services/invitations'
@@ -126,6 +127,14 @@ export function createApp(deps: AppDeps) {
     pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
     limiter: new RateLimiter(30, 60 * 1000, deps.now && (() => deps.now!().getTime())),
   })
+  const brainstorm = new BrainstormService({
+    store,
+    prompts: brainstormPrompts,
+    resolveLlm: (userId) => llmKeys.resolveWithInfo(userId),
+    // Each message spends the person's own money and our server time: 30 in 10 minutes is a lot of chat.
+    limiter: new RateLimiter(30, 10 * 60 * 1000, deps.now && (() => deps.now!().getTime())),
+    logger: deps.logger,
+  })
   api.route('/invitations', invitationRoutes(invitations, accounts))
   api.route(
     '/profiles',
@@ -139,6 +148,7 @@ export function createApp(deps: AppDeps) {
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
         new RateLimiter(30, 60 * 60 * 1000, deps.now && (() => deps.now!().getTime())),
         ideaLinks,
+        brainstorm,
       ),
     ),
   )

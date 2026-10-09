@@ -1,6 +1,6 @@
 # Brainstorming with an LLM: design (T20b)
 
-Status: **agreed; T20b1 (the port) built, the rest not.** Written after a design discussion with the owner. The work is split into tasks
+Status: **agreed; built so far: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt). Not yet: T20b4 (the chat page), T20b5 (evals).** Written after a design discussion with the owner. The work is split into tasks
 T20b1–T20b5 in [TODO.md](../TODO.md). Why things are the way they are is here; code and tests are the source of
 truth once it exists.
 
@@ -158,15 +158,21 @@ The profile-rename list needs no change (these tables hang off ideas and users, 
 All under `/api/profiles/:profileId/ideas/:id/conversation` (members only):
 
 - `GET`: the thread, with proposals and their states.
-- `POST /messages`: body `{ text }`, or `{ start: true }` for the kick-off or `{ retry: true }` for a retry.
-  Answers as a **server-sent event stream** (`text`, `proposal`, `done`, `error`); the browser reads it with
-  `fetch` and a stream reader, not `EventSource`, so it can POST and cancel.
-- `POST /proposals/:proposalId/accept` and `/dismiss`: accept re-checks the base text and applies the change in one
-  transaction (updating the idea, or creating one).
-- `DELETE`: start again.
-
-And on the account: `GET`/`PUT`/`DELETE /api/account/brainstorm-prompt` (the effective prompt and whether it is
-the default; save; reset).
+- `POST /messages`: body `{ text }`, or `{ start: true }` for the kick-off or `{ retry: true }` for a retry (exactly
+  one). Problems that can still be an ordinary response come back as one: `400` (bad body), `409` (no API key, already
+  started, nothing to retry, or someone else's reply is in flight), `429` (too many messages). Otherwise it answers
+  `200` as a **server-sent event stream**, which the browser reads with `fetch` and a stream reader, not
+  `EventSource`, so it can POST and cancel. Each event is `event: <type>` with `data:` the JSON of a
+  `BrainstormEvent` (`packages/core/src/domain.ts`), in this order: `message` (the person's message as stored; not
+  sent on a retry), `text` (word-sized pieces of the reply), `proposal` (one per valid suggestion), then `done`
+  (the stored reply; `null` if stopped before it said anything) or `error` (`auth`, `rate_limit`, `provider`,
+  `timeout` or `unknown`, with a message for people). Closing the connection stops the reply and keeps what was said.
+- `POST /proposals/:proposalId/accept` (body `{ overwrite?: true }`) and `/dismiss`: accept applies the change in one
+  transaction (updating the idea, or creating one) and answers `409` if the suggestion was already decided, or if
+  the idea's title or notes it would replace have changed since, unless `overwrite` is sent.
+- `DELETE`: start again (refused while a reply is in flight).
+  And on the account: `GET`/`PUT`/`DELETE /api/account/brainstorm-prompt` (the effective prompt and whether it is
+  the default; save; reset).
 
 ## UI
 

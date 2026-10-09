@@ -1,0 +1,1 @@
+Suggest a change to the idea being discussed: a new title, new notes, or both. This is only a suggestion; the writer chooses whether to accept it, and nothing changes until they do. Give `notes` as the complete new text of the notes (it replaces the current notes), keeping the writer's own wording wherever you can, and include only the fields you want to change.

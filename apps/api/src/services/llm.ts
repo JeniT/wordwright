@@ -92,6 +92,13 @@ export class LlmKeyService {
     this.d.store.credentials.delete(userId)
   }
 
+  /** Like `resolve`, plus which provider and model it is, for recording who said what. */
+  resolveWithInfo(userId: string): { llm: LLMProvider; provider: string; model: string } {
+    const llm = this.resolve(userId)
+    const { provider, model } = this.d.store.credentials.get(userId)!
+    return { llm, provider, model }
+  }
+
   /** An LLM client that spends this user's credits. */
   resolve(userId: string): LLMProvider {
     const stored = this.d.store.credentials.get(userId)

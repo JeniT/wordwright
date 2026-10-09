@@ -1,5 +1,7 @@
 import {
   FakeLLMProvider,
+  type FakeChatResponder,
+  type LLMChatRequest,
   type FeedFetcher,
   FakePageInfoFetcher,
   LLMAuthError,
@@ -65,6 +67,8 @@ export class TestClient {
       setCookies: res.headers.getSetCookie(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       json: () => res.json() as Promise<any>,
+      /** The whole body as text; for a streamed response this waits for the end. */
+      text: () => res.text(),
       bytes: async () => new Uint8Array(await res.arrayBuffer()),
     }
   }
@@ -87,13 +91,24 @@ export function setup(options: TestOptions = {}) {
   const mailer = options.mailer ?? memoryMailer
   /** Every LLM client the app builds, and every request made through it. */
   const llmCalls: { config: LLMConfig; request: LLMRequest }[] = []
+  /** Every conversation turn (`chat()`), with the credentials it was made with. */
+  const chats: { config: LLMConfig; request: LLMChatRequest }[] = []
+  let chatResponder: FakeChatResponder = () => ({ text: 'A fake reply.' })
   const llmFactory = (config: LLMConfig) =>
-    new FakeLLMProvider((request) => {
-      llmCalls.push({ config, request })
-      if (config.apiKey.startsWith('bad-')) throw new LLMAuthError() // rejected by the provider
-      if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
-      return `Critique from ${config.model}: needs a stronger opening.`
-    })
+    new FakeLLMProvider(
+      (request) => {
+        llmCalls.push({ config, request })
+        if (config.apiKey.startsWith('bad-')) throw new LLMAuthError() // rejected by the provider
+        if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
+        return `Critique from ${config.model}: needs a stronger opening.`
+      },
+      // A new fake is built for every request, so count conversation turns here, across all of them.
+      (request) => {
+        chats.push({ config, request })
+        if (config.apiKey.startsWith('bad-')) throw new LLMAuthError()
+        return chatResponder(request, chats.length)
+      },
+    )
   const feeds = options.feeds ?? exampleFeeds()
   const clock = { now: new Date('2026-01-01T00:00:00Z') }
   const app = createApp({
@@ -117,6 +132,12 @@ export function setup(options: TestOptions = {}) {
     store,
     mailer: memoryMailer,
     llmCalls,
+    /** Every brainstorming turn (`chat()`), with the credentials it was made with. */
+    chats,
+    /** Decides what the fake AI says next in a brainstorming conversation. */
+    setChat: (responder: FakeChatResponder) => {
+      chatResponder = responder
+    },
     feeds,
     pageFetcher,
     clock,

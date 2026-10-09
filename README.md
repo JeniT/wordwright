@@ -206,6 +206,13 @@ idea are the Markdown file `prompts/brainstorm-default.md`. Each person can edit
 that equals the default isn't stored, so changes to the default reach everyone who hasn't customised theirs. The app
 adds its own fixed rules after it (`prompts/brainstorm-rules.md`).
 
+**Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/profiles/:id/ideas/:idea/conversation`
+holds one thread per idea, shared by the profile's members. `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
+`{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
+AI's suggestions (a new title or notes for the idea, or a new idea: it can never touch drafts); `DELETE` starts
+again. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
+person accepts it. There is no page for this yet (T20b4).
+
 ## Notes and next steps
 
 - **Storage:** stores in `apps/api/src/db` use `node:sqlite` with versioned migrations

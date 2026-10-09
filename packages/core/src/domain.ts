@@ -329,6 +329,119 @@ export const IdeaUpdateSchema = z.object({
 })
 export type IdeaUpdate = z.infer<typeof IdeaUpdateSchema>
 
+// ---- Brainstorming: a conversation about an idea ------------------------
+// The AI can only *propose* changes (a new title/notes, or a new idea); nothing is written until
+// a person accepts. See docs/brainstorming.md.
+
+export const BRAINSTORM_MESSAGE_MAX = 10_000
+/** More than this many suggestions in one reply is noise, so the rest are ignored. */
+export const MAX_PROPOSALS_PER_REPLY = 5
+
+/** What the AI sends when it suggests changing the idea being discussed. Untrusted: always validate. */
+export const UpdateIdeaToolInputSchema = z
+  .object({
+    name: IdeaNameSchema.optional().describe('A new title for the idea'),
+    notes: IdeaNotesSchema.optional().describe(
+      "The complete new text of the idea's notes, replacing the current notes",
+    ),
+  })
+  .refine(
+    (v) => v.name !== undefined || v.notes !== undefined,
+    'Suggest a new title, new notes, or both',
+  )
+
+/** What the AI sends when it suggests a separate new idea. Untrusted: always validate. */
+export const CreateIdeaToolInputSchema = z.object({
+  name: IdeaNameSchema.describe('The title of the new idea'),
+  notes: IdeaNotesSchema.describe('Starting notes for the new idea'),
+})
+
+export const ProposalToolSchema = z.enum(['update_idea', 'create_idea'])
+export type ProposalTool = z.infer<typeof ProposalToolSchema>
+export const ProposalStatusSchema = z.enum(['pending', 'accepted', 'dismissed'])
+export type ProposalStatus = z.infer<typeof ProposalStatusSchema>
+
+/** A suggestion from the AI, awaiting (or having had) a person's decision. */
+export const ProposalSchema = z.object({
+  id: z.string(),
+  tool: ProposalToolSchema,
+  /** What is suggested. For `update_idea`, only the fields that would change. */
+  input: z.object({ name: z.string().optional(), notes: z.string().optional() }),
+  status: ProposalStatusSchema,
+  /** Still waiting, but the idea has changed since it was suggested: accepting needs `overwrite`. */
+  stale: z.boolean(),
+  /** The idea that accepting a `create_idea` suggestion made. */
+  createdIdeaId: z.string().nullable(),
+  decidedByName: z.string().nullable(),
+  decidedAt: z.string().nullable(),
+})
+export type Proposal = z.infer<typeof ProposalSchema>
+
+export const ConversationMessageSchema = z.object({
+  id: z.string(),
+  role: z.enum(['user', 'assistant']),
+  /** `kickoff` is the app's own opening turn, shown as "Brainstorm started" rather than as text. */
+  kind: z.enum(['kickoff', 'message']),
+  /** What people see: what was typed, or what the AI said. Empty for a kickoff. */
+  text: z.string(),
+  /** Who sent it (person messages only); null if their account has gone. */
+  authorName: z.string().nullable(),
+  /** Which model replied (AI messages only). */
+  model: z.string().nullable(),
+  /** `stopped`: the person pressed Stop part-way through. */
+  status: z.enum(['complete', 'stopped']),
+  /** `max_tokens`: cut short. `refusal`: the provider declined to answer. */
+  stopReason: z.enum(['end', 'max_tokens', 'tool_use', 'refusal']).nullable(),
+  proposals: z.array(ProposalSchema),
+  createdAt: z.string(),
+})
+export type ConversationMessage = z.infer<typeof ConversationMessageSchema>
+
+export const ConversationSchema = z.object({
+  messages: z.array(ConversationMessageSchema),
+  /** Someone's reply is being written right now (only one at a time per idea). */
+  replyingNow: z.object({ name: z.string() }).nullable(),
+})
+export type Conversation = z.infer<typeof ConversationSchema>
+
+/** Exactly one of: say something, start the session, or ask again after a failed reply. */
+const MESSAGE_PROBLEM = `Write a message of up to ${BRAINSTORM_MESSAGE_MAX.toLocaleString('en')} characters`
+export const SendMessageInputSchema = z
+  .object({
+    text: z
+      .string()
+      .trim()
+      .min(1, MESSAGE_PROBLEM)
+      .max(BRAINSTORM_MESSAGE_MAX, MESSAGE_PROBLEM)
+      .optional(),
+    start: z.literal(true, MESSAGE_PROBLEM).optional(),
+    retry: z.literal(true, MESSAGE_PROBLEM).optional(),
+  })
+  .refine(
+    (v) => [v.text, v.start, v.retry].filter((x) => x !== undefined).length === 1,
+    MESSAGE_PROBLEM,
+  )
+export type SendMessageInput = z.infer<typeof SendMessageInputSchema>
+
+/** Accepting a suggestion made against older text must say so. */
+export const AcceptProposalInputSchema = z.object({ overwrite: z.boolean().optional() })
+
+/** The server-sent events a reply streams, in order: `message`?, `text`*, `proposal`*, then `done` or `error`. */
+export const BrainstormEventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('message'), message: ConversationMessageSchema }),
+  z.object({ type: z.literal('text'), text: z.string() }),
+  z.object({ type: z.literal('proposal'), proposal: ProposalSchema }),
+  /** The finished AI message; null if the reply was stopped before it said anything. */
+  z.object({ type: z.literal('done'), message: ConversationMessageSchema.nullable() }),
+  z.object({
+    type: z.literal('error'),
+    code: z.enum(['auth', 'rate_limit', 'provider', 'timeout', 'unknown']),
+    message: z.string(),
+    retryAfterSeconds: z.number().optional(),
+  }),
+])
+export type BrainstormEvent = z.infer<typeof BrainstormEventSchema>
+
 export const CritiqueRequestSchema = z.object({ draftId: z.string() })
 export type CritiqueRequest = z.infer<typeof CritiqueRequestSchema>
 

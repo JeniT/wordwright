@@ -1,20 +1,25 @@
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
+import { streamSSE } from 'hono/streaming'
 import {
+  AcceptProposalInputSchema,
   DraftInputSchema,
   IdeaInputSchema,
   IdeaLinkInputSchema,
   IdeaUpdateSchema,
+  SendMessageInputSchema,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
+import type { BrainstormService, Turn } from '../services/brainstorm'
 import type { IdeaLinkService } from '../services/idea-links'
+import { toLlmHttpError } from './llm'
 import { validateJson } from '../validate'
 
 const notFound = () => new HTTPException(404, { message: 'Not found' })
 
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
-export function ideaRoutes(store: Store, links: IdeaLinkService) {
+export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: BrainstormService) {
   const { ideas, drafts } = store
   const profileOf = (c: { req: { param: (name: string) => string | undefined } }) =>
     c.req.param('profileId')!
@@ -73,6 +78,46 @@ export function ideaRoutes(store: Store, links: IdeaLinkService) {
         const draft = drafts.create(idea.profileId, c.get('user').id, c.req.valid('json'), idea.id)
         ideas.touch(idea.id)
         return c.json(draft, 201)
+      })
+      // ---- brainstorming: one thread per idea, shared by the profile's members ----
+      .get('/:id/conversation', (c) => c.json(brainstorm.conversation(find(c))))
+      .post('/:id/conversation/messages', validateJson(SendMessageInputSchema), (c) => {
+        const idea = find(c)
+        const { id, name } = c.get('user')
+        let turn: Turn
+        try {
+          // Everything that can still be an ordinary error response (no key, throttled, busy) is checked here.
+          turn = brainstorm.begin(idea, { id, name }, c.req.valid('json'))
+        } catch (err) {
+          return toLlmHttpError(err)
+        }
+        return streamSSE(c, async (stream) => {
+          // Stop asking the provider (and paying) as soon as the person leaves or presses Stop.
+          const stop = new AbortController()
+          stream.onAbort(() => stop.abort())
+          c.req.raw.signal.addEventListener('abort', () => stop.abort())
+          for await (const event of turn.run(stop.signal)) {
+            await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+          }
+        })
+      })
+      .post('/:id/conversation/proposals/:proposalId/accept', async (c) => {
+        const idea = find(c)
+        const input = AcceptProposalInputSchema.safeParse(await c.req.json().catch(() => ({})))
+        if (!input.success)
+          throw new HTTPException(400, { message: 'Check the details and try again' })
+        const { id, name } = c.get('user')
+        return c.json(
+          brainstorm.accept(idea, c.req.param('proposalId'), { id, name }, input.data.overwrite),
+        )
+      })
+      .post('/:id/conversation/proposals/:proposalId/dismiss', (c) => {
+        const { id, name } = c.get('user')
+        return c.json(brainstorm.dismiss(find(c), c.req.param('proposalId'), { id, name }))
+      })
+      .delete('/:id/conversation', (c) => {
+        brainstorm.restart(find(c))
+        return c.body(null, 204)
       })
   )
 }

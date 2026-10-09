@@ -16,6 +16,7 @@ import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
 import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
+import type { BrainstormService } from '../services/brainstorm'
 import type { IdeaLinkService } from '../services/idea-links'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
@@ -30,6 +31,7 @@ export function profileRoutes(
   feeds: FeedFetcher,
   feedLimiter: RateLimiter,
   ideaLinks: IdeaLinkService,
+  brainstorm: BrainstormService,
 ) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
@@ -136,7 +138,7 @@ export function profileRoutes(
       .route('/:profileId/drafts', new Hono<AppEnv>().use(member).route('/', draftRoutes(store)))
       .route(
         '/:profileId/ideas',
-        new Hono<AppEnv>().use(member).route('/', ideaRoutes(store, ideaLinks)),
+        new Hono<AppEnv>().use(member).route('/', ideaRoutes(store, ideaLinks, brainstorm)),
       )
       .route('/:profileId/sources', sourceRoutes(store, feeds, feedLimiter, member))
       .route(

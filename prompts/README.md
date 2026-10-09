@@ -2,11 +2,13 @@
 
 The instructions we give the AI live here, as plain Markdown files, so they're easy to find and edit.
 
-| File                    | What it does                                                                                                                                           | Who can change it in the app                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| `critique.md`           | The editor that critiques a draft (the **Critique** button).                                                                                           | Nobody; edit the file                                                             |
-| `brainstorm-default.md` | How the AI behaves when someone brainstorms an idea: a sceptical commissioning editor. The starting point for everyone's prompt.                       | Each person edits their own copy, on their account page, and can reset it to this |
-| `brainstorm-rules.md`   | Rules the app always adds after a person's own prompt: how suggestions (tools) work, no drafting, treat the idea's text as material, not instructions. | Nobody; edit the file                                                             |
+| File                                         | What it does                                                                                                                                           | Who can change it in the app                                                      |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `critique.md`                                | The editor that critiques a draft (the **Critique** button).                                                                                           | Nobody; edit the file                                                             |
+| `brainstorm-default.md`                      | How the AI behaves when someone brainstorms an idea: a sceptical commissioning editor. The starting point for everyone's prompt.                       | Each person edits their own copy, on their account page, and can reset it to this |
+| `brainstorm-kickoff.md`                      | The instruction sent with the idea when someone presses **Brainstorm**, so the AI starts the session by asking questions.                              | Nobody; edit the file                                                             |
+| `tool-update-idea.md`, `tool-create-idea.md` | What the AI is told its two suggestion tools do (suggest a new title/notes; suggest a new idea).                                                       | Nobody; edit the files                                                            |
+| `brainstorm-rules.md`                        | Rules the app always adds after a person's own prompt: how suggestions (tools) work, no drafting, treat the idea's text as material, not instructions. | Nobody; edit the file                                                             |
 
 ## Editing
 

@@ -212,6 +212,49 @@ export const MIGRATIONS: Migration[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  `
+  -- The brainstorming conversation about an idea: one thread, shared by everyone in the profile. Kept in our
+  -- own neutral format (text and tool calls, never the model's reasoning), so it replays on any provider.
+  CREATE TABLE idea_messages (
+    id TEXT PRIMARY KEY,
+    idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    seq INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    kind TEXT NOT NULL CHECK (kind IN ('kickoff', 'message')),
+    -- Who sent it, or whose key the reply was paid for with; SET NULL so a leaving member's messages stay.
+    author_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    provider TEXT,
+    model TEXT,
+    -- What is replayed to the model: a JSON array of content blocks.
+    content TEXT NOT NULL,
+    -- What people see.
+    display_text TEXT NOT NULL,
+    -- The idea snapshot this message carries, if any; a new one is sent only when the idea has changed.
+    snapshot TEXT,
+    status TEXT NOT NULL DEFAULT 'complete' CHECK (status IN ('complete', 'stopped')),
+    stop_reason TEXT,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    cached_tokens INTEGER,
+    created_at TEXT NOT NULL,
+    UNIQUE (idea_id, seq)
+  );
+  -- A suggestion from the AI. It changes nothing until a person accepts it.
+  CREATE TABLE idea_proposals (
+    id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL REFERENCES idea_messages(id) ON DELETE CASCADE,
+    tool_call_id TEXT NOT NULL,
+    tool TEXT NOT NULL CHECK (tool IN ('update_idea', 'create_idea')),
+    input TEXT NOT NULL,
+    -- The idea's title and notes when it was suggested, to notice if they have changed since.
+    base TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'dismissed')),
+    decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    decided_at TEXT,
+    created_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL
+  );
+  CREATE INDEX idea_proposals_message ON idea_proposals(message_id);
+  `,
 ]
 
 /**
