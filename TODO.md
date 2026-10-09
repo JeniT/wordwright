@@ -126,9 +126,9 @@ Per the owner: possibly host an open model for users without their own key. Need
   drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
   Brainstorm button present but disabled. Existing drafts stay standalone. (`f954432`)
 - **T19b** · Feed details for idea sources: feeds are read when added (`FeedFetcher` port, fake, contract suite, SSRF-safe
-  HTTP adapter); title, description and icon shown; members (not just owners) edit; drag-and-drop reordering (`TBD`)
+  HTTP adapter); title, description and icon shown; members (not just owners) edit; drag-and-drop reordering (`938463b`)
 - **T19** · Idea sources per profile: ordered list of RSS feed addresses (add, remove, reorder)
-  on the profile settings page (`TBD`)
+  on the profile settings page (`938463b`)
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
   profiles with sharing, CSRF/origin check, rate limiting (`968bc75`)
