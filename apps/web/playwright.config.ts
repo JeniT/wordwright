@@ -12,7 +12,12 @@ export default defineConfig({
     {
       // API with fake providers and an in-memory database.
       command: 'pnpm --filter @lfwa/api start',
-      env: { PORT: '8788', DATABASE_PATH: ':memory:', LLM_PROVIDER: 'fake' },
+      env: {
+        PORT: '8788',
+        DATABASE_PATH: ':memory:',
+        LLM_PROVIDER: 'fake',
+        PUBLIC_URL: 'http://localhost:5174',
+      },
       url: 'http://localhost:8788/health',
       reuseExistingServer: !process.env.CI,
     },

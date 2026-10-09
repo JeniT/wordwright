@@ -3,8 +3,9 @@
 A web app to support the writer's journey: idea generation, research, argument and outline refinement,
 critique that preserves your voice, and supplementary material (titles, openings, social posts).
 
-Currently implemented: drafts (create/list/edit/save in a Markdown-backed rich text editor) and an
-LLM-powered critique. The rest is built on the same provider architecture.
+Currently implemented: accounts and login (email + password, optional Google), password recovery,
+account deletion, multiple profiles per user with sharing, drafts (Markdown-backed rich text editor)
+and an LLM-powered critique. The rest is built on the same provider architecture.
 
 ## Stack
 
@@ -50,12 +51,31 @@ To add a service: implement the interface, run the shared contract suite from
 `apps/api/src/server.ts` builds `Providers`. `createApp()` takes its dependencies as arguments, so
 tests inject fakes and nothing hits the network.
 
+## Accounts and sign-in
+
+- **Model:** a user has any number of _profiles_; drafts belong to a profile. Profiles are shared by
+  adding members (`owner` or `editor`). Registering creates a default personal profile.
+- **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
+  server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
+- **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after
+  an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
+  an address has an account (except at registration and when sharing, which must).
+- **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
+  verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
+  `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few
+  lines of config (`OidcProvider`); others implement `IdentityProvider`.
+- **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
+  (with its drafts) where they are the only member. In shared profiles they are removed and, if they
+  were the owner, the longest-standing member becomes owner; drafts they wrote there stay.
+- **Email:** `Mailer` is a port. Only a console adapter exists, which logs reset links to the server
+  output. Add a real adapter before going live.
+
 ## Notes and next steps
 
-- **Auth:** set `API_TOKEN` to require a bearer token on `/api`. The web app reads it from settings
-  (stored per device); there is no login UI yet. Do this before deploying anywhere public.
-- **Storage:** `DraftRepository` is a port with a SQLite implementation. Swap in Postgres or add an ORM
-  (e.g. Drizzle) when you need migrations or versioned history.
+- **Storage:** stores in `apps/api/src/db` use `node:sqlite` with versioned migrations
+  (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
+- **Bring your own LLM credits:** not built yet; see the notes in the project discussion about API keys
+  versus subscription sign-in. Provider credentials will be per user and encrypted at rest.
 - **UI components:** Tailwind only for now; add headless primitives (Reka UI / shadcn-vue) when you need
   dialogs, menus and comboboxes.
 - **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.

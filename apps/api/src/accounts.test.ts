@@ -1,0 +1,353 @@
+import { describe, expect, it } from 'vitest'
+import { lastResetToken, PASSWORD, register, setup } from './test-helpers'
+
+describe('registration', () => {
+  it('creates an account, a default profile and a session', async () => {
+    const { client } = setup()
+    const c = client()
+    const user = await register(c)
+    expect(user).toMatchObject({
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      hasPassword: true,
+    })
+    expect(user).not.toHaveProperty('hash')
+
+    const me = await c.get('/api/auth/me')
+    expect(me.status).toBe(200)
+    expect((await me.json()).email).toBe('ada@example.com')
+
+    const profiles = await (await c.get('/api/profiles')).json()
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0]).toMatchObject({ role: 'owner' })
+  })
+
+  it('sets an HttpOnly, SameSite session cookie', async () => {
+    const { client } = setup()
+    const res = await client().post('/api/auth/register', {
+      name: 'A',
+      email: 'a@example.com',
+      password: PASSWORD,
+    })
+    const cookie = res.setCookies.find((c) => c.startsWith('lfwa_session='))!
+    expect(cookie).toMatch(/HttpOnly/i)
+    expect(cookie).toMatch(/SameSite=Lax/i)
+  })
+
+  it('refuses a second account for the same email, ignoring case and whitespace', async () => {
+    const { client, store } = setup()
+    await register(client(), 'ada@example.com')
+    const res = await client().post('/api/auth/register', {
+      name: 'Imposter',
+      email: '  ADA@Example.com ',
+      password: PASSWORD,
+    })
+    expect(res.status).toBe(409)
+    expect(store.users.findByEmail('ada@example.com')?.name).toBe('Ada Lovelace')
+  })
+
+  it.each([
+    ['short password', { name: 'A', email: 'a@example.com', password: 'short' }],
+    ['bad email', { name: 'A', email: 'not-an-email', password: PASSWORD }],
+    ['empty name', { name: '  ', email: 'a@example.com', password: PASSWORD }],
+    ['huge password', { name: 'A', email: 'a@example.com', password: 'x'.repeat(5000) }],
+  ])('rejects %s', async (_label, body) => {
+    expect((await setup().client().post('/api/auth/register', body)).status).toBe(400)
+  })
+
+  it('never stores the password in plain text', async () => {
+    const { client, store } = setup()
+    const user = await register(client())
+    const hash = store.users.getPasswordHash(user.id)!
+    expect(hash).toMatch(/^scrypt\$/)
+    expect(hash).not.toContain(PASSWORD)
+  })
+})
+
+describe('login and sessions', () => {
+  it('logs in with the right password', async () => {
+    const { client } = setup()
+    await register(client())
+    const c = client()
+    const res = await c.post('/api/auth/login', { email: 'ADA@example.com', password: PASSWORD })
+    expect(res.status).toBe(200)
+    expect((await c.get('/api/auth/me')).status).toBe(200)
+  })
+
+  it('gives the same error for a wrong password and an unknown email', async () => {
+    const { client } = setup()
+    await register(client())
+    const wrong = await client().post('/api/auth/login', {
+      email: 'ada@example.com',
+      password: 'nope-nope-nope',
+    })
+    const unknown = await client().post('/api/auth/login', {
+      email: 'who@example.com',
+      password: PASSWORD,
+    })
+    expect(wrong.status).toBe(401)
+    expect(unknown.status).toBe(401)
+    expect(await wrong.json()).toEqual(await unknown.json())
+  })
+
+  it('throttles repeated failed attempts for an email', async () => {
+    const { client } = setup()
+    await register(client())
+    const c = client()
+    let last = 0
+    for (let i = 0; i < 12; i++) {
+      last = (
+        await c.post('/api/auth/login', { email: 'ada@example.com', password: 'wrong-wrong' })
+      ).status
+    }
+    expect(last).toBe(429)
+  })
+
+  it('requires a session for protected routes', async () => {
+    expect((await setup().client().get('/api/profiles')).status).toBe(401)
+  })
+
+  it('logs out', async () => {
+    const { client } = setup()
+    const c = client()
+    await register(c)
+    const stolen = c.cookies.get('lfwa_session')!
+    expect((await c.post('/api/auth/logout')).status).toBe(204)
+    expect((await c.get('/api/auth/me')).status).toBe(401)
+
+    // The old token is dead server-side too, not just removed from the browser.
+    const other = client()
+    other.cookies.set('lfwa_session', stolen)
+    expect((await other.get('/api/auth/me')).status).toBe(401)
+  })
+
+  it('expires sessions after 30 days', async () => {
+    const { client, clock } = setup()
+    const c = client()
+    await register(c)
+    clock.now = new Date(clock.now.getTime() + 31 * 24 * 3600 * 1000)
+    expect((await c.get('/api/auth/me')).status).toBe(401)
+  })
+
+  it('blocks cross-origin state-changing requests', async () => {
+    const { client } = setup()
+    const res = await client().request(
+      'POST',
+      '/api/auth/login',
+      { email: 'a@example.com', password: PASSWORD },
+      { origin: 'https://evil.example' },
+    )
+    expect(res.status).toBe(403)
+  })
+})
+
+describe('password recovery', () => {
+  async function accountWithResetEmail() {
+    const ctx = setup()
+    await register(ctx.client())
+    await ctx.client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
+    return ctx
+  }
+
+  it('emails a reset link and lets the user choose a new password', async () => {
+    const { client, mailer } = await accountWithResetEmail()
+    expect(mailer.outbox).toHaveLength(1)
+    expect(mailer.outbox[0]!.to).toBe('ada@example.com')
+
+    const reset = await client().post('/api/auth/reset-password', {
+      token: lastResetToken(mailer),
+      password: 'a brand new password',
+    })
+    expect(reset.status).toBe(200)
+
+    expect(
+      (await client().post('/api/auth/login', { email: 'ada@example.com', password: PASSWORD }))
+        .status,
+    ).toBe(401)
+    expect(
+      (
+        await client().post('/api/auth/login', {
+          email: 'ada@example.com',
+          password: 'a brand new password',
+        })
+      ).status,
+    ).toBe(200)
+  })
+
+  it('answers identically for unknown emails and sends nothing', async () => {
+    const { client, mailer } = setup()
+    const res = await client().post('/api/auth/forgot-password', { email: 'ghost@example.com' })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    expect(mailer.outbox).toHaveLength(0)
+  })
+
+  it('makes a link single-use', async () => {
+    const { client, mailer } = await accountWithResetEmail()
+    const token = lastResetToken(mailer)
+    expect(
+      (await client().post('/api/auth/reset-password', { token, password: 'another password 1' }))
+        .status,
+    ).toBe(200)
+    expect(
+      (await client().post('/api/auth/reset-password', { token, password: 'another password 2' }))
+        .status,
+    ).toBe(400)
+  })
+
+  it('expires links after an hour', async () => {
+    const { client, mailer, clock } = await accountWithResetEmail()
+    clock.now = new Date(clock.now.getTime() + 61 * 60 * 1000)
+    const res = await client().post('/api/auth/reset-password', {
+      token: lastResetToken(mailer),
+      password: 'another password 1',
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('only honours the most recent link', async () => {
+    const { client, mailer } = await accountWithResetEmail()
+    const first = lastResetToken(mailer)
+    await client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
+    expect(
+      (
+        await client().post('/api/auth/reset-password', {
+          token: first,
+          password: 'another password 1',
+        })
+      ).status,
+    ).toBe(400)
+    expect(
+      (
+        await client().post('/api/auth/reset-password', {
+          token: lastResetToken(mailer),
+          password: 'another password 1',
+        })
+      ).status,
+    ).toBe(200)
+  })
+
+  it('rejects garbage tokens and weak new passwords', async () => {
+    const { client, mailer } = await accountWithResetEmail()
+    expect(
+      (
+        await client().post('/api/auth/reset-password', {
+          token: 'garbage',
+          password: 'another password 1',
+        })
+      ).status,
+    ).toBe(400)
+    expect(
+      (
+        await client().post('/api/auth/reset-password', {
+          token: lastResetToken(mailer),
+          password: 'short',
+        })
+      ).status,
+    ).toBe(400)
+  })
+
+  it('signs out existing sessions when the password changes', async () => {
+    const { client, mailer } = setup()
+    const attacker = client()
+    await register(attacker)
+    await client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
+    await client().post('/api/auth/reset-password', {
+      token: lastResetToken(mailer),
+      password: 'another password 1',
+    })
+    expect((await attacker.get('/api/auth/me')).status).toBe(401)
+  })
+
+  it('does not store the reset token itself', async () => {
+    const { mailer, store } = await accountWithResetEmail()
+    const token = lastResetToken(mailer)
+    expect(store.tokens.findValidReset(token, new Date('2026-01-01T00:00:01Z'))).toBeUndefined()
+  })
+})
+
+describe('account deletion', () => {
+  it('requires the right confirmation and password', async () => {
+    const { client, store } = setup()
+    const c = client()
+    await register(c)
+    expect(
+      (await c.delete('/api/account', { confirmEmail: 'other@example.com', password: PASSWORD }))
+        .status,
+    ).toBe(403)
+    expect(
+      (await c.delete('/api/account', { confirmEmail: 'ada@example.com', password: 'wrong' }))
+        .status,
+    ).toBe(403)
+    expect((await c.delete('/api/account', { confirmEmail: 'ada@example.com' })).status).toBe(403)
+    expect(store.users.findByEmail('ada@example.com')).toBeDefined()
+  })
+
+  it('removes the user, their sessions, and profiles only they belonged to', async () => {
+    const { client, store } = setup()
+    const c = client()
+    const user = await register(c)
+    const profileId = (await (await c.get('/api/profiles')).json())[0].id
+    await c.post(`/api/profiles/${profileId}/drafts`, { title: 'Mine', body: 'x' })
+    const second = await (await c.post('/api/profiles', { name: 'Second' })).json()
+    await c.post(`/api/profiles/${second.id}/drafts`, { title: 'Also mine', body: 'y' })
+
+    const res = await c.delete('/api/account', {
+      confirmEmail: 'ada@example.com',
+      password: PASSWORD,
+    })
+    expect(res.status).toBe(204)
+
+    expect(store.users.findById(user.id)).toBeUndefined()
+    expect(store.profiles.listIdsForUser(user.id)).toEqual([])
+    expect(store.profiles.members(profileId)).toEqual([])
+    expect(store.drafts.list(profileId)).toEqual([])
+    expect(store.drafts.list(second.id)).toEqual([])
+    expect(store.users.getPasswordHash(user.id)).toBeUndefined()
+    expect((await c.get('/api/auth/me')).status).toBe(401)
+    expect(
+      (await client().post('/api/auth/login', { email: 'ada@example.com', password: PASSWORD }))
+        .status,
+    ).toBe(401)
+  })
+
+  it('leaves shared profiles intact for the others, passing ownership on', async () => {
+    const { client, store } = setup()
+    const ada = client()
+    const bob = client()
+    const carol = client()
+    await register(ada, 'ada@example.com', 'Ada')
+    const bobUser = await register(bob, 'bob@example.com', 'Bob')
+    const carolUser = await register(carol, 'carol@example.com', 'Carol')
+
+    const shared = await (await ada.post('/api/profiles', { name: 'Joint piece' })).json()
+    await ada.post(`/api/profiles/${shared.id}/members`, { email: 'bob@example.com' })
+    await ada.post(`/api/profiles/${shared.id}/members`, { email: 'carol@example.com' })
+    await ada.post(`/api/profiles/${shared.id}/drafts`, { title: 'Co-written', body: 'text' })
+
+    await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+
+    const view = await (await bob.get(`/api/profiles/${shared.id}`)).json()
+    expect(view.members.map((m: { userId: string }) => m.userId)).toEqual([
+      bobUser.id,
+      carolUser.id,
+    ])
+    expect(view.members.find((m: { userId: string }) => m.userId === bobUser.id).role).toBe('owner')
+    expect(await (await bob.get(`/api/profiles/${shared.id}/drafts`)).json()).toHaveLength(1)
+    expect(store.users.findByEmail('ada@example.com')).toBeUndefined()
+  })
+
+  it('lets the email be used to register again', async () => {
+    const { client } = setup()
+    const c = client()
+    await register(c)
+    await c.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+    await register(client())
+  })
+
+  it('requires being signed in', async () => {
+    expect(
+      (await setup().client().delete('/api/account', { confirmEmail: 'a@example.com' })).status,
+    ).toBe(401)
+  })
+})

@@ -2,15 +2,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import RichEditor from '../components/RichEditor.vue'
-import { useApi } from '../lib/useApi'
+import { api } from '../lib/api'
 
-const props = defineProps<{ id: string }>()
-const api = useApi()
+const props = defineProps<{ profileId: string; id: string }>()
 const queryClient = useQueryClient()
 
 const draft = useQuery({
-  queryKey: ['draft', () => props.id],
-  queryFn: () => api.getDraft(props.id),
+  queryKey: ['draft', () => props.profileId, () => props.id],
+  queryFn: () => api.getDraft(props.profileId, props.id),
 })
 const title = ref('')
 const body = ref('')
@@ -26,10 +25,11 @@ watch(
 )
 
 const save = useMutation({
-  mutationFn: () => api.updateDraft(props.id, { title: title.value, body: body.value }),
-  onSuccess: (saved) => queryClient.setQueryData(['draft', props.id], saved),
+  mutationFn: () =>
+    api.updateDraft(props.profileId, props.id, { title: title.value, body: body.value }),
+  onSuccess: (saved) => queryClient.setQueryData(['draft', props.profileId, props.id], saved),
 })
-const critique = useMutation({ mutationFn: () => api.critique(props.id) })
+const critique = useMutation({ mutationFn: () => api.critique(props.profileId, props.id) })
 
 async function requestCritique() {
   await save.mutateAsync() // critique the latest text

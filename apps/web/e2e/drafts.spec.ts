@@ -1,9 +1,27 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
-test('create a draft, write, save and request a critique', async ({ page }) => {
-  await page.goto('/')
+const PASSWORD = 'a perfectly good password'
+
+/** Each test registers its own user, so tests are independent and can run in parallel. */
+async function registerUser(page: Page, name = 'Ada Lovelace') {
+  const email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await page.goto('/register')
+  await page.getByLabel('Name').fill(name)
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  return email
+}
+
+test('redirects signed-out visitors to sign in', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+})
+
+test('register, write, save and request a critique', async ({ page }) => {
+  await registerUser(page)
 
   await page.getByRole('button', { name: 'New draft' }).click()
   await page.getByLabel('Title').fill('Why rivers meander')
@@ -15,14 +33,68 @@ test('create a draft, write, save and request a critique', async ({ page }) => {
   await page.getByRole('button', { name: 'Critique' }).click()
   await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
   await expect(page.getByText('Fake response to:')).toBeVisible()
-
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
-  await expect(page.getByRole('link', { name: /Why rivers meander/ })).toBeVisible()
 })
 
-test('home page has no detectable accessibility violations', async ({ page }) => {
-  await page.goto('/')
+test('sign out and back in, and the session survives a reload', async ({ page }) => {
+  const email = await registerUser(page)
+  await page.reload()
   await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
-  const results = await new AxeBuilder({ page }).analyze()
-  expect(results.violations).toEqual([])
+
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill('the wrong password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
+
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+})
+
+test('shares a profile with another user', async ({ page, browser }) => {
+  await registerUser(page, 'Ada')
+  const bobPage = await (await browser.newContext()).newPage()
+  const bobEmail = await registerUser(bobPage, 'Bob')
+
+  await page.getByRole('link', { name: 'Ada', exact: true }).click()
+  await page.getByLabel(/Share/).first().fill(bobEmail)
+  await page.getByRole('button', { name: 'Share' }).first().click()
+  await expect(page.getByText(new RegExp(`${bobEmail}, editor`))).toBeVisible()
+
+  await bobPage.reload()
+  await expect(
+    bobPage.getByLabel('Profile').locator('option', { hasText: '(shared)' }),
+  ).toHaveCount(1)
+})
+
+test('deletes an account', async ({ page }) => {
+  const email = await registerUser(page)
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByLabel(/Type your email/).fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Delete my account' }).click()
+  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
+
+  await page.goto('/login')
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
+})
+
+test('sign-in and registration pages have no detectable accessibility violations', async ({
+  page,
+}) => {
+  for (const path of ['/login', '/register', '/forgot-password']) {
+    await page.goto(path)
+    await expect(page.getByRole('heading').first()).toBeVisible()
+    expect((await new AxeBuilder({ page }).analyze()).violations, path).toEqual([])
+  }
+})
+
+test('drafts page has no detectable accessibility violations', async ({ page }) => {
+  await registerUser(page)
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

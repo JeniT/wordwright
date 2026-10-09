@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useRouter } from 'vue-router'
-import { useApi } from '../lib/useApi'
+import { RouterLink, useRouter } from 'vue-router'
+import { api } from '../lib/api'
 
-const api = useApi()
+const props = defineProps<{ profileId: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
-const drafts = useQuery({ queryKey: ['drafts'], queryFn: () => api.listDrafts() })
+const drafts = useQuery({
+  queryKey: ['drafts', () => props.profileId],
+  queryFn: () => api.listDrafts(props.profileId),
+})
 const create = useMutation({
-  mutationFn: () => api.createDraft({ title: 'Untitled' }),
+  mutationFn: () => api.createDraft(props.profileId, { title: 'Untitled' }),
   onSuccess: async (draft) => {
     await queryClient.invalidateQueries({ queryKey: ['drafts'] })
-    await router.push({ name: 'draft', params: { id: draft.id } })
+    await router.push({ name: 'draft', params: { profileId: props.profileId, id: draft.id } })
   },
 })
 </script>
@@ -39,7 +42,7 @@ const create = useMutation({
     <ul v-else class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
       <li v-for="draft in drafts.data.value" :key="draft.id">
         <RouterLink
-          :to="{ name: 'draft', params: { id: draft.id } }"
+          :to="{ name: 'draft', params: { profileId, id: draft.id } }"
           class="flex items-baseline justify-between px-4 py-3 hover:bg-stone-50"
         >
           <span class="font-serif text-lg">{{ draft.title || 'Untitled' }}</span>
