@@ -3,11 +3,14 @@ import { createApp } from './app'
 import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
 import { openStore } from './db/store'
-import { MemoryMailer } from './mail/mailer'
+import { MemoryMailer, type Mailer } from './mail/mailer'
 
 export const PUBLIC_URL = 'http://localhost:5173'
 
 export interface TestOptions {
+  mailer?: Mailer
+  logger?: Pick<Console, 'error'>
+
   identityProviders?: IdentityProvider[]
 }
 
@@ -60,7 +63,8 @@ export class TestClient {
 
 export function setup(options: TestOptions = {}) {
   const store = openStore(':memory:')
-  const mailer = new MemoryMailer()
+  const memoryMailer = new MemoryMailer()
+  const mailer = options.mailer ?? memoryMailer
   /** Every LLM client the app builds, and every request made through it. */
   const llmCalls: { config: LLMConfig; request: LLMRequest }[] = []
   const llmFactory = (config: LLMConfig) =>
@@ -74,6 +78,7 @@ export function setup(options: TestOptions = {}) {
   const app = createApp({
     store,
     mailer,
+    logger: options.logger,
     providers: { search: [] },
     llmFactory,
     keyEncryptionSecret: 'test-key-secret-test-key-secret!!',
@@ -86,7 +91,7 @@ export function setup(options: TestOptions = {}) {
   return {
     app,
     store,
-    mailer,
+    mailer: memoryMailer,
     llmCalls,
     clock,
     /** A fresh "browser" with its own cookie jar. */

@@ -6,34 +6,19 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## Decisions needed (owner)
 
-- **D1: Email provider for production.** Plan is a provider-neutral SMTP adapter (works with Resend, Postmark,
-  SES, Mailgun, Gmail relay, etc.), so this only affects what you configure, not the code. Which will you use?
+- **D1: Email provider for production.** The SMTP adapter is built and works with any provider, so this only
+  affects what you configure (`SMTP_URL`, `MAIL_FROM`). Which will you use? Needed before deploying.
 - **D2: Source for idea generation.** News API (which?), RSS/feeds, web search, or scholarly (OpenAlex/Crossref,
   free, no key). Needed before T6.
 - **D3: Hosting target** (affects Docker/deploy tasks and whether SQLite stays): single VM/Fly/Render/other?
 
 ## In progress
 
-- **T1** · Real email delivery · claimed: Claude (this session) · branch: main (sole agent)
+_Nothing claimed._
 
 ## Ready
 
-### T1 · Real email delivery (`Mailer` adapter)
-
-Why: password-reset links are only printed to the server log today (`ConsoleMailer`), so recovery doesn't work
-for real users. Blocks T2, T3 and anything else that sends email.
-
-- `SmtpMailer` adapter behind the existing `Mailer` port (`apps/api/src/mail/mailer.ts`), using `nodemailer`.
-- Config: `MAIL_TRANSPORT=console|smtp`, `SMTP_URL` (or host/port/user/pass), `MAIL_FROM`; validated in
-  `config.ts`; in production require `smtp` and a `MAIL_FROM`. Update `.env.example` and README.
-- Contract-style tests against a local in-process SMTP server (e.g. `smtp-server`): message delivered with
-  correct from/to/subject/body; auth failure and connection failure surface a clear error.
-- A failure to send must not reveal whether the address exists (keep `forgot-password` response identical) but
-  **must be logged** (without the reset link) so operators notice.
-- Plain-text and simple HTML versions of the reset email; subject and wording friendly.
-- Manual check path documented (e.g. using a local catcher such as Mailpit).
-
-### T2 · Email verification at signup (depends on T1)
+### T2 · Email verification at signup
 
 Why: today local accounts start unverified, which allows typo'd/pre-registered addresses (see
 `docs/decisions.md`, "Account linking").
@@ -43,7 +28,7 @@ Why: today local accounts start unverified, which allows typo'd/pre-registered a
 - Decide and document what unverified users can/can't do (suggest: can write, can't share profiles or be added).
 - Tests: token expiry/reuse, resend throttling, verified state shown in `/auth/me`, e2e flow using the memory mailer.
 
-### T3 · Invitations for people without accounts (depends on T1)
+### T3 · Invitations for people without accounts
 
 Why: sharing requires an existing account and leaks which emails are registered.
 
@@ -109,4 +94,7 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
   profiles with sharing, CSRF/origin check, rate limiting (`968bc75`)
 - **T0c** · Bring-your-own Anthropic key: encrypted storage, validation, per-user LLM resolution (`379ed63`)
+- **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
+  transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
+  recovery test (`TBD`)
 - **T0d** · Startup/DB safety (legacy/newer DB detection), server-unreachable UI, e2e browser error watcher (`30b1983`)

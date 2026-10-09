@@ -5,6 +5,7 @@ import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import type { Mailer } from '../mail/mailer'
+import { passwordResetEmail } from '../mail/templates'
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
@@ -31,6 +32,8 @@ export interface AccountServiceDeps {
   /** Origin the web app is served from; used in emailed links. */
   publicUrl: string
   now?: () => Date
+  /** Where delivery failures are reported. */
+  logger?: Pick<Console, 'error'>
 }
 
 export interface Session {
@@ -113,10 +116,9 @@ export class AccountService {
       new Date(this.now().getTime() + RESET_TTL_MS),
     )
     const link = `${this.d.publicUrl}/reset-password?token=${token}`
-    await this.d.mailer.send({
+    this.sendInBackground(user.id, 'password reset', {
       to: user.email,
-      subject: 'Reset your password',
-      text: `Hi ${user.name},\n\nUse this link to choose a new password (valid for 1 hour):\n\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
+      ...passwordResetEmail({ name: user.name, link, ttlMinutes: RESET_TTL_MS / 60_000 }),
     })
   }
 
@@ -132,6 +134,20 @@ export class AccountService {
       store.users.markEmailVerified(userId) // they received the email, so they own it
       store.tokens.markResetUsed(tokenHash)
       store.tokens.deleteUserSessions(userId) // sign out anyone who had the old password
+    })
+  }
+
+  /**
+   * Email is sent after we've already answered. Waiting would make "this address has an account"
+   * observable (slower response, or an error when the mail server is down). Failures are logged
+   * with the user id only, never the message, since it contains a live sign-in link.
+   */
+  private sendInBackground(userId: string, kind: string, email: Parameters<Mailer['send']>[0]) {
+    const logger = this.d.logger ?? console
+    void this.d.mailer.send(email).catch((err: unknown) => {
+      logger.error(
+        `Failed to send ${kind} email for user ${userId}: ${err instanceof Error ? err.message : 'unknown error'}`,
+      )
     })
   }
 

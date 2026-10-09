@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import type { Mailer } from './mail/mailer'
 import { lastResetToken, PASSWORD, register, saveKey, setup } from './test-helpers'
 
 describe('registration', () => {
@@ -263,6 +264,51 @@ describe('password recovery', () => {
     const { mailer, store } = await accountWithResetEmail()
     const token = lastResetToken(mailer)
     expect(store.tokens.findValidReset(token, new Date('2026-01-01T00:00:01Z'))).toBeUndefined()
+  })
+})
+
+describe('password recovery when email delivery fails', () => {
+  const failing: Mailer = {
+    send: async () => {
+      throw new Error('SMTP 535 auth failed')
+    },
+  }
+  const hanging: Mailer = { send: () => new Promise(() => {}) }
+
+  it('still answers identically, and logs the failure without the reset link or address', async () => {
+    const logger = { error: vi.fn() }
+    const { client } = setup({ mailer: failing, logger })
+    await register(client())
+
+    const known = await client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
+    const unknown = await client().post('/api/auth/forgot-password', { email: 'ghost@example.com' })
+    expect(known.status).toBe(200)
+    expect(await known.json()).toEqual(await unknown.json())
+
+    await vi.waitFor(() => expect(logger.error).toHaveBeenCalledTimes(1))
+    const logged = String(logger.error.mock.calls[0]![0])
+    expect(logged).toMatch(/Failed to send password reset email for user/)
+    expect(logged).toContain('SMTP 535')
+    expect(logged).not.toMatch(/token=/)
+    expect(logged).not.toContain('ada@example.com')
+  })
+
+  it('does not make the response wait for the mail server (so timing reveals nothing)', async () => {
+    const { client } = setup({ mailer: hanging })
+    await register(client())
+    const res = await client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
+    expect(res.status).toBe(200)
+  })
+
+  it('sends a friendly email with both text and HTML versions', async () => {
+    const { client, mailer } = setup()
+    await register(client())
+    await client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
+    const email = mailer.outbox[0]!
+    expect(email).toMatchObject({ to: 'ada@example.com', subject: 'Reset your password' })
+    expect(email.text).toContain('Hi Ada Lovelace')
+    expect(email.html).toContain('Choose a new password')
+    expect(email.text).toContain('expires in 1 hour')
   })
 })
 

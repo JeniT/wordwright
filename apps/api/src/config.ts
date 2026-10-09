@@ -15,6 +15,16 @@ const ConfigSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /**
+   * How emails are delivered. `console` (default) just prints them to the server log, so local
+   * development needs no email provider. `file` writes them to MAIL_OUTBOX_DIR. `smtp` really sends.
+   */
+  MAIL_TRANSPORT: z.enum(['console', 'file', 'smtp']).default('console'),
+  /** Sender address, e.g. `Long-form Writing Assistant <no-reply@example.com>`. Required for smtp. */
+  MAIL_FROM: z.string().default('Long-form Writing Assistant <no-reply@localhost>'),
+  /** e.g. smtps://user:pass@smtp.example.com:465. Required for smtp. Contains credentials: keep it secret. */
+  SMTP_URL: z.string().default(''),
+  MAIL_OUTBOX_DIR: z.string().default('./data/outbox'),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
 })
@@ -30,9 +40,18 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       throw new Error('KEY_ENCRYPTION_SECRET (at least 32 characters) is required in production')
     }
     if (config.FAKE_LLM) throw new Error('FAKE_LLM must not be enabled in production')
+    if (config.MAIL_TRANSPORT !== 'smtp') {
+      throw new Error(
+        'MAIL_TRANSPORT must be smtp in production, or password reset emails will never arrive',
+      )
+    }
+    if (!env.MAIL_FROM) throw new Error('MAIL_FROM is required in production')
     if (!config.PUBLIC_URL.startsWith('https://')) {
       throw new Error('PUBLIC_URL must be https in production')
     }
+  }
+  if (config.MAIL_TRANSPORT === 'smtp' && !/^smtps?:\/\//.test(config.SMTP_URL)) {
+    throw new Error('SMTP_URL (smtp:// or smtps://...) is required when MAIL_TRANSPORT=smtp')
   }
   if (!config.SESSION_SECRET) config.SESSION_SECRET = 'insecure-development-secret'
   if (!config.KEY_ENCRYPTION_SECRET)

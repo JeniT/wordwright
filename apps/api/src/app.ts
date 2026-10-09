@@ -29,6 +29,7 @@ export interface AppDeps {
   sessionSecret: string
   hasher?: PasswordHasher
   now?: () => Date
+  logger?: Pick<Console, 'error'>
 }
 
 /** Builds the app from injected dependencies, so tests can supply fakes. */
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps) {
     mailer: deps.mailer,
     publicUrl,
     now: deps.now,
+    logger: deps.logger,
   })
 
   const attempts = () =>

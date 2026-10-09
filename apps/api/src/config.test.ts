@@ -13,6 +13,9 @@ describe('loadConfig', () => {
   it('insists on real secrets, https and no fake LLM in production', () => {
     const ok = {
       NODE_ENV: 'production',
+      MAIL_TRANSPORT: 'smtp',
+      SMTP_URL: 'smtps://user:pass@smtp.example.com:465',
+      MAIL_FROM: 'Writer <no-reply@example.com>',
       SESSION_SECRET: 'x'.repeat(32),
       KEY_ENCRYPTION_SECRET: 'y'.repeat(32),
       PUBLIC_URL: 'https://example.com',
@@ -24,6 +27,22 @@ describe('loadConfig', () => {
     )
     expect(() => loadConfig({ ...ok, PUBLIC_URL: 'http://example.com' })).toThrow(/https/)
     expect(() => loadConfig({ ...ok, FAKE_LLM: 'true' })).toThrow(/FAKE_LLM/)
+    expect(() => loadConfig({ ...ok, MAIL_TRANSPORT: 'console' })).toThrow(/MAIL_TRANSPORT/)
+    expect(() => loadConfig({ ...ok, MAIL_FROM: '' })).toThrow(/MAIL_FROM/)
+  })
+
+  it('needs no email provider by default: mail is printed to the console', () => {
+    expect(loadConfig({})).toMatchObject({ MAIL_TRANSPORT: 'console' })
+  })
+
+  it('requires a valid SMTP_URL when sending for real', () => {
+    expect(() => loadConfig({ MAIL_TRANSPORT: 'smtp' })).toThrow(/SMTP_URL/)
+    expect(() => loadConfig({ MAIL_TRANSPORT: 'smtp', SMTP_URL: 'localhost:1025' })).toThrow(
+      /SMTP_URL/,
+    )
+    expect(
+      loadConfig({ MAIL_TRANSPORT: 'smtp', SMTP_URL: 'smtp://localhost:1025' }).MAIL_TRANSPORT,
+    ).toBe('smtp')
   })
 
   it('has no server-wide LLM key setting', () => {

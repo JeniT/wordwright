@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 
 // A real file (not :memory:) so the e2e run exercises migrations and WAL mode like production does.
 const e2eDb = fileURLToPath(new URL('./test-results/e2e.sqlite', import.meta.url))
+// Emails are written here as JSON files; tests read them like an inbox.
+export const e2eOutbox = fileURLToPath(new URL('./test-results/outbox', import.meta.url))
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,11 +17,13 @@ export default defineConfig({
   webServer: [
     {
       // API with fake providers and an in-memory database.
-      command: `rm -f "${e2eDb}" "${e2eDb}-wal" "${e2eDb}-shm" && pnpm --filter @lfwa/api start`,
+      command: `rm -rf "${e2eDb}" "${e2eDb}-wal" "${e2eDb}-shm" "${e2eOutbox}" && pnpm --filter @lfwa/api start`,
       env: {
         PORT: '8788',
         DATABASE_PATH: e2eDb,
         FAKE_LLM: 'true',
+        MAIL_TRANSPORT: 'file',
+        MAIL_OUTBOX_DIR: e2eOutbox,
         PUBLIC_URL: 'http://localhost:5174',
       },
       url: 'http://localhost:8788/health',

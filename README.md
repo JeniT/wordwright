@@ -78,8 +78,24 @@ tests inject fakes and nothing hits the network.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
   (with its drafts) where they are the only member. In shared profiles they are removed and, if they
   were the owner, the longest-standing member becomes owner; drafts they wrote there stay.
-- **Email:** `Mailer` is a port. Only a console adapter exists, which logs reset links to the server
-  output. Add a real adapter before going live.
+- **Email:** see below.
+
+## Email
+
+Password-reset emails go through the `Mailer` port, chosen by `MAIL_TRANSPORT`:
+
+| Transport           | Use                                 | Setup                                                                                                    |
+| ------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `console` (default) | local development                   | none: the email, link included, is printed in the `apps/api` output                                      |
+| `file`              | e2e tests, or reading mail as files | `MAIL_OUTBOX_DIR` (each email becomes a JSON file)                                                       |
+| `smtp`              | production                          | `SMTP_URL` + `MAIL_FROM`; works with any provider that offers SMTP (Resend, Postmark, SES, Mailgun, ...) |
+
+To see real-looking mail locally without sending anything, run a catcher such as
+[Mailpit](https://mailpit.axllent.org/) and set `MAIL_TRANSPORT=smtp SMTP_URL=smtp://localhost:1025`.
+Production refuses to start unless it's `smtp` with a `MAIL_FROM`. At startup the API checks it can reach
+the SMTP server and logs a warning if not. Emails are sent _after_ the response, so the forgot-password
+answer is the same, and just as fast, whether or not the address has an account; delivery failures are
+logged (user id and error code only, never the link).
 
 ## Bring your own LLM key
 

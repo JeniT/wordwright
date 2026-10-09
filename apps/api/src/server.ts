@@ -6,7 +6,8 @@ import { loadConfig } from './config'
 import { DatabaseError } from './db/database'
 import { openStore } from './db/store'
 import { fakeLlmFactory, realLlmFactory } from './llm-factory'
-import { ConsoleMailer } from './mail/mailer'
+import { createMailer } from './mail/factory'
+import { SmtpMailer } from './mail/smtp-mailer'
 
 /** Startup problems a person can fix get one clear line, not a stack trace. */
 function fail(err: unknown): never {
@@ -43,14 +44,23 @@ if (config.GOOGLE_CLIENT_ID) {
   identityProviders.push(googleProvider(config.GOOGLE_CLIENT_ID, config.GOOGLE_CLIENT_SECRET))
 }
 
+const mailer = createMailer(config)
+// Surface a wrong SMTP host/password at startup, but don't refuse to boot over a transient outage.
+if (mailer instanceof SmtpMailer) {
+  mailer.verify().then(
+    () => console.log('Email: SMTP connection verified'),
+    (err: Error) =>
+      console.error(`Email: SMTP check failed, reset emails may not send. ${err.message}`),
+  )
+}
+
 const app = createApp({
   store,
   providers,
   // Users bring their own API keys; there is deliberately no server-wide LLM key.
   llmFactory: config.FAKE_LLM ? fakeLlmFactory : realLlmFactory,
   keyEncryptionSecret: config.KEY_ENCRYPTION_SECRET,
-  // TODO: swap for a real email adapter before production; ConsoleMailer just logs.
-  mailer: new ConsoleMailer(),
+  mailer,
   identityProviders,
   publicUrl: config.PUBLIC_URL,
   sessionSecret: config.SESSION_SECRET,
@@ -58,6 +68,6 @@ const app = createApp({
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   console.log(
-    `API listening on http://localhost:${info.port} (llm: ${config.FAKE_LLM ? 'FAKE' : "users' own keys"}, login: local${identityProviders.map((p) => `, ${p.id}`).join('')})`,
+    `API listening on http://localhost:${info.port} (llm: ${config.FAKE_LLM ? 'FAKE' : "users' own keys"}, email: ${config.MAIL_TRANSPORT}, login: local${identityProviders.map((p) => `, ${p.id}`).join('')})`,
   )
 })

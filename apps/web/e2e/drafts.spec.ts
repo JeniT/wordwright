@@ -1,5 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { Page } from '@playwright/test'
+import { e2eOutbox } from '../playwright.config'
 import { expect, test, watchForProblems } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
@@ -14,6 +17,28 @@ async function registerUser(page: Page, name = 'Ada Lovelace') {
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
   return email
+}
+
+/** Reads the "inbox": the newest email sent to `to`, as the file mailer wrote it. */
+async function waitForEmail(to: string): Promise<{ subject: string; text: string }> {
+  await expect
+    .poll(() => (existsSync(e2eOutbox) ? readdirSync(e2eOutbox).length : 0), {
+      message: 'an email to be sent',
+    })
+    .toBeGreaterThan(0)
+  const emails = readdirSync(e2eOutbox)
+    .sort()
+    .map(
+      (f) =>
+        JSON.parse(readFileSync(join(e2eOutbox, f), 'utf8')) as {
+          to: string
+          subject: string
+          text: string
+        },
+    )
+    .filter((e) => e.to === to)
+  expect(emails, `emails to ${to}`).not.toHaveLength(0)
+  return emails.at(-1)!
 }
 
 test('redirects signed-out visitors to sign in', async ({ page }) => {
@@ -69,6 +94,43 @@ test('sign out and back in, and the session survives a reload', async ({ page })
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+})
+
+test('recovers a forgotten password from the emailed link', async ({ page }) => {
+  const email = await registerUser(page)
+  await page.getByRole('button', { name: 'Sign out' }).click()
+
+  await page.getByRole('link', { name: 'Forgot your password?' }).click()
+  await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible()
+  await page.getByLabel('Email').fill(email)
+  await page.getByRole('button', { name: 'Send reset link' }).click()
+  await expect(page.getByRole('status')).toContainText("If there's an account")
+
+  const link = (await waitForEmail(email)).text.match(
+    /https?:\/\/\S+\/reset-password\?token=[\w-]+/,
+  )?.[0]
+  expect(link, 'reset link in the email').toBeTruthy()
+
+  await page.goto(link!)
+  await page.getByLabel('New password').fill('my brand new password')
+  await page.getByRole('button', { name: 'Change password' }).click()
+  await expect(page.getByText('Your password has been changed')).toBeVisible()
+
+  // The old password is dead; the new one works; the link can't be reused.
+  await page.getByRole('link', { name: 'Sign in' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
+  await page.getByLabel('Password').fill('my brand new password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.goto(link!)
+  await page.getByLabel('New password').fill('yet another password')
+  await page.getByRole('button', { name: 'Change password' }).click()
+  await expect(page.getByRole('alert')).toContainText('invalid or has expired')
 })
 
 test('shares a profile with another user', async ({ page, browser }) => {
