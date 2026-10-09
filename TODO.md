@@ -20,18 +20,20 @@ claimed: claude-session-1 · branch: T19
 
 First step only: managing the list. Scanning/fetching feeds comes later (T6).
 
+### T3f · Undo an email change from the old address
+
+claimed: claude-session-2 · branch: T3f
+
+The "your email was changed" notice has no way back: if someone who knew the password redirected the account,
+the owner can't recover it. Add a time-limited "this wasn't me" link to the notice that restores the old address
+and signs everything out (needs a decision on how long it should stay valid).
+
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
 summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
-
-### T3f · Undo an email change from the old address
-
-The "your email was changed" notice has no way back: if someone who knew the password redirected the account,
-the owner can't recover it. Add a time-limited "this wasn't me" link to the notice that restores the old address
-and signs everything out (needs a decision on how long it should stay valid).
 
 ### T3e · Reminder before an unconfirmed account is deleted
 
