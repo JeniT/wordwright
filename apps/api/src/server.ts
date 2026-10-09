@@ -7,6 +7,7 @@ import { DatabaseError } from './db/database'
 import { openStore } from './db/store'
 import { fakeLlmFactory, realLlmFactory } from './llm-factory'
 import { createMailer } from './mail/factory'
+import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
 
 /** Startup problems a person can fix get one clear line, not a stack trace. */
@@ -64,7 +65,15 @@ const app = createApp({
   identityProviders,
   publicUrl: config.PUBLIC_URL,
   sessionSecret: config.SESSION_SECRET,
+  unconfirmedAccountTtlDays: config.UNCONFIRMED_ACCOUNT_TTL_DAYS,
 })
+
+// Housekeeping every 6 hours: forget abandoned signups and expired sessions/links.
+const maintenance = new MaintenanceService({
+  store,
+  unconfirmedTtlDays: config.UNCONFIRMED_ACCOUNT_TTL_DAYS,
+})
+startMaintenance({ run: () => maintenance.run(), intervalMs: 6 * 60 * 60 * 1000 })
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   console.log(

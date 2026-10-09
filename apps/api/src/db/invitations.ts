@@ -99,6 +99,21 @@ export class InvitationStore {
     )
   }
 
+  /**
+   * Removes pending invitations that have expired, and accepted ones once they are older than `keepAcceptedSince`
+   * (they're kept a while so that re-opening an accepted link stays harmless).
+   */
+  deleteExpired(now: Date, keepAcceptedSince: Date): number {
+    return Number(
+      this.db
+        .prepare(
+          `DELETE FROM invitations
+           WHERE (accepted_at IS NULL AND expires_at <= ?) OR (accepted_at IS NOT NULL AND accepted_at < ?)`,
+        )
+        .run(now.toISOString(), keepAcceptedSince.toISOString()).changes,
+    )
+  }
+
   /** Invitations addressed to this email (used when that person deletes their account). */
   deleteForEmail(email: string) {
     this.db.prepare('DELETE FROM invitations WHERE email = ?').run(email)

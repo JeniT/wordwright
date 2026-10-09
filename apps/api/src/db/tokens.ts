@@ -37,8 +37,19 @@ export class TokenStore {
       .run(userId, keepTokenHash)
   }
 
-  deleteExpiredSessions(now: Date) {
-    this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now.toISOString())
+  /** Drops sessions and links that can no longer be used. Returns how many of each were removed. */
+  deleteExpired(now: Date) {
+    const at = now.toISOString()
+    const count = (sql: string) => Number(this.db.prepare(sql).run(at).changes)
+    return {
+      sessions: count('DELETE FROM sessions WHERE expires_at <= ?'),
+      passwordResets: count(
+        'DELETE FROM password_resets WHERE expires_at <= ? OR used_at IS NOT NULL',
+      ),
+      emailVerifications: count(
+        'DELETE FROM email_verifications WHERE expires_at <= ? OR used_at IS NOT NULL',
+      ),
+    }
   }
 
   // -- password resets

@@ -105,6 +105,11 @@ tests inject fakes and nothing hits the network.
   others**. A banner offers "Resend" (3 per hour). Confirmation also happens when someone signs in with
   Google, resets their password via the emailed link, or accepts an invitation sent to that address, since
   each proves ownership of it.
+- **Abandoned signups are cleaned up.** Every 6 hours the server deletes accounts that never confirmed their
+  email, are older than `UNCONFIRMED_ACCOUNT_TTL_DAYS` (default 14; 0 turns it off) and show no sign of use:
+  no drafts, no saved API key, nobody else in their profiles. That frees addresses taken by typos. The signup
+  email says so. The same pass removes expired sessions, used/expired links and old invitations. It logs
+  counts only, never who.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
   (with its drafts) where they are the only member. In shared profiles they are removed and, if they
   were the owner, the longest-standing member becomes owner; drafts they wrote there stay.

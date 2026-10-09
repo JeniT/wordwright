@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
 
 const ConfigSchema = z.object({
   NODE_ENV: z.string().default('development'),
@@ -25,6 +26,15 @@ const ConfigSchema = z.object({
   /** e.g. smtps://user:pass@smtp.example.com:465. Required for smtp. Contains credentials: keep it secret. */
   SMTP_URL: z.string().default(''),
   MAIL_OUTBOX_DIR: z.string().default('./data/outbox'),
+  /**
+   * Days after which an account that never confirmed its email and was never used (no drafts, no saved
+   * API key) is deleted, freeing the address. 0 keeps them forever.
+   */
+  UNCONFIRMED_ACCOUNT_TTL_DAYS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .default(DEFAULT_UNCONFIRMED_TTL_DAYS),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
 })

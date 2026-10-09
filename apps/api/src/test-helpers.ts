@@ -9,6 +9,7 @@ export const PUBLIC_URL = 'http://localhost:5173'
 
 export interface TestOptions {
   mailer?: Mailer
+  unconfirmedAccountTtlDays?: number
   logger?: Pick<Console, 'error'>
 
   identityProviders?: IdentityProvider[]
@@ -85,6 +86,7 @@ export function setup(options: TestOptions = {}) {
     store,
     mailer,
     logger: options.logger,
+    unconfirmedAccountTtlDays: options.unconfirmedAccountTtlDays,
     providers: { search: [] },
     llmFactory,
     keyEncryptionSecret: 'test-key-secret-test-key-secret!!',

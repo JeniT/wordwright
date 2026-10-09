@@ -51,6 +51,13 @@ describe('loadConfig', () => {
     )
   })
 
+  it('keeps unused unconfirmed accounts for 14 days by default; 0 disables; junk is rejected', () => {
+    expect(loadConfig({}).UNCONFIRMED_ACCOUNT_TTL_DAYS).toBe(14)
+    expect(loadConfig({ UNCONFIRMED_ACCOUNT_TTL_DAYS: '0' }).UNCONFIRMED_ACCOUNT_TTL_DAYS).toBe(0)
+    expect(() => loadConfig({ UNCONFIRMED_ACCOUNT_TTL_DAYS: '-1' })).toThrow()
+    expect(() => loadConfig({ UNCONFIRMED_ACCOUNT_TTL_DAYS: '2.5' })).toThrow()
+  })
+
   it('needs both Google settings or neither', () => {
     expect(() => loadConfig({ GOOGLE_CLIENT_ID: 'id' })).toThrow(/GOOGLE_CLIENT/)
   })

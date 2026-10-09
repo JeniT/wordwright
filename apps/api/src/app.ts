@@ -16,6 +16,7 @@ import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
+import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
 
 export interface AppDeps {
   store: Store
@@ -32,6 +33,8 @@ export interface AppDeps {
   hasher?: PasswordHasher
   now?: () => Date
   logger?: Pick<Console, 'error'>
+  /** Days an unused, unconfirmed account is kept; mentioned in the signup email. 0 = kept forever. */
+  unconfirmedAccountTtlDays?: number
 }
 
 /** Builds the app from injected dependencies, so tests can supply fakes. */
@@ -49,6 +52,7 @@ export function createApp(deps: AppDeps) {
     publicUrl,
     now: deps.now,
     logger: deps.logger,
+    unconfirmedTtlDays: deps.unconfirmedAccountTtlDays ?? DEFAULT_UNCONFIRMED_TTL_DAYS,
   })
 
   const attempts = () =>

@@ -117,3 +117,13 @@ action-token in it, only a link to the normal reset page). Adding a first passwo
 through an emailed link rather than a form: there's no current password to check, and email-link proof of the
 inbox is stronger than trusting the session. The cost is that finishing it signs the person out everywhere, which
 we accept and tell them about.
+
+## Abandoned unconfirmed accounts are deleted after 14 days of no use
+
+A typo'd or abandoned signup otherwise squats on an address forever (the real owner then can't register).
+"Unused" means no drafts, no saved API key and no other people in their profiles, so nobody who has started
+using the product loses work; the 14 days is configurable and 0 disables it. It runs as a simple in-process
+interval (every 6 hours, 10 s after start, never overlapping, errors logged and retried), not a job queue,
+because it's idempotent and cheap, and running on several instances at once is harmless. Deletion uses the same
+code as "delete my account" (`removeUserAndOwnedData`) so the two can't drift. No reminder email is sent before
+deletion (see T3e); the signup email states the rule up front.

@@ -43,8 +43,17 @@ If you didn't ask for this, you can ignore this email; your password won't chang
   }
 }
 
-export function verifyEmailEmail(input: { name: string; link: string; ttlHours: number }): Content {
-  const { name, link, ttlHours } = input
+export function verifyEmailEmail(input: {
+  name: string
+  link: string
+  ttlHours: number
+  /** If set, says unused, unconfirmed accounts are deleted after this many days. */
+  unusedAccountDays?: number
+}): Content {
+  const { name, link, ttlHours, unusedAccountDays } = input
+  const cleanup = unusedAccountDays
+    ? ` If you don't confirm and don't use the account, we'll delete it after ${unusedAccountDays} days.`
+    : ''
   return {
     subject: 'Confirm your email address',
     text: `Hi ${name},
@@ -53,12 +62,12 @@ Welcome to Long-form Writing Assistant. Please confirm this is your email addres
 
 ${link}
 
-Confirming lets you share profiles with co-writers and keeps your account safe. If you didn't sign up, you can ignore this email.`,
+Confirming lets you share profiles with co-writers and keeps your account safe.${cleanup} If you didn't sign up, you can ignore this email.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
 <p>Welcome to Long-form Writing Assistant. Please confirm this is your email address.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Confirm my email</a></p>
 <p style="font-size:14px">The link expires in ${ttlHours} hours. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
-<p style="font-size:14px">Confirming lets you share profiles with co-writers and keeps your account safe. If you didn't sign up, you can ignore this email.</p>`),
+<p style="font-size:14px">Confirming lets you share profiles with co-writers and keeps your account safe.${escapeHtml(cleanup)} If you didn't sign up, you can ignore this email.</p>`),
   }
 }
 

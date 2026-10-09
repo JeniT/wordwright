@@ -14,7 +14,7 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-- **T3b** · Purge never-confirmed accounts · claimed: Claude (T3b session) · branch: T3b (worktree `.worktrees/T3b`)
+_Nothing claimed._
 
 ## Ready
 
@@ -23,16 +23,15 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
 summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
 
-### T3b · Purge never-confirmed accounts
-
-Why: unconfirmed signups (typos, abandoned) accumulate and keep addresses "taken". Delete accounts that are
-unconfirmed, have no drafts, and are older than N days (scheduled job); announce in the signup email. Needs T12's
-job runner or a simple interval in the server.
-
 ### T3c · Change email address
 
 Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
 address they were sent to).
+
+### T3e · Reminder before an unconfirmed account is deleted
+
+Email a warning a few days before the cleanup (needs a "reminded at" marker on the user), so a late confirmer
+isn't surprised. Low priority: the signup email already states the rule.
 
 ### T3d · Declining and blocking invitations
 
@@ -122,6 +121,8 @@ if/when D3 picks object storage.
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
+- **T3b** · Cleanup of unused, unconfirmed accounts (14 days, configurable) plus expired sessions/links/invitations,
+  via an in-process 6-hourly job sharing the account-deletion code (`TBD`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **T15** · Venue profiles: user handles and readable ids (`jenit-substack`), website link, picture with

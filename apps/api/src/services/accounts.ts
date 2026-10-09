@@ -12,6 +12,7 @@ import {
   passwordSetupEmail,
   verifyEmailEmail,
 } from '../mail/templates'
+import { removeUserAndOwnedData } from './remove-user'
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
@@ -43,6 +44,8 @@ export interface AccountServiceDeps {
   /** Origin the web app is served from; used in emailed links. */
   publicUrl: string
   now?: () => Date
+  /** Used only to tell new signups how long an unused, unconfirmed account is kept (0 = not deleted). */
+  unconfirmedTtlDays?: number
   /** Where delivery failures are reported. */
   logger?: Pick<Console, 'error'>
 }
@@ -126,7 +129,12 @@ export class AccountService {
     const link = `${this.d.publicUrl}/verify-email?token=${token}`
     this.sendInBackground(user.id, 'email verification', {
       to: user.email,
-      ...verifyEmailEmail({ name: user.name, link, ttlHours: VERIFY_TTL_MS / 3_600_000 }),
+      ...verifyEmailEmail({
+        name: user.name,
+        link,
+        ttlHours: VERIFY_TTL_MS / 3_600_000,
+        unusedAccountDays: this.d.unconfirmedTtlDays || undefined,
+      }),
     })
   }
 
@@ -335,20 +343,7 @@ export class AccountService {
       throw new AccountError('confirmation_failed', 'Incorrect password')
     }
 
-    store.transaction(() => {
-      for (const profileId of store.profiles.listIdsForUser(user.id)) {
-        const others = store.profiles.members(profileId).filter((m) => m.userId !== user.id)
-        if (others.length === 0) {
-          store.profiles.delete(profileId)
-        } else if (store.profiles.roleOf(profileId, user.id) === 'owner') {
-          if (!others.some((m) => m.role === 'owner')) {
-            store.profiles.setRole(profileId, others[0]!.userId, 'owner')
-          }
-        }
-      }
-      store.invitations.deleteForEmail(user.email) // invitations other people sent to this address
-      store.users.delete(user.id) // cascades: credential, identities, sessions, resets, memberships
-    })
+    store.transaction(() => removeUserAndOwnedData(store, user))
   }
 
   // ---- internals ----------------------------------------------------------
