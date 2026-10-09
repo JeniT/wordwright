@@ -19,26 +19,38 @@ async function registerUser(page: Page, name = 'Ada Lovelace') {
   return email
 }
 
-/** Reads the "inbox": the newest email sent to `to`, as the file mailer wrote it. */
-async function waitForEmail(to: string): Promise<{ subject: string; text: string }> {
+type Mail = { to: string; subject: string; text: string }
+
+/** Reads the "inbox": waits for an email to `to` with this subject, as the file mailer wrote it. */
+async function waitForEmail(to: string, subject: string): Promise<Mail> {
+  let found: Mail | undefined
   await expect
-    .poll(() => (existsSync(e2eOutbox) ? readdirSync(e2eOutbox).length : 0), {
-      message: 'an email to be sent',
-    })
-    .toBeGreaterThan(0)
-  const emails = readdirSync(e2eOutbox)
-    .sort()
-    .map(
-      (f) =>
-        JSON.parse(readFileSync(join(e2eOutbox, f), 'utf8')) as {
-          to: string
-          subject: string
-          text: string
-        },
+    .poll(
+      () => {
+        const files = existsSync(e2eOutbox) ? readdirSync(e2eOutbox).sort() : []
+        const emails = files.map(
+          (f) => JSON.parse(readFileSync(join(e2eOutbox, f), 'utf8')) as Mail,
+        )
+        found = emails.filter((e) => e.to === to && e.subject === subject).at(-1)
+        return found !== undefined
+      },
+      { message: `an email "${subject}" to ${to}` },
     )
-    .filter((e) => e.to === to)
-  expect(emails, `emails to ${to}`).not.toHaveLength(0)
-  return emails.at(-1)!
+    .toBe(true)
+  return found!
+}
+
+const linkIn = (mail: Mail, path: string) =>
+  mail.text.match(new RegExp(`https?://\\S+${path}\\?token=[\\w-]+`))?.[0]
+
+/** Follows the confirmation link from the signup email, then returns to the app. */
+async function confirmEmail(page: Page, email: string) {
+  const link = linkIn(await waitForEmail(email, 'Confirm your email address'), '/verify-email')
+  expect(link, 'confirmation link in the email').toBeTruthy()
+  await page.goto(link!)
+  await expect(page.getByText('your email address is confirmed')).toBeVisible()
+  await page.getByRole('link', { name: 'Continue writing' }).click()
+  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
 }
 
 test('redirects signed-out visitors to sign in', async ({ page }) => {
@@ -106,9 +118,7 @@ test('recovers a forgotten password from the emailed link', async ({ page }) => 
   await page.getByRole('button', { name: 'Send reset link' }).click()
   await expect(page.getByRole('status')).toContainText("If there's an account")
 
-  const link = (await waitForEmail(email)).text.match(
-    /https?:\/\/\S+\/reset-password\?token=[\w-]+/,
-  )?.[0]
+  const link = linkIn(await waitForEmail(email, 'Reset your password'), '/reset-password')
   expect(link, 'reset link in the email').toBeTruthy()
 
   await page.goto(link!)
@@ -133,11 +143,52 @@ test('recovers a forgotten password from the emailed link', async ({ page }) => 
   await expect(page.getByRole('alert')).toContainText('invalid or has expired')
 })
 
+test('confirms an email address from the signup email', async ({ page }) => {
+  const email = await registerUser(page)
+  const banner = page.getByRole('region', { name: 'Email confirmation' })
+  await expect(banner).toContainText(email)
+
+  // Until they confirm, sharing is explained rather than offered.
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await expect(page.getByText('Confirm your email address to share this profile')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0)
+
+  const link = linkIn(await waitForEmail(email, 'Confirm your email address'), '/verify-email')!
+  await page.goto(link)
+  await expect(page.getByText('your email address is confirmed')).toBeVisible()
+  await expect(banner).toHaveCount(0)
+
+  // Opening the link again (a mail scanner, a double click) is harmless.
+  await page.goto(link)
+  await expect(page.getByText('your email address is confirmed')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Continue writing' }).click()
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Share' })).toBeVisible()
+})
+
+test('resends the confirmation email, and only the newest link works', async ({ page }) => {
+  const email = await registerUser(page)
+  const first = linkIn(await waitForEmail(email, 'Confirm your email address'), '/verify-email')!
+  await page.getByRole('button', { name: 'Resend' }).click()
+  await expect(page.getByText('Sent. Check your inbox.')).toBeVisible()
+
+  await expect
+    .poll(async () =>
+      linkIn(await waitForEmail(email, 'Confirm your email address'), '/verify-email'),
+    )
+    .not.toBe(first)
+  await page.goto(first)
+  await expect(page.getByRole('alert')).toContainText('invalid or has expired')
+})
+
 test('shares a profile with another user', async ({ page, browser }) => {
-  await registerUser(page, 'Ada')
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
   const bobPage = await (await browser.newContext()).newPage()
   const bobProblems = watchForProblems(bobPage)
   const bobEmail = await registerUser(bobPage, 'Bob')
+  await confirmEmail(bobPage, bobEmail)
 
   await page.getByRole('link', { name: 'Ada', exact: true }).click()
   await page.getByLabel(/Share/).first().fill(bobEmail)

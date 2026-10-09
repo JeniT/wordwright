@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { register, saveKey, setup, type TestClient } from './test-helpers'
+import { register, saveKey, setup, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('profiles and sharing', () => {
   let ada: TestClient
@@ -13,6 +13,7 @@ describe('profiles and sharing', () => {
     bob = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com', 'bob@example.com') // sharing requires confirmed addresses
     adaProfile = (await (await ada.get('/api/profiles')).json())[0].id
   })
 

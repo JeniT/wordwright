@@ -75,6 +75,11 @@ tests inject fakes and nothing hits the network.
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few
   lines of config (`OidcProvider`); others implement `IdentityProvider`.
+- **Email confirmation:** new local accounts are _unconfirmed_; signup emails a link (valid 24 hours, newest
+  link only, harmless to open twice). Unconfirmed people can write and use AI features, but **can't share
+  profiles or be added to someone else's**: an unconfirmed address may belong to someone who merely typed it
+  in. A banner offers "Resend" (3 per hour). Confirmation also happens when someone signs in with Google or
+  resets their password via the emailed link, since both prove ownership of the address.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
   (with its drafts) where they are the only member. In shared profiles they are removed and, if they
   were the owner, the longest-standing member becomes owner; drafts they wrote there stay.

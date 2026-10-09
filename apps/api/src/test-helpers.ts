@@ -118,12 +118,21 @@ function expectStatus(actual: number, expected: number) {
   if (actual !== expected) throw new Error(`Expected status ${expected} but got ${actual}`)
 }
 
-/** Pulls the reset token out of the most recent email. */
-export function lastResetToken(mailer: MemoryMailer): string {
+/** Pulls the token out of the most recent email's link, e.g. `/reset-password?token=...`. */
+function lastEmailToken(mailer: MemoryMailer, page: string): string {
   const text = mailer.outbox.at(-1)?.text ?? ''
-  const token = text.match(/reset-password\?token=([\w-]+)/)?.[1]
-  if (!token) throw new Error('No reset link in last email')
+  const token = text.match(new RegExp(`${page}\\?token=([\\w-]+)`))?.[1]
+  if (!token) throw new Error(`No ${page} link in last email`)
   return token
+}
+export const lastResetToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'reset-password')
+export const lastVerificationToken = (mailer: MemoryMailer) =>
+  lastEmailToken(mailer, 'verify-email')
+
+/** Marks accounts as email-verified directly, for tests about something other than verification. */
+export function verifyAccounts(ctx: Pick<TestContext, 'store'>, ...emails: string[]) {
+  for (const email of emails)
+    ctx.store.users.markEmailVerified(ctx.store.users.findByEmail(email)!.id)
 }
 
 export const GOOD_KEY = 'sk-ant-good-key-1234567890'

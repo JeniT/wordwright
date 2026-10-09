@@ -74,6 +74,18 @@ const MIGRATIONS: string[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  `
+  -- Proves control of an address. The address is stored with the token so a link can only ever
+  -- verify the address it was sent to, even if the account's email later changes.
+  CREATE TABLE email_verifications (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+  );
+  CREATE INDEX email_verifications_user ON email_verifications(user_id);
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

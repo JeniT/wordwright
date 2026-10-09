@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { GOOD_KEY, register, saveKey, setup } from './test-helpers'
+import { GOOD_KEY, register, saveKey, setup, verifyAccounts } from './test-helpers'
 
 async function signedInUser(ctx = setup(), email = 'ada@example.com', name = 'Ada') {
   const client = ctx.client()
   await register(client, email, name)
+  verifyAccounts(ctx, email) // these tests aren't about email verification
   const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
   return { ctx, client, profileId }
 }

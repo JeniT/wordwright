@@ -59,6 +59,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     register: (input: RegisterInput) => get(UserSchema, 'POST', '/auth/register', input),
     login: (input: LoginInput) => get(UserSchema, 'POST', '/auth/login', input),
     logout: () => act('POST', '/auth/logout', {}),
+    verifyEmail: (token: string) => act('POST', '/auth/verify-email', { token }),
+    resendVerification: () => act('POST', '/auth/resend-verification', {}),
     forgotPassword: (email: string) => act('POST', '/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
       act('POST', '/auth/reset-password', { token, password }),

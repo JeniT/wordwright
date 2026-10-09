@@ -58,4 +58,42 @@ export class TokenStore {
       .prepare('UPDATE password_resets SET used_at = ? WHERE token_hash = ?')
       .run(nowIso(), tokenHash)
   }
+
+  // -- email verification
+  createVerification(tokenHash: string, userId: string, email: string, expiresAt: Date) {
+    // Only the most recent link should work.
+    this.db
+      .prepare('DELETE FROM email_verifications WHERE user_id = ? AND used_at IS NULL')
+      .run(userId)
+    this.db
+      .prepare(
+        'INSERT INTO email_verifications (token_hash, user_id, email, expires_at) VALUES (?, ?, ?, ?)',
+      )
+      .run(tokenHash, userId, email, expiresAt.toISOString())
+  }
+
+  findVerification(
+    tokenHash: string,
+  ): { userId: string; email: string; expiresAt: Date; used: boolean } | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT user_id, email, expires_at, used_at FROM email_verifications WHERE token_hash = ?',
+      )
+      .get(tokenHash) as
+      { user_id: string; email: string; expires_at: string; used_at: string | null } | undefined
+    return (
+      row && {
+        userId: row.user_id,
+        email: row.email,
+        expiresAt: new Date(row.expires_at),
+        used: row.used_at !== null,
+      }
+    )
+  }
+
+  markVerificationUsed(tokenHash: string) {
+    this.db
+      .prepare('UPDATE email_verifications SET used_at = ? WHERE token_hash = ?')
+      .run(nowIso(), tokenHash)
+  }
 }

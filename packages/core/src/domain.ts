@@ -41,6 +41,8 @@ export const ResetPasswordInputSchema = z.object({
   password: PasswordSchema,
 })
 
+export const VerifyEmailInputSchema = z.object({ token: z.string().min(1).max(200) })
+
 /** Deleting an account needs deliberate confirmation (and the password, if there is one). */
 export const DeleteAccountInputSchema = z.object({
   confirmEmail: EmailSchema,

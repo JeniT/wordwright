@@ -39,7 +39,7 @@ No native dependency. Format `scrypt$N$r$p$salt$hash` lets cost be raised later 
 
 ## Account linking and unverified emails
 
-Local accounts are not email-verified at signup (until T2). If Google later proves control of the same address,
+Local accounts start unconfirmed (T2 added confirmation links). If Google later proves control of the same address,
 the unverified local account's password and sessions are **discarded** and the identity is linked, which closes the
 "pre-register someone else's email" takeover. Never link on an unverified provider email.
 
@@ -67,3 +67,13 @@ The e2e API also runs on a real SQLite file so migrations are exercised.
 would make "this address has an account" observable through response time or a 500 when mail is down. The cost is
 that a delivery failure isn't visible to the user, so it is logged (user id + SMTP error code, never the link) and
 the SMTP connection is verified at startup.
+
+## Email confirmation: gate sharing, not writing
+
+Unconfirmed accounts can write and use AI features (nothing is exposed to anyone else), but can't share profiles
+or be added to one: sharing is the one place an unproven address could leak someone's work or let a stranger in.
+An unconfirmed address is reported as "no account", the same as an unknown one. Links are bound to the address they
+were sent to, hashed at rest, expire after 24 hours, and only the newest works. Using a link twice succeeds, because
+mail scanners and double clicks routinely open links first. Resend is limited to 3/hour per user. Chosen over
+blocking sign-in until confirmed because that makes a typo'd address a dead end and turns every mail outage into
+a lockout.

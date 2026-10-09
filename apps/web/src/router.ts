@@ -5,6 +5,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Pages for signed-out visitors (signed-in users are sent home). */
     guest?: boolean
+    /** Pages that work the same whether or not someone is signed in (e.g. emailed links). */
+    open?: boolean
   }
 }
 
@@ -34,6 +36,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/ResetPasswordView.vue'),
     meta: { guest: true },
   },
+  {
+    path: '/verify-email',
+    name: 'verify-email',
+    component: () => import('./views/VerifyEmailView.vue'),
+    meta: { open: true },
+  },
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue') },
   {
     path: '/p/:profileId',
@@ -56,6 +64,7 @@ export function createAppRouter(history = createWebHistory()) {
     const session = useSessionStore()
     await session.load()
     if (session.error) return // can't tell who's signed in; App shows the problem
+    if (to.meta.open) return
     const signedIn = !!session.user
     // Reset links work whether or not you happen to be signed in.
     if (to.meta.guest && signedIn && to.name !== 'reset-password') return { name: 'home' }

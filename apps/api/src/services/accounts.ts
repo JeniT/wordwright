@@ -5,10 +5,11 @@ import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import type { Mailer } from '../mail/mailer'
-import { passwordResetEmail } from '../mail/templates'
+import { passwordResetEmail, verifyEmailEmail } from '../mail/templates'
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
+export const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
 
 /** Domain errors; the routes map `code` to an HTTP status. */
 export class AccountError extends Error {
@@ -17,6 +18,7 @@ export class AccountError extends Error {
       | 'email_in_use'
       | 'invalid_credentials'
       | 'invalid_reset_token'
+      | 'invalid_verification_token'
       | 'email_not_verified'
       | 'confirmation_failed',
     message: string,
@@ -66,6 +68,7 @@ export class AccountService {
         store.profiles.create(defaultProfileName(created.name), created.id)
         return created
       })
+      this.sendVerificationEmail(user)
       return this.startSession(user)
     } catch (err) {
       // Lost a race with a concurrent registration for the same email.
@@ -97,6 +100,45 @@ export class AccountService {
 
   toPublic(user: UserRecord): User {
     return this.d.store.users.toPublic(user)
+  }
+
+  // ---- email verification -----------------------------------------------
+
+  /** Emails a fresh confirmation link (replacing any earlier one). No-op if already verified. */
+  sendVerificationEmail(user: UserRecord) {
+    if (user.emailVerified) return
+    const token = generateToken()
+    this.d.store.tokens.createVerification(
+      hashToken(token),
+      user.id,
+      user.email,
+      new Date(this.now().getTime() + VERIFY_TTL_MS),
+    )
+    const link = `${this.d.publicUrl}/verify-email?token=${token}`
+    this.sendInBackground(user.id, 'email verification', {
+      to: user.email,
+      ...verifyEmailEmail({ name: user.name, link, ttlHours: VERIFY_TTL_MS / 3_600_000 }),
+    })
+  }
+
+  /**
+   * Confirms the address the link was sent to. Works whether or not the person is signed in
+   * (they often open the link on their phone). Idempotent for an already-verified address, since
+   * mail scanners and double clicks routinely open links before the person does.
+   */
+  verifyEmail(token: string): void {
+    const { store } = this.d
+    const tokenHash = hashToken(token)
+    const found = store.tokens.findVerification(tokenHash)
+    const user = found && store.users.findById(found.userId)
+    // The link only proves the address it was sent to; if the account's email changed since, refuse.
+    if (!found || !user || user.email !== found.email) throw invalidVerification()
+    if (user.emailVerified) return
+    if (found.used || found.expiresAt <= this.now()) throw invalidVerification()
+    store.transaction(() => {
+      store.users.markEmailVerified(user.id)
+      store.tokens.markVerificationUsed(tokenHash)
+    })
   }
 
   // ---- password recovery -------------------------------------------------
@@ -240,6 +282,8 @@ export class AccountService {
   }
 }
 
+const invalidVerification = () =>
+  new AccountError('invalid_verification_token', 'This verification link is invalid or has expired')
 const emailInUse = () =>
   new AccountError('email_in_use', 'An account with this email already exists')
 const defaultProfileName = (name: string) => `${name}'s writing`

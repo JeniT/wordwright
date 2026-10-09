@@ -8,6 +8,7 @@ import {
   LoginInputSchema,
   RegisterInputSchema,
   ResetPasswordInputSchema,
+  VerifyEmailInputSchema,
   type AuthConfig,
 } from '@lfwa/core'
 import type { IdentityProvider } from '../auth/identity'
@@ -28,12 +29,15 @@ export interface AuthRouteDeps {
   /** Throttles guessing per email address. */
   loginLimiter: RateLimiter
   resetLimiter: RateLimiter
+  /** Throttles "resend verification email" per user. */
+  verificationLimiter: RateLimiter
 }
 
 const STATUS = {
   email_in_use: 409,
   invalid_credentials: 401,
   invalid_reset_token: 400,
+  invalid_verification_token: 400,
   email_not_verified: 403,
   confirmation_failed: 403,
 } as const
@@ -106,6 +110,22 @@ export function authRoutes(d: AuthRouteDeps) {
       .post('/reset-password', zValidator('json', ResetPasswordInputSchema), async (c) => {
         const { token, password } = c.req.valid('json')
         await d.accounts.resetPassword(token, password).catch(toHttpError)
+        return c.json({ ok: true })
+      })
+
+      .post('/verify-email', zValidator('json', VerifyEmailInputSchema), (c) => {
+        try {
+          d.accounts.verifyEmail(c.req.valid('json').token)
+        } catch (err) {
+          toHttpError(err)
+        }
+        return c.json({ ok: true })
+      })
+
+      .post('/resend-verification', requireUser(d.accounts), (c) => {
+        const user = c.get('user')
+        throttle(d.verificationLimiter, user.id)
+        d.accounts.sendVerificationEmail(user)
         return c.json({ ok: true })
       })
 

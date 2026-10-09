@@ -66,6 +66,11 @@ export function createApp(deps: AppDeps) {
       sessionSecret: deps.sessionSecret,
       loginLimiter: attempts(),
       resetLimiter: attempts(),
+      verificationLimiter: new RateLimiter(
+        3,
+        60 * 60 * 1000,
+        deps.now && (() => deps.now!().getTime()),
+      ),
     }),
   )
   api.route('/account', accountRoutes(accounts, attempts()))

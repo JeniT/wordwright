@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
 import { useProfiles } from './lib/useProfiles'
 import { useSessionStore } from './stores/session'
@@ -61,6 +62,7 @@ function switchProfile(event: Event) {
         </div>
       </nav>
     </header>
+    <VerifyEmailBanner />
     <main class="mx-auto max-w-3xl px-4 py-8">
       <div v-if="session.error" role="alert" class="rounded border border-red-200 bg-red-50 p-4">
         <p class="font-medium text-red-900">{{ session.error }}</p>

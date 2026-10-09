@@ -209,7 +209,10 @@ const deleteAccount = useMutation({
             </li>
           </ul>
           <template v-if="p.role === 'owner'">
-            <form class="mt-3 flex items-end gap-2" @submit.prevent="addMember.mutate(p.id)">
+            <p v-if="!session.user.emailVerified" class="mt-3 text-sm text-stone-700">
+              Confirm your email address to share this profile with someone.
+            </p>
+            <form v-else class="mt-3 flex items-end gap-2" @submit.prevent="addMember.mutate(p.id)">
               <div class="flex-1">
                 <TextField
                   :model-value="inviteEmails[p.id] ?? ''"

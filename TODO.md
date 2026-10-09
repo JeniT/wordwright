@@ -14,21 +14,10 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-- **T2** · Email verification at signup · claimed: Claude (this session) · branch: main (sole agent)
 - **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
   claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
 ## Ready
-
-### T2 · Email verification at signup
-
-Why: today local accounts start unverified, which allows typo'd/pre-registered addresses (see
-`docs/decisions.md`, "Account linking").
-
-- Send a verification link after registration; single-use, hashed, expiring token (mirror password reset).
-- `emailVerified` set on success; UI banner + "resend" (throttled) while unverified.
-- Decide and document what unverified users can/can't do (suggest: can write, can't share profiles or be added).
-- Tests: token expiry/reuse, resend throttling, verified state shown in `/auth/me`, e2e flow using the memory mailer.
 
 ### T3 · Invitations for people without accounts
 
@@ -37,6 +26,17 @@ Why: sharing requires an existing account and leaks which emails are registered.
 - Owner invites by email; if no account, send an invite link; accepting joins the profile after sign-up/sign-in.
 - Remove the "No account with that email" response (always respond the same).
 - Pending invites visible/revocable by the owner; expire after N days.
+
+### T3b · Purge never-confirmed accounts
+
+Why: unconfirmed signups (typos, abandoned) accumulate and keep addresses "taken". Delete accounts that are
+unconfirmed, have no drafts, and are older than N days (scheduled job); announce in the signup email. Needs T12's
+job runner or a simple interval in the server.
+
+### T3c · Change email address
+
+Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
+address they were sent to).
 
 ### T4 · Change password / set a password while signed in
 
@@ -99,4 +99,6 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
+- **T2** · Email verification at signup: hashed 24h single-newest links, confirm page, banner + throttled resend,
+  sharing gated on confirmed addresses on both sides (`TBD`)
 - **T0d** · Startup/DB safety (legacy/newer DB detection), server-unreachable UI, e2e browser error watcher (`30b1983`)

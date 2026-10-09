@@ -40,8 +40,17 @@ export function profileRoutes(store: Store, llmKeys: LlmKeyService) {
       // Sharing: add someone who already has an account.
       .post('/:profileId/members', owner, zValidator('json', AddMemberInputSchema), (c) => {
         const id = c.req.param('profileId')
+        // Sharing gives someone access to your work, so both sides must have proven their addresses.
+        if (!c.get('user').emailVerified) {
+          throw new HTTPException(403, {
+            message: 'Please confirm your email address before sharing a profile',
+          })
+        }
         const target = store.users.findByEmail(c.req.valid('json').email)
-        if (!target) throw new HTTPException(404, { message: 'No account with that email address' })
+        // An unconfirmed address may belong to someone who merely typed it in, so treat it as unknown.
+        if (!target?.emailVerified) {
+          throw new HTTPException(404, { message: 'No account with that email address' })
+        }
         if (store.profiles.roleOf(id, target.id)) {
           throw new HTTPException(409, { message: 'Already a member' })
         }

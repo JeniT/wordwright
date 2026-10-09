@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Mailer } from './mail/mailer'
-import { lastResetToken, PASSWORD, register, saveKey, setup } from './test-helpers'
+import { lastResetToken, PASSWORD, register, saveKey, setup, verifyAccounts } from './test-helpers'
 
 describe('registration', () => {
   it('creates an account, a default profile and a session', async () => {
@@ -152,8 +152,8 @@ describe('password recovery', () => {
 
   it('emails a reset link and lets the user choose a new password', async () => {
     const { client, mailer } = await accountWithResetEmail()
-    expect(mailer.outbox).toHaveLength(1)
-    expect(mailer.outbox[0]!.to).toBe('ada@example.com')
+    expect(mailer.outbox).toHaveLength(2) // the welcome/verification email, then the reset
+    expect(mailer.outbox.at(-1)!.to).toBe('ada@example.com')
 
     const reset = await client().post('/api/auth/reset-password', {
       token: lastResetToken(mailer),
@@ -285,8 +285,9 @@ describe('password recovery when email delivery fails', () => {
     expect(known.status).toBe(200)
     expect(await known.json()).toEqual(await unknown.json())
 
-    await vi.waitFor(() => expect(logger.error).toHaveBeenCalledTimes(1))
-    const logged = String(logger.error.mock.calls[0]![0])
+    const messages = () => logger.error.mock.calls.map((c) => String(c[0]))
+    await vi.waitFor(() => expect(messages().some((m) => /password reset/.test(m))).toBe(true))
+    const logged = messages().find((m) => /password reset/.test(m))!
     expect(logged).toMatch(/Failed to send password reset email for user/)
     expect(logged).toContain('SMTP 535')
     expect(logged).not.toMatch(/token=/)
@@ -304,7 +305,7 @@ describe('password recovery when email delivery fails', () => {
     const { client, mailer } = setup()
     await register(client())
     await client().post('/api/auth/forgot-password', { email: 'ada@example.com' })
-    const email = mailer.outbox[0]!
+    const email = mailer.outbox.at(-1)!
     expect(email).toMatchObject({ to: 'ada@example.com', subject: 'Reset your password' })
     expect(email.text).toContain('Hi Ada Lovelace')
     expect(email.html).toContain('Choose a new password')
@@ -367,6 +368,7 @@ describe('account deletion', () => {
     await register(ada, 'ada@example.com', 'Ada')
     const bobUser = await register(bob, 'bob@example.com', 'Bob')
     const carolUser = await register(carol, 'carol@example.com', 'Carol')
+    verifyAccounts({ store }, 'ada@example.com', 'bob@example.com', 'carol@example.com')
 
     const shared = await (await ada.post('/api/profiles', { name: 'Joint piece' })).json()
     await ada.post(`/api/profiles/${shared.id}/members`, { email: 'bob@example.com' })
