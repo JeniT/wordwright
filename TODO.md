@@ -147,7 +147,7 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T20b3** · Brainstorming prompt on the account page: each person can edit, save and reset their own version of the
   default commissioning-editor prompt (`prompts/brainstorm-default.md`); a version identical to the default isn't
   stored, so improvements to the default reach everyone who hasn't changed theirs; `BrainstormPromptService.effective()`
-  is what the brainstorm service (T20b2) will send. (COMMIT)
+  is what the brainstorm service (T20b2) will send. (`f096b0a`)
 - **T20b1** · LLM port with tools and streaming: `chat()` on `LLMProvider` (Anthropic adapter, scriptable fake,
   contract tests incl. an opt-in live run), rate-limit/provider error classes, `llmTool` (Zod to JSON Schema); and a
   top-level `prompts/` folder of editable Markdown prompts (critique, default brainstorming, brainstorming rules)
