@@ -98,7 +98,7 @@ Per the owner: possibly host an open model for users without their own key. Need
   recovery test (`15d87c0`)
 - **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,
   pending list with resend/revoke, uniform responses (no account lookup), per-person send cap, safe
-  post-login redirect (`TBD`)
+  post-login redirect (`083b5d8`)
 - **T2** · Email verification at signup: hashed 24h single-newest links, confirm page, banner + throttled resend,
   sharing gated on confirmed addresses on both sides (`7ce3483`)
 - **T0d** · Startup/DB safety (legacy/newer DB detection), server-unreachable UI, e2e browser error watcher (`30b1983`)
