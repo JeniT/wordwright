@@ -122,14 +122,102 @@ describe('profile ids', () => {
     expect(b.id).toBe('jenit-substack')
   })
 
-  it('stay the same when the profile is renamed, so shared links keep working', async () => {
+  it('follow the name when a profile is renamed, keeping its drafts, members and picture', async () => {
+    const ctx = setup()
+    const [sam, pat] = [ctx.client(), ctx.client()]
+    await register(sam, 'sam@example.com', 'Sam')
+    await register(pat, 'pat@example.com', 'Pat')
+    verifyAccounts(ctx, 'sam@example.com')
+    const created = await (await sam.post('/api/profiles', { name: 'Old name' })).json()
+    await shareProfile(ctx, sam, created.id, pat, 'pat@example.com')
+    const draft = await (
+      await sam.post(`/api/profiles/${created.id}/drafts`, { title: 'Hello', body: 'x' })
+    ).json()
+    await sam.putBytes(`/api/profiles/${created.id}/image`, PNG_BYTES, 'image/png')
+
+    const renamed = await (
+      await sam.patch(`/api/profiles/${created.id}`, { name: 'New name' })
+    ).json()
+    expect(renamed).toMatchObject({ id: 'sam-new-name', name: 'New name' })
+    expect(renamed.imageUrl).toContain('/api/profiles/sam-new-name/image')
+    expect(renamed.members).toHaveLength(2)
+
+    const listed = await (await pat.get('/api/profiles')).json()
+    expect(listed.map((p: { id: string }) => p.id)).toContain('sam-new-name')
+    const drafts = await (await sam.get('/api/profiles/sam-new-name/drafts')).json()
+    expect(drafts).toMatchObject([{ id: draft.id, title: 'Hello' }])
+    expect((await sam.get('/api/profiles/sam-new-name/image')).status).toBe(200)
+  })
+
+  it('send the old address permanently to the new one, for members only', async () => {
+    const ctx = setup()
+    const [sam, pat, eve] = [ctx.client(), ctx.client(), ctx.client()]
+    await register(sam, 'sam@example.com', 'Sam')
+    await register(pat, 'pat@example.com', 'Pat')
+    await register(eve, 'eve@example.com', 'Eve')
+    verifyAccounts(ctx, 'sam@example.com')
+    const created = await (await sam.post('/api/profiles', { name: 'Old name' })).json()
+    await shareProfile(ctx, sam, created.id, pat, 'pat@example.com')
+    await sam.patch(`/api/profiles/${created.id}`, { name: 'Middle' })
+    await sam.patch('/api/profiles/sam-middle', { name: 'Final' })
+
+    for (const who of [sam, pat]) {
+      // Reads get a 301; ids from before any number of renames reach the current one in one hop.
+      const read = await who.get(`/api/profiles/${created.id}/drafts?x=1`)
+      expect(read.status).toBe(301)
+      expect(read.headers.get('location')).toBe('/api/profiles/sam-final/drafts?x=1')
+      expect((await who.get('/api/profiles/sam-middle')).headers.get('location')).toBe(
+        '/api/profiles/sam-final',
+      )
+    }
+    // Writes get a 308 so the method and body are kept.
+    const write = await pat.post(`/api/profiles/${created.id}/drafts`, { title: 'x' })
+    expect(write.status).toBe(308)
+    expect(write.headers.get('location')).toBe('/api/profiles/sam-final/drafts')
+
+    // Someone with no access learns nothing, not even that the profile was renamed.
+    const stranger = await eve.get(`/api/profiles/${created.id}`)
+    expect(stranger.status).toBe(404)
+    expect(stranger.headers.get('location')).toBeNull()
+  })
+
+  it('never hand a retired address to a new profile, but let the owner take it back', async () => {
     const c = setup().client()
     await register(c, 'sam@example.com', 'Sam')
-    const created = await (await c.post('/api/profiles', { name: 'Old name' })).json()
-    const renamed = await (
-      await c.patch(`/api/profiles/${created.id}`, { name: 'New name' })
+    const first = await (await c.post('/api/profiles', { name: 'Blog' })).json()
+    await c.patch(`/api/profiles/${first.id}`, { name: 'Journal' })
+    // "sam-blog" now redirects to the journal, so a new "Blog" gets the next free id.
+    const second = await (await c.post('/api/profiles', { name: 'Blog' })).json()
+    expect(second.id).toBe('sam-blog-2')
+    expect((await c.get('/api/profiles/sam-blog')).status).toBe(301)
+
+    // Renaming the journal back to "Blog" can't have sam-blog-2's id, and keeps its own.
+    const back = await (await c.patch('/api/profiles/sam-journal', { name: 'Blog' })).json()
+    expect(back.id).toBe('sam-blog')
+    expect((await c.get('/api/profiles/sam-journal')).status).toBe(301)
+    expect((await c.get('/api/profiles/sam-blog')).status).toBe(200)
+  })
+
+  it('keep an id when a rename gives the same address, and when only other fields change', async () => {
+    const c = setup().client()
+    await register(c, 'sam@example.com', 'Sam')
+    const created = await (await c.post('/api/profiles', { name: 'Blog' })).json()
+    const tidied = await (await c.patch(`/api/profiles/${created.id}`, { name: 'BLOG!' })).json()
+    expect(tidied).toMatchObject({ id: 'sam-blog', name: 'BLOG!' })
+    const site = await (
+      await c.patch('/api/profiles/sam-blog', { siteUrl: 'https://sam.example.com' })
     ).json()
-    expect(renamed).toMatchObject({ id: 'sam-old-name', name: 'New name' })
+    expect(site.id).toBe('sam-blog')
+    expect((await c.get('/api/profiles/sam-blog')).status).toBe(200)
+  })
+
+  it('stop redirecting once the profile is deleted', async () => {
+    const c = setup().client()
+    await register(c, 'sam@example.com', 'Sam')
+    const created = await (await c.post('/api/profiles', { name: 'Old' })).json()
+    await c.patch(`/api/profiles/${created.id}`, { name: 'New' })
+    await c.delete('/api/profiles/sam-new')
+    expect((await c.get(`/api/profiles/${created.id}`)).status).toBe(404)
   })
 
   it('fall back to a plain id for names with no letters or digits', async () => {
@@ -195,7 +283,7 @@ describe('profile site link', () => {
     expect(changed).toMatchObject({ name: 'Venue', siteUrl: 'https://b.example' })
     const renamed = await (await c.patch(`/api/profiles/${id}`, { name: 'Venue 2' })).json()
     expect(renamed).toMatchObject({ name: 'Venue 2', siteUrl: 'https://b.example' })
-    const cleared = await (await c.patch(`/api/profiles/${id}`, { siteUrl: null })).json()
+    const cleared = await (await c.patch(`/api/profiles/${renamed.id}`, { siteUrl: null })).json()
     expect(cleared.siteUrl).toBeNull()
   })
 })

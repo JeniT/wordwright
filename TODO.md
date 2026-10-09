@@ -14,8 +14,7 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-- **T21** · Bug: renaming a profile should rename its readable id/URL, with permanent redirects from old ids ·
-  claimed: Claude (T21 session) · branch: T21 (worktree `.worktrees/T21`)
+_Nothing claimed._
 
 ## Ready
 
@@ -129,6 +128,8 @@ if/when D3 picks object storage.
 - **T15** · Venue profiles: user handles and readable ids (`jenit-substack`), website link, picture with
   monogram fallback, profile list on the home page, create page, profile page, settings page (sharing and deletion
   moved here from Account), id migration for existing data. Audiences, sources and ideas are T16/T19/T20.
+- **T21** · Renaming a profile renames its readable id; old ids permanently redirect (301/308 from the API for
+  members, address bar updated in the web app); retired ids are never reused
 - **T4** · Change password while signed in (current password required, other devices signed out, notice
   email) and add a password to Google-only accounts via an emailed link (`ecff6ed`)
 - **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,

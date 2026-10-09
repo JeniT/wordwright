@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
-import { useProfiles } from './lib/useProfiles'
+import { useProfileAddressRedirect, useProfiles } from './lib/useProfiles'
 import { useSessionStore } from './stores/session'
 
 const session = useSessionStore()
@@ -13,6 +13,7 @@ const router = useRouter()
 const queryClient = useQueryClient()
 
 const profiles = useProfiles()
+useProfileAddressRedirect()
 const currentProfileId = computed(() => (route.params.profileId as string | undefined) ?? '')
 
 const signOut = useMutation({

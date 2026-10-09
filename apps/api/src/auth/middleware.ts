@@ -28,7 +28,22 @@ export const requireUser =
 export const requireMember =
   (store: Store, ownerOnly = false): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
-    const role = store.profiles.roleOf(c.req.param('profileId') ?? '', c.get('user').id)
+    const requested = c.req.param('profileId') ?? ''
+    const role = store.profiles.roleOf(requested, c.get('user').id)
+    if (!role) {
+      // A renamed profile: send members to its new address (everyone else gets the same 404).
+      const current = store.profiles.currentIdFor(requested)
+      if (current && store.profiles.roleOf(current, c.get('user').id)) {
+        const url = new URL(c.req.url)
+        url.pathname = url.pathname.replace(
+          `/profiles/${encodeURIComponent(requested)}`,
+          `/profiles/${encodeURIComponent(current)}`,
+        )
+        // 308 keeps the method and body of writes; 301 is the permanent redirect for reads.
+        const safe = c.req.method === 'GET' || c.req.method === 'HEAD'
+        return c.redirect(url.pathname + url.search, safe ? 301 : 308)
+      }
+    }
     // 404 rather than 403, so profile ids can't be probed.
     if (!role) throw new HTTPException(404, { message: 'Not found' })
     if (ownerOnly && role !== 'owner') throw new HTTPException(403, { message: 'Owner only' })

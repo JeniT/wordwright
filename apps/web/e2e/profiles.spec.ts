@@ -101,6 +101,39 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await expect(page.getByRole('main').getByRole('link', { name: /Final venue/ })).toHaveCount(0)
 })
 
+test('renaming a profile changes its address, and the old address still works', async ({
+  page,
+}) => {
+  const who = uniqueName('Reese')
+  await registerUser(page, who)
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Early name')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Early name' })).toBeVisible()
+  const oldPath = new URL(page.url()).pathname
+  expect(oldPath).toMatch(/^\/p\/[a-z0-9]+-early-name$/)
+
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Later name')
+  await page.getByRole('button', { name: 'Save details' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  const newPath = oldPath.replace('early-name', 'later-name')
+  await expect(page).toHaveURL(`${newPath}/settings`)
+  await expect(page.getByText(newPath, { exact: true })).toBeVisible()
+
+  // Bookmarks and shared links to the old address end up at the new one.
+  await page.goto(oldPath)
+  await expect(page).toHaveURL(newPath)
+  await expect(page.getByRole('heading', { level: 1, name: 'Later name' })).toBeVisible()
+  await page.goto(`${oldPath}/settings`)
+  await expect(page).toHaveURL(`${newPath}/settings`)
+
+  // The server itself answers the old API address with a permanent redirect.
+  const res = await page.request.get(`/api/profiles/${oldPath.slice(3)}`, { maxRedirects: 0 })
+  expect(res.status()).toBe(301)
+  expect(res.headers()['location']).toBe(`/api/profiles/${newPath.slice(3)}`)
+})
+
 test('two people can each have a profile called "Substack", with different addresses', async ({
   page,
   browser,

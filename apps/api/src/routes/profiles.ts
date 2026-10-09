@@ -48,8 +48,7 @@ export function profileRoutes(
       )
 
       .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), (c) => {
-        const id = c.req.param('profileId')
-        store.profiles.update(id, c.req.valid('json'))
+        const id = store.profiles.update(c.req.param('profileId'), c.req.valid('json'))
         return c.json(store.profiles.get(id, c.get('user').id))
       })
 

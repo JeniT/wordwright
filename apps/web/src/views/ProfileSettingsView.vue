@@ -1,10 +1,22 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import ProfileSettingsPanel from '../components/ProfileSettingsPanel.vue'
 import { useProfile } from '../lib/useProfiles'
 
 const props = defineProps<{ profileId: string }>()
 const { profiles, profile } = useProfile(() => props.profileId)
+
+// The panel starts afresh for each profile, but not when saving a new name moves this profile to a
+// new address: that would throw away the "Saved" notice.
+const panelKey = ref(props.profileId)
+const renamedTo = ref('')
+watch(
+  () => props.profileId,
+  (id) => {
+    if (id !== renamedTo.value) panelKey.value = id
+  },
+)
 </script>
 
 <template>
@@ -19,5 +31,5 @@ const { profiles, profile } = useProfile(() => props.profileId)
     </p>
     <RouterLink to="/" class="mt-3 inline-block underline">Back to your profiles</RouterLink>
   </div>
-  <ProfileSettingsPanel v-else :key="profile.id" :profile="profile" />
+  <ProfileSettingsPanel v-else :key="panelKey" :profile="profile" @renamed="renamedTo = $event" />
 </template>

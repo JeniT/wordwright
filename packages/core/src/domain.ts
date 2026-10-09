@@ -91,7 +91,7 @@ export const ProfileMemberSchema = z.object({
 export type ProfileMember = z.infer<typeof ProfileMemberSchema>
 
 export const ProfileSchema = z.object({
-  /** Human-readable and shareable, e.g. `jenit-substack`. Never changes after creation. */
+  /** Human-readable and shareable, e.g. `jenit-substack`. Follows the name; old ids redirect to the current one. */
   id: z.string(),
   name: z.string(),
   /** Where content for this profile gets published. */

@@ -108,6 +108,14 @@ export const MIGRATIONS: Migration[] = [
   CREATE INDEX invitations_email ON invitations(email);
   `,
   addHandlesAndVenueProfiles,
+  `
+  -- Renaming a profile changes its id; the old ids keep pointing at it so shared links still work.
+  CREATE TABLE profile_aliases (
+    old_id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE
+  );
+  CREATE INDEX profile_aliases_profile ON profile_aliases(profile_id);
+  `,
 ]
 
 /**

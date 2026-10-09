@@ -74,8 +74,8 @@ tests inject fakes and nothing hits the network.
   and deletes it. Still to come: reader personas, idea sources and ideas (see `TODO.md`).
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only, derived from
   their name at sign-up, e.g. `jenit`). A profile's id is `<creator's handle>-<slug of its name>`, such as
-  `jenit-substack`; if that's taken by the same person a number is added (`jenit-substack-2`). Ids never
-  change, even when the profile is renamed, so shared links keep working. Two people can each have a
+  `jenit-substack`; if that's taken by the same person a number is added (`jenit-substack-2`). Renaming a
+  profile renames its id too; the old id permanently redirects to the new one, so shared links keep working. Two people can each have a
   `substack` because their handles differ.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser

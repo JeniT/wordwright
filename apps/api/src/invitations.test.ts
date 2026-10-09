@@ -44,8 +44,10 @@ describe('inviting', () => {
 
   it('escapes names in the HTML email', async () => {
     const { ctx, ada, profileId } = await world()
-    await ada.patch(`/api/profiles/${profileId}`, { name: '<script>alert(1)</script>' })
-    await ada.post(`/api/profiles/${profileId}/invitations`, { email: 'bob@example.com' })
+    const renamed = await (
+      await ada.patch(`/api/profiles/${profileId}`, { name: '<script>alert(1)</script>' })
+    ).json()
+    await ada.post(`/api/profiles/${renamed.id}/invitations`, { email: 'bob@example.com' })
     const html = ctx.mailer.outbox.at(-1)!.html!
     expect(html).not.toContain('<script>')
     expect(html).toContain('&lt;script&gt;')

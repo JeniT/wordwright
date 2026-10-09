@@ -260,6 +260,9 @@ describe('profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([substack]),
+      http.get('*/api/profiles/someone-else', () =>
+        HttpResponse.json({ error: 'Not found' }, { status: 404 }),
+      ),
       http.get('*/api/profiles/someone-else/drafts', () =>
         HttpResponse.json({ error: 'Not found' }, { status: 404 }),
       ),
@@ -436,5 +439,45 @@ describe('profile settings', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Leave' }))
     await waitFor(() => expect(left).toBe(true))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
+  })
+})
+
+describe('renamed profiles', () => {
+  const renamed = { ...blog, id: 'adalovelace-journal', name: 'Journal' }
+
+  it('moves an old address to the current one, keeping the page and query', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([renamed]),
+      // The server answers an old id with a redirect, which fetch follows to the profile itself.
+      http.get('*/api/profiles/adalovelace-blog', () => HttpResponse.json(renamed)),
+      noDrafts,
+    )
+    const { router } = await renderAt('/p/adalovelace-blog/settings?from=email')
+    await waitFor(() =>
+      expect(router.currentRoute.value.fullPath).toBe('/p/adalovelace-journal/settings?from=email'),
+    )
+    expect(await screen.findByText('/p/adalovelace-journal')).toBeInTheDocument()
+  })
+
+  it('moves to the new address after renaming on the settings page', async () => {
+    let current = blog
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([current])),
+      http.patch('*/api/profiles/adalovelace-blog', () => {
+        current = renamed
+        return HttpResponse.json(renamed)
+      }),
+    )
+    const { router } = await renderAt('/p/adalovelace-blog/settings')
+    await fireEvent.update(await screen.findByLabelText('Name'), 'Journal')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/adalovelace-journal/settings'),
+    )
+    expect(await screen.findByText('/p/adalovelace-journal')).toBeInTheDocument()
+    expect(await screen.findByText('Saved')).toBeInTheDocument() // the panel was kept, not rebuilt
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

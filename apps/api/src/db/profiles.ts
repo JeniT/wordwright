@@ -33,18 +33,85 @@ export class ProfileStore {
     return id
   }
 
+  /** Taken by a profile, or retired by a rename: old addresses are never handed to someone else. */
   private exists(id: string): boolean {
-    return this.db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(id) !== undefined
+    return (
+      this.db
+        .prepare(
+          'SELECT 1 FROM profiles WHERE id = ? UNION SELECT 1 FROM profile_aliases WHERE old_id = ?',
+        )
+        .get(id, id) !== undefined
+    )
   }
 
-  /** Changes only the fields that are present; `siteUrl: null` clears the link. */
-  update(id: string, changes: { name?: string; siteUrl?: string | null }) {
-    if (changes.name !== undefined) {
-      this.db.prepare('UPDATE profiles SET name = ? WHERE id = ?').run(changes.name, id)
-    }
+  /**
+   * Changes only the fields that are present; `siteUrl: null` clears the link. Renaming also
+   * renames the profile's id (see `profileIdFor`), leaving the old id as an alias. Returns the
+   * profile's id afterwards, which callers must use from then on.
+   */
+  update(id: string, changes: { name?: string; siteUrl?: string | null }): string {
     if (changes.siteUrl !== undefined) {
       this.db.prepare('UPDATE profiles SET site_url = ? WHERE id = ?').run(changes.siteUrl, id)
     }
+    if (changes.name === undefined) return id
+    this.db.prepare('UPDATE profiles SET name = ? WHERE id = ?').run(changes.name, id)
+    return this.rewriteId(id, changes.name)
+  }
+
+  private rewriteId(id: string, name: string): string {
+    const owner = this.db
+      .prepare(
+        `SELECT u.handle FROM profile_members m JOIN users u ON u.id = m.user_id
+         WHERE m.profile_id = ? AND m.role = 'owner' LIMIT 1`,
+      )
+      .get(id) as { handle: string } | undefined
+    if (!owner) return id
+    const mine = (candidate: string) =>
+      candidate === id ||
+      this.db
+        .prepare('SELECT 1 FROM profile_aliases WHERE old_id = ? AND profile_id = ?')
+        .get(candidate, id) !== undefined
+    const next = firstAvailable(
+      profileIdFor(owner.handle, name),
+      (c) => !mine(c) && this.exists(c), // going back to a name you used before reclaims its address
+      '-',
+    )
+    if (next === id) return id
+
+    // Every table that points at a profile, so the id changes everywhere at once or not at all.
+    this.db.exec('BEGIN')
+    try {
+      this.db.exec('PRAGMA defer_foreign_keys = ON')
+      this.db.prepare('DELETE FROM profile_aliases WHERE old_id = ?').run(next)
+      this.db
+        .prepare('UPDATE profile_aliases SET profile_id = ? WHERE profile_id = ?')
+        .run(next, id)
+      this.db
+        .prepare('INSERT INTO profile_aliases (old_id, profile_id) VALUES (?, ?)')
+        .run(id, next)
+      for (const [table, column] of [
+        ['profiles', 'id'],
+        ['profile_members', 'profile_id'],
+        ['profile_images', 'profile_id'],
+        ['drafts', 'profile_id'],
+        ['invitations', 'profile_id'],
+      ]) {
+        this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(next, id)
+      }
+      this.db.exec('COMMIT')
+    } catch (err) {
+      this.db.exec('ROLLBACK')
+      throw err
+    }
+    return next
+  }
+
+  /** The current id of the profile that used to be called `oldId`, if any. */
+  currentIdFor(oldId: string): string | undefined {
+    const row = this.db
+      .prepare('SELECT profile_id FROM profile_aliases WHERE old_id = ?')
+      .get(oldId) as { profile_id: string } | undefined
+    return row?.profile_id
   }
 
   delete(id: string) {

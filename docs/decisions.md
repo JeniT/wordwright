@@ -72,8 +72,12 @@ The existing profile (a container with members and drafts) _is_ the publishing v
 was extended rather than adding a second concept. Profile URLs get shared, so ids are readable: users get a
 `handle`, and a profile's id is `<creator's handle>-<slug of name>`. **Handles contain no `-`**, which makes the
 split unambiguous: otherwise handle `jen` + profile `it-substack` and handle `jenit` + profile `substack` would
-both be `jenit-substack`. The id is fixed at creation (renaming doesn't change it, so links keep working) and
-belongs to the creator's handle even if ownership later moves (T11). Handles are generated, not chosen, for now
+both be `jenit-substack`. The id follows the name: renaming a profile gives it a new id, and the old id stays in
+`profile_aliases` forever. The API answers the old id with a 301 (308 for writes, which keeps the method and body)
+to the new one, but only for members, so a stranger gets the same 404 as for an unknown id and can't learn that a
+profile was renamed. Retired ids are never reused for another profile (a new "Blog" gets `-2`), but renaming back to
+an earlier name reclaims its id. The web app moves the address bar when it meets an id that isn't in the person's
+list (`useProfileAddressRedirect`). The id belongs to the creator's handle even if ownership later moves (T11). Handles are generated, not chosen, for now
 (changing one is T16); the migration also rewrote old UUID ids to this form. Alternatives rejected: per-user
 uniqueness on the name alone (URLs would need the user in the path anyway), and globally unique names (squatting,
 and the `substack` clash the owner wanted to avoid).

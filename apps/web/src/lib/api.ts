@@ -94,6 +94,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
 
     // profiles
     listProfiles: () => get(ProfileList, 'GET', '/profiles'),
+    /** Follows the server's redirect for a renamed profile, so the result carries its current id. */
+    getProfile: (id: string) => get(ProfileSchema, 'GET', `/profiles/${id}`),
     createProfile: (input: ProfileInput) => get(ProfileSchema, 'POST', '/profiles', input),
     updateProfile: (id: string, changes: ProfileUpdate) =>
       get(ProfileSchema, 'PATCH', `/profiles/${id}`, changes),

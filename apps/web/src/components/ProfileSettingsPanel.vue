@@ -2,7 +2,7 @@
 import type { Profile } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
 import { displayHost } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
@@ -11,9 +11,12 @@ import ProfileImage from './ProfileImage.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
 import TextField from './TextField.vue'
 
-/** Mount with `:key="profile.id"`: the form starts from the profile as it is on arrival. */
+/** Mount with a key per profile: the form starts from the profile as it is on arrival. */
 const props = defineProps<{ profile: Profile }>()
+/** Saving a new name moved the profile to a new id (sent just before the address changes). */
+const emit = defineEmits<{ renamed: [id: string] }>()
 const session = useSessionStore()
+const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const refresh = () => queryClient.invalidateQueries({ queryKey: ['profiles'] })
@@ -28,8 +31,18 @@ const saveDetails = useMutation({
       name: name.value,
       siteUrl: siteUrl.value.trim() || null,
     }),
-  onSuccess: (saved) => {
+  onSuccess: async (saved) => {
     siteUrl.value = saved.siteUrl ?? '' // shows the address as stored, e.g. with https:// added
+    if (saved.id !== props.profile.id) {
+      // The new name gave the profile a new address. Until the page has moved there, the list
+      // must know both ids, or this page would briefly look for a profile that isn't there.
+      // The refresh below replaces the list with the server's, which has only the new one.
+      queryClient.setQueryData<Profile[]>(['profiles'], (list) =>
+        list?.flatMap((p) => (p.id === props.profile.id ? [p, saved] : [p])),
+      )
+      emit('renamed', saved.id)
+      await router.replace({ name: route.name, params: { ...route.params, profileId: saved.id } })
+    }
     return refresh()
   },
 })
