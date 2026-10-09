@@ -76,21 +76,52 @@ const MIGRATIONS: string[] = [
   `,
 ]
 
+/** A problem with the database file that a person needs to act on (not a bug). */
+export class DatabaseError extends Error {}
+
 export function openDatabase(path: string): DatabaseSync {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true })
   const db = new DatabaseSync(path)
   db.exec('PRAGMA foreign_keys = ON')
   if (path !== ':memory:') db.exec('PRAGMA journal_mode = WAL')
-  migrate(db)
+  try {
+    migrate(db, path)
+  } catch (err) {
+    db.close()
+    throw err
+  }
   return db
 }
 
-function migrate(db: DatabaseSync) {
-  const row = db.prepare('PRAGMA user_version').get() as { user_version: number }
-  for (let v = row.user_version; v < MIGRATIONS.length; v++) {
+/** Brings the schema up to date, one atomic step per migration. */
+export function migrate(db: DatabaseSync, path = 'the database', migrations = MIGRATIONS) {
+  const { user_version: current } = db.prepare('PRAGMA user_version').get() as {
+    user_version: number
+  }
+
+  if (current > migrations.length) {
+    throw new DatabaseError(
+      `${path} was created by a newer version of this app (schema v${current}, this build knows v${migrations.length}). Upgrade the app rather than downgrading the data.`,
+    )
+  }
+  // Version 0 with tables already present means a file from before migrations existed.
+  // Running migration 1 over it would fail halfway with a confusing "table already exists".
+  const tables = (
+    db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table'").get() as {
+      n: number
+    }
+  ).n
+  if (current === 0 && tables > 0) {
+    throw new DatabaseError(
+      `${path} is from an early development version and has no schema version, so it can't be upgraded automatically. ` +
+        `If you don't need its contents, move or delete it (and any -wal/-shm files beside it) and restart.`,
+    )
+  }
+
+  for (let v = current; v < migrations.length; v++) {
     db.exec('BEGIN')
     try {
-      db.exec(MIGRATIONS[v]!)
+      db.exec(migrations[v]!)
       db.exec(`PRAGMA user_version = ${v + 1}`)
       db.exec('COMMIT')
     } catch (err) {

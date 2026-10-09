@@ -30,14 +30,22 @@ pnpm dev                                  # web on :5173, API on :8787
 The API reads real environment variables; load `.env` with e.g. `node --env-file=.env` or your shell.
 To use Claude: `LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... pnpm dev`.
 
+## Troubleshooting
+
+- **"Cannot start: … is from an early development version"**: your `apps/api/data/lfwa.sqlite` predates
+  schema versioning. If you don't need it, move or delete it (and its `-wal`/`-shm` files) and restart.
+- **Console full of `http proxy error … ECONNREFUSED`**: the API isn't running. Look at the `apps/api`
+  lines at the top of the `pnpm dev` output for the reason; the web app shows "We can't reach the
+  server" until it's back.
+
 ## Scripts
 
-| Command         | What it does                                                                                                               |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`    | Format check, lint, typecheck, unit/component/API tests (what CI runs first)                                               |
-| `pnpm test`     | Vitest in every package                                                                                                    |
-| `pnpm test:e2e` | Playwright against the web app + API with fake providers (`pnpm --filter @lfwa/web exec playwright install chromium` once) |
-| `pnpm build`    | Typecheck and production-build everything                                                                                  |
+| Command         | What it does                                                                                                                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`    | Format check, lint, typecheck, unit/component/API tests (what CI runs first)                                                                                                                                                |
+| `pnpm test`     | Vitest in every package                                                                                                                                                                                                     |
+| `pnpm test:e2e` | Playwright against the web app + API (real SQLite file, fake LLM); fails on any uncaught exception, `console.error`, failed request or 5xx in the browser (`pnpm --filter @lfwa/web exec playwright install chromium` once) |
+| `pnpm build`    | Typecheck and production-build everything                                                                                                                                                                                   |
 
 ## Architecture: pluggable external services
 

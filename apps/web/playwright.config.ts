@@ -1,4 +1,8 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
+
+// A real file (not :memory:) so the e2e run exercises migrations and WAL mode like production does.
+const e2eDb = fileURLToPath(new URL('./test-results/e2e.sqlite', import.meta.url))
 
 export default defineConfig({
   testDir: './e2e',
@@ -11,10 +15,10 @@ export default defineConfig({
   webServer: [
     {
       // API with fake providers and an in-memory database.
-      command: 'pnpm --filter @lfwa/api start',
+      command: `rm -f "${e2eDb}" "${e2eDb}-wal" "${e2eDb}-shm" && pnpm --filter @lfwa/api start`,
       env: {
         PORT: '8788',
-        DATABASE_PATH: ':memory:',
+        DATABASE_PATH: e2eDb,
         FAKE_LLM: 'true',
         PUBLIC_URL: 'http://localhost:5174',
       },

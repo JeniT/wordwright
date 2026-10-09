@@ -23,6 +23,8 @@ const signOut = useMutation({
   },
 })
 
+const reload = () => window.location.reload()
+
 function switchProfile(event: Event) {
   const profileId = (event.target as HTMLSelectElement).value
   if (profileId) router.push({ name: 'drafts', params: { profileId } })
@@ -60,7 +62,18 @@ function switchProfile(event: Event) {
       </nav>
     </header>
     <main class="mx-auto max-w-3xl px-4 py-8">
-      <RouterView />
+      <div v-if="session.error" role="alert" class="rounded border border-red-200 bg-red-50 p-4">
+        <p class="font-medium text-red-900">{{ session.error }}</p>
+        <p class="mt-1 text-sm">Check your connection, or try again in a moment.</p>
+        <button
+          type="button"
+          class="mt-3 rounded border border-red-700 px-3 py-1 text-sm text-red-900"
+          @click="reload"
+        >
+          Try again
+        </button>
+      </div>
+      <RouterView v-else />
     </main>
   </div>
 </template>

@@ -3,11 +3,38 @@ import type { Providers } from '@lfwa/core'
 import { createApp } from './app'
 import { googleProvider, type IdentityProvider } from './auth/identity'
 import { loadConfig } from './config'
+import { DatabaseError } from './db/database'
 import { openStore } from './db/store'
 import { fakeLlmFactory, realLlmFactory } from './llm-factory'
 import { ConsoleMailer } from './mail/mailer'
 
-const config = loadConfig()
+/** Startup problems a person can fix get one clear line, not a stack trace. */
+function fail(err: unknown): never {
+  if (
+    err instanceof DatabaseError ||
+    (err instanceof Error && err.message.includes('production'))
+  ) {
+    console.error(`\nCannot start: ${err.message}\n`)
+  } else {
+    console.error('\nCannot start:', err)
+  }
+  process.exit(1)
+}
+
+const config = (() => {
+  try {
+    return loadConfig()
+  } catch (err) {
+    return fail(err)
+  }
+})()
+const store = (() => {
+  try {
+    return openStore(config.DATABASE_PATH)
+  } catch (err) {
+    return fail(err)
+  }
+})()
 
 const providers: Providers = { search: [] }
 
@@ -17,7 +44,7 @@ if (config.GOOGLE_CLIENT_ID) {
 }
 
 const app = createApp({
-  store: openStore(config.DATABASE_PATH),
+  store,
   providers,
   // Users bring their own API keys; there is deliberately no server-wide LLM key.
   llmFactory: config.FAKE_LLM ? fakeLlmFactory : realLlmFactory,

@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -132,4 +132,25 @@ describe('password recovery', () => {
     await renderAt('/reset-password')
     expect(await screen.findByRole('alert')).toHaveTextContent(/incomplete/)
   })
+})
+
+describe('when the server is unavailable', () => {
+  it.each([
+    ['is down (network error)', () => HttpResponse.error()],
+    [
+      'returns a server error',
+      () => HttpResponse.json({ error: 'Internal server error' }, { status: 500 }),
+    ],
+  ])(
+    'explains the problem instead of showing a blank page or a sign-in form (server %s)',
+    async (_label, respond) => {
+      server.use(http.get('*/api/auth/me', respond))
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await renderAt('/')
+      expect(await screen.findByRole('alert')).toHaveTextContent(/can't reach the server/i)
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Sign in' })).toBeNull()
+      expect(logged).toHaveBeenCalled() // and it is logged, not swallowed
+    },
+  )
 })

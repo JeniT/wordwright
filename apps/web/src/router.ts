@@ -55,6 +55,7 @@ export function createAppRouter(history = createWebHistory()) {
   router.beforeEach(async (to) => {
     const session = useSessionStore()
     await session.load()
+    if (session.error) return // can't tell who's signed in; App shows the problem
     const signedIn = !!session.user
     // Reset links work whether or not you happen to be signed in.
     if (to.meta.guest && signedIn && to.name !== 'reset-password') return { name: 'home' }

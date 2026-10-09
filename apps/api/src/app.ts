@@ -75,7 +75,7 @@ export function createApp(deps: AppDeps) {
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status)
-    console.error(err)
+    console.error(`${c.req.method} ${new URL(c.req.url).pathname} failed:`, err)
     return c.json({ error: 'Internal server error' }, 500)
   })
   return app

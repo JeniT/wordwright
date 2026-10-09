@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, test, watchForProblems } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -73,6 +74,7 @@ test('sign out and back in, and the session survives a reload', async ({ page })
 test('shares a profile with another user', async ({ page, browser }) => {
   await registerUser(page, 'Ada')
   const bobPage = await (await browser.newContext()).newPage()
+  const bobProblems = watchForProblems(bobPage)
   const bobEmail = await registerUser(bobPage, 'Bob')
 
   await page.getByRole('link', { name: 'Ada', exact: true }).click()
@@ -84,6 +86,7 @@ test('shares a profile with another user', async ({ page, browser }) => {
   await expect(
     bobPage.getByLabel('Profile').locator('option', { hasText: '(shared)' }),
   ).toHaveCount(1)
+  expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
 test('deletes an account', async ({ page }) => {
