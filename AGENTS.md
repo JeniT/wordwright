@@ -61,18 +61,24 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
 2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors.
 3. Docs updated where behaviour changed (README section, `.env.example`, `docs/decisions.md` for non-obvious choices).
-4. [TODO.md](TODO.md) updated (task moved to Done with the commit hash; follow-up work added as new tasks).
+4. [TODO.md](TODO.md) updated (task moved to Done with the commit hash; follow-up work added as new tasks),
+   and the main checkout's copy brought up to date with `origin/main` (see _Landing_, step 5).
 5. **Committed** with a message that says what and why. Commit after each feature; for large ones, commit at
    each green checkpoint. Don't leave work uncommitted at the end of a session.
 
 ## Working in parallel with other agents
 
-- **Claim before starting:** in `TODO.md` move the task to _In progress_, add `claimed: <agent/session> · branch: <name>`,
-  and commit that alone (`git commit -m "claim T7"`). Only take tasks whose dependencies are Done. Do it from an
-  up-to-date `main` (`git pull --ff-only origin main`) and **push the claim straight away**, after checking
-  `git log origin/main..main` lists only that one commit. Unpushed commits left on the shared local `main` get
-  published by whoever next pushes it (see _Landing_ below).
-- **Isolate:** `git worktree add .worktrees/T7 -b T7` (the folder is git-ignored) and work there, run `pnpm install` once in it.
+- **The main checkout's `TODO.md` is the board agents read.** Anyone choosing a task opens `TODO.md` in the
+  main directory, so it must always match `origin/main`; a stale one gets finished tasks claimed again. Landing
+  work from a worktree does not update it by itself, which is why step 5 below is required, not optional.
+- **Never commit directly on local `main`.** It is shared, and a commit left on it is invisible to everyone else
+  until some other session pushes it by accident. Every change, claims and docs included, goes through a worktree.
+- **Claim before starting:** `git fetch origin`, then `git worktree add .worktrees/T7 -b T7 origin/main` and
+  `pnpm install` once in it. In that worktree, in `TODO.md`, move the task to _In progress_, add
+  `claimed: <agent/session> · branch: <name>`, commit that alone (`git commit -m "claim T7"`), check
+  `git log origin/main..HEAD` lists only that commit, and `git push origin HEAD:main` straight away. Then
+  bring the main checkout up to date (step 5 below) so other agents see the claim. Only take tasks whose
+  dependencies are Done. You keep working in that same worktree.
 - **Landing (merging to `main`):** the local `main` checkout is shared by every session, so it may hold other
   sessions' unpushed commits. Never publish it; publish your own branch. Run these as **separate commands**, reading
   each result before the next:
@@ -81,8 +87,14 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
   2. Rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased branch.
   3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
   4. `git push origin HEAD:main`. It is a plain fast-forward; if it is rejected, go back to step 1.
-  5. Only then, in the main checkout, `git merge --ff-only <branch>` (or `git pull --ff-only`) to bring local
-     `main` up to date, and watch CI (`gh run list`); a red run on `main` is the next thing to fix.
+  5. **Bring the main checkout up to date (required).** In the main directory run `git fetch origin`, then
+     `git merge --ff-only origin/main`, and confirm its `TODO.md` shows your task as Done (or In progress, for a
+     claim). If the fast-forward is refused, local `main` has another session's unpushed commits: run
+     `git merge origin/main` instead (it keeps their commits as they are), resolve conflicts keeping both sides
+     (`TODO.md` entries; for a clash in the `MIGRATIONS` array, the already-published migration stays first and
+     the unpublished one is appended after it), rerun `pnpm check`, `pnpm build` and `pnpm test:e2e`, and commit
+     the merge. **Don't push that merge**: those commits belong to the other session. Then watch CI
+     (`gh run list`); a red run on `main` is the next thing to fix.
 
   The remote is `origin` (private GitHub repo `JeniT/writing-assistant`). Only push your own work to `main`, never
   another session's in-progress branch.
@@ -96,6 +108,10 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
   - Don't force-push `main`, or use `--force` / `--force-with-lease` to get past a rejected push; rebase instead.
   - Don't `git stash` (the stack is shared across worktrees); commit a WIP commit instead.
   - Don't skip step 3: a push that succeeds can still contain commits you didn't write.
+  - Don't skip step 5 because the fast-forward failed. A stale `TODO.md` in the main directory misleads every
+    other agent; merge instead.
+  - Don't `git rebase`, `git reset --hard` or `git checkout .` the main checkout to make it match `origin/main`.
+    That destroys or rewrites another session's unpushed commits and breaks their worktrees.
 - **Clean up when the task is merged:** from the main checkout, run `git worktree remove .worktrees/T7` and
   `git branch -d T7`, so finished worktrees (each with its own `node_modules`) don't pile up. Remove only your own;
   other sessions' worktrees may still be in use. If the task isn't merged, leave the worktree and say why in `TODO.md`.
