@@ -231,3 +231,15 @@ contract suite like our other external services; `PAGE_FETCHER=fake` is refused 
 inside the request that adds the link (up to the 5 s deadline) rather than in the background, so the person sees
 the title, or the reason it was refused, straight away. Not done: a per-site politeness delay or caching, and
 the profile's own website field still accepts `https://rubbish` (it uses the older, looser `SiteUrlSchema`).
+
+## Brainstorming proposes; it never edits, and it never drafts
+
+The brainstorm conversation (design in [brainstorming.md](brainstorming.md)) lets the person's LLM suggest a new
+title or notes for an idea, or a new idea, as **proposals the person accepts**; nothing is written otherwise. That
+is both the owner's rule that the author's voice and decisions stay theirs and the main defence against prompt
+injection (idea notes and fetched page titles go into the prompt): the model has no way to change, fetch or send
+anything. It deliberately cannot touch drafts, and draft bodies are not sent to it. One thread per idea is shared
+by all members of the profile; each message is sent with its sender's own key, model and prompt, so the thread is
+stored in our own neutral format (text and tool calls, no provider "thinking" blocks) to replay across providers.
+The default prompt makes the model a sceptical commissioning editor and lives in code; each user can edit their
+own copy on the account page.

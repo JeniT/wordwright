@@ -35,6 +35,8 @@ Why: part of the venue-profile spec that T15 didn't build. Each profile has a se
 - Table + store + routes under `/api/profiles/:id/audiences` (name, short description; members read, owner edits).
 - Schemas in `packages/core/src/domain.ts`; section on the profile page with empty/loading/error states.
 - Cascade on profile deletion; tests incl. account deletion and an e2e flow.
+- Brainstorming (T20b2) puts a profile's audience descriptions in the model's context, so doing this first makes it
+  much more useful; it works without them.
 
 ### T17 · Use `validateJson` on every route (readable 400 messages)
 
@@ -49,10 +51,44 @@ generated one (`jenit`) with no chance to pick. Add an account setting (reusing 
 `UsernameInputSchema`), perhaps prompting Google sign-ups once, and a rule for what happens to existing profile ids (they stay; only new ones use it).
 Consider a reserved-words list and a rate limit.
 
-### T20b · Brainstorm conversation for an idea
+### T20b · Brainstorm conversation for an idea (design agreed: [docs/brainstorming.md](docs/brainstorming.md))
 
-Why: the button on the idea page is a placeholder. Needs the conversation design (owner to describe how
-brainstorming should work), a stored message thread per idea, and calls on the requesting user's own key.
+Why: the Brainstorm button on the idea page is a placeholder. The owner has agreed the design in
+[docs/brainstorming.md](docs/brainstorming.md): a shared thread per idea in which the person's LLM acts as a
+commissioning editor, probes the idea from the first message, and can **propose** (never apply) a new title, new
+notes, or new ideas. It never edits drafts. The default prompt is editable per user on the account page. Built in
+five stages, each its own task and commit; do them in order.
+
+### T20b1 · Brainstorm: LLM port with tools and streaming
+
+Extend `LLMProvider` with `chat()` (content blocks, tools, streamed `text`/`tool_call`/`done` events, stop reason,
+usage, optional effort and max tokens); Anthropic adapter, scripted fake, contract tests; rate-limit and refusal
+error classes. `complete`/`stream` keep working. No temperature or other sampling options.
+
+### T20b2 · Brainstorm: storage, context, proposals and streaming API
+
+Tables `idea_messages` and `idea_proposals`; a service that builds the system prompt and idea snapshot (title,
+notes, related links, venue name/site/audiences when T16 exists, draft titles only), stores the thread in the
+neutral format (no thinking blocks), handles kick-off, retry, stop, proposals (accept with a stale-text check,
+dismiss, create idea), one reply in flight per idea, per-person throttling; SSE endpoint; cascade tests incl.
+account deletion. Needs T20b1.
+
+### T20b3 · Brainstorm: per-user prompt on the account page
+
+`user_prompts` table, `DEFAULT_BRAINSTORM_PROMPT` (see the design doc), `GET`/`PUT`/`DELETE
+/api/account/brainstorm-prompt`, and a "Brainstorming prompt" section with Save and Reset to default. Can be done
+in parallel with T20b2.
+
+### T20b4 · Brainstorm: the chat page
+
+`/p/:profile/ideas/:idea/brainstorm` with the thread, proposal cards (diffs, Accept/Dismiss), streaming, Stop, Try
+again, "someone else is waiting", Start again; Markdown rendering via `markdown-it` with HTML and images off; the
+idea page's Brainstorm button becomes a link. Component + e2e tests and axe checks. Needs T20b2 and T20b3.
+
+### T20b5 · Brainstorm: evals and tuning the default prompt
+
+Cases in `evals/promptfooconfig.yaml` for the behaviours listed in the design doc; tune the default prompt with the
+owner. Needs a real API key to run.
 
 ### T23 · Apply the stricter web-address check to a profile's website
 
