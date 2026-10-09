@@ -25,7 +25,10 @@ describe('AccountView', () => {
     )
     const { router } = await renderAt('/account')
     await fireEvent.update(await screen.findByLabelText(/Type your email/), 'ada@example.com')
-    await fireEvent.update(screen.getByLabelText('Password'), 'my password 123')
+    await fireEvent.update(
+      screen.getByLabelText('Password', { selector: 'input' }),
+      'my password 123',
+    )
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
     expect(body).toEqual({ confirmEmail: 'ada@example.com', password: 'my password 123' })
@@ -38,7 +41,7 @@ describe('AccountView', () => {
     )
     await renderAt('/account')
     await screen.findByLabelText(/Type your email/)
-    expect(screen.queryByLabelText('Password')).toBeNull()
+    expect(screen.queryByLabelText('Password', { selector: 'input' })).toBeNull()
     expect(screen.getByText(/Linked sign-in: google/)).toBeInTheDocument()
   })
 

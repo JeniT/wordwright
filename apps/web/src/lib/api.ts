@@ -67,6 +67,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     forgotPassword: (email: string) => act('POST', '/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
       act('POST', '/auth/reset-password', { token, password }),
+    changePassword: (currentPassword: string, newPassword: string) =>
+      act('POST', '/account/password', { currentPassword, newPassword }),
+    requestPasswordSetup: () => act('POST', '/account/password/setup-email', {}),
     deleteAccount: (confirmEmail: string, password?: string) =>
       act('DELETE', '/account', { confirmEmail, password }),
 

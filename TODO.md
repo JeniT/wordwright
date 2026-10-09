@@ -14,7 +14,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-- **T4** · Change/set password while signed in · claimed: Claude (T4 session) · branch: T4 (worktree `.worktrees/T4`)
 - **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
   claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
@@ -35,11 +34,6 @@ address they were sent to).
 
 Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
 protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
-
-### T4 · Change password / set a password while signed in
-
-- Account page: change password (needs current password), or _set_ one if the account is Google-only.
-- Revoke other sessions on change. Tests incl. e2e.
 
 ### T5 · Push the repo to a remote so CI runs
 
@@ -97,6 +91,8 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
+- **T4** · Change password while signed in (current password required, other devices signed out, notice
+  email) and add a password to Google-only accounts via an emailed link (`TBD`)
 - **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,
   pending list with resend/revoke, uniform responses (no account lookup), per-person send cap, safe
   post-login redirect (`083b5d8`)

@@ -39,6 +39,9 @@ const STATUS = {
   invalid_credentials: 401,
   invalid_reset_token: 400,
   invalid_verification_token: 400,
+  no_password: 400,
+  password_unchanged: 400,
+  password_exists: 409,
   email_not_verified: 403,
   confirmation_failed: 403,
 } as const

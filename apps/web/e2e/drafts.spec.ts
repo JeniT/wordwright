@@ -287,11 +287,55 @@ test('unconfirmed owners are told to confirm before inviting', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
 })
 
+test('changes the password: other devices are signed out, a notice is emailed', async ({
+  page,
+  browser,
+}) => {
+  const email = await registerUser(page)
+  const phone = await (await browser.newContext()).newPage()
+  const phoneProblems = watchForProblems(phone)
+  await phone.goto('/login')
+  await phone.getByLabel('Email').fill(email)
+  await phone.getByLabel('Password').fill(PASSWORD)
+  await phone.getByRole('button', { name: 'Sign in' }).click()
+  await expect(phone.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  // A wrong current password is explained and changes nothing.
+  await page.getByLabel('Current password').fill('definitely not it')
+  await page.getByLabel('New password').fill('my brand new password')
+  await page.getByRole('button', { name: 'Change password' }).click()
+  await expect(page.getByRole('alert')).toContainText('current password is incorrect')
+
+  await page.getByLabel('Current password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Change password' }).click()
+  await expect(page.getByText('signed out your other devices')).toBeVisible()
+  await waitForEmail(email, 'Your password was changed')
+
+  // The phone's session is gone; this device stays signed in.
+  await phone.reload()
+  await expect(phone.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible()
+
+  // Old password dead, new one works.
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
+  await page.getByLabel('Password').fill('my brand new password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  expect(phoneProblems, "The phone's browser problems").toEqual([])
+})
+
 test('deletes an account', async ({ page }) => {
   const email = await registerUser(page)
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
   await page.getByLabel(/Type your email/).fill(email)
-  await page.getByLabel('Password').fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await page.getByRole('button', { name: 'Delete my account' }).click()
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
 

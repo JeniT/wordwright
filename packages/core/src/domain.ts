@@ -43,6 +43,12 @@ export const ResetPasswordInputSchema = z.object({
 
 export const VerifyEmailInputSchema = z.object({ token: z.string().min(1).max(200) })
 
+/** Changing a password while signed in re-checks the current one. */
+export const ChangePasswordInputSchema = z.object({
+  currentPassword: z.string().min(1).max(128),
+  newPassword: PasswordSchema,
+})
+
 /** Deleting an account needs deliberate confirmation (and the password, if there is one). */
 export const DeleteAccountInputSchema = z.object({
   confirmEmail: EmailSchema,

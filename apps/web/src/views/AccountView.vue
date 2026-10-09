@@ -3,6 +3,7 @@ import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import PasswordSection from '../components/PasswordSection.vue'
 import ProfileInvitations from '../components/ProfileInvitations.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
@@ -93,6 +94,8 @@ const deleteAccount = useMutation({
         Linked sign-in: {{ session.user.linkedProviders.join(', ') }}
       </p>
     </section>
+
+    <PasswordSection />
 
     <section aria-labelledby="llm-heading">
       <h2 id="llm-heading" class="mb-1 font-serif text-xl font-semibold">AI assistant</h2>

@@ -30,6 +30,13 @@ export class TokenStore {
     this.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId)
   }
 
+  /** Signs out every device except the one making the request. */
+  deleteUserSessionsExcept(userId: string, keepTokenHash: string) {
+    this.db
+      .prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?')
+      .run(userId, keepTokenHash)
+  }
+
   deleteExpiredSessions(now: Date) {
     this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now.toISOString())
   }
@@ -51,6 +58,11 @@ export class TokenStore {
       )
       .get(tokenHash, now.toISOString()) as { user_id: string } | undefined
     return row?.user_id
+  }
+
+  /** Cancels any outstanding "reset your password" links. */
+  deleteUserResets(userId: string) {
+    this.db.prepare('DELETE FROM password_resets WHERE user_id = ? AND used_at IS NULL').run(userId)
   }
 
   markResetUsed(tokenHash: string) {

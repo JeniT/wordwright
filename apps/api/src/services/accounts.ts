@@ -6,7 +6,12 @@ import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
-import { passwordResetEmail, verifyEmailEmail } from '../mail/templates'
+import {
+  passwordChangedEmail,
+  passwordResetEmail,
+  passwordSetupEmail,
+  verifyEmailEmail,
+} from '../mail/templates'
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
@@ -21,7 +26,10 @@ export class AccountError extends Error {
       | 'invalid_reset_token'
       | 'invalid_verification_token'
       | 'email_not_verified'
-      | 'confirmation_failed',
+      | 'confirmation_failed'
+      | 'no_password'
+      | 'password_unchanged'
+      | 'password_exists',
     message: string,
   ) {
     super(message)
@@ -162,6 +170,83 @@ export class AccountService {
     this.sendInBackground(user.id, 'password reset', {
       to: user.email,
       ...passwordResetEmail({ name: user.name, link, ttlMinutes: RESET_TTL_MS / 60_000 }),
+    })
+  }
+
+  /**
+   * Changes the password for someone who is signed in. Needs the current one (so a stolen session
+   * can't quietly take over the account), signs out every *other* device, cancels outstanding
+   * reset links, and emails a notice so an unwanted change is noticed.
+   */
+  async changePassword(
+    user: UserRecord,
+    sessionToken: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const { store, hasher } = this.d
+    const hash = store.users.getPasswordHash(user.id)
+    if (!hash) {
+      throw new AccountError(
+        'no_password',
+        'This account signs in without a password. Use "Set a password" to add one.',
+      )
+    }
+    if (!(await hasher.verify(currentPassword, hash))) {
+      throw new AccountError('confirmation_failed', 'Your current password is incorrect')
+    }
+    if (newPassword === currentPassword) {
+      throw new AccountError(
+        'password_unchanged',
+        'Choose a password different from your current one',
+      )
+    }
+    const newHash = await hasher.hash(newPassword)
+    store.transaction(() => {
+      store.users.setPasswordHash(user.id, newHash)
+      store.tokens.deleteUserSessionsExcept(user.id, hashToken(sessionToken))
+      store.tokens.deleteUserResets(user.id)
+    })
+    sendInBackground(
+      this.d.mailer,
+      this.d.logger ?? console,
+      `password change notice for user ${user.id}`,
+      {
+        to: user.email,
+        ...passwordChangedEmail({
+          name: user.name,
+          resetUrl: `${this.d.publicUrl}/forgot-password`,
+        }),
+      },
+    )
+  }
+
+  /**
+   * For accounts with no password (they sign in with Google): emails a link that lets them choose
+   * one. The emailed link, rather than re-entering a password, is what proves it's really them, so a
+   * hijacked session alone can't add a password and keep access.
+   */
+  requestPasswordSetup(user: UserRecord): void {
+    const { store } = this.d
+    if (store.users.getPasswordHash(user.id)) {
+      throw new AccountError(
+        'password_exists',
+        'This account already has a password. Change it instead.',
+      )
+    }
+    const token = generateToken()
+    store.tokens.createReset(
+      hashToken(token),
+      user.id,
+      new Date(this.now().getTime() + RESET_TTL_MS),
+    )
+    this.sendInBackground(user.id, 'password setup', {
+      to: user.email,
+      ...passwordSetupEmail({
+        name: user.name,
+        link: `${this.d.publicUrl}/reset-password?token=${token}`,
+        ttlMinutes: RESET_TTL_MS / 60_000,
+      }),
     })
   }
 

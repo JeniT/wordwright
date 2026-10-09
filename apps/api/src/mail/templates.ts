@@ -84,3 +84,47 @@ If you weren't expecting this, you can ignore this email and nothing will happen
 <p style="font-size:14px">If you weren't expecting this, you can ignore this email and nothing will happen.</p>`),
   }
 }
+
+/** Tells people when their password changed, so a change they didn't make is noticed. No link to act on a token. */
+export function passwordChangedEmail(input: { name: string; resetUrl: string }): Content {
+  const { name, resetUrl } = input
+  return {
+    subject: 'Your password was changed',
+    text: `Hi ${name},
+
+The password for your Long-form Writing Assistant account was just changed, and any other devices were signed out.
+
+If that was you, there's nothing to do. If it wasn't, reset your password straight away: ${resetUrl}`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>The password for your Long-form Writing Assistant account was just changed, and any other devices were signed out.</p>
+<p>If that was you, there's nothing to do. If it wasn't, <a href="${escapeHtml(resetUrl)}">reset your password straight away</a>.</p>`),
+  }
+}
+
+/** For accounts that sign in with Google (no password yet): the link proves they own the inbox. */
+export function passwordSetupEmail(input: {
+  name: string
+  link: string
+  ttlMinutes: number
+}): Content {
+  const { name, link, ttlMinutes } = input
+  const valid =
+    ttlMinutes % 60 === 0
+      ? `${ttlMinutes / 60} hour${ttlMinutes === 60 ? '' : 's'}`
+      : `${ttlMinutes} minutes`
+  return {
+    subject: 'Set a password for your account',
+    text: `Hi ${name},
+
+You asked to add a password to your Long-form Writing Assistant account, so you can sign in with your email as well as Google. Choose one here (the link works once and expires in ${valid}; you'll be signed out of your devices afterwards):
+
+${link}
+
+If you didn't ask for this, you can ignore this email.`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>You asked to add a password to your Long-form Writing Assistant account, so you can sign in with your email as well as Google.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Choose a password</a></p>
+<p style="font-size:14px">The link works once and expires in ${valid}. You'll be signed out of your devices afterwards. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
+<p style="font-size:14px">If you didn't ask for this, you can ignore this email.</p>`),
+  }
+}

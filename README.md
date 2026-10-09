@@ -72,6 +72,10 @@ tests inject fakes and nothing hits the network.
   an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
   an address has an account (except at registration, which has to say so), and that includes
   inviting someone to a profile.
+- **Changing your password** (Account page) needs the current one, signs out every _other_ device, cancels any
+  reset link already out, and emails a "your password was changed" notice with a link to reset if it wasn't
+  you. Google-only accounts can **add** a password: instead of typing one on the page, they're emailed a link
+  (the reset flow), so a hijacked session alone can't add a password and keep access.
 - **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few
