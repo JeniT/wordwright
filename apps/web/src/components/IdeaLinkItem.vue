@@ -44,9 +44,6 @@ const save = useMutation({
     await stopEditing()
   },
 })
-
-const button =
-  'rounded border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60'
 </script>
 
 <template>
@@ -73,12 +70,17 @@ const button =
       <div class="flex gap-2">
         <button
           type="submit"
-          :class="[button, 'border-accent bg-accent text-white hover:bg-accent hover:opacity-90']"
+          class="btn btn-neutral border-accent bg-accent text-white hover:bg-accent hover:opacity-90"
           :disabled="save.isPending.value"
         >
           {{ save.isPending.value ? 'Saving…' : 'Save link' }}
         </button>
-        <button type="button" :class="button" :disabled="save.isPending.value" @click="stopEditing">
+        <button
+          type="button"
+          class="btn btn-neutral"
+          :disabled="save.isPending.value"
+          @click="stopEditing"
+        >
           Cancel
         </button>
       </div>
@@ -94,7 +96,7 @@ const button =
         <button
           ref="editButton"
           type="button"
-          :class="button"
+          class="btn btn-neutral"
           :aria-label="`Edit link to ${label()}`"
           @click="startEditing"
         >
@@ -102,7 +104,7 @@ const button =
         </button>
         <button
           type="button"
-          :class="button"
+          class="btn btn-neutral"
           :aria-label="`Remove link to ${label()}`"
           @click="emit('remove')"
         >

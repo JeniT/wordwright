@@ -42,11 +42,7 @@ const create = useMutation({
         {{ errorMessage(create.error.value) }}
       </p>
       <div class="flex items-center gap-3">
-        <button
-          type="submit"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-          :disabled="create.isPending.value"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="create.isPending.value">
           {{ create.isPending.value ? 'Saving…' : 'Save idea' }}
         </button>
         <RouterLink :to="{ name: 'profile', params: { profileId } }" class="text-sm underline">

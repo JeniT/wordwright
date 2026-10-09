@@ -72,7 +72,7 @@ async function requestCritique() {
     <div class="mt-6 flex items-center gap-3 border-t border-stone-200 pt-4">
       <button
         type="button"
-        class="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+        class="btn btn-primary"
         :disabled="save.isPending.value"
         @click="save.mutate()"
       >

@@ -92,11 +92,7 @@ function submit() {
       <p v-if="decline.isError.value" role="alert" class="mt-3 text-sm text-red-700">
         {{ errorMessage(decline.error.value) }}
       </p>
-      <button
-        type="submit"
-        class="mt-4 rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        :disabled="decline.isPending.value"
-      >
+      <button type="submit" class="mt-4 btn btn-primary" :disabled="decline.isPending.value">
         Decline
       </button>
       <p class="mt-4 text-sm text-stone-600">

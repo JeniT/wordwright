@@ -13,8 +13,6 @@ const profiles = useProfiles()
 // Shares the cache with the setup form, which updates it when a key is saved.
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
 const justConnected = ref(false)
-const newProfileLink =
-  'rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 </script>
 
 <template>
@@ -34,7 +32,7 @@ const newProfileLink =
   <section aria-labelledby="profiles-heading">
     <div class="mb-6 flex items-center justify-between gap-4">
       <h1 id="profiles-heading" class="font-serif text-2xl font-semibold">Your profiles</h1>
-      <RouterLink :to="{ name: 'new-profile' }" :class="newProfileLink">New profile</RouterLink>
+      <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary">New profile</RouterLink>
     </div>
 
     <p v-if="profiles.isPending.value">Loading…</p>
@@ -58,7 +56,7 @@ const newProfileLink =
         and drafts together. You can give it a name, a website and a picture, and share it with
         others later.
       </p>
-      <RouterLink :to="{ name: 'new-profile' }" :class="[newProfileLink, 'mt-4 inline-block']">
+      <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary mt-4 inline-block">
         Create your first profile
       </RouterLink>
     </div>

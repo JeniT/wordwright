@@ -47,8 +47,6 @@ const dismiss = useMutation({
   onSettled: refresh,
 })
 const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
-const button =
-  'rounded px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60'
 </script>
 
 <template>
@@ -96,7 +94,7 @@ const button =
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          :class="[button, 'bg-accent text-white hover:opacity-90']"
+          class="btn btn-sm btn-primary"
           :aria-label="`${proposal.stale ? 'Apply anyway' : 'Accept'}: ${what}`"
           :disabled="busy"
           @click="accept.mutate()"
@@ -105,7 +103,7 @@ const button =
         </button>
         <button
           type="button"
-          :class="[button, 'border border-stone-300 hover:bg-white']"
+          class="btn btn-sm btn-neutral"
           :aria-label="`Dismiss: ${what}`"
           :disabled="busy"
           @click="dismiss.mutate()"

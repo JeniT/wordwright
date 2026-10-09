@@ -148,8 +148,6 @@ watch(
 const busyNote = computed(() =>
   replyingNow.value ? `${replyingNow.value.name} is waiting for a reply…` : '',
 )
-const button =
-  'rounded px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60'
 </script>
 
 <template>
@@ -222,11 +220,7 @@ const button =
           answer. It can suggest a sharper title or notes, or a separate new idea, but only you
           decide.
         </p>
-        <button
-          type="button"
-          :class="[button, 'bg-accent text-white hover:opacity-90']"
-          @click="send({ start: true })"
-        >
+        <button type="button" class="btn btn-primary" @click="send({ start: true })">
           Start brainstorming
         </button>
       </section>
@@ -301,11 +295,7 @@ const button =
 
       <div v-if="unanswered" class="mb-4 rounded border border-stone-300 bg-white p-3">
         <p class="mb-2 text-stone-700">The editor hasn't replied to the last message.</p>
-        <button
-          type="button"
-          :class="[button, 'border border-accent text-accent hover:bg-stone-100']"
-          @click="send({ retry: true })"
-        >
+        <button type="button" class="btn btn-outline" @click="send({ retry: true })">
           Try again
         </button>
       </div>
@@ -331,19 +321,12 @@ const button =
           <button
             v-if="!streaming"
             type="submit"
-            :class="[button, 'bg-accent text-white hover:opacity-90']"
+            class="btn btn-primary"
             :disabled="!draft.trim() || !!replyingNow"
           >
             Send
           </button>
-          <button
-            v-else
-            type="button"
-            :class="[button, 'border border-stone-300 hover:bg-stone-50']"
-            @click="stop"
-          >
-            Stop
-          </button>
+          <button v-else type="button" class="btn btn-neutral" @click="stop">Stop</button>
         </div>
       </form>
 

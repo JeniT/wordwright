@@ -86,9 +86,6 @@ const remove = useMutation({
   },
   onSettled: () => (confirmingDelete.value = false),
 })
-
-const button =
-  'rounded px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60'
 </script>
 
 <template>
@@ -124,13 +121,7 @@ const button =
       <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
       <TextAreaField v-model="notes" label="Expand on your idea here" :rows="8" />
       <div class="flex items-center gap-3">
-        <button
-          type="submit"
-          :class="[button, 'bg-accent text-white hover:opacity-90']"
-          :disabled="save.isPending.value"
-        >
-          Save
-        </button>
+        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">Save</button>
         <p role="status" class="text-sm text-stone-600">
           <template v-if="save.isPending.value">Saving…</template>
           <template v-else-if="save.isSuccess.value">Saved</template>
@@ -180,11 +171,7 @@ const button =
           "
           @update:model-value="addLink.isError.value && addLink.reset()"
         />
-        <button
-          type="submit"
-          :class="[button, 'border border-accent text-accent hover:bg-stone-100']"
-          :disabled="addLink.isPending.value"
-        >
+        <button type="submit" class="btn btn-outline" :disabled="addLink.isPending.value">
           {{ addLink.isPending.value ? 'Adding…' : 'Add link' }}
         </button>
       </form>
@@ -203,7 +190,7 @@ const button =
           params: { profileId, id },
           query: startsAtOnce ? { start: '1' } : {},
         }"
-        :class="[button, 'inline-block border border-accent text-accent hover:bg-stone-100']"
+        class="btn btn-outline inline-block"
       >
         {{ hasConversation ? 'Continue brainstorming' : 'Brainstorm' }}
       </RouterLink>
@@ -214,7 +201,7 @@ const button =
         <h2 id="idea-drafts-heading" class="font-serif text-xl font-semibold">Drafts</h2>
         <button
           type="button"
-          :class="[button, 'bg-accent text-white hover:opacity-90']"
+          class="btn btn-primary"
           :disabled="addDraft.isPending.value"
           @click="addDraft.mutate()"
         >
@@ -259,11 +246,7 @@ const button =
       <p v-if="remove.isError.value" role="alert" class="mb-3 text-red-700">
         {{ errorMessage(remove.error.value) }}
       </p>
-      <button
-        type="button"
-        :class="[button, 'border border-red-700 text-red-800 hover:bg-red-50']"
-        @click="confirmingDelete = true"
-      >
+      <button type="button" class="btn btn-danger" @click="confirmingDelete = true">
         Delete idea
       </button>
     </section>

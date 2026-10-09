@@ -40,7 +40,7 @@ onMounted(() => token && verify.mutate())
       <div v-if="session.user" class="mt-4">
         <button
           type="button"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          class="btn btn-primary"
           :disabled="resend.isPending.value || resend.isSuccess.value"
           @click="resend.mutate()"
         >

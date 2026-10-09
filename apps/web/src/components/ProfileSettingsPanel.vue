@@ -87,9 +87,6 @@ function confirmDelete() {
     deleteProfile.mutate()
   }
 }
-
-const primaryButton =
-  'rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60'
 </script>
 
 <template>
@@ -120,7 +117,7 @@ const primaryButton =
           {{ errorMessage(saveDetails.error.value) }}
         </p>
         <div class="flex items-center gap-3">
-          <button type="submit" :class="primaryButton" :disabled="saveDetails.isPending.value">
+          <button type="submit" class="btn btn-primary" :disabled="saveDetails.isPending.value">
             {{ saveDetails.isPending.value ? 'Saving…' : 'Save details' }}
           </button>
           <p v-if="saveDetails.isSuccess.value" role="status" class="text-sm text-stone-700">

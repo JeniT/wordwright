@@ -51,11 +51,7 @@ const setup = useMutation({
       <p v-if="change.isSuccess.value" role="status" class="mb-3 text-sm">
         Password changed. We've signed out your other devices and emailed you a notice.
       </p>
-      <button
-        type="submit"
-        class="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        :disabled="change.isPending.value"
-      >
+      <button type="submit" class="btn btn-primary" :disabled="change.isPending.value">
         Change password
       </button>
     </form>

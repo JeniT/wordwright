@@ -101,11 +101,7 @@ const create = useMutation({
         <template v-else>{{ errorMessage(create.error.value) }}</template>
       </p>
       <div class="flex items-center gap-3">
-        <button
-          type="submit"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-          :disabled="create.isPending.value"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="create.isPending.value">
           {{ create.isPending.value ? 'Creating…' : 'Create profile' }}
         </button>
         <RouterLink to="/" class="text-sm underline">Cancel</RouterLink>

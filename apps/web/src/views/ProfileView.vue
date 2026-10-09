@@ -55,10 +55,7 @@ const ideas = useQuery({
     <section aria-labelledby="ideas-heading">
       <div class="mb-4 flex items-center justify-between">
         <h2 id="ideas-heading" class="font-serif text-xl font-semibold">Ideas</h2>
-        <RouterLink
-          :to="{ name: 'new-idea', params: { profileId } }"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+        <RouterLink :to="{ name: 'new-idea', params: { profileId } }" class="btn btn-primary">
           New idea
         </RouterLink>
       </div>

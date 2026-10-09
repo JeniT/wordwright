@@ -98,11 +98,7 @@ const hint = computed(
         {{ errorMessage(save.error.value ?? reset.error.value) }}
       </p>
       <div class="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          :disabled="save.isPending.value || !edited"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || !edited">
           {{ save.isPending.value ? 'Saving…' : 'Save' }}
         </button>
         <button

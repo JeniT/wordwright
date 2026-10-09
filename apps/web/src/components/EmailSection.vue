@@ -54,11 +54,7 @@ const change = useMutation({
         >. Open it within 24 hours to finish. Until then you still sign in with
         {{ session.user.email }}.
       </p>
-      <button
-        type="submit"
-        class="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        :disabled="change.isPending.value"
-      >
+      <button type="submit" class="btn btn-primary" :disabled="change.isPending.value">
         Email me a link to confirm
       </button>
     </form>

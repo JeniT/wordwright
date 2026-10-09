@@ -136,7 +136,7 @@ const removeLlmKey = useMutation({
       <div class="flex items-center gap-3">
         <button
           type="submit"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          class="btn btn-primary"
           :disabled="saveLlm.isPending.value || llm.isPending.value"
         >
           {{ saveLlm.isPending.value ? 'Checking key…' : 'Save' }}

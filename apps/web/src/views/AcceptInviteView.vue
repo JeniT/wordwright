@@ -64,7 +64,7 @@ const invalid = computed(
         <div class="mt-4 flex flex-wrap gap-3">
           <RouterLink
             :to="{ name: 'register', query: { email: invitedEmail, next: here } }"
-            class="rounded bg-accent px-4 py-2 text-sm font-medium text-white"
+            class="btn btn-primary"
           >
             Create an account
           </RouterLink>
@@ -88,7 +88,7 @@ const invalid = computed(
       <template v-else>
         <button
           type="button"
-          class="mt-4 rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          class="mt-4 btn btn-primary"
           :disabled="accept.isPending.value"
           @click="accept.mutate()"
         >
