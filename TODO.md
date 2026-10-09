@@ -100,5 +100,5 @@ Per the owner: possibly host an open model for users without their own key. Need
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
 - **T2** · Email verification at signup: hashed 24h single-newest links, confirm page, banner + throttled resend,
-  sharing gated on confirmed addresses on both sides (`edc543c`)
+  sharing gated on confirmed addresses on both sides (`7ce3483`)
 - **T0d** · Startup/DB safety (legacy/newer DB detection), server-unreachable UI, e2e browser error watcher (`30b1983`)
