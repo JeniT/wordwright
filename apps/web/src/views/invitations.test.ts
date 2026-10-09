@@ -16,6 +16,8 @@ const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
 const profile = {
   id: 'p1',
   name: 'Joint piece',
+  siteUrl: null,
+  imageUrl: null,
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }],
 }
@@ -161,7 +163,7 @@ describe('sign-up and sign-in from an invitation', () => {
   })
 })
 
-describe('inviting from the account page', () => {
+describe('inviting from the profile settings page', () => {
   it('sends an invitation, shows a reply that reveals nothing about the address, and lists it as pending', async () => {
     let sent: unknown
     const pending: { id: string; email: string; expiresAt: string }[] = []
@@ -175,7 +177,7 @@ describe('inviting from the account page', () => {
         return HttpResponse.json({ ok: true }, { status: 202 })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/p/p1/settings')
     await fireEvent.update(await screen.findByLabelText(/Invite someone to/), 'bob@example.com')
     await fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
 
@@ -205,7 +207,7 @@ describe('inviting from the account page', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/p/p1/settings')
     await fireEvent.click(
       await screen.findByRole('button', { name: 'Resend invitation to bob@example.com' }),
     )
@@ -228,7 +230,7 @@ describe('inviting from the account page', () => {
         ),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/p/p1/settings')
     await fireEvent.update(await screen.findByLabelText(/Invite someone to/), 'bob@example.com')
     await fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/lot of invitations/)

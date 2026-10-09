@@ -10,6 +10,8 @@ const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
 const profile = {
   id: 'p1',
   name: "Ada's writing",
+  siteUrl: null,
+  imageUrl: null,
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }],
 }
@@ -134,7 +136,7 @@ describe('inviting needs a confirmed address', () => {
       signedInAs(unverified),
       http.get('*/api/profiles', () => HttpResponse.json([profile])),
     )
-    await renderAt('/account')
+    await renderAt('/p/p1/settings')
     await screen.findByText(/Confirm your email address to invite people/)
     expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull()
   })

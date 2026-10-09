@@ -386,21 +386,16 @@ describe('profile settings', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('not a PNG, JPEG, WebP or GIF')
   })
 
-  it('lets the owner share the profile', async () => {
-    let shared: unknown
+  it('lets the owner list members and invite people (invitation flow is in invitations.test.ts)', async () => {
     server.use(
       signedInAs(testUser),
       listProfiles([blog]),
-      http.post('*/api/profiles/adalovelace-blog/members', async ({ request }) => {
-        shared = await request.json()
-        return HttpResponse.json(blog, { status: 201 })
-      }),
+      http.get('*/api/profiles/adalovelace-blog/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/p/adalovelace-blog/settings')
     await screen.findByText(/bob@example.com, editor/)
-    await fireEvent.update(screen.getByLabelText(/Share/), 'carol@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: 'Share' }))
-    await waitFor(() => expect(shared).toEqual({ email: 'carol@example.com' }))
+    expect(screen.getByLabelText(/Invite someone to/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument()
   })
 
   it('deletes the profile after confirmation and returns to the list', async () => {
