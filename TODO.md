@@ -14,6 +14,16 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
+### T20b4 · Brainstorm: the chat page
+
+claimed: claude-session-3 · branch: T20b4
+
+`/p/:profile/ideas/:idea/brainstorm` with the thread, proposal cards (diffs, Accept/Dismiss), streaming, Stop, Try
+again, "someone else is waiting", Start again; Markdown rendering via `markdown-it` with HTML and images off; the
+idea page's Brainstorm button becomes a link. Component + e2e tests and axe checks. Needs T20b2 and T20b3 (both done). The API and the event stream it will use are described in `docs/brainstorming.md`; `FAKE_LLM`'s default `chat()` just echoes, so give it a scripted reply that includes a suggestion for the e2e test.
+
+## Ready
+
 ### T5b · Move task tracking to GitHub Issues (optional)
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
@@ -54,12 +64,6 @@ Why: the Brainstorm button on the idea page is a placeholder. The owner has agre
 commissioning editor, probes the idea from the first message, and can **propose** (never apply) a new title, new
 notes, or new ideas. It never edits drafts. The default prompt is editable per user on the account page. Built in
 five stages, each its own task and commit; do them in order.
-
-### T20b4 · Brainstorm: the chat page
-
-`/p/:profile/ideas/:idea/brainstorm` with the thread, proposal cards (diffs, Accept/Dismiss), streaming, Stop, Try
-again, "someone else is waiting", Start again; Markdown rendering via `markdown-it` with HTML and images off; the
-idea page's Brainstorm button becomes a link. Component + e2e tests and axe checks. Needs T20b2 and T20b3 (both done). The API and the event stream it will use are described in `docs/brainstorming.md`; `FAKE_LLM`'s default `chat()` just echoes, so give it a scripted reply that includes a suggestion for the e2e test.
 
 ### T20b5 · Brainstorm: evals and tuning the default prompt
 
