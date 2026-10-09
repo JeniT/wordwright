@@ -14,7 +14,11 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-_Nothing claimed._
+### T19 · Idea sources per profile (RSS feeds, ordered)
+
+claimed: claude-session-1 · branch: T19
+
+First step only: managing the list. Scanning/fetching feeds comes later (T6).
 
 ## Ready
 
