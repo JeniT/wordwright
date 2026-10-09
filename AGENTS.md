@@ -68,12 +68,34 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
 ## Working in parallel with other agents
 
 - **Claim before starting:** in `TODO.md` move the task to _In progress_, add `claimed: <agent/session> · branch: <name>`,
-  and commit that alone (`git commit -m "claim T7"`). Only take tasks whose dependencies are Done.
+  and commit that alone (`git commit -m "claim T7"`). Only take tasks whose dependencies are Done. Do it from an
+  up-to-date `main` (`git pull --ff-only origin main`) and **push the claim straight away**, after checking
+  `git log origin/main..main` lists only that one commit. Unpushed commits left on the shared local `main` get
+  published by whoever next pushes it (see _Landing_ below).
 - **Isolate:** `git worktree add .worktrees/T7 -b T7` (the folder is git-ignored) and work there, run `pnpm install` once in it.
-- **Merge:** rebase on `main`, rerun `pnpm check` + e2e, then fast-forward `main` and `git push origin main`.
-  Don't force-push `main`. CI runs on every push (`gh run list`); a red run on `main` is the next thing to fix.
-  The remote is `origin` (private GitHub repo `JeniT/writing-assistant`). Only push `main`, never another
-  session's in-progress branch.
+- **Landing (merging to `main`):** the local `main` checkout is shared by every session, so it may hold other
+  sessions' unpushed commits. Never publish it; publish your own branch. Run these as **separate commands**, reading
+  each result before the next:
+  1. `git fetch origin`, then `git rebase origin/main` in your worktree (not `main`, which may be ahead with
+     someone else's unpushed work). Resolve conflicts, keeping the other session's entries (usually in `TODO.md`).
+  2. Rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased branch.
+  3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
+  4. `git push origin HEAD:main`. It is a plain fast-forward; if it is rejected, go back to step 1.
+  5. Only then, in the main checkout, `git merge --ff-only <branch>` (or `git pull --ff-only`) to bring local
+     `main` up to date, and watch CI (`gh run list`); a red run on `main` is the next thing to fix.
+
+  The remote is `origin` (private GitHub repo `JeniT/writing-assistant`). Only push your own work to `main`, never
+  another session's in-progress branch.
+
+- **Don't, when landing:**
+  - Don't run `git push origin main`. It publishes whatever is on local `main`, including other sessions'
+    unfinished or unreviewed commits.
+  - Don't chain landing steps with `&&` after a pipe (`git merge … | tail && git push …`). The pipe hides the
+    merge's exit code, so the push runs even though the merge failed. Don't pipe merge/rebase/push output at all.
+  - Don't rebase onto, or merge from, local `main` when `origin/main` is what you mean.
+  - Don't force-push `main`, or use `--force` / `--force-with-lease` to get past a rejected push; rebase instead.
+  - Don't `git stash` (the stack is shared across worktrees); commit a WIP commit instead.
+  - Don't skip step 3: a push that succeeds can still contain commits you didn't write.
 - **Clean up when the task is merged:** from the main checkout, run `git worktree remove .worktrees/T7` and
   `git branch -d T7`, so finished worktrees (each with its own `node_modules`) don't pile up. Remove only your own;
   other sessions' worktrees may still be in use. If the task isn't merged, leave the worktree and say why in `TODO.md`.
