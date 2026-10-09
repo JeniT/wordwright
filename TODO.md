@@ -14,6 +14,7 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
+- **T3** · Invitations for people without accounts · claimed: Claude (T3 session) · branch: T3 (worktree `.worktrees/T3`)
 - **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
   claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
