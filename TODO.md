@@ -124,7 +124,7 @@ Per the owner: possibly host an open model for users without their own key. Need
   on the profile settings page (`938463b`)
 - **T20c** · Every draft belongs to an idea: existing drafts wrapped in ideas by a migration, drafts created only
   through an idea, standalone draft list and "New draft" removed. Also fixed profile rename failing for
-  profiles that have ideas. (COMMIT)
+  profiles that have ideas. (`24cf76b`)
 
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
