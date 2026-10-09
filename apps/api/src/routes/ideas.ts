@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { streamSSE } from 'hono/streaming'
 import {
@@ -17,15 +17,20 @@ import { toLlmHttpError } from './llm'
 import { validateJson } from '../validate'
 
 const notFound = () => new HTTPException(404, { message: 'Not found' })
+const notFoundError = (): never => {
+  throw notFound()
+}
+type Ctx = Context<AppEnv>
 
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
 export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: BrainstormService) {
   const { ideas, drafts } = store
-  const profileOf = (c: { req: { param: (name: string) => string | undefined } }) =>
-    c.req.param('profileId')!
+  /** A path parameter every route here has; a missing one can only mean the URL didn't match. */
+  const param = (c: Ctx, name: string) => c.req.param(name) ?? notFoundError()
+  const profileOf = (c: Ctx) => param(c, 'profileId')
   /** The idea named in the URL, or a 404 (also when it belongs to a different profile). */
-  const find = (c: { req: { param: (name: string) => string | undefined } }) => {
-    const idea = ideas.get(profileOf(c), c.req.param('id')!)
+  const find = (c: Ctx) => {
+    const idea = ideas.get(profileOf(c), param(c, 'id'))
     if (!idea) throw notFound()
     return idea
   }

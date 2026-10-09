@@ -64,6 +64,19 @@ export interface BrainstormUser {
   name: string
 }
 
+/** Everything one reply needs to know, fixed when it begins. */
+interface ReplyContext {
+  idea: Idea
+  user: BrainstormUser
+  llm: LLMProvider
+  provider: string
+  model: string
+  system: string
+  /** The person's message stored for this reply; absent when retrying one that was already stored. */
+  sent: MessageRecord | undefined
+  signal: AbortSignal
+}
+
 /** A reply that has been accepted for processing; `run` does the work and streams events. */
 export interface Turn {
   run(signal: AbortSignal): AsyncIterable<BrainstormEvent>
@@ -148,8 +161,7 @@ export class BrainstormService {
    */
   begin(idea: Idea, user: BrainstormUser, input: SendMessageInput): Turn {
     const { store, limiter } = this.d
-    const busy = this.busy(idea.id)
-    if (busy) throw fail(409, `${busy.name} is waiting for a reply. Try again in a moment.`)
+    this.assertNotReplying(idea.id)
 
     const existing = store.conversations.messages(idea.id)
     if (input.start && existing.length > 0) {
@@ -174,6 +186,12 @@ export class BrainstormService {
       this.replying.delete(idea.id)
       throw err
     }
+  }
+
+  /** One reply at a time per idea: say who we are waiting for, as an ordinary 409 response. */
+  private assertNotReplying(ideaId: string) {
+    const busy = this.busy(ideaId)
+    if (busy) throw fail(409, `${busy.name} is waiting for a reply. Try again in a moment.`)
   }
 
   private busy(ideaId: string): { name: string } | null {
@@ -249,17 +267,8 @@ export class BrainstormService {
 
   // ---- the reply itself -------------------------------------------------
 
-  private async *reply(ctx: {
-    idea: Idea
-    user: BrainstormUser
-    llm: LLMProvider
-    provider: string
-    model: string
-    system: string
-    sent: MessageRecord | undefined
-    signal: AbortSignal
-  }): AsyncGenerator<BrainstormEvent> {
-    const { idea, user, llm, provider, model, system, sent } = ctx
+  private async *reply(ctx: ReplyContext): AsyncGenerator<BrainstormEvent> {
+    const { idea, llm, system, sent } = ctx
     const { store } = this.d
     const deadline = AbortSignal.timeout(this.replyTimeoutMs)
     const signal = AbortSignal.any([ctx.signal, deadline])
@@ -287,7 +296,7 @@ export class BrainstormService {
       } catch (err) {
         if (ctx.signal.aborted) {
           // The person pressed Stop (or left). Keep what was said, without any half-made suggestions.
-          const stopped = text ? this.saveStopped(idea, user, provider, model, text) : undefined
+          const stopped = text ? this.saveStopped(ctx, text) : undefined
           yield { type: 'done', message: stopped ? this.view(stopped, idea) : null }
           return
         }
@@ -300,7 +309,7 @@ export class BrainstormService {
         return
       }
 
-      const message = this.saveReply(idea, user, provider, model, text, calls, done)
+      const message = this.saveReply(ctx, text, calls, done)
       const view = this.view(message, idea)
       for (const proposal of view.proposals) yield { type: 'proposal', proposal }
       yield { type: 'done', message: view }
@@ -315,13 +324,7 @@ export class BrainstormService {
       .map((r) => ({ role: r.role, content: r.content }))
   }
 
-  private saveStopped(
-    idea: Idea,
-    user: BrainstormUser,
-    provider: string,
-    model: string,
-    text: string,
-  ) {
+  private saveStopped({ idea, user, provider, model }: ReplyContext, text: string) {
     const { conversations } = this.d.store
     const id = conversations.append(idea.id, {
       role: 'assistant',
@@ -338,10 +341,7 @@ export class BrainstormService {
 
   /** Stores the AI's reply and turns each valid tool call into a proposal. */
   private saveReply(
-    idea: Idea,
-    user: BrainstormUser,
-    provider: string,
-    model: string,
+    { idea, user, provider, model }: ReplyContext,
     text: string,
     calls: { id: string; name: string; input: unknown }[],
     done: Extract<LLMChatEvent, { type: 'done' }>,
@@ -491,8 +491,7 @@ export class BrainstormService {
 
   /** Throws the whole thread away, for everyone, so brainstorming can begin afresh. */
   restart(idea: Idea) {
-    const busy = this.busy(idea.id)
-    if (busy) throw fail(409, `${busy.name} is waiting for a reply. Try again in a moment.`)
+    this.assertNotReplying(idea.id)
     this.d.store.conversations.deleteAll(idea.id)
   }
 
