@@ -75,6 +75,15 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
   work from a worktree does not update it by itself, which is why step 5 below is required, not optional.
 - **Never commit directly on local `main`.** It is shared, and a commit left on it is invisible to everyone else
   until some other session pushes it by accident. Every change, claims and docs included, goes through a worktree.
+- **Check CI before starting a task, instead of waiting for it after a push.** CI takes minutes, and waiting for it
+  holds up the next piece of work. So after landing, move on, and let the next start (or the next landing) be where
+  CI is checked: run `gh run list --branch main --limit 5` before you claim anything.
+  - **The latest finished run is red:** fixing it comes first. Read why with `gh run view <run id> --log-failed`.
+    If your own earlier push broke it, fix it now. If it is someone else's, tell the owner, and record the fix as a
+    task in `TODO.md` (a claim, pushed straight away) so two agents don't fix the same thing.
+  - **Runs are still in progress:** don't wait. Start, and look again at landing step 3, because a red can arrive
+    while you work.
+  - **Don't push on top of a red `main`** unless your push is the fix.
 - **Claim before starting:** `git fetch origin`, then `git worktree add .worktrees/T7 -b T7 origin/main` and
   `pnpm install` once in it. In that worktree, in `TODO.md`, move the task to _In progress_, add
   `claimed: <agent/session> · branch: <name>`, commit that alone (`git commit -m "claim T7"`), check
@@ -88,6 +97,8 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
      someone else's unpushed work). Resolve conflicts, keeping the other session's entries (usually in `TODO.md`).
   2. Rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased branch.
   3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
+     Then check CI as above (`gh run list --branch main --limit 3`): the latest finished run must not be red,
+     unless your push is the fix.
   4. `git push origin HEAD:main`. It is a plain fast-forward; if it is rejected, go back to step 1.
   5. **Bring the main checkout up to date (required).** In the main directory run `git fetch origin`, then
      `git merge --ff-only origin/main`, and confirm its `TODO.md` shows your task as Done (or In progress, for a
@@ -95,8 +106,8 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
      `git merge origin/main` instead (it keeps their commits as they are), resolve conflicts keeping both sides
      (`TODO.md` entries; for a clash in the `MIGRATIONS` array, the already-published migration stays first and
      the unpublished one is appended after it), rerun `pnpm check`, `pnpm build` and `pnpm test:e2e`, and commit
-     the merge. **Don't push that merge**: those commits belong to the other session. Then watch CI
-     (`gh run list`); a red run on `main` is the next thing to fix.
+     the merge. **Don't push that merge**: those commits belong to the other session. Don't wait for the CI run
+     your push started: the next task begins by checking it (see _Check CI before starting a task_).
 
   The remote is `origin` (private GitHub repo `JeniT/writing-assistant`). Only push your own work to `main`, never
   another session's in-progress branch.
