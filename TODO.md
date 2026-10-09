@@ -14,7 +14,14 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-_Nothing claimed._
+### T20b1 · Brainstorm: LLM port with tools and streaming
+
+claimed: claude-session-3 · branch: T20b1
+
+Extend `LLMProvider` with `chat()` (content blocks, tools, streamed `text`/`tool_call`/`done` events, stop reason,
+usage, optional effort and max tokens); Anthropic adapter, scripted fake, contract tests; rate-limit and refusal
+error classes. `complete`/`stream` keep working. No temperature or other sampling options.
+
 
 ## Ready
 
@@ -58,12 +65,6 @@ Why: the Brainstorm button on the idea page is a placeholder. The owner has agre
 commissioning editor, probes the idea from the first message, and can **propose** (never apply) a new title, new
 notes, or new ideas. It never edits drafts. The default prompt is editable per user on the account page. Built in
 five stages, each its own task and commit; do them in order.
-
-### T20b1 · Brainstorm: LLM port with tools and streaming
-
-Extend `LLMProvider` with `chat()` (content blocks, tools, streamed `text`/`tool_call`/`done` events, stop reason,
-usage, optional effort and max tokens); Anthropic adapter, scripted fake, contract tests; rate-limit and refusal
-error classes. `complete`/`stream` keep working. No temperature or other sampling options.
 
 ### T20b2 · Brainstorm: storage, context, proposals and streaming API
 
