@@ -27,13 +27,6 @@ claimed: claude-session-3 · branch: T20c
 Wrap each existing standalone draft in an idea, require an idea to create a draft, and retire the profile
 page's standalone draft list and "New draft". Reordering the drafts in a linked set is split out as T20e.
 
-### T3d · Declining and blocking invitations
-
-claimed: claude-session-2 · branch: T3d
-
-Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
-protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
-
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -148,6 +141,8 @@ news-source decision in D2 and is the input to T6.
   retired, pending change cancelled by a password change/reset (`52b6d7b`)
 - **T3f** · "This wasn't me" link in the email-change notice: restores the old address, signs out all devices,
   emails a reset link (7-day link, button-confirmed) (`14e3422`)
+- **T3d** · Declining and blocking invitations: decline from the email, block a sender or everyone (silent for
+  the sender), manage blocks on the Account page, 5-a-day cap per address (`HASH`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name

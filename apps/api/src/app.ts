@@ -92,6 +92,12 @@ export function createApp(deps: AppDeps) {
     store,
     mailer: deps.mailer,
     publicUrl,
+    // 5 a day to any one address, whoever sends them.
+    recipientLimiter: new RateLimiter(
+      5,
+      24 * 60 * 60 * 1000,
+      deps.now && (() => deps.now!().getTime()),
+    ),
     now: deps.now,
     logger: deps.logger,
   })

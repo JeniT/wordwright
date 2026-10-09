@@ -75,9 +75,10 @@ export function invitationEmail(input: {
   inviterName: string
   profileName: string
   link: string
+  declineLink: string
   ttlDays: number
 }): Content {
-  const { inviterName, profileName, link, ttlDays } = input
+  const { inviterName, profileName, link, declineLink, ttlDays } = input
   return {
     subject: `${inviterName} invited you to write together`,
     text: `${inviterName} has invited you to join "${profileName}" on Long-form Writing Assistant, so you can work on pieces together.
@@ -86,11 +87,13 @@ Accept the invitation here (you'll sign in or create an account with this email 
 
 ${link}
 
-If you weren't expecting this, you can ignore this email and nothing will happen.`,
+If you weren't expecting this, you can ignore this email and nothing will happen. To decline, or to stop invitations from ${inviterName} or from everyone, use this page:
+
+${declineLink}`,
     html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(profileName)}</strong> on Long-form Writing Assistant, so you can work on pieces together.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Accept the invitation</a></p>
 <p style="font-size:14px">You'll sign in or create an account with this email address. The link expires in ${ttlDays} days. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
-<p style="font-size:14px">If you weren't expecting this, you can ignore this email and nothing will happen.</p>`),
+<p style="font-size:14px">If you weren't expecting this, you can ignore this email and nothing will happen. You can also <a href="${escapeHtml(declineLink)}">decline, or stop invitations</a> from ${escapeHtml(inviterName)} or from everyone.</p>`),
   }
 }
 

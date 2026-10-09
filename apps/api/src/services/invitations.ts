@@ -1,4 +1,5 @@
-import type { Invitation, InvitationPreview } from '@lfwa/core'
+import type { Invitation, InvitationBlocks, InvitationPreview } from '@lfwa/core'
+import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
@@ -10,7 +11,12 @@ export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export class InvitationError extends Error {
   constructor(
-    readonly code: 'owner_unverified' | 'invalid_invitation' | 'wrong_account' | 'not_found',
+    readonly code:
+      | 'owner_unverified'
+      | 'email_unverified'
+      | 'invalid_invitation'
+      | 'wrong_account'
+      | 'not_found',
     message: string,
   ) {
     super(message)
@@ -21,6 +27,8 @@ export interface InvitationServiceDeps {
   store: Store
   mailer: Mailer
   publicUrl: string
+  /** Caps invitations to any one address, whoever sends them, so many owners can't pile on one person. */
+  recipientLimiter: RateLimiter
   now?: () => Date
   logger?: Pick<Console, 'error'>
 }
@@ -54,6 +62,11 @@ export class InvitationService {
     const existing = store.users.findByEmail(email)
     if (existing && store.profiles.roleOf(profileId, existing.id)) return
 
+    // Blocked, or the address has had enough: the same quiet answer as any other outcome, so the sender
+    // learns nothing about the recipient (not even that they have an account).
+    if (store.invitations.isBlocked(email, owner.id)) return
+    if (!this.d.recipientLimiter.allow(email)) return
+
     const token = generateToken()
     store.invitations.replacePending({
       profileId,
@@ -72,6 +85,7 @@ export class InvitationService {
           inviterName: owner.name,
           profileName: profile.name,
           link: `${this.d.publicUrl}/accept-invite?token=${token}`,
+          declineLink: `${this.d.publicUrl}/decline-invite?token=${token}`,
           ttlDays: INVITE_TTL_MS / 86_400_000,
         }),
       },
@@ -120,6 +134,48 @@ export class InvitationService {
       if (!user.emailVerified) store.users.markEmailVerified(user.id)
     })
     return { profileId: usable.profileId }
+  }
+
+  /**
+   * The invitee's answer from the emailed link, signed in or not (the link proves the inbox). Removes
+   * the invitation and, if asked, blocks future ones from that sender or from everyone, withdrawing what
+   * is already pending. The inviter is not told: the invitation just stops being pending.
+   */
+  decline(token: string, block: 'none' | 'sender' | 'all'): void {
+    const { store } = this.d
+    const inv = this.usable(token)
+    store.transaction(() => {
+      store.invitations.deletePending(inv.id)
+      if (block === 'sender') store.invitations.addBlock(inv.email, inv.invitedBy)
+      if (block === 'all') store.invitations.addBlock(inv.email, null)
+    })
+  }
+
+  /** Managing blocks needs a confirmed address, or anyone could pre-register someone's email and lift them. */
+  blocks(user: UserRecord): InvitationBlocks {
+    this.requireConfirmed(user)
+    return this.d.store.invitations.listBlocks(user.email)
+  }
+
+  setBlockAll(user: UserRecord, blocked: boolean): void {
+    this.requireConfirmed(user)
+    const { invitations } = this.d.store
+    if (blocked) invitations.addBlock(user.email, null)
+    else invitations.removeBlock(user.email, null)
+  }
+
+  unblockSender(user: UserRecord, senderId: string): void {
+    this.requireConfirmed(user)
+    this.d.store.invitations.removeBlock(user.email, senderId)
+  }
+
+  private requireConfirmed(user: UserRecord) {
+    if (!user.emailVerified) {
+      throw new InvitationError(
+        'email_unverified',
+        'Please confirm your email address before changing who can invite you',
+      )
+    }
   }
 
   private usable(token: string) {

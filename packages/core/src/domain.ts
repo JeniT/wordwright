@@ -161,6 +161,21 @@ export const InvitationPreviewSchema = z.object({
 export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>
 
 export const InvitationTokenInputSchema = z.object({ token: z.string().min(1).max(200) })
+/** What happens, besides declining this one invitation. */
+export const DeclineInvitationInputSchema = z.object({
+  token: z.string().min(1).max(200),
+  block: z.enum(['none', 'sender', 'all']).default('none'),
+})
+export type DeclineInvitationInput = z.input<typeof DeclineInvitationInputSchema>
+
+/** The invitations a person has chosen not to receive at their address. */
+export const InvitationBlocksSchema = z.object({
+  all: z.boolean(),
+  senders: z.array(z.object({ id: z.string(), name: z.string() })),
+})
+export type InvitationBlocks = z.infer<typeof InvitationBlocksSchema>
+export const SetBlockAllInputSchema = z.object({ blocked: z.boolean() })
+
 export const AcceptInvitationResultSchema = z.object({ profileId: z.string() })
 
 // ---- Drafts (belong to a profile) --------------------------------------

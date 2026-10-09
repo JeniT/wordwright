@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import EmailSection from '../components/EmailSection.vue'
+import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import PasswordSection from '../components/PasswordSection.vue'
 
@@ -46,6 +47,8 @@ const deleteAccount = useMutation({
     <EmailSection />
 
     <PasswordSection />
+
+    <InvitationBlocksSection />
 
     <LlmSettingsSection />
 

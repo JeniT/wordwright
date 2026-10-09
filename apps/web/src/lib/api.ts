@@ -6,6 +6,7 @@ import {
   HandleAvailabilitySchema,
   IdeaSchema,
   IdeaSummarySchema,
+  InvitationBlocksSchema,
   InvitationPreviewSchema,
   InvitationSchema,
   LlmSettingsSchema,
@@ -129,6 +130,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('DELETE', `/profiles/${profileId}/invitations/${invitationId}`),
     previewInvitation: (token: string) =>
       get(InvitationPreviewSchema, 'POST', '/invitations/preview', { token }),
+    declineInvitation: (token: string, block: 'none' | 'sender' | 'all') =>
+      act('POST', '/invitations/decline', { token, block }),
+    getInvitationBlocks: () => get(InvitationBlocksSchema, 'GET', '/invitations/blocks'),
+    setBlockAllInvitations: (blocked: boolean) =>
+      act('PUT', '/invitations/blocks/all', { blocked }),
+    unblockInviter: (senderId: string) => act('DELETE', `/invitations/blocks/senders/${senderId}`),
     acceptInvitation: (token: string) =>
       get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
     removeMember: (id: string, userId: string) =>

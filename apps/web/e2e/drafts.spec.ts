@@ -356,6 +356,78 @@ test('invites someone who has no account yet: they register from the email and j
   expect(newbieProblems, "Newbie's browser problems").toEqual([])
 })
 
+test('declining and blocking an inviter from the email, then lifting the block', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  const bobEmail = `bob-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await invite(page, bobEmail)
+  await expect(page.getByText('Waiting for a reply')).toBeVisible()
+
+  // Bob has no account. He declines from the email and stops invitations from Ada.
+  const bob = await (await browser.newContext()).newPage()
+  const bobProblems = watchForProblems(bob)
+  const declineLink = linkIn(
+    await waitForEmail(bobEmail, 'Ada invited you to write together'),
+    '/decline-invite',
+  )!
+  expect(declineLink, 'decline link in the email').toBeTruthy()
+  await bob.goto(declineLink)
+  await expect(bob.getByText("They won't be told that you declined")).toBeVisible()
+  expect(
+    (await new AxeBuilder({ page: bob }).analyze()).violations,
+    'accessibility of decline page',
+  ).toEqual([])
+  await bob.getByLabel('Also stop invitations from Ada').check()
+  await bob.getByRole('button', { name: 'Decline' }).click()
+  await expect(bob.getByRole('status')).toContainText('from this person again')
+
+  // Ada isn't told; the invitation just stops waiting, and a second attempt quietly does nothing.
+  await page.reload()
+  await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
+  await page
+    .getByLabel(/Invite someone to/)
+    .first()
+    .fill(bobEmail)
+  await page.getByRole('button', { name: 'Send invitation' }).first().click()
+  await expect(page.getByText(`emailed an invitation to ${bobEmail}`)).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
+
+  // Bob signs up later with that address, confirms it, and sees the block on his account page.
+  await bob.goto('/register')
+  await bob.getByLabel('What should we call you?').fill('Bob')
+  await bob.getByLabel('Username').fill(uniqueUsername())
+  await bob.getByLabel('Email').fill(bobEmail)
+  await bob.getByLabel('Password').fill(PASSWORD)
+  await bob.getByRole('button', { name: 'Create account' }).click()
+  await expect(bob.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await bob.goto(
+    linkIn(await waitForEmail(bobEmail, 'Confirm your email address'), '/verify-email')!,
+  )
+  await expect(bob.getByText('your email address is confirmed')).toBeVisible()
+  await bob.goto('/account')
+  await expect(bob.getByText('Ada', { exact: true })).toBeVisible()
+  expect(
+    (await new AxeBuilder({ page: bob }).analyze()).violations,
+    'accessibility of account page',
+  ).toEqual([])
+  await bob.getByRole('button', { name: 'Unblock Ada' }).click()
+  await expect(bob.getByText("You haven't blocked anyone")).toBeVisible()
+  expect(bobProblems).toEqual([])
+
+  // With the block lifted, Ada's invitation goes through again.
+  await page
+    .getByLabel(/Invite someone to/)
+    .first()
+    .fill(bobEmail)
+  await page.getByRole('button', { name: 'Send invitation' }).first().click()
+  await page.reload()
+  await expect(page.getByText('Waiting for a reply')).toBeVisible()
+})
+
 test('invites someone who already has an account; the link only works for that address', async ({
   page,
   browser,

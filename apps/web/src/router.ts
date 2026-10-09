@@ -55,6 +55,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/decline-invite',
+    name: 'decline-invite',
+    component: () => import('./views/DeclineInviteView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/accept-invite',
     name: 'accept-invite',
     component: () => import('./views/AcceptInviteView.vue'),

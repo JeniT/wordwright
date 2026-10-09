@@ -5,7 +5,7 @@ import { setupServer } from 'msw/node'
 import { createPinia, setActivePinia } from 'pinia'
 import type { Component } from 'vue'
 import { createMemoryHistory } from 'vue-router'
-import { afterAll, afterEach, beforeAll } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest'
 import { createAppRouter } from './router'
 
 export const testUser = {
@@ -23,6 +23,13 @@ export const server = setupServer()
 /** Call once at the top of a test file. */
 export function useMockServer() {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+  // Every account page loads this section, so tests about something else needn't mock it.
+  // A test's own `server.use(...)` goes in front of this and wins.
+  beforeEach(() =>
+    server.use(
+      http.get('*/api/invitations/blocks', () => HttpResponse.json({ all: false, senders: [] })),
+    ),
+  )
   afterEach(() => server.resetHandlers())
   afterAll(() => server.close())
 }

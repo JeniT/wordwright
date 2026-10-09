@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { Invitation } from '@lfwa/core'
+import type { Invitation, InvitationBlocks } from '@lfwa/core'
 import { nowIso } from './database'
 
 export interface InvitationRecord {
@@ -117,5 +117,67 @@ export class InvitationStore {
   /** Invitations addressed to this email (used when that person deletes their account). */
   deleteForEmail(email: string) {
     this.db.prepare('DELETE FROM invitations WHERE email = ?').run(email)
+  }
+
+  /** Removes a pending invitation. Returns false if it wasn't there (already accepted or gone). */
+  deletePending(id: string): boolean {
+    return (
+      this.db.prepare('DELETE FROM invitations WHERE id = ? AND accepted_at IS NULL').run(id)
+        .changes > 0
+    )
+  }
+
+  // -- blocks (the invitee's choice not to receive invitations)
+
+  /** `senderId` null blocks every sender. Also withdraws what's already pending from them. */
+  addBlock(email: string, senderId: string | null) {
+    this.db
+      .prepare(
+        'INSERT OR IGNORE INTO invitation_blocks (email, sender_id, created_at) VALUES (?, ?, ?)',
+      )
+      .run(email, senderId, nowIso())
+    this.db
+      .prepare(
+        `DELETE FROM invitations WHERE email = ? AND accepted_at IS NULL AND (? IS NULL OR invited_by = ?)`,
+      )
+      .run(email, senderId, senderId)
+  }
+
+  removeBlock(email: string, senderId: string | null) {
+    this.db
+      .prepare("DELETE FROM invitation_blocks WHERE email = ? AND COALESCE(sender_id, '') = ?")
+      .run(email, senderId ?? '')
+  }
+
+  /** An email change takes the person's choices with it: they were about them, not the old address. */
+  moveBlocks(from: string, to: string) {
+    this.db
+      .prepare('UPDATE OR IGNORE invitation_blocks SET email = ? WHERE email = ?')
+      .run(to, from)
+    this.db.prepare('DELETE FROM invitation_blocks WHERE email = ?').run(from)
+  }
+
+  isBlocked(email: string, senderId: string): boolean {
+    return (
+      this.db
+        .prepare(
+          'SELECT 1 FROM invitation_blocks WHERE email = ? AND (sender_id IS NULL OR sender_id = ?)',
+        )
+        .get(email, senderId) !== undefined
+    )
+  }
+
+  listBlocks(email: string): InvitationBlocks {
+    const rows = this.db
+      .prepare(
+        `SELECT b.sender_id, u.name FROM invitation_blocks b
+         LEFT JOIN users u ON u.id = b.sender_id
+         WHERE b.email = ? ORDER BY b.created_at, b.rowid`,
+      )
+      .all(email) as { sender_id: string | null; name: string | null }[]
+    return {
+      all: rows.some((r) => r.sender_id === null),
+      senders: rows.flatMap((r) => (r.sender_id ? [{ id: r.sender_id, name: r.name ?? '' }] : [])),
+    }
   }
 }

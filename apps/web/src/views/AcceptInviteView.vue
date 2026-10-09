@@ -98,6 +98,15 @@ const invalid = computed(
           {{ errorMessage(accept.error.value) }}
         </p>
       </template>
+      <p class="mt-6 text-sm text-stone-600">
+        Not for you?
+        <RouterLink
+          :to="{ name: 'decline-invite', query: { token } }"
+          class="text-accent underline"
+        >
+          Decline, or stop invitations
+        </RouterLink>
+      </p>
     </template>
   </AuthCard>
 </template>

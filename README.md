@@ -120,7 +120,14 @@ tests inject fakes and nothing hits the network.
   _that_ address and clicks Join. Nobody is ever added without accepting, the owner's reply is identical
   whether or not the address has an account or is already in (so it can't be used to look people up), and
   accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
-  resend or revoke them; each person can send 20 a day since every one emails a stranger.
+  resend or revoke them; each person can send 20 a day since every one emails a stranger, and any one address
+  receives at most 5 a day from everyone together.
+- **Declining and blocking invitations:** every invitation email links to a page where the invitee (signed in or
+  not) can decline and, optionally, stop invitations from that sender or from everyone. The sender is never
+  told: a declined invitation just stops being pending, and later invitations from a blocked sender (or any
+  invitation to an address that blocks everyone) are dropped with the same reply as always. Confirmed accounts
+  see and lift their blocks under "Who can invite you" on the Account page; blocks follow the person if they
+  change their email.
 - **Email confirmation:** new local accounts are _unconfirmed_; signup emails a link (valid 24 hours, newest
   link only, harmless to open twice). Unconfirmed people can write and use AI features, but **can't invite
   others**. A banner offers "Resend" (3 per hour). Confirmation also happens when someone signs in with

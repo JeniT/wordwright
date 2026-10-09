@@ -242,6 +242,7 @@ export class AccountService {
         store.tokens.deleteUserVerifications(user.id)
         store.tokens.deleteUserResets(user.id)
         store.invitations.deleteForEmail(oldEmail)
+        store.invitations.moveBlocks(oldEmail, found.newEmail)
         store.tokens.createEmailChangeUndo(
           hashToken(undoToken),
           user.id,
@@ -289,6 +290,7 @@ export class AccountService {
         if (owner && owner.id !== user.id) throw emailInUse()
         // They opened a link sent to this inbox, so it is proven.
         store.users.setVerifiedEmail(user.id, found.oldEmail)
+        store.invitations.moveBlocks(found.newEmail, found.oldEmail)
         store.tokens.markEmailChangeUndoUsed(tokenHash)
         store.tokens.deleteUserSessions(user.id)
         store.tokens.deleteUserVerifications(user.id)

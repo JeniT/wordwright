@@ -166,6 +166,16 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX email_change_undos_user ON email_change_undos(user_id);
   `,
+  `
+  -- Invitations someone has chosen not to receive, keyed by the address (invitees often have no
+  -- account). A null sender blocks everyone. Blocks about a sender go with that sender's account.
+  CREATE TABLE invitation_blocks (
+    email TEXT NOT NULL,
+    sender_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL
+  );
+  CREATE UNIQUE INDEX invitation_blocks_unique ON invitation_blocks(email, COALESCE(sender_id, ''));
+  `,
 ]
 
 /**
