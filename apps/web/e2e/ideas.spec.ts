@@ -75,10 +75,9 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.reload()
   await expect(page.getByLabel('Expand on your idea here')).toHaveValue('Now with oxbow lakes.')
 
-  // The profile lists it, and its drafts stay out of the profile's own list of drafts.
+  // The profile lists it.
   await page.getByRole('link', { name: '← Back to the profile' }).click()
   await expect(page.getByRole('link', { name: /Why rivers meander/ })).toContainText('2 drafts')
-  await expect(page.getByText('Nothing here yet')).toBeVisible()
 
   // Removing a link and deleting the idea both work, and deleting asks first.
   await page.getByRole('link', { name: /Why rivers meander/ }).click()

@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { firstAvailable, profileIdFor, suggestHandle } from '@lfwa/core'
+import { firstAvailable, IDEA_NAME_MAX, profileIdFor, suggestHandle } from '@lfwa/core'
 
 /** SQL, or a function when the change needs logic SQL can't express. Either runs in one transaction. */
 type Migration = string | ((db: DatabaseSync) => void)
@@ -201,7 +202,38 @@ export const MIGRATIONS: Migration[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  wrapStandaloneDraftsInIdeas,
 ]
+
+/**
+ * Every draft now develops an idea. Drafts from before ideas existed each get an idea of their own,
+ * named after the draft, so nothing is lost and people can regroup them later. `drafts.idea_id` stays
+ * nullable in the schema (SQLite can't add NOT NULL afterwards); the draft store always sets it.
+ */
+export function wrapStandaloneDraftsInIdeas(db: DatabaseSync) {
+  const rows = db
+    .prepare(
+      'SELECT id, profile_id, created_by, title, created_at, updated_at FROM drafts WHERE idea_id IS NULL ORDER BY created_at, rowid',
+    )
+    .all() as {
+    id: string
+    profile_id: string
+    created_by: string | null
+    title: string
+    created_at: string
+    updated_at: string
+  }[]
+  const addIdea = db.prepare(
+    'INSERT INTO ideas (id, profile_id, created_by, name, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  )
+  const attach = db.prepare('UPDATE drafts SET idea_id = ? WHERE id = ?')
+  for (const d of rows) {
+    const ideaId = randomUUID()
+    const name = d.title.trim().slice(0, IDEA_NAME_MAX) || 'Untitled idea'
+    addIdea.run(ideaId, d.profile_id, d.created_by, name, '', d.created_at, d.updated_at)
+    attach.run(ideaId, d.id)
+  }
+}
 
 /**
  * Profiles become publishing venues with human-readable ids, `<owner handle>-<name slug>`.

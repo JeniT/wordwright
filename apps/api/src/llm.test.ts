@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { GOOD_KEY, register, saveKey, setup, shareProfile, verifyAccounts } from './test-helpers'
+import {
+  GOOD_KEY,
+  register,
+  saveKey,
+  setup,
+  shareProfile,
+  verifyAccounts,
+  createDraft,
+} from './test-helpers'
 
 async function signedInUser(ctx = setup(), email = 'ada@example.com', name = 'Ada') {
   const client = ctx.client()
@@ -175,9 +183,7 @@ describe('LLM settings', () => {
 describe('using the key', () => {
   it('asks for a key before running AI features', async () => {
     const { client, profileId } = await signedInUser()
-    const draft = await (
-      await client.post(`/api/profiles/${profileId}/drafts`, { title: 'T', body: 'B' })
-    ).json()
+    const draft = await createDraft(client, profileId, { title: 'T', body: 'B' })
     const res = await client.post(`/api/profiles/${profileId}/assist/critique`, {
       draftId: draft.id,
     })
@@ -188,9 +194,7 @@ describe('using the key', () => {
   it('runs on the stored key and chosen model', async () => {
     const { ctx, client, profileId } = await signedInUser()
     await saveKey(client, 'sk-ant-ada-key-1111111111', 'claude-opus-5-5')
-    const draft = await (
-      await client.post(`/api/profiles/${profileId}/drafts`, { title: 'T', body: 'B' })
-    ).json()
+    const draft = await createDraft(client, profileId, { title: 'T', body: 'B' })
     const res = await client.post(`/api/profiles/${profileId}/assist/critique`, {
       draftId: draft.id,
     })
@@ -208,9 +212,7 @@ describe('using the key', () => {
     await saveKey(ada.client, 'sk-ant-ada-key-1111111111')
     await saveKey(bob.client, 'sk-ant-bob-key-2222222222')
     await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
-    const draft = await (
-      await ada.client.post(`/api/profiles/${ada.profileId}/drafts`, { title: 'T', body: 'B' })
-    ).json()
+    const draft = await createDraft(ada.client, ada.profileId, { title: 'T', body: 'B' })
 
     await bob.client.post(`/api/profiles/${ada.profileId}/assist/critique`, { draftId: draft.id })
     expect(ctx.llmCalls.at(-1)!.config.apiKey).toBe('sk-ant-bob-key-2222222222')
@@ -224,9 +226,7 @@ describe('using the key', () => {
     const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
     await saveKey(ada.client)
     await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
-    const draft = await (
-      await ada.client.post(`/api/profiles/${ada.profileId}/drafts`, { title: 'T', body: 'B' })
-    ).json()
+    const draft = await createDraft(ada.client, ada.profileId, { title: 'T', body: 'B' })
     const res = await bob.client.post(`/api/profiles/${ada.profileId}/assist/critique`, {
       draftId: draft.id,
     })
@@ -237,9 +237,7 @@ describe('using the key', () => {
     const ctx = setup()
     const { client, profileId } = await signedInUser(ctx)
     await saveKey(client)
-    const draft = await (
-      await client.post(`/api/profiles/${profileId}/drafts`, { title: 'T', body: 'B' })
-    ).json()
+    const draft = await createDraft(client, profileId, { title: 'T', body: 'B' })
 
     // Simulate the stored key being revoked later by swapping in one the fake provider refuses.
     const me = (await (await client.get('/api/auth/me')).json()).id
@@ -270,9 +268,7 @@ describe('using the key', () => {
     const adaId = (await (await ada.client.get('/api/auth/me')).json()).id
     const bobId = (await (await bob.client.get('/api/auth/me')).json()).id
     ctx.store.credentials.save(bobId, ctx.store.credentials.get(adaId)!)
-    const draft = await (
-      await bob.client.post(`/api/profiles/${bob.profileId}/drafts`, { title: 'T', body: 'B' })
-    ).json()
+    const draft = await createDraft(bob.client, bob.profileId, { title: 'T', body: 'B' })
     const res = await bob.client.post(`/api/profiles/${bob.profileId}/assist/critique`, {
       draftId: draft.id,
     })

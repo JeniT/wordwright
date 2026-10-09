@@ -9,6 +9,7 @@ import {
   saveKey,
   setup,
   verifyAccounts,
+  createDraft,
 } from './test-helpers'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -91,7 +92,7 @@ describe('purging unconfirmed, unused accounts', () => {
       'has written a draft',
       async (ctx: ReturnType<typeof setup>, c: ReturnType<ReturnType<typeof setup>['client']>) => {
         const pid = (await (await c.get('/api/profiles')).json())[0].id
-        await c.post(`/api/profiles/${pid}/drafts`, { title: 'My piece', body: 'text' })
+        await createDraft(c, pid, { title: 'My piece', body: 'text' })
       },
     ],
     [

@@ -25,7 +25,7 @@ async function createFirstProfile(page: Page, name: string) {
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill(`${name}'s writing`)
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
   await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 }
@@ -49,7 +49,7 @@ async function openFirstProfile(page: Page) {
     .getByRole('main')
     .getByRole('link', { name: /writing/ })
     .click()
-  await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
 
 /** The first profile's settings page, where it is shared. */
@@ -103,8 +103,13 @@ test('register, write, save and request a critique', async ({ page }) => {
   await registerUser(page)
   await openFirstProfile(page)
 
-  await page.getByRole('button', { name: 'New draft' }).click()
-  await page.getByLabel('Title').fill('Why rivers meander')
+  // Every draft develops an idea, so writing starts from one.
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await expect(page.getByRole('link', { name: /Back to “/ })).toBeVisible()
+  await page.getByLabel('Title', { exact: true }).fill('Why rivers meander')
   await page.getByRole('textbox', { name: 'Draft body' }).fill('Rivers rarely flow straight.')
 
   await page.getByRole('button', { name: 'Save' }).click()
@@ -124,6 +129,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
   await openFirstProfile(page)
+  await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await page.getByRole('link', { name: 'Why rivers meander' }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
   await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
@@ -342,7 +348,7 @@ test('invites someone who has no account yet: they register from the email and j
 
   // Registering brings them straight back to the invitation, where they choose to join.
   await newbie.getByRole('button', { name: /^Join / }).click()
-  await expect(newbie.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+  await expect(newbie.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   // Accepting proved they own the address, so there is no "please confirm" banner.
   await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
   await expect(newbie.getByLabel('Profile').locator('option', { hasText: '(shared)' })).toHaveCount(
@@ -449,7 +455,7 @@ test('invites someone who already has an account; the link only works for that a
 
   await bobPage.goto(link)
   await bobPage.getByRole('button', { name: /^Join / }).click()
-  await expect(bobPage.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+  await expect(bobPage.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await expect(
     bobPage.getByLabel('Profile').locator('option', { hasText: '(shared)' }),
   ).toHaveCount(1)

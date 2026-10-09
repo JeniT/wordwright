@@ -1,30 +1,17 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { RouterLink, useRouter } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
+import { RouterLink } from 'vue-router'
 import ProfileImage from '../components/ProfileImage.vue'
 import { api } from '../lib/api'
 import { displayHost, useProfile } from '../lib/useProfiles'
 
 const props = defineProps<{ profileId: string }>()
-const router = useRouter()
-const queryClient = useQueryClient()
 
 const { profiles, profile } = useProfile(() => props.profileId)
 
-const drafts = useQuery({
-  queryKey: ['drafts', () => props.profileId],
-  queryFn: () => api.listDrafts(props.profileId),
-})
 const ideas = useQuery({
   queryKey: ['ideas', () => props.profileId],
   queryFn: () => api.listIdeas(props.profileId),
-})
-const create = useMutation({
-  mutationFn: () => api.createDraft(props.profileId, { title: 'Untitled' }),
-  onSuccess: async (draft) => {
-    await queryClient.invalidateQueries({ queryKey: ['drafts'] })
-    await router.push({ name: 'draft', params: { profileId: props.profileId, id: draft.id } })
-  },
 })
 </script>
 
@@ -65,7 +52,7 @@ const create = useMutation({
       </RouterLink>
     </header>
 
-    <section aria-labelledby="ideas-heading" class="mb-10">
+    <section aria-labelledby="ideas-heading">
       <div class="mb-4 flex items-center justify-between">
         <h2 id="ideas-heading" class="font-serif text-xl font-semibold">Ideas</h2>
         <RouterLink
@@ -81,7 +68,7 @@ const create = useMutation({
         Couldn't load ideas. Try reloading the page.
       </p>
       <p v-else-if="!ideas.data.value?.length" class="text-stone-600">
-        No ideas yet. When one occurs to you, note it down here.
+        No ideas yet. When one occurs to you, note it down here, then draft it from there.
       </p>
       <ul v-else class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
         <li v-for="idea in ideas.data.value" :key="idea.id">
@@ -96,44 +83,6 @@ const create = useMutation({
           </RouterLink>
         </li>
       </ul>
-    </section>
-
-    <section aria-labelledby="drafts-heading">
-      <div class="mb-4 flex items-center justify-between">
-        <h2 id="drafts-heading" class="font-serif text-xl font-semibold">Drafts</h2>
-        <button
-          type="button"
-          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-          :disabled="create.isPending.value"
-          @click="create.mutate()"
-        >
-          New draft
-        </button>
-      </div>
-
-      <p v-if="drafts.isPending.value">Loading…</p>
-      <p v-else-if="drafts.isError.value" role="alert" class="text-red-700">
-        Couldn't load drafts. Try reloading the page.
-      </p>
-      <p v-else-if="!drafts.data.value?.length" class="text-stone-600">
-        Nothing here yet. Start a new draft to begin.
-      </p>
-      <ul v-else class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
-        <li v-for="draft in drafts.data.value" :key="draft.id">
-          <RouterLink
-            :to="{ name: 'draft', params: { profileId, id: draft.id } }"
-            class="flex items-baseline justify-between px-4 py-3 hover:bg-stone-50"
-          >
-            <span class="font-serif text-lg">{{ draft.title || 'Untitled' }}</span>
-            <time class="text-sm text-stone-600" :datetime="draft.updatedAt">
-              {{ new Date(draft.updatedAt).toLocaleDateString() }}
-            </time>
-          </RouterLink>
-        </li>
-      </ul>
-      <p v-if="create.isError.value" role="alert" class="mt-2 text-red-700">
-        Couldn't start a new draft. Please try again.
-      </p>
     </section>
   </div>
 </template>

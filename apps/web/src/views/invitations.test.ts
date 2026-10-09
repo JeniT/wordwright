@@ -52,7 +52,7 @@ describe('accept-invitation page', () => {
         accepted = await request.json()
         return HttpResponse.json({ profileId: 'p1' })
       }),
-      http.get('*/api/profiles/p1/drafts', () => HttpResponse.json([])),
+      http.get('*/api/profiles/p1/ideas', () => HttpResponse.json([])),
     )
     const { router } = await renderAt('/accept-invite?token=abc')
     await fireEvent.click(await screen.findByRole('button', { name: 'Join Joint piece' }))

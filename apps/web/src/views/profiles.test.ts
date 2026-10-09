@@ -37,9 +37,8 @@ const blog = {
 
 const listProfiles = (profiles: unknown[]) =>
   http.get('*/api/profiles', () => HttpResponse.json(profiles))
-/** For tests that end on a profile page, which loads its drafts. */
+
 const noIdeas = http.get('*/api/profiles/:id/ideas', () => HttpResponse.json([]))
-const noDrafts = http.get('*/api/profiles/:id/drafts', () => HttpResponse.json([]))
 
 describe('profile list (home)', () => {
   it('shows each profile with its picture, website and sharing', async () => {
@@ -103,7 +102,6 @@ describe('new profile', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([]),
-      noDrafts,
       noIdeas,
       http.post('*/api/profiles', async ({ request }) => {
         sent = await request.json()
@@ -125,7 +123,6 @@ describe('new profile', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([]),
-      noDrafts,
       noIdeas,
       http.post('*/api/profiles', async ({ request }) => {
         sent = await request.json()
@@ -144,7 +141,6 @@ describe('new profile', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([]),
-      noDrafts,
       noIdeas,
       http.post('*/api/profiles', () => HttpResponse.json(substack, { status: 201 })),
       http.put('*/api/profiles/adalovelace-substack/image', async ({ request }) => {
@@ -165,7 +161,7 @@ describe('new profile', () => {
   })
 
   it('rejects a file that is not a supported image before sending anything', async () => {
-    server.use(signedInAs(testUser), listProfiles([]), noDrafts, noIdeas)
+    server.use(signedInAs(testUser), listProfiles([]), noIdeas)
     await renderAt('/profiles/new')
     const input = await screen.findByLabelText(/Picture/)
     const svg = new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })
@@ -177,7 +173,6 @@ describe('new profile', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([]),
-      noDrafts,
       noIdeas,
       http.post('*/api/profiles', () =>
         HttpResponse.json(
@@ -199,7 +194,6 @@ describe('new profile', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([]),
-      noDrafts,
       noIdeas,
       http.post('*/api/profiles', () => {
         creates++
@@ -228,25 +222,8 @@ describe('new profile', () => {
 })
 
 describe('profile page', () => {
-  const drafts = [
-    {
-      id: 'd1',
-      profileId: substack.id,
-      ideaId: null,
-      title: 'Why rivers meander',
-      body: '',
-      createdAt: '2026-01-01T00:00:00Z',
-      updatedAt: '2026-01-02T00:00:00Z',
-    },
-  ]
-
-  it('shows the profile, links out to its website, and lists its drafts', async () => {
-    server.use(
-      signedInAs(testUser),
-      listProfiles([substack]),
-      noIdeas,
-      http.get('*/api/profiles/adalovelace-substack/drafts', () => HttpResponse.json(drafts)),
-    )
+  it('shows the profile and links out to its website', async () => {
+    server.use(signedInAs(testUser), listProfiles([substack]), noIdeas)
     await renderAt('/p/adalovelace-substack')
     const main = within(await screen.findByRole('main'))
     await main.findByRole('heading', { level: 1, name: 'Substack' })
@@ -257,22 +234,13 @@ describe('profile page', () => {
       'href',
       '/p/adalovelace-substack/settings',
     )
-    expect(await main.findByRole('link', { name: /Why rivers meander/ })).toHaveAttribute(
-      'href',
-      '/p/adalovelace-substack/drafts/d1',
-    )
   })
 
-  it('shows an empty state for a profile with no drafts', async () => {
-    server.use(
-      signedInAs(testUser),
-      listProfiles([blog]),
-      noIdeas,
-      http.get('*/api/profiles/adalovelace-blog/drafts', () => HttpResponse.json([])),
-    )
+  it('has no website link when the profile has none', async () => {
+    server.use(signedInAs(testUser), listProfiles([blog]), noIdeas)
     await renderAt('/p/adalovelace-blog')
-    await screen.findByText(/Nothing here yet/)
-    expect(screen.queryByRole('link', { name: /substack|blog\./i })).toBeNull() // no website
+    await screen.findByText(/No ideas yet/)
+    expect(screen.queryByRole('link', { name: /substack|blog\./i })).toBeNull()
   })
 
   it('says so when the profile does not exist or is not yours', async () => {
@@ -282,32 +250,13 @@ describe('profile page', () => {
       http.get('*/api/profiles/someone-else', () =>
         HttpResponse.json({ error: 'Not found' }, { status: 404 }),
       ),
-      noIdeas,
-      http.get('*/api/profiles/someone-else/drafts', () =>
+      http.get('*/api/profiles/someone-else/ideas', () =>
         HttpResponse.json({ error: 'Not found' }, { status: 404 }),
       ),
     )
     await renderAt('/p/someone-else')
     expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that profile")
     expect(screen.getByRole('link', { name: 'Back to your profiles' })).toHaveAttribute('href', '/')
-  })
-
-  it('starts a new draft in this profile', async () => {
-    server.use(
-      signedInAs(testUser),
-      listProfiles([substack]),
-      noIdeas,
-      http.get('*/api/profiles/adalovelace-substack/drafts', () => HttpResponse.json([])),
-      http.post('*/api/profiles/adalovelace-substack/drafts', () =>
-        HttpResponse.json({ ...drafts[0], title: 'Untitled' }, { status: 201 }),
-      ),
-      http.get('*/api/profiles/adalovelace-substack/drafts/d1', () => HttpResponse.json(drafts[0])),
-    )
-    const { router } = await renderAt('/p/adalovelace-substack')
-    await fireEvent.click(await screen.findByRole('button', { name: 'New draft' }))
-    await waitFor(() =>
-      expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack/drafts/d1'),
-    )
   })
 })
 
@@ -472,7 +421,6 @@ describe('renamed profiles', () => {
       listProfiles([renamed]),
       // The server answers an old id with a redirect, which fetch follows to the profile itself.
       http.get('*/api/profiles/adalovelace-blog', () => HttpResponse.json(renamed)),
-      noDrafts,
       noIdeas,
     )
     const { router } = await renderAt('/p/adalovelace-blog/settings?from=email')

@@ -226,13 +226,13 @@ export const SetBlockAllInputSchema = z.object({ blocked: z.boolean() })
 
 export const AcceptInvitationResultSchema = z.object({ profileId: z.string() })
 
-// ---- Drafts (belong to a profile) --------------------------------------
+// ---- Drafts (each develops an idea in a profile) --------------------------------------
 
 export const DraftSchema = z.object({
   id: z.string(),
   profileId: z.string(),
-  /** The idea this draft develops, or null for a draft started on its own. */
-  ideaId: z.string().nullable(),
+  /** The idea this draft develops. */
+  ideaId: z.string(),
   title: z.string(),
   /** Markdown source of the piece. */
   body: z.string(),

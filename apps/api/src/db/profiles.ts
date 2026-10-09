@@ -79,6 +79,7 @@ export class ProfileStore {
     if (next === id) return id
 
     // Every table that points at a profile, so the id changes everywhere at once or not at all.
+    // A new table with a `profile_id` must be added to this list (a rename test covers each one).
     this.db.exec('BEGIN')
     try {
       this.db.exec('PRAGMA defer_foreign_keys = ON')
@@ -94,6 +95,7 @@ export class ProfileStore {
         ['profile_members', 'profile_id'],
         ['profile_images', 'profile_id'],
         ['drafts', 'profile_id'],
+        ['ideas', 'profile_id'],
         ['invitations', 'profile_id'],
         ['profile_sources', 'profile_id'],
       ]) {

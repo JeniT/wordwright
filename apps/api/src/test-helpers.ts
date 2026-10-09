@@ -207,3 +207,16 @@ export const lastEmailChangeToken = (mailer: MemoryMailer) =>
   lastEmailToken(mailer, 'confirm-email-change')
 export const lastUndoToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'undo-email-change')
 export const lastDeclineToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'decline-invite')
+
+/** Starts a draft the way the app does: every draft develops an idea, so this makes one first. */
+export async function createDraft(
+  client: TestClient,
+  profileId: string,
+  input: { title?: string; body?: string } = {},
+) {
+  const base = `/api/profiles/${profileId}/ideas`
+  const idea = await (await client.post(base, { name: input.title || 'An idea' })).json()
+  const res = await client.post(`${base}/${idea.id}/drafts`, input)
+  expectStatus(res.status, 201)
+  return res.json()
+}

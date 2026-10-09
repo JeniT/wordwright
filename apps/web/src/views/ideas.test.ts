@@ -14,7 +14,6 @@ const profile = {
   members: [{ userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' }],
 }
 const listProfiles = http.get('*/api/profiles', () => HttpResponse.json([profile]))
-const noDrafts = http.get('*/api/profiles/ada-substack/drafts', () => HttpResponse.json([]))
 
 const idea = {
   id: 'i1',
@@ -33,7 +32,6 @@ describe('ideas on the profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles,
-      noDrafts,
       http.get('*/api/profiles/ada-substack/ideas', () =>
         HttpResponse.json([
           {
@@ -61,7 +59,6 @@ describe('ideas on the profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles,
-      noDrafts,
       http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
     )
     await renderAt('/p/ada-substack')
@@ -72,7 +69,6 @@ describe('ideas on the profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles,
-      noDrafts,
       http.get('*/api/profiles/ada-substack/ideas', () =>
         HttpResponse.json({ error: 'boom' }, { status: 500 }),
       ),
@@ -294,7 +290,6 @@ describe('idea page', () => {
         deleted = true
         return new HttpResponse(null, { status: 204 })
       }),
-      noDrafts,
     ])
     await fireEvent.click(await screen.findByRole('button', { name: 'Delete idea' }))
     const dialog = screen.getByRole('dialog', { name: 'Delete this idea?' })

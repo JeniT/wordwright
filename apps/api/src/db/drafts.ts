@@ -3,19 +3,13 @@ import type { DatabaseSync } from 'node:sqlite'
 import type { Draft, DraftInput } from '@lfwa/core'
 import { nowIso } from './database'
 
-/**
- * Drafts are always accessed through their profile; callers check membership first. A draft may
- * develop an idea (`idea_id`); drafts that don't are "standalone", and are what `list` returns.
- */
+/** Drafts are always accessed through their profile; callers check membership first. Each develops an idea. */
 export class DraftStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  /** Standalone drafts only; an idea's drafts are listed with the idea. */
   list(profileId: string): Draft[] {
     return this.db
-      .prepare(
-        'SELECT * FROM drafts WHERE profile_id = ? AND idea_id IS NULL ORDER BY updated_at DESC',
-      )
+      .prepare('SELECT * FROM drafts WHERE profile_id = ? ORDER BY updated_at DESC')
       .all(profileId)
       .map(toDraft)
   }
@@ -27,12 +21,7 @@ export class DraftStore {
     return row ? toDraft(row) : undefined
   }
 
-  create(
-    profileId: string,
-    createdBy: string,
-    input: DraftInput,
-    ideaId: string | null = null,
-  ): Draft {
+  create(profileId: string, createdBy: string, input: DraftInput, ideaId: string): Draft {
     const id = randomUUID()
     const now = nowIso()
     this.db
@@ -65,7 +54,7 @@ function toDraft(row: Record<string, unknown>): Draft {
   return {
     id: row.id as string,
     profileId: row.profile_id as string,
-    ideaId: (row.idea_id as string | null) ?? null,
+    ideaId: row.idea_id as string,
     title: row.title as string,
     body: row.body as string,
     createdAt: row.created_at as string,

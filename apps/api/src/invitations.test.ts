@@ -9,6 +9,7 @@ import {
   shareProfile,
   verifyAccounts,
   type TestClient,
+  createDraft,
 } from './test-helpers'
 
 /** Ada (confirmed) owns a profile; anyone else is created per test. */
@@ -276,12 +277,11 @@ describe('accepting', () => {
     const profile = await (await newbie.get(`/api/profiles/${profileId}`)).json()
     expect(profile.role).toBe('editor')
     expect(profile.members.map((m: { name: string }) => m.name)).toEqual(['Ada Lovelace', 'Newbie'])
-    const draft = await newbie.post(`/api/profiles/${profileId}/drafts`, {
+    const draft = await createDraft(newbie, profileId, {
       title: 'Joint',
       body: 'x',
     })
-    expect(draft.status).toBe(201)
-    expect((await ada.get(`/api/profiles/${profileId}/drafts`)).status).toBe(200)
+    expect((await ada.get(`/api/profiles/${profileId}/drafts/${draft.id}`)).status).toBe(200)
   })
 
   it('works for an existing account, matching the address case-insensitively', async () => {

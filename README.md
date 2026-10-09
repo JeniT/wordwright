@@ -66,7 +66,7 @@ tests inject fakes and nothing hits the network.
 
 ## Accounts and sign-in
 
-- **Model:** a user has any number of _profiles_; ideas and drafts belong to a profile (a draft may develop an idea). Profiles are shared by
+- **Model:** a user has any number of _profiles_; ideas belong to a profile, and every draft belongs to an idea. Profiles are shared by
   adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
@@ -78,7 +78,9 @@ tests inject fakes and nothing hits the network.
   added) for a linked set of posts. Anyone a profile is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. The **Brainstorm** button is a placeholder until the conversation is built. API:
   `/api/profiles/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
-  Drafts started on their own from the profile page still work and are listed separately.
+  **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
+  are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
+  (`/p/<id>/drafts/<draft>` in the app), which links back to its idea.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external

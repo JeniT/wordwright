@@ -10,6 +10,7 @@ import {
   shareProfile,
   signUp,
   verifyAccounts,
+  createDraft,
 } from './test-helpers'
 
 describe('registration', () => {
@@ -400,16 +401,18 @@ describe('account deletion', () => {
     const user = await register(c)
     await saveKey(c)
     const profileId = (await (await c.get('/api/profiles')).json())[0].id
-    await c.post(`/api/profiles/${profileId}/drafts`, { title: 'Mine', body: 'x' })
+    await createDraft(c, profileId, { title: 'Mine', body: 'x' })
     const second = await (await c.post('/api/profiles', { name: 'Second' })).json()
-    await c.post(`/api/profiles/${second.id}/drafts`, { title: 'Also mine', body: 'y' })
+    await createDraft(c, second.id, { title: 'Also mine', body: 'y' })
     const idea = await (
       await c.post(`/api/profiles/${second.id}/ideas`, { name: 'An idea' })
     ).json()
     await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/links`, {
       url: 'https://example.org',
     })
-    await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/drafts`, { title: 'Idea draft' })
+    const ideaDraft = await (
+      await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/drafts`, { title: 'Idea draft' })
+    ).json()
     await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
     expect(store.profiles.getImage(second.id)).toBeDefined()
 
@@ -427,7 +430,7 @@ describe('account deletion', () => {
     expect(store.drafts.list(second.id)).toEqual([])
     expect(store.ideas.list(second.id)).toEqual([])
     expect(store.ideas.countLinks(idea.id)).toBe(0)
-    expect(store.drafts.get(second.id, idea.id)).toBeUndefined()
+    expect(store.drafts.get(second.id, ideaDraft.id)).toBeUndefined()
     expect(store.users.getPasswordHash(user.id)).toBeUndefined()
     expect(store.credentials.get(user.id)).toBeUndefined() // their API key goes too
     expect((await c.get('/api/auth/me')).status).toBe(401)
@@ -450,7 +453,7 @@ describe('account deletion', () => {
     const shared = await (await ada.post('/api/profiles', { name: 'Joint piece' })).json()
     await shareProfile({ mailer }, ada, shared.id, bob, 'bob@example.com')
     await shareProfile({ mailer }, ada, shared.id, carol, 'carol@example.com')
-    await ada.post(`/api/profiles/${shared.id}/drafts`, { title: 'Co-written', body: 'text' })
+    await createDraft(ada, shared.id, { title: 'Co-written', body: 'text' })
 
     await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
 
@@ -460,7 +463,7 @@ describe('account deletion', () => {
       carolUser.id,
     ])
     expect(view.members.find((m: { userId: string }) => m.userId === bobUser.id).role).toBe('owner')
-    expect(await (await bob.get(`/api/profiles/${shared.id}/drafts`)).json()).toHaveLength(1)
+    expect(await (await bob.get(`/api/profiles/${shared.id}/ideas`)).json()).toHaveLength(1)
     expect(store.users.findByEmail('ada@example.com')).toBeUndefined()
   })
 

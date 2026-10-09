@@ -75,7 +75,6 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
   }
 
   const ProfileList = ProfileSchema.array()
-  const DraftList = DraftSchema.array()
   const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
   const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
 
@@ -170,11 +169,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(SourceListSchema, 'PUT', `/profiles/${profileId}/sources/order`, { ids }),
 
     // drafts
-    listDrafts: (profileId: string) => get(DraftList, 'GET', drafts(profileId)),
     getDraft: (profileId: string, id: string) =>
       get(DraftSchema, 'GET', `${drafts(profileId)}/${id}`),
-    createDraft: (profileId: string, input: Partial<DraftInput> = {}) =>
-      get(DraftSchema, 'POST', drafts(profileId), input),
     updateDraft: (profileId: string, id: string, input: DraftInput) =>
       get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
     critique: (profileId: string, draftId: string) =>

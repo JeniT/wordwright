@@ -169,7 +169,7 @@ test('profile pages for a signed-in user have no detectable accessibility violat
   await page.getByRole('link', { name: 'Create your first profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Sam writing')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page.getByRole('heading', { name: 'Drafts' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await noViolations(page) // the profile page
 })
 

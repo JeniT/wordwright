@@ -8,7 +8,7 @@ useMockServer()
 const draft = {
   id: 'd1',
   profileId: 'p1',
-  ideaId: null,
+  ideaId: 'i1',
   title: 'T',
   body: 'Some text',
   createdAt: '2026-01-01T00:00:00Z',
@@ -19,6 +19,18 @@ function mockEditor(critique: () => Response) {
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([])),
+    http.get('*/api/profiles/p1/ideas/i1', () =>
+      HttpResponse.json({
+        id: 'i1',
+        profileId: 'p1',
+        name: 'An idea',
+        notes: '',
+        links: [],
+        drafts: [],
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }),
+    ),
     http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.put('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.post('*/api/profiles/p1/assist/critique', critique),

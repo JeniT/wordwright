@@ -9,6 +9,7 @@ import {
   shareProfile,
   verifyAccounts,
   type TestClient,
+  createDraft,
 } from './test-helpers'
 
 describe('profiles and sharing', () => {
@@ -36,16 +37,14 @@ describe('profiles and sharing', () => {
   it("hides other people's profiles", async () => {
     expect(await (await bob.get('/api/profiles')).json()).toHaveLength(1)
     expect((await bob.get(`/api/profiles/${adaProfile}`)).status).toBe(404)
-    expect((await bob.get(`/api/profiles/${adaProfile}/drafts`)).status).toBe(404)
-    expect((await bob.post(`/api/profiles/${adaProfile}/drafts`, { title: 'x' })).status).toBe(404)
+    expect((await bob.get(`/api/profiles/${adaProfile}/ideas`)).status).toBe(404)
+    expect((await bob.post(`/api/profiles/${adaProfile}/ideas`, { name: 'x' })).status).toBe(404)
   })
 
   it('shares a profile once the invitee accepts, and they can then write in it', async () => {
     await shareProfile(ctx, ada, adaProfile, bob, 'BOB@example.com')
 
-    const draft = await (
-      await bob.post(`/api/profiles/${adaProfile}/drafts`, { title: 'Joint', body: 'hi' })
-    ).json()
+    const draft = await createDraft(bob, adaProfile, { title: 'Joint', body: 'hi' })
     const seenByAda = await (await ada.get(`/api/profiles/${adaProfile}/drafts/${draft.id}`)).json()
     expect(seenByAda.title).toBe('Joint')
     expect(await (await bob.get('/api/profiles')).json()).toHaveLength(2)
@@ -84,7 +83,7 @@ describe('profiles and sharing', () => {
   })
 
   it('deletes a profile and its drafts', async () => {
-    await ada.post(`/api/profiles/${adaProfile}/drafts`, { title: 'x' })
+    await createDraft(ada, adaProfile, { title: 'x' })
     expect((await ada.delete(`/api/profiles/${adaProfile}`)).status).toBe(204)
     expect(ctx.store.drafts.list(adaProfile)).toEqual([])
   })
@@ -131,9 +130,7 @@ describe('profile ids', () => {
     verifyAccounts(ctx, 'sam@example.com')
     const created = await (await sam.post('/api/profiles', { name: 'Old name' })).json()
     await shareProfile(ctx, sam, created.id, pat, 'pat@example.com')
-    const draft = await (
-      await sam.post(`/api/profiles/${created.id}/drafts`, { title: 'Hello', body: 'x' })
-    ).json()
+    const draft = await createDraft(sam, created.id, { title: 'Hello', body: 'x' })
     await sam.putBytes(`/api/profiles/${created.id}/image`, PNG_BYTES, 'image/png')
 
     const renamed = await (
@@ -145,8 +142,10 @@ describe('profile ids', () => {
 
     const listed = await (await pat.get('/api/profiles')).json()
     expect(listed.map((p: { id: string }) => p.id)).toContain('sam-new-name')
-    const drafts = await (await sam.get('/api/profiles/sam-new-name/drafts')).json()
-    expect(drafts).toMatchObject([{ id: draft.id, title: 'Hello' }])
+    const kept = await (await sam.get(`/api/profiles/sam-new-name/drafts/${draft.id}`)).json()
+    expect(kept).toMatchObject({ id: draft.id, title: 'Hello' })
+    const ideas = await (await sam.get('/api/profiles/sam-new-name/ideas')).json()
+    expect(ideas).toMatchObject([{ id: draft.ideaId, draftCount: 1 }])
     expect((await sam.get('/api/profiles/sam-new-name/image')).status).toBe(200)
   })
 
@@ -164,17 +163,17 @@ describe('profile ids', () => {
 
     for (const who of [sam, pat]) {
       // Reads get a 301; ids from before any number of renames reach the current one in one hop.
-      const read = await who.get(`/api/profiles/${created.id}/drafts?x=1`)
+      const read = await who.get(`/api/profiles/${created.id}/ideas?x=1`)
       expect(read.status).toBe(301)
-      expect(read.headers.get('location')).toBe('/api/profiles/sam-final/drafts?x=1')
+      expect(read.headers.get('location')).toBe('/api/profiles/sam-final/ideas?x=1')
       expect((await who.get('/api/profiles/sam-middle')).headers.get('location')).toBe(
         '/api/profiles/sam-final',
       )
     }
     // Writes get a 308 so the method and body are kept.
-    const write = await pat.post(`/api/profiles/${created.id}/drafts`, { title: 'x' })
+    const write = await pat.post(`/api/profiles/${created.id}/ideas`, { name: 'x' })
     expect(write.status).toBe(308)
-    expect(write.headers.get('location')).toBe('/api/profiles/sam-final/drafts')
+    expect(write.headers.get('location')).toBe('/api/profiles/sam-final/ideas')
 
     // Someone with no access learns nothing, not even that the profile was renamed.
     const stranger = await eve.get(`/api/profiles/${created.id}`)
@@ -381,14 +380,15 @@ describe('drafts and critique within a profile', () => {
     const pid = (await (await c.get('/api/profiles')).json())[0].id
     const base = `/api/profiles/${pid}`
 
-    const draft = await (await c.post(`${base}/drafts`, { title: 'Hello', body: 'World' })).json()
+    const draft = await createDraft(c, pid, { title: 'Hello', body: 'World' })
     expect(draft).toMatchObject({ title: 'Hello', body: 'World', profileId: pid })
 
     const updated = await (
       await c.put(`${base}/drafts/${draft.id}`, { title: 'Hi', body: 'There' })
     ).json()
     expect(updated).toMatchObject({ title: 'Hi', body: 'There' })
-    expect(await (await c.get(`${base}/drafts`)).json()).toHaveLength(1)
+    const idea = await (await c.get(`${base}/ideas/${draft.ideaId}`)).json()
+    expect(idea.drafts).toMatchObject([{ id: draft.id, title: 'Hi' }])
 
     const critique = await c.post(`${base}/assist/critique`, { draftId: draft.id })
     expect(await critique.json()).toEqual({
@@ -405,6 +405,9 @@ describe('drafts and critique within a profile', () => {
     const c = setup().client()
     await register(c)
     const pid = (await (await c.get('/api/profiles')).json())[0].id
-    expect((await c.post(`/api/profiles/${pid}/drafts`, { title: 42 })).status).toBe(400)
+    const idea = await (await c.post(`/api/profiles/${pid}/ideas`, { name: 'x' })).json()
+    expect(
+      (await c.post(`/api/profiles/${pid}/ideas/${idea.id}/drafts`, { title: 42 })).status,
+    ).toBe(400)
   })
 })

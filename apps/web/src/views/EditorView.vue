@@ -12,7 +12,7 @@ const draft = useQuery({
   queryKey: ['draft', () => props.profileId, () => props.id],
   queryFn: () => api.getDraft(props.profileId, props.id),
 })
-// A draft that develops an idea links back to it.
+// Every draft develops an idea, which it links back to.
 const idea = useQuery({
   queryKey: ['idea', () => props.profileId, () => draft.data.value?.ideaId],
   queryFn: () => api.getIdea(props.profileId, draft.data.value!.ideaId!),

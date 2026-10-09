@@ -133,13 +133,10 @@ describe('ideas', () => {
       expect((await saved.json()).ideaId).toBe(idea.id)
     })
 
-    it("stay out of the profile's own list of drafts", async () => {
-      const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
-      await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Inside' })
-      await ada.post(`/api/profiles/${profile}/drafts`, { title: 'Alone' })
-      const standalone = await (await ada.get(`/api/profiles/${profile}/drafts`)).json()
-      expect(standalone.map((d: { title: string }) => d.title)).toEqual(['Alone'])
-      expect(standalone[0].ideaId).toBeNull()
+    it('cannot be started without an idea', async () => {
+      const res = await ada.post(`/api/profiles/${profile}/drafts`, { title: 'Alone' })
+      expect(res.status).toBe(404)
+      expect((await ada.get(`/api/profiles/${profile}/drafts`)).status).toBe(404)
     })
   })
 
@@ -191,19 +188,34 @@ describe('ideas', () => {
   })
 })
 
-describe('the ideas migration', () => {
-  it('leaves drafts that already exist as standalone drafts', () => {
+describe('wrapping existing drafts in ideas', () => {
+  it('gives every draft from before its own idea, named after it, and leaves ideas alone', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
     migrate(db, 'test', MIGRATIONS.slice(0, -1))
     db.exec(`
       INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)
+        VALUES ('i', 'p', 'Existing idea', '', 'then', 'then');
       INSERT INTO drafts (id, profile_id, title, body, created_at, updated_at)
-        VALUES ('d', 'p', 'Old draft', 'text', 'now', 'now');
+        VALUES ('d1', 'p', '  Old draft ', 'text', 'a', 'b'),
+               ('d2', 'p', '', 'text', 'c', 'd');
+      INSERT INTO drafts (id, profile_id, idea_id, title, body, created_at, updated_at)
+        VALUES ('d3', 'p', 'i', 'Already in an idea', '', 'e', 'f');
     `)
     migrate(db, 'test')
-    expect(db.prepare('SELECT idea_id, title FROM drafts').all()).toEqual([
-      expect.objectContaining({ idea_id: null, title: 'Old draft' }),
-    ])
+
+    const rows = db
+      .prepare(
+        `SELECT d.id AS draft, d.idea_id, i.name, i.created_at, i.updated_at
+         FROM drafts d JOIN ideas i ON i.id = d.idea_id ORDER BY d.id`,
+      )
+      .all()
+    expect(rows).toHaveLength(3) // none left without an idea
+    expect(rows[0]).toMatchObject({ name: 'Old draft', created_at: 'a', updated_at: 'b' })
+    expect(rows[1]).toMatchObject({ name: 'Untitled idea' })
+    expect(rows[2]).toMatchObject({ idea_id: 'i', name: 'Existing idea' })
+    expect(rows[0]!.idea_id).not.toBe(rows[1]!.idea_id)
+    expect(db.prepare('SELECT count(*) AS n FROM ideas').get()).toEqual({ n: 3 })
   })
 })

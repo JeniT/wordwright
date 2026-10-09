@@ -16,13 +16,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 _Nothing claimed._
 
-### T20c · Every draft belongs to an idea
-
-claimed: claude-session-3 · branch: T20c
-
-Wrap each existing standalone draft in an idea, require an idea to create a draft, and retire the profile
-page's standalone draft list and "New draft". Reordering the drafts in a linked set is split out as T20e.
-
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -129,6 +122,10 @@ Per the owner: possibly host an open model for users without their own key. Need
   HTTP adapter); title, description and icon shown; members (not just owners) edit; drag-and-drop reordering (`938463b`)
 - **T19** · Idea sources per profile: ordered list of RSS feed addresses (add, remove, reorder)
   on the profile settings page (`938463b`)
+- **T20c** · Every draft belongs to an idea: existing drafts wrapped in ideas by a migration, drafts created only
+  through an idea, standalone draft list and "New draft" removed. Also fixed profile rename failing for
+  profiles that have ideas. (COMMIT)
+
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
   profiles with sharing, CSRF/origin check, rate limiting (`968bc75`)

@@ -9,6 +9,7 @@ import {
   setup,
   verifyAccounts,
   type TestClient,
+  createDraft,
 } from './test-helpers'
 
 async function newUser(ctx = setup(), email = 'ada@example.com') {
@@ -141,9 +142,9 @@ describe('what verification gates', () => {
 
   it('lets unverified people write but not invite others', async () => {
     const { ada, profileId } = await twoUsers()
-    expect(
-      (await ada.post(`/api/profiles/${profileId}/drafts`, { title: 'T', body: 'B' })).status,
-    ).toBe(201)
+    expect(await createDraft(ada, profileId, { title: 'T', body: 'B' })).toMatchObject({
+      title: 'T',
+    })
     const res = await ada.post(`/api/profiles/${profileId}/invitations`, {
       email: 'bob@example.com',
     })

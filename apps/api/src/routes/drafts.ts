@@ -4,14 +4,13 @@ import { DraftInputSchema } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 
-/** Mounted under `/profiles/:profileId`, after membership has been checked. */
+/**
+ * Mounted under `/profiles/:profileId`, after membership has been checked. Drafts are created and
+ * listed through their idea (`/ideas/:id/drafts`); these routes open, save and delete one by id.
+ */
 export function draftRoutes(store: Store) {
   const { drafts } = store
   return new Hono<AppEnv>()
-    .get('/', (c) => c.json(drafts.list(c.req.param('profileId')!)))
-    .post('/', zValidator('json', DraftInputSchema), (c) =>
-      c.json(drafts.create(c.req.param('profileId')!, c.get('user').id, c.req.valid('json')), 201),
-    )
     .get('/:id', (c) => {
       const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
       return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
