@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/vue'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
@@ -96,6 +96,31 @@ describe('AccountView: AI assistant key', () => {
     expect(screen.queryByDisplayValue(/sk-ant/)).toBeNull() // the field is cleared
   })
 
+  it('cannot be submitted before the saved settings have loaded (no empty model)', async () => {
+    let sent: { model?: string } | undefined
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/llm', async () => {
+        await delay(150)
+        return HttpResponse.json(noKey)
+      }),
+      http.put('*/api/llm', async ({ request }) => {
+        sent = (await request.json()) as { model?: string }
+        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
+      }),
+    )
+    await renderAt('/account')
+    const save = (await screen.findAllByRole('button', { name: 'Save' }))[0]!
+    expect(save).toBeDisabled() // still loading
+    await screen.findByText('No API key yet.')
+    await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-secret-1234567890')
+    expect(save).toBeEnabled()
+    await fireEvent.click(save)
+    await screen.findByText(/Anthropic key saved/)
+    expect(sent?.model).toBe('claude-sonnet-5-5')
+  })
+
   it('shows why a key was refused', async () => {
     server.use(
       signedInAs(testUser),
@@ -109,10 +134,8 @@ describe('AccountView: AI assistant key', () => {
       ),
     )
     await renderAt('/account')
-    await fireEvent.update(
-      await screen.findByLabelText('Anthropic API key'),
-      'sk-ant-wrong-1234567890',
-    )
+    await screen.findByText('No API key yet.') // settings loaded, so Save is enabled
+    await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-wrong-1234567890')
     await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
     expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/)
   })

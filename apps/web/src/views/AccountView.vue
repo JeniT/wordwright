@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LLM_MODELS } from '@lfwa/core'
+import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -16,7 +16,8 @@ const refresh = () => queryClient.invalidateQueries({ queryKey: ['profiles'] })
 
 // ---- AI provider (bring your own key)
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
-const model = ref('')
+// A valid default, so the form can never submit an empty model before settings arrive.
+const model = ref<string>(DEFAULT_LLM_MODEL.anthropic)
 const apiKey = ref('')
 watch(
   () => llm.data.value,
@@ -151,7 +152,7 @@ const deleteAccount = useMutation({
           <button
             type="submit"
             class="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            :disabled="saveLlm.isPending.value"
+            :disabled="saveLlm.isPending.value || llm.isPending.value"
           >
             {{ saveLlm.isPending.value ? 'Checking key…' : 'Save' }}
           </button>
