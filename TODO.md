@@ -131,7 +131,7 @@ news-source decision in D2 and is the input to T6.
 
 - **T20** · Ideas, first step: each profile has ideas with a name, notes, links to related work and one or more
   drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
-  Brainstorm button present but disabled. Existing drafts stay standalone. (COMMIT)
+  Brainstorm button present but disabled. Existing drafts stay standalone. (`f954432`)
 
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
