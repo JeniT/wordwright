@@ -1,7 +1,10 @@
 import {
+  AcceptInvitationResultSchema,
   AuthConfigSchema,
   CritiqueSchema,
   DraftSchema,
+  InvitationPreviewSchema,
+  InvitationSchema,
   LlmSettingsSchema,
   ProfileSchema,
   UserSchema,
@@ -78,8 +81,16 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     renameProfile: (id: string, name: string) =>
       get(ProfileSchema, 'PATCH', `/profiles/${id}`, { name }),
     deleteProfile: (id: string) => act('DELETE', `/profiles/${id}`),
-    addMember: (id: string, email: string) =>
-      get(ProfileSchema, 'POST', `/profiles/${id}/members`, { email }),
+    invite: (profileId: string, email: string) =>
+      act('POST', `/profiles/${profileId}/invitations`, { email }),
+    listInvitations: (profileId: string) =>
+      get(InvitationSchema.array(), 'GET', `/profiles/${profileId}/invitations`),
+    revokeInvitation: (profileId: string, invitationId: string) =>
+      act('DELETE', `/profiles/${profileId}/invitations/${invitationId}`),
+    previewInvitation: (token: string) =>
+      get(InvitationPreviewSchema, 'POST', '/invitations/preview', { token }),
+    acceptInvitation: (token: string) =>
+      get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
     removeMember: (id: string, userId: string) =>
       act('DELETE', `/profiles/${id}/members/${userId}`),
 

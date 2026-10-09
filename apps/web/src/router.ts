@@ -42,6 +42,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/VerifyEmailView.vue'),
     meta: { open: true },
   },
+  {
+    path: '/accept-invite',
+    name: 'accept-invite',
+    component: () => import('./views/AcceptInviteView.vue'),
+    meta: { open: true },
+  },
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue') },
   {
     path: '/p/:profileId',

@@ -14,19 +14,10 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-- **T3** · Invitations for people without accounts · claimed: Claude (T3 session) · branch: T3 (worktree `.worktrees/T3`)
 - **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
   claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
 ## Ready
-
-### T3 · Invitations for people without accounts
-
-Why: sharing requires an existing account and leaks which emails are registered.
-
-- Owner invites by email; if no account, send an invite link; accepting joins the profile after sign-up/sign-in.
-- Remove the "No account with that email" response (always respond the same).
-- Pending invites visible/revocable by the owner; expire after N days.
 
 ### T3b · Purge never-confirmed accounts
 
@@ -38,6 +29,11 @@ job runner or a simple interval in the server.
 
 Re-verify the new address before switching; invalidate outstanding links for the old one (tokens already bind the
 address they were sent to).
+
+### T3d · Declining and blocking invitations
+
+Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
+protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
 
 ### T4 · Change password / set a password while signed in
 
@@ -100,6 +96,9 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
+- **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,
+  pending list with resend/revoke, uniform responses (no account lookup), per-person send cap, safe
+  post-login redirect (`TBD`)
 - **T2** · Email verification at signup: hashed 24h single-newest links, confirm page, banner + throttled resend,
   sharing gated on confirmed addresses on both sides (`7ce3483`)
 - **T0d** · Startup/DB safety (legacy/newer DB detection), server-unreachable UI, e2e browser error watcher (`30b1983`)

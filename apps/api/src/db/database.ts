@@ -86,6 +86,23 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX email_verifications_user ON email_verifications(user_id);
   `,
+  `
+  -- Invitations are addressed to an email, not an account, so people can be invited before they sign
+  -- up. Accepted rows are kept so that re-opening the link is harmless.
+  CREATE TABLE invitations (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    invited_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    accepted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    accepted_at TEXT
+  );
+  CREATE INDEX invitations_profile ON invitations(profile_id);
+  CREATE INDEX invitations_email ON invitations(email);
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

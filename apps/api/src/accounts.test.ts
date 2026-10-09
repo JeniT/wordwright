@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Mailer } from './mail/mailer'
-import { lastResetToken, PASSWORD, register, saveKey, setup, verifyAccounts } from './test-helpers'
+import {
+  lastResetToken,
+  PASSWORD,
+  register,
+  saveKey,
+  setup,
+  shareProfile,
+  verifyAccounts,
+} from './test-helpers'
 
 describe('registration', () => {
   it('creates an account, a default profile and a session', async () => {
@@ -361,7 +369,7 @@ describe('account deletion', () => {
   })
 
   it('leaves shared profiles intact for the others, passing ownership on', async () => {
-    const { client, store } = setup()
+    const { client, store, mailer } = setup()
     const ada = client()
     const bob = client()
     const carol = client()
@@ -371,8 +379,8 @@ describe('account deletion', () => {
     verifyAccounts({ store }, 'ada@example.com', 'bob@example.com', 'carol@example.com')
 
     const shared = await (await ada.post('/api/profiles', { name: 'Joint piece' })).json()
-    await ada.post(`/api/profiles/${shared.id}/members`, { email: 'bob@example.com' })
-    await ada.post(`/api/profiles/${shared.id}/members`, { email: 'carol@example.com' })
+    await shareProfile({ mailer }, ada, shared.id, bob, 'bob@example.com')
+    await shareProfile({ mailer }, ada, shared.id, carol, 'carol@example.com')
     await ada.post(`/api/profiles/${shared.id}/drafts`, { title: 'Co-written', body: 'text' })
 
     await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })

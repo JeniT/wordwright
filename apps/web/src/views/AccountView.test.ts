@@ -42,21 +42,15 @@ describe('AccountView', () => {
     expect(screen.getByText(/Linked sign-in: google/)).toBeInTheDocument()
   })
 
-  it('lists profiles with their members and lets the owner share', async () => {
-    let shared: unknown
+  it('lists profiles with their members', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/profiles', () => HttpResponse.json([profile])),
-      http.post('*/api/profiles/p1/members', async ({ request }) => {
-        shared = await request.json()
-        return HttpResponse.json(profile, { status: 201 })
-      }),
+      http.get('*/api/profiles/p1/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/account')
     await screen.findByText(/ada@example.com, owner/)
-    await fireEvent.update(screen.getByLabelText(/Share/), 'bob@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: 'Share' }))
-    await waitFor(() => expect(shared).toEqual({ email: 'bob@example.com' }))
+    expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument()
   })
 })
 

@@ -134,44 +134,25 @@ describe('what verification gates', () => {
   async function twoUsers() {
     const ctx = setup()
     const ada = ctx.client()
-    const bob = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
-    await register(bob, 'bob@example.com', 'Bob')
     const profileId = (await (await ada.get('/api/profiles')).json())[0].id as string
-    return { ctx, ada, bob, profileId }
+    return { ctx, ada, profileId }
   }
 
-  it('lets unverified people write but not share', async () => {
+  it('lets unverified people write but not invite others', async () => {
     const { ada, profileId } = await twoUsers()
     expect(
       (await ada.post(`/api/profiles/${profileId}/drafts`, { title: 'T', body: 'B' })).status,
     ).toBe(201)
-    const res = await ada.post(`/api/profiles/${profileId}/members`, { email: 'bob@example.com' })
+    const res = await ada.post(`/api/profiles/${profileId}/invitations`, {
+      email: 'bob@example.com',
+    })
     expect(res.status).toBe(403)
     expect((await res.json()).error).toMatch(/confirm your email/)
   })
 
-  it('treats an unconfirmed address as unknown when sharing (the owner learns nothing)', async () => {
+  it('unlocks inviting once the owner follows the emailed link', async () => {
     const { ctx, ada, profileId } = await twoUsers()
-    verifyAccounts(ctx, 'ada@example.com') // owner confirmed; Bob has not
-    const unverified = await ada.post(`/api/profiles/${profileId}/members`, {
-      email: 'bob@example.com',
-    })
-    const unknown = await ada.post(`/api/profiles/${profileId}/members`, {
-      email: 'nobody@example.com',
-    })
-    expect(unverified.status).toBe(404)
-    expect(await unverified.json()).toEqual(await unknown.json())
-
-    verifyAccounts(ctx, 'bob@example.com')
-    expect(
-      (await ada.post(`/api/profiles/${profileId}/members`, { email: 'bob@example.com' })).status,
-    ).toBe(201)
-  })
-
-  it('unlocks sharing once the owner follows the emailed link', async () => {
-    const { ctx, ada, profileId } = await twoUsers()
-    verifyAccounts(ctx, 'bob@example.com')
     const ownerLink = ctx.mailer.outbox
       .find((m) => m.to === 'ada@example.com')!
       .text.match(/token=([\w-]+)/)![1]
@@ -179,8 +160,9 @@ describe('what verification gates', () => {
       200,
     )
     expect(
-      (await ada.post(`/api/profiles/${profileId}/members`, { email: 'bob@example.com' })).status,
-    ).toBe(201)
+      (await ada.post(`/api/profiles/${profileId}/invitations`, { email: 'bob@example.com' }))
+        .status,
+    ).toBe(202)
   })
 })
 

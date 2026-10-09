@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { register, saveKey, setup, verifyAccounts, type TestClient } from './test-helpers'
+import {
+  register,
+  saveKey,
+  setup,
+  shareProfile,
+  verifyAccounts,
+  type TestClient,
+} from './test-helpers'
 
 describe('profiles and sharing', () => {
   let ada: TestClient
@@ -13,7 +20,7 @@ describe('profiles and sharing', () => {
     bob = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob')
-    verifyAccounts(ctx, 'ada@example.com', 'bob@example.com') // sharing requires confirmed addresses
+    verifyAccounts(ctx, 'ada@example.com') // inviting requires the inviter's address to be confirmed
     adaProfile = (await (await ada.get('/api/profiles')).json())[0].id
   })
 
@@ -30,11 +37,8 @@ describe('profiles and sharing', () => {
     expect((await bob.post(`/api/profiles/${adaProfile}/drafts`, { title: 'x' })).status).toBe(404)
   })
 
-  it('shares a profile with an existing user, who can then write in it', async () => {
-    const added = await ada.post(`/api/profiles/${adaProfile}/members`, {
-      email: 'BOB@example.com',
-    })
-    expect(added.status).toBe(201)
+  it('shares a profile once the invitee accepts, and they can then write in it', async () => {
+    await shareProfile(ctx, ada, adaProfile, bob, 'BOB@example.com')
 
     const draft = await (
       await bob.post(`/api/profiles/${adaProfile}/drafts`, { title: 'Joint', body: 'hi' })
@@ -44,29 +48,20 @@ describe('profiles and sharing', () => {
     expect(await (await bob.get('/api/profiles')).json()).toHaveLength(2)
   })
 
-  it('reports unknown emails and duplicate members', async () => {
-    expect(
-      (await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'nobody@example.com' }))
-        .status,
-    ).toBe(404)
-    await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'bob@example.com' })
-    expect(
-      (await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'bob@example.com' })).status,
-    ).toBe(409)
-  })
-
-  it('reserves management for the owner', async () => {
-    await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'bob@example.com' })
+  it('reserves management, including inviting, for the owner', async () => {
+    await shareProfile(ctx, ada, adaProfile, bob, 'bob@example.com')
     expect((await bob.patch(`/api/profiles/${adaProfile}`, { name: 'Mine now' })).status).toBe(403)
     expect((await bob.delete(`/api/profiles/${adaProfile}`)).status).toBe(403)
     expect(
-      (await bob.post(`/api/profiles/${adaProfile}/members`, { email: 'ada@example.com' })).status,
+      (await bob.post(`/api/profiles/${adaProfile}/invitations`, { email: 'x@example.com' }))
+        .status,
     ).toBe(403)
+    expect((await bob.get(`/api/profiles/${adaProfile}/invitations`)).status).toBe(403)
     expect((await ada.patch(`/api/profiles/${adaProfile}`, { name: 'Renamed' })).status).toBe(200)
   })
 
   it('lets editors leave but not the owner; owners can remove editors', async () => {
-    await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'bob@example.com' })
+    await shareProfile(ctx, ada, adaProfile, bob, 'bob@example.com')
     const bobId = (await (await bob.get('/api/auth/me')).json()).id
     const adaId = (await (await ada.get('/api/auth/me')).json()).id
 
@@ -75,8 +70,14 @@ describe('profiles and sharing', () => {
     expect((await bob.delete(`/api/profiles/${adaProfile}/members/${bobId}`)).status).toBe(204)
     expect((await bob.get(`/api/profiles/${adaProfile}`)).status).toBe(404)
 
-    await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'bob@example.com' })
+    await shareProfile(ctx, ada, adaProfile, bob, 'bob@example.com') // can be invited again
     expect((await ada.delete(`/api/profiles/${adaProfile}/members/${bobId}`)).status).toBe(204)
+  })
+
+  it('has no way to add someone without their acceptance', async () => {
+    const res = await ada.post(`/api/profiles/${adaProfile}/members`, { email: 'bob@example.com' })
+    expect(res.status).toBe(404)
+    expect(await (await bob.get('/api/profiles')).json()).toHaveLength(1)
   })
 
   it('deletes a profile and its drafts', async () => {

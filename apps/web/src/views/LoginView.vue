@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeNextPath } from '@lfwa/core'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -11,7 +12,9 @@ const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
 
-const email = ref('')
+// An invitation link can send people here with their address filled in and a place to return to.
+const next = safeNextPath(route.query.next)
+const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
 
 const config = useQuery({ queryKey: ['auth-config'], queryFn: () => api.authConfig() })
@@ -19,11 +22,7 @@ const login = useMutation({
   mutationFn: () => api.login({ email: email.value, password: password.value }),
   onSuccess: async (user) => {
     session.set(user)
-    const next =
-      typeof route.query.next === 'string' && route.query.next.startsWith('/')
-        ? route.query.next
-        : '/'
-    await router.push(next)
+    await router.push(next ?? '/')
   },
 })
 
@@ -43,7 +42,7 @@ const oauthError =
       <a
         v-for="provider in config.data.value.providers"
         :key="provider.id"
-        :href="`/api/auth/oauth/${provider.id}/start`"
+        :href="`/api/auth/oauth/${provider.id}/start${next ? `?next=${encodeURIComponent(next)}` : ''}`"
         class="block rounded border border-stone-300 px-4 py-2 text-center text-sm font-medium hover:bg-stone-50"
       >
         Continue with {{ provider.label }}
@@ -79,7 +78,9 @@ const oauthError =
     </p>
     <p class="mt-2 text-sm">
       New here?
-      <RouterLink to="/register" class="text-accent underline">Create an account</RouterLink>
+      <RouterLink :to="{ name: 'register', query: route.query }" class="text-accent underline"
+        >Create an account</RouterLink
+      >
     </p>
   </AuthCard>
 </template>

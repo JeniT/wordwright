@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GOOD_KEY, register, saveKey, setup, verifyAccounts } from './test-helpers'
+import { GOOD_KEY, register, saveKey, setup, shareProfile, verifyAccounts } from './test-helpers'
 
 async function signedInUser(ctx = setup(), email = 'ada@example.com', name = 'Ada') {
   const client = ctx.client()
@@ -207,7 +207,7 @@ describe('using the key', () => {
     const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
     await saveKey(ada.client, 'sk-ant-ada-key-1111111111')
     await saveKey(bob.client, 'sk-ant-bob-key-2222222222')
-    await ada.client.post(`/api/profiles/${ada.profileId}/members`, { email: 'bob@example.com' })
+    await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
     const draft = await (
       await ada.client.post(`/api/profiles/${ada.profileId}/drafts`, { title: 'T', body: 'B' })
     ).json()
@@ -223,7 +223,7 @@ describe('using the key', () => {
     const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
     const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
     await saveKey(ada.client)
-    await ada.client.post(`/api/profiles/${ada.profileId}/members`, { email: 'bob@example.com' })
+    await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
     const draft = await (
       await ada.client.post(`/api/profiles/${ada.profileId}/drafts`, { title: 'T', body: 'B' })
     ).json()

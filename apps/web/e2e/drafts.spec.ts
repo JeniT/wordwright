@@ -150,8 +150,8 @@ test('confirms an email address from the signup email', async ({ page }) => {
 
   // Until they confirm, sharing is explained rather than offered.
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
-  await expect(page.getByText('Confirm your email address to share this profile')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0)
+  await expect(page.getByText('Confirm your email address to invite people')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
 
   const link = linkIn(await waitForEmail(email, 'Confirm your email address'), '/verify-email')!
   await page.goto(link)
@@ -164,7 +164,7 @@ test('confirms an email address from the signup email', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Continue writing' }).click()
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Share' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send invitation' })).toBeVisible()
 })
 
 test('resends the confirmation email, and only the newest link works', async ({ page }) => {
@@ -182,24 +182,109 @@ test('resends the confirmation email, and only the newest link works', async ({ 
   await expect(page.getByRole('alert')).toContainText('invalid or has expired')
 })
 
-test('shares a profile with another user', async ({ page, browser }) => {
+/** Ada (signed in, confirmed) invites `email` from her account page, and we read the email they get. */
+async function invite(page: Page, email: string, inviter = 'Ada') {
+  await page.getByRole('link', { name: inviter, exact: true }).click()
+  await page
+    .getByLabel(/Invite someone to/)
+    .first()
+    .fill(email)
+  await page.getByRole('button', { name: 'Send invitation' }).first().click()
+  await expect(page.getByText(`emailed an invitation to ${email}`)).toBeVisible()
+  const mail = await waitForEmail(email, `${inviter} invited you to write together`)
+  const link = linkIn(mail, '/accept-invite')
+  expect(link, 'invitation link in the email').toBeTruthy()
+  return link!
+}
+
+test('invites someone who has no account yet: they register from the email and join', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  const newbieEmail = `newbie-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  const link = await invite(page, newbieEmail)
+  await expect(page.getByText('Waiting for a reply')).toBeVisible()
+  await expect(page.getByText(newbieEmail).first()).toBeVisible()
+
+  // The invitee has no account and opens the link in their own browser.
+  const newbie = await (await browser.newContext()).newPage()
+  const newbieProblems = watchForProblems(newbie)
+  await newbie.goto(link)
+  await expect(newbie.getByText('has invited you to write together')).toBeVisible()
+  expect(
+    (await new AxeBuilder({ page: newbie }).analyze()).violations,
+    'accessibility of invitation page',
+  ).toEqual([])
+  await newbie.getByRole('link', { name: 'Create an account' }).click()
+  await expect(newbie.getByLabel('Email')).toHaveValue(newbieEmail) // prefilled from the invitation
+  await newbie.getByLabel('Name').fill('Newbie')
+  await newbie.getByLabel('Password').fill(PASSWORD)
+  await newbie.getByRole('button', { name: 'Create account' }).click()
+
+  // Registering brings them straight back to the invitation, where they choose to join.
+  await newbie.getByRole('button', { name: /^Join / }).click()
+  await expect(newbie.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
+  // Accepting proved they own the address, so there is no "please confirm" banner.
+  await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
+  await expect(newbie.getByLabel('Profile').locator('option', { hasText: '(shared)' })).toHaveCount(
+    1,
+  )
+
+  // Ada now sees them as a member, and the invitation is no longer pending.
+  await page.reload()
+  await expect(page.getByText(new RegExp(`${newbieEmail}, editor`))).toBeVisible()
+  await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
+  expect(newbieProblems, "Newbie's browser problems").toEqual([])
+})
+
+test('invites someone who already has an account; the link only works for that address', async ({
+  page,
+  browser,
+}) => {
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   const bobPage = await (await browser.newContext()).newPage()
+  const malloryPage = await (await browser.newContext()).newPage()
   const bobProblems = watchForProblems(bobPage)
   const bobEmail = await registerUser(bobPage, 'Bob')
-  await confirmEmail(bobPage, bobEmail)
+  await registerUser(malloryPage, 'Mallory')
 
-  await page.getByRole('link', { name: 'Ada', exact: true }).click()
-  await page.getByLabel(/Share/).first().fill(bobEmail)
-  await page.getByRole('button', { name: 'Share' }).first().click()
-  await expect(page.getByText(new RegExp(`${bobEmail}, editor`))).toBeVisible()
+  const link = await invite(page, bobEmail)
 
-  await bobPage.reload()
+  // Someone signed in as a different person is told so, and can't join.
+  await malloryPage.goto(link)
+  await expect(malloryPage.getByRole('alert')).toContainText(`sent to ${bobEmail}`)
+  await expect(malloryPage.getByRole('button', { name: /^Join / })).toHaveCount(0)
+
+  await bobPage.goto(link)
+  await bobPage.getByRole('button', { name: /^Join / }).click()
+  await expect(bobPage.getByRole('heading', { name: 'Your drafts' })).toBeVisible()
   await expect(
     bobPage.getByLabel('Profile').locator('option', { hasText: '(shared)' }),
   ).toHaveCount(1)
   expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
+test('revoking an invitation stops its link working', async ({ page, browser }) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  const email = `revoked-${Date.now()}@example.com`
+  const link = await invite(page, email)
+  await page.getByRole('button', { name: `Revoke invitation to ${email}` }).click()
+  await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
+
+  const guest = await (await browser.newContext()).newPage()
+  await guest.goto(link)
+  await expect(guest.getByRole('alert')).toContainText('invalid or has expired')
+})
+
+test('unconfirmed owners are told to confirm before inviting', async ({ page }) => {
+  await registerUser(page, 'Ada')
+  await page.getByRole('link', { name: 'Ada', exact: true }).click()
+  await expect(page.getByText('Confirm your email address to invite people')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
 })
 
 test('deletes an account', async ({ page }) => {

@@ -4,6 +4,7 @@ import type { PasswordHasher } from '../auth/password'
 import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
+import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
 import { passwordResetEmail, verifyEmailEmail } from '../mail/templates'
 
@@ -186,11 +187,7 @@ export class AccountService {
    */
   private sendInBackground(userId: string, kind: string, email: Parameters<Mailer['send']>[0]) {
     const logger = this.d.logger ?? console
-    void this.d.mailer.send(email).catch((err: unknown) => {
-      logger.error(
-        `Failed to send ${kind} email for user ${userId}: ${err instanceof Error ? err.message : 'unknown error'}`,
-      )
-    })
+    sendInBackground(this.d.mailer, logger, `${kind} email for user ${userId}`, email)
   }
 
   // ---- external identity login --------------------------------------------
@@ -264,6 +261,7 @@ export class AccountService {
           }
         }
       }
+      store.invitations.deleteForEmail(user.email) // invitations other people sent to this address
       store.users.delete(user.id) // cascades: credential, identities, sessions, resets, memberships
     })
   }

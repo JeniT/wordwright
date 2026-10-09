@@ -49,9 +49,16 @@ Removes the user and everything only they own (including profiles where they're 
 they're removed; if they were the owner, the longest-standing member becomes owner; drafts they wrote there remain.
 Immediate, no grace period or export yet (see T11).
 
-## Sharing requires an existing account (for now)
+## Sharing is by emailed invitation, addressed to an email rather than an account
 
-Simplest thing that works, but it discloses whether an email is registered. Replaced by invitations in T3.
+People join a profile only by accepting an invitation, so nobody can be added unilaterally and inviting someone
+who hasn't signed up yet just works. The owner's response is always the same `202`, whether the address has an
+account, is unknown, or is already a member, so the endpoint can't be used to look people up (this replaced the
+old "No account with that email" answer). Links are 7-day, hashed at rest, and bound to the invited address: the
+signed-in account's email must match, so a forwarded link is useless to anyone else. Accepting from the link also
+confirms the address, because the token only ever reached that inbox. Owners must have a confirmed address, and
+are capped at 20 invitations a day, because each one makes our mail server email a stranger. After a Google
+sign-in, a validated same-site `next` path returns people to their invitation (open redirects are rejected).
 
 ## Tests must fail on browser errors
 
@@ -70,9 +77,8 @@ the SMTP connection is verified at startup.
 
 ## Email confirmation: gate sharing, not writing
 
-Unconfirmed accounts can write and use AI features (nothing is exposed to anyone else), but can't share profiles
-or be added to one: sharing is the one place an unproven address could leak someone's work or let a stranger in.
-An unconfirmed address is reported as "no account", the same as an unknown one. Links are bound to the address they
+Unconfirmed accounts can write and use AI features (nothing is exposed to anyone else), but can't invite others:
+sharing is the one place an unproven address could leak someone's work. Links are bound to the address they
 were sent to, hashed at rest, expire after 24 hours, and only the newest works. Using a link twice succeeds, because
 mail scanners and double clicks routinely open links first. Resend is limited to 3/hour per user. Chosen over
 blocking sign-in until confirmed because that makes a typo'd address a dead end and turns every mail outage into

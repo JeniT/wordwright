@@ -128,6 +128,7 @@ function lastEmailToken(mailer: MemoryMailer, page: string): string {
 export const lastResetToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'reset-password')
 export const lastVerificationToken = (mailer: MemoryMailer) =>
   lastEmailToken(mailer, 'verify-email')
+export const lastInvitationToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'accept-invite')
 
 /** Marks accounts as email-verified directly, for tests about something other than verification. */
 export function verifyAccounts(ctx: Pick<TestContext, 'store'>, ...emails: string[]) {
@@ -142,4 +143,20 @@ export async function saveKey(client: TestClient, apiKey = GOOD_KEY, model = 'cl
   const res = await client.put('/api/llm', { provider: 'anthropic', model, apiKey })
   expectStatus(res.status, 200)
   return res.json()
+}
+
+/** Shares a profile the way people do: the owner invites an address, the invitee accepts from the email. */
+export async function shareProfile(
+  ctx: Pick<TestContext, 'mailer'>,
+  owner: TestClient,
+  profileId: string,
+  invitee: TestClient,
+  email: string,
+) {
+  expectStatus((await owner.post(`/api/profiles/${profileId}/invitations`, { email })).status, 202)
+  expectStatus(
+    (await invitee.post('/api/invitations/accept', { token: lastInvitationToken(ctx.mailer) }))
+      .status,
+    200,
+  )
 }

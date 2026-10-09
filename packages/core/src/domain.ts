@@ -77,7 +77,30 @@ export const ProfileSchema = z.object({
 export type Profile = z.infer<typeof ProfileSchema>
 
 export const ProfileInputSchema = z.object({ name: NameSchema })
-export const AddMemberInputSchema = z.object({ email: EmailSchema })
+
+// ---- Invitations (how people join a shared profile) ---------------------
+
+export const InviteInputSchema = z.object({ email: EmailSchema })
+
+/** A pending invitation, as the profile's owner sees it. */
+export const InvitationSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  expiresAt: z.string(),
+})
+export type Invitation = z.infer<typeof InvitationSchema>
+
+/** What someone holding an invitation link may see before deciding to accept. */
+export const InvitationPreviewSchema = z.object({
+  profileName: z.string(),
+  inviterName: z.string(),
+  /** The address the invitation was sent to; the invitee must use an account with this email. */
+  email: z.string(),
+})
+export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>
+
+export const InvitationTokenInputSchema = z.object({ token: z.string().min(1).max(200) })
+export const AcceptInvitationResultSchema = z.object({ profileId: z.string() })
 
 // ---- Drafts (belong to a profile) --------------------------------------
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { safeNextPath } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
@@ -11,8 +12,10 @@ const router = useRouter()
 const session = useSessionStore()
 const queryClient = useQueryClient()
 
+const route = useRoute()
+const next = safeNextPath(route.query.next)
 const name = ref('')
-const email = ref('')
+const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
 
 const register = useMutation({
@@ -21,7 +24,7 @@ const register = useMutation({
   onSuccess: async (user) => {
     queryClient.clear()
     session.set(user)
-    await router.push('/')
+    await router.push(next ?? '/')
   },
 })
 </script>
@@ -52,7 +55,9 @@ const register = useMutation({
     </form>
     <p class="mt-4 text-sm">
       Already have an account?
-      <RouterLink to="/login" class="text-accent underline">Sign in</RouterLink>
+      <RouterLink :to="{ name: 'login', query: route.query }" class="text-accent underline"
+        >Sign in</RouterLink
+      >
     </p>
   </AuthCard>
 </template>

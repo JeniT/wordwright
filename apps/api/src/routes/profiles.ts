@@ -1,14 +1,22 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
-import { AddMemberInputSchema, ProfileInputSchema } from '@lfwa/core'
+import { ProfileInputSchema } from '@lfwa/core'
 import { requireMember, type AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
+import { profileInvitationRoutes } from './invitations'
+import type { RateLimiter } from '../auth/rate-limit'
+import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
 
-export function profileRoutes(store: Store, llmKeys: LlmKeyService) {
+export function profileRoutes(
+  store: Store,
+  llmKeys: LlmKeyService,
+  invitations: InvitationService,
+  inviteLimiter: RateLimiter,
+) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
 
@@ -37,27 +45,6 @@ export function profileRoutes(store: Store, llmKeys: LlmKeyService) {
         return c.body(null, 204)
       })
 
-      // Sharing: add someone who already has an account.
-      .post('/:profileId/members', owner, zValidator('json', AddMemberInputSchema), (c) => {
-        const id = c.req.param('profileId')
-        // Sharing gives someone access to your work, so both sides must have proven their addresses.
-        if (!c.get('user').emailVerified) {
-          throw new HTTPException(403, {
-            message: 'Please confirm your email address before sharing a profile',
-          })
-        }
-        const target = store.users.findByEmail(c.req.valid('json').email)
-        // An unconfirmed address may belong to someone who merely typed it in, so treat it as unknown.
-        if (!target?.emailVerified) {
-          throw new HTTPException(404, { message: 'No account with that email address' })
-        }
-        if (store.profiles.roleOf(id, target.id)) {
-          throw new HTTPException(409, { message: 'Already a member' })
-        }
-        store.profiles.addMember(id, target.id, 'editor')
-        return c.json(store.profiles.get(id, c.get('user').id), 201)
-      })
-
       // Owners remove others; anyone can remove themselves, except the owner (who must delete
       // the profile or hand it over first).
       .delete('/:profileId/members/:userId', member, (c) => {
@@ -77,6 +64,12 @@ export function profileRoutes(store: Store, llmKeys: LlmKeyService) {
         return c.body(null, 204)
       })
 
+      .route(
+        '/:profileId/invitations',
+        new Hono<AppEnv>()
+          .use(owner)
+          .route('/', profileInvitationRoutes(invitations, inviteLimiter)),
+      )
       .route('/:profileId/drafts', new Hono<AppEnv>().use(member).route('/', draftRoutes(store)))
       .route(
         '/:profileId/assist',

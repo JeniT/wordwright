@@ -97,6 +97,30 @@ describe('login with an external identity provider', () => {
     expect(store.users.findByEmail('ada@example.com')).toBeUndefined()
   })
 
+  it('sends people back to where they were going (e.g. an invitation link) after signing in', async () => {
+    const { client } = withIdp()
+    const c = client()
+    const start = await c.get('/api/auth/oauth/google/start?next=/accept-invite%3Ftoken%3Dabc')
+    const state = new URL(start.headers.get('location')!).searchParams.get('state')!
+    const res = await c.get(`/api/auth/oauth/google/callback?code=good-code&state=${state}`)
+    expect(res.headers.get('location')).toBe(`${PUBLIC_URL}/accept-invite?token=abc`)
+  })
+
+  it.each([
+    'https://evil.example/',
+    '//evil.example',
+    '/\\evil.example',
+    'javascript:alert(1)',
+    '/ok\nfoo',
+  ])('ignores a "next" that could leave the site (%s)', async (next) => {
+    const { client } = withIdp()
+    const c = client()
+    const start = await c.get(`/api/auth/oauth/google/start?next=${encodeURIComponent(next)}`)
+    const state = new URL(start.headers.get('location')!).searchParams.get('state')!
+    const res = await c.get(`/api/auth/oauth/google/callback?code=good-code&state=${state}`)
+    expect(res.headers.get('location')).toBe(PUBLIC_URL)
+  })
+
   it('404s for unknown providers', async () => {
     expect((await setup().client().get('/api/auth/oauth/nope/start')).status).toBe(404)
   })

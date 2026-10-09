@@ -3,6 +3,7 @@ import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import ProfileInvitations from '../components/ProfileInvitations.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { useProfiles } from '../lib/useProfiles'
@@ -53,14 +54,6 @@ const createProfile = useMutation({
   },
 })
 
-const inviteEmails = ref<Record<string, string>>({})
-const addMember = useMutation({
-  mutationFn: (id: string) => api.addMember(id, inviteEmails.value[id] ?? ''),
-  onSuccess: (_profile, id) => {
-    inviteEmails.value[id] = ''
-    return refresh()
-  },
-})
 const removeMember = useMutation({
   mutationFn: (v: { profileId: string; userId: string }) => api.removeMember(v.profileId, v.userId),
   onSuccess: refresh,
@@ -210,25 +203,11 @@ const deleteAccount = useMutation({
             </li>
           </ul>
           <template v-if="p.role === 'owner'">
-            <p v-if="!session.user.emailVerified" class="mt-3 text-sm text-stone-700">
-              Confirm your email address to share this profile with someone.
-            </p>
-            <form v-else class="mt-3 flex items-end gap-2" @submit.prevent="addMember.mutate(p.id)">
-              <div class="flex-1">
-                <TextField
-                  :model-value="inviteEmails[p.id] ?? ''"
-                  :label="`Share “${p.name}” with (email of an existing user)`"
-                  type="email"
-                  @update:model-value="inviteEmails[p.id] = $event"
-                />
-              </div>
-              <button
-                type="submit"
-                class="mb-4 rounded border border-accent px-3 py-2 text-sm text-accent"
-              >
-                Share
-              </button>
-            </form>
+            <ProfileInvitations
+              :profile-id="p.id"
+              :profile-name="p.name"
+              :confirmed="session.user.emailVerified"
+            />
             <button
               type="button"
               class="text-sm text-red-700 underline"
@@ -239,10 +218,6 @@ const deleteAccount = useMutation({
           </template>
         </li>
       </ul>
-      <p v-if="addMember.isError.value" role="alert" class="mt-2 text-red-700">
-        {{ errorMessage(addMember.error.value) }}
-      </p>
-
       <form class="mt-6 flex items-end gap-2" @submit.prevent="createProfile.mutate()">
         <div class="flex-1">
           <TextField v-model="newProfileName" label="New profile name" required />

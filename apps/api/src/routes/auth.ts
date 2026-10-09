@@ -8,6 +8,7 @@ import {
   LoginInputSchema,
   RegisterInputSchema,
   ResetPasswordInputSchema,
+  safeNextPath,
   VerifyEmailInputSchema,
   type AuthConfig,
 } from '@lfwa/core'
@@ -142,7 +143,7 @@ export function authRoutes(d: AuthRouteDeps) {
         await setSignedCookie(
           c,
           OAUTH_COOKIE,
-          JSON.stringify({ state, nonce, verifier }),
+          JSON.stringify({ state, nonce, verifier, next: safeNextPath(c.req.query('next')) }),
           d.sessionSecret,
           {
             httpOnly: true,
@@ -171,7 +172,12 @@ export function authRoutes(d: AuthRouteDeps) {
         deleteCookie(c, OAUTH_COOKIE, { path: '/api/auth/oauth' })
         const code = c.req.query('code')
         if (!raw || !code) return fail('oauth_failed')
-        const tx = JSON.parse(raw) as { state: string; nonce: string; verifier: string }
+        const tx = JSON.parse(raw) as {
+          state: string
+          nonce: string
+          verifier: string
+          next?: string
+        }
         if (c.req.query('state') !== tx.state) return fail('oauth_failed')
 
         try {
@@ -182,7 +188,7 @@ export function authRoutes(d: AuthRouteDeps) {
             redirectUri: redirectUri(d.publicUrl, provider.id),
           })
           setSession(c, await d.accounts.loginWithIdentity(provider.id, claims))
-          return c.redirect(d.publicUrl)
+          return c.redirect(`${d.publicUrl}${tx.next ?? ''}`)
         } catch (err) {
           return fail(err instanceof AccountError ? err.code : 'oauth_failed')
         }

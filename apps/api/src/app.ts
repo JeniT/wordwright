@@ -11,8 +11,10 @@ import type { Mailer } from './mail/mailer'
 import { accountRoutes } from './routes/account'
 import { authRoutes } from './routes/auth'
 import { llmRoutes } from './routes/llm'
+import { invitationRoutes } from './routes/invitations'
 import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
+import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
 
 export interface AppDeps {
@@ -77,7 +79,21 @@ export function createApp(deps: AppDeps) {
   const signedIn = (routes: Hono<AppEnv>) =>
     new Hono<AppEnv>().use(requireUser(accounts)).route('/', routes)
   api.route('/llm', signedIn(llmRoutes(llmKeys, attempts())))
-  api.route('/profiles', signedIn(profileRoutes(store, llmKeys)))
+  const invitations = new InvitationService({
+    store,
+    mailer: deps.mailer,
+    publicUrl,
+    now: deps.now,
+    logger: deps.logger,
+  })
+  // 20 invitations a day per person: each one emails a stranger from our server.
+  const inviteLimiter = new RateLimiter(
+    20,
+    24 * 60 * 60 * 1000,
+    deps.now && (() => deps.now!().getTime()),
+  )
+  api.route('/invitations', invitationRoutes(invitations, accounts))
+  api.route('/profiles', signedIn(profileRoutes(store, llmKeys, invitations, inviteLimiter)))
   app.route('/api', api)
 
   app.onError((err, c) => {

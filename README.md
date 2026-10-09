@@ -70,16 +70,23 @@ tests inject fakes and nothing hits the network.
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
 - **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after
   an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
-  an address has an account (except at registration and when sharing, which must).
+  an address has an account (except at registration, which has to say so), and that includes
+  inviting someone to a profile.
 - **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few
   lines of config (`OidcProvider`); others implement `IdentityProvider`.
+- **Sharing is by invitation.** An owner (with a confirmed address) enters an email; we send a link valid
+  for 7 days that works whether or not the person has an account yet. The invitee signs in or signs up with
+  _that_ address and clicks Join. Nobody is ever added without accepting, the owner's reply is identical
+  whether or not the address has an account or is already in (so it can't be used to look people up), and
+  accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
+  resend or revoke them; each person can send 20 a day since every one emails a stranger.
 - **Email confirmation:** new local accounts are _unconfirmed_; signup emails a link (valid 24 hours, newest
-  link only, harmless to open twice). Unconfirmed people can write and use AI features, but **can't share
-  profiles or be added to someone else's**: an unconfirmed address may belong to someone who merely typed it
-  in. A banner offers "Resend" (3 per hour). Confirmation also happens when someone signs in with Google or
-  resets their password via the emailed link, since both prove ownership of the address.
+  link only, harmless to open twice). Unconfirmed people can write and use AI features, but **can't invite
+  others**. A banner offers "Resend" (3 per hour). Confirmation also happens when someone signs in with
+  Google, resets their password via the emailed link, or accepts an invitation sent to that address, since
+  each proves ownership of it.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
   (with its drafts) where they are the only member. In shared profiles they are removed and, if they
   were the owner, the longest-standing member becomes owner; drafts they wrote there stay.
@@ -87,7 +94,7 @@ tests inject fakes and nothing hits the network.
 
 ## Email
 
-Password-reset emails go through the `Mailer` port, chosen by `MAIL_TRANSPORT`:
+Emails (password reset, address confirmation, invitations) go through the `Mailer` port, chosen by `MAIL_TRANSPORT`:
 
 | Transport           | Use                                 | Setup                                                                                                    |
 | ------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------- |

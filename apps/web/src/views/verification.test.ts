@@ -128,14 +128,14 @@ describe('confirmation banner', () => {
   })
 })
 
-describe('sharing needs a confirmed address', () => {
-  it('replaces the share form with an explanation', async () => {
+describe('inviting needs a confirmed address', () => {
+  it('replaces the invite form with an explanation', async () => {
     server.use(
       signedInAs(unverified),
       http.get('*/api/profiles', () => HttpResponse.json([profile])),
     )
     await renderAt('/account')
-    await screen.findByText(/Confirm your email address to share this profile/)
-    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull()
+    await screen.findByText(/Confirm your email address to invite people/)
+    expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull()
   })
 })
