@@ -14,6 +14,18 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
+### T24 · Refactor: remove duplication in the API and web app
+
+claimed: claude session (refactor review) · branch: T24
+
+Why: a review found repeated wiring and copy-pasted helpers. No behaviour change; existing tests must stay green.
+
+- `createApp`: a `limiter(max, windowMs)` helper and named limits; `profileRoutes` takes an options object.
+- `TokenStore`: share the row mapping for the one-time-link tables.
+- `AccountService`: `expiresIn(ms)`, `isUniqueViolation(err)`, one `sendInBackground` path.
+- One `imageResponse` helper for the profile image and source icon routes.
+- Later, separate tasks: extract the email-change flows from `AccountService`; a shared button component in the web app.
+
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
