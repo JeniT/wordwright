@@ -14,7 +14,23 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-_Nothing claimed._
+### T20b3 · Brainstorm: per-user prompt on the account page
+
+claimed: claude-session-3 · branch: T20b3
+
+`user_prompts` table, the default prompt (`prompts/brainstorm-default.md`, already written; wire it up through `@lfwa/prompts`), `GET`/`PUT`/`DELETE
+/api/account/brainstorm-prompt`, and a "Brainstorming prompt" section with Save and Reset to default. Can be done
+in parallel with T20b2.
+
+### T20b2 · Brainstorm: storage, context, proposals and streaming API
+
+claimed: claude-session-3 · branch: T20b2
+
+Tables `idea_messages` and `idea_proposals`; a service that builds the system prompt and idea snapshot (title,
+notes, related links, venue name/site/audiences when T16 exists, draft titles only), stores the thread in the
+neutral format (no thinking blocks), handles kick-off, retry, stop, proposals (accept with a stale-text check,
+dismiss, create idea), one reply in flight per idea, per-person throttling; SSE endpoint; cascade tests incl.
+account deletion. Needs T20b1.
 
 ## Ready
 
@@ -58,20 +74,6 @@ Why: the Brainstorm button on the idea page is a placeholder. The owner has agre
 commissioning editor, probes the idea from the first message, and can **propose** (never apply) a new title, new
 notes, or new ideas. It never edits drafts. The default prompt is editable per user on the account page. Built in
 five stages, each its own task and commit; do them in order.
-
-### T20b2 · Brainstorm: storage, context, proposals and streaming API
-
-Tables `idea_messages` and `idea_proposals`; a service that builds the system prompt and idea snapshot (title,
-notes, related links, venue name/site/audiences when T16 exists, draft titles only), stores the thread in the
-neutral format (no thinking blocks), handles kick-off, retry, stop, proposals (accept with a stale-text check,
-dismiss, create idea), one reply in flight per idea, per-person throttling; SSE endpoint; cascade tests incl.
-account deletion. Needs T20b1.
-
-### T20b3 · Brainstorm: per-user prompt on the account page
-
-`user_prompts` table, the default prompt (`prompts/brainstorm-default.md`, already written; wire it up through `@lfwa/prompts`), `GET`/`PUT`/`DELETE
-/api/account/brainstorm-prompt`, and a "Brainstorming prompt" section with Save and Reset to default. Can be done
-in parallel with T20b2.
 
 ### T20b4 · Brainstorm: the chat page
 
