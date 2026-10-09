@@ -123,7 +123,7 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T22** · Related-work links: titles fetched from the page (address shown when there is none), links can be
   edited, duplicates refused (the typed address is kept with the error shown under the field), and text that isn't a
   plausible, existing web address is rejected. Page lookup is a `PageInfoFetcher` port with an SSRF-safe HTTP
-  adapter, fake and contract suite. (COMMIT)
+  adapter, fake and contract suite. (`408579c`)
 - **T20** · Ideas, first step: each profile has ideas with a name, notes, links to related work and one or more
   drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
   Brainstorm button present but disabled. Existing drafts stay standalone. (`f954432`)
@@ -133,7 +133,7 @@ Per the owner: possibly host an open model for users without their own key. Need
   on the profile settings page (`938463b`)
 - **T20c** · Every draft belongs to an idea: existing drafts wrapped in ideas by a migration, drafts created only
   through an idea, standalone draft list and "New draft" removed. Also fixed profile rename failing for
-  profiles that have ideas. (`24cf76b`)
+  profiles that have ideas. (`5dccc68`)
 
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
