@@ -14,13 +14,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T27 · Tidy `BrainstormService` and the route helpers
-
-claimed: claude session (refactor review) · branch: T27
-
-Share one reply context between `reply`, `saveReply` and `saveStopped`; build the "is waiting for a reply" 409
-once; type the `profileId` / `find` helpers in the idea routes so the `!` assertions go.
-
 ## Ready
 
 ### T25 · Extract the email-change flows from `AccountService`
@@ -144,6 +137,10 @@ Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace
 Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
 
 ## Done
+
+- **T27** · Refactor, no behaviour change: `BrainstormService` passes one `ReplyContext` to `reply`, `saveReply` and
+  `saveStopped`, and builds the "is waiting for a reply" 409 once; the idea routes' `param` / `find` helpers are typed
+  with Hono's `Context`, so the `!` assertions are gone. (`41a827a`)
 
 - **T24** · Refactor, no behaviour change: `createApp` builds limiters through one helper with named durations,
   `profileRoutes` takes an options object, `imageResponse` serves profile pictures and source icons with one set
