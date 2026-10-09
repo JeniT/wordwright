@@ -2,13 +2,11 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { CritiqueRequestSchema, LLMAuthError } from '@lfwa/core'
+import { CRITIQUE_PROMPT } from '@lfwa/prompts'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { LlmKeyService } from '../services/llm'
 import { toLlmHttpError } from './llm'
-
-const CRITIC_SYSTEM = `You are a thoughtful editor. Critique the argument and structure of the draft.
-Preserve the author's voice: suggest changes, do not rewrite the piece. Be specific and constructive.`
 
 /** Every request runs on the *requesting user's* credentials, even inside a shared profile. */
 export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
@@ -28,7 +26,7 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
 
       try {
         const text = await llm.complete({
-          system: CRITIC_SYSTEM,
+          system: CRITIQUE_PROMPT,
           messages: [{ role: 'user', content: `# ${draft.title}\n\n${draft.body}` }],
           signal: c.req.raw.signal,
         })

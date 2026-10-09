@@ -56,8 +56,13 @@ To use Claude: `LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... pnpm dev`.
 
 Application code depends on **ports** in `packages/core/src/providers`, never on a vendor SDK:
 
-- `LLMProvider` — `complete()` and `stream()`. Adapters: `AnthropicProvider`, `FakeLLMProvider`.
+- `LLMProvider` — `complete()` and `stream()` for single prompts, and `chat()` for conversations in which the model may
+  call tools (streamed `text` / `tool_call` / `done` events; no sampling options). Adapters: `AnthropicProvider`,
+  `FakeLLMProvider` (scriptable). The contract suite can also be run against the real service:
+  `ANTHROPIC_API_KEY=... pnpm --filter @lfwa/core test`.
 - `SearchProvider` — for news, web and scholarly sources (Crossref, OpenAlex, ...). Only a fake exists so far.
+
+**Prompts** (the instructions given to the AI) are not in code: they are Markdown files in [`prompts/`](prompts/README.md).
 
 To add a service: implement the interface, run the shared contract suite from
 `@lfwa/core/testing` against it (see `packages/core/src/providers.test.ts`), then register it where

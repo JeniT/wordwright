@@ -14,6 +14,7 @@
     "@hono/node-server": "^2.1.4",
     "@hono/zod-validator": "^0.9.1",
     "@lfwa/core": "workspace:*",
+    "@lfwa/prompts": "workspace:*",
     "fast-xml-parser": "^5.11.2",
     "hono": "^4.13.13",
     "jose": "^6.2.12",

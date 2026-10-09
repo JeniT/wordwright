@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { LLMProvider } from '../providers/llm'
+import type { LLMChatEvent, LLMChatRequest, LLMProvider } from '../providers/llm'
 import { FeedError, type FeedFetcher } from '../providers/feeds'
 import type { PageInfoFetcher } from '../providers/pages'
 import type { SearchProvider } from '../providers/search'
@@ -30,6 +30,90 @@ export function llmProviderContract(name: string, create: () => LLMProvider) {
       const controller = new AbortController()
       controller.abort()
       await expect(create().complete({ ...request, signal: controller.signal })).rejects.toThrow()
+    })
+
+    describe('chat', () => {
+      const chatRequest: LLMChatRequest = {
+        system: 'You are brief.',
+        messages: [{ role: 'user', content: 'Say hello' }],
+      }
+      const collect = async (provider: LLMProvider, req: LLMChatRequest) => {
+        const events: LLMChatEvent[] = []
+        for await (const event of provider.chat(req)) events.push(event)
+        return events
+      }
+
+      it('streams text and ends with exactly one done event carrying a stop reason and usage', async () => {
+        const events = await collect(create(), chatRequest)
+        expect(events.filter((e) => e.type === 'done')).toHaveLength(1)
+        const done = events.at(-1)!
+        expect(done.type).toBe('done')
+        if (done.type !== 'done') return
+        expect(['end', 'max_tokens', 'tool_use', 'refusal']).toContain(done.stopReason)
+        expect(done.usage.inputTokens).toBeGreaterThanOrEqual(0)
+        expect(done.usage.outputTokens).toBeGreaterThanOrEqual(0)
+        const text = events.map((e) => (e.type === 'text' ? e.text : '')).join('')
+        expect(text.length).toBeGreaterThan(0)
+      })
+
+      it('only reports tool calls that name a declared tool, with an object input and an id', async () => {
+        const tools = [
+          {
+            name: 'update_idea',
+            description: 'Propose a new title for the idea.',
+            inputSchema: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        ]
+        const events = await collect(create(), { ...chatRequest, tools })
+        for (const event of events) {
+          if (event.type !== 'tool_call') continue
+          expect(event.id).not.toBe('')
+          expect(tools.map((t) => t.name)).toContain(event.name)
+          expect(typeof event.input).toBe('object')
+        }
+      })
+
+      it('accepts a conversation that already contains a tool call and its result', async () => {
+        const events = await collect(create(), {
+          messages: [
+            { role: 'user', content: 'Suggest a title.' },
+            {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'How about this?' },
+                { type: 'tool_call', id: 'call-1', name: 'update_idea', input: { name: 'New' } },
+              ],
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'tool_result', toolCallId: 'call-1', content: 'The person accepted it.' },
+                { type: 'text', text: 'Thanks. What next?' },
+              ],
+            },
+          ],
+          tools: [
+            {
+              name: 'update_idea',
+              description: 'Propose a new title for the idea.',
+              inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
+            },
+          ],
+        })
+        expect(events.at(-1)?.type).toBe('done')
+      })
+
+      it('rejects when the signal is already aborted', async () => {
+        const controller = new AbortController()
+        controller.abort()
+        await expect(
+          collect(create(), { ...chatRequest, signal: controller.signal }),
+        ).rejects.toThrow()
+      })
     })
   })
 }

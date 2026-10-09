@@ -35,6 +35,8 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
 ## Layout
 
 - `packages/core`: Zod schemas, provider ports + adapters + fakes, contract test suites. Shared by web and api.
+- `prompts/`: the instructions given to the AI, as plain Markdown files (`@lfwa/prompts`). **Edit prompts there**, never
+  inline in code; see `prompts/README.md`.
 - `apps/api`: Hono API. `routes/` (HTTP only) → `services/` (business rules) → `db/` (SQLite stores).
   `createApp(deps)` takes every dependency as an argument; tests inject fakes and never touch the network.
 - `apps/web`: Vue 3 + Vite + Pinia + TanStack Query + Tiptap + Tailwind v4. `lib/api.ts` is the only place that

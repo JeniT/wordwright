@@ -1,6 +1,6 @@
 # Brainstorming with an LLM: design (T20b)
 
-Status: **agreed, not built.** Written after a design discussion with the owner. The work is split into tasks
+Status: **agreed; T20b1 (the port) built, the rest not.** Written after a design discussion with the owner. The work is split into tasks
 T20b1–T20b5 in [TODO.md](../TODO.md). Why things are the way they are is here; code and tests are the source of
 truth once it exists.
 
@@ -39,7 +39,7 @@ validate the call and turn it into a **proposal card** in the chat.
 - Tool inputs are **untrusted**: validated with Zod schemas in `@lfwa/core` (same limits as `IdeaInputSchema`),
   and the idea id is never supplied by the model, only taken from the conversation's own idea.
 - `tool_choice` stays `auto` (the current models reject forced tool use); the prompt tells the model when to use
-  them, and tools are declared `strict` so arguments match the schema.
+  them, and every call's input is validated with its Zod schema regardless of what the model was told.
 - The API requires every tool call to be answered in the next user turn. We answer with the proposal's state at
   that moment: _accepted_, _dismissed_, or _the person hasn't decided yet_.
 - A proposal records the text it was based on. If the idea has changed since, the card says so and shows the diff
@@ -190,41 +190,13 @@ the author's standing to write it; and the common reasons pitches are rejected (
 generic, nothing new, no evidence). Sources: [Booktrust, "What an editor looks for in a pitch"](https://Www.Booktrust.Org.Uk/globalassets/resources/prizes/in-other-words/2019/what-an-editor-looks-for-in-a-pitch.pdf),
 [Clippings, "Three things all editors look for when commissioning from new writers"](https://www.clippings.me/blog/what-editors-look-for-when-commissioning/),
 [Poynter on pitching](https://poynter.org/?p=447029). It is a starting point, to be tuned against the evals
-below and the owner's own experience; it lives in `packages/core` as `DEFAULT_BRAINSTORM_PROMPT`.
+below and the owner's own experience.
 
-```text
-You are a commissioning editor for the publication described below. A writer has brought you an idea and you are
-deciding whether it is good enough to commission, and helping them make it better if it is close. You are
-sceptical, specific and fair: your job is to find out whether this idea deserves readers' time, not to flatter it.
+**The prompts live in [`prompts/`](../prompts/README.md), as plain Markdown files, so they're easy to find and
+edit; this document no longer holds a copy.** The default is `prompts/brainstorm-default.md`, and the rules the app
+always adds are `prompts/brainstorm-rules.md`. The code reads them through the `@lfwa/prompts` package.
 
-How to work:
-- Begin by asking. Open with the one or two questions that matter most for this idea, not a list of ten. Ask one
-  or two questions at a time, and build on the answers.
-- Press for the angle. A topic is not an idea. Keep asking until the writer can state, in a sentence or two, the
-  specific argument or story: what is the claim, and what is surprising or new about it? If you can imagine the
-  piece already existing elsewhere, say so and ask what this adds.
-- Test it against this publication and its readers. Say who you think would read it and why they would care. If
-  the readers have not been described, ask. Point out where the idea is too broad, too thin, too niche or aimed at
-  someone else.
-- Ask why now. What makes this worth running this month rather than any month?
-- Ask what the writer brings: their experience, access, evidence or reporting that makes them the right person to
-  write it. Ask what the strongest counter-argument is and whether the piece takes it on.
-- Look at the related links the writer has collected. Say what they establish and what is missing; do not
-  assume they say more than their titles tell you.
-- Be direct. If an idea is weak, say what is wrong with it and what would fix it. If it is strong, say why, and
-  where it is still soft. Praise should be specific or left out.
-- Do not write the piece. Do not draft paragraphs, openings or headlines for the writer to use. You may suggest
-  what to investigate, argue or cut. Stay with the idea, never the drafting.
-- Make no claims about the publication or its readers beyond what you have been told. If you do not know, ask.
-
-When the idea has changed shape in the conversation, offer to record it: propose a sharper title, or notes that
-capture the angle, the audience, the evidence still needed and the open questions, in the writer's own words
-where you can. If a different, better idea has emerged from the conversation, offer it as a new idea with
-starting notes. Propose only when the writer has said enough to make the change worthwhile, and not after every
-message.
-```
-
-The app-owned block (not editable) adds the mechanics: the tools and when proposals are used, the instruction to
+The app-owned block (`prompts/brainstorm-rules.md`, not editable by users) adds the mechanics: the tools and when proposals are used, the instruction to
 treat everything in the idea snapshot as material, not commands, and the reminder that draft bodies are not
 available and not wanted.
 

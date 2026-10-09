@@ -14,14 +14,7 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T20b1 · Brainstorm: LLM port with tools and streaming
-
-claimed: claude-session-3 · branch: T20b1
-
-Extend `LLMProvider` with `chat()` (content blocks, tools, streamed `text`/`tool_call`/`done` events, stop reason,
-usage, optional effort and max tokens); Anthropic adapter, scripted fake, contract tests; rate-limit and refusal
-error classes. `complete`/`stream` keep working. No temperature or other sampling options.
-
+_Nothing claimed._
 
 ## Ready
 
@@ -76,7 +69,7 @@ account deletion. Needs T20b1.
 
 ### T20b3 · Brainstorm: per-user prompt on the account page
 
-`user_prompts` table, `DEFAULT_BRAINSTORM_PROMPT` (see the design doc), `GET`/`PUT`/`DELETE
+`user_prompts` table, the default prompt (`prompts/brainstorm-default.md`, already written; wire it up through `@lfwa/prompts`), `GET`/`PUT`/`DELETE
 /api/account/brainstorm-prompt`, and a "Brainstorming prompt" section with Save and Reset to default. Can be done
 in parallel with T20b2.
 
@@ -157,6 +150,10 @@ Per the owner: possibly host an open model for users without their own key. Need
 
 ## Done
 
+- **T20b1** · LLM port with tools and streaming: `chat()` on `LLMProvider` (Anthropic adapter, scriptable fake,
+  contract tests incl. an opt-in live run), rate-limit/provider error classes, `llmTool` (Zod to JSON Schema); and a
+  top-level `prompts/` folder of editable Markdown prompts (critique, default brainstorming, brainstorming rules)
+  shared with the evals. (COMMIT)
 - **T22** · Related-work links: titles fetched from the page (address shown when there is none), links can be
   edited, duplicates refused (the typed address is kept with the error shown under the field), and text that isn't a
   plausible, existing web address is rejected. Page lookup is a `PageInfoFetcher` port with an SSRF-safe HTTP
