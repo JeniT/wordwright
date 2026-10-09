@@ -122,7 +122,7 @@ if/when D3 picks object storage.
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
 - **T3b** · Cleanup of unused, unconfirmed accounts (14 days, configurable) plus expired sessions/links/invitations,
-  via an in-process 6-hourly job sharing the account-deletion code (`TBD`)
+  via an in-process 6-hourly job sharing the account-deletion code (`9cbbd5e`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **T15** · Venue profiles: user handles and readable ids (`jenit-substack`), website link, picture with
