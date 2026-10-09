@@ -132,7 +132,7 @@ news-source decision in D2 and is the input to T6.
 - **T3b** · Cleanup of unused, unconfirmed accounts (14 days, configurable) plus expired sessions/links/invitations,
   via an in-process 6-hourly job sharing the account-deletion code (`6ba8af2`)
 - **T3c** · Change email address: password check, link to the new address, old address notified and its links
-  retired, pending change cancelled by a password change/reset (`HASH`)
+  retired, pending change cancelled by a password change/reset (`bae89ce`)
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name
