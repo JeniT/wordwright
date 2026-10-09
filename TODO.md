@@ -21,11 +21,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 Why: `AccountService` is 500+ lines. Requesting, confirming and undoing an email change are self-contained and
 security-sensitive, so they suit their own service (and test file). No behaviour change.
 
-### T26 · One shared button component in the web app
-
-Why: the long `focus-visible:outline-2 …` class string is copied as `const button = …` in four components. A
-`<AppButton>` (or a Tailwind `@utility`) defines the focus ring once. Check axe and phone-width layouts.
-
 ### T5b · Move task tracking to GitHub Issues (optional)
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
@@ -137,6 +132,11 @@ Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace
 Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
 
 ## Done
+
+- **T26** · Shared button styles, no behaviour change: `btn` plus `btn-primary` / `btn-outline` / `btn-neutral` /
+  `btn-danger` / `btn-sm` in `style.css` replace the copied class strings in 18 components and views, so the focus ring
+  is defined once. Left alone on purpose: the full-width sign-in buttons (different text size), the source-list
+  arrows, and `ConfirmDialog`. Follow-up if wanted: fold those into the same set. (`1a8741f`)
 
 - **T27** · Refactor, no behaviour change: `BrainstormService` passes one `ReplyContext` to `reply`, `saveReply` and
   `saveStopped`, and builds the "is waiting for a reply" 409 once; the idea routes' `param` / `find` helpers are typed
