@@ -96,5 +96,5 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T0c** · Bring-your-own Anthropic key: encrypted storage, validation, per-user LLM resolution (`379ed63`)
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
-  recovery test (`TBD`)
+  recovery test (`15d87c0`)
 - **T0d** · Startup/DB safety (legacy/newer DB detection), server-unreachable UI, e2e browser error watcher (`30b1983`)
