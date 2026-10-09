@@ -7,6 +7,7 @@ import { InvitationStore } from './invitations'
 import { ProfileStore } from './profiles'
 import { SourceStore } from './sources'
 import { TokenStore } from './tokens'
+import { UserPromptStore } from './user-prompts'
 import { UserStore } from './users'
 
 export interface Store {
@@ -18,6 +19,7 @@ export interface Store {
   sources: SourceStore
   invitations: InvitationStore
   credentials: CredentialStore
+  userPrompts: UserPromptStore
   /** Run several writes atomically. */
   transaction<T>(fn: () => T): T
 }
@@ -32,6 +34,7 @@ export function createStore(db: DatabaseSync): Store {
     sources: new SourceStore(db),
     invitations: new InvitationStore(db),
     credentials: new CredentialStore(db),
+    userPrompts: new UserPromptStore(db),
     transaction: (fn) => transaction(db, fn),
   }
 }

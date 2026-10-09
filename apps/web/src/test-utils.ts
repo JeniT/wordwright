@@ -18,7 +18,15 @@ export const testUser = {
   linkedProviders: [] as string[],
 }
 
-export const server = setupServer()
+/**
+ * Answers every test needs without saying so: pages that always load something (the account page
+ * shows the brainstorming prompt). `server.use()` in a test overrides these; resetting restores them.
+ */
+export const server = setupServer(
+  http.get('*/api/account/brainstorm-prompt', () =>
+    HttpResponse.json({ prompt: 'The default brainstorming prompt.', isDefault: true }),
+  ),
+)
 
 /** Call once at the top of a test file. */
 export function useMockServer() {

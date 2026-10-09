@@ -1,6 +1,7 @@
 import {
   AcceptInvitationResultSchema,
   AuthConfigSchema,
+  BrainstormPromptSchema,
   CritiqueSchema,
   DraftSchema,
   HandleAvailabilitySchema,
@@ -110,6 +111,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     getLlmSettings: () => get(LlmSettingsSchema, 'GET', '/llm'),
     saveLlmSettings: (input: LlmSettingsInput) => get(LlmSettingsSchema, 'PUT', '/llm', input),
     removeLlmKey: () => act('DELETE', '/llm'),
+
+    // the person's own brainstorming prompt (the default until they change it)
+    getBrainstormPrompt: () => get(BrainstormPromptSchema, 'GET', '/account/brainstorm-prompt'),
+    saveBrainstormPrompt: (prompt: string) =>
+      get(BrainstormPromptSchema, 'PUT', '/account/brainstorm-prompt', { prompt }),
+    resetBrainstormPrompt: () =>
+      get(BrainstormPromptSchema, 'DELETE', '/account/brainstorm-prompt'),
 
     // profiles
     listProfiles: () => get(ProfileList, 'GET', '/profiles'),

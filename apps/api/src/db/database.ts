@@ -203,6 +203,15 @@ export const MIGRATIONS: Migration[] = [
   );
   `,
   wrapStandaloneDraftsInIdeas,
+  `
+  -- A person's own version of an AI prompt. No row means "use the default", so improvements to the
+  -- default reach everyone who hasn't changed it. One column per prompt kind, added as they appear.
+  CREATE TABLE user_prompts (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    brainstorm TEXT,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ]
 
 /**

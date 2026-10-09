@@ -352,6 +352,25 @@ export const LLM_MODELS = {
 export const DEFAULT_LLM_MODEL: Record<LLMProviderId, string> = { anthropic: 'claude-sonnet-5-5' }
 
 /** What the client may see. The key itself is write-only. */
+/** What the person's own brainstorming prompt may hold (the app adds its own rules after it). */
+export const BRAINSTORM_PROMPT_MAX = 8000
+
+/** The prompt that applies to this person: their own, or the default (`isDefault`). */
+export const BrainstormPromptSchema = z.object({ prompt: z.string(), isDefault: z.boolean() })
+export type BrainstormPrompt = z.infer<typeof BrainstormPromptSchema>
+
+export const BrainstormPromptInputSchema = z.object({
+  prompt: z
+    .string()
+    .trim()
+    .min(1, 'Write a prompt, or reset to the default one')
+    .max(
+      BRAINSTORM_PROMPT_MAX,
+      `Use ${BRAINSTORM_PROMPT_MAX.toLocaleString('en')} characters or fewer in the prompt`,
+    ),
+})
+export type BrainstormPromptInput = z.infer<typeof BrainstormPromptInputSchema>
+
 export const LlmSettingsSchema = z.object({
   provider: LLMProviderIdSchema,
   model: z.string(),

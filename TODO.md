@@ -14,14 +14,6 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-### T20b3 · Brainstorm: per-user prompt on the account page
-
-claimed: claude-session-3 · branch: T20b3
-
-`user_prompts` table, the default prompt (`prompts/brainstorm-default.md`, already written; wire it up through `@lfwa/prompts`), `GET`/`PUT`/`DELETE
-/api/account/brainstorm-prompt`, and a "Brainstorming prompt" section with Save and Reset to default. Can be done
-in parallel with T20b2.
-
 ### T20b2 · Brainstorm: storage, context, proposals and streaming API
 
 claimed: claude-session-3 · branch: T20b2
@@ -30,7 +22,7 @@ Tables `idea_messages` and `idea_proposals`; a service that builds the system pr
 notes, related links, venue name/site/audiences when T16 exists, draft titles only), stores the thread in the
 neutral format (no thinking blocks), handles kick-off, retry, stop, proposals (accept with a stale-text check,
 dismiss, create idea), one reply in flight per idea, per-person throttling; SSE endpoint; cascade tests incl.
-account deletion. Needs T20b1.
+account deletion. Needs T20b1; uses `BrainstormPromptService.effective(userId)` from T20b3 for the user's prompt.
 
 ## Ready
 
@@ -152,6 +144,10 @@ Per the owner: possibly host an open model for users without their own key. Need
 
 ## Done
 
+- **T20b3** · Brainstorming prompt on the account page: each person can edit, save and reset their own version of the
+  default commissioning-editor prompt (`prompts/brainstorm-default.md`); a version identical to the default isn't
+  stored, so improvements to the default reach everyone who hasn't changed theirs; `BrainstormPromptService.effective()`
+  is what the brainstorm service (T20b2) will send. (COMMIT)
 - **T20b1** · LLM port with tools and streaming: `chat()` on `LLMProvider` (Anthropic adapter, scriptable fake,
   contract tests incl. an opt-in live run), rate-limit/provider error classes, `llmTool` (Zod to JSON Schema); and a
   top-level `prompts/` folder of editable Markdown prompts (critique, default brainstorming, brainstorming rules)

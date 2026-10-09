@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
 import EmailSection from '../components/EmailSection.vue'
 import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
@@ -51,6 +52,8 @@ const deleteAccount = useMutation({
     <InvitationBlocksSection />
 
     <LlmSettingsSection />
+
+    <BrainstormPromptSection />
 
     <section aria-labelledby="profiles-heading">
       <h2 id="profiles-heading" class="mb-1 font-serif text-xl font-semibold">Profiles</h2>

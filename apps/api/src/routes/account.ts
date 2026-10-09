@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { deleteCookie, getCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import {
+  BrainstormPromptInputSchema,
   ChangeEmailInputSchema,
   ChangePasswordInputSchema,
   DeleteAccountInputSchema,
@@ -10,9 +11,15 @@ import {
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { AccountService } from '../services/accounts'
+import type { BrainstormPromptService } from '../services/brainstorm-prompt'
+import { validateJson } from '../validate'
 import { toHttpError } from './auth'
 
-export function accountRoutes(accounts: AccountService, limiter: RateLimiter) {
+export function accountRoutes(
+  accounts: AccountService,
+  limiter: RateLimiter,
+  brainstormPrompts: BrainstormPromptService,
+) {
   return (
     new Hono<AppEnv>()
       .use(requireUser(accounts))
@@ -45,6 +52,12 @@ export function accountRoutes(accounts: AccountService, limiter: RateLimiter) {
         }
         return c.json({ ok: true })
       })
+      // The person's own version of the brainstorming prompt (or the default, until they change it).
+      .get('/brainstorm-prompt', (c) => c.json(brainstormPrompts.get(c.get('user').id)))
+      .put('/brainstorm-prompt', validateJson(BrainstormPromptInputSchema), (c) =>
+        c.json(brainstormPrompts.save(c.get('user').id, c.req.valid('json').prompt)),
+      )
+      .delete('/brainstorm-prompt', (c) => c.json(brainstormPrompts.reset(c.get('user').id)))
       .delete('/', zValidator('json', DeleteAccountInputSchema), async (c) => {
         const user = c.get('user')
         if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })

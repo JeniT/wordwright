@@ -260,3 +260,13 @@ the token limit reports no tool calls (their input may be half-written); provide
 `LLMRateLimitError` and `LLMProviderError` whose messages never include what was sent, since requests hold people's
 writing. `complete()`/`stream()` now translate errors the same way, so a non-auth failure is an `LLMProviderError`
 (with the SDK error as its `cause`) rather than the raw SDK error.
+
+## A person's brainstorming prompt: stored only if it differs from the default
+
+Each person's own version lives in `user_prompts`; no row (or an empty one) means "use `prompts/brainstorm-default.md`".
+Saving text identical to the default (after trimming and normalising line endings) deletes the row rather than storing
+a copy, so that improving the default, which the owner expects to keep tuning, reaches everyone who hasn't really changed
+it; copies would silently freeze people on old wording. Resetting asks for confirmation only when there is a saved version
+to lose. The prompt is capped at 8,000 characters and is only ever used for that person's own requests; the app's own
+rules (`prompts/brainstorm-rules.md`) are added after it and can't be edited, so a person's prompt can't remove the tool
+rules or the no-drafting rule.

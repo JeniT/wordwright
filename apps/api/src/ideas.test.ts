@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_IDEA_LINKS } from '@lfwa/core'
-import { MIGRATIONS, migrate } from './db/database'
+import { MIGRATIONS, migrate, wrapStandaloneDraftsInIdeas } from './db/database'
 import { register, setup, shareProfile, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('ideas', () => {
@@ -339,7 +339,8 @@ describe('wrapping existing drafts in ideas', () => {
   it('gives every draft from before its own idea, named after it, and leaves ideas alone', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    // Everything before the migration under test, so later migrations don't change what this proves.
+    migrate(db, 'test', MIGRATIONS.slice(0, MIGRATIONS.indexOf(wrapStandaloneDraftsInIdeas)))
     db.exec(`
       INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)

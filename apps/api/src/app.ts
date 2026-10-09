@@ -20,6 +20,7 @@ import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
 import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
+import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { IdeaLinkService } from './services/idea-links'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
@@ -95,7 +96,8 @@ export function createApp(deps: AppDeps) {
       ),
     }),
   )
-  api.route('/account', accountRoutes(accounts, attempts()))
+  const brainstormPrompts = new BrainstormPromptService(store)
+  api.route('/account', accountRoutes(accounts, attempts(), brainstormPrompts))
   const signedIn = (routes: Hono<AppEnv>) =>
     new Hono<AppEnv>().use(requireUser(accounts)).route('/', routes)
   api.route('/llm', signedIn(llmRoutes(llmKeys, attempts())))

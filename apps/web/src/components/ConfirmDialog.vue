@@ -7,6 +7,8 @@ const props = defineProps<{
   confirmLabel: string
   // Disables both buttons while the confirmed action is running.
   busy?: boolean
+  /** Shown on the confirm button while busy. */
+  busyLabel?: string
 }>()
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
 
@@ -90,7 +92,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
             :disabled="busy"
             @click="emit('confirm')"
           >
-            {{ busy ? 'Deleting…' : confirmLabel }}
+            {{ busy ? (busyLabel ?? 'Deleting…') : confirmLabel }}
           </button>
         </div>
       </div>
