@@ -153,7 +153,7 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T20b1** · LLM port with tools and streaming: `chat()` on `LLMProvider` (Anthropic adapter, scriptable fake,
   contract tests incl. an opt-in live run), rate-limit/provider error classes, `llmTool` (Zod to JSON Schema); and a
   top-level `prompts/` folder of editable Markdown prompts (critique, default brainstorming, brainstorming rules)
-  shared with the evals. (COMMIT)
+  shared with the evals. (`d07e385`)
 - **T22** · Related-work links: titles fetched from the page (address shown when there is none), links can be
   edited, duplicates refused (the typed address is kept with the error shown under the field), and text that isn't a
   plausible, existing web address is rejected. Page lookup is a `PageInfoFetcher` port with an SSRF-safe HTTP
