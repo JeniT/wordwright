@@ -22,6 +22,11 @@ const ConfigSchema = z.object({
     .default('false')
     .transform((v) => v === 'true'),
   /**
+   * How the titles of linked pages are looked up. `http` fetches them from the web (only ever from
+   * public sites). `fake` returns canned titles without any network (development and e2e tests only).
+   */
+  PAGE_FETCHER: z.enum(['http', 'fake']).default('http'),
+  /**
    * How emails are delivered. `console` (default) just prints them to the server log, so local
    * development needs no email provider. `file` writes them to MAIL_OUTBOX_DIR. `smtp` really sends.
    */
@@ -56,6 +61,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     }
     if (config.FAKE_LLM) throw new Error('FAKE_LLM must not be enabled in production')
     if (config.FAKE_FEEDS) throw new Error('FAKE_FEEDS must not be enabled in production')
+    if (config.PAGE_FETCHER === 'fake') {
+      throw new Error('PAGE_FETCHER=fake must not be used in production')
+    }
     if (config.MAIL_TRANSPORT !== 'smtp') {
       throw new Error(
         'MAIL_TRANSPORT must be smtp in production, or password reset emails will never arrive',

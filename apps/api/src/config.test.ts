@@ -27,6 +27,7 @@ describe('loadConfig', () => {
     )
     expect(() => loadConfig({ ...ok, PUBLIC_URL: 'http://example.com' })).toThrow(/https/)
     expect(() => loadConfig({ ...ok, FAKE_LLM: 'true' })).toThrow(/FAKE_LLM/)
+    expect(() => loadConfig({ ...ok, PAGE_FETCHER: 'fake' })).toThrow(/PAGE_FETCHER/)
     expect(() => loadConfig({ ...ok, MAIL_TRANSPORT: 'console' })).toThrow(/MAIL_TRANSPORT/)
     expect(() => loadConfig({ ...ok, MAIL_FROM: '' })).toThrow(/MAIL_FROM/)
   })

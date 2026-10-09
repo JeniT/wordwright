@@ -16,7 +16,6 @@ import {
   UserSchema,
   type DraftInput,
   type IdeaInput,
-  type IdeaLinkInput,
   type IdeaUpdate,
   type LlmSettingsInput,
   type LoginInput,
@@ -150,9 +149,19 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     updateIdea: (profileId: string, id: string, changes: IdeaUpdate) =>
       get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}`, changes),
     deleteIdea: (profileId: string, id: string) => act('DELETE', `${ideas(profileId)}/${id}`),
-    /** Answers with the whole idea, so the list of links is up to date. */
-    addIdeaLink: (profileId: string, id: string, input: Partial<IdeaLinkInput> & { url: string }) =>
+    /**
+     * Answers with the whole idea, so the list of links is up to date. The server looks up the page's
+     * title unless one is given, and refuses addresses that can't be a real website.
+     */
+    addIdeaLink: (profileId: string, id: string, input: { url: string; title?: string }) =>
       get(IdeaSchema, 'POST', `${ideas(profileId)}/${id}/links`, input),
+    /** An empty title asks the server to look the page's title up again. */
+    updateIdeaLink: (
+      profileId: string,
+      id: string,
+      linkId: string,
+      input: { url: string; title: string },
+    ) => get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}/links/${linkId}`, input),
     removeIdeaLink: (profileId: string, id: string, linkId: string) =>
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>

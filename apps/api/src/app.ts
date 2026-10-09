@@ -1,6 +1,12 @@
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
-import type { FeedFetcher, LLMFactory, Providers } from '@lfwa/core'
+import {
+  NoPageInfoFetcher,
+  type FeedFetcher,
+  type LLMFactory,
+  type PageInfoFetcher,
+  type Providers,
+} from '@lfwa/core'
 import type { IdentityProvider } from './auth/identity'
 import { requireUser, sameOriginOnly, type AppEnv } from './auth/middleware'
 import { createScryptHasher, type PasswordHasher } from './auth/password'
@@ -14,6 +20,7 @@ import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
 import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
+import { IdeaLinkService } from './services/idea-links'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
@@ -28,6 +35,8 @@ export interface AppDeps {
   /** Encrypts stored API keys. Keep separate from `sessionSecret`. */
   keyEncryptionSecret: string
   mailer: Mailer
+  /** Looks up the title of a page that is linked from an idea. Omit to skip title lookups. */
+  pageFetcher?: PageInfoFetcher
   identityProviders?: IdentityProvider[]
   /** Origin the web app is served from, e.g. http://localhost:5173. */
   publicUrl: string
@@ -109,6 +118,12 @@ export function createApp(deps: AppDeps) {
     24 * 60 * 60 * 1000,
     deps.now && (() => deps.now!().getTime()),
   )
+  // Each lookup contacts someone else's website from our server, so cap them per person.
+  const ideaLinks = new IdeaLinkService({
+    store,
+    pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
+    limiter: new RateLimiter(30, 60 * 1000, deps.now && (() => deps.now!().getTime())),
+  })
   api.route('/invitations', invitationRoutes(invitations, accounts))
   api.route(
     '/profiles',
@@ -121,6 +136,7 @@ export function createApp(deps: AppDeps) {
         deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
         new RateLimiter(30, 60 * 60 * 1000, deps.now && (() => deps.now!().getTime())),
+        ideaLinks,
       ),
     ),
   )

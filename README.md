@@ -73,11 +73,17 @@ tests inject fakes and nothing hits the network.
   `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
   and deletes it. Still to come: reader personas and idea sources (see `TODO.md`).
 - **Ideas** (`/p/<id>/ideas/new`, `/p/<id>/ideas/<idea>`): something to write about, which doesn't need an
-  external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (web
-  addresses, up to 50), and one or more drafts: one for a single post, several (kept in the order they were
+  external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
+  50; see below), and one or more drafts: one for a single post, several (kept in the order they were
   added) for a linked set of posts. Anyone a profile is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. The **Brainstorm** button is a placeholder until the conversation is built. API:
   `/api/profiles/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
+  **Related-work links:** the person types only a web address (scheme optional). Text that isn't a plausible
+  address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
+  twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
+  page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
+  and title; clearing the title looks it up again). The lookup goes through the `PageInfoFetcher` port
+  (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
   **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
   are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
   (`/p/<id>/drafts/<draft>` in the app), which links back to its idea.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { LLMProvider } from '../providers/llm'
 import { FeedError, type FeedFetcher } from '../providers/feeds'
+import type { PageInfoFetcher } from '../providers/pages'
 import type { SearchProvider } from '../providers/search'
 
 /**
@@ -108,6 +109,47 @@ export function feedFetcherContract(
       } finally {
         await close?.()
       }
+    })
+  })
+}
+
+/**
+ * Behaviour every PageInfoFetcher must satisfy. The caller says which addresses to try, because a
+ * real adapter needs a server (or stubbed DNS) behind them.
+ */
+export function pageInfoFetcherContract(
+  name: string,
+  create: () => PageInfoFetcher,
+  scenarios: {
+    titled: { url: string; title: string }
+    untitled: string
+    /** An address whose site doesn't exist. */
+    missing: string
+  },
+) {
+  describe(`PageInfoFetcher contract: ${name}`, () => {
+    it('returns the title of a page that has one', async () => {
+      const info = await create().fetchInfo(scenarios.titled.url)
+      expect(info).toEqual({ title: scenarios.titled.title })
+    })
+
+    it('returns no title, and no problem, for a page without one', async () => {
+      expect(await create().fetchInfo(scenarios.untitled)).toEqual({ title: null })
+    })
+
+    it('says so when the site does not exist', async () => {
+      expect(await create().fetchInfo(scenarios.missing)).toEqual({
+        title: null,
+        problem: 'not-found',
+      })
+    })
+
+    it('resolves with no title, rather than throwing, when already aborted', async () => {
+      const controller = new AbortController()
+      controller.abort()
+      expect(await create().fetchInfo(scenarios.titled.url, controller.signal)).toEqual({
+        title: null,
+      })
     })
   })
 }

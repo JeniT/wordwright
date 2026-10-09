@@ -3,10 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import IdeaLinkItem from '../components/IdeaLinkItem.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
-import { displayHost } from '../lib/useProfiles'
 
 const props = defineProps<{ profileId: string; id: string }>()
 const router = useRouter()
@@ -46,13 +46,11 @@ const save = useMutation({
 })
 
 const linkUrl = ref('')
-const linkTitle = ref('')
+// On failure what was typed stays in the field, with the reason shown under it.
 const addLink = useMutation({
-  mutationFn: () =>
-    api.addIdeaLink(props.profileId, props.id, { url: linkUrl.value, title: linkTitle.value }),
+  mutationFn: () => api.addIdeaLink(props.profileId, props.id, { url: linkUrl.value }),
   onSuccess: async (saved) => {
     linkUrl.value = ''
-    linkTitle.value = ''
     await setIdea(saved)
   },
 })
@@ -143,28 +141,14 @@ const button =
         v-if="idea.data.value.links.length"
         class="mb-4 divide-y divide-stone-200 rounded border border-stone-200 bg-white"
       >
-        <li
+        <IdeaLinkItem
           v-for="link in idea.data.value.links"
           :key="link.id"
-          class="flex items-center justify-between gap-3 px-4 py-3"
-        >
-          <a :href="link.url" target="_blank" rel="noopener noreferrer" class="min-w-0 underline">
-            <span class="block truncate">{{ link.title || displayHost(link.url) }}</span>
-            <span v-if="link.title" class="block truncate text-sm text-stone-600">
-              {{ displayHost(link.url) }}
-            </span>
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
-          <button
-            type="button"
-            :class="[button, 'border border-stone-300 text-sm hover:bg-stone-50']"
-            :aria-label="`Remove link to ${link.title || displayHost(link.url)}`"
-            :disabled="removeLink.isPending.value"
-            @click="removeLink.mutate(link.id)"
-          >
-            Remove
-          </button>
-        </li>
+          :profile-id="profileId"
+          :idea-id="id"
+          :link="link"
+          @remove="removeLink.mutate(link.id)"
+        />
       </ul>
       <p v-else class="mb-4 text-stone-600">No links yet.</p>
       <p v-if="removeLink.isError.value" role="alert" class="mb-3 text-red-700">
@@ -179,18 +163,20 @@ const button =
           autocomplete="off"
           autocapitalize="none"
           :spellcheck="false"
-          hint="For example, https://example.org/article."
+          :invalid="addLink.isError.value"
+          :hint="
+            addLink.isError.value
+              ? errorMessage(addLink.error.value)
+              : 'For example, https://example.org/article. We look up its title for you.'
+          "
+          @update:model-value="addLink.isError.value && addLink.reset()"
         />
-        <TextField v-model="linkTitle" label="Title (optional)" autocomplete="off" />
-        <p v-if="addLink.isError.value" role="alert" class="mb-3 text-red-700">
-          {{ errorMessage(addLink.error.value) }}
-        </p>
         <button
           type="submit"
           :class="[button, 'border border-accent text-accent hover:bg-stone-100']"
           :disabled="addLink.isPending.value"
         >
-          Add link
+          {{ addLink.isPending.value ? 'Adding…' : 'Add link' }}
         </button>
       </form>
     </section>

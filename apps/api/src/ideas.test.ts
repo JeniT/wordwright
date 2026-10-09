@@ -62,50 +62,197 @@ describe('ideas', () => {
   })
 
   describe('links to related work', () => {
-    it('adds links, assuming https, and removes them', async () => {
-      const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
-      const res = await ada.post(`${ideas()}/${idea.id}/links`, {
-        url: 'example.org/meanders',
-        title: ' A paper ',
-      })
-      expect(res.status).toBe(201)
-      const withLink = await res.json()
-      expect(withLink.links).toEqual([
-        { id: expect.any(String), url: 'https://example.org/meanders', title: 'A paper' },
-      ])
+    let idea: { id: string }
+    const links = () => `${ideas()}/${idea.id}/links`
+    const read = async () => (await (await ada.get(`${ideas()}/${idea.id}`)).json()).links
+    const add = (url: string, title?: string) => ada.post(links(), title ? { url, title } : { url })
 
-      await ada.post(`${ideas()}/${idea.id}/links`, { url: 'https://example.org/second' })
-      const two = await (await ada.get(`${ideas()}/${idea.id}`)).json()
-      expect(two.links.map((l: { url: string }) => l.url)).toEqual([
-        'https://example.org/meanders',
-        'https://example.org/second',
-      ])
-      expect(two.links[1].title).toBe('')
-
-      const gone = await ada.delete(`${ideas()}/${idea.id}/links/${withLink.links[0].id}`)
-      expect(gone.status).toBe(204)
-      const one = await (await ada.get(`${ideas()}/${idea.id}`)).json()
-      expect(one.links).toHaveLength(1)
-      expect((await ada.delete(`${ideas()}/${idea.id}/links/nope`)).status).toBe(404)
+    beforeEach(async () => {
+      idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
     })
 
-    it('accepts only web addresses', async () => {
-      const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
-      for (const url of ['javascript:alert(1)', 'not a link', 'ftp://example.org/x', '']) {
-        const res = await ada.post(`${ideas()}/${idea.id}/links`, { url })
-        expect(res.status, url).toBe(400)
-        expect((await res.json()).error).toEqual(expect.any(String))
-      }
+    it('adds a link, assuming https, and shows the title found at the address', async () => {
+      const res = await add('example.org/meanders')
+      expect(res.status).toBe(201)
+      expect((await res.json()).links).toEqual([
+        {
+          id: expect.any(String),
+          url: 'https://example.org/meanders',
+          title: 'Fake title for example.org',
+        },
+      ])
+      expect(ctx.pageFetcher.calls).toEqual(['https://example.org/meanders'])
+    })
+
+    it('keeps a link whose page has no title, with an empty title (the address is shown instead)', async () => {
+      const res = await add('https://example.org/untitled')
+      expect(res.status).toBe(201)
+      expect((await res.json()).links[0].title).toBe('')
+    })
+
+    it('uses a title the person supplied rather than the fetched one', async () => {
+      const link = (await (await add('https://example.org/a', '  My title ')).json()).links[0]
+      expect(link.title).toBe('My title')
+    })
+
+    it('removes a link', async () => {
+      await add('https://example.org/a')
+      const [link] = await read()
+      expect((await ada.delete(`${links()}/${link.id}`)).status).toBe(204)
+      expect(await read()).toEqual([])
+      expect((await ada.delete(`${links()}/nope`)).status).toBe(404)
+    })
+
+    describe('refuses text that is not a plausible web address', () => {
+      it.each([
+        'rubbish',
+        'not a web address',
+        '',
+        'https://rubbish',
+        'localhost',
+        'javascript:alert(1)',
+        'ftp://example.org/x',
+        'https://user:pw@example.com/',
+      ])('%j', async (url) => {
+        const res = await add(url)
+        expect(res.status).toBe(400)
+        expect((await res.json()).error).toBe('Enter a web address, like https://example.com')
+        expect(await read()).toEqual([])
+        expect(ctx.pageFetcher.calls).toEqual([]) // never even looked up
+      })
+    })
+
+    it('refuses an address whose site does not exist', async () => {
+      const res = await add('https://nonexistent.example.org/')
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain("couldn't find a website")
+      expect(await read()).toEqual([])
+    })
+
+    it('refuses an address on a private network', async () => {
+      const res = await add('https://private.example.org/')
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain("isn't a public website")
+      expect(await read()).toEqual([])
+    })
+
+    describe('duplicates', () => {
+      it('refuses the same link twice, however it is written, without looking it up again', async () => {
+        await add('https://example.org/a/b')
+        ctx.pageFetcher.calls.length = 0
+        for (const again of [
+          'https://example.org/a/b',
+          'example.org/a/b',
+          'http://www.example.org/a/b/',
+          'https://EXAMPLE.org/a/b#top',
+        ]) {
+          const res = await add(again)
+          expect(res.status, again).toBe(409)
+          expect((await res.json()).error).toBe('That link is already in this idea.')
+        }
+        expect(await read()).toHaveLength(1)
+        expect(ctx.pageFetcher.calls).toEqual([])
+      })
+
+      it('allows different pages, and the same page in a different idea', async () => {
+        await add('https://example.org/a')
+        expect((await add('https://example.org/b')).status).toBe(201)
+        const other = await (await ada.post(ideas(), { name: 'Tides' })).json()
+        const res = await ada.post(`${ideas()}/${other.id}/links`, { url: 'https://example.org/a' })
+        expect(res.status).toBe(201)
+      })
+    })
+
+    describe('editing', () => {
+      let link: { id: string; url: string; title: string }
+      const edit = (body: object, id = link.id) => ada.patch(`${links()}/${id}`, body)
+
+      beforeEach(async () => {
+        await add('https://example.org/a')
+        await add('https://example.org/b')
+        link = (await read())[0]
+      })
+
+      it('changes the title alone without fetching anything', async () => {
+        ctx.pageFetcher.calls.length = 0
+        const res = await edit({ url: link.url, title: 'A better title' })
+        expect(res.status).toBe(200)
+        expect((await res.json()).links[0]).toEqual({ ...link, title: 'A better title' })
+        expect(ctx.pageFetcher.calls).toEqual([])
+      })
+
+      it('fetches the title again when it is cleared', async () => {
+        await edit({ url: link.url, title: 'Mine' })
+        const res = await edit({ url: link.url, title: '' })
+        expect((await res.json()).links[0].title).toBe('Fake title for example.org')
+      })
+
+      it('looks up the new address, and its title, when the address changes', async () => {
+        const res = await edit({ url: 'https://example.com/c', title: link.title })
+        expect((await res.json()).links[0]).toEqual({
+          id: link.id,
+          url: 'https://example.com/c',
+          title: 'Fake title for example.com',
+        })
+      })
+
+      it('keeps a title the person typed when they change the address too', async () => {
+        const res = await edit({ url: 'https://example.com/c', title: 'Chosen' })
+        expect((await res.json()).links[0].title).toBe('Chosen')
+      })
+
+      it('holds the same checks as adding: syntax, existence and duplicates', async () => {
+        expect((await edit({ url: 'rubbish', title: '' })).status).toBe(400)
+        expect((await edit({ url: 'https://nonexistent.example.org', title: '' })).status).toBe(400)
+        const dup = await edit({ url: 'www.example.org/b', title: '' })
+        expect(dup.status).toBe(409)
+        expect((await dup.json()).error).toBe('That link is already in this idea.')
+        expect(await read()).toHaveLength(2)
+        expect((await read())[0]).toEqual(link) // nothing changed
+      })
+
+      it('lets a link be saved as itself, or tidied (a trailing slash is not a duplicate of itself)', async () => {
+        expect((await edit({ url: 'https://example.org/a/', title: 'Tidied' })).status).toBe(200)
+      })
+
+      it('answers 404 for a link that is not there', async () => {
+        expect((await edit({ url: 'https://example.org/z', title: '' }, 'nope')).status).toBe(404)
+      })
+
+      it('does not reach another idea’s link', async () => {
+        const other = await (await ada.post(ideas(), { name: 'Tides' })).json()
+        const res = await ada.patch(`${ideas()}/${other.id}/links/${link.id}`, {
+          url: 'https://example.org/q',
+          title: '',
+        })
+        expect(res.status).toBe(404)
+      })
     })
 
     it('caps how many an idea can hold', async () => {
-      const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
       for (let i = 0; i < MAX_IDEA_LINKS; i++) {
         ctx.store.ideas.addLink(idea.id, { url: `https://example.org/${i}`, title: '' })
       }
-      const res = await ada.post(`${ideas()}/${idea.id}/links`, { url: 'https://example.org/more' })
+      const res = await add('https://example.org/more')
       expect(res.status).toBe(409)
       expect((await res.json()).error).toContain(`up to ${MAX_IDEA_LINKS} links`)
+    })
+
+    it('slows down someone looking up a great many pages', async () => {
+      let refused = 0
+      for (let i = 0; i < 31; i++) {
+        const res = await ada.post(links(), { url: `https://example.org/page-${i}` })
+        if (res.status === 429) refused++
+        else expect(res.status).toBe(i < MAX_IDEA_LINKS ? 201 : 409)
+      }
+      expect(refused).toBe(1)
+    })
+
+    it('is limited to members of the profile', async () => {
+      const bob = ctx.client()
+      await register(bob, 'bob@example.com', 'Bob')
+      expect((await bob.post(links(), { url: 'https://example.org/x' })).status).toBe(404)
+      expect(ctx.pageFetcher.calls).toEqual([])
     })
   })
 

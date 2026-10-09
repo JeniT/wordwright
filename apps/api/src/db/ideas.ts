@@ -103,6 +103,15 @@ export class IdeaStore {
     return { id, url: input.url, title: input.title }
   }
 
+  updateLink(ideaId: string, linkId: string, input: IdeaLinkInput): boolean {
+    const changed =
+      this.db
+        .prepare('UPDATE idea_links SET url = ?, title = ? WHERE idea_id = ? AND id = ?')
+        .run(input.url, input.title, ideaId, linkId).changes > 0
+    if (changed) this.touch(ideaId)
+    return changed
+  }
+
   removeLink(ideaId: string, linkId: string): boolean {
     const removed =
       this.db.prepare('DELETE FROM idea_links WHERE idea_id = ? AND id = ?').run(ideaId, linkId)

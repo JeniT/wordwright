@@ -5,16 +5,16 @@ import {
   IdeaInputSchema,
   IdeaLinkInputSchema,
   IdeaUpdateSchema,
-  MAX_IDEA_LINKS,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
+import type { IdeaLinkService } from '../services/idea-links'
 import { validateJson } from '../validate'
 
 const notFound = () => new HTTPException(404, { message: 'Not found' })
 
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
-export function ideaRoutes(store: Store) {
+export function ideaRoutes(store: Store, links: IdeaLinkService) {
   const { ideas, drafts } = store
   const profileOf = (c: { req: { param: (name: string) => string | undefined } }) =>
     c.req.param('profileId')!
@@ -42,15 +42,24 @@ export function ideaRoutes(store: Store) {
         return c.body(null, 204)
       })
 
-      .post('/:id/links', validateJson(IdeaLinkInputSchema), (c) => {
-        const idea = find(c)
-        if (idea.links.length >= MAX_IDEA_LINKS) {
-          throw new HTTPException(409, {
-            message: `An idea can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,
-          })
-        }
-        ideas.addLink(idea.id, c.req.valid('json'))
-        return c.json(ideas.get(idea.profileId, idea.id), 201)
+      .post('/:id/links', validateJson(IdeaLinkInputSchema), async (c) => {
+        const saved = await links.add(
+          find(c),
+          c.get('user').id,
+          c.req.valid('json'),
+          c.req.raw.signal,
+        )
+        return c.json(saved, 201)
+      })
+      .patch('/:id/links/:linkId', validateJson(IdeaLinkInputSchema), async (c) => {
+        const saved = await links.update(
+          find(c),
+          c.req.param('linkId'),
+          c.get('user').id,
+          c.req.valid('json'),
+          c.req.raw.signal,
+        )
+        return c.json(saved)
       })
       .delete('/:id/links/:linkId', (c) => {
         const idea = find(c)

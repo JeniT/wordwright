@@ -54,6 +54,11 @@ Consider a reserved-words list and a rate limit.
 Why: the button on the idea page is a placeholder. Needs the conversation design (owner to describe how
 brainstorming should work), a stored message thread per idea, and calls on the requesting user's own key.
 
+### T23 · Apply the stricter web-address check to a profile's website
+
+Why: T22's `WebAddressSchema` rejects `https://rubbish`; the profile website field (`SiteUrlSchema`) still accepts it.
+Switch it over (check existing data: some saved sites might not pass) and show the same error style.
+
 ### T20e · Reorder the drafts in a linked set
 
 Why: an idea's drafts are shown in the order they were added, which is the reading order for a linked set of
@@ -115,6 +120,10 @@ Per the owner: possibly host an open model for users without their own key. Need
 
 ## Done
 
+- **T22** · Related-work links: titles fetched from the page (address shown when there is none), links can be
+  edited, duplicates refused (the typed address is kept with the error shown under the field), and text that isn't a
+  plausible, existing web address is rejected. Page lookup is a `PageInfoFetcher` port with an SSRF-safe HTTP
+  adapter, fake and contract suite. (COMMIT)
 - **T20** · Ideas, first step: each profile has ideas with a name, notes, links to related work and one or more
   drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
   Brainstorm button present but disabled. Existing drafts stay standalone. (`f954432`)

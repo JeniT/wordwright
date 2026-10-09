@@ -1,6 +1,7 @@
 import {
   FakeLLMProvider,
   type FeedFetcher,
+  FakePageInfoFetcher,
   LLMAuthError,
   suggestHandle,
   type LLMConfig,
@@ -18,6 +19,7 @@ export const PUBLIC_URL = 'http://localhost:5173'
 export interface TestOptions {
   mailer?: Mailer
   unconfirmedAccountTtlDays?: number
+  pageFetcher?: FakePageInfoFetcher
   logger?: Pick<Console, 'error'>
   /** Defaults to a fake that treats every `*.example` address as a feed. */
   feeds?: FeedFetcher
@@ -80,6 +82,7 @@ export class TestClient {
 
 export function setup(options: TestOptions = {}) {
   const store = openStore(':memory:')
+  const pageFetcher = options.pageFetcher ?? new FakePageInfoFetcher()
   const memoryMailer = new MemoryMailer()
   const mailer = options.mailer ?? memoryMailer
   /** Every LLM client the app builds, and every request made through it. */
@@ -96,6 +99,7 @@ export function setup(options: TestOptions = {}) {
   const app = createApp({
     store,
     mailer,
+    pageFetcher: pageFetcher,
     logger: options.logger,
     unconfirmedAccountTtlDays: options.unconfirmedAccountTtlDays,
     providers: { search: [] },
@@ -114,6 +118,7 @@ export function setup(options: TestOptions = {}) {
     mailer: memoryMailer,
     llmCalls,
     feeds,
+    pageFetcher,
     clock,
     /** A fresh "browser" with its own cookie jar. */
     client: () => new TestClient(app),

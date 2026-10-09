@@ -28,6 +28,7 @@ export default defineConfig({
         DATABASE_PATH: e2eDb,
         FAKE_LLM: 'true',
         FAKE_FEEDS: 'true',
+        PAGE_FETCHER: 'fake',
         MAIL_TRANSPORT: 'file',
         MAIL_OUTBOX_DIR: e2eOutbox,
         PUBLIC_URL: `http://localhost:${webPort}`,

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { HANDLE_MAX, HANDLE_MIN, HANDLE_PATTERN } from './ids'
+import { WebAddressSchema, withScheme } from './web-address'
 
 // ---- Shared field rules -------------------------------------------------
 
@@ -26,7 +27,6 @@ export const UsernameInputSchema = z
   )
 
 /** People type "mysite.substack.com"; assume https. Only web addresses are accepted, never e.g. javascript:. */
-const withScheme = (text: string) => (/^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`)
 export const SiteUrlSchema = z
   .string()
   .trim()
@@ -277,8 +277,12 @@ export const IdeaLinkSchema = z.object({
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 
+/**
+ * `title` may be left empty: the server then looks the page's title up. When editing, an empty
+ * title means "fetch it again".
+ */
 export const IdeaLinkInputSchema = z.object({
-  url: SiteUrlSchema,
+  url: WebAddressSchema,
   title: z.string().trim().max(200, 'Use 200 characters or fewer for the title').default(''),
 })
 export type IdeaLinkInput = z.infer<typeof IdeaLinkInputSchema>
