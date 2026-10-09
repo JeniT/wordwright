@@ -15,7 +15,7 @@ export default defineConfig({
       env: {
         PORT: '8788',
         DATABASE_PATH: ':memory:',
-        LLM_PROVIDER: 'fake',
+        FAKE_LLM: 'true',
         PUBLIC_URL: 'http://localhost:5174',
       },
       url: 'http://localhost:8788/health',

@@ -70,12 +70,27 @@ tests inject fakes and nothing hits the network.
 - **Email:** `Mailer` is a port. Only a console adapter exists, which logs reset links to the server
   output. Add a real adapter before going live.
 
+## Bring your own LLM key
+
+There is deliberately **no server-wide LLM key**: each user saves their own Anthropic API key under
+_Account → AI assistant_, so usage is billed to them. Keys are checked with a 1-token call before
+being saved, encrypted with AES-256-GCM (bound to the user, so a copied ciphertext won't decrypt for
+anyone else), shown back only as `…1234`, and deleted with the account. Requests in a shared profile
+run on the _requester's_ key.
+
+- `KEY_ENCRYPTION_SECRET` (32+ chars, required in production) encrypts the keys. **Back it up**: if it's
+  lost, every stored key is unreadable and users must re-enter theirs. Ciphertexts carry a `v1` prefix
+  so rotation can be added later; there is no rotation tooling yet.
+- `FAKE_LLM=true` swaps in a canned fake that accepts any key (development and e2e only; refused in
+  production).
+- To add a provider: extend `LLM_PROVIDER_IDS` / `LLM_MODELS` in `packages/core/src/domain.ts`, add an
+  adapter implementing `LLMProvider` (translating credential failures to `LLMAuthError`), and a case
+  in `apps/api/src/llm-factory.ts`.
+
 ## Notes and next steps
 
 - **Storage:** stores in `apps/api/src/db` use `node:sqlite` with versioned migrations
   (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
-- **Bring your own LLM credits:** not built yet; see the notes in the project discussion about API keys
-  versus subscription sign-in. Provider credentials will be per user and encrypted at rest.
 - **UI components:** Tailwind only for now; add headless primitives (Reka UI / shadcn-vue) when you need
   dialogs, menus and comboboxes.
 - **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.

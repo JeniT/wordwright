@@ -6,9 +6,9 @@ import { requireMember, type AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
-import type { LLMProvider } from '@lfwa/core'
+import type { LlmKeyService } from '../services/llm'
 
-export function profileRoutes(store: Store, llm: LLMProvider) {
+export function profileRoutes(store: Store, llmKeys: LlmKeyService) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
 
@@ -71,7 +71,7 @@ export function profileRoutes(store: Store, llm: LLMProvider) {
       .route('/:profileId/drafts', new Hono<AppEnv>().use(member).route('/', draftRoutes(store)))
       .route(
         '/:profileId/assist',
-        new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llm)),
+        new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),
       )
   )
 }

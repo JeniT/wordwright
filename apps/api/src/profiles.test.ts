@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { register, setup, type TestClient } from './test-helpers'
+import { register, saveKey, setup, type TestClient } from './test-helpers'
 
 describe('profiles and sharing', () => {
   let ada: TestClient
@@ -90,6 +90,7 @@ describe('drafts and critique within a profile', () => {
     const ctx = setup()
     const c = ctx.client()
     await register(c)
+    await saveKey(c)
     const pid = (await (await c.get('/api/profiles')).json())[0].id
     const base = `/api/profiles/${pid}`
 
@@ -103,8 +104,10 @@ describe('drafts and critique within a profile', () => {
     expect(await (await c.get(`${base}/drafts`)).json()).toHaveLength(1)
 
     const critique = await c.post(`${base}/assist/critique`, { draftId: draft.id })
-    expect(await critique.json()).toEqual({ text: 'Needs a stronger opening.' })
-    expect(ctx.llm.calls[0]?.messages[0]?.content).toContain('There')
+    expect(await critique.json()).toEqual({
+      text: 'Critique from claude-sonnet-5-5: needs a stronger opening.',
+    })
+    expect(ctx.llmCalls.at(-1)?.request.messages[0]?.content).toContain('There')
 
     expect((await c.delete(`${base}/drafts/${draft.id}`)).status).toBe(204)
     expect((await c.get(`${base}/drafts/${draft.id}`)).status).toBe(404)

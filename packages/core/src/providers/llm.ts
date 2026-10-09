@@ -21,3 +21,14 @@ export interface LLMProvider {
   /** Yields text chunks as they are generated. Concatenated, they equal `complete()`. */
   stream(request: LLMRequest): AsyncIterable<string>
 }
+
+/**
+ * The provider refused the user's credentials (revoked, mistyped, out of credit, no access to
+ * the model). Adapters translate their SDK's errors into this so callers can tell the user.
+ */
+export class LLMAuthError extends Error {
+  constructor(message = 'The provider rejected the API key') {
+    super(message)
+    this.name = 'LLMAuthError'
+  }
+}

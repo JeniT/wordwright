@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
+import { CredentialStore } from './credentials'
 import { openDatabase, transaction } from './database'
 import { DraftStore } from './drafts'
 import { ProfileStore } from './profiles'
@@ -10,6 +11,7 @@ export interface Store {
   tokens: TokenStore
   profiles: ProfileStore
   drafts: DraftStore
+  credentials: CredentialStore
   /** Run several writes atomically. */
   transaction<T>(fn: () => T): T
 }
@@ -20,6 +22,7 @@ export function createStore(db: DatabaseSync): Store {
     tokens: new TokenStore(db),
     profiles: new ProfileStore(db),
     drafts: new DraftStore(db),
+    credentials: new CredentialStore(db),
     transaction: (fn) => transaction(db, fn),
   }
 }

@@ -2,9 +2,11 @@ import {
   AuthConfigSchema,
   CritiqueSchema,
   DraftSchema,
+  LlmSettingsSchema,
   ProfileSchema,
   UserSchema,
   type DraftInput,
+  type LlmSettingsInput,
   type LoginInput,
   type RegisterInput,
 } from '@lfwa/core'
@@ -62,6 +64,11 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('POST', '/auth/reset-password', { token, password }),
     deleteAccount: (confirmEmail: string, password?: string) =>
       act('DELETE', '/account', { confirmEmail, password }),
+
+    // bring-your-own LLM key (write-only: the key is never returned)
+    getLlmSettings: () => get(LlmSettingsSchema, 'GET', '/llm'),
+    saveLlmSettings: (input: LlmSettingsInput) => get(LlmSettingsSchema, 'PUT', '/llm', input),
+    removeLlmKey: () => act('DELETE', '/llm'),
 
     // profiles
     listProfiles: () => get(ProfileList, 'GET', '/profiles'),

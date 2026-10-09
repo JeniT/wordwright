@@ -101,3 +101,44 @@ export type CritiqueRequest = z.infer<typeof CritiqueRequestSchema>
 
 export const CritiqueSchema = z.object({ text: z.string() })
 export type Critique = z.infer<typeof CritiqueSchema>
+
+// ---- Bring-your-own LLM credentials ------------------------------------
+
+export const LLM_PROVIDER_IDS = ['anthropic'] as const
+export const LLMProviderIdSchema = z.enum(LLM_PROVIDER_IDS)
+export type LLMProviderId = z.infer<typeof LLMProviderIdSchema>
+
+export const LLM_MODELS = {
+  anthropic: [
+    { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (balanced)' },
+    { id: 'claude-opus-5-5', label: 'Claude Opus 5.5 (most capable)' },
+    { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 (fastest, cheapest)' },
+  ],
+} as const satisfies Record<LLMProviderId, readonly { id: string; label: string }[]>
+
+export const DEFAULT_LLM_MODEL: Record<LLMProviderId, string> = { anthropic: 'claude-sonnet-5-5' }
+
+/** What the client may see. The key itself is write-only. */
+export const LlmSettingsSchema = z.object({
+  provider: LLMProviderIdSchema,
+  model: z.string(),
+  hasKey: z.boolean(),
+  /** e.g. "…a1b2", enough to recognise which key is stored. */
+  keyHint: z.string().nullable(),
+})
+export type LlmSettings = z.infer<typeof LlmSettingsSchema>
+
+export const LlmSettingsInputSchema = z.object({
+  provider: LLMProviderIdSchema,
+  model: z.string().max(100),
+  /** Omit to keep the stored key and only change the model. */
+  apiKey: z.string().trim().min(10).max(500).optional(),
+})
+export type LlmSettingsInput = z.infer<typeof LlmSettingsInputSchema>
+
+/** Everything needed to talk to a model on a user's behalf. Never serialise this. */
+export interface LLMConfig {
+  provider: LLMProviderId
+  apiKey: string
+  model: string
+}

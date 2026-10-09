@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lastResetToken, PASSWORD, register, setup } from './test-helpers'
+import { lastResetToken, PASSWORD, register, saveKey, setup } from './test-helpers'
 
 describe('registration', () => {
   it('creates an account, a default profile and a session', async () => {
@@ -287,6 +287,7 @@ describe('account deletion', () => {
     const { client, store } = setup()
     const c = client()
     const user = await register(c)
+    await saveKey(c)
     const profileId = (await (await c.get('/api/profiles')).json())[0].id
     await c.post(`/api/profiles/${profileId}/drafts`, { title: 'Mine', body: 'x' })
     const second = await (await c.post('/api/profiles', { name: 'Second' })).json()
@@ -304,6 +305,7 @@ describe('account deletion', () => {
     expect(store.drafts.list(profileId)).toEqual([])
     expect(store.drafts.list(second.id)).toEqual([])
     expect(store.users.getPasswordHash(user.id)).toBeUndefined()
+    expect(store.credentials.get(user.id)).toBeUndefined() // their API key goes too
     expect((await c.get('/api/auth/me')).status).toBe(401)
     expect(
       (await client().post('/api/auth/login', { email: 'ada@example.com', password: PASSWORD }))

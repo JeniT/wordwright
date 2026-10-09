@@ -2,7 +2,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import RichEditor from '../components/RichEditor.vue'
-import { api } from '../lib/api'
+import { RouterLink } from 'vue-router'
+import { ApiError, api, errorMessage } from '../lib/api'
 
 const props = defineProps<{ profileId: string; id: string }>()
 const queryClient = useQueryClient()
@@ -76,12 +77,24 @@ async function requestCritique() {
     </div>
 
     <section
-      v-if="critique.isPending.value || critique.data.value"
+      v-if="critique.isPending.value || critique.data.value || critique.isError.value"
       class="mt-6 rounded border border-stone-200 bg-white p-4"
       aria-labelledby="critique-heading"
     >
       <h2 id="critique-heading" class="mb-2 font-semibold">Critique</h2>
       <p v-if="critique.isPending.value">Reading your draft…</p>
+      <p v-else-if="critique.isError.value" role="alert" class="text-red-700">
+        {{ errorMessage(critique.error.value) }}
+        <RouterLink
+          v-if="
+            critique.error.value instanceof ApiError &&
+            [400, 409].includes(critique.error.value.status)
+          "
+          to="/account"
+          class="underline"
+          >Go to account settings</RouterLink
+        >
+      </p>
       <p v-else class="whitespace-pre-wrap">{{ critique.data.value?.text }}</p>
     </section>
   </article>

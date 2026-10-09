@@ -59,3 +59,88 @@ describe('AccountView', () => {
     await waitFor(() => expect(shared).toEqual({ email: 'bob@example.com' }))
   })
 })
+
+describe('AccountView: AI assistant key', () => {
+  const noKey = { provider: 'anthropic', model: 'claude-sonnet-5-5', hasKey: false, keyHint: null }
+
+  it('saves the key and model, then shows only a hint', async () => {
+    let sent: unknown
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/llm', () => HttpResponse.json(noKey)),
+      http.put('*/api/llm', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json({
+          ...noKey,
+          model: 'claude-haiku-5-5',
+          hasKey: true,
+          keyHint: '…7890',
+        })
+      }),
+    )
+    await renderAt('/account')
+    await screen.findByText('No API key yet.')
+    await fireEvent.update(screen.getByLabelText('Model'), 'claude-haiku-5-5')
+    const field = screen.getByLabelText('Anthropic API key')
+    expect(field).toHaveAttribute('type', 'password')
+    await fireEvent.update(field, '  sk-ant-secret-1234567890  ')
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+
+    await screen.findByText(/Anthropic key saved \(…7890\)/)
+    expect(sent).toEqual({
+      provider: 'anthropic',
+      model: 'claude-haiku-5-5',
+      apiKey: 'sk-ant-secret-1234567890',
+    })
+    expect(screen.queryByDisplayValue(/sk-ant/)).toBeNull() // the field is cleared
+  })
+
+  it('shows why a key was refused', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/llm', () => HttpResponse.json(noKey)),
+      http.put('*/api/llm', () =>
+        HttpResponse.json(
+          { error: 'That API key was rejected by the provider. Please check it.' },
+          { status: 400 },
+        ),
+      ),
+    )
+    await renderAt('/account')
+    await fireEvent.update(
+      await screen.findByLabelText('Anthropic API key'),
+      'sk-ant-wrong-1234567890',
+    )
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/)
+  })
+
+  it('lets a user keep their key and just change the model, or remove the key', async () => {
+    let sent: unknown
+    let removed = false
+    const saved = { ...noKey, hasKey: true, keyHint: '…7890' }
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/llm', () => HttpResponse.json(removed ? noKey : saved)),
+      http.put('*/api/llm', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json({ ...saved, model: 'claude-opus-5-5' })
+      }),
+      http.delete('*/api/llm', () => {
+        removed = true
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    await renderAt('/account')
+    await screen.findByText(/Anthropic key saved/)
+    await fireEvent.update(screen.getByLabelText('Model'), 'claude-opus-5-5')
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    await waitFor(() => expect(sent).toEqual({ provider: 'anthropic', model: 'claude-opus-5-5' }))
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))
+    await screen.findByText('No API key yet.')
+  })
+})

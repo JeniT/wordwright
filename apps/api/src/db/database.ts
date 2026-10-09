@@ -63,6 +63,17 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX drafts_profile ON drafts(profile_id);
   `,
+  `
+  -- A user's own LLM credentials. The key is encrypted; only the last four characters are kept in clear.
+  CREATE TABLE llm_credentials (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL,
+    encrypted_key TEXT NOT NULL,
+    key_hint TEXT NOT NULL,
+    model TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ]
 
 export function openDatabase(path: string): DatabaseSync {

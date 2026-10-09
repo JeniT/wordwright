@@ -30,6 +30,23 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
 
+  // No key yet: we're pointed at account settings rather than silently failing.
+  await page.getByRole('button', { name: 'Critique' }).click()
+  await expect(page.getByRole('alert')).toContainText('Add your Anthropic API key')
+  await page.getByRole('link', { name: 'Go to account settings' }).click()
+
+  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-test-key-1234')
+  await page.getByRole('button', { name: 'Save' }).first().click()
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Anthropic key saved (…1234)' }),
+  ).toBeVisible()
+  await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "Replace…"
+
+  await page
+    .getByRole('link', { name: /Lovelace.s writing/ })
+    .first()
+    .click()
+  await page.getByRole('link', { name: 'Why rivers meander' }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
   await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
   await expect(page.getByText('Fake response to:')).toBeVisible()
@@ -94,7 +111,10 @@ test('sign-in and registration pages have no detectable accessibility violations
   }
 })
 
-test('drafts page has no detectable accessibility violations', async ({ page }) => {
+test('signed-in pages have no detectable accessibility violations', async ({ page }) => {
   await registerUser(page)
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'AI assistant' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

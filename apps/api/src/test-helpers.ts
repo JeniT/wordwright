@@ -1,4 +1,4 @@
-import { FakeLLMProvider } from '@lfwa/core'
+import { FakeLLMProvider, LLMAuthError, type LLMConfig, type LLMRequest } from '@lfwa/core'
 import { createApp } from './app'
 import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
@@ -61,12 +61,22 @@ export class TestClient {
 export function setup(options: TestOptions = {}) {
   const store = openStore(':memory:')
   const mailer = new MemoryMailer()
-  const llm = new FakeLLMProvider(() => 'Needs a stronger opening.')
+  /** Every LLM client the app builds, and every request made through it. */
+  const llmCalls: { config: LLMConfig; request: LLMRequest }[] = []
+  const llmFactory = (config: LLMConfig) =>
+    new FakeLLMProvider((request) => {
+      llmCalls.push({ config, request })
+      if (config.apiKey.startsWith('bad-')) throw new LLMAuthError() // rejected by the provider
+      if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
+      return `Critique from ${config.model}: needs a stronger opening.`
+    })
   const clock = { now: new Date('2026-01-01T00:00:00Z') }
   const app = createApp({
     store,
     mailer,
-    providers: { llm, search: [] },
+    providers: { search: [] },
+    llmFactory,
+    keyEncryptionSecret: 'test-key-secret-test-key-secret!!',
     identityProviders: options.identityProviders,
     publicUrl: PUBLIC_URL,
     sessionSecret: 'test-secret-test-secret-test-secret',
@@ -77,7 +87,7 @@ export function setup(options: TestOptions = {}) {
     app,
     store,
     mailer,
-    llm,
+    llmCalls,
     clock,
     /** A fresh "browser" with its own cookie jar. */
     client: () => new TestClient(app),
@@ -109,4 +119,13 @@ export function lastResetToken(mailer: MemoryMailer): string {
   const token = text.match(/reset-password\?token=([\w-]+)/)?.[1]
   if (!token) throw new Error('No reset link in last email')
   return token
+}
+
+export const GOOD_KEY = 'sk-ant-good-key-1234567890'
+
+/** Saves an API key for the signed-in user. */
+export async function saveKey(client: TestClient, apiKey = GOOD_KEY, model = 'claude-sonnet-5-5') {
+  const res = await client.put('/api/llm', { provider: 'anthropic', model, apiKey })
+  expectStatus(res.status, 200)
+  return res.json()
 }
