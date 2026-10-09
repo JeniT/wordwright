@@ -95,6 +95,13 @@ describe('purging unconfirmed, unused accounts', () => {
       },
     ],
     [
+      'has noted down an idea',
+      async (_ctx: ReturnType<typeof setup>, c: ReturnType<ReturnType<typeof setup>['client']>) => {
+        const pid = (await (await c.get('/api/profiles')).json())[0].id
+        await c.post(`/api/profiles/${pid}/ideas`, { name: 'Rivers' })
+      },
+    ],
+    [
       'has saved an API key',
       async (_ctx: ReturnType<typeof setup>, c: ReturnType<ReturnType<typeof setup>['client']>) => {
         await saveKey(c)

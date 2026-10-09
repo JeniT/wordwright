@@ -129,6 +129,30 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX email_changes_user ON email_changes(user_id);
   `,
+  `
+  -- An idea is something to write about; drafts develop it. Drafts that already exist stay as
+  -- they are (idea_id NULL) rather than being moved, so nothing about them changes.
+  CREATE TABLE ideas (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX ideas_profile ON ideas(profile_id);
+  CREATE TABLE idea_links (
+    id TEXT PRIMARY KEY,
+    idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    title TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX idea_links_idea ON idea_links(idea_id);
+  ALTER TABLE drafts ADD COLUMN idea_id TEXT REFERENCES ideas(id) ON DELETE CASCADE;
+  CREATE INDEX drafts_idea ON drafts(idea_id);
+  `,
 ]
 
 /**

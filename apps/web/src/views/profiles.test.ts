@@ -30,6 +30,7 @@ const blog = {
 const listProfiles = (profiles: unknown[]) =>
   http.get('*/api/profiles', () => HttpResponse.json(profiles))
 /** For tests that end on a profile page, which loads its drafts. */
+const noIdeas = http.get('*/api/profiles/:id/ideas', () => HttpResponse.json([]))
 const noDrafts = http.get('*/api/profiles/:id/drafts', () => HttpResponse.json([]))
 
 describe('profile list (home)', () => {
@@ -95,6 +96,7 @@ describe('new profile', () => {
       signedInAs(testUser),
       listProfiles([]),
       noDrafts,
+      noIdeas,
       http.post('*/api/profiles', async ({ request }) => {
         sent = await request.json()
         return HttpResponse.json(substack, { status: 201 })
@@ -116,6 +118,7 @@ describe('new profile', () => {
       signedInAs(testUser),
       listProfiles([]),
       noDrafts,
+      noIdeas,
       http.post('*/api/profiles', async ({ request }) => {
         sent = await request.json()
         return HttpResponse.json(blog, { status: 201 })
@@ -134,6 +137,7 @@ describe('new profile', () => {
       signedInAs(testUser),
       listProfiles([]),
       noDrafts,
+      noIdeas,
       http.post('*/api/profiles', () => HttpResponse.json(substack, { status: 201 })),
       http.put('*/api/profiles/adalovelace-substack/image', async ({ request }) => {
         uploadedType = request.headers.get('content-type')
@@ -153,7 +157,7 @@ describe('new profile', () => {
   })
 
   it('rejects a file that is not a supported image before sending anything', async () => {
-    server.use(signedInAs(testUser), listProfiles([]), noDrafts)
+    server.use(signedInAs(testUser), listProfiles([]), noDrafts, noIdeas)
     await renderAt('/profiles/new')
     const input = await screen.findByLabelText(/Picture/)
     const svg = new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })
@@ -166,6 +170,7 @@ describe('new profile', () => {
       signedInAs(testUser),
       listProfiles([]),
       noDrafts,
+      noIdeas,
       http.post('*/api/profiles', () =>
         HttpResponse.json(
           { error: 'Enter a web address, like https://example.com' },
@@ -187,6 +192,7 @@ describe('new profile', () => {
       signedInAs(testUser),
       listProfiles([]),
       noDrafts,
+      noIdeas,
       http.post('*/api/profiles', () => {
         creates++
         return HttpResponse.json(substack, { status: 201 })
@@ -218,6 +224,7 @@ describe('profile page', () => {
     {
       id: 'd1',
       profileId: substack.id,
+      ideaId: null,
       title: 'Why rivers meander',
       body: '',
       createdAt: '2026-01-01T00:00:00Z',
@@ -229,6 +236,7 @@ describe('profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([substack]),
+      noIdeas,
       http.get('*/api/profiles/adalovelace-substack/drafts', () => HttpResponse.json(drafts)),
     )
     await renderAt('/p/adalovelace-substack')
@@ -251,6 +259,7 @@ describe('profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([blog]),
+      noIdeas,
       http.get('*/api/profiles/adalovelace-blog/drafts', () => HttpResponse.json([])),
     )
     await renderAt('/p/adalovelace-blog')
@@ -265,6 +274,7 @@ describe('profile page', () => {
       http.get('*/api/profiles/someone-else', () =>
         HttpResponse.json({ error: 'Not found' }, { status: 404 }),
       ),
+      noIdeas,
       http.get('*/api/profiles/someone-else/drafts', () =>
         HttpResponse.json({ error: 'Not found' }, { status: 404 }),
       ),
@@ -278,6 +288,7 @@ describe('profile page', () => {
     server.use(
       signedInAs(testUser),
       listProfiles([substack]),
+      noIdeas,
       http.get('*/api/profiles/adalovelace-substack/drafts', () => HttpResponse.json([])),
       http.post('*/api/profiles/adalovelace-substack/drafts', () =>
         HttpResponse.json({ ...drafts[0], title: 'Untitled' }, { status: 201 }),
@@ -454,6 +465,7 @@ describe('renamed profiles', () => {
       // The server answers an old id with a redirect, which fetch follows to the profile itself.
       http.get('*/api/profiles/adalovelace-blog', () => HttpResponse.json(renamed)),
       noDrafts,
+      noIdeas,
     )
     const { router } = await renderAt('/p/adalovelace-blog/settings?from=email')
     await waitFor(() =>

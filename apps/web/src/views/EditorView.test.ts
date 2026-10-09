@@ -8,6 +8,7 @@ useMockServer()
 const draft = {
   id: 'd1',
   profileId: 'p1',
+  ideaId: null,
   title: 'T',
   body: 'Some text',
   createdAt: '2026-01-01T00:00:00Z',

@@ -13,6 +13,7 @@ import type { Store } from '../db/store'
 import { validateJson } from '../validate'
 import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
+import { ideaRoutes } from './ideas'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { InvitationService } from '../services/invitations'
@@ -127,6 +128,7 @@ export function profileRoutes(
           .route('/', profileInvitationRoutes(invitations, inviteLimiter)),
       )
       .route('/:profileId/drafts', new Hono<AppEnv>().use(member).route('/', draftRoutes(store)))
+      .route('/:profileId/ideas', new Hono<AppEnv>().use(member).route('/', ideaRoutes(store)))
       .route(
         '/:profileId/assist',
         new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),

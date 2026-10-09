@@ -403,6 +403,13 @@ describe('account deletion', () => {
     await c.post(`/api/profiles/${profileId}/drafts`, { title: 'Mine', body: 'x' })
     const second = await (await c.post('/api/profiles', { name: 'Second' })).json()
     await c.post(`/api/profiles/${second.id}/drafts`, { title: 'Also mine', body: 'y' })
+    const idea = await (
+      await c.post(`/api/profiles/${second.id}/ideas`, { name: 'An idea' })
+    ).json()
+    await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/links`, {
+      url: 'https://example.org',
+    })
+    await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/drafts`, { title: 'Idea draft' })
     await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
     expect(store.profiles.getImage(second.id)).toBeDefined()
 
@@ -418,6 +425,9 @@ describe('account deletion', () => {
     expect(store.profiles.members(profileId)).toEqual([])
     expect(store.drafts.list(profileId)).toEqual([])
     expect(store.drafts.list(second.id)).toEqual([])
+    expect(store.ideas.list(second.id)).toEqual([])
+    expect(store.ideas.countLinks(idea.id)).toBe(0)
+    expect(store.drafts.get(second.id, idea.id)).toBeUndefined()
     expect(store.users.getPasswordHash(user.id)).toBeUndefined()
     expect(store.credentials.get(user.id)).toBeUndefined() // their API key goes too
     expect((await c.get('/api/auth/me')).status).toBe(401)

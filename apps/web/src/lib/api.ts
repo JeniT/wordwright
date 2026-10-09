@@ -4,12 +4,17 @@ import {
   CritiqueSchema,
   DraftSchema,
   HandleAvailabilitySchema,
+  IdeaSchema,
+  IdeaSummarySchema,
   InvitationPreviewSchema,
   InvitationSchema,
   LlmSettingsSchema,
   ProfileSchema,
   UserSchema,
   type DraftInput,
+  type IdeaInput,
+  type IdeaLinkInput,
+  type IdeaUpdate,
   type LlmSettingsInput,
   type LoginInput,
   type ProfileInput,
@@ -69,6 +74,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
   const ProfileList = ProfileSchema.array()
   const DraftList = DraftSchema.array()
   const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
+  const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
 
   return {
     // auth
@@ -126,6 +132,22 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
     removeMember: (id: string, userId: string) =>
       act('DELETE', `/profiles/${id}/members/${userId}`),
+
+    // ideas
+    listIdeas: (profileId: string) => get(IdeaSummarySchema.array(), 'GET', ideas(profileId)),
+    getIdea: (profileId: string, id: string) => get(IdeaSchema, 'GET', `${ideas(profileId)}/${id}`),
+    createIdea: (profileId: string, input: Pick<IdeaInput, 'name'> & Partial<IdeaInput>) =>
+      get(IdeaSchema, 'POST', ideas(profileId), input),
+    updateIdea: (profileId: string, id: string, changes: IdeaUpdate) =>
+      get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}`, changes),
+    deleteIdea: (profileId: string, id: string) => act('DELETE', `${ideas(profileId)}/${id}`),
+    /** Answers with the whole idea, so the list of links is up to date. */
+    addIdeaLink: (profileId: string, id: string, input: Partial<IdeaLinkInput> & { url: string }) =>
+      get(IdeaSchema, 'POST', `${ideas(profileId)}/${id}/links`, input),
+    removeIdeaLink: (profileId: string, id: string, linkId: string) =>
+      act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
+    createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
+      get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
 
     // drafts
     listDrafts: (profileId: string) => get(DraftList, 'GET', drafts(profileId)),

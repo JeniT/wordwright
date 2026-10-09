@@ -66,12 +66,19 @@ tests inject fakes and nothing hits the network.
 
 ## Accounts and sign-in
 
-- **Model:** a user has any number of _profiles_; drafts belong to a profile. Profiles are shared by
+- **Model:** a user has any number of _profiles_; ideas and drafts belong to a profile (a draft may develop an idea). Profiles are shared by
   adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
-  and deletes it. Still to come: reader personas, idea sources and ideas (see `TODO.md`).
+  and deletes it. Still to come: reader personas and idea sources (see `TODO.md`).
+- **Ideas** (`/p/<id>/ideas/new`, `/p/<id>/ideas/<idea>`): something to write about, which doesn't need an
+  external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (web
+  addresses, up to 50), and one or more drafts: one for a single post, several (kept in the order they were
+  added) for a linked set of posts. Anyone a profile is shared with can work on its ideas. Deleting an idea
+  deletes its links and drafts. The **Brainstorm** button is a placeholder until the conversation is built. API:
+  `/api/profiles/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
+  Drafts started on their own from the profile page still work and are listed separately.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
@@ -119,7 +126,7 @@ tests inject fakes and nothing hits the network.
   each proves ownership of it.
 - **Abandoned signups are cleaned up.** Every 6 hours the server deletes accounts that never confirmed their
   email, are older than `UNCONFIRMED_ACCOUNT_TTL_DAYS` (default 14; 0 turns it off) and show no sign of use:
-  no drafts, no saved API key, nobody else in their profiles. That frees addresses taken by typos. The signup
+  no drafts or ideas, no saved API key, nobody else in their profiles. That frees addresses taken by typos. The signup
   email says so. The same pass removes expired sessions, used/expired links and old invitations. It logs
   counts only, never who.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile

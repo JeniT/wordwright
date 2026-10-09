@@ -168,6 +168,8 @@ export const AcceptInvitationResultSchema = z.object({ profileId: z.string() })
 export const DraftSchema = z.object({
   id: z.string(),
   profileId: z.string(),
+  /** The idea this draft develops, or null for a draft started on its own. */
+  ideaId: z.string().nullable(),
   title: z.string(),
   /** Markdown source of the piece. */
   body: z.string(),
@@ -181,6 +183,84 @@ export const DraftInputSchema = z.object({
   body: z.string().default(''),
 })
 export type DraftInput = z.infer<typeof DraftInputSchema>
+
+// ---- Ideas (belong to a profile; drafts develop them) -------------------
+
+export const IDEA_NAME_MAX = 200
+export const IDEA_NOTES_MAX = 20_000
+/** Bounds how much one idea can hold. */
+export const MAX_IDEA_LINKS = 50
+
+export const IdeaNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Describe your idea in a few words')
+  .max(
+    IDEA_NAME_MAX,
+    `Use ${IDEA_NAME_MAX} characters or fewer for the idea; put the rest in the notes`,
+  )
+export const IdeaNotesSchema = z
+  .string()
+  .max(
+    IDEA_NOTES_MAX,
+    `Use ${IDEA_NOTES_MAX.toLocaleString('en')} characters or fewer in the notes`,
+  )
+
+export const IdeaLinkSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  /** What the person called it; empty when they just pasted the address. */
+  title: z.string(),
+})
+export type IdeaLink = z.infer<typeof IdeaLinkSchema>
+
+export const IdeaLinkInputSchema = z.object({
+  url: SiteUrlSchema,
+  title: z.string().trim().max(200, 'Use 200 characters or fewer for the title').default(''),
+})
+export type IdeaLinkInput = z.infer<typeof IdeaLinkInputSchema>
+
+/** A draft as listed under its idea. */
+export const IdeaDraftSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  updatedAt: z.string(),
+})
+export type IdeaDraft = z.infer<typeof IdeaDraftSchema>
+
+/** What the list of a profile's ideas shows. */
+export const IdeaSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  draftCount: z.number().int(),
+  updatedAt: z.string(),
+})
+export type IdeaSummary = z.infer<typeof IdeaSummarySchema>
+
+export const IdeaSchema = z.object({
+  id: z.string(),
+  profileId: z.string(),
+  name: z.string(),
+  notes: z.string(),
+  links: z.array(IdeaLinkSchema),
+  /** Oldest first: for a linked set of posts this is the order to read them in. */
+  drafts: z.array(IdeaDraftSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+export type Idea = z.infer<typeof IdeaSchema>
+
+export const IdeaInputSchema = z.object({
+  name: IdeaNameSchema,
+  notes: IdeaNotesSchema.default(''),
+})
+export type IdeaInput = z.infer<typeof IdeaInputSchema>
+/** Omitted fields are left alone. */
+export const IdeaUpdateSchema = z.object({
+  name: IdeaNameSchema.optional(),
+  notes: IdeaNotesSchema.optional(),
+})
+export type IdeaUpdate = z.infer<typeof IdeaUpdateSchema>
 
 export const CritiqueRequestSchema = z.object({ draftId: z.string() })
 export type CritiqueRequest = z.infer<typeof CritiqueRequestSchema>

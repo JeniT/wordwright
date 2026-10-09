@@ -20,15 +20,6 @@ claimed: claude-session-1 · branch: T19
 
 First step only: managing the list. Scanning/fetching feeds comes later (T6).
 
-### T20 · Ideas with brainstorm conversations and staged drafts
-
-claimed: claude-session-3 · branch: T20
-
-First step only: ideas with a name, notes, links to related work, and one or more drafts (a single post or a
-linked set). The Brainstorm button is a placeholder; the conversation itself, idea generation (T6) and the
-sources workflow (T19) come later. Original scope also listed image downscaling on upload and a storage port
-for pictures (if D3 picks object storage); those stay open as follow-ups.
-
 ## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
@@ -72,6 +63,22 @@ Why: people now choose their username at sign-up, but can't change it, and sign-
 generated one (`jenit`) with no chance to pick. Add an account setting (reusing `GET /api/auth/handle-available`,
 `UsernameInputSchema`), perhaps prompting Google sign-ups once, and a rule for what happens to existing profile ids (they stay; only new ones use it).
 Consider a reserved-words list and a rate limit.
+
+### T20b · Brainstorm conversation for an idea
+
+Why: the button on the idea page is a placeholder. Needs the conversation design (owner to describe how
+brainstorming should work), a stored message thread per idea, and calls on the requesting user's own key.
+
+### T20c · Move standalone drafts under ideas
+
+Why: drafts can now belong to an idea (`drafts.idea_id`), but earlier drafts and "New draft" on the profile page
+are still standalone. Decide whether every draft should have an idea (wrap each existing draft in one, or let
+people attach/move a draft), then retire the standalone list. Also: reorder the drafts in a linked set.
+
+### T20d · Pictures: downscale on upload, and a storage port
+
+Why: split out of the original T20. Downscale profile pictures on upload; move pictures behind a storage port
+if/when D3 picks object storage.
 
 ## Backlog
 
@@ -121,6 +128,10 @@ The set of sources scanned for articles that could spark ideas for a profile. De
 news-source decision in D2 and is the input to T6.
 
 ## Done
+
+- **T20** · Ideas, first step: each profile has ideas with a name, notes, links to related work and one or more
+  drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
+  Brainstorm button present but disabled. Existing drafts stay standalone. (COMMIT)
 
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,

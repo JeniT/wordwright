@@ -146,3 +146,15 @@ interval (every 6 hours, 10 s after start, never overlapping, errors logged and 
 because it's idempotent and cheap, and running on several instances at once is harmless. Deletion uses the same
 code as "delete my account" (`removeUserAndOwnedData`) so the two can't drift. No reminder email is sent before
 deletion (see T3e); the signup email states the rule up front.
+
+## Ideas sit beside standalone drafts, not above them (yet)
+
+An idea is a name, notes, links to related work and its drafts. Drafts gained a nullable `idea_id`; the ones that
+already existed were left standalone instead of being wrapped in one idea each, so the first step needed no data
+migration and the existing editor, critique and profile page keep working. The cost is two ways to start a draft
+for now. The profile page's own draft list shows standalone drafts only; an idea's drafts are listed with the
+idea, oldest first, which is also the reading order for a linked set of posts (reordering is not built). Deleting
+an idea deletes its drafts, which the page says before it asks for confirmation. Links are plain web addresses
+(http/https only, with `https://` assumed when someone types `example.org`); the field is a text input, because
+`type="url"` makes the browser refuse that. Having an idea counts as "using" an account, so the unconfirmed-account
+cleanup never deletes someone's ideas.

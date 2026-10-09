@@ -12,6 +12,12 @@ const draft = useQuery({
   queryKey: ['draft', () => props.profileId, () => props.id],
   queryFn: () => api.getDraft(props.profileId, props.id),
 })
+// A draft that develops an idea links back to it.
+const idea = useQuery({
+  queryKey: ['idea', () => props.profileId, () => draft.data.value?.ideaId],
+  queryFn: () => api.getIdea(props.profileId, draft.data.value!.ideaId!),
+  enabled: () => !!draft.data.value?.ideaId,
+})
 const title = ref('')
 const body = ref('')
 watch(
@@ -42,6 +48,17 @@ async function requestCritique() {
   <p v-if="draft.isPending.value">Loading…</p>
   <p v-else-if="draft.isError.value" role="alert" class="text-red-700">Couldn't load this draft.</p>
   <article v-else>
+    <p v-if="draft.data.value?.ideaId" class="mb-4 text-sm">
+      <RouterLink
+        :to="{
+          name: 'idea',
+          params: { profileId: props.profileId, id: draft.data.value.ideaId },
+        }"
+        class="underline"
+      >
+        ← {{ idea.data.value ? `Back to “${idea.data.value.name}”` : 'Back to the idea' }}
+      </RouterLink>
+    </p>
     <label class="sr-only" for="title">Title</label>
     <input
       id="title"

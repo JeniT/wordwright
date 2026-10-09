@@ -15,6 +15,10 @@ const drafts = useQuery({
   queryKey: ['drafts', () => props.profileId],
   queryFn: () => api.listDrafts(props.profileId),
 })
+const ideas = useQuery({
+  queryKey: ['ideas', () => props.profileId],
+  queryFn: () => api.listIdeas(props.profileId),
+})
 const create = useMutation({
   mutationFn: () => api.createDraft(props.profileId, { title: 'Untitled' }),
   onSuccess: async (draft) => {
@@ -60,6 +64,39 @@ const create = useMutation({
         Settings
       </RouterLink>
     </header>
+
+    <section aria-labelledby="ideas-heading" class="mb-10">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 id="ideas-heading" class="font-serif text-xl font-semibold">Ideas</h2>
+        <RouterLink
+          :to="{ name: 'new-idea', params: { profileId } }"
+          class="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          New idea
+        </RouterLink>
+      </div>
+
+      <p v-if="ideas.isPending.value">Loading…</p>
+      <p v-else-if="ideas.isError.value" role="alert" class="text-red-700">
+        Couldn't load ideas. Try reloading the page.
+      </p>
+      <p v-else-if="!ideas.data.value?.length" class="text-stone-600">
+        No ideas yet. When one occurs to you, note it down here.
+      </p>
+      <ul v-else class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
+        <li v-for="idea in ideas.data.value" :key="idea.id">
+          <RouterLink
+            :to="{ name: 'idea', params: { profileId, id: idea.id } }"
+            class="flex items-baseline justify-between gap-3 px-4 py-3 hover:bg-stone-50"
+          >
+            <span class="font-serif text-lg">{{ idea.name }}</span>
+            <span class="shrink-0 text-sm text-stone-600">
+              {{ idea.draftCount }} {{ idea.draftCount === 1 ? 'draft' : 'drafts' }}
+            </span>
+          </RouterLink>
+        </li>
+      </ul>
+    </section>
 
     <section aria-labelledby="drafts-heading">
       <div class="mb-4 flex items-center justify-between">

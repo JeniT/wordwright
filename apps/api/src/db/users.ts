@@ -51,7 +51,7 @@ export class UserStore {
 
   /**
    * Accounts that never confirmed their email, are older than `cutoff`, and show no sign of use: no
-   * drafts in any of their profiles, no saved API key, and no one else in their profiles.
+   * drafts or ideas in any of their profiles, no saved API key, and no one else in their profiles.
    */
   findStaleUnconfirmed(cutoff: Date, limit: number): UserRecord[] {
     return this.db
@@ -59,6 +59,8 @@ export class UserStore {
         `SELECT u.* FROM users u
          WHERE u.email_verified = 0 AND u.created_at < ?
            AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN drafts d ON d.profile_id = m.profile_id
+                           WHERE m.user_id = u.id)
+           AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN ideas i ON i.profile_id = m.profile_id
                            WHERE m.user_id = u.id)
            AND NOT EXISTS (SELECT 1 FROM llm_credentials c WHERE c.user_id = u.id)
            AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN profile_members o
