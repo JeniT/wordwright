@@ -14,6 +14,7 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
+- **T4** · Change/set password while signed in · claimed: Claude (T4 session) · branch: T4 (worktree `.worktrees/T4`)
 - **T15** · Venue profiles: readable ids, user handles, image, site link, list/create/profile pages ·
   claimed: Claude (T15 session) · branch: T15 (worktree `.worktrees/T15`)
 
