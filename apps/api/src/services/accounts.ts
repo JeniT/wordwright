@@ -95,7 +95,7 @@ export class AccountService {
     } catch (err) {
       // Lost a race with a concurrent registration for the same email or username.
       if (String(err).includes('users.handle')) throw handleInUse()
-      if (String(err).includes('UNIQUE')) throw emailInUse()
+      if (isUniqueViolation(err)) throw emailInUse()
       throw err
     }
   }
@@ -139,7 +139,7 @@ export class AccountService {
       hashToken(token),
       user.id,
       user.email,
-      new Date(this.now().getTime() + VERIFY_TTL_MS),
+      this.expiresIn(VERIFY_TTL_MS),
     )
     const link = `${this.d.publicUrl}/verify-email?token=${token}`
     this.sendInBackground(user.id, 'email verification', {
@@ -202,7 +202,7 @@ export class AccountService {
       hashToken(token),
       user.id,
       newEmail,
-      new Date(this.now().getTime() + VERIFY_TTL_MS),
+      this.expiresIn(VERIFY_TTL_MS),
     )
     this.sendInBackground(user.id, 'email change', {
       to: newEmail,
@@ -248,11 +248,11 @@ export class AccountService {
           user.id,
           oldEmail,
           found.newEmail,
-          new Date(this.now().getTime() + UNDO_EMAIL_CHANGE_TTL_DAYS * DAY_MS),
+          this.expiresIn(UNDO_EMAIL_CHANGE_TTL_DAYS * DAY_MS),
         )
       })
     } catch (err) {
-      if (String(err).includes('UNIQUE')) throw emailInUse() // lost a race for the address
+      if (isUniqueViolation(err)) throw emailInUse() // lost a race for the address
       throw err
     }
     this.sendInBackground(user.id, 'email change notice', {
@@ -295,14 +295,10 @@ export class AccountService {
         store.tokens.deleteUserSessions(user.id)
         store.tokens.deleteUserVerifications(user.id)
         store.tokens.deleteUserEmailChanges(user.id)
-        store.tokens.createReset(
-          hashToken(resetToken),
-          user.id,
-          new Date(this.now().getTime() + RESET_TTL_MS),
-        )
+        store.tokens.createReset(hashToken(resetToken), user.id, this.expiresIn(RESET_TTL_MS))
       })
     } catch (err) {
-      if (String(err).includes('UNIQUE')) throw emailInUse()
+      if (isUniqueViolation(err)) throw emailInUse()
       throw err
     }
     this.sendInBackground(user.id, 'email change undo', {
@@ -326,11 +322,7 @@ export class AccountService {
     const user = store.users.findByEmail(email)
     if (!user || !store.users.getPasswordHash(user.id)) return
     const token = generateToken()
-    store.tokens.createReset(
-      hashToken(token),
-      user.id,
-      new Date(this.now().getTime() + RESET_TTL_MS),
-    )
+    store.tokens.createReset(hashToken(token), user.id, this.expiresIn(RESET_TTL_MS))
     const link = `${this.d.publicUrl}/reset-password?token=${token}`
     this.sendInBackground(user.id, 'password reset', {
       to: user.email,
@@ -373,18 +365,13 @@ export class AccountService {
       store.tokens.deleteUserResets(user.id)
       store.tokens.deleteUserEmailChanges(user.id)
     })
-    sendInBackground(
-      this.d.mailer,
-      this.d.logger ?? console,
-      `password change notice for user ${user.id}`,
-      {
-        to: user.email,
-        ...passwordChangedEmail({
-          name: user.name,
-          resetUrl: `${this.d.publicUrl}/forgot-password`,
-        }),
-      },
-    )
+    this.sendInBackground(user.id, 'password change notice', {
+      to: user.email,
+      ...passwordChangedEmail({
+        name: user.name,
+        resetUrl: `${this.d.publicUrl}/forgot-password`,
+      }),
+    })
   }
 
   /**
@@ -401,11 +388,7 @@ export class AccountService {
       )
     }
     const token = generateToken()
-    store.tokens.createReset(
-      hashToken(token),
-      user.id,
-      new Date(this.now().getTime() + RESET_TTL_MS),
-    )
+    store.tokens.createReset(hashToken(token), user.id, this.expiresIn(RESET_TTL_MS))
     this.sendInBackground(user.id, 'password setup', {
       to: user.email,
       ...passwordSetupEmail({
@@ -506,9 +489,13 @@ export class AccountService {
 
   // ---- internals ----------------------------------------------------------
 
+  private expiresIn(ms: number): Date {
+    return new Date(this.now().getTime() + ms)
+  }
+
   private startSession(user: UserRecord): Session {
     const token = generateToken()
-    const expiresAt = new Date(this.now().getTime() + SESSION_TTL_MS)
+    const expiresAt = this.expiresIn(SESSION_TTL_MS)
     this.d.store.tokens.createSession(hashToken(token), user.id, expiresAt)
     return { token, expiresAt, user }
   }
@@ -517,6 +504,9 @@ export class AccountService {
     return (this.dummyHash ??= this.d.hasher.hash('not-a-real-password'))
   }
 }
+
+/** Whether a database error is a UNIQUE constraint failing, i.e. we lost a race for an address or name. */
+const isUniqueViolation = (err: unknown) => String(err).includes('UNIQUE')
 
 const invalidVerification = () =>
   new AccountError('invalid_verification_token', 'This verification link is invalid or has expired')

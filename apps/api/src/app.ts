@@ -27,6 +27,10 @@ import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
 
+const MINUTE = 60 * 1000
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
+
 export interface AppDeps {
   store: Store
   providers: Providers
@@ -68,8 +72,10 @@ export function createApp(deps: AppDeps) {
     unconfirmedTtlDays: deps.unconfirmedAccountTtlDays ?? DEFAULT_UNCONFIRMED_TTL_DAYS,
   })
 
-  const attempts = () =>
-    new RateLimiter(10, 15 * 60 * 1000, deps.now && (() => deps.now!().getTime()))
+  const clock = deps.now && (() => deps.now!().getTime())
+  const limiter = (max: number, windowMs: number) => new RateLimiter(max, windowMs, clock)
+  /** Guessable or costly actions: 10 tries per 15 minutes. */
+  const attempts = () => limiter(10, 15 * MINUTE)
 
   const app = new Hono<AppEnv>()
   app.get('/health', (c) => c.json({ status: 'ok' }))
@@ -85,16 +91,8 @@ export function createApp(deps: AppDeps) {
       sessionSecret: deps.sessionSecret,
       loginLimiter: attempts(),
       resetLimiter: attempts(),
-      handleCheckLimiter: new RateLimiter(
-        120,
-        60 * 1000,
-        deps.now && (() => deps.now!().getTime()),
-      ),
-      verificationLimiter: new RateLimiter(
-        3,
-        60 * 60 * 1000,
-        deps.now && (() => deps.now!().getTime()),
-      ),
+      handleCheckLimiter: limiter(120, MINUTE),
+      verificationLimiter: limiter(3, HOUR),
     }),
   )
   const brainstormPrompts = new BrainstormPromptService(store)
@@ -107,49 +105,41 @@ export function createApp(deps: AppDeps) {
     mailer: deps.mailer,
     publicUrl,
     // 5 a day to any one address, whoever sends them.
-    recipientLimiter: new RateLimiter(
-      5,
-      24 * 60 * 60 * 1000,
-      deps.now && (() => deps.now!().getTime()),
-    ),
+    recipientLimiter: limiter(5, DAY),
     now: deps.now,
     logger: deps.logger,
   })
   // 20 invitations a day per person: each one emails a stranger from our server.
-  const inviteLimiter = new RateLimiter(
-    20,
-    24 * 60 * 60 * 1000,
-    deps.now && (() => deps.now!().getTime()),
-  )
+  const inviteLimiter = limiter(20, DAY)
   // Each lookup contacts someone else's website from our server, so cap them per person.
   const ideaLinks = new IdeaLinkService({
     store,
     pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
-    limiter: new RateLimiter(30, 60 * 1000, deps.now && (() => deps.now!().getTime())),
+    limiter: limiter(30, MINUTE),
   })
   const brainstorm = new BrainstormService({
     store,
     prompts: brainstormPrompts,
     resolveLlm: (userId) => llmKeys.resolveWithInfo(userId),
     // Each message spends the person's own money and our server time: 30 in 10 minutes is a lot of chat.
-    limiter: new RateLimiter(30, 10 * 60 * 1000, deps.now && (() => deps.now!().getTime())),
+    limiter: limiter(30, 10 * MINUTE),
     logger: deps.logger,
   })
   api.route('/invitations', invitationRoutes(invitations, accounts))
   api.route(
     '/profiles',
     signedIn(
-      profileRoutes(
+      profileRoutes({
         store,
         llmKeys,
         invitations,
         inviteLimiter,
-        deps.feeds,
+        feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
-        new RateLimiter(30, 60 * 60 * 1000, deps.now && (() => deps.now!().getTime())),
+        feedLimiter: limiter(30, HOUR),
         ideaLinks,
         brainstorm,
-      ),
+      }),
     ),
   )
   app.route('/api', api)

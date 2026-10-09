@@ -11,6 +11,7 @@ import type { AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { validateJson } from '../validate'
+import { imageResponse } from './image-response'
 
 /** Reading a feed can take a while; longer than this and the person is better told to try again. */
 const ADD_TIMEOUT_MS = 20_000
@@ -72,12 +73,7 @@ export function sourceRoutes(
       .get('/:id/icon', (c) => {
         const icon = sources.getIcon(c.req.param('profileId')!, c.req.param('id'))
         if (!icon) throw new HTTPException(404, { message: 'Not found' })
-        return c.body(icon.data as Uint8Array<ArrayBuffer>, 200, {
-          'Content-Type': icon.contentType,
-          'X-Content-Type-Options': 'nosniff',
-          'Content-Security-Policy': "default-src 'none'; sandbox",
-          'Cache-Control': 'private, max-age=31536000, immutable',
-        })
+        return imageResponse(c, icon)
       })
 
       // Registered before `/:id` so that "order" is not taken for an id.

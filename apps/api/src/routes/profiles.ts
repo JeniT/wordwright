@@ -14,6 +14,7 @@ import type { Store } from '../db/store'
 import { validateJson } from '../validate'
 import { assistRoutes } from './assist'
 import { draftRoutes } from './drafts'
+import { imageResponse } from './image-response'
 import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
 import type { BrainstormService } from '../services/brainstorm'
@@ -23,16 +24,29 @@ import type { RateLimiter } from '../auth/rate-limit'
 import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
 
-export function profileRoutes(
-  store: Store,
-  llmKeys: LlmKeyService,
-  invitations: InvitationService,
-  inviteLimiter: RateLimiter,
-  feeds: FeedFetcher,
-  feedLimiter: RateLimiter,
-  ideaLinks: IdeaLinkService,
-  brainstorm: BrainstormService,
-) {
+export interface ProfileRouteDeps {
+  store: Store
+  llmKeys: LlmKeyService
+  invitations: InvitationService
+  /** Per person: each invitation emails a stranger. */
+  inviteLimiter: RateLimiter
+  feeds: FeedFetcher
+  /** Per person: each new source makes the server fetch pages. */
+  feedLimiter: RateLimiter
+  ideaLinks: IdeaLinkService
+  brainstorm: BrainstormService
+}
+
+export function profileRoutes({
+  store,
+  llmKeys,
+  invitations,
+  inviteLimiter,
+  feeds,
+  feedLimiter,
+  ideaLinks,
+  brainstorm,
+}: ProfileRouteDeps) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
 
@@ -71,13 +85,7 @@ export function profileRoutes(
       .get('/:profileId/image', member, (c) => {
         const image = store.profiles.getImage(c.req.param('profileId'))
         if (!image) throw new HTTPException(404, { message: 'Not found' })
-        return c.body(image.data as Uint8Array<ArrayBuffer>, 200, {
-          'Content-Type': image.contentType,
-          'X-Content-Type-Options': 'nosniff',
-          'Content-Security-Policy': "default-src 'none'; sandbox",
-          // The URL carries a version that changes on upload, so this can be cached for long.
-          'Cache-Control': 'private, max-age=31536000, immutable',
-        })
+        return imageResponse(c, image)
       })
 
       .put(

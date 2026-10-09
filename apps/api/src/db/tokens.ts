@@ -1,6 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { nowIso } from './database'
 
+/** What every emailed one-time link records about itself, however its row is laid out. */
+const linkFields = (row: Record<string, unknown>) => ({
+  userId: row.user_id as string,
+  expiresAt: new Date(row.expires_at as string),
+  used: row.used_at !== null,
+})
+
 /** Sessions and the emailed one-time links (password reset, email confirmation, email change). Callers pass in the *hash* of the secret token. */
 export class TokenStore {
   constructor(private readonly db: DatabaseSync) {}
@@ -99,23 +106,13 @@ export class TokenStore {
       .run(tokenHash, userId, email, expiresAt.toISOString())
   }
 
-  findVerification(
-    tokenHash: string,
-  ): { userId: string; email: string; expiresAt: Date; used: boolean } | undefined {
+  findVerification(tokenHash: string) {
     const row = this.db
       .prepare(
         'SELECT user_id, email, expires_at, used_at FROM email_verifications WHERE token_hash = ?',
       )
-      .get(tokenHash) as
-      { user_id: string; email: string; expires_at: string; used_at: string | null } | undefined
-    return (
-      row && {
-        userId: row.user_id,
-        email: row.email,
-        expiresAt: new Date(row.expires_at),
-        used: row.used_at !== null,
-      }
-    )
+      .get(tokenHash)
+    return row && { ...linkFields(row), email: row.email as string }
   }
 
   markVerificationUsed(tokenHash: string) {
@@ -140,23 +137,13 @@ export class TokenStore {
       .run(tokenHash, userId, newEmail, expiresAt.toISOString())
   }
 
-  findEmailChange(
-    tokenHash: string,
-  ): { userId: string; newEmail: string; expiresAt: Date; used: boolean } | undefined {
+  findEmailChange(tokenHash: string) {
     const row = this.db
       .prepare(
         'SELECT user_id, new_email, expires_at, used_at FROM email_changes WHERE token_hash = ?',
       )
-      .get(tokenHash) as
-      { user_id: string; new_email: string; expires_at: string; used_at: string | null } | undefined
-    return (
-      row && {
-        userId: row.user_id,
-        newEmail: row.new_email,
-        expiresAt: new Date(row.expires_at),
-        used: row.used_at !== null,
-      }
-    )
+      .get(tokenHash)
+    return row && { ...linkFields(row), newEmail: row.new_email as string }
   }
 
   markEmailChangeUsed(tokenHash: string) {
@@ -185,31 +172,17 @@ export class TokenStore {
       .run(tokenHash, userId, oldEmail, newEmail, expiresAt.toISOString())
   }
 
-  findEmailChangeUndo(
-    tokenHash: string,
-  ):
-    | { userId: string; oldEmail: string; newEmail: string; expiresAt: Date; used: boolean }
-    | undefined {
+  findEmailChangeUndo(tokenHash: string) {
     const row = this.db
       .prepare(
         'SELECT user_id, old_email, new_email, expires_at, used_at FROM email_change_undos WHERE token_hash = ?',
       )
-      .get(tokenHash) as
-      | {
-          user_id: string
-          old_email: string
-          new_email: string
-          expires_at: string
-          used_at: string | null
-        }
-      | undefined
+      .get(tokenHash)
     return (
       row && {
-        userId: row.user_id,
-        oldEmail: row.old_email,
-        newEmail: row.new_email,
-        expiresAt: new Date(row.expires_at),
-        used: row.used_at !== null,
+        ...linkFields(row),
+        oldEmail: row.old_email as string,
+        newEmail: row.new_email as string,
       }
     )
   }
