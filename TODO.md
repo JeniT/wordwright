@@ -14,12 +14,14 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-## Ready
-
 ### T25 · Extract the email-change flows from `AccountService`
+
+claimed: claude session (refactor review) · branch: T25
 
 Why: `AccountService` is 500+ lines. Requesting, confirming and undoing an email change are self-contained and
 security-sensitive, so they suit their own service (and test file). No behaviour change.
+
+## Ready
 
 ### T5b · Move task tracking to GitHub Issues (optional)
 
