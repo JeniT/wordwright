@@ -10,6 +10,8 @@ and an LLM-powered critique. The rest is built on the same provider architecture
 > **Contributing or picking this up in a new session?** Start with [AGENTS.md](AGENTS.md), then
 > [TODO.md](TODO.md). Design rationale is in [docs/decisions.md](docs/decisions.md).
 
+> The repository is on GitHub (private): `JeniT/writing-assistant`. CI runs the full check plus the browser tests on every push.
+
 ## Stack
 
 | Concern         | Choice                                                                         |

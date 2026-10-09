@@ -19,6 +19,11 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## Ready
 
+### T5b · Move task tracking to GitHub Issues (optional)
+
+Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
+summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
+
 ### T3b · Purge never-confirmed accounts
 
 Why: unconfirmed signups (typos, abandoned) accumulate and keep addresses "taken". Delete accounts that are
@@ -34,11 +39,6 @@ address they were sent to).
 
 Let an invitee decline from the email/page, and block further invitations from a sender or entirely (spam
 protection beyond the per-sender cap). Consider a per-recipient cap too, so many owners can't pile on one address.
-
-### T5 · Push the repo to a remote so CI runs
-
-- Create the GitHub repo (owner), add remote, push `main`, confirm `.github/workflows/ci.yml` passes
-  (including the Playwright job). Consider branch protection requiring CI.
 
 ## Backlog
 
@@ -91,6 +91,8 @@ Per the owner: possibly host an open model for users without their own key. Need
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
   recovery test (`15d87c0`)
+- **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
+  passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **T4** · Change password while signed in (current password required, other devices signed out, notice
   email) and add a password to Google-only accounts via an emailed link (`ecff6ed`)
 - **T3** · Invitations: owners invite by email (account or not), 7-day hashed links bound to the address,
