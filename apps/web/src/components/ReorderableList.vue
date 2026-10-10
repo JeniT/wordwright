@@ -15,6 +15,8 @@ const props = defineProps<{
   save: (ids: string[], moved: T) => Promise<boolean>
   /** Switches the arrows off, e.g. while a save is in flight. */
   disabled?: boolean
+  /** `cards` lays the rows out as separate cards, two across where there is room. Defaults to a plain list. */
+  layout?: 'list' | 'cards'
 }>()
 
 defineSlots<{
@@ -71,8 +73,17 @@ function onDragOver(event: DragEvent, item: T) {
   if (!draggingId.value) return // something else (a file, some text) is being dragged
   event.preventDefault() // allows dropping here
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  over.value = { id: item.id, after: event.clientY > rect.top + rect.height / 2 }
+  const row = event.currentTarget as HTMLElement
+  const rect = row.getBoundingClientRect()
+  // Cards sit side by side when there is room, so "before or after" is then left or right of the middle.
+  const sideBySide =
+    props.layout === 'cards' && (row.parentElement?.clientWidth ?? 0) > rect.width * 1.5
+  over.value = {
+    id: item.id,
+    after: sideBySide
+      ? event.clientX > rect.left + rect.width / 2
+      : event.clientY > rect.top + rect.height / 2,
+  }
 }
 
 async function onDrop(event: DragEvent) {
@@ -99,16 +110,33 @@ const buttonClass =
 
 <template>
   <div>
-    <ol class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
+    <ol
+      :class="
+        layout === 'cards'
+          ? 'grid gap-3 sm:grid-cols-2'
+          : 'divide-y divide-stone-200 rounded border border-stone-200 bg-white'
+      "
+    >
       <li
         v-for="(item, index) in items"
         :key="item.id"
-        class="flex flex-wrap items-center gap-x-3 gap-y-2 border-y-2 border-transparent px-3 py-2"
-        :class="{
-          'opacity-50': draggingId === item.id,
-          'border-t-accent': over?.id === item.id && !over.after && draggingId !== item.id,
-          'border-b-accent': over?.id === item.id && over.after && draggingId !== item.id,
-        }"
+        class="flex flex-wrap gap-x-3 gap-y-2 px-3 py-2"
+        :class="[
+          layout === 'cards'
+            ? 'content-start items-start rounded border border-stone-200 border-x-2 bg-white'
+            : 'items-center border-y-2 border-transparent',
+          {
+            'opacity-50': draggingId === item.id,
+            'border-t-accent':
+              layout !== 'cards' && over?.id === item.id && !over.after && draggingId !== item.id,
+            'border-b-accent':
+              layout !== 'cards' && over?.id === item.id && over.after && draggingId !== item.id,
+            'border-l-accent':
+              layout === 'cards' && over?.id === item.id && !over.after && draggingId !== item.id,
+            'border-r-accent':
+              layout === 'cards' && over?.id === item.id && over.after && draggingId !== item.id,
+          },
+        ]"
         @dragover="onDragOver($event, item)"
         @drop="onDrop"
       >

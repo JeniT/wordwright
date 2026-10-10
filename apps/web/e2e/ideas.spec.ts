@@ -128,12 +128,40 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.reload()
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
 
-  // Edits to the notes persist.
-  await page.getByLabel('Expand on your idea here').fill('Now with oxbow lakes.')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByRole('listitem')).toHaveCount(1)
+  await expect(notes.getByRole('listitem').first()).toContainText('Added by hand')
+  for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
+    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByRole('button', { name: 'Add note' }).click()
+    await expect(notes.getByText(text)).toBeVisible()
+  }
+  await expect(notes.getByLabel('Add a note')).toHaveValue('')
+  await noViolations(page, 'idea page with notes')
+
+  await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*up/ }).click()
+  await expect(notes.getByRole('listitem').nth(1)).toContainText('Oxbow lakes')
+  await notes.getByRole('button', { name: /^Edit note “Erosion on the outside/ }).click()
+  await notes
+    .getByLabel(/^Text of note/)
+    .fill('Erosion on the outside of each bend, deposition inside.')
+  await notes.getByRole('button', { name: 'Save note' }).click()
+  await expect(
+    notes.getByText('Erosion on the outside of each bend, deposition inside.'),
+  ).toBeVisible()
+  await notes.getByRole('button', { name: /^Delete note “Deposition on the inside/ }).click()
+  await expect(notes.getByText('Deposition on the inside.')).toHaveCount(0)
+
+  // The list layout is a choice that sticks; the order and edits are saved.
+  await notes.getByRole('button', { name: 'List' }).click()
+  await noViolations(page, 'idea page with notes as a list')
   await page.reload()
-  await expect(page.getByLabel('Expand on your idea here')).toHaveValue('- Now with oxbow lakes.')
+  await expect(notes.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(notes.getByRole('listitem')).toHaveText([
+    /Erosion on the outside of each bend, deposition inside\./,
+    /Oxbow lakes form when a loop is cut off\./,
+  ])
 
   // The profile lists it.
   await page.getByRole('link', { name: '← Back to the profile' }).click()

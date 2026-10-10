@@ -86,9 +86,10 @@ test('a suggestion made against older notes says so, and can still be applied', 
 
   // Meanwhile the person edits the notes themselves.
   await page.getByRole('link', { name: '← Back to the idea' }).click()
-  await page.getByLabel('Expand on your idea here').fill('My own rewrite of the notes.')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await page.getByRole('button', { name: /^Edit note/ }).click()
+  await page.getByLabel(/^Text of note/).fill('My own rewrite of the notes.')
+  await page.getByRole('button', { name: 'Save note' }).click()
+  await expect(page.getByText('My own rewrite of the notes.')).toBeVisible()
 
   await page.getByRole('link', { name: 'Continue brainstorming' }).click()
   await expect(page.getByText(/The idea has changed since this was suggested/)).toBeVisible()
@@ -96,7 +97,7 @@ test('a suggestion made against older notes says so, and can still be applied', 
   await page.getByRole('button', { name: /^Apply anyway:/ }).click()
   await expect(page.getByText('Accepted by Pru.')).toBeVisible()
   await page.getByRole('link', { name: '← Back to the idea' }).click()
-  await expect(page.getByLabel('Expand on your idea here')).toHaveValue(
+  await expect(page.getByRole('region', { name: 'Notes' })).toContainText(
     /Claim: rivers meander because of erosion/,
   )
 })
@@ -117,8 +118,8 @@ test('a spin-off idea can be accepted and opened, and a suggestion can be dismis
   await card.getByRole('button', { name: /^Accept:/ }).click()
   await card.getByRole('link', { name: 'Open the new idea' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'A spin-off idea' })).toBeVisible()
-  await expect(page.getByLabel('Expand on your idea here')).toHaveValue(
-    '- Came out of a conversation.',
+  await expect(page.getByRole('region', { name: 'Notes' })).toContainText(
+    'Came out of a conversation.',
   )
 })
 

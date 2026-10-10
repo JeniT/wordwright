@@ -7,6 +7,7 @@ import {
   CritiqueSchema,
   DraftSchema,
   HandleAvailabilitySchema,
+  IdeaNoteSchema,
   IdeaSchema,
   IdeaSummarySchema,
   InvitationBlocksSchema,
@@ -185,6 +186,18 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** `ids` is every draft of the idea, in the new order. Answers with the idea as saved. */
     reorderIdeaDrafts: (profileId: string, id: string, ids: string[]) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/drafts/order`, { ids }),
+    // notes: index cards for an idea, in the order the person arranged them
+    listIdeaNotes: (profileId: string, id: string) =>
+      get(IdeaNoteSchema.array(), 'GET', `${ideas(profileId)}/${id}/notes`),
+    addIdeaNote: (profileId: string, id: string, text: string) =>
+      get(IdeaNoteSchema, 'POST', `${ideas(profileId)}/${id}/notes`, { text }),
+    updateIdeaNote: (profileId: string, id: string, noteId: string, text: string) =>
+      get(IdeaNoteSchema, 'PATCH', `${ideas(profileId)}/${id}/notes/${noteId}`, { text }),
+    removeIdeaNote: (profileId: string, id: string, noteId: string) =>
+      act('DELETE', `${ideas(profileId)}/${id}/notes/${noteId}`),
+    /** `ids` is every note of the idea, in the new order. Answers with the notes as saved. */
+    reorderIdeaNotes: (profileId: string, id: string, ids: string[]) =>
+      get(IdeaNoteSchema.array(), 'PUT', `${ideas(profileId)}/${id}/notes/order`, { ids }),
     // idea sources (the list is in priority order, highest first)
     listSources: (profileId: string) =>
       get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),

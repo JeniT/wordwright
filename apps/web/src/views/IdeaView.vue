@@ -4,8 +4,8 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IdeaLinkItem from '../components/IdeaLinkItem.vue'
+import IdeaNotes from '../components/IdeaNotes.vue'
 import ReorderableList from '../components/ReorderableList.vue'
-import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 
@@ -20,7 +20,6 @@ const idea = useQuery({
 
 // Fill the form once per idea. Later refreshes (a link was added) must not wipe unsaved typing.
 const name = ref('')
-const notes = ref('')
 let filledFor = ''
 watch(
   () => idea.data.value,
@@ -28,7 +27,6 @@ watch(
     if (loaded && filledFor !== loaded.id) {
       filledFor = loaded.id
       name.value = loaded.name
-      notes.value = loaded.notes
     }
   },
   { immediate: true },
@@ -50,8 +48,7 @@ const setIdea = (saved: Awaited<ReturnType<typeof api.getIdea>>) => {
 }
 
 const save = useMutation({
-  mutationFn: () =>
-    api.updateIdea(props.profileId, props.id, { name: name.value, notes: notes.value }),
+  mutationFn: () => api.updateIdea(props.profileId, props.id, { name: name.value }),
   onSuccess: setIdea,
 })
 
@@ -137,7 +134,6 @@ const remove = useMutation({
 
     <form class="mb-10" @submit.prevent="save.mutate()">
       <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
-      <TextAreaField v-model="notes" label="Expand on your idea here" :rows="8" />
       <div class="flex items-center gap-3">
         <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">Save</button>
         <p role="status" class="text-sm text-stone-600">
@@ -149,6 +145,8 @@ const remove = useMutation({
         {{ errorMessage(save.error.value) }}
       </p>
     </form>
+
+    <IdeaNotes :profile-id="profileId" :idea-id="id" />
 
     <section aria-labelledby="links-heading" class="mb-10">
       <h2 id="links-heading" class="mb-1 font-serif text-xl font-semibold">Related work</h2>

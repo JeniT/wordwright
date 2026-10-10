@@ -26,6 +26,8 @@ export const server = setupServer(
   http.get('*/api/account/brainstorm-prompt', () =>
     HttpResponse.json({ prompt: 'The default brainstorming prompt.', isDefault: true }),
   ),
+  // No notes yet, on any idea.
+  http.get('*/api/profiles/:profileId/ideas/:ideaId/notes', () => HttpResponse.json([])),
   // No brainstorming has happened yet, on any idea.
   http.get('*/api/profiles/:profileId/ideas/:ideaId/conversation', () =>
     HttpResponse.json({ messages: [], replyingNow: null }),

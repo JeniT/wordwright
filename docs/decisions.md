@@ -207,6 +207,21 @@ tasks set the others on the server. `added_at` is for the drafting drawer (T33) 
   becomes one note. Text that reads as the notes already there changes nothing, so a form that always sends
   `notes` keeps each note's id and origin. Remove it with T29/T30.
 
+## Notes on the idea page: cards or a list, one shared reorderable list (T29)
+
+The idea page's single "Expand on your idea here" box is replaced by a **Notes** section that talks to the `/notes`
+routes (the box on the _new idea_ page stays; what is typed there becomes the first note). Each note shows its
+text, where it came from (added by hand, from brainstorming, from reading) and Edit / Delete; a box underneath adds
+the next one. The idea's name form now saves only the name.
+
+- **Cards or list.** The same `ReorderableList` serves both, with a `layout="cards"` option: separate bordered
+  cards, two across where there is room, with the drop marker on the left or right of a card when they are side by
+  side. A card's buttons wrap under its text so the text keeps its width on a phone. The choice is remembered in
+  `localStorage` (this browser only; losing it just means the default, cards).
+- **Deleting is immediate**, as for related-work links, with no confirmation or undo. Revisit if people lose notes.
+- **Brainstorm is unchanged.** It still shows and proposes the notes as one Markdown text (T28b) until T30, so
+  accepting a "replace the notes" suggestion still replaces them all with what the AI wrote.
+
 ## Idea sources: an ordered list of feeds, edited by any member
 
 Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the

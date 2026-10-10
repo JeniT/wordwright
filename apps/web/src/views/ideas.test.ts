@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -134,7 +134,6 @@ describe('idea page', () => {
   it('shows the idea, its links and its drafts in order', async () => {
     await open()
     expect(await screen.findByLabelText("What's your core idea?")).toHaveValue('Why rivers meander')
-    expect(screen.getByLabelText('Expand on your idea here')).toHaveValue('Erosion loops.')
     const link = screen.getByRole('link', { name: /A paper/ })
     expect(link).toHaveAttribute('href', 'https://example.org/paper')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
@@ -197,7 +196,7 @@ describe('idea page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("couldn't open that idea")
   })
 
-  it('saves changes to the name and notes', async () => {
+  it('saves a change to the name', async () => {
     let sent: unknown
     await open([
       http.patch(ideaUrl, async ({ request }) => {
@@ -208,7 +207,7 @@ describe('idea page', () => {
     await fireEvent.update(await screen.findByLabelText("What's your core idea?"), 'Meanders')
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'))
-    expect(sent).toEqual({ name: 'Meanders', notes: 'Erosion loops.' })
+    expect(sent).toEqual({ name: 'Meanders' }) // the notes have their own routes
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Meanders')
   })
 
@@ -242,7 +241,7 @@ describe('idea page', () => {
   })
 
   describe('adding a link', () => {
-    it('sends just the address, then shows the link and clears the field, keeping unsaved notes', async () => {
+    it('sends just the address, then shows the link and clears the field, keeping an unsaved note', async () => {
       let sent: unknown
       const added = {
         ...idea,
@@ -258,14 +257,14 @@ describe('idea page', () => {
         }),
       ])
       expect(screen.queryByLabelText(/Title/)).toBeNull() // adding a link doesn't ask for a title
-      await fireEvent.update(await screen.findByLabelText('Expand on your idea here'), 'Unsaved')
+      await fireEvent.update(await screen.findByLabelText('Add a note'), 'Unsaved')
       await fireEvent.update(screen.getByLabelText('Web address'), 'example.org/new')
       await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
 
       await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
       expect(sent).toEqual({ url: 'example.org/new' })
       expect(await screen.findByRole('link', { name: /Fetched title/ })).toBeInTheDocument()
-      expect(screen.getByLabelText('Expand on your idea here')).toHaveValue('Unsaved')
+      expect(screen.getByLabelText('Add a note')).toHaveValue('Unsaved')
     })
 
     it.each([
@@ -437,6 +436,286 @@ describe('idea page', () => {
       await screen.findByRole('link', { name: /Back to “Why rivers meander”/ }),
     ).toHaveAttribute('href', '/p/ada-substack/ideas/i1')
     expect(sent).toEqual({ title: 'Untitled' })
+  })
+
+  describe('notes', () => {
+    const notesUrl = `${ideaUrl}/notes`
+    const note = (id: string, text: string, origin = 'entered') => ({
+      id,
+      text,
+      origin,
+      authorId: 'u1',
+      addedAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    })
+    const three = [
+      note('n1', 'Erosion loops.'),
+      note('n2', 'Deposition inside the bend.\nSecond line.', 'brainstorm'),
+      note('n3', 'A quote from the paper.', 'reading'),
+    ]
+    const region = () => screen.getByRole('region', { name: 'Notes' })
+    const texts = () =>
+      within(region())
+        .getAllByRole('listitem')
+        .map((li) => li.querySelector('p')?.textContent)
+
+    /** A notes list that behaves like the server's, and records what was asked of it. */
+    function fakeNotes(start = three) {
+      const state = { notes: start, orders: [] as string[][], sent: [] as unknown[] }
+      server.use(
+        http.get(notesUrl, () => HttpResponse.json(state.notes)),
+        http.post(notesUrl, async ({ request }) => {
+          const body = (await request.json()) as { text: string }
+          state.sent.push(body)
+          const created = note(`n${state.notes.length + 1}`, body.text.trim())
+          state.notes = [...state.notes, created]
+          return HttpResponse.json(created, { status: 201 })
+        }),
+        http.patch(`${notesUrl}/:noteId`, async ({ request, params }) => {
+          const body = (await request.json()) as { text: string }
+          state.sent.push(body)
+          state.notes = state.notes.map((n) =>
+            n.id === params.noteId ? { ...n, text: body.text } : n,
+          )
+          return HttpResponse.json(state.notes.find((n) => n.id === params.noteId))
+        }),
+        http.delete(`${notesUrl}/:noteId`, ({ params }) => {
+          state.notes = state.notes.filter((n) => n.id !== params.noteId)
+          return new HttpResponse(null, { status: 204 })
+        }),
+        http.put(`${notesUrl}/order`, async ({ request }) => {
+          const { ids } = (await request.json()) as { ids: string[] }
+          state.orders.push(ids)
+          state.notes = ids.map((id) => state.notes.find((n) => n.id === id)!)
+          return HttpResponse.json(state.notes)
+        }),
+      )
+      return state
+    }
+
+    beforeEach(() => localStorage.clear())
+
+    it('shows each note with where it came from, in order, as cards by default', async () => {
+      fakeNotes()
+      await open()
+      await screen.findByText('Erosion loops.')
+      expect(texts()).toEqual([
+        'Erosion loops.',
+        'Deposition inside the bend.\nSecond line.',
+        'A quote from the paper.',
+      ])
+      const items = within(region()).getAllByRole('listitem')
+      expect(items[0]).toHaveTextContent('Added by hand')
+      expect(items[1]).toHaveTextContent('From brainstorming')
+      expect(items[2]).toHaveTextContent('From reading')
+      expect(within(region()).getByRole('button', { name: 'Cards' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      expect(items[0]!.closest('ol')).toHaveClass('grid')
+    })
+
+    it('switches between cards and a list, and remembers the choice', async () => {
+      fakeNotes()
+      const { unmount } = await open()
+      await screen.findByText('Erosion loops.')
+      await fireEvent.click(within(region()).getByRole('button', { name: 'List' }))
+      expect(within(region()).getByRole('button', { name: 'List' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      expect(within(region()).getByRole('button', { name: 'Cards' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      )
+      expect(within(region()).getAllByRole('listitem')[0]!.closest('ol')).not.toHaveClass('grid')
+      unmount()
+
+      await open()
+      await screen.findByText('Erosion loops.')
+      expect(within(region()).getByRole('button', { name: 'List' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+    })
+
+    it('says so when there are no notes, and offers no layout choice yet', async () => {
+      await open()
+      expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
+      expect(within(region()).queryByRole('button', { name: 'List' })).toBeNull()
+    })
+
+    it('explains when the notes cannot be loaded, and tries again', async () => {
+      let fail = true
+      const state = fakeNotes()
+      server.use(
+        http.get(notesUrl, () =>
+          fail
+            ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+            : HttpResponse.json(state.notes),
+        ),
+      )
+      await open()
+      await screen.findByRole('region', { name: 'Notes' })
+      expect(await within(region()).findByRole('alert')).toHaveTextContent(
+        "couldn't load the notes",
+      )
+      fail = false
+      await fireEvent.click(within(region()).getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText('Erosion loops.')).toBeInTheDocument()
+    })
+
+    it('adds a note, shows it last, and clears the box ready for the next', async () => {
+      const state = fakeNotes()
+      await open()
+      await screen.findByText('Erosion loops.')
+      const box = screen.getByLabelText('Add a note')
+      expect(screen.getByRole('button', { name: 'Add note' })).toBeDisabled() // nothing to add yet
+      await fireEvent.update(box, 'Oxbow lakes form when a loop is cut off.')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+
+      expect(
+        await screen.findByText('Oxbow lakes form when a loop is cut off.'),
+      ).toBeInTheDocument()
+      expect(state.sent).toEqual([{ text: 'Oxbow lakes form when a loop is cut off.' }])
+      expect(texts().at(-1)).toBe('Oxbow lakes form when a loop is cut off.')
+      expect(box).toHaveValue('')
+      await waitFor(() => expect(box).toHaveFocus())
+    })
+
+    it('shows why a note was refused and keeps what was typed', async () => {
+      fakeNotes()
+      server.use(
+        http.post(notesUrl, () =>
+          HttpResponse.json({ error: 'An idea can have up to 200 notes.' }, { status: 409 }),
+        ),
+      )
+      await open()
+      const box = await screen.findByLabelText('Add a note')
+      await fireEvent.update(box, 'One too many')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      expect(await screen.findByText('An idea can have up to 200 notes.')).toBeInTheDocument()
+      expect(box).toHaveValue('One too many')
+    })
+
+    describe('editing', () => {
+      const edit = async () => {
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Edit note “Erosion loops\.”/ }),
+        )
+        return screen.getByLabelText(/^Text of note “Erosion loops\.”/)
+      }
+
+      it('opens the note in a box with focus, and saves the new text', async () => {
+        const state = fakeNotes()
+        await open()
+        const box = await edit()
+        expect(box).toHaveValue('Erosion loops.')
+        await waitFor(() => expect(box).toHaveFocus())
+        await fireEvent.update(box, 'Erosion makes loops.')
+        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+
+        expect(await screen.findByText('Erosion makes loops.')).toBeInTheDocument()
+        expect(state.sent).toEqual([{ text: 'Erosion makes loops.' }])
+        await waitFor(() =>
+          expect(
+            screen.getByRole('button', { name: /^Edit note “Erosion makes loops\.”/ }),
+          ).toHaveFocus(),
+        )
+      })
+
+      it('shows a refusal and stays open', async () => {
+        fakeNotes()
+        server.use(
+          http.patch(`${notesUrl}/n1`, () =>
+            HttpResponse.json({ error: 'Write something in the note' }, { status: 400 }),
+          ),
+        )
+        await open()
+        const box = await edit()
+        await fireEvent.update(box, 'x')
+        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+        expect(await screen.findByText('Write something in the note')).toBeInTheDocument()
+        expect(box).toHaveValue('x')
+      })
+
+      it('cancels without saving, with the Escape key too', async () => {
+        const state = fakeNotes()
+        await open()
+        const box = await edit()
+        await fireEvent.update(box, 'changed')
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        expect(screen.getByText('Erosion loops.')).toBeInTheDocument()
+
+        await edit()
+        await fireEvent.keyDown(screen.getByLabelText(/^Text of note “Erosion loops\.”/), {
+          key: 'Escape',
+        })
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Save note' })).toBeNull())
+        expect(state.sent).toEqual([])
+      })
+    })
+
+    it('deletes a note', async () => {
+      fakeNotes()
+      await open()
+      await fireEvent.click(
+        await screen.findByRole('button', { name: /^Delete note “Erosion loops\.”/ }),
+      )
+      await waitFor(() => expect(screen.queryByText('Erosion loops.')).toBeNull())
+      expect(texts()).toHaveLength(2)
+    })
+
+    describe('reordering', () => {
+      it('moves a note with the buttons, sending the complete new order and announcing it', async () => {
+        const state = fakeNotes()
+        await open()
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
+        )
+        await waitFor(() => expect(state.orders).toEqual([['n1', 'n3', 'n2']]))
+        expect(texts()[1]).toBe('A quote from the paper.')
+        expect(
+          await screen.findByText(/^Moved note “A quote from the paper\.” to position 2 of 3/),
+        ).toBeInTheDocument()
+      })
+
+      it('has no arrow that goes nowhere', async () => {
+        fakeNotes()
+        await open()
+        expect(
+          await screen.findByRole('button', { name: /^Move note “Erosion loops\.” up/ }),
+        ).toBeDisabled()
+        expect(
+          screen.getByRole('button', { name: /^Move note “A quote from the paper\.” down/ }),
+        ).toBeDisabled()
+      })
+
+      it("shows the server's explanation, and the server's list, when the order is out of date", async () => {
+        const state = fakeNotes()
+        server.use(
+          http.put(`${notesUrl}/order`, () => {
+            state.notes = [state.notes[2]!]
+            return HttpResponse.json(
+              {
+                error:
+                  'The notes have changed since you opened them. Reload the page and try again.',
+              },
+              { status: 409 },
+            )
+          }),
+        )
+        await open()
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
+        )
+        expect(
+          await screen.findByText(/The notes have changed since you opened them/),
+        ).toBeInTheDocument()
+        await waitFor(() => expect(texts()).toEqual(['A quote from the paper.']))
+      })
+    })
   })
 
   describe('reordering the drafts', () => {
