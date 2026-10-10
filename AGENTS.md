@@ -4,7 +4,7 @@
 sources, shaping an argument and outline, critiquing drafts _without losing the author's voice_, and generating
 titles/openings/social posts. Users bring their own LLM API key; the service has no server-wide LLM key.
 
-Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs/decisions.md](docs/decisions.md)
+Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writing-assistant/issues) (what to work on; `gh issue list --label ready`) → [docs/decisions.md](docs/decisions.md)
 (why things are the way they are) → [README.md](README.md) (setup, architecture, accounts, BYOK).
 
 ## The owner's three priorities (these decide trade-offs)
@@ -63,48 +63,51 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
 2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors.
 3. Docs updated where behaviour changed (README section, `.env.example`, `docs/decisions.md` for non-obvious choices).
-4. [TODO.md](TODO.md) updated (task moved to Done with the commit hash; follow-up work added as new tasks),
-   and the main checkout's copy brought up to date with `origin/main` (see _Landing_, step 5).
+4. The task's issue closed by the landing commit (`Closes #7` in its message) and its `in-progress` label removed;
+   follow-up work filed as new issues; the main checkout brought up to date with `origin/main` (see _Landing_, step 5).
 5. **Committed** with a message that says what and why. Commit after each feature; for large ones, commit at
    each green checkpoint. Don't leave work uncommitted at the end of a session.
 
 ## Working in parallel with other agents
 
-- **The main checkout's `TODO.md` is the board agents read.** Anyone choosing a task opens `TODO.md` in the
-  main directory, so it must always match `origin/main`; a stale one gets finished tasks claimed again. Landing
-  work from a worktree does not update it by itself, which is why step 5 below is required, not optional.
+- **GitHub Issues is the board.** Every task and owner decision is an issue, labelled `ready` (can start now),
+  `backlog` (needs a decision or prerequisite), `decision` (the owner's to make) or `in-progress` (claimed).
+  Pick from `gh issue list --label ready`; closed issues are Done. `TODO.md` is only a frozen history.
 - **Never commit directly on local `main`.** It is shared, and a commit left on it is invisible to everyone else
   until some other session pushes it by accident. Every change, claims and docs included, goes through a worktree.
 - **Check CI before starting a task, instead of waiting for it after a push.** CI takes minutes, and waiting for it
   holds up the next piece of work. So after landing, move on, and let the next start (or the next landing) be where
   CI is checked: run `gh run list --branch main --limit 5` before you claim anything.
   - **The latest finished run is red:** fixing it comes first. Read why with `gh run view <run id> --log-failed`.
-    If your own earlier push broke it, fix it now. If it is someone else's, tell the owner, and record the fix as a
-    task in `TODO.md` (a claim, pushed straight away) so two agents don't fix the same thing.
+    If your own earlier push broke it, fix it now. If it is someone else's, tell the owner, and file the fix as an
+    issue and claim it straight away (see _Claim before starting_) so two agents don't fix the same thing.
   - **Runs are still in progress:** don't wait. Start, and look again at landing step 3, because a red can arrive
     while you work.
   - **Don't push on top of a red `main`** unless your push is the fix.
-- **Claim before starting:** `git fetch origin`, then `git worktree add .worktrees/T7 -b T7 origin/main` and
-  `pnpm install` once in it. In that worktree, in `TODO.md`, move the task to _In progress_, add
-  `claimed: <agent/session> · branch: <name>`, commit that alone (`git commit -m "claim T7"`), check
-  `git log origin/main..HEAD` lists only that commit, and `git push origin HEAD:main` straight away. Then
-  bring the main checkout up to date (step 5 below) so other agents see the claim. Only take tasks whose
-  dependencies are Done. You keep working in that same worktree.
+- **Claim before starting:** claiming is creating the task's branch on GitHub, which is atomic: only one agent can.
+  1. `git fetch origin`, then `gh issue view 7` to check it is open, not `in-progress`, and its prerequisites are closed.
+  2. `gh api repos/JeniT/writing-assistant/git/refs -f ref=refs/heads/issue-7 -f sha=$(git rev-parse origin/main)`.
+     If it fails with "Reference already exists", someone else has the task: pick another.
+  3. `gh issue edit 7 --add-label in-progress --remove-label ready` and
+     `gh issue comment 7 --body "claimed: <agent/session> · branch: issue-7"`.
+  4. `git fetch origin`, then `git worktree add .worktrees/issue-7 -b issue-7 origin/issue-7` and `pnpm install`
+     once in it. You keep working in that worktree. No commit is needed to claim.
 - **Landing (merging to `main`):** the local `main` checkout is shared by every session, so it may hold other
   sessions' unpushed commits. Never publish it; publish your own branch. Run these as **separate commands**, reading
   each result before the next:
   1. `git fetch origin`, then `git rebase origin/main` in your worktree (not `main`, which may be ahead with
-     someone else's unpushed work). Resolve conflicts, keeping the other session's entries (usually in `TODO.md`).
+     someone else's unpushed work). Resolve conflicts, keeping the other session's changes.
   2. Rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased branch.
   3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
      Then check CI as above (`gh run list --branch main --limit 3`): the latest finished run must not be red,
      unless your push is the fix.
-  4. `git push origin HEAD:main`. It is a plain fast-forward; if it is rejected, go back to step 1.
+  4. `git push origin HEAD:main`, with `Closes #7` in your last commit message so the issue closes. It is a plain
+     fast-forward; if it is rejected, go back to step 1. Then `gh issue edit 7 --remove-label in-progress` and
+     `git push origin --delete issue-7`.
   5. **Bring the main checkout up to date (required).** In the main directory run `git fetch origin`, then
-     `git merge --ff-only origin/main`, and confirm its `TODO.md` shows your task as Done (or In progress, for a
-     claim). If the fast-forward is refused, local `main` has another session's unpushed commits: run
+     `git merge --ff-only origin/main`, and confirm your commits are in `git log`. If the fast-forward is refused, local `main` has another session's unpushed commits: run
      `git merge origin/main` instead (it keeps their commits as they are), resolve conflicts keeping both sides
-     (`TODO.md` entries; for a clash in the `MIGRATIONS` array, the already-published migration stays first and
+     (for a clash in the `MIGRATIONS` array, the already-published migration stays first and
      the unpublished one is appended after it), rerun `pnpm check`, `pnpm build` and `pnpm test:e2e`, and commit
      the merge. **Don't push that merge**: those commits belong to the other session. Don't wait for the CI run
      your push started: the next task begins by checking it (see _Check CI before starting a task_).
@@ -121,16 +124,16 @@ Read in this order: this file → [TODO.md](TODO.md) (what to work on) → [docs
   - Don't force-push `main`, or use `--force` / `--force-with-lease` to get past a rejected push; rebase instead.
   - Don't `git stash` (the stack is shared across worktrees); commit a WIP commit instead.
   - Don't skip step 3: a push that succeeds can still contain commits you didn't write.
-  - Don't skip step 5 because the fast-forward failed. A stale `TODO.md` in the main directory misleads every
-    other agent; merge instead.
+  - Don't skip step 5 because the fast-forward failed. A stale main directory misleads every other agent;
+    merge instead.
   - Don't `git rebase`, `git reset --hard` or `git checkout .` the main checkout to make it match `origin/main`.
     That destroys or rewrites another session's unpushed commits and breaks their worktrees.
-- **Clean up when the task is merged:** from the main checkout, run `git worktree remove .worktrees/T7` and
-  `git branch -d T7`, so finished worktrees (each with its own `node_modules`) don't pile up. Remove only your own;
-  other sessions' worktrees may still be in use. If the task isn't merged, leave the worktree and say why in `TODO.md`.
+- **Clean up when the task is merged:** from the main checkout, run `git worktree remove .worktrees/issue-7` and
+  `git branch -d issue-7`, so finished worktrees (each with its own `node_modules`) don't pile up. Remove only your own;
+  other sessions' worktrees may still be in use. If the task isn't merged, leave the worktree and say why in a comment on the issue.
 - **Likely conflict spots:** `packages/core/src/domain.ts`, `apps/api/src/app.ts`, `server.ts`, and the
   `MIGRATIONS` array. If two branches add a migration, the second to merge **renumbers** theirs (append after
   the other) and reruns the tests. Keep changes to those files small and additive.
-- If you find a bug or gap outside your task, add it to `TODO.md` rather than widening the task.
+- If you find a bug or gap outside your task, file an issue (`gh issue create`, label `ready` or `backlog`) rather than widening the task.
 - If a decision belongs to the owner (a service to choose, a product trade-off, anything costing money),
-  put it under **Decisions needed** in `TODO.md` and work on something else.
+  file an issue labelled `decision` and work on something else.

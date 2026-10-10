@@ -8,7 +8,7 @@ account deletion, multiple profiles per user with sharing, drafts (Markdown-back
 and an LLM-powered critique. The rest is built on the same provider architecture.
 
 > **Contributing or picking this up in a new session?** Start with [AGENTS.md](AGENTS.md), then
-> [TODO.md](TODO.md). Design rationale is in [docs/decisions.md](docs/decisions.md).
+> the [GitHub issues](https://github.com/JeniT/writing-assistant/issues). Design rationale is in [docs/decisions.md](docs/decisions.md).
 
 > The repository is on GitHub (private): `JeniT/writing-assistant`. CI runs the full check plus the browser tests on every push.
 
@@ -76,7 +76,7 @@ tests inject fakes and nothing hits the network.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
-  and deletes it. Still to come: reader personas and idea sources (see `TODO.md`).
+  and deletes it. Still to come: reader personas and idea sources (see the GitHub issues).
 - **Ideas** (`/p/<id>/ideas/new`, `/p/<id>/ideas/<idea>`): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were

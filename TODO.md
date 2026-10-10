@@ -1,134 +1,23 @@
-# TODO: shared task board
+# Tasks live in GitHub Issues
 
-Statuses: **In progress** → **Ready** (can start now) → **Backlog** (needs a decision or a prerequisite) → **Done**.
+Open tasks and owner decisions are issues in [JeniT/writing-assistant](https://github.com/JeniT/writing-assistant/issues).
+This file is only the history of what was finished before the move (T5b), so it no longer needs updating.
 Protocol for claiming and finishing tasks is in [AGENTS.md](AGENTS.md#working-in-parallel-with-other-agents).
-Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks at the bottom of their section.
 
-## Decisions needed (owner)
+| Look for                | Command                             |
+| ----------------------- | ----------------------------------- |
+| Tasks you can start now | `gh issue list --label ready`       |
+| Tasks being worked on   | `gh issue list --label in-progress` |
+| Needs a prerequisite    | `gh issue list --label backlog`     |
+| Decisions for the owner | `gh issue list --label decision`    |
 
-- **D1: Email provider for production.** The SMTP adapter is built and works with any provider, so this only
-  affects what you configure (`SMTP_URL`, `MAIL_FROM`). Which will you use? Needed before deploying.
-- **D2: Source for idea generation.** _Partly decided:_ RSS/feeds first (T19, list management built). Still open: whether
-  to add a news API, web search or scholarly (OpenAlex/Crossref, free, no key) later. Needed before T6.
-- **D3: Hosting target** (affects Docker/deploy tasks and whether SQLite stays): single VM/Fly/Render/other?
+Issue titles keep the old `T<n>` ids so commits and `docs/` references still make sense; new tasks are just `#<n>`.
 
-## In progress
+## Done before the move to GitHub Issues
 
-### T5b · Move task tracking to GitHub Issues (optional)
-
-claimed: claude-code session · branch: T5b
-
-Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
-summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
-
-## Ready
-
-### T3e · Reminder before an unconfirmed account is deleted
-
-Email a warning a few days before the cleanup (needs a "reminded at" marker on the user), so a late confirmer
-isn't surprised. Low priority: the signup email already states the rule.
-
-### T16 · Audiences / reader personas per profile
-
-Why: part of the venue-profile spec that T15 didn't build. Each profile has a set of target readers.
-
-- Table + store + routes under `/api/profiles/:id/audiences` (name, short description; members read, owner edits).
-- Schemas in `packages/core/src/domain.ts`; section on the profile page with empty/loading/error states.
-- Cascade on profile deletion; tests incl. account deletion and an e2e flow.
-- Brainstorming (T20b2) puts a profile's audience descriptions in the model's context, so doing this first makes it
-  much more useful; it works without them.
-
-### T17 · Use `validateJson` on every route (readable 400 messages)
-
-Why: `zValidator`'s default 400 body is a zod object, which the UI shows as "[object Object]" (fixed for the
-profile routes only; see `docs/decisions.md`). Switch `auth`, `account`, `drafts`, `llm`, `assist` routes, check
-schema messages read well for people (e.g. `PasswordSchema`), and add an e2e check on the register form.
-
-### T18 · Let people choose or change their handle
-
-Why: people now choose their username at sign-up, but can't change it, and sign-ups through Google still get a
-generated one (`jenit`) with no chance to pick. Add an account setting (reusing `GET /api/auth/handle-available`,
-`UsernameInputSchema`), perhaps prompting Google sign-ups once, and a rule for what happens to existing profile ids (they stay; only new ones use it).
-Consider a reserved-words list and a rate limit.
-
-### T20b · Brainstorm conversation for an idea (design agreed: [docs/brainstorming.md](docs/brainstorming.md))
-
-Why: the Brainstorm button on the idea page is a placeholder. The owner has agreed the design in
-[docs/brainstorming.md](docs/brainstorming.md): a shared thread per idea in which the person's LLM acts as a
-commissioning editor, probes the idea from the first message, and can **propose** (never apply) a new title, new
-notes, or new ideas. It never edits drafts. The default prompt is editable per user on the account page. Built in
-five stages, each its own task and commit; do them in order.
-
-### T20b5 · Brainstorm: evals and tuning the default prompt
-
-Cases in `evals/promptfooconfig.yaml` for the behaviours listed in the design doc; tune the default prompt with the
-owner. Needs a real API key to run.
-
-### T23 · Apply the stricter web-address check to a profile's website
-
-Why: T22's `WebAddressSchema` rejects `https://rubbish`; the profile website field (`SiteUrlSchema`) still accepts it.
-Switch it over (check existing data: some saved sites might not pass) and show the same error style.
-
-### T20e · Reorder the drafts in a linked set
-
-Why: an idea's drafts are shown in the order they were added, which is the reading order for a linked set of
-posts; people need to change it.
-
-### T20d · Pictures: downscale on upload, and a storage port
-
-Why: split out of the original T20. Downscale profile pictures on upload; move pictures behind a storage port
-if/when D3 picks object storage.
-
-### T19c · Keep idea-source details fresh
-
-Why: T19b reads a feed once, when it is added. Add a "refresh" for a source (and for those added before feeds were
-read, which show only their address), re-check periodically that feeds still work and flag ones that don't. Also
-let a source carry an optional name of the person's own, a "needs filtering" flag (broad sources like news sites
-vs. specialist ones) and per-source topic filters, for T6. See `docs/research/idea-source-feeds.md`.
-
-## Backlog
-
-### T6 · Idea generation (needs D2)
-
-Scan sources for recent items on the writer's topics of interest and propose long-form ideas.
-Needs: topics-of-interest per profile, a `SearchProvider`/`NewsSource` adapter + contract tests, an LLM prompt
-to turn items into pitches, UI to browse/accept/dismiss ideas and turn one into a draft. Add `evals/` cases.
-
-### T7 · Research assistant
-
-Find evidence, studies and opinion for a draft/idea; keep citations as structured data (title, URL, source,
-date, why relevant) attached to the draft. Scholarly adapters (OpenAlex, Crossref) first.
-
-### T8 · Argument + outline refinement
-
-Interactive refinement of a thesis and a rough outline that feeds the editor.
-
-### T9 · Critique that preserves the author's voice
-
-Beyond the current single "critique" call: structure/argument/style passes, inline suggestions in Tiptap,
-**streaming** responses via SSE. Needs real eval cases in `evals/promptfooconfig.yaml`.
-
-### T10 · Titles, openings, closings and social posts
-
-### T11 · Account/security extras
-
-Active-sessions list + "sign out everywhere"; data export; ownership transfer for shared profiles;
-`KEY_ENCRYPTION_SECRET` rotation tooling (ciphertexts are versioned `v1`).
-
-### T12 · Production readiness (needs D3)
-
-Dockerfile + deploy docs, HTTPS/reverse-proxy notes, shared rate-limit store if running >1 instance,
-backups (SQLite file + the encryption secret), structured logging, health/readiness endpoints.
-
-### T13 · Headless UI primitives
-
-Adopt Reka UI / shadcn-vue when dialogs, menus or comboboxes are needed (replace `confirm()` in AccountView).
-
-### T14 · Offer open-source models as a built-in option (later)
-
-Per the owner: possibly host an open model for users without their own key. Needs cost/abuse design first.
-
-## Done
+- **T5b** · Task tracking moved to GitHub Issues (see above and [AGENTS.md](AGENTS.md#working-in-parallel-with-other-agents)):
+  open tasks and owner decisions became issues #1–#22, claiming a task is now an atomic branch creation, and this
+  file is a frozen history.
 
 - **T25** · Refactor, no behaviour change: requesting, confirming and undoing an email change moved out of
   `AccountService` (530 → 374 lines) into `EmailChangeService` (`services/email-change.ts`: `request` / `confirm` /

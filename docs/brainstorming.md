@@ -1,7 +1,7 @@
 # Brainstorming with an LLM: design (T20b)
 
 Status: **agreed; built: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt), T20b4 (the chat page). Not yet: T20b5 (evals and tuning the default prompt).** Written after a design discussion with the owner. The work is split into tasks
-T20b1–T20b5 in [TODO.md](../TODO.md). Why things are the way they are is here; code and tests are the source of
+T20b1–T20b5 (finished ones in [TODO.md](../TODO.md), the rest in GitHub issues). Why things are the way they are is here; code and tests are the source of
 truth once it exists.
 
 ## What it is
