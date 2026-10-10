@@ -129,6 +129,57 @@ const save = useMutation({
   },
 })
 
+// ---- merging: choose some notes, join them into one
+const selecting = ref(false)
+const selected = ref<string[]>([])
+const announcement = ref('')
+function toggleSelecting() {
+  selecting.value = !selecting.value
+  selected.value = []
+  merge.reset()
+}
+function toggleSelected(id: string, on: boolean) {
+  selected.value = on ? [...selected.value, id] : selected.value.filter((s) => s !== id)
+}
+const merge = useMutation({
+  mutationFn: () => api.mergeIdeaNotes(props.profileId, props.ideaId, selected.value),
+  onSuccess: async (all) => {
+    announcement.value = `Merged ${selected.value.length} notes into one.`
+    queryClient.setQueryData(notesKey(), all)
+    selecting.value = false
+    selected.value = []
+    await refreshAround()
+  },
+  // The list on screen may be out of date; show the server's.
+  onError: () => notes.refetch(),
+})
+
+// ---- splitting: cut the note being edited where the cursor is
+const split = useMutation({
+  mutationFn: ({ note, at }: { note: IdeaNote; at: number }) =>
+    api.splitIdeaNote(
+      props.profileId,
+      props.ideaId,
+      note.id,
+      editText.value.slice(0, at),
+      editText.value.slice(at),
+    ),
+  onSuccess: async (all) => {
+    announcement.value = 'Split the note in two.'
+    queryClient.setQueryData(notesKey(), all)
+    editingId.value = null
+    await refreshAround()
+  },
+  onError: () => notes.refetch(),
+})
+function splitHere(note: IdeaNote) {
+  const box = list.value?.querySelector<HTMLTextAreaElement>(
+    `[data-edit-note="${note.id}"] textarea`,
+  )
+  const at = box?.selectionStart ?? 0
+  split.mutate({ note, at })
+}
+
 // ---- removing
 const remove = useMutation({
   mutationFn: (id: string) => api.removeIdeaNote(props.profileId, props.ideaId, id),
@@ -212,6 +263,7 @@ const label = (note: IdeaNote) => {
       One thought to a note, like index cards. Drag them, or use the arrows, to put them in order.
       To delete a note, press and hold its Delete button.
     </p>
+    <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
     <p v-if="notes.isPending.value">Loading notes…</p>
     <div v-else-if="notes.isError.value" role="alert" class="mb-4">
@@ -223,6 +275,34 @@ const label = (note: IdeaNote) => {
         No notes yet. Jot down your first thought below.
       </p>
       <div v-else ref="list" class="mb-4">
+        <div class="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            v-if="notes.data.value.length > 1"
+            type="button"
+            class="btn btn-sm btn-neutral"
+            :aria-pressed="selecting"
+            @click="toggleSelecting"
+          >
+            {{ selecting ? 'Stop merging' : 'Merge notes' }}
+          </button>
+          <template v-if="selecting">
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              :disabled="selected.length < 2 || merge.isPending.value"
+              @click="merge.mutate()"
+            >
+              {{ merge.isPending.value ? 'Merging…' : `Merge ${selected.length} notes` }}
+            </button>
+            <p class="w-full text-sm text-stone-700">
+              Tick the notes to join into one; it goes where the first of them is. Notes from
+              different places, and quotations (which must stay as written), can't be merged.
+            </p>
+          </template>
+        </div>
+        <p v-if="merge.isError.value" role="alert" class="mb-3 text-red-700">
+          {{ errorMessage(merge.error.value) }}
+        </p>
         <TagFilter v-model="tagFilter" :tags="usedTags" />
         <p v-if="!visibleNotes.length" class="text-stone-600">No notes have this tag.</p>
         <ReorderableList
@@ -248,6 +328,21 @@ const label = (note: IdeaNote) => {
                 :maxlength="20000"
                 :hint="save.isError.value ? errorMessage(save.error.value) : undefined"
               />
+              <p class="mb-4 -mt-2 text-sm text-stone-700">
+                To cut this note in two, put the cursor where it should be cut and press
+                <button
+                  type="button"
+                  class="underline"
+                  :disabled="split.isPending.value || save.isPending.value"
+                  :aria-label="`Split ${label(note)} at the cursor`"
+                  @click="splitHere(note)"
+                >
+                  Split here</button
+                >.
+              </p>
+              <p v-if="split.isError.value" role="alert" class="mb-3 text-red-700">
+                {{ errorMessage(split.error.value) }}
+              </p>
               <TextField
                 v-model="editTags"
                 :label="`Tags for ${label(note)}`"
@@ -286,6 +381,16 @@ const label = (note: IdeaNote) => {
               </div>
             </form>
             <div v-else :class="contentClass">
+              <label v-if="selecting && !note.quote" class="mb-1 flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="size-4 accent-accent"
+                  :checked="selected.includes(note.id)"
+                  :aria-label="`Select ${label(note)} to merge`"
+                  @change="toggleSelected(note.id, ($event.target as HTMLInputElement).checked)"
+                />
+                Merge this one
+              </label>
               <NoteText :note="note" />
               <NoteTags :tags="note.tags" />
               <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>

@@ -164,6 +164,55 @@ export class NoteStore {
     for (const text of texts) this.append(profileId, ideaId, authorId, text, origin)
   }
 
+  /**
+   * Joins notes into the first of them: it takes the new text, author and tags, and the others are deleted. The
+   * result is not "added" to any draft. Call inside a transaction; the rules about what may be merged are the
+   * caller's.
+   */
+  merge(
+    ideaId: string,
+    keepId: string,
+    dropIds: string[],
+    merged: { text: string; authorId: string | null; tags: string[] },
+  ) {
+    this.db
+      .prepare(
+        'UPDATE idea_notes SET text = ?, created_by = ?, added_at = NULL, updated_at = ? WHERE idea_id = ? AND id = ?',
+      )
+      .run(merged.text, merged.authorId, nowIso(), ideaId, keepId)
+    this.setTags(ideaId, keepId, merged.tags)
+    const drop = this.db.prepare('DELETE FROM idea_notes WHERE idea_id = ? AND id = ?')
+    for (const id of dropIds) drop.run(ideaId, id)
+    this.renumber(
+      ideaId,
+      this.list(ideaId).map((n) => n.id),
+    )
+  }
+
+  /**
+   * Cuts a note in two: it keeps its place, identity and tags with the first part, and a copy (same origin,
+   * author, source and tags) holding the second part follows it. Call inside a transaction.
+   */
+  split(profileId: string, ideaId: string, id: string, before: string, after: string): string {
+    const note = this.get(ideaId, id)!
+    const second = this.append(
+      profileId,
+      ideaId,
+      note.authorId,
+      after,
+      note.origin,
+      note.readingItemId,
+    )
+    this.setTags(ideaId, second.id, note.tags)
+    this.updateText(ideaId, id, before)
+    const ids = this.list(ideaId)
+      .map((n) => n.id)
+      .filter((n) => n !== second.id)
+    ids.splice(ids.indexOf(id) + 1, 0, second.id)
+    this.renumber(ideaId, ids)
+    return second.id
+  }
+
   private renumber(ideaId: string, ids: string[]) {
     const update = this.db.prepare(
       'UPDATE idea_notes SET position = ? WHERE idea_id = ? AND id = ?',

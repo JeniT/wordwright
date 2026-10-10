@@ -388,6 +388,23 @@ export const NoteTagsInputSchema = z.object({
 })
 export type NoteTagsInput = z.infer<typeof NoteTagsInputSchema>
 
+/** Which notes to join into one. They need not be next to each other; the result takes the first one's place. */
+export const NoteMergeInputSchema = z.object({
+  ids: z
+    .array(z.string())
+    .min(2, 'Choose at least two notes to merge')
+    .max(MAX_IDEA_NOTES, `An idea can have up to ${MAX_IDEA_NOTES} notes`),
+})
+export type NoteMergeInput = z.infer<typeof NoteMergeInputSchema>
+
+const SPLIT_PART = 'Put the cursor inside the note, with some words on each side of it'
+/** The two notes a note becomes. They are the writer's own text, so they may differ from the note's text as saved. */
+export const NoteSplitInputSchema = z.object({
+  before: z.string().trim().min(1, SPLIT_PART).max(NOTE_TEXT_MAX),
+  after: z.string().trim().min(1, SPLIT_PART).max(NOTE_TEXT_MAX),
+})
+export type NoteSplitInput = z.infer<typeof NoteSplitInputSchema>
+
 /** Changing a note changes only its text; where it came from stays. */
 export const IdeaNoteEditSchema = z.object({ text: NoteTextSchema })
 

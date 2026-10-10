@@ -600,6 +600,8 @@ describe('idea page', () => {
         orders: [] as string[][],
         sent: [] as unknown[],
         tagged: [] as { id: string; tags: string[] }[],
+        merged: [] as string[][],
+        split: [] as { id: string; before: string; after: string }[],
       }
       server.use(
         http.get(notesUrl, () => HttpResponse.json(state.notes)),
@@ -621,6 +623,30 @@ describe('idea page', () => {
         http.delete(`${notesUrl}/:noteId`, ({ params }) => {
           state.notes = state.notes.filter((n) => n.id !== params.noteId)
           return new HttpResponse(null, { status: 204 })
+        }),
+        http.post(`${notesUrl}/merge`, async ({ request }) => {
+          const { ids } = (await request.json()) as { ids: string[] }
+          state.merged.push(ids)
+          const chosen = state.notes.filter((n) => ids.includes(n.id))
+          state.notes = state.notes
+            .filter((n) => n.id === chosen[0]!.id || !ids.includes(n.id))
+            .map((n) =>
+              n.id === chosen[0]!.id ? { ...n, text: chosen.map((c) => c.text).join('\n\n') } : n,
+            )
+          return HttpResponse.json(state.notes)
+        }),
+        http.post(`${notesUrl}/:noteId/split`, async ({ request, params }) => {
+          const { before, after } = (await request.json()) as { before: string; after: string }
+          state.split.push({ id: params.noteId as string, before, after })
+          const at = state.notes.findIndex((n) => n.id === params.noteId)
+          const original = state.notes[at]!
+          state.notes = [
+            ...state.notes.slice(0, at),
+            { ...original, text: before.trim() },
+            { ...original, id: `${original.id}b`, text: after.trim() },
+            ...state.notes.slice(at + 1),
+          ]
+          return HttpResponse.json(state.notes, { status: 201 })
         }),
         http.put(`${notesUrl}/:noteId/tags`, async ({ request, params }) => {
           const { tags } = (await request.json()) as { tags: string[] }
@@ -986,6 +1012,129 @@ describe('idea page', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
         expect(await screen.findByText('Use 10 tags or fewer on a note')).toBeInTheDocument()
         expect(screen.getByLabelText(/^Tags for note/)).toHaveValue('a, b')
+      })
+    })
+
+    describe('merging and splitting', () => {
+      const quote = () => ({ ...note('n9', 'Exact words.', 'reading'), quote: true })
+      const startMerging = async () =>
+        fireEvent.click(await screen.findByRole('button', { name: 'Merge notes' }))
+      const tick = (start: string) =>
+        screen.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) })
+
+      it('offers merging only when there is more than one note', async () => {
+        fakeNotes([note('n1', 'Only one.')])
+        await open()
+        await screen.findByText('Only one.')
+        expect(screen.queryByRole('button', { name: 'Merge notes' })).toBeNull()
+      })
+
+      it('lets notes be ticked (never a quotation), and merges when two are, joining them into one', async () => {
+        const api = fakeNotes([...three, quote()])
+        await open()
+        await startMerging()
+        expect(screen.getByRole('button', { name: 'Stop merging' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+        expect(screen.getByText(/can't be merged/)).toBeInTheDocument()
+        expect(screen.getAllByRole('checkbox', { name: /to merge$/ })).toHaveLength(3) // not the quotation
+
+        const go = screen.getByRole('button', { name: 'Merge 0 notes' })
+        expect(go).toBeDisabled()
+        await fireEvent.click(tick('Deposition'))
+        expect(screen.getByRole('button', { name: 'Merge 1 notes' })).toBeDisabled()
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(screen.getByRole('button', { name: 'Merge 2 notes' }))
+
+        await waitFor(() => expect(api.merged).toEqual([['n2', 'n1']]))
+        await waitFor(() => expect(texts()).toHaveLength(3))
+        expect(texts()[0]).toContain('Erosion loops.')
+        expect(await screen.findByRole('button', { name: 'Merge notes' })).toBeInTheDocument() // back to normal
+        expect(screen.queryByRole('checkbox', { name: /to merge$/ })).toBeNull()
+      })
+
+      it('forgets what was ticked when merging is stopped', async () => {
+        fakeNotes()
+        await open()
+        await startMerging()
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(screen.getByRole('button', { name: 'Stop merging' }))
+        await startMerging()
+        expect(tick('Erosion')).not.toBeChecked()
+      })
+
+      it("shows the server's reason when notes can't be merged, and stays open to change the choice", async () => {
+        fakeNotes()
+        server.use(
+          http.post(`${notesUrl}/merge`, () =>
+            HttpResponse.json(
+              { error: "Notes that came from different places can't be merged." },
+              { status: 409 },
+            ),
+          ),
+        )
+        await open()
+        await startMerging()
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(tick('Deposition'))
+        await fireEvent.click(screen.getByRole('button', { name: 'Merge 2 notes' }))
+        expect(await screen.findByRole('alert')).toHaveTextContent('different places')
+        expect(tick('Erosion')).toBeChecked()
+      })
+
+      describe('splitting', () => {
+        const edit = async () => {
+          await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Erosion/ }))
+          return screen.getByLabelText(/^Text of note “Erosion/) as HTMLTextAreaElement
+        }
+
+        it('cuts the note being edited where the cursor is, into two, and shows both', async () => {
+          const api = fakeNotes()
+          await open()
+          const box = await edit()
+          await fireEvent.update(box, 'Erosion loops. Deposition builds bars.')
+          box.setSelectionRange(14, 14)
+          await fireEvent.click(
+            screen.getByRole('button', { name: /^Split note “Erosion.*at the cursor/ }),
+          )
+
+          await waitFor(() =>
+            expect(api.split).toEqual([
+              { id: 'n1', before: 'Erosion loops.', after: ' Deposition builds bars.' },
+            ]),
+          )
+          await waitFor(() => expect(texts()).toHaveLength(4))
+          expect(texts().slice(0, 2)).toEqual(['Erosion loops.', 'Deposition builds bars.'])
+          expect(screen.queryByRole('button', { name: 'Save note' })).toBeNull() // editing is over
+        })
+
+        it('explains when there are no words on one side, and keeps the form open', async () => {
+          fakeNotes()
+          server.use(
+            http.post(`${notesUrl}/n1/split`, () =>
+              HttpResponse.json(
+                { error: 'Put the cursor inside the note, with some words on each side of it' },
+                { status: 400 },
+              ),
+            ),
+          )
+          await open()
+          const box = await edit()
+          box.setSelectionRange(0, 0)
+          await fireEvent.click(
+            screen.getByRole('button', { name: /^Split note “Erosion.*at the cursor/ }),
+          )
+          expect(await screen.findByText(/Put the cursor inside the note/)).toBeInTheDocument()
+          expect(screen.getByRole('button', { name: 'Save note' })).toBeInTheDocument()
+        })
+
+        it('is not offered for a quotation, which cannot be edited at all', async () => {
+          fakeNotes([quote()])
+          await open()
+          await screen.findByText(/Exact words\./)
+          expect(screen.queryByRole('button', { name: /^Edit note/ })).toBeNull()
+        })
       })
     })
 

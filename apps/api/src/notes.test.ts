@@ -30,6 +30,8 @@ describe('idea notes', () => {
   const notes = () => `${ideas()}/${idea}/notes`
   const list = async (): Promise<Note[]> => (await ada.get(notes())).json()
   const add = async (text: string): Promise<Note> => (await ada.post(notes(), { text })).json()
+  const addNote = async (text: string, extra: object = {}): Promise<Note> =>
+    (await ada.post(notes(), { text, ...extra })).json()
 
   beforeEach(async () => {
     ctx = setup()
@@ -283,6 +285,185 @@ describe('idea notes', () => {
       ctx.store.ideas.touch(idea, 'long ago')
       await tag(b.id, ['two'])
       expect(ctx.store.ideas.get(profile, idea)!.updatedAt).not.toBe('long ago')
+    })
+  })
+
+  describe('merging', () => {
+    const merge = (ids: string[]) => ada.post(`${notes()}/merge`, { ids })
+
+    it('joins notes into the first, as paragraphs, removing the others and answering with all the notes', async () => {
+      const [a, b, c, d] = [
+        await add('One.'),
+        await add('Two.'),
+        await add('Three.'),
+        await add('Four.'),
+      ]
+      const res = await merge([c.id, a.id]) // ticked in any order; the arrangement decides
+      expect(res.status).toBe(200)
+      const all = await res.json()
+      expect(all.map((n: Note) => n.text)).toEqual(['One.\n\nThree.', 'Two.', 'Four.'])
+      expect(all.map((n: Note) => n.id)).toEqual([a.id, b.id, d.id]) // the merged note keeps the first one's place
+      expect(await list()).toEqual(all)
+      // The notes that are left stay in order and can still be moved.
+      expect((await ada.put(`${notes()}/order`, { ids: [d.id, b.id, a.id] })).status).toBe(200)
+      void c
+    })
+
+    it('keeps the origin (and reading source) they share, and takes every tag once', async () => {
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
+      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id
+      const [a, b] = [
+        await addNote('From the paper.', { readingItemId: item }),
+        await addNote('Also the paper.', { readingItemId: item }),
+      ]
+      await ada.put(`${notes()}/${a.id}/tags`, { tags: ['intro', 'Part 1'] })
+      await ada.put(`${notes()}/${b.id}/tags`, { tags: ['part 1', 'later'] })
+      const [merged] = await (await merge([a.id, b.id])).json()
+      expect(merged).toMatchObject({
+        text: 'From the paper.\n\nAlso the paper.',
+        origin: 'reading',
+        readingItemId: item,
+        tags: ['intro', 'Part 1', 'later'],
+        addedAt: null,
+      })
+    })
+
+    it('says whose words they are: the author if all the notes had one, otherwise whoever merged', async () => {
+      const bob = ctx.client()
+      await register(bob, 'bob@example.com', 'Bob')
+      verifyAccounts(ctx, 'ada@example.com')
+      await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+      const [a1, a2] = [await add('Ada one.'), await add('Ada two.')]
+      const b1 = await (await bob.post(notes(), { text: 'Bob one.' })).json()
+      expect((await (await merge([a1.id, a2.id])).json())[0].authorName).toBe('Ada')
+      const mixed = await (await bob.post(`${notes()}/merge`, { ids: [a1.id, b1.id] })).json()
+      expect(mixed[0]).toMatchObject({
+        authorName: 'Bob',
+        text: 'Ada one.\n\nAda two.\n\nBob one.',
+      })
+    })
+
+    it('refuses notes from different places, different sources, quotations and notes already in a draft', async () => {
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/a' })
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/b' })
+      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).links
+      const typed = await add('Typed.')
+      const brainstormed = ctx.store.notes.append(
+        profile,
+        idea,
+        null,
+        'From the chat.',
+        'brainstorm',
+      )
+      const fromA = await addNote('From A.', { readingItemId: links[0].id })
+      const fromB = await addNote('From B.', { readingItemId: links[1].id })
+      const quote = await addNote('Exact words.', { readingItemId: links[0].id, quote: true })
+      const used = await add('In a draft.')
+      ctx.store.notes.setAdded(idea, used.id, true)
+
+      const cases: [string[], RegExp][] = [
+        [[typed.id, brainstormed.id], /different places/],
+        [[fromA.id, fromB.id], /different reading-list items/],
+        [[fromA.id, quote.id], /Quotations can't be merged/],
+        [[typed.id, used.id], /already in a draft/],
+      ]
+      for (const [ids, message] of cases) {
+        const res = await merge(ids)
+        expect(res.status).toBe(409)
+        expect((await res.json()).error).toMatch(message)
+      }
+      expect(await list()).toHaveLength(6) // nothing changed
+    })
+
+    it('needs at least two real notes of this idea, and is not too long', async () => {
+      const [a, b] = [await add('One.'), await add('Two.')]
+      expect((await merge([a.id])).status).toBe(400)
+      expect((await merge([a.id, a.id])).status).toBe(400)
+      expect((await merge([a.id, 'nope'])).status).toBe(404)
+      const other = (await (await ada.post(ideas(), { name: 'Other' })).json()).id
+      const elsewhere = (await (await ada.post(`${ideas()}/${other}/notes`, { text: 'x' })).json())
+        .id
+      expect((await merge([a.id, elsewhere])).status).toBe(404)
+
+      const long1 = ctx.store.notes.append(profile, idea, null, 'x'.repeat(NOTE_TEXT_MAX - 5))
+      const long2 = ctx.store.notes.append(profile, idea, null, 'y'.repeat(100))
+      const res = await merge([long1.id, long2.id])
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain('longer than 20,000')
+      expect(await list()).toHaveLength(4)
+      void b
+    })
+
+    it('is shared by members, hidden from others, and changes the idea', async () => {
+      const eve = ctx.client()
+      await register(eve, 'eve@example.com', 'Eve')
+      const [a, b] = [await add('One.'), await add('Two.')]
+      expect((await eve.post(`${notes()}/merge`, { ids: [a.id, b.id] })).status).toBe(404)
+      ctx.store.ideas.touch(idea, 'long ago')
+      await merge([a.id, b.id])
+      expect(ctx.store.ideas.get(profile, idea)!.updatedAt).not.toBe('long ago')
+    })
+  })
+
+  describe('splitting', () => {
+    const split = (id: string, before: string, after: string) =>
+      ada.post(`${notes()}/${id}/split`, { before, after })
+
+    it('cuts a note in two, the second just after the first and the same in every other respect', async () => {
+      const [a, b] = [await add('One. Two.'), await add('Next.')]
+      await ada.put(`${notes()}/${a.id}/tags`, { tags: ['intro'] })
+      const res = await split(a.id, '  One.  ', 'Two. ')
+      expect(res.status).toBe(201)
+      const all = await res.json()
+      expect(all.map((n: Note) => n.text)).toEqual(['One.', 'Two.', 'Next.'])
+      expect(all[0].id).toBe(a.id) // the first part is the note itself
+      expect(all[2].id).toBe(b.id)
+      expect(all[1]).toMatchObject({
+        origin: 'entered',
+        authorName: 'Ada',
+        tags: ['intro'],
+        addedAt: null,
+      })
+      expect(all[1].id).not.toBe(a.id)
+    })
+
+    it('keeps where a note came from on both halves', async () => {
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
+      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id
+      const note = await addNote('First part. Second part.', { readingItemId: item })
+      const all = await (await split(note.id, 'First part.', 'Second part.')).json()
+      expect(all.map((n: Note & { readingItemId: string }) => [n.origin, n.readingItemId])).toEqual(
+        [
+          ['reading', item],
+          ['reading', item],
+        ],
+      )
+    })
+
+    it('needs words on each side, refuses quotations and notes in a draft, and respects the limit', async () => {
+      const note = await add('Whole.')
+      for (const [before, after] of [
+        ['', 'x'],
+        ['x', '   '],
+      ]) {
+        const res = await split(note.id, before!, after!)
+        expect(res.status).toBe(400)
+        expect((await res.json()).error).toContain('Put the cursor inside the note')
+      }
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
+      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id
+      const quote = await addNote('Exact words here.', { readingItemId: item, quote: true })
+      const refusedQuote = await split(quote.id, 'Exact', 'words here.')
+      expect(refusedQuote.status).toBe(409)
+      expect((await refusedQuote.json()).error).toContain("can't be split")
+      ctx.store.notes.setAdded(idea, note.id, true)
+      expect((await split(note.id, 'a', 'b')).status).toBe(409)
+      expect((await split('nope', 'a', 'b')).status).toBe(404)
+
+      ctx.store.notes.setAdded(idea, note.id, false)
+      for (let i = ctx.store.notes.count(idea); i < MAX_IDEA_NOTES; i++)
+        ctx.store.notes.append(profile, idea, null, `n${i}`)
+      expect((await split(note.id, 'a', 'b')).status).toBe(409)
     })
   })
 

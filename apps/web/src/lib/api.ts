@@ -189,6 +189,15 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
+    /** Joins notes into the first of them. Answers with all the idea's notes. */
+    mergeIdeaNotes: (profileId: string, id: string, ids: string[]) =>
+      get(IdeaNoteSchema.array(), 'POST', `${ideas(profileId)}/${id}/notes/merge`, { ids }),
+    /** Cuts a note in two (the second follows the first). Answers with all the idea's notes. */
+    splitIdeaNote: (profileId: string, id: string, noteId: string, before: string, after: string) =>
+      get(IdeaNoteSchema.array(), 'POST', `${ideas(profileId)}/${id}/notes/${noteId}/split`, {
+        before,
+        after,
+      }),
     /** Gives a note exactly these tags. Answers with the note as saved. */
     setIdeaNoteTags: (profileId: string, id: string, noteId: string, tags: string[]) =>
       get(IdeaNoteSchema, 'PUT', `${ideas(profileId)}/${id}/notes/${noteId}/tags`, { tags }),

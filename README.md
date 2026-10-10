@@ -93,6 +93,8 @@ tests inject fakes and nothing hits the network.
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
   **Linking to the reading list while drafting:** the drawer's Reading list inserts a link to an item; if it isn't marked
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
+  **Merging and splitting notes:** `POST /api/profiles/:id/ideas/:idea/notes/merge` (`{ids}`) joins notes of the same
+  origin into the first; `POST …/notes/:note/split` (`{before, after}`) cuts one in two. Both answer with all the notes.
   **Tags on notes:** `PUT /api/profiles/:id/ideas/:idea/notes/:note/tags` (`{tags}`) replaces a note's flat tags; the notes
   list and the drafting drawer can show only one tag's notes.
   **Notes while drafting:** the drafting page lists the idea's notes beside the editor (a slide-over on a phone);

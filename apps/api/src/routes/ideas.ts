@@ -13,6 +13,8 @@ import {
   MAX_IDEA_NOTES,
   IdeaUpdateSchema,
   NoteAddedSchema,
+  NoteMergeInputSchema,
+  NoteSplitInputSchema,
   markdownToNotes,
   NoteTagsInputSchema,
   ReadingItemReadSchema,
@@ -22,6 +24,7 @@ import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { BrainstormService, Turn } from '../services/brainstorm'
 import type { IdeaLinkService } from '../services/idea-links'
+import { NoteEditService } from '../services/note-edits'
 import { toLlmHttpError } from './llm'
 import { validateJson } from '../validate'
 
@@ -34,6 +37,7 @@ type Ctx = Context<AppEnv>
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
 export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: BrainstormService) {
   const { ideas, drafts, notes } = store
+  const noteEdits = new NoteEditService(store)
   /** A path parameter every route here has; a missing one can only mean the URL didn't match. */
   const param = (c: Ctx, name: string) => c.req.param(name) ?? notFoundError()
   const profileOf = (c: Ctx) => param(c, 'profileId')
@@ -168,6 +172,14 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
         if (!saved) throw notFound()
         ideas.touch(idea.id)
         return c.json(saved)
+      })
+      // Join notes into one (the first of them), or cut one in two. Both answer with all the idea's notes.
+      .post('/:id/notes/merge', validateJson(NoteMergeInputSchema), (c) =>
+        c.json(noteEdits.merge(find(c), c.get('user').id, c.req.valid('json').ids)),
+      )
+      .post('/:id/notes/:noteId/split', validateJson(NoteSplitInputSchema), (c) => {
+        const { before, after } = c.req.valid('json')
+        return c.json(noteEdits.split(find(c), c.req.param('noteId'), before, after), 201)
       })
       // The note's tags, replaced as a whole (the same way notes are put in order).
       .put('/:id/notes/:noteId/tags', validateJson(NoteTagsInputSchema), (c) => {

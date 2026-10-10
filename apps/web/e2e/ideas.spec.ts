@@ -488,3 +488,47 @@ test('a link to something on the reading list goes in only once it has been read
   await page.getByRole('link', { name: /Back to “Why rivers meander”/ }).click()
   await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
 })
+
+test('notes can be merged into one, and one note cut in two', async ({ page }) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
+    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByRole('button', { name: 'Add note' }).click()
+    await expect(notes.getByText(text)).toBeVisible()
+  }
+  const cards = notes.getByRole('listitem')
+  await expect(cards).toHaveCount(3)
+
+  // Merge: tick two, press Merge; they become one, at the first one's place, as paragraphs.
+  await notes.getByRole('button', { name: 'Merge notes' }).click()
+  await noViolations(page, 'notes while choosing which to merge')
+  await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
+  await notes.getByRole('checkbox', { name: /^Select note “Oxbow/ }).check()
+  await notes.getByRole('button', { name: 'Merge 2 notes' }).click()
+  await expect(cards).toHaveCount(2)
+  await expect(cards.first()).toContainText('Erosion on the outside of each bend.')
+  await expect(cards.first()).toContainText('Oxbow lakes form when a loop is cut off.')
+  await expect(cards.nth(1)).toContainText('Deposition on the inside.')
+
+  // Split: put the cursor between the two paragraphs, and the note becomes two again.
+  await notes.getByRole('button', { name: /^Edit note “Erosion/ }).click()
+  const box = notes.getByLabel(/^Text of note “Erosion/)
+  await box.fill('Erosion on the outside of each bend. Oxbow lakes form when a loop is cut off.')
+  await box.evaluate((el: HTMLTextAreaElement) => {
+    const at = el.value.indexOf(' Oxbow')
+    el.focus()
+    el.setSelectionRange(at, at)
+  })
+  await notes.getByRole('button', { name: /^Split note “Erosion.*at the cursor/ }).click()
+  await expect(cards).toHaveCount(3)
+  await expect(cards.first()).toContainText('Erosion on the outside of each bend.')
+  await expect(cards.first()).not.toContainText('Oxbow')
+  await expect(cards.nth(1)).toContainText('Oxbow lakes form when a loop is cut off.')
+  await page.reload()
+  await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(3)
+})
