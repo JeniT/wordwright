@@ -143,19 +143,8 @@ const add = useMutation({
         </button>
       </div>
       <template v-else>
-        <p v-if="!itemNotes.length" class="mb-4 text-stone-600">
-          No notes from this page yet. Add the first below.
-        </p>
-        <ul v-else class="mb-4 divide-y divide-stone-200 rounded border border-stone-200 bg-white">
-          <li v-for="note in itemNotes" :key="note.id" class="px-4 py-3">
-            <NoteText :note="note" />
-            <p class="mt-1 text-xs text-stone-600">
-              {{ noteOriginLabel(note, idea.data.value?.links ?? []) }}
-            </p>
-          </li>
-        </ul>
-
-        <form ref="addBox" @submit.prevent="add.mutate()">
+        <!-- Above the notes, so it stays where it is as they pile up beneath it. -->
+        <form ref="addBox" class="mb-6" @submit.prevent="add.mutate()">
           <TextAreaField
             v-model="text"
             label="Add a note from this page"
@@ -181,6 +170,18 @@ const add = useMutation({
             {{ add.isPending.value ? 'Adding…' : 'Add note' }}
           </button>
         </form>
+
+        <p v-if="!itemNotes.length" class="mb-4 text-stone-600">
+          No notes from this page yet. Add the first above.
+        </p>
+        <ul v-else class="mb-4 divide-y divide-stone-200 rounded border border-stone-200 bg-white">
+          <li v-for="note in itemNotes" :key="note.id" class="px-4 py-3">
+            <NoteText :note="note" />
+            <p class="mt-1 text-xs text-stone-600">
+              {{ noteOriginLabel(note, idea.data.value?.links ?? []) }}
+            </p>
+          </li>
+        </ul>
       </template>
     </section>
   </article>

@@ -115,6 +115,17 @@ describe('reading page', () => {
       expect(items[0]).toHaveTextContent('From reading “A paper”, by Ada')
     })
 
+    it('puts the box for a new note above the notes, so it never gets pushed out of sight', async () => {
+      await open('l1', [
+        http.get(notesUrl, () =>
+          HttpResponse.json([note('n1', 'One.', 'l1'), note('n2', 'Two.', 'l1')]),
+        ),
+      ])
+      const box = await screen.findByLabelText('Add a note from this page')
+      const list = await screen.findByRole('list')
+      expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     it('says so when there are none yet', async () => {
       await open()
       expect(await screen.findByText(/No notes from this page yet/)).toBeInTheDocument()

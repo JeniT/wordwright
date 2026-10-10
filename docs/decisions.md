@@ -357,6 +357,8 @@ taken from this item, and a box to add another. A note added here is sent with `
   that the two tabs are best put side by side. A browser extension would be the way to automate it; that is the
   "extension" option in D4 and not worth building for this.
 - **Quote or own words:** the writer says which (see the next section).
+- **The box for a new note is above the notes taken so far** (#57), so it stays in the same place as the list
+  grows instead of being pushed off the screen.
 - **Profile level.** Only an idea has a reading list so far (the profile's feeds are sources, not items), so this page
   is for an idea's items. A profile-level list (T37) would reuse the page.
 
