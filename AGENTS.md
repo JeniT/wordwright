@@ -68,10 +68,46 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 5. **Committed** with a message that says what and why. Commit after each feature; for large ones, commit at
    each green checkpoint. Don't leave work uncommitted at the end of a session.
 
+## Triage: turning the owner's ideas, features and bugs into tasks
+
+The owner drops raw thoughts into the issue list as they come, without having to shape them. An agent then talks
+each one through with them and produces the real task and decision issues.
+
+**Filing (the owner, or an agent on their behalf).** Open an issue with the label `inbox` plus one type label:
+`idea` (a rough thought), `enhancement` (a feature) or `bug`. A title and a sentence or two is enough; for a bug,
+what happened and what was expected. `inbox` means "not yet triaged": **agents never implement an `inbox` issue
+directly**, and `gh issue list --label inbox` is the queue.
+
+**Triage conversation.** When the owner asks to triage (a specific issue, or "what's in the inbox?"), an agent:
+
+1. Reads the issue, plus what already exists: `docs/decisions.md`, open issues
+   (`gh issue list --state all --search "<keywords>"`) and the code it touches. Say so if it duplicates or overlaps
+   something; don't file a second copy.
+2. **Talks it through with the owner before filing anything.** Ask a few questions at a time, only ones whose answers
+   change the outcome. Offer a recommendation and the options you'd drop, rather than a survey. For a bug, try to
+   reproduce it first and say what you found. For an idea or feature, test it against the three priorities above
+   and name the cost (scope, new dependency, spending, migration).
+3. Agrees the outcome with the owner, which is one or more of:
+   - **Task issues** for work that is clear: a "why", then acceptance criteria that include the tests and docs the
+     Definition of done requires, small enough for one agent in one go. Label `ready`, or `backlog` if it waits on
+     a prerequisite (name it: `Needs #12`). Add `bug` or `enhancement` too. A big feature becomes an ordered set of
+     tasks, each its own issue, plus a design note in `docs/` if the reasoning needs a home.
+   - **Decision issues** (label `decision`) for what the owner must choose: the question, the options with
+     trade-offs, your recommendation, and which tasks it blocks.
+   - **Nothing**: "won't do" or "already covered", with the reason. Label `wontfix` or `duplicate`.
+4. Files them, then tidies the original: comment with links to everything it produced (`Triaged into #31, #32;
+decision #33`), remove `inbox`, and close it. If the owner wants to keep it as the umbrella for several tasks,
+   leave it open without `inbox` and list the tasks in a comment.
+5. A confirmed `bug` that breaks something people already rely on (data loss, security, sign-in, a red `main`) is
+   `ready` straight away and mentioned to the owner as urgent; other bugs queue like any task.
+
+Triage produces issues, not code. If the owner then says "go ahead", claim the task as usual (see below).
+
 ## Working in parallel with other agents
 
 - **GitHub Issues is the board.** Every task and owner decision is an issue, labelled `ready` (can start now),
-  `backlog` (needs a decision or prerequisite), `decision` (the owner's to make) or `in-progress` (claimed).
+  `backlog` (needs a decision or prerequisite), `decision` (the owner's to make), `in-progress` (claimed) or
+  `inbox` (a raw report waiting for triage: see above).
   Pick from `gh issue list --label ready`; closed issues are Done. `TODO.md` is only a frozen history.
 - **Never commit directly on local `main`.** It is shared, and a commit left on it is invisible to everyone else
   until some other session pushes it by accident. Every change, claims and docs included, goes through a worktree.
@@ -134,6 +170,7 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 - **Likely conflict spots:** `packages/core/src/domain.ts`, `apps/api/src/app.ts`, `server.ts`, and the
   `MIGRATIONS` array. If two branches add a migration, the second to merge **renumbers** theirs (append after
   the other) and reruns the tests. Keep changes to those files small and additive.
-- If you find a bug or gap outside your task, file an issue (`gh issue create`, label `ready` or `backlog`) rather than widening the task.
+- If you find a bug or gap outside your task, file an issue (`gh issue create`, label `ready` or `backlog`, or `inbox` if it needs talking through) rather than
+  widening the task.
 - If a decision belongs to the owner (a service to choose, a product trade-off, anything costing money),
   file an issue labelled `decision` and work on something else.
