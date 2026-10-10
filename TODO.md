@@ -14,12 +14,14 @@ Task format: `T<n> · title`, then why, then acceptance criteria. Add new tasks 
 
 ## In progress
 
-## Ready
-
 ### T5b · Move task tracking to GitHub Issues (optional)
+
+claimed: claude-code session · branch: T5b
 
 Why: claiming a task is atomic there, so parallel agents can't take the same one, and `TODO.md` can shrink to a
 summary. Also consider PRs with required CI (branch protection on private repos needs a paid GitHub plan).
+
+## Ready
 
 ### T3e · Reminder before an unconfirmed account is deleted
 
