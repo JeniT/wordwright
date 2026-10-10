@@ -204,7 +204,7 @@ run on the _requester's_ key.
   adapter implementing `LLMProvider` (translating credential failures to `LLMAuthError`), and a case
   in `apps/api/src/llm-factory.ts`.
 
-**Brainstorming prompt:** the instructions that make the AI a sceptical commissioning editor when you brainstorm an
+**Brainstorming prompt:** the instructions that make the AI a writing coach when you brainstorm an
 idea are the Markdown file `prompts/brainstorm-default.md`. Each person can edit their own version on the account page
 (`GET`/`PUT`/`DELETE /api/account/brainstorm-prompt`, up to 8,000 characters) and reset it to the default; a version
 that equals the default isn't stored, so changes to the default reach everyone who hasn't customised theirs. The app

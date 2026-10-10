@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer()
 
-const DEFAULT = 'You are a commissioning editor.\n\nBe sceptical.'
+const DEFAULT = 'You are a writing coach.\n\nBe curious.'
 const url = '*/api/account/brainstorm-prompt'
 
 const signedIn = [signedInAs(testUser), http.get('*/api/profiles', () => HttpResponse.json([]))]

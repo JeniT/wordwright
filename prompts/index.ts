@@ -11,7 +11,7 @@ function prompt(file: string): string {
 /** The editor that critiques a draft (the Critique button in the editor). */
 export const CRITIQUE_PROMPT = prompt('critique.md')
 
-/** The default brainstorming prompt: a commissioning editor. Each person can edit their own copy on their account page. */
+/** The default brainstorming prompt: a writing coach. Each person can edit their own copy on their account page. */
 export const DEFAULT_BRAINSTORM_PROMPT = prompt('brainstorm-default.md')
 
 /** The brainstorming rules the app always adds after a person's prompt (tools, safety). People can't edit these. */

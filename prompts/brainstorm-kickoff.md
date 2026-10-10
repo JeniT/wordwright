@@ -1,1 +1,1 @@
-The writer has just opened a brainstorming session about the idea in the snapshot above. Start the session now, without waiting for them to speak: ask your opening questions, as your instructions describe.
+The writer has just opened a brainstorming session about the idea in the snapshot above. Start the session now, without waiting for them to speak: ask your opening question, as your instructions describe.

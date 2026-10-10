@@ -30,7 +30,7 @@ describe('the brainstorming prompt setting', () => {
     const res = await ada.get(URL)
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ prompt: DEFAULT_BRAINSTORM_PROMPT, isDefault: true })
-    expect(DEFAULT_BRAINSTORM_PROMPT).toMatch(/commissioning editor/)
+    expect(DEFAULT_BRAINSTORM_PROMPT).toMatch(/writing coach/)
   })
 
   it("saves a person's own version, and keeps it separate from other people's", async () => {

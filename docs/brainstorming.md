@@ -7,8 +7,9 @@ truth once it exists.
 ## What it is
 
 On an idea's page, **Brainstorm** opens a conversation between the person and their chosen LLM. The model acts as a
-**commissioning editor** for the venue (the profile): it probes and scrutinises the idea, and the conversation may
-lead to a better title and notes for the idea, or to new ideas worth pursuing separately. It is **not** a drafting
+**writing coach** (T43; the first version was a sceptical commissioning editor, which the owner found too critical):
+it helps the writer find what they think and say it in their own voice, and the conversation fills the idea's notes
+and may lead to a better title, or to new ideas worth pursuing separately. It is **not** a drafting
 tool: it never writes or edits drafts.
 
 ## Decisions (owner)
@@ -20,7 +21,7 @@ tool: it never writes or edits drafts.
 | Who sees the conversation?           | **One thread per idea, visible to every member of the profile.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                      |
 | How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                       |
 | What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **venue** (name, website and, once T16 exists, the **audience descriptions**). See _Context_ for what is deliberately left out. |
-| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a commissioning editor. In a shared profile, the person sending the message supplies the prompt, key and model.                          |
+| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a writing coach. In a shared profile, the person sending the message supplies the prompt, key and model.                                 |
 
 ## How it works
 
@@ -209,14 +210,19 @@ All under `/api/profiles/:profileId/ideas/:id/conversation` (members only):
 
 ## The default prompt
 
-Drafted from how commissioning editors describe what they look for in a pitch: a specific angle you can state
-as one paragraph about the _story_, not the general topic; something that makes an editor curious or surprises
-them; a reason to run it now; fit with the publication and a clear sense of who reads it and why they would care;
-the author's standing to write it; and the common reasons pitches are rejected (wrong publication, vague or
-generic, nothing new, no evidence). Sources: [Booktrust, "What an editor looks for in a pitch"](https://Www.Booktrust.Org.Uk/globalassets/resources/prizes/in-other-words/2019/what-an-editor-looks-for-in-a-pitch.pdf),
-[Clippings, "Three things all editors look for when commissioning from new writers"](https://www.clippings.me/blog/what-editors-look-for-when-commissioning/),
-[Poynter on pitching](https://poynter.org/?p=447029). It is a starting point, to be tuned against the evals
-below and the owner's own experience.
+A **writing coach**, following [responsible-ai.md](responsible-ai.md): the writer's thinking comes first and the AI
+elicits it (one question at a time, reflecting back in the writer's own words, asking what they think before it says
+what it does); it challenges gently and only where that helps, holds a fair criticism under pushback and leaves out
+praise that isn't specific (no flattery); it keeps the readers in view without inventing facts about them; it is
+honest that it is an AI and cannot open links; and it never drafts. The earlier version (a sceptical commissioning
+editor, drafted from how editors describe a good pitch) tested whether an idea was good enough to run; that is not
+what someone working out what they think needs.
+
+**Stopping is the app's rule, not the prompt's.** `prompts/brainstorm-rules.md` (which people can't edit) tells the
+AI to ask the one question that matters most, and, once the writer can say what the idea claims, who it is for and why
+it matters, to say so plainly and let the session end, because the aim is for the writer to get on and write, not to
+keep talking to the tool (responsible-ai.md, principle 1). Like the rest of what the model does, this is prompt-level
+and checked by evals (#6), not guaranteed. Whether the prompt should differ for writing to think in public is #25.
 
 **The prompts live in [`prompts/`](../prompts/README.md), as plain Markdown files, so they're easy to find and
 edit; this document no longer holds a copy.** The default is `prompts/brainstorm-default.md`, and the rules the app

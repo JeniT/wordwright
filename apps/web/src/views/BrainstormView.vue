@@ -64,7 +64,7 @@ async function send(body: SendMessageInput, restore?: string) {
   if (streaming.value) return
   replyProblem.value = null
   streaming.value = { text: '', proposals: [], notes: [] }
-  announcement.value = 'The editor is replying…'
+  announcement.value = 'The coach is replying…'
   controller = new AbortController()
   try {
     await api.streamReply(
@@ -81,7 +81,7 @@ async function send(body: SendMessageInput, restore?: string) {
         else if (event.type === 'error') {
           replyProblem.value = { message: event.message, needsKey: event.code === 'auth' }
           announcement.value = event.message
-        } else announcement.value = 'The editor has replied.'
+        } else announcement.value = 'The coach has replied.'
       },
       controller.signal,
     )
@@ -253,7 +253,7 @@ const busyNote = computed(() =>
             </div>
             <div v-else class="mr-8 rounded border border-stone-300 bg-stone-50 p-3">
               <p class="mb-1 text-sm font-medium text-stone-700">
-                Editor<span v-if="message.model" class="font-normal text-stone-600">
+                Coach<span v-if="message.model" class="font-normal text-stone-600">
                   · {{ message.model }}</span
                 >
               </p>
@@ -262,7 +262,7 @@ const busyNote = computed(() =>
                 The AI declined to answer that. Try putting it differently.
               </p>
               <p v-if="message.stopReason === 'max_tokens'" class="mt-2 text-sm text-stone-700">
-                This reply was cut short. Ask the editor to carry on.
+                This reply was cut short. Ask the coach to carry on.
               </p>
               <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-stone-700">
                 The reply was stopped here.
@@ -284,7 +284,7 @@ const busyNote = computed(() =>
             aria-live="off"
             class="mr-8 rounded border border-stone-300 bg-stone-50 p-3"
           >
-            <p class="mb-1 text-sm font-medium text-stone-700">Editor</p>
+            <p class="mb-1 text-sm font-medium text-stone-700">Coach</p>
             <Markdown v-if="streaming.text" :text="streaming.text" />
             <p v-else class="text-stone-600">Thinking…</p>
             <RecordedNotes :notes="streaming.notes" />
@@ -307,7 +307,7 @@ const busyNote = computed(() =>
       </div>
 
       <div v-if="unanswered" class="mb-4 rounded border border-stone-300 bg-white p-3">
-        <p class="mb-2 text-stone-700">The editor hasn't replied to the last message.</p>
+        <p class="mb-2 text-stone-700">Your coach hasn't replied to the last message.</p>
         <button type="button" class="btn btn-outline" @click="send({ retry: true })">
           Try again
         </button>

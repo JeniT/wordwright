@@ -14,7 +14,7 @@ export const realLlmFactory: LLMFactory = ({ provider, apiKey, model }) => {
 }
 
 /**
- * The pretend editor of development and e2e runs. It opens with a question, and makes each kind of
+ * The pretend coach of development and e2e runs. It opens with a question, and makes each kind of
  * thing when the person asks for it in so many words ("suggest a title", "note that ...",
  * "suggest a new idea"), so every part of the brainstorm page can be tried without a real AI.
  */

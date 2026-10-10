@@ -17,7 +17,7 @@ describe('LLM factories', () => {
     )
   })
 
-  describe('the pretend editor', () => {
+  describe('the pretend coach', () => {
     const llm = fakeLlmFactory({ provider: 'anthropic', apiKey: 'anything', model: 'm' })
     const turn = async (request: LLMChatRequest) => {
       const events = []

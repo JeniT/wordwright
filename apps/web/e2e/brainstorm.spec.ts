@@ -34,12 +34,12 @@ const say = async (page: Page, text: string) => {
   await page.getByRole('button', { name: 'Send', exact: true }).click()
 }
 
-test('brainstorms an idea: the editor asks, suggests, and nothing changes until accepted', async ({
+test('brainstorms an idea: the coach asks, suggests, and nothing changes until accepted', async ({
   page,
 }) => {
   await setUp(page)
 
-  // Brainstorm from the idea page starts at once, with the editor's questions.
+  // Brainstorm from the idea page starts at once, with the coach's questions.
   await page.getByRole('link', { name: 'Brainstorm' }).click()
   await expect(page.getByText('Brainstorm started by Pru')).toBeVisible()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()

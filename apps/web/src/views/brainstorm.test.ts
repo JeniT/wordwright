@@ -237,7 +237,7 @@ describe('the brainstorm page', () => {
     expect(api.posts).toEqual([])
   })
 
-  it('shows that the editor is thinking, then the words as they arrive, and can be stopped', async () => {
+  it('shows that the coach is thinking, then the words as they arrive, and can be stopped', async () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
     const api = mockConversation([kickoff(), aiMessage('Go on.')])
@@ -296,7 +296,7 @@ describe('the brainstorm page', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('limiting requests for your key')
       expect(screen.getByText('A hard question')).toBeInTheDocument()
       expect(
-        await screen.findByText("The editor hasn't replied to the last message."),
+        await screen.findByText("Your coach hasn't replied to the last message."),
       ).toBeInTheDocument()
 
       api.respond = () => {
@@ -307,7 +307,7 @@ describe('the brainstorm page', () => {
       await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
       expect(await screen.findByText('Here I am.')).toBeInTheDocument()
       expect(api.posts.at(-1)).toEqual({ retry: true })
-      expect(screen.queryByText("The editor hasn't replied to the last message.")).toBeNull()
+      expect(screen.queryByText("Your coach hasn't replied to the last message.")).toBeNull()
       expect(screen.queryByRole('alert')).toBeNull()
     })
 
@@ -358,7 +358,7 @@ describe('the brainstorm page', () => {
     expect(await screen.findByText('Bob is waiting for a reply…')).toBeInTheDocument()
     expect(screen.getByLabelText('Your message')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
-    expect(screen.queryByText("The editor hasn't replied to the last message.")).toBeNull()
+    expect(screen.queryByText("Your coach hasn't replied to the last message.")).toBeNull()
   })
 
   it('names the sender of each message, and says when it was cut short, stopped or declined', async () => {

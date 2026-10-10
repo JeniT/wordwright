@@ -15,9 +15,9 @@ test('edits, saves and resets the brainstorming prompt on the account page', asy
   const prompt = section.getByLabel('Prompt')
   const save = section.getByRole('button', { name: 'Save' })
 
-  // Everyone starts on the default, which is a commissioning editor.
+  // Everyone starts on the default, which is a writing coach.
   await expect(section.getByText('You are using the default prompt.')).toBeVisible()
-  await expect(prompt).toHaveValue(/commissioning editor/)
+  await expect(prompt).toHaveValue(/writing coach/)
   await expect(save).toBeDisabled()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'account page').toEqual([])
 
@@ -46,5 +46,5 @@ test('edits, saves and resets the brainstorming prompt on the account page', asy
   await section.getByRole('button', { name: 'Reset to default' }).click()
   await dialog.getByRole('button', { name: 'Yes, reset it' }).click()
   await expect(section.getByText('You are using the default prompt.')).toBeVisible()
-  await expect(prompt).toHaveValue(/commissioning editor/)
+  await expect(prompt).toHaveValue(/writing coach/)
 })

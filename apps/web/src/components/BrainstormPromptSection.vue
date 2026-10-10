@@ -68,11 +68,11 @@ const hint = computed(
       Brainstorming prompt
     </h2>
     <p class="mb-3 text-sm text-stone-700">
-      When you brainstorm an idea, this tells the AI how to behave. By default it is a sceptical
-      commissioning editor who tests whether your idea is good enough for the publication, and who
-      never writes your drafts. You can reword it to suit how you like to work. After it, the app
-      always adds its own rules, for how suggestions work and to keep the AI from changing your
-      work, so editing this can't break those.
+      When you brainstorm an idea, this tells the AI how to behave. By default it is a writing coach
+      who helps you work out what you think and say it in your own voice, and who never writes your
+      drafts. You can reword it to suit how you like to work. After it, the app always adds its own
+      rules, for how its notes and suggestions work, when to stop, and to keep the AI from changing
+      your work, so editing this can't break those.
     </p>
 
     <p v-if="settings.isPending.value">Loading…</p>
