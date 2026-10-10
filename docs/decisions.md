@@ -363,6 +363,10 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **The title and authors can be edited on the reading page** (an "Edit title and authors" button by the heading),
   because the lookup often finds none and the page is then called by its address. It is the idea page's edit with the
   address left alone; a blank title asks the server to look the page up again (see "Who wrote a reading-list item").
+- **Taking a note from an item marks it read, and read items go last** (#80). The server marks the item read when a
+  note is added with its `readingItemId` (the first read date is kept), because a note taken from a piece means it was
+  read, and the writer can still untick it. The reading list is ordered by the server, unread first, read last, each in
+  the order added, so every screen that lists it agrees and an item drops to the bottom the moment it is ticked.
 - **Pasting ticks "This is a direct quote"** (#76). Words pasted into an empty note box, or over all of what is in it,
   are almost always someone else's, and a quotation stored as the writer's own words is the mistake this page must
   not make easily. So the box is ticked and the page says why ("Ticked because you pasted this. Untick it if these are

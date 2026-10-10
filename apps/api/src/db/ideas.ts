@@ -48,7 +48,7 @@ export class IdeaStore {
     if (!row) return undefined
     const links = this.db
       .prepare(
-        'SELECT id, url, title, authors, read_at, origin, why FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid',
+        'SELECT id, url, title, authors, read_at, origin, why FROM idea_links WHERE idea_id = ? ORDER BY (read_at IS NOT NULL), created_at, rowid',
       )
       .all(id)
       .map((l) => ({

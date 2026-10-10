@@ -109,11 +109,26 @@ describe('ideas', () => {
         const marked = await ada.put(readUrl, { read: true })
         expect(marked.status).toBe(200)
         const idea = await marked.json()
-        expect(idea.links[0].readAt).toEqual(expect.any(String))
-        expect(idea.links[1]).toMatchObject({ id: second.id, readAt: null }) // only that one
+        // Read items go last, so the one just read is now second.
+        expect(idea.links[1]).toMatchObject({ id: first.id, readAt: expect.any(String) })
+        expect(idea.links[0]).toMatchObject({ id: second.id, readAt: null }) // only that one
 
         const unmarked = await (await ada.put(readUrl, { read: false })).json()
-        expect(unmarked.links[0].readAt).toBeNull()
+        expect(unmarked.links[0]).toMatchObject({ id: first.id, readAt: null }) // and back in its place
+      })
+
+      it('lists unread items first and read ones last, each group in the order added', async () => {
+        for (const name of ['a', 'b', 'c', 'd']) await add(`https://example.org/${name}`)
+        const [a, b, c, d] = await read()
+        const urls = async () => (await read()).map((l: { url: string }) => l.url.slice(-1))
+        await ada.put(`${links()}/${b.id}/read`, { read: true })
+        expect(await urls()).toEqual(['a', 'c', 'd', 'b'])
+        await ada.put(`${links()}/${a.id}/read`, { read: true })
+        expect(await urls()).toEqual(['c', 'd', 'a', 'b'])
+        await ada.put(`${links()}/${b.id}/read`, { read: false })
+        expect(await urls()).toEqual(['b', 'c', 'd', 'a'])
+        void c
+        void d
       })
 
       it('keeps the first date when it is marked read twice, and counts as a change to the idea', async () => {
@@ -254,8 +269,9 @@ describe('ideas', () => {
 
       it('keeps it marked read', async () => {
         await ada.put(`${links()}/${link.id}/read`, { read: true })
-        const saved = (await (await edit({ url: 'https://example.com/c', title: 'New' })).json())
-          .links[0]
+        const saved = (
+          await (await edit({ url: 'https://example.com/c', title: 'New' })).json()
+        ).links.find((l: { id: string }) => l.id === link.id)
         expect(saved.readAt).toEqual(expect.any(String))
       })
 

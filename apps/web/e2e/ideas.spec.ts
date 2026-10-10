@@ -336,7 +336,8 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
     'From reading “Meanders, explained”, by Pat Writer and Quinn Scribe',
   )
   await expect(list).not.toContainText('by Ida') // the chip is who took the note, not who wrote the page
-  await page.getByRole('checkbox', { name: 'I have read this' }).check()
+  // Taking notes from a page marks it read (it can still be unticked).
+  await expect(page.getByRole('checkbox', { name: 'I have read this' })).toBeChecked()
   await noViolations(page, 'reading page with notes')
 
   // They are remembered, and they join the idea's other notes, still naming the page they came from.
@@ -353,6 +354,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   // (the first item; the second, added from the reading page, is unread)
   await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toBeChecked()
   await expect(page.getByRole('checkbox', { name: /^Read: / })).toHaveCount(2)
+  // Read items go last: the unread page found while reading comes first, the one just read after it.
+  await expect(page.getByRole('checkbox', { name: /^Read: / }).first()).not.toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /^Read: / }).last()).toBeChecked()
 })
 
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({

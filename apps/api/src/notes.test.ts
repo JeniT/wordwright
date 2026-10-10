@@ -120,6 +120,33 @@ describe('idea notes', () => {
       expect(await add('Typed by hand')).toMatchObject({ origin: 'entered', readingItemId: null })
     })
 
+    it('marks the item it came from as read, keeping the first date, and leaves other items alone', async () => {
+      const item = await itemOn()
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/other' })
+      const readAt = async (id: string) =>
+        (await (await ada.get(`${ideas()}/${idea}`)).json()).links.find(
+          (l: { id: string }) => l.id === id,
+        ).readAt
+      expect(await readAt(item)).toBeNull()
+      await ada.post(notes(), { text: 'First thought.', readingItemId: item })
+      const first = await readAt(item)
+      expect(first).toEqual(expect.any(String))
+      ctx.clock.now = new Date(ctx.clock.now.getTime() + 60_000)
+      await ada.post(notes(), { text: 'Second thought.', readingItemId: item })
+      expect(await readAt(item)).toBe(first)
+      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).links
+      expect(links.map((l: { readAt: string | null }) => l.readAt !== null)).toEqual([false, true]) // the other is still unread, and first
+    })
+
+    it('does not mark anything read for a note typed by hand, or one that is refused', async () => {
+      const item = await itemOn()
+      await add('Typed by hand')
+      await ada.post(notes(), { text: 'Unsourced quote.', quote: true })
+      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).links
+      expect(links[0].readAt).toBeNull()
+      expect(item).toBe(links[0].id)
+    })
+
     it('must come from an item on this idea', async () => {
       const other = (await (await ada.post(ideas(), { name: 'Other' })).json()).id
       await ada.post(`${ideas()}/${other}/links`, { url: 'https://example.org/else' })

@@ -323,6 +323,38 @@ describe('reading page', () => {
       })
     })
 
+    it('shows the item as read once a note is added from it (the server marks it), and the writer can untick it', async () => {
+      let readAt: string | null = null
+      await open('l1', [
+        http.get(ideaUrl, () =>
+          HttpResponse.json({ ...idea, links: [{ ...idea.links[0]!, readAt }, idea.links[1]!] }),
+        ),
+        http.post(notesUrl, async ({ request }) => {
+          const body = (await request.json()) as { text: string }
+          readAt = '2026-01-03T00:00:00Z' // as the server now does when a note is taken from an item
+          return HttpResponse.json(note('n1', body.text, 'l1'), { status: 201 })
+        }),
+        http.put(`${ideaUrl}/links/l1/read`, () => {
+          readAt = null
+          return HttpResponse.json({ ...idea, links: idea.links })
+        }),
+      ])
+      const read = await screen.findByRole('checkbox', { name: 'I have read this' })
+      expect(read).not.toBeChecked()
+      await fireEvent.update(
+        await screen.findByLabelText('Add a note from this page'),
+        'A thought.',
+      )
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      await waitFor(() =>
+        expect(screen.getByRole('checkbox', { name: 'I have read this' })).toBeChecked(),
+      )
+      await fireEvent.click(screen.getByRole('checkbox', { name: 'I have read this' }))
+      await waitFor(() =>
+        expect(screen.getByRole('checkbox', { name: 'I have read this' })).not.toBeChecked(),
+      )
+    })
+
     it('keeps what was typed, and says what went wrong, when a note could not be saved', async () => {
       await open('l1', [
         http.post(notesUrl, () =>

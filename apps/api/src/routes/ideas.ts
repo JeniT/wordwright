@@ -149,6 +149,8 @@ export function ideaRoutes(
             readingItemId ?? null,
             !!quote,
           )
+          // Taking a note from an item means it has been read (the first read date is kept if it already was).
+          if (readingItemId) ideas.setLinkRead(idea.id, readingItemId, true)
           ideas.touch(idea.id)
           return note
         })
