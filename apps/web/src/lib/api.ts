@@ -189,6 +189,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
+    /** Gives a note exactly these tags. Answers with the note as saved. */
+    setIdeaNoteTags: (profileId: string, id: string, noteId: string, tags: string[]) =>
+      get(IdeaNoteSchema, 'PUT', `${ideas(profileId)}/${id}/notes/${noteId}/tags`, { tags }),
     /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
     setReadingItemRead: (profileId: string, id: string, linkId: string, read: boolean) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/read`, { read }),

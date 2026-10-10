@@ -11,6 +11,7 @@ const toNote = (r: Row): IdeaNote => ({
   origin: r.origin as NoteOrigin,
   authorId: r.created_by as string | null,
   authorName: r.author_name as string | null,
+  tags: [],
   readingItemId: r.reading_item_id as string | null,
   addedAt: r.added_at as string | null,
   createdAt: r.created_at as string,
@@ -25,15 +26,33 @@ const toNote = (r: Row): IdeaNote => ({
 export class NoteStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  /** A note with its author's current name. */
+  /** A note with its author's current name and its tags. */
   private select(where: string, ...args: string[]): IdeaNote[] {
-    return this.db
+    const notes = this.db
       .prepare(
         `SELECT n.*, u.name AS author_name FROM idea_notes n
          LEFT JOIN users u ON u.id = n.created_by WHERE ${where}`,
       )
       .all(...args)
       .map(toNote)
+    if (!notes.length) return notes
+    const byNote = new Map(notes.map((n) => [n.id, n]))
+    const marks = notes.map(() => '?').join(', ')
+    const rows = this.db
+      .prepare(`SELECT note_id, tag FROM idea_note_tags WHERE note_id IN (${marks}) ORDER BY rowid`)
+      .all(...notes.map((n) => n.id))
+    for (const r of rows) byNote.get(r.note_id as string)?.tags.push(r.tag as string)
+    return notes
+  }
+
+  /** Gives a note exactly these tags (already tidied and free of repeats). Call inside a transaction. */
+  setTags(ideaId: string, id: string, tags: string[]): IdeaNote | undefined {
+    if (!this.get(ideaId, id)) return undefined
+    this.db.prepare('DELETE FROM idea_note_tags WHERE note_id = ?').run(id)
+    const insert = this.db.prepare('INSERT INTO idea_note_tags (note_id, tag) VALUES (?, ?)')
+    for (const tag of tags) insert.run(id, tag)
+    this.db.prepare('UPDATE idea_notes SET updated_at = ? WHERE id = ?').run(nowIso(), id)
+    return this.get(ideaId, id)
   }
 
   list(ideaId: string): IdeaNote[] {

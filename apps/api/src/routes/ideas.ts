@@ -13,6 +13,7 @@ import {
   MAX_IDEA_NOTES,
   IdeaUpdateSchema,
   NoteAddedSchema,
+  NoteTagsInputSchema,
   ReadingItemReadSchema,
   SendMessageInputSchema,
 } from '@lfwa/core'
@@ -136,6 +137,16 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
       .patch('/:id/notes/:noteId', validateJson(IdeaNoteEditSchema), (c) => {
         const idea = find(c)
         const saved = notes.updateText(idea.id, c.req.param('noteId'), c.req.valid('json').text)
+        if (!saved) throw notFound()
+        ideas.touch(idea.id)
+        return c.json(saved)
+      })
+      // The note's tags, replaced as a whole (the same way notes are put in order).
+      .put('/:id/notes/:noteId/tags', validateJson(NoteTagsInputSchema), (c) => {
+        const idea = find(c)
+        const saved = store.transaction(() =>
+          notes.setTags(idea.id, c.req.param('noteId'), c.req.valid('json').tags),
+        )
         if (!saved) throw notFound()
         ideas.touch(idea.id)
         return c.json(saved)

@@ -575,6 +575,7 @@ describe('idea page', () => {
       authorId: authorName ? 'u1' : null,
       authorName,
       readingItemId: null as string | null,
+      tags: [] as string[],
       addedAt: null,
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
@@ -588,11 +589,17 @@ describe('idea page', () => {
     const texts = () =>
       within(region())
         .getAllByRole('listitem')
+        .filter((li) => li.querySelector('p')) // the notes, not their tags
         .map((li) => li.querySelector('p')?.textContent)
 
     /** A notes list that behaves like the server's, and records what was asked of it. */
     function fakeNotes(start = three) {
-      const state = { notes: start, orders: [] as string[][], sent: [] as unknown[] }
+      const state = {
+        notes: start,
+        orders: [] as string[][],
+        sent: [] as unknown[],
+        tagged: [] as { id: string; tags: string[] }[],
+      }
       server.use(
         http.get(notesUrl, () => HttpResponse.json(state.notes)),
         http.post(notesUrl, async ({ request }) => {
@@ -613,6 +620,12 @@ describe('idea page', () => {
         http.delete(`${notesUrl}/:noteId`, ({ params }) => {
           state.notes = state.notes.filter((n) => n.id !== params.noteId)
           return new HttpResponse(null, { status: 204 })
+        }),
+        http.put(`${notesUrl}/:noteId/tags`, async ({ request, params }) => {
+          const { tags } = (await request.json()) as { tags: string[] }
+          state.tagged.push({ id: params.noteId as string, tags })
+          state.notes = state.notes.map((n) => (n.id === params.noteId ? { ...n, tags } : n))
+          return HttpResponse.json(state.notes.find((n) => n.id === params.noteId))
         }),
         http.put(`${notesUrl}/order`, async ({ request }) => {
           const { ids } = (await request.json()) as { ids: string[] }
@@ -822,6 +835,140 @@ describe('idea page', () => {
       await fireEvent.click(button)
       await waitFor(() => expect(screen.queryByText('Erosion loops.')).toBeNull())
       expect(texts()).toHaveLength(2)
+    })
+
+    describe('tags', () => {
+      const tagged = () => [
+        { ...note('n1', 'Erosion loops.'), tags: ['intro', 'draft 2'] },
+        { ...note('n2', 'Deposition inside the bend.'), tags: ['draft 2'] },
+        note('n3', 'Untagged thought.'),
+        { ...note('n4', 'Oxbow lakes.'), tags: ['Intro'] },
+      ]
+
+      it('are shown on each note, and there is no filter until some note has one', async () => {
+        fakeNotes(three)
+        await open()
+        await screen.findByText('Erosion loops.')
+        expect(within(region()).queryByRole('group', { name: 'Show notes with a tag' })).toBeNull()
+        expect(within(region()).queryByRole('list', { name: 'Tags' })).toBeNull()
+      })
+
+      it('shows the tags a note has, as a list on it', async () => {
+        fakeNotes(tagged())
+        await open()
+        const first = (await screen.findByText('Erosion loops.')).closest('li')!
+        const chips = within(first).getByRole('list', { name: 'Tags' })
+        expect(
+          within(chips)
+            .getAllByRole('listitem')
+            .map((li) => li.textContent?.trim()),
+        ).toEqual(['intro', 'draft 2'])
+      })
+
+      it('can be used to show only the notes with one tag (ignoring case), and then all again', async () => {
+        fakeNotes(tagged())
+        await open()
+        await screen.findByText('Erosion loops.')
+        const filter = within(region()).getByRole('group', { name: 'Show notes with a tag' })
+        // Each tag once, whatever its case, and "All" first.
+        expect(
+          within(filter)
+            .getAllByRole('button')
+            .map((b) => b.textContent?.trim()),
+        ).toEqual(['All', 'intro', 'draft 2'])
+        expect(within(filter).getByRole('button', { name: 'All' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+
+        await fireEvent.click(within(filter).getByRole('button', { name: 'intro' }))
+        expect(texts()).toEqual(['Erosion loops.', 'Oxbow lakes.'])
+        expect(within(filter).getByRole('button', { name: 'intro' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+        await fireEvent.click(within(filter).getByRole('button', { name: 'draft 2' }))
+        expect(texts()).toEqual(['Erosion loops.', 'Deposition inside the bend.'])
+        await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
+        expect(texts()).toHaveLength(4)
+      })
+
+      it('lets the notes shown be put in order, leaving the hidden ones where they were', async () => {
+        const api = fakeNotes(tagged())
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(within(region()).getByRole('button', { name: 'draft 2' }))
+        // Shown: n1, n2. Move n2 above n1; n3 and n4 are hidden and keep their places.
+        await fireEvent.click(
+          screen.getByRole('button', { name: /^Move note “Deposition inside the bend\.” up/ }),
+        )
+        await waitFor(() => expect(api.orders).toEqual([['n2', 'n1', 'n3', 'n4']]))
+      })
+
+      it('shows a note with a tag when the last note with it loses it, going back to all', async () => {
+        fakeNotes([{ ...note('n1', 'Only one.'), tags: ['solo'] }, note('n2', 'Other.')])
+        await open()
+        await screen.findByText('Only one.')
+        await fireEvent.click(within(region()).getByRole('button', { name: 'solo' }))
+        expect(texts()).toEqual(['Only one.'])
+        await fireEvent.click(screen.getByRole('button', { name: /^Edit note “Only one\.”/ }))
+        await fireEvent.update(screen.getByLabelText(/^Tags for note/), '')
+        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+        await waitFor(() => expect(texts()).toEqual(['Only one.', 'Other.']))
+        expect(within(region()).queryByRole('group', { name: 'Show notes with a tag' })).toBeNull()
+      })
+
+      it('are edited with the note: tidied and sent as a whole set, without resending unchanged text', async () => {
+        const api = fakeNotes(tagged())
+        await open()
+        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Deposition/ }))
+        const field = screen.getByLabelText(/^Tags for note “Deposition/)
+        expect(field).toHaveValue('draft 2')
+        expect(field).toHaveAccessibleDescription(/Separate tags with commas/)
+        await fireEvent.update(field, '  draft 2 , Part   three,, PART THREE ')
+        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+
+        await waitFor(() =>
+          expect(api.tagged).toEqual([{ id: 'n2', tags: ['draft 2', 'Part three'] }]),
+        )
+        expect(api.sent).toEqual([]) // the text was not changed, so it was not sent
+        expect(await screen.findByRole('button', { name: /^Edit note “Deposition/ })).toHaveFocus()
+      })
+
+      it('saves a changed text and changed tags together', async () => {
+        const api = fakeNotes(tagged())
+        await open()
+        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Untagged/ }))
+        await fireEvent.update(screen.getByLabelText(/^Text of note/), 'Tagged thought.')
+        await fireEvent.update(screen.getByLabelText(/^Tags for note/), 'intro')
+        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+        await waitFor(() => expect(api.tagged).toEqual([{ id: 'n3', tags: ['intro'] }]))
+        expect(api.sent).toEqual([{ text: 'Tagged thought.' }])
+      })
+
+      it('can be picked from the ones already used', async () => {
+        fakeNotes(tagged())
+        await open()
+        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Untagged/ }))
+        await fireEvent.click(screen.getByRole('button', { name: 'Add the tag draft 2' }))
+        await fireEvent.click(screen.getByRole('button', { name: 'Add the tag intro' }))
+        expect(screen.getByLabelText(/^Tags for note/)).toHaveValue('draft 2, intro')
+      })
+
+      it('show the explanation when the tags are refused, and keep the form open', async () => {
+        fakeNotes(tagged())
+        server.use(
+          http.put(`${notesUrl}/n3/tags`, () =>
+            HttpResponse.json({ error: 'Use 10 tags or fewer on a note' }, { status: 400 }),
+          ),
+        )
+        await open()
+        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Untagged/ }))
+        await fireEvent.update(screen.getByLabelText(/^Tags for note/), 'a, b')
+        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+        expect(await screen.findByText('Use 10 tags or fewer on a note')).toBeInTheDocument()
+        expect(screen.getByLabelText(/^Tags for note/)).toHaveValue('a, b')
+      })
     })
 
     describe('reordering', () => {

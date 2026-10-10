@@ -340,6 +340,8 @@ export const IdeaNoteSchema = z.object({
   authorId: z.string().nullable(),
   /** Their name now; null once they have left. */
   authorName: z.string().nullable(),
+  /** Labels the writer has put on it (a draft, a section, a theme), in the order they gave them. Flat, not nested. */
+  tags: z.array(z.string()),
   /** The reading-list item it was taken from, if any (null once that item is removed). */
   readingItemId: z.string().nullable(),
   /** When it was pulled into a draft; null while it hasn't been. */
@@ -355,6 +357,32 @@ export const IdeaNoteInputSchema = z.object({
   /** A note taken while reading this item of the idea's reading list: it then has origin `reading`. */
   readingItemId: z.string().optional(),
 })
+
+export const NOTE_TAG_MAX = 40
+export const MAX_NOTE_TAGS = 10
+
+/** One tag: a short label. Spacing is tidied; it is compared ignoring case, so "Intro" and "intro" are one tag. */
+export const NoteTagSchema = z
+  .string()
+  .transform((t) => t.trim().replace(/\s+/g, ' '))
+  .pipe(
+    z
+      .string()
+      .min(1, 'A tag needs a word or two')
+      .max(NOTE_TAG_MAX, `Use ${NOTE_TAG_MAX} characters or fewer in a tag`),
+  )
+
+/** The whole set of tags a note should have; repeats (ignoring case) are dropped, keeping the first. */
+export const NoteTagsInputSchema = z.object({
+  tags: z
+    .array(NoteTagSchema)
+    .transform((tags) => {
+      const seen = new Set<string>()
+      return tags.filter((t) => !seen.has(t.toLowerCase()) && !!seen.add(t.toLowerCase()))
+    })
+    .pipe(z.array(z.string()).max(MAX_NOTE_TAGS, `Use ${MAX_NOTE_TAGS} tags or fewer on a note`)),
+})
+export type NoteTagsInput = z.infer<typeof NoteTagsInputSchema>
 
 /** Changing a note changes only its text; where it came from stays. */
 export const IdeaNoteEditSchema = z.object({ text: NoteTextSchema })

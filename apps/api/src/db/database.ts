@@ -343,6 +343,15 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX draft_insertions_draft ON draft_insertions(draft_id);
   `,
+  // T35: flat tags on notes. A tag is just a label on a note (kept in the order given); the same word on several notes
+  // is how a draft, a section or a theme is shown. They go with the note.
+  `
+  CREATE TABLE idea_note_tags (
+    note_id TEXT NOT NULL REFERENCES idea_notes(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (note_id, tag COLLATE NOCASE)
+  );
+  `,
 ]
 
 /**

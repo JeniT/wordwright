@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { noteOriginLabel } from '../lib/note-label'
+import {
+  hasTag,
+  orderWithHidden,
+  parseTags,
+  sameTags,
+  tagsToText,
+  tagsUsedOn,
+} from '../lib/note-tags'
 import HoldButton from './HoldButton.vue'
+import NoteTags from './NoteTags.vue'
 import ReorderableList from './ReorderableList.vue'
+import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
+import TextField from './TextField.vue'
 
 const props = defineProps<{
   profileId: string
@@ -49,6 +60,19 @@ function chooseView(next: View) {
   }
 }
 
+// ---- tags: a flat label on a note, and showing only the notes with one
+const usedTags = computed(() => tagsUsedOn(notes.data.value ?? []))
+const tagFilter = ref<string | null>(null)
+// A tag that no note has any more can't be what is shown.
+watch(usedTags, (tags) => {
+  if (tagFilter.value && !tags.some((t) => t.toLowerCase() === tagFilter.value!.toLowerCase())) {
+    tagFilter.value = null
+  }
+})
+const visibleNotes = computed(() =>
+  (notes.data.value ?? []).filter((n) => hasTag(n, tagFilter.value)),
+)
+
 // ---- adding
 const draft = ref('')
 const addBox = ref<HTMLElement>()
@@ -65,11 +89,13 @@ const add = useMutation({
 // ---- editing one note at a time
 const editingId = ref<string | null>(null)
 const editText = ref('')
+const editTags = ref('')
 const list = ref<HTMLElement>()
 
 async function startEditing(note: IdeaNote) {
   save.reset()
   editText.value = note.text
+  editTags.value = tagsToText(note.tags)
   editingId.value = note.id
   await nextTick()
   list.value?.querySelector<HTMLTextAreaElement>(`[data-edit-note="${note.id}"] textarea`)?.focus()
@@ -81,7 +107,18 @@ async function stopEditing() {
   list.value?.querySelector<HTMLButtonElement>(`[data-edit-button="${id}"]`)?.focus()
 }
 const save = useMutation({
-  mutationFn: (id: string) => api.updateIdeaNote(props.profileId, props.ideaId, id, editText.value),
+  // Only what changed is sent: the text, and the tags as a whole set.
+  mutationFn: async (note: IdeaNote) => {
+    let saved = note
+    if (editText.value.trim() !== note.text) {
+      saved = await api.updateIdeaNote(props.profileId, props.ideaId, note.id, editText.value)
+    }
+    const tags = parseTags(editTags.value)
+    if (!sameTags(tags, note.tags)) {
+      saved = await api.setIdeaNoteTags(props.profileId, props.ideaId, note.id, tags)
+    }
+    return saved
+  },
   onSuccess: async (note) => {
     queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) =>
       old?.map((n) => (n.id === note.id ? note : n)),
@@ -117,8 +154,15 @@ const move = useMutation({
 })
 /** Saves a new order; true if it was saved (the error is shown under the list). */
 async function saveOrder(ids: string[]) {
+  // While only some notes are shown, the ones that are hidden keep their places.
+  const all = (notes.data.value ?? []).map((n) => n.id)
+  const complete = orderWithHidden(
+    all,
+    visibleNotes.value.map((n) => n.id),
+    ids,
+  )
   try {
-    await move.mutateAsync(ids)
+    await move.mutateAsync(complete)
   } catch {
     return false
   }
@@ -178,8 +222,11 @@ const label = (note: IdeaNote) => {
         No notes yet. Jot down your first thought below.
       </p>
       <div v-else ref="list" class="mb-4">
+        <TagFilter v-model="tagFilter" :tags="usedTags" />
+        <p v-if="!visibleNotes.length" class="text-stone-600">No notes have this tag.</p>
         <ReorderableList
-          :items="notes.data.value"
+          v-else
+          :items="visibleNotes"
           :item-label="label"
           :save="saveOrder"
           :disabled="move.isPending.value"
@@ -190,7 +237,7 @@ const label = (note: IdeaNote) => {
               v-if="editingId === note.id"
               :data-edit-note="note.id"
               :class="contentClass"
-              @submit.prevent="save.mutate(note.id)"
+              @submit.prevent="save.mutate(note)"
               @keydown.esc="stopEditing"
             >
               <TextAreaField
@@ -200,6 +247,25 @@ const label = (note: IdeaNote) => {
                 :maxlength="20000"
                 :hint="save.isError.value ? errorMessage(save.error.value) : undefined"
               />
+              <TextField
+                v-model="editTags"
+                :label="`Tags for ${label(note)}`"
+                autocomplete="off"
+                hint="Separate tags with commas, for example: intro, part 2. Use the same word on other notes to group them."
+              />
+              <p v-if="usedTags.length" class="mb-4 -mt-2 text-xs text-stone-700">
+                Already used:
+                <button
+                  v-for="tag in usedTags"
+                  :key="tag"
+                  type="button"
+                  class="mr-1 underline"
+                  :aria-label="`Add the tag ${tag}`"
+                  @click="editTags = tagsToText(parseTags(`${editTags}, ${tag}`))"
+                >
+                  {{ tag }}
+                </button>
+              </p>
               <div class="flex gap-2">
                 <button
                   type="submit"
@@ -220,6 +286,7 @@ const label = (note: IdeaNote) => {
             </form>
             <div v-else :class="contentClass">
               <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+              <NoteTags :tags="note.tags" />
               <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
             </div>
           </template>

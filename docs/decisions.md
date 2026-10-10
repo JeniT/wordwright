@@ -362,6 +362,26 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **Profile level.** Only an idea has a reading list so far (the profile's feeds are sources, not items), so this page
   is for an idea's items. A profile-level list (T37) would reuse the page.
 
+## Flat tags on notes (T35)
+
+A note can carry **tags**: short labels (up to 40 characters, up to 10 on a note) the writer chooses, such as the
+draft or section a note belongs to, or a theme. They are **flat**: there is no hierarchy, and a "section of a
+draft" is just a tag you use consistently. They are stored in `idea_note_tags` (one row per note and tag, in the
+order given, a tag unique per note ignoring case) and go with the note.
+
+- **Set as a whole.** `PUT /ideas/:id/notes/:note/tags {tags}` replaces the note's tags, the way notes are put in
+  order. The server tidies spacing and drops repeats ignoring case (keeping the first spelling), so "Intro" and
+  "intro" are one tag; empty or over-long tags are refused with a message. Editing a note's tags is part of editing
+  the note (a comma-separated field, with the tags already used on the idea offered as buttons); only what changed
+  is sent.
+- **Filter, not a view.** A row of buttons (All, then each tag) narrows the notes list, and the drafting drawer,
+  to the notes with that tag. It appears only once some note has a tag. In the drawer it offers only tags on notes
+  that can still be added. If the last note with the filtered tag loses it (or is added to the draft), the filter
+  quietly goes back to All.
+- **Putting notes in order while filtered** still works: the notes that are hidden keep their places and the
+  visible ones take the places the visible ones had, so the server still gets the complete order it requires.
+- **Not tags:** the AI's snapshot doesn't include them, and brainstorm doesn't tag notes (it can't edit notes).
+
 ## Idea sources: an ordered list of feeds, edited by any member
 
 Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the

@@ -91,6 +91,8 @@ tests inject fakes and nothing hits the network.
   item also records where it came from (`entered`, or later `brainstorm`, `research`, `idea_generation`). A note can be
   taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`); each item has a **Take notes** page (`/p/:profile/ideas/:idea/reading/:item`) that opens the page in a new tab and keeps a notes box beside it. The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
+  **Tags on notes:** `PUT /api/profiles/:id/ideas/:idea/notes/:note/tags` (`{tags}`) replaces a note's flat tags; the notes
+  list and the drafting drawer can show only one tag's notes.
   **Notes while drafting:** the drafting page lists the idea's notes beside the editor (a slide-over on a phone);
   `POST /api/profiles/:id/drafts/:draft/insertions` (`{noteId, text}`) records that a note's words were put into the
   draft (origin and source come from the note) and sets the note aside, `GET` lists them, and

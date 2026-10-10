@@ -17,6 +17,7 @@ type Note = {
   origin: string
   authorId: string | null
   authorName: string | null
+  tags: string[]
 }
 
 describe('idea notes', () => {
@@ -152,6 +153,74 @@ describe('idea notes', () => {
     })
   })
 
+  describe('tags', () => {
+    const tag = (id: string, tags: unknown) => ada.put(`${notes()}/${id}/tags`, { tags })
+
+    it('start empty, and are set as a whole, in the order given', async () => {
+      const note = await add('Erosion loops.')
+      expect(note.tags).toEqual([])
+      const res = await tag(note.id, ['Intro', 'draft 2'])
+      expect(res.status).toBe(200)
+      expect((await res.json()).tags).toEqual(['Intro', 'draft 2'])
+      expect((await list())[0]!.tags).toEqual(['Intro', 'draft 2'])
+      expect((await (await tag(note.id, ['draft 2'])).json()).tags).toEqual(['draft 2']) // replaced, not added to
+      expect((await (await tag(note.id, [])).json()).tags).toEqual([])
+    })
+
+    it('are tidied, and repeats (ignoring case) are dropped, keeping the first', async () => {
+      const note = await add('x')
+      const saved = await (
+        await tag(note.id, ['  Part   one ', 'part one', 'PART ONE', 'Part two'])
+      ).json()
+      expect(saved.tags).toEqual(['Part one', 'Part two'])
+    })
+
+    it('are refused when empty, too long or too many, saying what to do', async () => {
+      const note = await add('x')
+      for (const [tags, message] of [
+        [['ok', '   '], 'A tag needs a word or two'],
+        [['x'.repeat(41)], 'Use 40 characters or fewer in a tag'],
+        [Array.from({ length: 11 }, (_, i) => `t${i}`), 'Use 10 tags or fewer on a note'],
+      ] as const) {
+        const res = await tag(note.id, tags)
+        expect(res.status).toBe(400)
+        expect((await res.json()).error).toBe(message)
+      }
+      expect((await tag(note.id, 'nope')).status).toBe(400)
+      expect((await list())[0]!.tags).toEqual([]) // nothing half-saved
+    })
+
+    it('belong to a note on this idea, shared by members and hidden from everyone else', async () => {
+      const bob = ctx.client()
+      const eve = ctx.client()
+      await register(bob, 'bob@example.com', 'Bob')
+      await register(eve, 'eve@example.com', 'Eve')
+      verifyAccounts(ctx, 'ada@example.com')
+      await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+      const note = await add('x')
+      expect((await tag('nope', ['a'])).status).toBe(404)
+      expect((await bob.put(`${notes()}/${note.id}/tags`, { tags: ['from bob'] })).status).toBe(200)
+      expect((await list())[0]!.tags).toEqual(['from bob'])
+      expect((await eve.put(`${notes()}/${note.id}/tags`, { tags: ['x'] })).status).toBe(404)
+
+      const other = (await (await ada.post(ideas(), { name: 'Other' })).json()).id
+      const via = `${ideas()}/${other}/notes/${note.id}/tags`
+      expect((await ada.put(via, { tags: ['x'] })).status).toBe(404) // not that idea's note
+    })
+
+    it('stay on the note when its text changes or notes are put in order, and change the idea', async () => {
+      const [a, b] = [await add('a'), await add('b')]
+      await tag(a.id, ['one'])
+      await ada.patch(`${notes()}/${a.id}`, { text: 'a, edited' })
+      await ada.put(`${notes()}/order`, { ids: [b.id, a.id] })
+      expect(await list()).toMatchObject([{ tags: [] }, { text: 'a, edited', tags: ['one'] }])
+
+      ctx.store.ideas.touch(idea, 'long ago')
+      await tag(b.id, ['two'])
+      expect(ctx.store.ideas.get(profile, idea)!.updatedAt).not.toBe('long ago')
+    })
+  })
+
   it('marks the idea as changed', async () => {
     const stamp = () => ctx.store.ideas.get(profile, idea)!.updatedAt
     const touchedBy = async (change: () => Promise<unknown>) => {
@@ -264,6 +333,26 @@ describe('idea notes', () => {
       await ada.patch(`${ideas()}/${idea}`, { notes: '- one\n\n- two\n\n' })
       expect((await list()).map((n) => n.id)).toEqual([one.id, two.id])
     })
+  })
+})
+
+describe('the tags table', () => {
+  it('goes with its note, and treats a tag as one whatever its case', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test')
+    db.exec(`
+      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at) VALUES ('i', 'p', 'I', '', 't', 't');
+      INSERT INTO idea_notes (id, profile_id, idea_id, text, origin, position, created_at, updated_at)
+        VALUES ('n', 'p', 'i', 'x', 'entered', 0, 't', 't');
+      INSERT INTO idea_note_tags (note_id, tag) VALUES ('n', 'Intro');
+    `)
+    expect(() =>
+      db.exec("INSERT INTO idea_note_tags (note_id, tag) VALUES ('n', 'intro')"),
+    ).toThrow()
+    db.exec("DELETE FROM idea_notes WHERE id = 'n'")
+    expect(db.prepare('SELECT count(*) AS n FROM idea_note_tags').get()).toEqual({ n: 0 })
   })
 })
 

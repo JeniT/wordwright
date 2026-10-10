@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { noteOriginLabel } from '../lib/note-label'
+import { hasTag, tagsUsedOn } from '../lib/note-tags'
+import NoteTags from './NoteTags.vue'
+import TagFilter from './TagFilter.vue'
 
 const props = defineProps<{
   profileId: string
@@ -19,7 +22,16 @@ const notes = useQuery({
   queryKey: ['notes', () => props.profileId, () => props.ideaId],
   queryFn: () => api.listIdeaNotes(props.profileId, props.ideaId),
 })
-const waiting = computed(() => (notes.data.value ?? []).filter((n) => !n.addedAt))
+const tagFilter = ref<string | null>(null)
+const usedTags = computed(() => tagsUsedOn((notes.data.value ?? []).filter((n) => !n.addedAt)))
+watch(usedTags, (tags) => {
+  if (tagFilter.value && !tags.some((t) => t.toLowerCase() === tagFilter.value!.toLowerCase())) {
+    tagFilter.value = null
+  }
+})
+const waiting = computed(() =>
+  (notes.data.value ?? []).filter((n) => !n.addedAt && hasTag(n, tagFilter.value)),
+)
 const added = computed(() => (notes.data.value ?? []).filter((n) => n.addedAt))
 const showAdded = ref(false)
 
@@ -66,7 +78,10 @@ const label = (note: IdeaNote) => {
           Add some on the idea page.
         </RouterLink>
       </p>
-      <p v-else-if="!waiting.length" class="text-stone-600">All your notes are in a draft.</p>
+      <TagFilter v-model="tagFilter" :tags="usedTags" />
+      <p v-if="notes.data.value?.length && !waiting.length" class="text-stone-600">
+        {{ tagFilter ? 'No notes left with this tag.' : 'All your notes are in a draft.' }}
+      </p>
 
       <ul v-if="waiting.length" class="mb-3 space-y-2">
         <li
@@ -75,6 +90,7 @@ const label = (note: IdeaNote) => {
           class="rounded border border-stone-200 bg-white p-3"
         >
           <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+          <NoteTags :tags="note.tags" />
           <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
           <button
             type="button"

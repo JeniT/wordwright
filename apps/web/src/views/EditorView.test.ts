@@ -78,6 +78,7 @@ const note = (
   authorId: 'u1',
   authorName: 'Ada',
   readingItemId: null,
+  tags: [] as string[],
   addedAt: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -288,6 +289,55 @@ describe('the notes beside the draft', () => {
         "couldn't mark the note as added",
       )
       expect(api.saved.at(-1)!.body).toContain('Erosion loops.')
+    })
+  })
+
+  describe('tags', () => {
+    const tagged = () => [
+      { ...note('n1', 'Erosion loops.'), tags: ['intro'] },
+      { ...note('n2', 'Deposition inside the bend.'), tags: ['part 2'] },
+      note('n3', 'Untagged thought.'),
+      { ...note('n4', 'Already used.', { addedAt: '2026-01-02T00:00:00Z' }), tags: ['solo'] },
+    ]
+    const listed = () =>
+      within(drawer())
+        .getAllByRole('listitem')
+        .filter((li) => li.querySelector('p'))
+        .map((li) => li.querySelector('p')!.textContent)
+
+    it('are shown on the notes, and can narrow the list to one tag, for adding what belongs in this part', async () => {
+      mockDrafting({ notes: tagged() })
+      await renderAt('/p/p1/drafts/d1')
+      const notes = within(await screen.findByRole('complementary'))
+      await notes.findByText('Erosion loops.')
+      const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
+      // Only tags on notes that can still be added are offered; "solo" is only on an added note.
+      expect(
+        within(filter)
+          .getAllByRole('button')
+          .map((b) => b.textContent?.trim()),
+      ).toEqual(['All', 'intro', 'part 2'])
+      await fireEvent.click(within(filter).getByRole('button', { name: 'part 2' }))
+      expect(listed()).toEqual(['Deposition inside the bend.'])
+      await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
+      expect(listed()).toEqual([
+        'Erosion loops.',
+        'Deposition inside the bend.',
+        'Untagged thought.',
+      ])
+    })
+
+    it('say so when nothing is left with the tag once its notes are in the draft', async () => {
+      mockDrafting({ notes: tagged() })
+      await renderAt('/p/p1/drafts/d1')
+      const notes = within(await screen.findByRole('complementary'))
+      await fireEvent.click(await notes.findByRole('button', { name: 'intro' }))
+      await fireEvent.click(
+        notes.getByRole('button', { name: /^Add note “Erosion loops\.” to the draft/ }),
+      )
+      // The tag is no longer on anything that can be added, so the filter goes back to everything.
+      await waitFor(() => expect(listed()).toContain('Untagged thought.'))
+      expect(notes.queryByRole('button', { name: 'intro' })).toBeNull()
     })
   })
 

@@ -325,3 +325,54 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   ).toBeVisible()
   await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
 })
+
+test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
+    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByRole('button', { name: 'Add note' }).click()
+    await expect(notes.getByText(text)).toBeVisible()
+  }
+  // No filter until something is tagged.
+  await expect(notes.getByRole('group', { name: 'Show notes with a tag' })).toHaveCount(0)
+
+  const tag = async (noteStart: RegExp, tags: string) => {
+    await notes.getByRole('button', { name: noteStart }).click()
+    await notes.getByLabel(/^Tags for note/).fill(tags)
+    await notes.getByRole('button', { name: 'Save note' }).click()
+    await expect(notes.getByRole('button', { name: 'Save note' })).toHaveCount(0)
+  }
+  await tag(/^Edit note “Erosion/, 'intro, part 1')
+  await tag(/^Edit note “Deposition/, 'part 1')
+  await tag(/^Edit note “Oxbow/, 'Part 2')
+  await noViolations(page, 'idea page with tagged notes')
+
+  // Show only one tag's notes; they can still be put in order, and "All" brings the rest back.
+  const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
+  await filter.getByRole('button', { name: 'part 1' }).click()
+  await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
+  await notes.getByRole('button', { name: /^Move note “Deposition.*up/ }).click()
+  await filter.getByRole('button', { name: 'All' }).click()
+  await expect(notes.getByRole('listitem').filter({ hasText: 'Deposition' }).first()).toBeVisible()
+  await page.reload()
+  const after = page.getByRole('region', { name: 'Notes' })
+  await expect(after.getByRole('list', { name: 'Tags' }).first()).toBeVisible()
+
+  // Beside the draft, the same tags narrow the list to what belongs in this part.
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const side = page.getByRole('complementary')
+  await side
+    .getByRole('group', { name: 'Show notes with a tag' })
+    .getByRole('button', { name: 'Part 2' })
+    .click()
+  await expect(side.getByText('Oxbow lakes form')).toBeVisible()
+  await expect(side.getByText('Deposition on the inside.')).toHaveCount(0)
+  await noViolations(page, 'drafting page filtered by a tag')
+})
