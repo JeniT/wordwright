@@ -11,6 +11,17 @@ export interface UserRecord {
   emailVerified: boolean
 }
 
+/** No sign of use: no drafts or ideas, no saved API key, and no one else in any of their profiles. */
+const UNUSED_ACCOUNT = `
+  AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN drafts d ON d.profile_id = m.profile_id
+                  WHERE m.user_id = u.id)
+  AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN ideas i ON i.profile_id = m.profile_id
+                  WHERE m.user_id = u.id)
+  AND NOT EXISTS (SELECT 1 FROM llm_credentials c WHERE c.user_id = u.id)
+  AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN profile_members o
+                    ON o.profile_id = m.profile_id AND o.user_id <> m.user_id
+                  WHERE m.user_id = u.id)`
+
 export class UserStore {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -57,20 +68,42 @@ export class UserStore {
     return this.db
       .prepare(
         `SELECT u.* FROM users u
-         WHERE u.email_verified = 0 AND u.created_at < ?
-           AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN drafts d ON d.profile_id = m.profile_id
-                           WHERE m.user_id = u.id)
-           AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN ideas i ON i.profile_id = m.profile_id
-                           WHERE m.user_id = u.id)
-           AND NOT EXISTS (SELECT 1 FROM llm_credentials c WHERE c.user_id = u.id)
-           AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN profile_members o
-                             ON o.profile_id = m.profile_id AND o.user_id <> m.user_id
-                           WHERE m.user_id = u.id)
+         WHERE u.email_verified = 0 AND u.created_at < ? ${UNUSED_ACCOUNT}
          ORDER BY u.created_at
          LIMIT ?`,
       )
       .all(cutoff.toISOString(), limit)
       .map((row) => this.one(row)!)
+  }
+
+  /**
+   * Unused, unconfirmed accounts created in `[notBefore, before)` that haven't been warned yet: those
+   * that are close to deletion but not yet past it.
+   */
+  findNeedingDeletionReminder(before: Date, notBefore: Date, limit: number): UserRecord[] {
+    return this.db
+      .prepare(
+        `SELECT u.* FROM users u
+         WHERE u.email_verified = 0 AND u.deletion_reminded_at IS NULL
+           AND u.created_at < ? AND u.created_at >= ? ${UNUSED_ACCOUNT}
+         ORDER BY u.created_at
+         LIMIT ?`,
+      )
+      .all(before.toISOString(), notBefore.toISOString(), limit)
+      .map((row) => this.one(row)!)
+  }
+
+  markDeletionReminded(id: string, at: Date) {
+    this.db
+      .prepare('UPDATE users SET deletion_reminded_at = ? WHERE id = ?')
+      .run(at.toISOString(), id)
+  }
+
+  /** When the account was created, to work out how long it has left. */
+  createdAt(id: string): Date | undefined {
+    const row = this.db.prepare('SELECT created_at FROM users WHERE id = ?').get(id) as
+      { created_at: string } | undefined
+    return row && new Date(row.created_at)
   }
 
   markEmailVerified(id: string) {

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { hashToken } from './auth/secrets'
+import { createScryptHasher } from './auth/password'
+import { AccountService } from './services/accounts'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import {
   lastInvitationToken,
@@ -21,6 +23,13 @@ function world(options: { ttl?: number; logger?: Pick<Console, 'log' | 'error'> 
     new MaintenanceService({
       store: ctx.store,
       unconfirmedTtlDays: options.ttl,
+      reminders: new AccountService({
+        store: ctx.store,
+        hasher: createScryptHasher({ cost: 16 }),
+        mailer: ctx.mailer,
+        publicUrl: 'http://localhost:5173',
+        now: () => ctx.clock.now,
+      }),
       now: () => ctx.clock.now,
       logger: options.logger,
     })
@@ -170,6 +179,79 @@ describe('purging unconfirmed, unused accounts', () => {
     const logger = { log: vi.fn(), error: vi.fn() }
     world({ logger }).maintenance().run()
     expect(logger.log).not.toHaveBeenCalled()
+  })
+})
+
+describe('reminding before deleting', () => {
+  const reminders = (ctx: ReturnType<typeof setup>) =>
+    ctx.mailer.outbox.filter((e) => e.subject.includes('will be deleted'))
+
+  it('warns an unused, unconfirmed account once, a few days before it goes, with a link that keeps it', async () => {
+    const { ctx, maintenance, daysLater } = world()
+    const c = ctx.client()
+    const user = await register(c, 'late@example.com', 'Late')
+
+    daysLater(10) // 4 days left: too early
+    expect(maintenance().remindUnconfirmedAccounts()).toBe(0)
+
+    daysLater(11.5) // 2.5 days left
+    expect(maintenance().remindUnconfirmedAccounts()).toBe(1)
+    const [email] = reminders(ctx)
+    expect(email!.to).toBe('late@example.com')
+    expect(email!.subject).toBe('Your account will be deleted in 3 days unless you confirm it')
+    expect(email!.text).toContain("we'll delete it in 3 days")
+
+    // Once only, however often the job runs.
+    expect(maintenance().remindUnconfirmedAccounts()).toBe(0)
+    expect(maintenance().run().remindedAccounts).toBe(0)
+    expect(reminders(ctx)).toHaveLength(1)
+
+    // The link in it confirms the address, which is what keeps the account.
+    const link = /verify-email\?token=([\w-]+)/.exec(email!.text)![1]!
+    expect((await ctx.client().post('/api/auth/verify-email', { token: link })).status).toBe(200)
+    expect(ctx.store.users.findById(user.id)!.emailVerified).toBe(true)
+    daysLater(30)
+    expect(maintenance().purgeUnconfirmedAccounts()).toBe(0)
+  })
+
+  it('does not warn accounts that are confirmed or in use', async () => {
+    const { ctx, maintenance, daysLater } = world()
+    await register(ctx.client(), 'ada@example.com', 'Ada')
+    verifyAccounts(ctx, 'ada@example.com')
+    const busy = ctx.client()
+    await register(busy, 'busy@example.com', 'Busy')
+    await saveKey(busy)
+    daysLater(12)
+    expect(maintenance().remindUnconfirmedAccounts()).toBe(0)
+    expect(reminders(ctx)).toHaveLength(0)
+  })
+
+  it('does not warn an account that is already past the limit: it is just deleted', async () => {
+    const { ctx, maintenance, daysLater } = world()
+    await register(ctx.client(), 'old@example.com', 'Old')
+    daysLater(15)
+    const result = maintenance().run()
+    expect(result).toMatchObject({ purgedAccounts: 1, remindedAccounts: 0 })
+    expect(reminders(ctx)).toHaveLength(0)
+  })
+
+  it('sends nothing when the cleanup is off', async () => {
+    const { ctx, maintenance, daysLater } = world({ ttl: 0 })
+    await register(ctx.client(), 'old@example.com', 'Old')
+    daysLater(12)
+    expect(maintenance().remindUnconfirmedAccounts()).toBe(0)
+    expect(reminders(ctx)).toHaveLength(0)
+  })
+
+  it('counts warnings in the log but never names anyone', async () => {
+    const logger = { log: vi.fn(), error: vi.fn() }
+    const { ctx, maintenance, daysLater } = world({ logger })
+    await register(ctx.client(), 'secret.person@example.com', 'Secret Person')
+    daysLater(12)
+    expect(maintenance().run().remindedAccounts).toBe(1)
+    const message = String(logger.log.mock.calls[0]![0])
+    expect(message).toMatch(/warned 1/)
+    expect(message).not.toMatch(/secret|example\.com/i)
   })
 })
 

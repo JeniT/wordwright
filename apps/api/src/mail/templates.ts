@@ -71,6 +71,32 @@ Confirming lets you share profiles with co-writers and keeps your account safe.$
   }
 }
 
+export function deletionReminderEmail(input: {
+  name: string
+  link: string
+  daysLeft: number
+  ttlHours: number
+  signInLink: string
+}): Content {
+  const { name, link, daysLeft, ttlHours, signInLink } = input
+  const when = daysLeft <= 1 ? 'tomorrow' : `in ${daysLeft} days`
+  return {
+    subject: `Your account will be deleted ${when} unless you confirm it`,
+    text: `Hi ${name},
+
+You signed up for Long-form Writing Assistant but haven't confirmed your email address or started using the account, so we'll delete it ${when}. To keep it, confirm your address (this link expires in ${ttlHours} hours):
+
+${link}
+
+Or sign in at ${signInLink} and start using it: saving a draft, an idea or your API key also keeps it. If you don't want the account, there is nothing to do. This is the only reminder we'll send.`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>You signed up for Long-form Writing Assistant but haven't confirmed your email address or started using the account, so we'll delete it <strong>${escapeHtml(when)}</strong>.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Keep my account</a></p>
+<p style="font-size:14px">The link expires in ${ttlHours} hours. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
+<p style="font-size:14px">Or <a href="${escapeHtml(signInLink)}">sign in</a> and start using it: saving a draft, an idea or your API key also keeps it. If you don't want the account, there is nothing to do. This is the only reminder we'll send.</p>`),
+  }
+}
+
 export function invitationEmail(input: {
   inviterName: string
   profileName: string

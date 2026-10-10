@@ -10,6 +10,7 @@ import {
   passwordChangedEmail,
   passwordResetEmail,
   passwordSetupEmail,
+  deletionReminderEmail,
   verifyEmailEmail,
 } from '../mail/templates'
 import { removeUserAndOwnedData } from './remove-user'
@@ -145,6 +146,30 @@ export class AccountService {
         link,
         ttlHours: VERIFY_TTL_MS / 3_600_000,
         unusedAccountDays: this.d.unconfirmedTtlDays || undefined,
+      }),
+    })
+  }
+
+  /**
+   * Warns an unconfirmed, unused account that it is about to be deleted, with a fresh confirmation
+   * link (replacing any earlier one) so keeping it takes one click. Sent in the background.
+   */
+  sendDeletionReminder(user: UserRecord, daysLeft: number) {
+    const token = generateToken()
+    this.d.store.tokens.createVerification(
+      hashToken(token),
+      user.id,
+      user.email,
+      this.expiresIn(VERIFY_TTL_MS),
+    )
+    this.sendInBackground(user.id, 'deletion reminder', {
+      to: user.email,
+      ...deletionReminderEmail({
+        name: user.name,
+        link: `${this.d.publicUrl}/verify-email?token=${token}`,
+        daysLeft,
+        ttlHours: VERIFY_TTL_MS / 3_600_000,
+        signInLink: `${this.d.publicUrl}/login`,
       }),
     })
   }

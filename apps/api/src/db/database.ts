@@ -255,6 +255,8 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX idea_proposals_message ON idea_proposals(message_id);
   `,
+  // T3e: when an unconfirmed account was warned that it is about to be deleted (once only).
+  `ALTER TABLE users ADD COLUMN deletion_reminded_at TEXT`,
 ]
 
 /**

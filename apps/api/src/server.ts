@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { FakePageInfoFetcher, type Providers } from '@lfwa/core'
 import { createApp } from './app'
 import { googleProvider, type IdentityProvider } from './auth/identity'
+import { createScryptHasher } from './auth/password'
 import { loadConfig } from './config'
 import { DatabaseError } from './db/database'
 import { openStore } from './db/store'
@@ -9,6 +10,7 @@ import { fakeLlmFactory, realLlmFactory } from './llm-factory'
 import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { HttpPageInfoFetcher } from './pages/http-page-info'
+import { AccountService } from './services/accounts'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
 
@@ -77,6 +79,13 @@ const app = createApp({
 const maintenance = new MaintenanceService({
   store,
   unconfirmedTtlDays: config.UNCONFIRMED_ACCOUNT_TTL_DAYS,
+  // Only its email-sending is used here; the hasher is never called.
+  reminders: new AccountService({
+    store,
+    hasher: createScryptHasher(),
+    mailer,
+    publicUrl: config.PUBLIC_URL,
+  }),
 })
 startMaintenance({ run: () => maintenance.run(), intervalMs: 6 * 60 * 60 * 1000 })
 
