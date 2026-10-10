@@ -441,11 +441,17 @@ describe('idea page', () => {
 
   describe('notes', () => {
     const notesUrl = `${ideaUrl}/notes`
-    const note = (id: string, text: string, origin = 'entered') => ({
+    const note = (
+      id: string,
+      text: string,
+      origin = 'entered',
+      authorName: string | null = 'Ada',
+    ) => ({
       id,
       text,
       origin,
-      authorId: 'u1',
+      authorId: authorName ? 'u1' : null,
+      authorName,
       addedAt: null,
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
@@ -453,7 +459,7 @@ describe('idea page', () => {
     const three = [
       note('n1', 'Erosion loops.'),
       note('n2', 'Deposition inside the bend.\nSecond line.', 'brainstorm'),
-      note('n3', 'A quote from the paper.', 'reading'),
+      note('n3', 'A quote from the paper.', 'reading', 'Bob'),
     ]
     const region = () => screen.getByRole('region', { name: 'Notes' })
     const texts = () =>
@@ -507,14 +513,26 @@ describe('idea page', () => {
         'A quote from the paper.',
       ])
       const items = within(region()).getAllByRole('listitem')
-      expect(items[0]).toHaveTextContent('Added by hand')
-      expect(items[1]).toHaveTextContent('From brainstorming')
-      expect(items[2]).toHaveTextContent('From reading')
+      expect(items[0]).toHaveTextContent('Added by Ada')
+      expect(items[1]).toHaveTextContent('From brainstorming with Ada')
+      expect(items[2]).toHaveTextContent('From reading, by Bob')
       expect(within(region()).getByRole('button', { name: 'Cards' })).toHaveAttribute(
         'aria-pressed',
         'true',
       )
       expect(items[0]!.closest('ol')).toHaveClass('grid')
+    })
+
+    it('says "a former member" for a note whose author has left', async () => {
+      fakeNotes([
+        note('n1', 'Left behind.', 'entered', null),
+        note('n2', 'Also.', 'brainstorm', null),
+      ])
+      await open()
+      await screen.findByText('Left behind.')
+      const items = within(region()).getAllByRole('listitem')
+      expect(items[0]).toHaveTextContent('Added by a former member')
+      expect(items[1]).toHaveTextContent('From brainstorming with a former member')
     })
 
     it('switches between cards and a list, and remembers the choice', async () => {

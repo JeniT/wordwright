@@ -328,6 +328,8 @@ export const IdeaNoteSchema = z.object({
   origin: NoteOriginSchema,
   /** Who added it; null once that person has left. */
   authorId: z.string().nullable(),
+  /** Their name now; null once they have left. */
+  authorName: z.string().nullable(),
   /** When it was pulled into a draft; null while it hasn't been. */
   addedAt: z.string().nullable(),
   createdAt: z.string(),

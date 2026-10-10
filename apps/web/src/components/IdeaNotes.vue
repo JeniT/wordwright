@@ -43,10 +43,15 @@ function chooseView(next: View) {
   }
 }
 
-const originLabel: Record<NoteOrigin, string> = {
-  entered: 'Added by hand',
-  brainstorm: 'From brainstorming',
-  reading: 'From reading',
+/** Where a note came from, and who was there: this is a trusted space, so people are named. */
+function originLabel(note: IdeaNote) {
+  const who = note.authorName ?? 'a former member'
+  const labels: Record<NoteOrigin, string> = {
+    entered: `Added by ${who}`,
+    brainstorm: `From brainstorming with ${who}`,
+    reading: `From reading, by ${who}`,
+  }
+  return labels[note.origin]
 }
 
 // ---- adding
@@ -220,7 +225,7 @@ const label = (note: IdeaNote) => {
             </form>
             <div v-else :class="contentClass">
               <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
-              <p class="mt-1 text-xs text-stone-600">{{ originLabel[note.origin] }}</p>
+              <p class="mt-1 text-xs text-stone-600">{{ originLabel(note) }}</p>
             </div>
           </template>
           <template #actions="{ item: note }">

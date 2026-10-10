@@ -2,9 +2,22 @@ import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_IDEA_NOTES, NOTE_TEXT_MAX } from '@lfwa/core'
 import { MIGRATIONS, migrate } from './db/database'
-import { register, setup, shareProfile, verifyAccounts, type TestClient } from './test-helpers'
+import {
+  PASSWORD,
+  register,
+  setup,
+  shareProfile,
+  verifyAccounts,
+  type TestClient,
+} from './test-helpers'
 
-type Note = { id: string; text: string; origin: string; authorId: string | null }
+type Note = {
+  id: string
+  text: string
+  origin: string
+  authorId: string | null
+  authorName: string | null
+}
 
 describe('idea notes', () => {
   let ctx: ReturnType<typeof setup>
@@ -33,6 +46,7 @@ describe('idea notes', () => {
     expect(all.map((n) => n.text)).toEqual(['Erosion loops.', 'Deposition on the inside.'])
     expect(all[0]).toMatchObject({ origin: 'entered', addedAt: null })
     expect(all[0]!.authorId).toBeTruthy()
+    expect(all[0]!.authorName).toBe('Ada')
   })
 
   it('edits a note, and says what is wrong with an empty or oversized one', async () => {
@@ -111,6 +125,28 @@ describe('idea notes', () => {
     expect((await bob.patch(`${notes()}/${note.id}`, { text: 'Bob edited' })).status).toBe(200)
     expect((await eve.get(notes())).status).toBe(404)
     expect((await eve.post(notes(), { text: 'hi' })).status).toBe(404)
+  })
+
+  it("names each note's author, and says nothing once they have left", async () => {
+    const bob = ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com')
+    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await add('Ada wrote this')
+    const bobs = await (await bob.post(notes(), { text: 'Bob wrote this' })).json()
+    expect(bobs.authorName).toBe('Bob')
+    expect((await list()).map((n) => n.authorName)).toEqual(['Ada', 'Bob'])
+
+    // Once they have left, the note stays, with nobody named.
+    const left = await bob.delete('/api/account', {
+      confirmEmail: 'bob@example.com',
+      password: PASSWORD,
+    })
+    expect(left.status).toBe(204)
+    expect(await list()).toMatchObject([
+      { authorName: 'Ada' },
+      { authorId: null, authorName: null },
+    ])
   })
 
   it("does not reach into another profile's idea", async () => {

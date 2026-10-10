@@ -10,6 +10,7 @@ const toNote = (r: Row): IdeaNote => ({
   text: r.text as string,
   origin: r.origin as NoteOrigin,
   authorId: r.created_by as string | null,
+  authorName: r.author_name as string | null,
   addedAt: r.added_at as string | null,
   createdAt: r.created_at as string,
   updatedAt: r.updated_at as string,
@@ -23,11 +24,19 @@ const toNote = (r: Row): IdeaNote => ({
 export class NoteStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  list(ideaId: string): IdeaNote[] {
+  /** A note with its author's current name. */
+  private select(where: string, ...args: string[]): IdeaNote[] {
     return this.db
-      .prepare('SELECT * FROM idea_notes WHERE idea_id = ? ORDER BY position, rowid')
-      .all(ideaId)
+      .prepare(
+        `SELECT n.*, u.name AS author_name FROM idea_notes n
+         LEFT JOIN users u ON u.id = n.created_by WHERE ${where}`,
+      )
+      .all(...args)
       .map(toNote)
+  }
+
+  list(ideaId: string): IdeaNote[] {
+    return this.select('n.idea_id = ? ORDER BY n.position, n.rowid', ideaId)
   }
 
   count(ideaId: string): number {
@@ -54,7 +63,7 @@ export class NoteStore {
          VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE idea_id = ?), ?, ?)`,
       )
       .run(id, profileId, ideaId, authorId, text, origin, ideaId, now, now)
-    return toNote(this.db.prepare('SELECT * FROM idea_notes WHERE id = ?').get(id)!)
+    return this.select('n.id = ?', id)[0]!
   }
 
   updateText(ideaId: string, id: string, text: string): IdeaNote | undefined {
@@ -63,7 +72,7 @@ export class NoteStore {
         .prepare('UPDATE idea_notes SET text = ?, updated_at = ? WHERE idea_id = ? AND id = ?')
         .run(text, nowIso(), ideaId, id).changes > 0
     if (!changed) return undefined
-    return toNote(this.db.prepare('SELECT * FROM idea_notes WHERE id = ?').get(id)!)
+    return this.select('n.id = ?', id)[0]
   }
 
   remove(ideaId: string, id: string): boolean {

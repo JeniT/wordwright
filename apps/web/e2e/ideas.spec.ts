@@ -131,7 +131,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(1)
-  await expect(notes.getByRole('listitem').first()).toContainText('Added by hand')
+  await expect(notes.getByRole('listitem').first()).toContainText('Added by Ida')
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
     await notes.getByLabel('Add a note').fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
