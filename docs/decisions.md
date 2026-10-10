@@ -360,6 +360,9 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **The box for a new note is above the notes taken so far** (#57), so it stays in the same place as the list
   grows instead of being pushed off the screen. For the same reason the page lists its notes **newest first**, so a
   note just added shows up right under the box (the idea page keeps the writer's own order).
+- **The title can be edited on the reading page** (an "Edit title" / "Add a title" button by the heading), because the
+  lookup often finds none and the page is then called by its address. It is the idea page's edit with the address
+  left alone; a blank title asks the server to look it up again.
 - **Other pages found while reading** (#56) are added from the same page: a web-address box (the idea page's checks
   and title lookup, same call) puts the page on the reading list as `entered`, the page stays open, and a link offers
   to read the new item next. Nothing is read or noted for the writer.

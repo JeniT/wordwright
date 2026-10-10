@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaNote } from '@lfwa/core'
 import NoteText from '../components/NoteText.vue'
@@ -35,6 +35,37 @@ const itemNotes = computed(() =>
 )
 
 const label = computed(() => item.value?.title || item.value?.url || '')
+
+// ---- the title: often missing, when it couldn't be looked up from the page
+const editingTitle = ref(false)
+const title = ref('')
+const titleForm = useTemplateRef<HTMLFormElement>('titleForm')
+const titleButton = useTemplateRef<HTMLButtonElement>('titleButton')
+async function startEditingTitle() {
+  title.value = item.value?.title ?? ''
+  saveTitle.reset()
+  editingTitle.value = true
+  await nextTick()
+  titleForm.value?.querySelector('input')?.focus()
+}
+async function stopEditingTitle() {
+  editingTitle.value = false
+  await nextTick()
+  titleButton.value?.focus()
+}
+// Only the title changes; a blank one asks the server to look it up again, as on the idea page.
+const saveTitle = useMutation({
+  mutationFn: () =>
+    api.updateIdeaLink(props.profileId, props.id, props.linkId, {
+      url: item.value!.url,
+      title: title.value,
+    }),
+  onSuccess: async (saved) => {
+    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
+    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
+    await stopEditingTitle()
+  },
+})
 
 // Whether it has been read is the writer's say-so (they may have read it offline), as on the idea page.
 const setRead = useMutation({
@@ -117,9 +148,63 @@ const add = useMutation({
         ← Back to “{{ idea.data.value?.name }}”
       </RouterLink>
     </p>
-    <h1 id="reading-heading" class="mb-2 font-serif text-2xl font-semibold break-words">
-      {{ label }}
-    </h1>
+    <div class="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+      <h1
+        id="reading-heading"
+        class="min-w-[12rem] flex-1 font-serif text-2xl font-semibold break-words"
+      >
+        {{ label }}
+      </h1>
+      <button
+        v-if="!editingTitle"
+        ref="titleButton"
+        type="button"
+        class="btn btn-neutral"
+        @click="startEditingTitle"
+      >
+        {{ item.title ? 'Edit title' : 'Add a title' }}
+      </button>
+    </div>
+    <p v-if="!item.title && !editingTitle" class="mb-3 text-sm text-stone-700">
+      We couldn't find this page's title, so it is shown by its address.
+    </p>
+    <form
+      v-if="editingTitle"
+      ref="titleForm"
+      class="mb-4"
+      @submit.prevent="saveTitle.mutate()"
+      @keydown.esc="stopEditingTitle"
+    >
+      <TextField
+        v-model="title"
+        label="Title"
+        autocomplete="off"
+        :maxlength="200"
+        :invalid="saveTitle.isError.value"
+        :hint="
+          saveTitle.isError.value
+            ? errorMessage(saveTitle.error.value)
+            : 'Leave this blank to look the title up again.'
+        "
+      />
+      <div class="flex gap-2">
+        <button
+          type="submit"
+          class="btn btn-neutral border-accent bg-accent text-white hover:bg-accent hover:opacity-90"
+          :disabled="saveTitle.isPending.value"
+        >
+          {{ saveTitle.isPending.value ? 'Saving…' : 'Save title' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-neutral"
+          :disabled="saveTitle.isPending.value"
+          @click="stopEditingTitle"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
 
     <section aria-labelledby="page-heading" class="mb-8">
       <h2 id="page-heading" class="sr-only">The page</h2>

@@ -245,6 +245,70 @@ describe('reading page', () => {
     })
   })
 
+  describe('the title', () => {
+    const titled = (title: string) => ({
+      ...idea,
+      links: [{ ...idea.links[0]!, title }, idea.links[1]!],
+    })
+    const patchUrl = `${ideaUrl}/links/l1`
+
+    it('is edited in place, sending the same address and the new title', async () => {
+      const sent: unknown[] = []
+      await open('l1', [
+        http.patch(patchUrl, async ({ request }) => {
+          sent.push(await request.json())
+          return HttpResponse.json(titled('A better title'))
+        }),
+      ])
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit title' }))
+      const field = screen.getByLabelText('Title')
+      expect(field).toHaveFocus()
+      expect(field).toHaveValue('A paper')
+      await fireEvent.update(field, 'A better title')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save title' }))
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'A better title' }),
+      ).toBeInTheDocument()
+      expect(sent).toEqual([{ url: 'https://example.org/paper', title: 'A better title' }])
+      await waitFor(() => expect(screen.queryByLabelText('Title')).toBeNull())
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Edit title' })).toHaveFocus())
+    })
+
+    it('says when none was found, and offers to add one', async () => {
+      await open('l2')
+      expect(await screen.findByText(/couldn't find this page's title/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Add a title' })).toBeInTheDocument()
+    })
+
+    it('does not say that for an item that has a title', async () => {
+      await open()
+      await screen.findByRole('heading', { level: 1, name: 'A paper' })
+      expect(screen.queryByText(/couldn't find this page's title/)).toBeNull()
+    })
+
+    it('can be cancelled, with Escape too, leaving it as it was', async () => {
+      await open()
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit title' }))
+      await fireEvent.update(screen.getByLabelText('Title'), 'Changed my mind')
+      await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.getByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
+      await fireEvent.click(screen.getByRole('button', { name: 'Edit title' }))
+      await fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Escape' })
+      expect(screen.queryByLabelText('Title')).toBeNull()
+    })
+
+    it('keeps what was typed, and says what went wrong, when it could not be saved', async () => {
+      await open('l1', [
+        http.patch(patchUrl, () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      ])
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit title' }))
+      await fireEvent.update(screen.getByLabelText('Title'), 'Typed')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save title' }))
+      await waitFor(() => expect(screen.getByLabelText('Title')).toBeInvalid())
+      expect(screen.getByLabelText('Title')).toHaveValue('Typed')
+    })
+  })
+
   describe('adding another page to the reading list', () => {
     const added = (title: string) => ({
       ...idea,

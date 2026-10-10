@@ -307,6 +307,12 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
     'href',
     'https://example.org/meanders',
   )
+  // The title can be corrected here, which matters when it couldn't be found from the page.
+  await page.getByRole('button', { name: 'Edit title' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders, explained')
+  await noViolations(page, 'reading page, editing the title')
+  await page.getByRole('button', { name: 'Save title' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Meanders, explained' })).toBeVisible()
   await noViolations(page, 'reading page, no notes yet')
 
   // A quote, then the writer's own words: both are kept against the page and say where they came from.
@@ -320,7 +326,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(list.getByRole('listitem')).toHaveCount(2)
   // The newest is first, right under the box, so a note just added is in sight.
   await expect(list.getByRole('listitem').first()).toContainText('So the bend moves downstream.')
-  await expect(list).toContainText('From reading “Fake title for example.org')
+  await expect(list).toContainText('From reading “Meanders, explained”')
   await page.getByRole('checkbox', { name: 'I have read this' }).check()
   await noViolations(page, 'reading page with notes')
 
@@ -331,12 +337,10 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
-  await expect(
-    notes.getByText(/From reading “Fake title for example\.org.*”, by Ida/).first(),
-  ).toBeVisible()
+  await expect(notes.getByText('From reading “Meanders, explained”, by Ida').first()).toBeVisible()
   // (the first item; the second, added from the reading page, is unread)
-  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ }).first()).toBeChecked()
-  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toHaveCount(2)
+  await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /^Read: / })).toHaveCount(2)
 })
 
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({
