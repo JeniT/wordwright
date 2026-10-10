@@ -109,6 +109,25 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(drafts.getByRole('listitem')).toHaveText([/Part 1: the bend/, /Part 2: the oxbow/])
   await noViolations(page, 'idea page')
 
+  // The drafts can be put in a different order, from the keyboard or by dragging, and it stays.
+  const draftTitles = async () =>
+    (await drafts.getByRole('listitem').allInnerTexts()).map((t) => t.match(/Part \d/)![0])
+  const moveUp = drafts.getByRole('button', { name: 'Move Part 2: the oxbow up' })
+  await moveUp.focus()
+  await page.keyboard.press('Enter')
+  await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
+  await expect(drafts.getByRole('button', { name: 'Move Part 2: the oxbow down' })).toBeFocused()
+  await drafts
+    .getByRole('listitem')
+    .first()
+    .getByTestId('grip')
+    .dragTo(drafts.getByRole('listitem').nth(1), { targetPosition: { x: 40, y: 40 } })
+  await expect.poll(draftTitles).toEqual(['Part 1', 'Part 2'])
+  await page.getByRole('button', { name: 'Move Part 2: the oxbow up' }).click()
+  await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
+  await page.reload()
+  await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
+
   // Edits to the notes persist.
   await page.getByLabel('Expand on your idea here').fill('Now with oxbow lakes.')
   await page.getByRole('button', { name: 'Save', exact: true }).click()

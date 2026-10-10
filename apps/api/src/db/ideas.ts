@@ -39,7 +39,7 @@ export class IdeaStore {
       .map((l) => ({ id: l.id as string, url: l.url as string, title: l.title as string }))
     const drafts = this.db
       .prepare(
-        'SELECT id, title, updated_at FROM drafts WHERE idea_id = ? ORDER BY created_at, rowid',
+        'SELECT id, title, updated_at FROM drafts WHERE idea_id = ? ORDER BY position, created_at, rowid',
       )
       .all(id)
       .map((d) => ({

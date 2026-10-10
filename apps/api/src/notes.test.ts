@@ -160,7 +160,12 @@ describe('moving existing notes into the notes table', () => {
   it("turns each idea's text into one note of its own, and skips blank ones", () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    // Everything before the migration under test, wherever it sits as later ones are added.
+    const at = MIGRATIONS.findIndex(
+      (m) => typeof m === 'string' && m.includes('CREATE TABLE idea_notes'),
+    )
+    expect(at).toBeGreaterThan(0)
+    migrate(db, 'test', MIGRATIONS.slice(0, at))
     db.exec(`
       INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)

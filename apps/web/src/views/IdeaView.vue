@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import IdeaLinkItem from '../components/IdeaLinkItem.vue'
+import ReorderableList from '../components/ReorderableList.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
@@ -67,6 +68,23 @@ const removeLink = useMutation({
   mutationFn: (linkId: string) => api.removeIdeaLink(props.profileId, props.id, linkId),
   onSuccess: () => queryClient.invalidateQueries({ queryKey: ['idea'] }),
 })
+
+const moveDrafts = useMutation({
+  mutationFn: (ids: string[]) => api.reorderIdeaDrafts(props.profileId, props.id, ids),
+  onSuccess: setIdea,
+  // The list on screen may be out of date (the 409 says so); show the server's.
+  onError: () => queryClient.invalidateQueries({ queryKey: ['idea'] }),
+})
+
+/** Saves a new draft order; true if it was saved (the error is shown under the list). */
+async function saveDraftOrder(ids: string[]) {
+  try {
+    await moveDrafts.mutateAsync(ids)
+  } catch {
+    return false
+  }
+  return true
+}
 
 const addDraft = useMutation({
   mutationFn: () => api.createIdeaDraft(props.profileId, props.id, { title: 'Untitled' }),
@@ -214,19 +232,30 @@ const remove = useMutation({
       <p v-if="!idea.data.value?.drafts.length" class="text-stone-600">
         No drafts yet. Add one when you're ready to start writing.
       </p>
-      <ol v-else class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
-        <li v-for="draft in idea.data.value?.drafts" :key="draft.id">
+      <ReorderableList
+        v-else
+        :items="idea.data.value.drafts"
+        :item-label="(draft) => draft.title || 'Untitled'"
+        :save="saveDraftOrder"
+        :disabled="moveDrafts.isPending.value"
+      >
+        <template #default="{ item: draft }">
           <RouterLink
             :to="{ name: 'draft', params: { profileId, id: draft.id } }"
-            class="flex items-baseline justify-between gap-3 px-4 py-3 hover:bg-stone-50"
+            class="flex min-w-0 flex-1 items-baseline justify-between gap-3 py-1 hover:bg-stone-50"
           >
-            <span class="font-serif text-lg">{{ draft.title || 'Untitled' }}</span>
+            <span class="min-w-0 break-words font-serif text-lg">{{
+              draft.title || 'Untitled'
+            }}</span>
             <time class="shrink-0 text-sm text-stone-600" :datetime="draft.updatedAt">
               {{ new Date(draft.updatedAt).toLocaleDateString() }}
             </time>
           </RouterLink>
-        </li>
-      </ol>
+        </template>
+      </ReorderableList>
+      <p v-if="moveDrafts.isError.value" role="alert" class="mt-2 text-red-700">
+        {{ errorMessage(moveDrafts.error.value) }}
+      </p>
       <p v-if="addDraft.isError.value" role="alert" class="mt-2 text-red-700">
         Couldn't start a new draft. Please try again.
       </p>

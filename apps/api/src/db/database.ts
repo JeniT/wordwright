@@ -280,6 +280,17 @@ export const MIGRATIONS: Migration[] = [
     SELECT lower(hex(randomblob(16))), profile_id, id, created_by, notes, 'entered', 0, created_at, updated_at
     FROM ideas WHERE trim(notes, ' ' || char(9) || char(10) || char(13)) != '';
   `,
+  // T20e: the order of an idea's drafts (the reading order of a linked set), starting from the
+  // order they were created in, which is what people have been seeing.
+  `
+  ALTER TABLE drafts ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+  UPDATE drafts SET position = (
+    SELECT count(*) FROM drafts d2
+    WHERE d2.idea_id = drafts.idea_id
+      AND (d2.created_at < drafts.created_at
+           OR (d2.created_at = drafts.created_at AND d2.rowid < drafts.rowid))
+  ) WHERE idea_id IS NOT NULL;
+  `,
 ]
 
 /**

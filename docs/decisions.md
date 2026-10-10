@@ -175,8 +175,10 @@ draft in an idea of its own, named after the draft (or "Untitled idea") and date
 people can regroup them later. Drafts can only be created through an idea (`POST /ideas/:id/drafts`); the
 standalone create and list routes are gone, and the profile page lists ideas. `drafts.idea_id` is still nullable
 in the schema because SQLite can't add NOT NULL afterwards; the store always sets it and the API schema requires
-it. An idea's drafts are listed with it, oldest first, which is also the reading order for a linked set of posts
-(reordering is T20e). Deleting an idea deletes its drafts, which the page says before it asks for confirmation.
+it. An idea's drafts are listed with it in an order the person sets, which is also the reading order for a linked
+set of posts (T20e). New drafts go last; `drafts.position` holds the order and `PUT .../ideas/:id/drafts/order`
+changes it the same way as idea sources (the complete list of ids, refused with a 409 unless it names exactly the
+idea's drafts), and counts as a change to the idea. Deleting an idea deletes its drafts, which the page says before it asks for confirmation.
 Links are plain web addresses (http/https only, with `https://` assumed when someone types `example.org`); the
 field is a text input, because `type="url"` makes the browser refuse that. Having an idea counts as "using" an
 account, so the unconfirmed-account cleanup never deletes someone's ideas. Renaming a profile rewrites its id in
@@ -210,7 +212,9 @@ ids (`PUT .../sources/order`) rather than "move X to N": the server refuses (409
 profile's current sources, so a stale screen can't drop or resurrect a feed, and drag, buttons and two editors
 all use the one operation. The UI offers drag and drop (HTML5, grip handle, whole-row drag image, a line shows
 where it will land) and, as the keyboard and touch route, up/down buttons; native drag and drop does not work on
-most touch screens, and a library for it wasn't worth a dependency. Like drafts, the list is shared working
+most touch screens, and a library for it wasn't worth a dependency. That interaction lives in one component,
+`ReorderableList` (also used for an idea's drafts), so every list people can reorder looks and behaves alike: it
+works out the new order and the page's `save` stores it. Like drafts, the list is shared working
 material, so **any member** can change it, not just the owner. Addresses are normalised (https assumed, fragment
 dropped) so the same feed can't be listed twice.
 

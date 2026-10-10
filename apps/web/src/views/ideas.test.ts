@@ -439,6 +439,99 @@ describe('idea page', () => {
     expect(sent).toEqual({ title: 'Untitled' })
   })
 
+  describe('reordering the drafts', () => {
+    const three = {
+      ...idea,
+      drafts: [
+        { id: 'd1', title: 'Part 1', updatedAt: '2026-01-02T00:00:00Z' },
+        { id: 'd2', title: 'Part 2', updatedAt: '2026-01-03T00:00:00Z' },
+        { id: 'd3', title: '', updatedAt: '2026-01-04T00:00:00Z' },
+      ],
+    }
+    const titles = () =>
+      within(screen.getByRole('region', { name: 'Drafts' }))
+        .getAllByRole('listitem')
+        .map((li) => li.textContent)
+
+    function fakeIdea() {
+      const state = { current: three, orders: [] as string[][] }
+      server.use(
+        signedInAs(testUser),
+        listProfiles,
+        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+        http.get(ideaUrl, () => HttpResponse.json(state.current)),
+        http.put(`${ideaUrl}/drafts/order`, async ({ request }) => {
+          const { ids } = (await request.json()) as { ids: string[] }
+          state.orders.push(ids)
+          state.current = {
+            ...state.current,
+            drafts: ids.map((id) => state.current.drafts.find((d) => d.id === id)!),
+          }
+          return HttpResponse.json(state.current)
+        }),
+      )
+      return state
+    }
+
+    it('moves a draft with the buttons, sending the complete new order and showing it', async () => {
+      const fake = fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1')
+      await fireEvent.click(await screen.findByRole('button', { name: 'Move Untitled up' }))
+      await waitFor(() => expect(fake.orders).toEqual([['d1', 'd3', 'd2']]))
+      await waitFor(() =>
+        expect(titles()).toEqual([
+          expect.stringContaining('Part 1'),
+          expect.stringContaining('Untitled'),
+          expect.stringContaining('Part 2'),
+        ]),
+      )
+      expect(await screen.findByText('Moved Untitled to position 2 of 3')).toBeInTheDocument()
+    })
+
+    it('cannot move the first draft up or the last one down, and a single draft not at all', async () => {
+      fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1')
+      expect(await screen.findByRole('button', { name: 'Move Part 1 up' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Move Untitled down' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Move Part 2 up' })).toBeEnabled()
+    })
+
+    it('drags a draft by its grip', async () => {
+      const fake = fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1')
+      await screen.findByRole('button', { name: 'Move Part 1 up' })
+      const items = within(screen.getByRole('region', { name: 'Drafts' })).getAllByRole('listitem')
+      const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
+      await fireEvent.dragStart(items[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+      await fireEvent.dragOver(items[0]!, { clientY: -1, dataTransfer })
+      await fireEvent.drop(items[0]!, { dataTransfer })
+      await waitFor(() => expect(fake.orders).toEqual([['d3', 'd1', 'd2']]))
+    })
+
+    it('shows why a move failed, and the server’s list', async () => {
+      fakeIdea()
+      server.use(
+        http.put(`${ideaUrl}/drafts/order`, () =>
+          HttpResponse.json({ error: 'The drafts have changed.' }, { status: 409 }),
+        ),
+      )
+      await renderAt('/p/ada-substack/ideas/i1')
+      await fireEvent.click(await screen.findByRole('button', { name: 'Move Part 2 up' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('The drafts have changed.')
+    })
+
+    it('has no arrows when there are no drafts', async () => {
+      server.use(
+        signedInAs(testUser),
+        listProfiles,
+        http.get(ideaUrl, () => HttpResponse.json({ ...idea, drafts: [] })),
+      )
+      await renderAt('/p/ada-substack/ideas/i1')
+      await screen.findByText(/No drafts yet/)
+      expect(screen.queryByRole('button', { name: /Move .* up/ })).not.toBeInTheDocument()
+    })
+  })
+
   it('says so when there are no drafts yet', async () => {
     server.use(
       signedInAs(testUser),

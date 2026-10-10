@@ -4,6 +4,7 @@ import { streamSSE } from 'hono/streaming'
 import {
   AcceptProposalInputSchema,
   DraftInputSchema,
+  DraftOrderSchema,
   IdeaInputSchema,
   IdeaLinkInputSchema,
   IdeaNoteInputSchema,
@@ -133,6 +134,17 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
         const draft = drafts.create(idea.profileId, c.get('user').id, c.req.valid('json'), idea.id)
         ideas.touch(idea.id)
         return c.json(draft, 201)
+      })
+      .put('/:id/drafts/order', validateJson(DraftOrderSchema), (c) => {
+        const idea = find(c)
+        const ok = store.transaction(() => drafts.reorder(idea.id, c.req.valid('json').ids))
+        if (!ok) {
+          throw new HTTPException(409, {
+            message: 'The drafts have changed since you opened this page. Reload and try again.',
+          })
+        }
+        ideas.touch(idea.id)
+        return c.json(find(c))
       })
       // ---- brainstorming: one thread per idea, shared by the profile's members ----
       .get('/:id/conversation', (c) => c.json(brainstorm.conversation(find(c))))

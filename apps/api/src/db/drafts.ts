@@ -26,10 +26,11 @@ export class DraftStore {
     const now = nowIso()
     this.db
       .prepare(
-        `INSERT INTO drafts (id, profile_id, idea_id, created_by, title, body, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO drafts (id, profile_id, idea_id, created_by, title, body, position, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?,
+                 (SELECT coalesce(max(position) + 1, 0) FROM drafts WHERE idea_id = ?), ?, ?)`,
       )
-      .run(id, profileId, ideaId, createdBy, input.title, input.body, now, now)
+      .run(id, profileId, ideaId, createdBy, input.title, input.body, ideaId, now, now)
     return this.get(profileId, id)!
   }
 
@@ -40,6 +41,23 @@ export class DraftStore {
       )
       .run(input.title, input.body, nowIso(), profileId, id)
     return result.changes ? this.get(profileId, id) : undefined
+  }
+
+  /**
+   * Puts an idea's drafts in the given order. Returns false, changing nothing, unless `ids` names
+   * exactly the idea's current drafts (so a stale screen can't silently drop or resurrect any).
+   * Call inside a transaction: it makes several writes.
+   */
+  reorder(ideaId: string, ids: string[]): boolean {
+    const current = (
+      this.db.prepare('SELECT id FROM drafts WHERE idea_id = ?').all(ideaId) as { id: string }[]
+    ).map((row) => row.id)
+    if (ids.length !== current.length || new Set(ids).size !== ids.length) return false
+    const known = new Set(current)
+    if (!ids.every((id) => known.has(id))) return false
+    const update = this.db.prepare('UPDATE drafts SET position = ? WHERE idea_id = ? AND id = ?')
+    ids.forEach((id, position) => update.run(position, ideaId, id))
+    return true
   }
 
   delete(profileId: string, id: string): boolean {

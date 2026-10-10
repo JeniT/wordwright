@@ -346,6 +346,10 @@ export const IdeaDraftSchema = z.object({
 })
 export type IdeaDraft = z.infer<typeof IdeaDraftSchema>
 
+/** Every draft id of an idea, in the new order. Must name exactly the idea's drafts. */
+export const DraftOrderSchema = z.object({ ids: z.array(z.string()).max(1000) })
+export type DraftOrder = z.infer<typeof DraftOrderSchema>
+
 /** What the list of a profile's ideas shows. */
 export const IdeaSummarySchema = z.object({
   id: z.string(),
@@ -365,7 +369,7 @@ export const IdeaSchema = z.object({
    */
   notes: z.string(),
   links: z.array(IdeaLinkSchema),
-  /** Oldest first: for a linked set of posts this is the order to read them in. */
+  /** In the order the person has set (new drafts go last): for a linked set of posts, the reading order. */
   drafts: z.array(IdeaDraftSchema),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -280,6 +280,89 @@ describe('ideas', () => {
       expect((await saved.json()).ideaId).toBe(idea.id)
     })
 
+    describe('reordering', () => {
+      const titles = (idea: { drafts: { title: string }[] }) => idea.drafts.map((d) => d.title)
+      async function ideaWithDrafts(...names: string[]) {
+        const idea = await (await ada.post(ideas(), { name: 'A series' })).json()
+        const ids: string[] = []
+        for (const title of names) {
+          ids.push((await (await ada.post(`${ideas()}/${idea.id}/drafts`, { title })).json()).id)
+        }
+        return { idea, ids }
+      }
+
+      it('puts the drafts in the order given, answers with the idea, and keeps it', async () => {
+        const { idea, ids } = await ideaWithDrafts('One', 'Two', 'Three')
+        const res = await ada.put(`${ideas()}/${idea.id}/drafts/order`, {
+          ids: [ids[2], ids[0], ids[1]],
+        })
+        expect(res.status).toBe(200)
+        expect(titles(await res.json())).toEqual(['Three', 'One', 'Two'])
+        expect(titles(await (await ada.get(`${ideas()}/${idea.id}`)).json())).toEqual([
+          'Three',
+          'One',
+          'Two',
+        ])
+      })
+
+      it('puts a draft added afterwards at the end', async () => {
+        const { idea, ids } = await ideaWithDrafts('One', 'Two')
+        await ada.put(`${ideas()}/${idea.id}/drafts/order`, { ids: [ids[1], ids[0]] })
+        await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Three' })
+        expect(titles(await (await ada.get(`${ideas()}/${idea.id}`)).json())).toEqual([
+          'Two',
+          'One',
+          'Three',
+        ])
+      })
+
+      it('counts as a change to the idea', async () => {
+        const { idea, ids } = await ideaWithDrafts('One', 'Two')
+        const before = (await (await ada.get(`${ideas()}/${idea.id}`)).json()).updatedAt
+        await new Promise((r) => setTimeout(r, 5))
+        const saved = await (
+          await ada.put(`${ideas()}/${idea.id}/drafts/order`, { ids: [ids[1], ids[0]] })
+        ).json()
+        expect(saved.updatedAt > before).toBe(true)
+      })
+
+      it('refuses an out-of-date order, changing nothing', async () => {
+        const { idea, ids } = await ideaWithDrafts('One', 'Two')
+        const elsewhere = await (await ada.post(ideas(), { name: 'Elsewhere' })).json()
+        const foreign = (
+          await (await ada.post(`${ideas()}/${elsewhere.id}/drafts`, { title: 'Not here' })).json()
+        ).id
+        for (const bad of [
+          [ids[0]], // one missing
+          [ids[0], ids[1], 'extra'], // one unknown
+          [ids[0], ids[0]], // a repeat
+          [ids[0], foreign], // a draft of another idea
+          [],
+        ]) {
+          const res = await ada.put(`${ideas()}/${idea.id}/drafts/order`, { ids: bad })
+          expect(res.status, JSON.stringify(bad)).toBe(409)
+        }
+        expect((await ada.put(`${ideas()}/${idea.id}/drafts/order`, { ids: 'a' })).status).toBe(400)
+        expect(titles(await (await ada.get(`${ideas()}/${idea.id}`)).json())).toEqual([
+          'One',
+          'Two',
+        ])
+        expect(titles(await (await ada.get(`${ideas()}/${elsewhere.id}`)).json())).toEqual([
+          'Not here',
+        ])
+      })
+
+      it('is open to members only, and 404s for an idea that is not in the profile', async () => {
+        const { idea, ids } = await ideaWithDrafts('One', 'Two')
+        const outsider = ctx.client()
+        await register(outsider, 'eve@example.com', 'Eve')
+        const url = `/api/profiles/${profile}/ideas/${idea.id}/drafts/order`
+        expect((await outsider.put(url, { ids })).status).toBe(404)
+        expect((await ctx.client().put(url, { ids })).status).toBe(401)
+        expect((await ada.put(`${ideas()}/nope/drafts/order`, { ids })).status).toBe(404)
+      })
+    })
+
     it('cannot be started without an idea', async () => {
       const res = await ada.post(`/api/profiles/${profile}/drafts`, { title: 'Alone' })
       expect(res.status).toBe(404)
@@ -331,6 +414,43 @@ describe('ideas', () => {
       const idea = await (await bob.post(ideas(), { name: 'Bob had this' })).json()
       expect((await ada.patch(`${ideas()}/${idea.id}`, { notes: 'Ada adds' })).status).toBe(200)
       expect((await bob.get(`${ideas()}/${idea.id}`)).status).toBe(200)
+    })
+  })
+})
+
+describe('numbering existing drafts', () => {
+  it('starts each idea’s drafts in the order they were created', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    const at = MIGRATIONS.findIndex(
+      (m) => typeof m === 'string' && m.includes('ALTER TABLE drafts ADD COLUMN position'),
+    )
+    expect(at).toBeGreaterThan(0)
+    migrate(db, 'test', MIGRATIONS.slice(0, at))
+    db.exec(`
+      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)
+        VALUES ('i1', 'p', 'One', '', 't', 't'), ('i2', 'p', 'Two', '', 't', 't');
+      INSERT INTO drafts (id, profile_id, idea_id, title, body, created_at, updated_at)
+        VALUES ('b', 'p', 'i1', '', '', '2026-01-02', 't'),
+               ('a', 'p', 'i1', '', '', '2026-01-01', 't'),
+               ('c', 'p', 'i1', '', '', '2026-01-03', 't'),
+               ('x', 'p', 'i2', '', '', '2026-01-05', 't'),
+               ('tie1', 'p', 'i2', '', '', '2026-01-06', 't'),
+               ('tie2', 'p', 'i2', '', '', '2026-01-06', 't');
+    `)
+    migrate(db, 'test')
+    const order = (idea: string) =>
+      (
+        db
+          .prepare('SELECT id FROM drafts WHERE idea_id = ? ORDER BY position, rowid')
+          .all(idea) as { id: string }[]
+      ).map((r) => r.id)
+    expect(order('i1')).toEqual(['a', 'b', 'c'])
+    expect(order('i2')).toEqual(['x', 'tie1', 'tie2'])
+    expect(db.prepare("SELECT position FROM drafts WHERE id = 'c'").get()).toEqual({ position: 2 })
+    expect(db.prepare("SELECT position FROM drafts WHERE id = 'tie2'").get()).toEqual({
+      position: 2,
     })
   })
 })

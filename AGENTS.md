@@ -55,6 +55,8 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 - **Per-user spending:** AI calls use the _requesting_ user's own key (`LlmKeyService.resolve`). Never add a
   fallback to a shared key.
 - **UI text:** plain, friendly English; no jargon in error messages.
+- **Reorderable lists:** use `ReorderableList` (drag grip, arrow buttons, focus and announcements) for any list
+  whose order people can change, so they all look and behave alike.
 - Don't add dependencies casually; prefer the platform and what's already installed. Explain any new one in the commit.
 
 ## Definition of done (every task)

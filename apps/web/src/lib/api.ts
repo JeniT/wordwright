@@ -182,6 +182,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
+    /** `ids` is every draft of the idea, in the new order. Answers with the idea as saved. */
+    reorderIdeaDrafts: (profileId: string, id: string, ids: string[]) =>
+      get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/drafts/order`, { ids }),
     // idea sources (the list is in priority order, highest first)
     listSources: (profileId: string) =>
       get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),
