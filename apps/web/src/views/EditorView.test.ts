@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
 useMockServer()
@@ -332,6 +333,110 @@ describe('the notes beside the draft', () => {
         "couldn't mark the note as added",
       )
       expect(api.saved.at(-1)!.body).toContain('Erosion loops.')
+    })
+  })
+
+  describe('dragging a note into the draft', () => {
+    /** What the browser hands the handlers: the types being dragged, and the data under each. */
+    const carrying = (type: string, data: string) => ({
+      dataTransfer: {
+        types: [type],
+        getData: (t: string) => (t === type ? data : ''),
+        setData: vi.fn(),
+        setDragImage: vi.fn(),
+        effectAllowed: '',
+        dropEffect: '',
+      },
+    })
+    const editorEl = () => document.querySelector('.ProseMirror')!
+    const grip = async (start: RegExp) =>
+      (await screen.findByText(start)).closest('li')!.querySelector('[data-testid="note-grip"]')!
+
+    afterEach(() => vi.restoreAllMocks())
+
+    it('picks a note up by its grip, carrying only its id', async () => {
+      mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      const drag = carrying(NOTE_DRAG_TYPE, '')
+      await fireEvent.dragStart(await grip(/^Erosion loops\./), drag)
+      expect(drag.dataTransfer.setData).toHaveBeenCalledWith(NOTE_DRAG_TYPE, 'n1')
+      expect(drag.dataTransfer.effectAllowed).toBe('copy')
+      expect(drag.dataTransfer.setDragImage).toHaveBeenCalled()
+    })
+
+    it('puts a dropped note in the draft as the button would: saved, recorded, and set aside', async () => {
+      const api = mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n1'))
+
+      await waitFor(() => expect(api.posted).toEqual([{ noteId: 'n1', text: 'Erosion loops.' }]))
+      expect(document.querySelector('.ProseMirror')!.textContent).toContain('Erosion loops.')
+      expect(api.saved.at(-1)!.body).toContain('Erosion loops.')
+      await waitFor(() => expect(within(drawer()).queryByText('Erosion loops.')).toBeNull()) // set aside
+    })
+
+    it('keeps the source link with a note taken from a source, as the button does', async () => {
+      const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('A useful quote.')
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n3'))
+      await waitFor(() => expect(api.posted).toHaveLength(1))
+      expect(api.posted[0]).toEqual({
+        noteId: 'n3',
+        text: 'A useful quote. ([A paper](https://example.org/paper))',
+      })
+      expect(document.querySelector('.ProseMirror a')).toHaveAttribute(
+        'href',
+        'https://example.org/paper',
+      )
+    })
+
+    it('ignores anything else dropped on the draft (a file, some text)', async () => {
+      const api = mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying('Files', ''))
+      await fireEvent.drop(editorEl(), carrying('text/plain', 'n1'))
+      await new Promise((r) => setTimeout(r, 50))
+      expect(api.posted).toEqual([])
+      expect(api.saved).toEqual([])
+    })
+
+    it('says so when the note is already in a draft, or cannot be found, and adds nothing', async () => {
+      const api = mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n4')) // already used
+      expect(await within(drawer()).findByRole('alert')).toHaveTextContent('already in a draft')
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'gone'))
+      expect(await within(drawer()).findByRole('alert')).toHaveTextContent(
+        "couldn't find that note",
+      )
+      expect(api.posted).toEqual([])
+    })
+
+    it('shows why when the draft could not be saved, and does not set the note aside', async () => {
+      const api = mockDrafting()
+      api.saveFails = true
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n1'))
+      expect(await within(drawer()).findByRole('alert')).toHaveTextContent(
+        "couldn't save the draft",
+      )
+      expect(api.posted).toEqual([])
+    })
+
+    it('does not let two drops overlap', async () => {
+      const api = mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n1'))
+      await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n1'))
+      await waitFor(() => expect(api.posted).toHaveLength(1))
+      await new Promise((r) => setTimeout(r, 50))
+      expect(api.posted).toHaveLength(1)
     })
   })
 

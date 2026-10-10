@@ -7,4 +7,12 @@ import { afterEach } from 'vitest'
 // enough to ride that out, short enough to finish inside a test's own five seconds.
 configure({ asyncUtilTimeout: 4000 })
 
+// jsdom does no layout, so the editor (ProseMirror) finds nothing when it asks where things are on the page, for
+// instance when something is dragged over it. Say there is nothing there, rather than that the question is unknown.
+document.elementFromPoint ??= () => null
+const noRects = () => [] as unknown as DOMRectList
+Element.prototype.getClientRects ??= noRects
+Range.prototype.getClientRects ??= noRects
+Range.prototype.getBoundingClientRect ??= () => new DOMRect()
+
 afterEach(cleanup)

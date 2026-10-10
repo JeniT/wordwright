@@ -4,6 +4,8 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { dragLabel, removeDragLabel } from '../lib/drag-label'
+import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { noteOriginPhrase } from '../lib/note-label'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
@@ -53,6 +55,14 @@ const putBack = useMutation({
   onSettled: refresh,
 })
 
+/** Drag a note out of the list, to drop it on the draft (see RichEditor). Only the note's id travels. */
+function onDragStart(event: DragEvent, note: IdeaNote) {
+  if (!event.dataTransfer) return
+  event.dataTransfer.effectAllowed = 'copy'
+  event.dataTransfer.setData(NOTE_DRAG_TYPE, note.id)
+  event.dataTransfer.setDragImage(dragLabel(label(note)), 12, 12)
+}
+
 /** A short name for a note, for button labels. */
 const label = (note: IdeaNote) => {
   const first = note.text.split('\n', 1)[0]!
@@ -64,8 +74,8 @@ const label = (note: IdeaNote) => {
   <div>
     <h2 id="draft-notes-heading" class="mb-1 font-serif text-xl font-semibold">Notes</h2>
     <p class="mb-3 text-sm text-stone-700">
-      Add a note to put its words into the draft, after the paragraph you are in. The draft is saved
-      as you do.
+      Add a note to put its words into the draft, after the paragraph you are in, or drag it by its
+      grip to where you want it. The draft is saved as you do.
     </p>
 
     <p v-if="notes.isPending.value">Loading notes…</p>
@@ -89,29 +99,44 @@ const label = (note: IdeaNote) => {
         <li
           v-for="note in waiting"
           :key="note.id"
-          class="rounded border border-stone-200 bg-white p-3"
+          class="flex gap-2 rounded border border-stone-200 bg-white p-3"
         >
-          <NoteText :note="note" />
-          <NoteTags :tags="note.tags" />
-          <p class="mt-1 text-xs text-stone-600">
-            <NoteOrigin
-              :phrase="noteOriginPhrase(note, readingList)"
-              :author-name="note.authorName"
-            />
-          </p>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline mt-2"
-            :disabled="adding.isPending.value"
-            :aria-label="`Add ${label(note)} to the draft`"
-            @click="adding.mutate(note)"
+          <!-- Dragging needs a mouse, and the draft is behind the drawer on a phone, so the grip is for wide screens;
+               everyone can use the button. -->
+          <span
+            class="hidden cursor-grab select-none text-stone-500 lg:inline"
+            draggable="true"
+            title="Drag into the draft"
+            aria-hidden="true"
+            data-testid="note-grip"
+            @dragstart="onDragStart($event, note)"
+            @dragend="removeDragLabel"
           >
-            {{
-              adding.isPending.value && adding.variables.value?.id === note.id
-                ? 'Adding…'
-                : 'Add to draft'
-            }}
-          </button>
+            ⠿
+          </span>
+          <div class="min-w-0 flex-1">
+            <NoteText :note="note" />
+            <NoteTags :tags="note.tags" />
+            <p class="mt-1 text-xs text-stone-600">
+              <NoteOrigin
+                :phrase="noteOriginPhrase(note, readingList)"
+                :author-name="note.authorName"
+              />
+            </p>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline mt-2"
+              :disabled="adding.isPending.value"
+              :aria-label="`Add ${label(note)} to the draft`"
+              @click="adding.mutate(note)"
+            >
+              {{
+                adding.isPending.value && adding.variables.value?.id === note.id
+                  ? 'Adding…'
+                  : 'Add to draft'
+              }}
+            </button>
+          </div>
         </li>
       </ul>
       <p v-if="adding.isError.value" role="alert" class="mb-3 text-red-700">

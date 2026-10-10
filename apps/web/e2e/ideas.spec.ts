@@ -603,3 +603,52 @@ test('a note taken from a source goes into the draft with a real link to it, whi
     page.getByRole('textbox', { name: 'Draft body' }).getByRole('link', { name: /Fake title/ }),
   ).toHaveAttribute('href', 'https://example.org/meanders')
 })
+
+test('a note dragged from the side bar lands in the draft where it is dropped', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await notes.getByLabel('Add a note').fill('Deposition on the inside.')
+  await notes.getByRole('button', { name: 'Add note' }).click()
+  await expect(notes.getByRole('listitem')).toHaveCount(2)
+
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await body.click()
+  await page.keyboard.type('First paragraph.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Last paragraph.')
+  const side = page.getByRole('complementary')
+  const paragraphs = body.locator('p')
+  await expect(paragraphs).toHaveCount(2)
+
+  // Dropped on the start of the last paragraph, the note goes between the two.
+  const note = side.getByText('Deposition on the inside.').locator('xpath=ancestor::li[1]')
+  await note.getByTestId('note-grip').dragTo(paragraphs.nth(1), { targetPosition: { x: 4, y: 4 } })
+  await expect(paragraphs).toHaveText([
+    'First paragraph.',
+    'Deposition on the inside.',
+    'Last paragraph.',
+  ])
+  await expect(side.getByText('Deposition on the inside.')).toHaveCount(0) // set aside
+  await expect(page.getByText(/Where some of the words came from \(1\)/)).toBeVisible()
+  await noViolations(page, 'drafting page after a drop')
+
+  // The draft was saved with it, and the other note can still go in with the button.
+  await page.reload()
+  await expect(page.getByRole('textbox', { name: 'Draft body' }).locator('p')).toHaveText([
+    'First paragraph.',
+    'Deposition on the inside.',
+    'Last paragraph.',
+  ])
+  await page
+    .getByRole('complementary')
+    .getByRole('button', { name: /^Add note “Erosion/ })
+    .click()
+  await expect(body).toContainText('Erosion on the outside of each bend.')
+})

@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T extends { id: string }">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { dragLabel, removeDragLabel } from '../lib/drag-label'
 
 /**
  * An ordered list that people can rearrange: drag a row by its grip (the mouse route), or use the
@@ -149,36 +150,7 @@ const draggingId = ref<string | null>(null)
 /** The row the pointer is over while dragging, and which half of it. */
 const over = ref<{ id: string; after: boolean } | null>(null)
 
-/**
- * A small label to carry under the pointer, in place of a picture of the whole row. Chrome on macOS
- * was slow to finish a drag that used a large drag image (the dropped row stayed faded until the
- * mouse moved), and a label says what is being moved without covering the rows it is moving past.
- * The browser needs the element in the document, painted, when it copies it; it is removed straight
- * after, and in any case when the drag ends.
- */
-let label: HTMLElement | null = null
-function removeLabel() {
-  label?.remove()
-  label = null
-}
-onBeforeUnmount(removeLabel)
-
-function dragLabel(text: string) {
-  removeLabel()
-  const mine = document.createElement('div')
-  label = mine
-  mine.textContent = text
-  mine.setAttribute('aria-hidden', 'true')
-  mine.className =
-    'max-w-xs truncate rounded border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 shadow'
-  mine.style.cssText = 'position:fixed;top:-1000px;left:0;pointer-events:none'
-  document.body.appendChild(mine)
-  setTimeout(() => {
-    mine.remove()
-    if (label === mine) label = null
-  }, 0)
-  return mine
-}
+onBeforeUnmount(removeDragLabel)
 
 function onDragStart(event: DragEvent, item: T) {
   draggingId.value = item.id
@@ -217,7 +189,7 @@ function onDrop(event: DragEvent) {
 function endDrag() {
   draggingId.value = null
   over.value = null
-  removeLabel()
+  removeDragLabel()
 }
 
 const buttonClass =

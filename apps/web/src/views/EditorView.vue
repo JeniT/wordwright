@@ -114,9 +114,9 @@ async function insertLink(item: IdeaLink) {
  * so a note never disappears from the list unless its words are safely in the draft. A note taken from a reading-list
  * item doesn't ask whether it was read: taking the note, on the item's page, was the reading.
  */
-async function insertNote(note: IdeaNote) {
+async function insertNote(note: IdeaNote, at?: number) {
   const markdown = noteMarkdown(note, idea.data.value?.links ?? [])
-  if (!editor.value?.insertMarkdown(markdown)) {
+  if (!editor.value?.insertMarkdown(markdown, at)) {
     throw new Error("The draft isn't ready yet. Try again in a moment.")
   }
   try {
@@ -130,6 +130,40 @@ async function insertNote(note: IdeaNote) {
     await api.addDraftInsertion(props.profileId, props.id, { noteId: note.id, text: markdown })
   } catch {
     throw new Error("The words are in your draft, but we couldn't mark the note as added.")
+  }
+}
+
+// A note dragged from the side bar and dropped on the text goes in exactly as the button would put it, at the drop point.
+const dropNotice = ref('')
+const dropProblem = ref('')
+let dropping = false
+async function onNoteDrop(noteId: string, position: number | undefined) {
+  if (dropping) return
+  const ideaId = draft.data.value?.ideaId
+  const note = queryClient
+    .getQueryData<IdeaNote[]>(['notes', props.profileId, ideaId])
+    ?.find((n) => n.id === noteId)
+  dropNotice.value = ''
+  dropProblem.value = ''
+  if (!note || note.addedAt) {
+    dropProblem.value = note
+      ? 'That note is already in a draft. Put it back first to add it again.'
+      : "We couldn't find that note. Reload the page and try again."
+    return
+  }
+  dropping = true
+  try {
+    await insertNote(note, position)
+    dropNotice.value = 'Added the note to the draft.'
+  } catch (err) {
+    dropProblem.value = errorMessage(err)
+  } finally {
+    dropping = false
+    await Promise.all(
+      ['notes', 'idea', 'ideas', 'draft-insertions'].map((key) =>
+        queryClient.invalidateQueries({ queryKey: [key] }),
+      ),
+    )
   }
 }
 
@@ -181,7 +215,7 @@ async function requestCritique() {
         placeholder="Title"
       />
 
-      <RichEditor ref="editor" v-model="body" />
+      <RichEditor ref="editor" v-model="body" @note-drop="onNoteDrop" />
       <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-stone-600">
         Ctrl or ⌘ and click a link to open it.
       </p>
@@ -274,6 +308,8 @@ async function requestCritique() {
         :reading-list="idea.data.value?.links ?? []"
         :insert="insertNote"
       />
+      <p v-if="dropProblem" role="alert" class="mt-3 text-red-700">{{ dropProblem }}</p>
+      <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
       <p v-if="citeNotice" class="mt-3 text-sm text-stone-700" aria-live="polite">
         {{ citeNotice }}
       </p>
