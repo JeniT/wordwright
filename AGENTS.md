@@ -17,7 +17,8 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
    email, identity providers) is an adapter behind a port, with a fake for tests, and is injected, not imported.
    A new service means: implement the interface → run the shared contract suite against it
    (`@lfwa/core/testing`) → register it in `apps/api/src/server.ts`. For an LLM, also run the behaviour evals
-   against it (`pnpm eval:adapter -- --provider <id> --model <model>`, needs a key) and paste the summary in the issue.
+   against it (`pnpm eval:adapter -- --provider <id> --model <model>`, which asks for a key; a smoke test, not proof)
+   and paste the summary in the issue for the owner. Never type a key into a chat with an agent.
    Never hard-code a provider into a route.
 3. **Robust engineering practices.** Tests with every change (see Definition of done), strict TypeScript,
    validated inputs at every boundary (Zod schemas shared via `@lfwa/core`), secrets never logged or returned,
@@ -39,7 +40,7 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 | `pnpm test:e2e` | Playwright; fails on any uncaught exception, `console.error`, failed request or 5xx            |
 | `pnpm build`    | typecheck + production build                                                                   |
 | `pnpm format`   | fix formatting                                                                                 |
-| `pnpm eval`     | behaviour evals against the real model (needs `EVAL_API_KEY`; costs money; not in `check`/CI)  |
+| `pnpm eval`     | rough smoke test of the AI's behaviour; asks for a key (hidden) and trials; costs money        |
 
 **Running `pnpm test:e2e` in several worktrees at once is fine.** Each worktree gets its own web and API ports
 (hashed from its path; CI uses fixed ones) and its own database, and servers are never reused, so sessions don't

@@ -137,7 +137,9 @@ reply also does not invite further disclosure there. The prompt for this mode is
 
 Passing the port's contract suite shows an adapter is shaped correctly. It says nothing about whether the model
 declines to draft or resists flattery, and those behaviours differ between models. So a new LLM adapter, or a change
-to a prompt, must also pass the **behaviour evals** (see below).
+to a prompt, must also be run against the **behaviour evals** (see below), and the results looked at. Those are a
+rough spot-check, not proof: a model passing a case once does not show it behaves that way reliably. The things
+that are guaranteed are the structural ones (principle 10).
 
 ## Privacy: shared threads and the writer's provider
 
@@ -211,15 +213,17 @@ read the two pages above and quote what they say today.)
   - a distress disclosure gets the short, warm reply of principle 9, not more questions;
   - an injection in notes or a page title is not followed;
   - proposed notes reuse the writer's own phrases (#6).
-- **New LLM adapters** (T14 and any other provider) pass the behaviour evals as well as the contract suite: run
-  `pnpm eval:adapter -- --provider <id> --model <model>` and paste the summary into the issue. It is a checklist step
-  and a script, not a CI gate: the evals cost money, need a key, and rubric grading can flake.
+- **New LLM adapters** (T14 and any other provider) pass the contract suite, and are also run through the behaviour
+  evals: `pnpm eval:adapter -- --provider <id> --model <model>` (it asks for the key, hidden, and how many trials; a few
+  trials say more than one), with the summary pasted into the issue for the owner to judge. It is a checklist step and
+  a script, not a CI gate: the evals cost money, need a key, and rubric grading can flake.
 - **Structural boundaries are tests in `pnpm check`** (`apps/api/src/brainstorm-boundaries.test.ts`, and the
   draft-text test in `brainstorm.test.ts`): the AI has exactly three tools; none can name a draft, an id, a profile or
   a body; planted fields are dropped; a draft has nowhere to carry its text into the snapshot; the app's rules come
   after the person's prompt. Adding a tool or a field to one fails them on purpose: it is a decision about what the AI
   may change.
-- **Two groups of cases.** `current` is behaviour the prompts already ask for: a failure is a regression.
+- **Two groups of cases.** `current` is behaviour the prompts already ask for: a failure is a reason to look (rerun
+  with more trials), not proof of a regression.
   `targets` defines work planned in #45, #46 and #49 and may fail until it lands; the issue that does the work moves
   its cases to `current`.
 - **Changes to anything in `prompts/`** are changes to the product's behaviour; the owner reviews them.

@@ -23,9 +23,11 @@ The instructions we give the AI live here, as plain Markdown files, so they're e
 ## Checking a change
 
 The behaviour evals in [`evals/`](../evals/src/cases.ts) send the model exactly what the app sends (these prompt
-files, the app's own tool list, a realistic snapshot) and grade the replies. `pnpm eval` runs the cases for behaviour the
-prompts already ask for; `pnpm eval:targets` runs the ones that define planned work. They need `EVAL_API_KEY` (or
-`ANTHROPIC_API_KEY`), spend that key's money, and are not part of `pnpm check` or CI. Add a case in
+files, the app's own tool list, a realistic snapshot) and grade the replies. They are a rough smoke test, not proof
+that a prompt works: each case is one sample and a model grades it. `pnpm eval` runs the cases for behaviour the
+prompts already ask for; `pnpm eval:targets` runs the ones that define planned work. In a terminal they ask for an API
+key (hidden, never saved) and how many times to run each case; they spend that key's money and are not part of
+`pnpm check` or CI. Add a case in
 [`evals/src/cases.ts`](../evals/src/cases.ts) when you change what a prompt should do, and tell the owner, who reviews
 prompt changes.
 

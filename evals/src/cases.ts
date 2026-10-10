@@ -16,7 +16,8 @@ interface BaseCase {
   id: string
   description: string
   /**
-   * `current`: behaviour the prompts already ask for. These should pass; a red one is a regression.
+   * `current`: behaviour the prompts already ask for. These usually pass; a red one is a reason to look (rerun
+   * with more trials), not proof of a regression, since a case is one sample graded by another model.
    * `targets`: behaviour planned in the named issue. They define that work and may fail until it lands; the
    * issue moves its cases to `current`.
    */

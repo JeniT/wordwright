@@ -242,7 +242,7 @@ available and not wanted.
 - **e2e:** brainstorm from an idea with the fake provider, accept a proposal, see the change on the idea page, edit
   the prompt on the account page; axe on both pages.
 - **Evals** (`evals/src/cases.ts`, `pnpm eval`, run with a real key; see
-  [decisions.md](decisions.md#behaviour-evals-send-what-the-app-sends-and-adapters-must-pass-them)): the default prompt, given an idea snapshot, should
+  [decisions.md](decisions.md#behaviour-evals-a-smoke-test-that-sends-what-the-app-sends)): the default prompt, given an idea snapshot, should
   open with probing questions and not a lecture; push back on a vague idea; not draft text; not invent facts about
   the venue; use the audience description when given and ask for it when absent; not propose after every turn.
 
