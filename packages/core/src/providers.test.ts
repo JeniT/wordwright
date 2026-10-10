@@ -3,11 +3,13 @@ import { FakeFeedFetcher } from './providers/feeds'
 import { FakeLLMProvider } from './providers/fake-llm'
 import { LLMRateLimitError } from './providers/llm'
 import { FakePageInfoFetcher } from './providers/pages'
+import { FakeResearchProvider } from './providers/research'
 import { FakeSearchProvider } from './providers/search'
 import {
   feedFetcherContract,
   llmProviderContract,
   pageInfoFetcherContract,
+  researchProviderContract,
   searchProviderContract,
 } from './testing'
 
@@ -32,6 +34,27 @@ pageInfoFetcherContract('fake', () => new FakePageInfoFetcher(), {
   untitled: 'https://example.org/untitled',
   missing: 'https://nonexistent.example.org/',
   authored: { url: 'https://example.org/authored', authors: ['Ada Author', 'Bo Writer'] },
+})
+
+// The fake finds only what it is told the search turned up, as a real adapter must.
+researchProviderContract(
+  'fake',
+  (searched) =>
+    new FakeResearchProvider(searched.map((s) => ({ ...s, why: `Worth reading: ${s.title}.` }))),
+)
+
+describe('FakeResearchProvider', () => {
+  it('records requests, and finds three pages (one of which does not exist) unless told otherwise', async () => {
+    const research = new FakeResearchProvider()
+    const request = { system: 's', brief: 'b', maxResults: 5 }
+    const found = await research.find(request)
+    expect(found.map((f) => f.url)).toEqual([
+      'https://research.example.org/meander-study',
+      'https://research.example.org/untitled',
+      'https://nonexistent.example.org/old-report',
+    ])
+    expect(research.requests).toEqual([request])
+  })
 })
 
 describe('FakeLLMProvider chat', () => {

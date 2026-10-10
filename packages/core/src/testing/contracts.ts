@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LLMChatEvent, LLMChatRequest, LLMProvider } from '../providers/llm'
 import { FeedError, type FeedFetcher } from '../providers/feeds'
 import type { PageInfoFetcher } from '../providers/pages'
+import type { ResearchProvider } from '../providers/research'
 import type { SearchProvider } from '../providers/search'
 
 /**
@@ -242,6 +243,72 @@ export function pageInfoFetcherContract(
       expect(await create().fetchInfo(scenarios.titled.url, controller.signal)).toEqual({
         title: null,
       })
+    })
+  })
+}
+
+/**
+ * Behaviour every ResearchProvider must satisfy. `create` is given the pages that its (pretend) web search
+ * will turn up, as the address and title a search result would carry, plus an address the model might
+ * "remember" that no search returned; the adapter must never pass that one on. A real adapter is run
+ * against a stubbed client or with credentials, as for `llmProviderContract`.
+ */
+export function researchProviderContract(
+  name: string,
+  create: (searched: { url: string; title: string }[], invented: string) => ResearchProvider,
+) {
+  describe(`ResearchProvider contract: ${name}`, () => {
+    const searched = [
+      { url: 'https://one.example.org/a', title: 'Page one' },
+      { url: 'https://two.example.org/b', title: 'Page two' },
+      { url: 'https://three.example.org/c', title: 'Page three' },
+    ]
+    const invented = 'https://invented.example.org/never-searched'
+    const request = {
+      system: 'Find reading for the writer.',
+      brief: 'Rivers that meander.',
+      maxResults: 5,
+    }
+
+    it('has a name', () => {
+      expect(create(searched, invented).name).not.toBe('')
+    })
+
+    it('returns pages with an address, a title and a reason', async () => {
+      const found = await create(searched, invented).find(request)
+      expect(found.length).toBeGreaterThan(0)
+      for (const f of found) {
+        expect(new URL(f.url).protocol).toMatch(/^https?:$/)
+        expect(f.title).not.toBe('')
+        expect(f.why).not.toBe('')
+      }
+    })
+
+    it('only returns addresses that came from the search, never one the model supplied', async () => {
+      const found = await create(searched, invented).find(request)
+      expect(found.map((f) => f.url)).not.toContain(invented)
+      for (const f of found) expect(searched.map((s) => s.url)).toContain(f.url)
+    })
+
+    it('titles each page as the search did', async () => {
+      const found = await create(searched, invented).find(request)
+      for (const f of found) {
+        expect(f.title).toBe(searched.find((s) => s.url === f.url)!.title)
+      }
+    })
+
+    it('returns each address once, and no more than asked for', async () => {
+      const found = await create(searched, invented).find({ ...request, maxResults: 2 })
+      expect(found.length).toBeLessThanOrEqual(2)
+      expect(new Set(found.map((f) => f.url)).size).toBe(found.length)
+    })
+
+    it('rejects when the signal is already aborted', async () => {
+      const controller = new AbortController()
+      controller.abort()
+      await expect(
+        create(searched, invented).find({ ...request, signal: controller.signal }),
+      ).rejects.toThrow()
     })
   })
 }

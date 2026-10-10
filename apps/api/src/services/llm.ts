@@ -2,10 +2,13 @@ import {
   DEFAULT_LLM_MODEL,
   LLM_MODELS,
   LLMAuthError,
+  type LLMConfig,
   type LLMFactory,
   type LLMProvider,
   type LlmSettings,
   type LlmSettingsInput,
+  type ResearchFactory,
+  type ResearchProvider,
 } from '@lfwa/core'
 import type { SecretBox } from '../auth/secret-box'
 import type { Store } from '../db/store'
@@ -24,6 +27,8 @@ export interface LlmKeyServiceDeps {
   store: Store
   box: SecretBox
   factory: LLMFactory
+  /** Builds the web-searching researcher from the same credentials. */
+  researchFactory: ResearchFactory
 }
 
 /** Users bring their own LLM credentials; this stores them and builds clients from them. */
@@ -99,8 +104,26 @@ export class LlmKeyService {
     return { llm, provider, model }
   }
 
+  /** Like `resolveWithInfo`, for the researcher that searches the web with this user's credentials. */
+  resolveResearchWithInfo(userId: string): {
+    research: ResearchProvider
+    provider: string
+    model: string
+  } {
+    const config = this.config(userId)
+    return {
+      research: this.d.researchFactory(config),
+      provider: config.provider,
+      model: config.model,
+    }
+  }
+
   /** An LLM client that spends this user's credits. */
   resolve(userId: string): LLMProvider {
+    return this.d.factory(this.config(userId))
+  }
+
+  private config(userId: string): LLMConfig {
     const stored = this.d.store.credentials.get(userId)
     if (!stored) {
       throw new LlmError(
@@ -109,7 +132,7 @@ export class LlmKeyService {
       )
     }
     const apiKey = this.d.box.decrypt(stored.encryptedKey, context(userId, stored.provider))
-    return this.d.factory({ provider: stored.provider, apiKey, model: stored.model })
+    return { provider: stored.provider, apiKey, model: stored.model }
   }
 }
 

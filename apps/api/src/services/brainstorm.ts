@@ -2,14 +2,18 @@ import { HTTPException } from 'hono/http-exception'
 import {
   AddNoteToolInputSchema,
   CreateIdeaToolInputSchema,
+  linkKey,
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
   llmTool,
+  MAX_IDEA_LINKS,
   MAX_IDEA_NOTES,
   MAX_NOTES_PER_REPLY,
   MAX_PROPOSALS_PER_REPLY,
+  MAX_READING_SUGGESTIONS_PER_REPLY,
   noteKey,
+  SuggestReadingToolInputSchema,
   UpdateIdeaToolInputSchema,
   type BrainstormEvent,
   type Conversation,
@@ -19,6 +23,7 @@ import {
   type LLMChatMessage,
   type LLMContentBlock,
   type LLMProvider,
+  type PageInfoFetcher,
   type Proposal,
   type SendMessageInput,
 } from '@lfwa/core'
@@ -27,19 +32,21 @@ import {
   BRAINSTORM_KICKOFF_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   CREATE_IDEA_TOOL_PROMPT,
+  SUGGEST_READING_TOOL_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
 } from '@lfwa/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/conversations'
 import type { Store } from '../db/store'
 import type { BrainstormPromptService } from './brainstorm-prompt'
+import { ReadingChecker, type CheckedReading } from './reading-suggestions'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
 export const REPLY_TIMEOUT_MS = 180_000
 
 /**
  * What the AI can do. `add_note` takes effect at once (it only ever adds a short note, which the writer can
- * delete); the other two only ever become proposals a person accepts.
+ * delete); the others only ever become proposals a person accepts.
  */
 export const BRAINSTORM_TOOLS = [
   llmTool({
@@ -57,6 +64,11 @@ export const BRAINSTORM_TOOLS = [
     description: CREATE_IDEA_TOOL_PROMPT,
     schema: CreateIdeaToolInputSchema,
   }),
+  llmTool({
+    name: 'suggest_reading',
+    description: SUGGEST_READING_TOOL_PROMPT,
+    schema: SuggestReadingToolInputSchema,
+  }),
 ]
 
 export interface BrainstormDeps {
@@ -64,6 +76,8 @@ export interface BrainstormDeps {
   prompts: BrainstormPromptService
   /** The person's own LLM (their key and model), and what to record about it. Throws `LlmError` if none. */
   resolveLlm: (userId: string) => { llm: LLMProvider; provider: string; model: string }
+  /** Looks at suggested addresses (the SSRF-safe fetcher), so the writer sees what is really there. */
+  pages: PageInfoFetcher
   /** Per person: each message spends their money and our server time. */
   limiter: RateLimiter
   logger?: Pick<Console, 'error'>
@@ -153,10 +167,12 @@ export class BrainstormService {
   private readonly replying = new Map<string, { name: string; since: number }>()
   private readonly now: () => number
   private readonly replyTimeoutMs: number
+  private readonly checker: ReadingChecker
 
   constructor(private readonly d: BrainstormDeps) {
     this.now = d.now ?? Date.now
     this.replyTimeoutMs = d.replyTimeoutMs ?? REPLY_TIMEOUT_MS
+    this.checker = new ReadingChecker(d.pages)
   }
 
   // ---- reading --------------------------------------------------------
@@ -323,7 +339,15 @@ export class BrainstormService {
         return
       }
 
-      const message = this.saveReply(ctx, text, calls, done)
+      // Look at the addresses the AI suggested before showing them, so the writer sees what is really there.
+      const readings = await this.checkReadings(idea, calls, signal)
+      if (ctx.signal.aborted) {
+        const stopped = text ? this.saveStopped(ctx, text) : undefined
+        yield { type: 'done', message: stopped ? this.view(stopped, idea) : null }
+        return
+      }
+
+      const message = this.saveReply(ctx, text, calls, done, readings)
       const view = this.view(message, idea)
       for (const note of view.notes) yield { type: 'note', note }
       for (const proposal of view.proposals) yield { type: 'proposal', proposal }
@@ -360,6 +384,7 @@ export class BrainstormService {
     text: string,
     calls: { id: string; name: string; input: unknown }[],
     done: Extract<LLMChatEvent, { type: 'done' }>,
+    readings: Map<string, CheckedReading>,
   ): MessageRecord {
     const { conversations } = this.d.store
     const content: LLMContentBlock[] = [
@@ -385,7 +410,7 @@ export class BrainstormService {
     let made = 0
     for (const call of calls) {
       if (made >= MAX_PROPOSALS_PER_REPLY) break
-      const proposal = this.toProposal(call, idea)
+      const proposal = this.toProposal(call, idea, readings)
       if (!proposal) continue
       conversations.addProposal(id, proposal)
       made++
@@ -438,10 +463,54 @@ export class BrainstormService {
     if (handled > 0) this.d.store.ideas.touch(idea.id)
   }
 
+  /**
+   * Checks the pages the AI suggested (at most `MAX_READING_SUGGESTIONS_PER_REPLY`), keyed by the call that
+   * suggested them. A call whose input is invalid, or whose page is already on the list, has no entry.
+   */
+  private async checkReadings(
+    idea: Idea,
+    calls: { id: string; name: string; input: unknown }[],
+    signal: AbortSignal,
+  ): Promise<Map<string, CheckedReading>> {
+    // The coach cannot search, so it may only pass on an address a person wrote in this conversation.
+    const given = addressesWrittenBy(this.d.store.conversations.messages(idea.id))
+    const candidates = calls
+      .filter((c) => c.name === 'suggest_reading')
+      .map((c) => {
+        const parsed = SuggestReadingToolInputSchema.safeParse(c.input)
+        return parsed.success && given.has(linkKey(parsed.data.url))
+          ? { ref: c.id, ...parsed.data }
+          : { ref: c.id, url: undefined, title: '', why: '' }
+      })
+    const checked = await this.checker.check(
+      idea,
+      candidates,
+      MAX_READING_SUGGESTIONS_PER_REPLY,
+      signal,
+    )
+    return new Map(checked.map((reading) => [reading.ref, reading]))
+  }
+
   private toProposal(
     call: { id: string; name: string; input: unknown },
     idea: Idea,
-  ): Pick<ProposalRecord, 'toolCallId' | 'tool' | 'input' | 'base'> | undefined {
+    readings: Map<string, CheckedReading>,
+  ): Pick<ProposalRecord, 'toolCallId' | 'tool' | 'input' | 'base' | 'reading'> | undefined {
+    if (call.name === 'suggest_reading') {
+      const r = readings.get(call.id)
+      if (!r) return undefined
+      return {
+        toolCallId: call.id,
+        tool: 'suggest_reading',
+        input: { url: r.url, title: r.title, why: r.why },
+        base: null,
+        reading: {
+          check: r.check,
+          fetchedTitle: r.fetchedTitle,
+          fetchedAuthors: r.fetchedAuthors,
+        },
+      }
+    }
     if (call.name === 'update_idea') {
       const parsed = UpdateIdeaToolInputSchema.safeParse(call.input)
       if (!parsed.success) return undefined
@@ -453,12 +522,19 @@ export class BrainstormService {
         tool: 'update_idea',
         input: { name },
         base: { name: idea.name },
+        reading: null,
       }
     }
     if (call.name === 'create_idea') {
       const parsed = CreateIdeaToolInputSchema.safeParse(call.input)
       if (!parsed.success) return undefined
-      return { toolCallId: call.id, tool: 'create_idea', input: parsed.data, base: null }
+      return {
+        toolCallId: call.id,
+        tool: 'create_idea',
+        input: parsed.data,
+        base: null,
+        reading: null,
+      }
     }
     return undefined
   }
@@ -524,7 +600,9 @@ export class BrainstormService {
 
     store.transaction(() => {
       let createdIdeaId: string | undefined
-      if (proposal.tool === 'update_idea') {
+      if (proposal.tool === 'suggest_reading') {
+        this.addSuggestedReading(idea, proposal)
+      } else if (proposal.tool === 'update_idea') {
         // Threads from before notes were recorded directly may carry notes; they are no longer applied.
         store.ideas.update(idea.profileId, idea.id, { name: proposal.input.name })
       } else {
@@ -541,6 +619,51 @@ export class BrainstormService {
       }
     })
     return this.viewProposal(store.conversations.proposal(idea.id, proposalId)!, idea)
+  }
+
+  /**
+   * Puts a suggested page on the idea's reading list, marked with where it came from. The checks made when it
+   * was suggested stand (a page that doesn't exist, or isn't public, can only be dismissed), and the list is
+   * looked at again now: it may have filled up, or the writer may have added the page themselves meanwhile.
+   * The page's own title is used when it had one; otherwise the AI's, which the writer saw labelled as such.
+   */
+  private addSuggestedReading(idea: Idea, proposal: ProposalRecord) {
+    const { store } = this.d
+    const reading = proposal.reading
+    const { url, title } = proposal.input
+    if (!reading || !url) throw fail(404, 'Not found')
+    if (reading.check === 'not-found') {
+      throw fail(
+        409,
+        "We couldn't find a website at that address, so it can't be added. Dismiss this suggestion.",
+      )
+    }
+    if (reading.check === 'not-public') {
+      throw fail(
+        409,
+        "That address isn't a public website, so it can't be added. Dismiss this suggestion.",
+      )
+    }
+    const current = store.ideas.get(idea.profileId, idea.id) ?? idea
+    if (current.links.some((l) => linkKey(l.url) === linkKey(url))) {
+      throw fail(409, 'That link is already in this idea. Dismiss this suggestion.')
+    }
+    if (current.links.length >= MAX_IDEA_LINKS) {
+      throw fail(
+        409,
+        `An idea can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,
+      )
+    }
+    store.ideas.addLink(
+      idea.id,
+      {
+        url,
+        title: reading.fetchedTitle ?? title ?? '',
+        authors: reading.fetchedAuthors,
+        why: proposal.input.why,
+      },
+      'brainstorm',
+    )
   }
 
   dismiss(idea: Idea, proposalId: string, user: BrainstormUser): Proposal {
@@ -587,6 +710,7 @@ export class BrainstormService {
       id: p.id,
       tool: p.tool,
       input: p.input,
+      reading: p.reading,
       status: p.status,
       stale: p.status === 'pending' && this.isStale(p, idea),
       createdIdeaId: p.createdIdeaId,
@@ -600,6 +724,25 @@ export class BrainstormService {
     if (p.tool !== 'update_idea' || !p.base) return false
     return p.input.name !== undefined && p.base.name !== idea.name
   }
+}
+
+/**
+ * The web addresses people wrote in the thread, as `linkKey`s. The coach may suggest a page for the reading list
+ * only if its address is one of these: it has no way to look anything up, so any other address is its memory.
+ */
+export function addressesWrittenBy(messages: MessageRecord[]): Set<string> {
+  const keys = new Set<string>()
+  for (const m of messages) {
+    if (m.role !== 'user') continue
+    for (const found of m.displayText.match(/(?:https?:\/\/|www\.)[^\s<>"'`)\]]+/gi) ?? []) {
+      try {
+        keys.add(linkKey(found.replace(/[.,;:!?]+$/, '')))
+      } catch {
+        // not an address after all
+      }
+    }
+  }
+  return keys
 }
 
 /** What the AI is told about a point it recorded when it next speaks. */
@@ -620,10 +763,21 @@ function describeDecision(p: ProposalRecord): string {
     case 'accepted':
       return p.tool === 'create_idea'
         ? 'The writer accepted this suggestion, and the new idea was created.'
-        : 'The writer accepted this suggestion, and the title was changed.'
+        : p.tool === 'suggest_reading'
+          ? 'The writer accepted this suggestion, and the page was added to their reading list.'
+          : 'The writer accepted this suggestion, and the title was changed.'
     case 'dismissed':
       return 'The writer dismissed this suggestion. Nothing was changed.'
     case 'pending':
-      return 'The writer has not decided on this suggestion yet. Nothing has been changed.'
+      return `The writer has not decided on this suggestion yet. Nothing has been changed.${describeCheck(p)}`
   }
+}
+
+/** Tells the AI when the app could not find what it suggested, so it stops offering addresses it cannot vouch for. */
+function describeCheck(p: ProposalRecord): string {
+  if (p.reading?.check === 'not-found') {
+    return ' The app could not find a website at that address, so it probably does not exist.'
+  }
+  if (p.reading?.check === 'not-public') return ' That address is not a public website.'
+  return ''
 }

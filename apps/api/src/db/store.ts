@@ -7,6 +7,7 @@ import { IdeaStore } from './ideas'
 import { NoteStore } from './notes'
 import { InvitationStore } from './invitations'
 import { ProfileStore } from './profiles'
+import { ResearchStore } from './research'
 import { SourceStore } from './sources'
 import { TokenStore } from './tokens'
 import { UserPromptStore } from './user-prompts'
@@ -20,6 +21,7 @@ export interface Store {
   ideas: IdeaStore
   notes: NoteStore
   conversations: ConversationStore
+  research: ResearchStore
   sources: SourceStore
   invitations: InvitationStore
   credentials: CredentialStore
@@ -37,6 +39,7 @@ export function createStore(db: DatabaseSync): Store {
     ideas: new IdeaStore(db),
     notes: new NoteStore(db),
     conversations: new ConversationStore(db),
+    research: new ResearchStore(db),
     sources: new SourceStore(db),
     invitations: new InvitationStore(db),
     credentials: new CredentialStore(db),

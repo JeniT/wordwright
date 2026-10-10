@@ -69,6 +69,7 @@ const proposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: `p${++counter}`,
   tool: 'update_idea',
   input: { name: 'Why rivers loop' },
+  reading: null,
   status: 'pending',
   stale: false,
   createdIdeaId: null,
@@ -643,5 +644,130 @@ describe('the brainstorm page', () => {
     )
     await renderAt(page)
     expect(await screen.findByText(/couldn't load the conversation/)).toBeInTheDocument()
+  })
+})
+
+const reading = (
+  overrides: Partial<Proposal> = {},
+  details: Partial<NonNullable<Proposal['reading']>> = {},
+): Proposal =>
+  proposal({
+    tool: 'suggest_reading',
+    input: {
+      url: 'https://example.org/river-physics',
+      title: 'The physics of rivers',
+      why: 'It explains how bends grow.',
+    },
+    reading: {
+      check: 'found',
+      fetchedTitle: 'River Physics: a primer',
+      fetchedAuthors: [],
+      ...details,
+    },
+    ...overrides,
+  })
+const suggestionCard = () => screen.getByRole('region', { name: /^Suggested reading/ })
+
+describe('suggested reading', () => {
+  it('shows the address, the page’s own title beside the AI’s, and the AI’s reason as unchecked', async () => {
+    mockConversation([kickoff(), aiMessage('Try this.', { proposals: [reading()] })])
+    await renderAt(page)
+    const card = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
+    expect(card.getByText(/passing on an address you gave it/)).toBeInTheDocument()
+    expect(card.getByText('https://example.org/river-physics')).toBeInTheDocument()
+    expect(card.getByText(/The page's own title:/)).toBeInTheDocument()
+    expect(card.getAllByText('River Physics: a primer').length).toBeGreaterThan(0)
+    expect(card.getByText('The physics of rivers')).toBeInTheDocument() // what the AI called it
+    expect(card.getByText(/Why the AI suggests it \(unchecked\):/)).toBeInTheDocument()
+    expect(card.getByText('It explains how bends grow.')).toBeInTheDocument()
+    expect(card.getByText(/the page exists/)).toBeInTheDocument()
+    const open = card.getByRole('link', { name: /Open the page/ })
+    expect(open).toHaveAttribute('href', 'https://example.org/river-physics')
+    expect(open).toHaveAttribute('target', '_blank')
+    expect(open).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    expect(card.getByRole('button', { name: /^Accept: .*River Physics: a primer/ })).toBeEnabled()
+  })
+
+  it('adds the page when accepted, and then says it was added', async () => {
+    const card = reading()
+    let accepted = false
+    const api = mockConversation(
+      [kickoff(), aiMessage('Try this.', { proposals: [card] })],
+      [
+        http.post(`${conversationUrl}/proposals/${card.id}/accept`, async ({ request }) => {
+          expect(await request.json()).toEqual({})
+          accepted = true
+          api.messages = [
+            kickoff(),
+            aiMessage('Try this.', {
+              proposals: [{ ...card, status: 'accepted', decidedByName: 'Ada' }],
+            }),
+          ]
+          return HttpResponse.json({ ...card, status: 'accepted', decidedByName: 'Ada' })
+        }),
+      ],
+    )
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: /^Accept: / }))
+    await waitFor(() => expect(accepted).toBe(true))
+    expect(await screen.findByText('Added to the reading list by Ada.')).toBeInTheDocument()
+  })
+
+  it('says a page with no readable title is unconfirmed, and what it would be listed as', async () => {
+    mockConversation([
+      kickoff(),
+      aiMessage('Try this.', {
+        proposals: [reading({}, { check: 'no-title', fetchedTitle: null })],
+      }),
+    ])
+    await renderAt(page)
+    const card = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
+    expect(card.getByText(/couldn't read a title from this page/)).toBeInTheDocument()
+    expect(card.getByText(/listed as “The physics of rivers”, the AI's guess/)).toBeInTheDocument()
+    expect(card.queryByText(/The page's own title:/)).toBeNull()
+    expect(card.getByRole('button', { name: /^Accept: / })).toBeEnabled() // allowed, with the warning
+  })
+
+  it.each([
+    ['not-found', /Problem: we couldn't find a website at this address/],
+    ['not-public', /Problem: this address isn't a public website/],
+  ] as const)('flags a %s address and allows only dismissing it', async (check, message) => {
+    const card = reading({}, { check, fetchedTitle: null })
+    let dismissed = false
+    mockConversation(
+      [kickoff(), aiMessage('Try this.', { proposals: [card] })],
+      [
+        http.post(`${conversationUrl}/proposals/${card.id}/dismiss`, () => {
+          dismissed = true
+          return HttpResponse.json({ ...card, status: 'dismissed' })
+        }),
+      ],
+    )
+    await renderAt(page)
+    const region = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
+    expect(region.getByText(message)).toBeInTheDocument()
+    expect(region.getByRole('button', { name: /^Accept: / })).toBeDisabled()
+    await fireEvent.click(region.getByRole('button', { name: /^Dismiss: / }))
+    await waitFor(() => expect(dismissed).toBe(true))
+  })
+
+  it('shows why an acceptance was refused, and leaves the suggestion to decide on', async () => {
+    const card = reading()
+    mockConversation(
+      [kickoff(), aiMessage('Try this.', { proposals: [card] })],
+      [
+        http.post(`${conversationUrl}/proposals/${card.id}/accept`, () =>
+          HttpResponse.json(
+            { error: 'That link is already in this idea. Dismiss this suggestion.' },
+            { status: 409 },
+          ),
+        ),
+      ],
+    )
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: /^Accept: / }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('already in this idea')
+    expect(suggestionCard()).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Accept: / })).toBeEnabled()
   })
 })

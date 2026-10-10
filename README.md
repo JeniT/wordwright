@@ -88,7 +88,7 @@ tests inject fakes and nothing hits the network.
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
   and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
-  item also records where it came from (`entered`, or later `brainstorm`, `research`, `idea_generation`). A note can be
+  item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
   taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a direct quotation, which can't be edited and goes into a draft as a blockquote); each item has a **Take notes** page (`/p/:profile/ideas/:idea/reading/:item`) that opens the page in a new tab and keeps a notes box beside it. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
   **Linking to the reading list while drafting:** the drawer's Reading list inserts a link to an item; if it isn't marked
@@ -228,13 +228,27 @@ adds its own fixed rules after it (`prompts/brainstorm-rules.md`).
 **Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/profiles/:id/ideas/:idea/conversation`
 holds one thread per idea, shared by the profile's members. `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
-AI's suggestions (a new title for the idea, or a new idea: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` starts
+AI's suggestions (a new title for the idea, a new idea, or a page for the idea's reading list that the writer gave it: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` starts
 again. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
 person accepts it, except the notes it records. The page is `/p/<profile>/ideas/<idea>/brainstorm` (the idea page's **Brainstorm** button): the editor's reply
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
 never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
-"suggest a new idea" with the matching call.
+"suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
+
+**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the idea page's **Research**
+button opens `/p/<profile>/ideas/<idea>/research`, a page apart from brainstorming that lists the idea's earlier research and takes
+a new request, a description of the areas to look into. `GET`/`POST /api/profiles/:id/ideas/:idea/research` (`{areas}`) list and run
+it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add` and `/dismiss`
+(`{itemIds}`) add the ticked pages to the reading list or set them aside (`DELETE …/research/:run` forgets a run). The search
+looks for several points of view. It works through the `ResearchProvider` port (`@lfwa/core`: `AnthropicResearchProvider`,
+`FakeResearchProvider`, and `researchProviderContract` in `@lfwa/core/testing` for any new one), which may only return addresses that
+appeared in a search result. Web search must be enabled for the Anthropic account whose key is used. The server looks at each address
+with the same SSRF-safe page fetcher as typed links and shows the page's real title beside the search's, flagging an address that
+doesn't resolve (it can't be added). Nothing joins the reading list until a person ticks it and adds it; it is marked "Found by
+research" and keeps the AI's reason, labelled unchecked. The brainstorm coach can also suggest a page, but only an address the writer
+gave it. Searches are throttled to 10 an hour per person, with no other cap. With `FAKE_LLM=true` a search finds three scripted
+pages: one fine, one with no readable title and one that doesn't exist; and the coach turns an address plus "reading list" into a suggestion.
 
 ## Notes and next steps
 

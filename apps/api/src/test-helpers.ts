@@ -1,5 +1,6 @@
 import {
   FakeLLMProvider,
+  FakeResearchProvider,
   type FakeChatResponder,
   type LLMChatRequest,
   type FeedFetcher,
@@ -8,6 +9,8 @@ import {
   suggestHandle,
   type LLMConfig,
   type LLMRequest,
+  type ResearchFinding,
+  type ResearchRequest,
 } from '@lfwa/core'
 import { createApp } from './app'
 import { exampleFeeds } from './feeds/factory'
@@ -109,6 +112,17 @@ export function setup(options: TestOptions = {}) {
         return chatResponder(request, chats.length)
       },
     )
+  /** Every research request made, with the credentials it was made with. */
+  const searches: { config: LLMConfig; request: ResearchRequest }[] = []
+  let researchResponder: (
+    request: ResearchRequest,
+  ) => ResearchFinding[] | Promise<ResearchFinding[]> = () => []
+  const researchFactory = (config: LLMConfig) =>
+    new FakeResearchProvider((request) => {
+      searches.push({ config, request })
+      if (config.apiKey.startsWith('bad-')) throw new LLMAuthError()
+      return researchResponder(request)
+    })
   const feeds = options.feeds ?? exampleFeeds()
   const clock = { now: new Date('2026-01-01T00:00:00Z') }
   const app = createApp({
@@ -120,6 +134,7 @@ export function setup(options: TestOptions = {}) {
     providers: { search: [] },
     feeds,
     llmFactory,
+    researchFactory,
     keyEncryptionSecret: 'test-key-secret-test-key-secret!!',
     identityProviders: options.identityProviders,
     publicUrl: PUBLIC_URL,
@@ -137,6 +152,12 @@ export function setup(options: TestOptions = {}) {
     /** Decides what the fake AI says next in a brainstorming conversation. */
     setChat: (responder: FakeChatResponder) => {
       chatResponder = responder
+    },
+    /** Every Research search (`find()`), with the credentials it was made with. */
+    searches,
+    /** Decides what the fake web search turns up. */
+    setResearch: (responder: typeof researchResponder) => {
+      researchResponder = responder
     },
     feeds,
     pageFetcher,

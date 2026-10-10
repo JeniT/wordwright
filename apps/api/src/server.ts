@@ -6,7 +6,12 @@ import { createScryptHasher } from './auth/password'
 import { loadConfig } from './config'
 import { DatabaseError } from './db/database'
 import { openStore } from './db/store'
-import { fakeLlmFactory, realLlmFactory } from './llm-factory'
+import {
+  fakeLlmFactory,
+  fakeResearchFactory,
+  realLlmFactory,
+  realResearchFactory,
+} from './llm-factory'
 import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { HttpPageInfoFetcher } from './pages/http-page-info'
@@ -65,6 +70,7 @@ const app = createApp({
   feeds: createFeedFetcher(config),
   // Users bring their own API keys; there is deliberately no server-wide LLM key.
   llmFactory: config.FAKE_LLM ? fakeLlmFactory : realLlmFactory,
+  researchFactory: config.FAKE_LLM ? fakeResearchFactory : realResearchFactory,
   keyEncryptionSecret: config.KEY_ENCRYPTION_SECRET,
   mailer,
   pageFetcher:

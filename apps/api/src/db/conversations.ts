@@ -5,6 +5,7 @@ import type {
   LLMStopReason,
   ProposalStatus,
   ProposalTool,
+  ReadingCheck,
   RecordedNote,
 } from '@lfwa/core'
 import { nowIso } from './database'
@@ -46,9 +47,15 @@ export interface ProposalRecord {
   messageId: string
   toolCallId: string
   tool: ProposalTool
-  input: { name?: string; notes?: string }
+  input: { name?: string; notes?: string; url?: string; title?: string; why?: string }
   /** The title when suggested (legacy threads also hold the notes). */
   base: { name: string; notes?: string } | null
+  /** `suggest_reading` only: where it came from and what looking at the address found. */
+  reading: {
+    check: ReadingCheck
+    fetchedTitle: string | null
+    fetchedAuthors: string[]
+  } | null
   status: ProposalStatus
   decidedByName: string | null
   decidedAt: string | null
@@ -134,12 +141,14 @@ export class ConversationStore {
 
   addProposal(
     messageId: string,
-    p: Pick<ProposalRecord, 'toolCallId' | 'tool' | 'input' | 'base'>,
+    p: Pick<ProposalRecord, 'toolCallId' | 'tool' | 'input' | 'base'> &
+      Partial<Pick<ProposalRecord, 'reading'>>,
   ): string {
     const id = randomUUID()
     this.db
       .prepare(
-        `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base) VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base, check_status, fetched_title, fetched_authors)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -148,6 +157,9 @@ export class ConversationStore {
         p.tool,
         JSON.stringify(p.input),
         p.base && JSON.stringify(p.base),
+        p.reading?.check ?? null,
+        p.reading?.fetchedTitle ?? null,
+        JSON.stringify(p.reading?.fetchedAuthors ?? []),
       )
     return id
   }
@@ -254,6 +266,13 @@ function toProposal(row: Record<string, unknown>): ProposalRecord {
     tool: row.tool as ProposalTool,
     input: JSON.parse(row.input as string),
     base: row.base ? JSON.parse(row.base as string) : null,
+    reading: row.check_status
+      ? {
+          check: row.check_status as ReadingCheck,
+          fetchedTitle: (row.fetched_title as string | null) ?? null,
+          fetchedAuthors: JSON.parse((row.fetched_authors as string | null) ?? '[]') as string[],
+        }
+      : null,
     status: row.status as ProposalStatus,
     decidedByName: (row.decided_by_name as string | null) ?? null,
     decidedAt: (row.decided_at as string | null) ?? null,

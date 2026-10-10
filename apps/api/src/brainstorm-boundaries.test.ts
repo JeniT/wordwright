@@ -3,6 +3,7 @@ import {
   AddNoteToolInputSchema,
   CreateIdeaToolInputSchema,
   IdeaDraftSchema,
+  SuggestReadingToolInputSchema,
   UpdateIdeaToolInputSchema,
   type Idea,
 } from '@lfwa/core'
@@ -23,9 +24,10 @@ describe('what the brainstorm AI can touch', () => {
     add_note: ['text'],
     update_idea: ['name'],
     create_idea: ['name', 'notes'],
+    suggest_reading: ['url', 'title', 'why'],
   }
 
-  it('is three tools, none of which can name a draft or an id', () => {
+  it('is four tools, none of which can name a draft or an id', () => {
     expect(BRAINSTORM_TOOLS.map((t) => t.name).sort()).toEqual(Object.keys(ALLOWED_INPUTS).sort())
     for (const tool of BRAINSTORM_TOOLS) {
       const properties = Object.keys((tool.inputSchema.properties ?? {}) as object).sort()
@@ -43,6 +45,10 @@ describe('what the brainstorm AI can touch', () => {
       [AddNoteToolInputSchema, { text: 'A point' }],
       [UpdateIdeaToolInputSchema, { name: 'A title' }],
       [CreateIdeaToolInputSchema, { name: 'A title', notes: '- a' }],
+      [
+        SuggestReadingToolInputSchema,
+        { url: 'https://example.org/a', title: 'A page', why: 'It is relevant.' },
+      ],
     ] as const) {
       const parsed = schema.parse({ ...input, ...planted }) as Record<string, unknown>
       for (const key of Object.keys(planted)) expect(parsed, key).not.toHaveProperty(key)

@@ -305,8 +305,8 @@ profile's sources are feeds that will later fill a profile-level list, T37). The
   unticking clears it. The checkbox is the whole mechanism; the friction before citing an unread item is T34.
 - **Origin.** Each item records `origin`: `entered` (the writer, and everything so far), `brainstorm`, `research` or
   `idea_generation`, so items an AI suggested are visibly marked ("Suggested in brainstorming", "Found by
-  research"), per [responsible-ai.md](responsible-ai.md) principle 5. Nothing but `entered` is produced yet; T38 and
-  T37 will. The database refuses any other value.
+  research"), per [responsible-ai.md](responsible-ai.md) principle 5. `entered` came first; T38 now produces
+  `brainstorm` (a page the writer gave the coach) and `research`, and T37 will produce `idea_generation`. The database refuses any other value.
 - **Notes from reading.** `POST …/notes` takes an optional `readingItemId` (it must be on the same idea). Such a
   note has origin `reading` and says which item it came from ("From reading “Title”", and Ada as a chip). Removing the item
   keeps the note, and its origin, but not the link to the item. The screen for taking notes while reading is T32.
@@ -497,6 +497,64 @@ each). They are what the page says, found with the title, and the writer can cor
   were when the words went in** (`draft_insertions.source_authors`), like the title.
 - Items saved before this have no authors (`'[]'`), and an unreadable stored value reads as none rather than breaking
   the page.
+
+## Research is its own tool, and the AI adds to the reading list only what a person ticks (T38)
+
+The research assistant's job is to put things on the reading list, not to write notes (this replaces the
+reading-list part of T7). **Assistance-ladder rung:** none of 3–5. It points at pages for the writer to read and
+originates no text they could publish; the closest rungs are 1–2. Evidence is one of the things
+[responsible-ai.md](responsible-ai.md) says to protect, so the writer chooses the areas to look into (they write
+them first), the AI only suggests, and a person decides on every page. The design was settled with the owner after
+a first version built research into the brainstorm conversation was set aside.
+
+- **Separate from brainstorming, one prompt.** A **Research** button on the idea page opens
+  `/p/:profile/ideas/:idea/research`, which lists the idea's earlier research and takes a new request: one text box,
+  _the areas to research_, however early the idea is (it may have no notes yet). The app writes the rest of the
+  prompt (`prompts/research.md`). There is no dialogue, and any number of requests can be made for one idea, on
+  different topics. Each is saved as a **run** (`idea_research`, with its pages in `idea_research_items`), shared with
+  the profile's members, and can be deleted (pages already added stay on the reading list).
+- **A range of perspectives, unlabelled.** The prompt tells the researcher to look for sources that support the
+  direction the writer seems to be taking _and_ ones that challenge or complicate it, best effort. It must not say
+  which is which: a label could change how the writer reads the source, and they might not take a page seriously that
+  they expect to disagree with. The eval `research-includes-other-points-of-view` checks both parts.
+- **Review before anything is added.** A run is a list; the writer ticks pages and presses _Add ticked to the reading
+  list_ (all or nothing; a page that can't be added refuses the lot with the reason), or _Set ticked aside_. Unticked
+  pages stay in the run to decide on later. Added items are marked `research` ("Found by research").
+- **The AI's reason is kept.** Each page has a reason from the researcher, shown as "Why the AI suggests it
+  (unchecked)". When a page is added, the reason is stored with the reading-list item (`idea_links.why`) and shown there
+  with the same label, so it can't pass for the writer's own note. Revisit after testing: the owner wants to see how
+  this works in use.
+- **Search is a port.** `ResearchProvider.find()` takes the app's instructions and a brief and returns
+  `{url, title, why}`. The Anthropic adapter (`AnthropicResearchProvider`) uses the provider's web search tool and
+  keeps only addresses that appeared in a search result, titled as the result titled them, so an address from the
+  model's memory can never come back; the contract suite tests that for every adapter, with `FakeResearchProvider` for
+  tests, development and e2e. No route imports a vendor SDK. Web search must be switched on for the writer's Anthropic
+  account; if it isn't, the error says so.
+- **Every address is checked on the server** (`ReadingChecker`): a plausible http(s) address (the rule for a typed
+  link), not already on the list (however `http`/`www.`/`#fragment`/trailing slash differ), not a repeat; then the
+  SSRF-safe page fetcher that titles typed links looks at it. The page shows its real title beside the search's, any
+  author the page names, and flags `no-title` (allowed, with a warning, listed under the search's title),
+  `not-found` and `not-public` (can't be added: the checkbox is disabled and the API refuses). The result is stored
+  and not repeated on add (another request to someone's server); the reading list is looked at again then, in case the
+  writer added the page themselves or it filled up.
+- **The coach may add only what the writer gave it.** The coach keeps a fourth tool, `suggest_reading` (a proposal, accepted
+  or dismissed like its others), but the server discards any address the writer did not write in that conversation
+  (`addressesWrittenBy`), so the coach's memory can never reach the list. If asked to research or find sources it
+  declines and points to the Research tool (prompt-level; eval `declines-to-do-research-and-points-to-the-tool`). An
+  accepted suggestion is marked `brainstorm`.
+- **Cost, not caps.** There is no limit on how much research an idea can have. A light throttle of 10 searches an hour
+  per person remains because each search spends the writer's own money and makes the server look at several sites; a
+  failed search stores nothing.
+- **What leaves the system.** To the writer's own provider (which does the searching): the areas, the idea's title and
+  notes, and the addresses already on the reading list (so they aren't repeated). Never a draft's text (tested). The
+  page says so beside the form.
+- **Migration.** `idea_proposals` was rebuilt to allow the new tool and hold the address check (a CHECK can't be
+  widened in place; nothing refers to the table); new tables `idea_research` and `idea_research_items`; `idea_links`
+  gained `why`.
+- **Prompts changed (for the owner to review):** `prompts/research.md` and `prompts/tool-suggest-reading.md` (new),
+  `prompts/brainstorm-rules.md` (fourth tool; only addresses the writer gave; point to Research).
+- **Not done:** re-fetching on add; the friction before citing an unread AI-found page is T34, unchanged; a
+  profile-level reading list (T37); idea generation (T6) can reuse the item list with its own origin.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 

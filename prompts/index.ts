@@ -20,7 +20,11 @@ export const BRAINSTORM_RULES_PROMPT = prompt('brainstorm-rules.md')
 /** Sent as the writer's first turn, with the idea snapshot, to make the AI open the session itself. */
 export const BRAINSTORM_KICKOFF_PROMPT = prompt('brainstorm-kickoff.md')
 
-/** What the AI is told the `add_note`, `update_idea` and `create_idea` tools do (shown to it with the tool). */
+/** The researcher behind the Research page: searches the web and reports pages for the writer's reading list. */
+export const RESEARCH_PROMPT = prompt('research.md')
+
+/** What the AI is told the `add_note`, `update_idea`, `create_idea` and `suggest_reading` tools do (shown to it with the tool). */
 export const ADD_NOTE_TOOL_PROMPT = prompt('tool-add-note.md')
 export const UPDATE_IDEA_TOOL_PROMPT = prompt('tool-update-idea.md')
 export const CREATE_IDEA_TOOL_PROMPT = prompt('tool-create-idea.md')
+export const SUGGEST_READING_TOOL_PROMPT = prompt('tool-suggest-reading.md')

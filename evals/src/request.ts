@@ -1,15 +1,24 @@
-import type { LLMChatMessage, LLMChatRequest, LLMContentBlock, LLMRequest } from '@lfwa/core'
+import type {
+  LLMChatMessage,
+  LLMChatRequest,
+  LLMContentBlock,
+  LLMRequest,
+  ResearchRequest,
+} from '@lfwa/core'
 import {
   BRAINSTORM_KICKOFF_PROMPT,
   CRITIQUE_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
+  RESEARCH_PROMPT,
 } from '@lfwa/prompts'
 import {
   BRAINSTORM_TOOLS,
   brainstormSystem,
   formatSnapshot,
 } from '../../apps/api/src/services/brainstorm'
-import type { BrainstormCase, CritiqueCase } from './cases'
+import { formatResearchBrief } from '../../apps/api/src/services/research'
+import { MAX_RESEARCH_RESULTS } from '@lfwa/core'
+import type { BrainstormCase, CritiqueCase, ResearchCase } from './cases'
 import { SCENARIOS } from './scenarios'
 
 /**
@@ -38,5 +47,14 @@ export function critiqueRequest(c: CritiqueCase): LLMRequest {
   return {
     system: CRITIQUE_PROMPT,
     messages: [{ role: 'user', content: `# ${c.draft.title}\n\n${c.draft.body}` }],
+  }
+}
+
+/** Research sends the research prompt and the brief the service builds from the areas, the idea and the list so far. */
+export function researchRequest(c: ResearchCase): ResearchRequest {
+  return {
+    system: RESEARCH_PROMPT,
+    brief: formatResearchBrief(SCENARIOS[c.scenario].idea, c.areas),
+    maxResults: MAX_RESEARCH_RESULTS,
   }
 }

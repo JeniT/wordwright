@@ -48,7 +48,7 @@ export class IdeaStore {
     if (!row) return undefined
     const links = this.db
       .prepare(
-        'SELECT id, url, title, authors, read_at, origin FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid',
+        'SELECT id, url, title, authors, read_at, origin, why FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid',
       )
       .all(id)
       .map((l) => ({
@@ -58,6 +58,7 @@ export class IdeaStore {
         authors: parseNames(l.authors),
         readAt: l.read_at as string | null,
         origin: l.origin as ReadingOrigin,
+        why: (l.why as string | null) ?? null,
       }))
     const drafts = this.db
       .prepare(
@@ -136,16 +137,25 @@ export class IdeaStore {
   /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
   addLink(
     ideaId: string,
-    input: Omit<LinkWrite, 'authors'> & { authors?: string[] },
+    input: Omit<LinkWrite, 'authors'> & { authors?: string[]; why?: string },
     origin: ReadingOrigin = 'entered',
   ): IdeaLink {
     const id = randomUUID()
     const now = nowIso()
     this.db
       .prepare(
-        'INSERT INTO idea_links (id, idea_id, url, title, authors, origin, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO idea_links (id, idea_id, url, title, authors, origin, why, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(id, ideaId, input.url, input.title, JSON.stringify(input.authors ?? []), origin, now)
+      .run(
+        id,
+        ideaId,
+        input.url,
+        input.title,
+        JSON.stringify(input.authors ?? []),
+        origin,
+        input.why ?? null,
+        now,
+      )
     this.touch(ideaId, now)
     return {
       id,
@@ -154,6 +164,7 @@ export class IdeaStore {
       authors: input.authors ?? [],
       readAt: null,
       origin,
+      why: input.why ?? null,
     }
   }
 

@@ -17,6 +17,8 @@ import {
   LlmSettingsSchema,
   ProfileSchema,
   ProposalSchema,
+  ResearchRunSchema,
+  ResearchRunsSchema,
   SourceListSchema,
   SourceSchema,
   UserSchema,
@@ -86,6 +88,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
   const ProfileList = ProfileSchema.array()
   const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
   const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
+  const research = (profileId: string, ideaId: string) => `${ideas(profileId)}/${ideaId}/research`
   const conversation = (profileId: string, ideaId: string) =>
     `${ideas(profileId)}/${ideaId}/conversation`
 
@@ -311,6 +314,22 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Deletes the whole conversation, for everyone in the profile. */
     restartConversation: (profileId: string, ideaId: string) =>
       act('DELETE', conversation(profileId, ideaId)),
+
+    // research: searches for reading, apart from the conversation
+    getResearch: (profileId: string, ideaId: string) =>
+      get(ResearchRunsSchema, 'GET', research(profileId, ideaId)),
+    /** Asks the person's AI to search the web for these areas. Can take up to a minute. */
+    runResearch: (profileId: string, ideaId: string, areas: string) =>
+      get(ResearchRunSchema, 'POST', research(profileId, ideaId), { areas }),
+    /** Adds the ticked pages of a run to the idea's reading list. */
+    addResearchItems: (profileId: string, ideaId: string, runId: string, itemIds: string[]) =>
+      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/add`, { itemIds }),
+    dismissResearchItems: (profileId: string, ideaId: string, runId: string, itemIds: string[]) =>
+      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/dismiss`, {
+        itemIds,
+      }),
+    deleteResearch: (profileId: string, ideaId: string, runId: string) =>
+      act('DELETE', `${research(profileId, ideaId)}/${runId}`),
 
     // drafts
     getDraft: (profileId: string, id: string) =>

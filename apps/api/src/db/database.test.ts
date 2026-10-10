@@ -149,6 +149,105 @@ describe('migrations', () => {
     expect(tableNames(db)).toEqual([])
   })
 
+  describe('reading suggestions (T38)', () => {
+    // The steps before the one that widens idea_proposals make the old shape.
+    const before = MIGRATIONS.slice(
+      0,
+      MIGRATIONS.findIndex((m) => typeof m === 'string' && m.includes('idea_proposals_new')),
+    )
+
+    function oldDb() {
+      const db = new DatabaseSync(':memory:')
+      db.exec('PRAGMA foreign_keys = ON')
+      migrate(db, 'test', before)
+      db.prepare('INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)').run(
+        'u1',
+        'Ada',
+        'ada@example.com',
+        'x',
+      )
+      db.prepare('INSERT INTO profiles (id, name, created_at) VALUES (?, ?, ?)').run('p1', 'P', 'x')
+      db.prepare(
+        `INSERT INTO ideas (id, profile_id, created_by, name, notes, created_at, updated_at)
+         VALUES ('i1', 'p1', 'u1', 'Idea', '', 'x', 'x')`,
+      ).run()
+      db.prepare(
+        `INSERT INTO idea_messages (id, idea_id, seq, role, kind, author_id, content, display_text, created_at)
+         VALUES ('m1', 'i1', 1, 'assistant', 'message', 'u1', '[]', 'Hi', 'x')`,
+      ).run()
+      db.prepare(
+        `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base, status, decided_by, decided_at)
+         VALUES ('pr1', 'm1', 'c1', 'update_idea', '{"name":"New"}', '{"name":"Old"}', 'accepted', 'u1', 'y')`,
+      ).run()
+      return db
+    }
+
+    it('keeps existing suggestions exactly as they were, with no reading details', () => {
+      const db = oldDb()
+      migrate(db, 'test', MIGRATIONS)
+      expect(db.prepare('SELECT * FROM idea_proposals').all()).toEqual([
+        expect.objectContaining({
+          id: 'pr1',
+          message_id: 'm1',
+          tool: 'update_idea',
+          input: '{"name":"New"}',
+          base: '{"name":"Old"}',
+          status: 'accepted',
+          decided_by: 'u1',
+          decided_at: 'y',
+          check_status: null,
+          fetched_title: null,
+        }),
+      ])
+    })
+
+    it('still removes suggestions with their message, and accepts only the known tools and checks', () => {
+      const db = oldDb()
+      migrate(db, 'test', MIGRATIONS)
+      const add = (tool: string, check: string | null) =>
+        db
+          .prepare(
+            `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, check_status)
+             VALUES (?, 'm1', 'c', ?, '{}', ?)`,
+          )
+          .run(`x-${tool}-${check}`, tool, check)
+      expect(() => add('suggest_reading', 'not-found')).not.toThrow()
+      expect(() => add('delete_everything', null)).toThrow()
+      expect(() => add('suggest_reading', 'fine')).toThrow()
+
+      db.prepare("DELETE FROM idea_messages WHERE id = 'm1'").run()
+      expect(db.prepare('SELECT count(*) AS n FROM idea_proposals').get()).toEqual({ n: 0 })
+    })
+
+    it('keeps research with its idea: a run, its pages, and the reason kept on a reading-list item', () => {
+      const db = oldDb()
+      migrate(db, 'test', MIGRATIONS)
+      db.prepare(
+        `INSERT INTO idea_research (id, idea_id, created_by, areas, provider, model, created_at)
+         VALUES ('r1', 'i1', 'u1', 'Areas', 'anthropic', 'm', 'x')`,
+      ).run()
+      const item = (check: string) =>
+        db
+          .prepare(
+            `INSERT INTO idea_research_items (id, research_id, position, url, title, why, check_status)
+             VALUES (?, 'r1', 0, 'https://a.example.org', 't', 'w', ?)`,
+          )
+          .run(`item-${check}`, check)
+      expect(() => item('found')).not.toThrow()
+      expect(() => item('fine')).toThrow()
+      db.prepare(
+        `INSERT INTO idea_links (id, idea_id, url, title, why, created_at) VALUES ('l1', 'i1', 'https://a.example.org', 't', 'Because.', 'x')`,
+      ).run()
+      expect(db.prepare("SELECT why FROM idea_links WHERE id = 'l1'").get()).toEqual({
+        why: 'Because.',
+      })
+
+      db.prepare("DELETE FROM ideas WHERE id = 'i1'").run()
+      expect(db.prepare('SELECT count(*) AS n FROM idea_research_items').get()).toEqual({ n: 0 })
+      expect(db.prepare('SELECT count(*) AS n FROM idea_research').get()).toEqual({ n: 0 })
+    })
+  })
+
   it('explain, rather than crash on, a file from before migrations existed', () => {
     const path = tempPath()
     const legacy = new DatabaseSync(path)

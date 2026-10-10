@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   FakeLLMProvider,
+  FakePageInfoFetcher,
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
@@ -162,7 +163,12 @@ describe('starting a brainstorm', () => {
     expect(request.system).toBe(`${DEFAULT_BRAINSTORM_PROMPT}\n\n${BRAINSTORM_RULES_PROMPT}`)
     expect(request.effort).toBe('medium')
     expect(config.apiKey).toBe('sk-ant-good-key-1234567890')
-    expect(request.tools?.map((t) => t.name)).toEqual(['add_note', 'update_idea', 'create_idea'])
+    expect(request.tools?.map((t) => t.name)).toEqual([
+      'add_note',
+      'update_idea',
+      'create_idea',
+      'suggest_reading',
+    ])
     expect(request.tools?.[0]?.inputSchema).toMatchObject({
       type: 'object',
       properties: { text: { type: 'string' } },
@@ -830,6 +836,7 @@ describe('when a reply goes wrong', () => {
       prompts: new BrainstormPromptService(store),
       resolveLlm: () => ({ llm, provider: 'fake', model: 'm' }),
       limiter: new RateLimiter(100, 1000),
+      pages: new FakePageInfoFetcher(),
       replyTimeoutMs: 10,
     })
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
@@ -889,6 +896,7 @@ describe('one reply at a time', () => {
       prompts: new BrainstormPromptService(store),
       resolveLlm: () => ({ llm: new FakeLLMProvider(), provider: 'fake', model: 'm' }),
       limiter: new RateLimiter(100, 1000),
+      pages: new FakePageInfoFetcher(),
       now: () => now,
     })
     const current = store.ideas.get(profile, idea.id)!
@@ -923,6 +931,7 @@ describe('stopping a reply', () => {
       prompts: new BrainstormPromptService(store),
       resolveLlm: () => ({ llm, provider: 'fake', model: 'm' }),
       limiter: new RateLimiter(100, 1000),
+      pages: new FakePageInfoFetcher(),
     })
     const current = store.ideas.get(profile, idea.id)!
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }

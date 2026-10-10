@@ -27,14 +27,15 @@ tool: it never writes or edits drafts.
 
 ### Tools, not parsing
 
-The model is given three **tools**. When it wants a change it returns a structured call alongside its chat text; we
+The model is given four **tools**. When it wants a change it returns a structured call alongside its chat text; we
 validate the call and either apply it (`add_note`) or turn it into a **proposal card** in the chat.
 
-| Tool          | Input           | What happens                                                                            |
-| ------------- | --------------- | --------------------------------------------------------------------------------------- |
-| `add_note`    | `text`          | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.  |
-| `update_idea` | `name`          | A proposal: replaces the idea's title when accepted.                                    |
-| `create_idea` | `name`, `notes` | A proposal: creates a new idea in the same profile (no drafts, no links) when accepted. |
+| Tool              | Input                 | What happens                                                                                                                                                                                                                                                                            |
+| ----------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add_note`        | `text`                | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.                                                                                                                                                                                                  |
+| `update_idea`     | `name`                | A proposal: replaces the idea's title when accepted.                                                                                                                                                                                                                                    |
+| `create_idea`     | `name`, `notes`       | A proposal: creates a new idea in the same profile (no drafts, no links) when accepted.                                                                                                                                                                                                 |
+| `suggest_reading` | `url`, `title`, `why` | A proposal: adds a page to the idea's reading list when accepted. Only an address a person wrote in the thread is kept (the coach can't search); the address is checked and shown beside the page's real title (T38). Research proper is a separate tool, not part of the conversation. |
 
 Rules for tool calls:
 
@@ -168,7 +169,8 @@ New tables (append-only migrations):
 provider, model, content JSON, status, created_at)`: `kind` is `kickoff` or `message`; `status` is `complete`,
   `stopped` or `failed`.
 - `idea_proposals(id, message_id → idea_messages ON DELETE CASCADE, tool_call_id, tool, input JSON, base JSON,
-status pending|accepted|dismissed, decided_by, decided_at, created_idea_id)`.
+status pending|accepted|dismissed, decided_by, decided_at, created_idea_id, check_status, fetched_title, fetched_authors)`
+  (`tool` is `update_idea`, `create_idea` or `suggest_reading`; the last three columns are only set for `suggest_reading`).
 - A per-user brainstorming prompt: `user_prompts(user_id PK → users ON DELETE CASCADE, brainstorm TEXT, updated_at)`,
   with no row (or null) meaning "use the default".
 

@@ -17,9 +17,19 @@ const queryClient = useQueryClient()
 const headingId = useId()
 const pending = computed(() => props.proposal.status === 'pending')
 const name = computed(() => props.proposal.input.name)
+const reading = computed(() => props.proposal.reading)
+/** A page that doesn't exist, or isn't public, can only be dismissed. */
+const unusable = computed(
+  () => reading.value?.check === 'not-found' || reading.value?.check === 'not-public',
+)
+const suggestedTitle = computed(() => props.proposal.input.title?.trim() ?? '')
+const address = computed(() => props.proposal.input.url ?? '')
 
 // What the suggestion is, for the buttons' names (there may be several cards on the page).
 const what = computed(() => {
+  if (props.proposal.tool === 'suggest_reading') {
+    return `a page for the reading list, “${reading.value?.fetchedTitle || suggestedTitle.value || address.value}”`
+  }
   if (props.proposal.tool === 'create_idea') return `a new idea, “${props.proposal.input.name}”`
   return 'a new title'
 })
@@ -49,10 +59,74 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
     class="mt-3 rounded border border-stone-300 bg-stone-50 p-4"
   >
     <h2 :id="headingId" class="mb-2 font-serif text-lg font-semibold">
-      {{ proposal.tool === 'create_idea' ? 'Suggested new idea' : 'Suggested change to this idea' }}
+      {{
+        proposal.tool === 'suggest_reading'
+          ? 'Suggested reading'
+          : proposal.tool === 'create_idea'
+            ? 'Suggested new idea'
+            : 'Suggested change to this idea'
+      }}<span v-if="proposal.tool === 'suggest_reading'" class="sr-only">: {{ address }}</span>
     </h2>
 
-    <template v-if="proposal.tool === 'update_idea'">
+    <template v-if="proposal.tool === 'suggest_reading' && reading">
+      <p class="mb-2 text-sm text-stone-600">
+        The coach is passing on an address you gave it. It has not read the page.
+      </p>
+      <p class="break-words font-medium">
+        {{ reading.fetchedTitle ?? (suggestedTitle || address) }}
+      </p>
+      <p class="mb-2 break-all text-sm">
+        {{ address }}
+        <a :href="address" target="_blank" rel="noopener noreferrer" class="ml-1 underline">
+          Open the page<span class="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+      <dl class="mb-3 space-y-1 text-sm">
+        <div v-if="reading.fetchedTitle !== null">
+          <dt class="mr-1 inline font-medium">The page's own title:</dt>
+          <dd class="inline">{{ reading.fetchedTitle }}</dd>
+        </div>
+        <div v-if="reading.fetchedAuthors.length">
+          <dt class="mr-1 inline font-medium">The page names as author:</dt>
+          <dd class="inline">{{ reading.fetchedAuthors.join(', ') }}</dd>
+        </div>
+        <div v-if="suggestedTitle">
+          <dt class="mr-1 inline font-medium">The AI called it:</dt>
+          <dd class="inline">{{ suggestedTitle }}</dd>
+        </div>
+        <div>
+          <dt class="mr-1 inline font-medium">Why the AI suggests it (unchecked):</dt>
+          <dd class="inline">{{ proposal.input.why }}</dd>
+        </div>
+      </dl>
+      <p v-if="reading.check === 'found'" class="mb-3 text-sm text-stone-700">
+        We looked at the address and the page exists. If you add it, it is listed under its own
+        title.
+      </p>
+      <p
+        v-else-if="reading.check === 'no-title'"
+        class="mb-3 rounded bg-amber-50 p-2 text-sm text-amber-900"
+      >
+        We couldn't read a title from this page, so we can't confirm what it is.
+        {{
+          suggestedTitle
+            ? `If you add it, it is listed as “${suggestedTitle}”, the AI's guess.`
+            : 'If you add it, it is listed by its address.'
+        }}
+      </p>
+      <p
+        v-else-if="reading.check === 'not-found'"
+        class="mb-3 rounded bg-red-50 p-2 text-sm text-red-900"
+      >
+        Problem: we couldn't find a website at this address, so the page may not exist. It can't be
+        added.
+      </p>
+      <p v-else class="mb-3 rounded bg-red-50 p-2 text-sm text-red-900">
+        Problem: this address isn't a public website, so it can't be added.
+      </p>
+    </template>
+
+    <template v-else-if="proposal.tool === 'update_idea'">
       <div class="mb-3">
         <p class="text-sm font-medium">Title</p>
         <p v-if="pending && idea" class="text-sm text-stone-600">
@@ -84,10 +158,18 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
           type="button"
           class="btn btn-sm btn-primary"
           :aria-label="`${proposal.stale ? 'Apply anyway' : 'Accept'}: ${what}`"
-          :disabled="busy"
+          :disabled="busy || unusable"
           @click="accept.mutate()"
         >
-          {{ accept.isPending.value ? 'Applying…' : proposal.stale ? 'Apply anyway' : 'Accept' }}
+          {{
+            accept.isPending.value
+              ? 'Applying…'
+              : proposal.tool === 'suggest_reading'
+                ? 'Add to reading list'
+                : proposal.stale
+                  ? 'Apply anyway'
+                  : 'Accept'
+          }}
         </button>
         <button
           type="button"
@@ -108,7 +190,8 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       </p>
     </template>
     <p v-else-if="proposal.status === 'accepted'" class="text-sm text-stone-700">
-      Accepted{{ proposal.decidedByName ? ` by ${proposal.decidedByName}` : '' }}.
+      {{ proposal.tool === 'suggest_reading' ? 'Added to the reading list' : 'Accepted'
+      }}{{ proposal.decidedByName ? ` by ${proposal.decidedByName}` : '' }}.
       <RouterLink
         v-if="proposal.createdIdeaId"
         :to="{ name: 'idea', params: { profileId, id: proposal.createdIdeaId } }"

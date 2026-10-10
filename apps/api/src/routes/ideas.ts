@@ -18,12 +18,15 @@ import {
   markdownToNotes,
   NoteTagsInputSchema,
   ReadingItemReadSchema,
+  ResearchInputSchema,
+  ResearchItemIdsSchema,
   SendMessageInputSchema,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { BrainstormService, Turn } from '../services/brainstorm'
 import type { IdeaLinkService } from '../services/idea-links'
+import type { ResearchService } from '../services/research'
 import { NoteEditService } from '../services/note-edits'
 import { toLlmHttpError } from './llm'
 import { validateJson } from '../validate'
@@ -35,7 +38,12 @@ const notFoundError = (): never => {
 type Ctx = Context<AppEnv>
 
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
-export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: BrainstormService) {
+export function ideaRoutes(
+  store: Store,
+  links: IdeaLinkService,
+  brainstorm: BrainstormService,
+  research: ResearchService,
+) {
   const { ideas, drafts, notes } = store
   const noteEdits = new NoteEditService(store)
   /** A path parameter every route here has; a missing one can only mean the URL didn't match. */
@@ -262,6 +270,32 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
       })
       .delete('/:id/conversation', (c) => {
         brainstorm.restart(find(c))
+        return c.body(null, 204)
+      })
+
+      // ---- research: a search for reading, kept apart from the conversation ----
+      .get('/:id/research', (c) => c.json(research.list(find(c))))
+      .post('/:id/research', validateJson(ResearchInputSchema), async (c) => {
+        try {
+          const run = await research.run(
+            find(c),
+            c.get('user'),
+            c.req.valid('json'),
+            c.req.raw.signal,
+          )
+          return c.json(run, 201)
+        } catch (err) {
+          return toLlmHttpError(err)
+        }
+      })
+      .post('/:id/research/:runId/add', validateJson(ResearchItemIdsSchema), (c) =>
+        c.json(research.add(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
+      )
+      .post('/:id/research/:runId/dismiss', validateJson(ResearchItemIdsSchema), (c) =>
+        c.json(research.dismiss(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
+      )
+      .delete('/:id/research/:runId', (c) => {
+        research.delete(find(c), c.req.param('runId'))
         return c.body(null, 204)
       })
   )

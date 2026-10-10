@@ -81,6 +81,7 @@ describe('ideas', () => {
           title: 'Fake title for example.org',
           authors: [],
           readAt: null,
+          why: null,
           origin: 'entered',
         },
       ])
@@ -246,6 +247,7 @@ describe('ideas', () => {
           title: 'Fake title for example.com',
           authors: [],
           readAt: null,
+          why: null,
           origin: 'entered',
         })
       })

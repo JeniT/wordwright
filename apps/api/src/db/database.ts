@@ -369,6 +369,62 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE idea_links ADD COLUMN authors TEXT NOT NULL DEFAULT '[]';
   ALTER TABLE draft_insertions ADD COLUMN source_authors TEXT;
   `,
+  // T38: the AI adds to the reading list. (1) The coach can suggest a page the writer gave it, as a proposal that
+  // records what the server found at the address; a CHECK can't be widened in place, so idea_proposals is rebuilt
+  // (nothing refers to it; its rows are copied as they are). (2) Research is separate from the conversation: a run
+  // (what the writer asked to look into) holds the pages found, to be reviewed. (3) A reading-list item keeps the
+  // AI's reason for suggesting it.
+  `
+  CREATE TABLE idea_proposals_new (
+    id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL REFERENCES idea_messages(id) ON DELETE CASCADE,
+    tool_call_id TEXT NOT NULL,
+    tool TEXT NOT NULL CHECK (tool IN ('update_idea', 'create_idea', 'suggest_reading')),
+    input TEXT NOT NULL,
+    base TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'dismissed')),
+    decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    decided_at TEXT,
+    created_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+    -- Only for suggest_reading: what looking at the address found.
+    check_status TEXT CHECK (check_status IN ('found', 'no-title', 'not-found', 'not-public')),
+    fetched_title TEXT,
+    fetched_authors TEXT NOT NULL DEFAULT '[]'
+  );
+  INSERT INTO idea_proposals_new (id, message_id, tool_call_id, tool, input, base, status, decided_by, decided_at, created_idea_id)
+    SELECT id, message_id, tool_call_id, tool, input, base, status, decided_by, decided_at, created_idea_id
+    FROM idea_proposals;
+  DROP TABLE idea_proposals;
+  ALTER TABLE idea_proposals_new RENAME TO idea_proposals;
+  CREATE INDEX idea_proposals_message ON idea_proposals(message_id);
+
+  CREATE TABLE idea_research (
+    id TEXT PRIMARY KEY,
+    idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+    -- Whose key paid for it; SET NULL so a leaving member's research stays.
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    areas TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX idea_research_idea ON idea_research(idea_id);
+  CREATE TABLE idea_research_items (
+    id TEXT PRIMARY KEY,
+    research_id TEXT NOT NULL REFERENCES idea_research(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    url TEXT NOT NULL,
+    title TEXT NOT NULL,
+    why TEXT NOT NULL,
+    check_status TEXT NOT NULL CHECK (check_status IN ('found', 'no-title', 'not-found', 'not-public')),
+    fetched_title TEXT,
+    fetched_authors TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'suggested' CHECK (status IN ('suggested', 'added', 'dismissed'))
+  );
+  CREATE INDEX idea_research_items_research ON idea_research_items(research_id);
+
+  ALTER TABLE idea_links ADD COLUMN why TEXT;
+  `,
 ]
 
 /**

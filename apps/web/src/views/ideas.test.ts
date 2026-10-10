@@ -296,6 +296,7 @@ describe('idea page', () => {
                 title: 'Found one',
                 readAt: null,
                 origin: 'research',
+                why: 'Challenges the usual account of erosion.',
               },
             ],
           }),
@@ -306,6 +307,10 @@ describe('idea page', () => {
       expect(screen.getByRole('checkbox', { name: 'Read: Unread one' })).not.toBeChecked()
       expect(screen.getByText('Suggested in brainstorming')).toBeInTheDocument()
       expect(screen.getByText('Found by research')).toBeInTheDocument()
+      expect(
+        screen.getByText(/Why the AI suggested it \(unchecked\):/).closest('p'),
+      ).toHaveTextContent('Challenges the usual account of erosion.')
+      expect(screen.getAllByText(/Why the AI suggested it/)).toHaveLength(1) // only where an AI gave a reason
       expect(screen.queryByText('From idea generation')).toBeNull() // and nothing for those added by hand
     })
 

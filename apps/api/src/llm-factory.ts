@@ -1,8 +1,11 @@
 import {
   AnthropicProvider,
+  AnthropicResearchProvider,
   FakeLLMProvider,
+  FakeResearchProvider,
   type FakeChatResponder,
   type LLMFactory,
+  type ResearchFactory,
 } from '@lfwa/core'
 
 /** Builds a real client from a user's own credentials. */
@@ -13,10 +16,18 @@ export const realLlmFactory: LLMFactory = ({ provider, apiKey, model }) => {
   }
 }
 
+/** Builds a real web-searching researcher from a user's own credentials. */
+export const realResearchFactory: ResearchFactory = ({ provider, apiKey, model }) => {
+  switch (provider) {
+    case 'anthropic':
+      return new AnthropicResearchProvider({ apiKey, model })
+  }
+}
+
 /**
  * The pretend coach of development and e2e runs. It opens with a question, and makes each kind of
  * thing when the person asks for it in so many words ("suggest a title", "note that ...",
- * "suggest a new idea"), so every part of the brainstorm page can be tried without a real AI.
+ * "suggest a new idea", a pasted address "for my reading list"), so every part of the brainstorm page can be tried without a real AI.
  */
 export const fakeBrainstormReply: FakeChatResponder = (request) => {
   const last = request.messages.at(-1)
@@ -29,6 +40,27 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
   if (request.messages.length === 1) {
     return {
       text: 'What is the **one claim** this piece makes, and why would our readers care?',
+    }
+  }
+  const address = said.match(/https?:\/\/[^\s]+/)
+  if (address && /reading list/i.test(said)) {
+    return {
+      text: 'I have not read it, but here it is for your reading list.',
+      toolCalls: [
+        {
+          name: 'suggest_reading',
+          input: {
+            url: address[0],
+            title: 'The page you gave me',
+            why: 'You said it bears on this idea.',
+          },
+        },
+      ],
+    }
+  }
+  if (/find (me )?(some )?(sources|reading)|research/i.test(said)) {
+    return {
+      text: 'I cannot search the web. The Research tool on the idea page does that and lets you review what it finds.',
     }
   }
   if (/suggest a title/i.test(said)) {
@@ -63,3 +95,6 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
 
 /** For local development and e2e tests: no network, accepts any key. */
 export const fakeLlmFactory: LLMFactory = () => new FakeLLMProvider(undefined, fakeBrainstormReply)
+
+/** For local development and e2e tests: three pages, one fine, one with no title, one that doesn't exist. */
+export const fakeResearchFactory: ResearchFactory = () => new FakeResearchProvider()

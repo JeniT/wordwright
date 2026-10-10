@@ -166,6 +166,9 @@ const save = useMutation({
       <p v-if="originLabel[link.origin]" class="w-full text-xs text-stone-600">
         {{ originLabel[link.origin] }}
       </p>
+      <p v-if="link.why" class="w-full text-sm text-stone-700">
+        <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
+      </p>
       <p v-if="setRead.isError.value" role="alert" class="w-full text-sm text-red-700">
         Couldn't save that. Please try again.
       </p>

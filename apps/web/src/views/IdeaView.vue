@@ -215,6 +215,21 @@ const remove = useMutation({
       </RouterLink>
     </section>
 
+    <section aria-labelledby="research-heading" class="mb-10">
+      <h2 id="research-heading" class="mb-1 font-serif text-xl font-semibold">Research</h2>
+      <p class="mb-3 text-sm text-stone-700">
+        Describe what you want to look into and your AI will search the web for pages worth reading,
+        from more than one point of view. You review what it finds and choose what goes on the
+        reading list above. You can research as many areas as you like.
+      </p>
+      <RouterLink
+        :to="{ name: 'research', params: { profileId, id } }"
+        class="btn btn-outline inline-block"
+      >
+        Research
+      </RouterLink>
+    </section>
+
     <section aria-labelledby="idea-drafts-heading" class="mb-10">
       <div class="mb-3 flex items-center justify-between gap-3">
         <h2 id="idea-drafts-heading" class="font-serif text-xl font-semibold">Drafts</h2>

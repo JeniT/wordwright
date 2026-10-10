@@ -321,6 +321,11 @@ export const IdeaLinkSchema = z.object({
   /** When the writer marked it read (they may have read it offline); null while unread. */
   readAt: z.string().nullable(),
   origin: ReadingOriginSchema,
+  /**
+   * Why the AI suggested it, when an AI did: the AI's own claim, kept with the item for the writer to judge and
+   * never the writer's words. Null for items the writer added.
+   */
+  why: z.string().nullish(),
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 
@@ -556,17 +561,66 @@ export const CreateIdeaToolInputSchema = z.object({
   ),
 })
 
-export const ProposalToolSchema = z.enum(['update_idea', 'create_idea'])
+/** What the AI sends when it suggests a page for the idea's reading list. Untrusted: always validate. */
+export const SuggestReadingToolInputSchema = z.object({
+  url: WebAddressSchema.describe('The web address of the page'),
+  title: z
+    .string()
+    .trim()
+    .max(200)
+    .default('')
+    .describe('The title of the page, as you know it; the app looks up the real one'),
+  why: z
+    .string()
+    .trim()
+    .min(1)
+    .max(300)
+    .describe('One sentence on why this page is worth the writer reading, for this idea'),
+})
+
+/** More than this many reading suggestions in one reply is the AI running away with it. */
+export const MAX_READING_SUGGESTIONS_PER_REPLY = 3
+
+export const ProposalToolSchema = z.enum(['update_idea', 'create_idea', 'suggest_reading'])
 export type ProposalTool = z.infer<typeof ProposalToolSchema>
 export const ProposalStatusSchema = z.enum(['pending', 'accepted', 'dismissed'])
 export type ProposalStatus = z.infer<typeof ProposalStatusSchema>
+
+/**
+ * What the server found when it looked at a suggested address: `found` (the page has this title), `no-title`
+ * (the page exists or couldn't be read, but no title came back), `not-found` (no website by that name) or
+ * `not-public` (it points at a private network, which is never contacted). The last two can't be accepted.
+ */
+export const ReadingCheckSchema = z.enum(['found', 'no-title', 'not-found', 'not-public'])
+export type ReadingCheck = z.infer<typeof ReadingCheckSchema>
+
+/** What goes with a suggested reading-list item: what the server found when it looked at the address. */
+export const ReadingSuggestionSchema = z.object({
+  check: ReadingCheckSchema,
+  /** The title the page really has, when it has one. Shown beside the suggested title. */
+  fetchedTitle: z.string().nullable(),
+  /** Who the page says wrote it, when it says. */
+  fetchedAuthors: z.array(z.string()),
+})
+export type ReadingSuggestion = z.infer<typeof ReadingSuggestionSchema>
 
 /** A suggestion from the AI, awaiting (or having had) a person's decision. */
 export const ProposalSchema = z.object({
   id: z.string(),
   tool: ProposalToolSchema,
-  /** What is suggested. `notes` on an `update_idea` is only found in threads from before notes were recorded directly. */
-  input: z.object({ name: z.string().optional(), notes: z.string().optional() }),
+  /**
+   * What is suggested. `notes` on an `update_idea` is only found in threads from before notes were recorded
+   * directly. A `suggest_reading` has `url`, `title` and `why`: the AI's own words, unverified.
+   */
+  input: z.object({
+    name: z.string().optional(),
+    notes: z.string().optional(),
+    url: z.string().optional(),
+    title: z.string().optional(),
+    why: z.string().optional(),
+  }),
+  /** Only for `suggest_reading`. */
+  reading: ReadingSuggestionSchema.nullable(),
   status: ProposalStatusSchema,
   /** Still waiting, but the idea has changed since it was suggested: accepting needs `overwrite`. */
   stale: z.boolean(),
@@ -655,6 +709,58 @@ export const BrainstormEventSchema = z.discriminatedUnion('type', [
   }),
 ])
 export type BrainstormEvent = z.infer<typeof BrainstormEventSchema>
+
+// ---- Research: a search for reading, kept apart from brainstorming ---------------------------------------
+// The writer describes the areas to look into; the app writes the rest of the prompt. Each run is saved with what it
+// found, as a list to review: the writer ticks the pages to add to the reading list. See docs/decisions.md (T38).
+
+/** The most pages one run brings back. */
+export const MAX_RESEARCH_RESULTS = 8
+export const RESEARCH_AREAS_MAX = 1000
+
+export const ResearchInputSchema = z.object({
+  areas: z
+    .string()
+    .trim()
+    .min(1, 'Describe the areas you want to research')
+    .max(RESEARCH_AREAS_MAX, `Use ${RESEARCH_AREAS_MAX} characters or fewer to describe the areas`),
+})
+export type ResearchInput = z.infer<typeof ResearchInputSchema>
+
+export const ResearchItemStatusSchema = z.enum(['suggested', 'added', 'dismissed'])
+
+/** A page a run found. `why` is the AI's claim, not checked; `check` is what the server found at the address. */
+export const ResearchItemSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  /** The title the search gave it. */
+  title: z.string(),
+  why: z.string(),
+  check: ReadingCheckSchema,
+  /** The title the page really has, when the server could read one. */
+  fetchedTitle: z.string().nullable(),
+  fetchedAuthors: z.array(z.string()),
+  status: ResearchItemStatusSchema,
+})
+export type ResearchItem = z.infer<typeof ResearchItemSchema>
+
+export const ResearchRunSchema = z.object({
+  id: z.string(),
+  /** What the writer asked to look into, as they wrote it. */
+  areas: z.string(),
+  /** Whose key paid for it; null if their account has gone. */
+  createdByName: z.string().nullable(),
+  model: z.string(),
+  createdAt: z.string(),
+  items: z.array(ResearchItemSchema),
+})
+export type ResearchRun = z.infer<typeof ResearchRunSchema>
+export const ResearchRunsSchema = z.array(ResearchRunSchema)
+
+/** The pages of one run to add to the reading list, or to set aside. */
+export const ResearchItemIdsSchema = z.object({
+  itemIds: z.array(z.string()).min(1, 'Tick at least one page').max(MAX_RESEARCH_RESULTS),
+})
 
 export const CritiqueRequestSchema = z.object({ draftId: z.string() })
 export type CritiqueRequest = z.infer<typeof CritiqueRequestSchema>

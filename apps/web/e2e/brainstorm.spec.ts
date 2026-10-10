@@ -130,6 +130,46 @@ test('a spin-off idea can be accepted and opened, and a suggestion can be dismis
   )
 })
 
+test('the coach passes on an address the writer gave: it is checked, shown beside its real title, and added only when accepted', async ({
+  page,
+}) => {
+  await setUp(page)
+  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
+
+  await say(page, 'Please add https://example.org/river-physics to my reading list')
+  const card = page.getByRole('region', { name: /^Suggested reading/ })
+  await expect(card).toContainText("The page's own title:")
+  await expect(card).toContainText('Fake title for example.org')
+  await expect(card).toContainText('The page you gave me') // what the coach called it
+  await expect(card).toContainText('Why the AI suggests it (unchecked):')
+  await noViolations(page, 'brainstorm page with a reading suggestion')
+
+  // Nothing is on the reading list until it is accepted.
+  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toHaveCount(0)
+
+  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
+  await page.getByRole('button', { name: /^Accept: / }).click()
+  await expect(page.getByText('Added to the reading list by Pru.')).toBeVisible()
+  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
+  await expect(page.getByText('Suggested in brainstorming')).toBeVisible()
+  await expect(page.getByText('You said it bears on this idea.')).toBeVisible()
+})
+
+test('asked to do research, the coach points to the Research tool and suggests nothing', async ({
+  page,
+}) => {
+  await setUp(page)
+  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
+
+  await say(page, 'Can you research this for me?')
+  await expect(page.getByText(/The Research tool on the idea page does that/)).toBeVisible()
+  await expect(page.getByRole('region', { name: /^Suggested reading/ })).toHaveCount(0)
+})
+
 test('start again clears the conversation, after asking', async ({ page }) => {
   await setUp(page)
   await page.getByRole('link', { name: 'Brainstorm' }).click()

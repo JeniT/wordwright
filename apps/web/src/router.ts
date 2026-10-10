@@ -99,6 +99,12 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/p/:profileId/ideas/:id/research',
+    name: 'research',
+    component: () => import('./views/ResearchView.vue'),
+    props: true,
+  },
+  {
     path: '/p/:profileId/ideas/:id',
     name: 'idea',
     component: () => import('./views/IdeaView.vue'),

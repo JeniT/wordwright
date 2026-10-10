@@ -4,6 +4,7 @@ import {
   NoPageInfoFetcher,
   type FeedFetcher,
   type LLMFactory,
+  type ResearchFactory,
   type PageInfoFetcher,
   type Providers,
 } from '@lfwa/core'
@@ -22,6 +23,7 @@ import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
 import { BrainstormService } from './services/brainstorm'
 import { BrainstormPromptService } from './services/brainstorm-prompt'
+import { ResearchService } from './services/research'
 import { IdeaLinkService } from './services/idea-links'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
@@ -39,6 +41,8 @@ export interface AppDeps {
   feeds: FeedFetcher
   /** Creates an LLM client from a user's own credentials. */
   llmFactory: LLMFactory
+  /** Creates a web-searching researcher from a user's own credentials (the Research page). */
+  researchFactory: ResearchFactory
   /** Encrypts stored API keys. Keep separate from `sessionSecret`. */
   keyEncryptionSecret: string
   mailer: Mailer
@@ -62,6 +66,7 @@ export function createApp(deps: AppDeps) {
     store,
     box: createSecretBox(deps.keyEncryptionSecret),
     factory: deps.llmFactory,
+    researchFactory: deps.researchFactory,
   })
   const hasher = deps.hasher ?? createScryptHasher()
   const accounts = new AccountService({
@@ -136,9 +141,19 @@ export function createApp(deps: AppDeps) {
     store,
     prompts: brainstormPrompts,
     resolveLlm: (userId) => llmKeys.resolveWithInfo(userId),
+    // The same lookups that title a typed link, so the same page fetcher.
+    pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
     // Each message spends the person's own money and our server time: 30 in 10 minutes is a lot of chat.
     limiter: limiter(30, 10 * MINUTE),
     logger: deps.logger,
+  })
+  const research = new ResearchService({
+    store,
+    resolveResearch: (userId) => llmKeys.resolveResearchWithInfo(userId),
+    // The same lookups that title a typed link, so the same page fetcher.
+    pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
+    // A search is a bigger bill than a message and makes the server look at several sites: 10 an hour.
+    limiter: limiter(10, HOUR),
   })
   api.route('/invitations', invitationRoutes(invitations, accounts))
   api.route(
@@ -154,6 +169,7 @@ export function createApp(deps: AppDeps) {
         feedLimiter: limiter(30, HOUR),
         ideaLinks,
         brainstorm,
+        research,
       }),
     ),
   )

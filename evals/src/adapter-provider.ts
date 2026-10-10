@@ -1,6 +1,6 @@
 import { CASES } from './cases'
-import { buildAdapter, choiceFromEnv } from './factory'
-import { brainstormRequest, critiqueRequest } from './request'
+import { buildAdapter, buildResearch, choiceFromEnv } from './factory'
+import { brainstormRequest, critiqueRequest, researchRequest } from './request'
 import { renderReply } from './render'
 import type { LLMChatEvent } from '@lfwa/core'
 
@@ -21,6 +21,10 @@ export default class AdapterProvider {
     const c = CASES.find((x) => x.id === id)
     if (!c) return { error: `No eval case called "${id}"` }
     try {
+      if (c.app === 'research') {
+        const found = await buildResearch(this.choice).find(researchRequest(c))
+        return { output: JSON.stringify(found) }
+      }
       const llm = buildAdapter(this.choice)
       if (c.app === 'critique') return { output: await llm.complete(critiqueRequest(c)) }
       const events: LLMChatEvent[] = []
