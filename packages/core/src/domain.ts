@@ -344,6 +344,8 @@ export const IdeaNoteSchema = z.object({
   tags: z.array(z.string()),
   /** The reading-list item it was taken from, if any (null once that item is removed). */
   readingItemId: z.string().nullable(),
+  /** The writer's copy of someone else's exact words. Its text is never edited, and goes into a draft as a blockquote. */
+  quote: z.boolean(),
   /** When it was pulled into a draft; null while it hasn't been. */
   addedAt: z.string().nullable(),
   createdAt: z.string(),
@@ -356,6 +358,8 @@ export const IdeaNoteInputSchema = z.object({
   text: NoteTextSchema,
   /** A note taken while reading this item of the idea's reading list: it then has origin `reading`. */
   readingItemId: z.string().optional(),
+  /** The text is a direct quotation from that item, kept word for word. It needs `readingItemId`. */
+  quote: z.boolean().optional(),
 })
 
 export const NOTE_TAG_MAX = 40

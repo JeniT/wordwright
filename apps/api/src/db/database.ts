@@ -352,6 +352,17 @@ export const MIGRATIONS: Migration[] = [
     PRIMARY KEY (note_id, tag COLLATE NOCASE)
   );
   `,
+  // T32b: a note can be a direct quotation, which is never edited. The database itself refuses to change a
+  // quotation's words, so no route or later feature can do it by accident (deleting one is still allowed).
+  `
+  ALTER TABLE idea_notes ADD COLUMN is_quote INTEGER NOT NULL DEFAULT 0 CHECK (is_quote IN (0, 1));
+  CREATE TRIGGER idea_notes_quote_text_is_fixed
+  BEFORE UPDATE OF text ON idea_notes
+  WHEN old.is_quote = 1 AND new.text <> old.text
+  BEGIN
+    SELECT RAISE(ABORT, 'A quotation cannot be edited');
+  END;
+  `,
 ]
 
 /**

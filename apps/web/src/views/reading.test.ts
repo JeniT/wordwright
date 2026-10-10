@@ -44,6 +44,7 @@ const note = (id: string, text: string, readingItemId: string | null, origin = '
   authorName: 'Ada',
   readingItemId,
   tags: [] as string[],
+  quote: false,
   addedAt: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -159,6 +160,40 @@ describe('reading page', () => {
       expect(within(list).getByText('“Meanders grow.”')).toBeInTheDocument()
       expect(list).toHaveTextContent('From reading “A paper”, by Ada')
       expect(box).toHaveValue('')
+    })
+
+    it('adds a direct quote when asked, sets it apart, and clears the choice for the next note', async () => {
+      const sent: unknown[] = []
+      const saved: ReturnType<typeof note>[] = []
+      await open('l1', [
+        http.get(notesUrl, () => HttpResponse.json(saved)),
+        http.post(notesUrl, async ({ request }) => {
+          const body = (await request.json()) as { text: string; quote?: boolean }
+          sent.push(body)
+          const created = { ...note(`n${saved.length + 1}`, body.text, 'l1'), quote: !!body.quote }
+          saved.push(created)
+          return HttpResponse.json(created, { status: 201 })
+        }),
+      ])
+      const box = await screen.findByLabelText('Add a note from this page')
+      const isQuote = screen.getByRole('checkbox', { name: /This is a direct quote/ })
+      expect(isQuote).not.toBeChecked() // a note is the writer's own words unless they say otherwise
+      await fireEvent.update(box, 'Meanders grow.')
+      await fireEvent.click(isQuote)
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      const list = await screen.findByRole('list')
+      expect(list.querySelector('blockquote')).toHaveTextContent('Meanders grow.')
+      expect(list).toHaveTextContent('Quoted while reading “A paper”, by Ada')
+      expect(screen.getByRole('checkbox', { name: /This is a direct quote/ })).not.toBeChecked()
+
+      await fireEvent.update(box, 'So bends move.')
+      await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }))
+      await waitFor(() => expect(list.querySelectorAll('li')).toHaveLength(2))
+      expect(sent).toEqual([
+        { text: 'Meanders grow.', readingItemId: 'l1', quote: true },
+        { text: 'So bends move.', readingItemId: 'l1' },
+      ])
+      expect(list.querySelectorAll('blockquote')).toHaveLength(1)
     })
 
     it('keeps what was typed, and says what went wrong, when a note could not be saved', async () => {

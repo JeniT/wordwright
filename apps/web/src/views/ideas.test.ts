@@ -576,6 +576,7 @@ describe('idea page', () => {
       authorName,
       readingItemId: null as string | null,
       tags: [] as string[],
+      quote: false,
       addedAt: null,
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
@@ -657,6 +658,23 @@ describe('idea page', () => {
         'true',
       )
       expect(items[0]!.closest('ol')).toHaveClass('grid')
+    })
+
+    it('offers no Edit for a direct quotation, and sets it apart; it can still be deleted', async () => {
+      fakeNotes([
+        note('n1', 'Erosion loops.'),
+        { ...note('n2', 'Exact words.', 'reading'), readingItemId: 'l1', quote: true },
+      ])
+      await open()
+      await screen.findByText('Erosion loops.')
+      expect(within(region()).getAllByRole('button', { name: /^Edit note/ })).toHaveLength(1)
+      expect(within(region()).getByRole('button', { name: /^Edit note “Erosion/ })).toBeVisible()
+      expect(within(region()).queryByRole('button', { name: /^Edit note “Exact/ })).toBeNull()
+      expect(within(region()).getByText('Exact words.').closest('blockquote')).not.toBeNull()
+      expect(within(region()).getByText('Erosion loops.').closest('blockquote')).toBeNull()
+      const items = within(region()).getAllByRole('listitem')
+      expect(items[1]).toHaveTextContent('Quoted while reading “A paper”, by Ada')
+      expect(within(region()).getByRole('button', { name: /^Delete note “Exact/ })).toBeVisible()
     })
 
     it('names the reading-list item a note was taken from, or just says reading if it is gone', async () => {

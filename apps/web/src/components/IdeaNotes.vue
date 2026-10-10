@@ -13,6 +13,7 @@ import {
   tagsUsedOn,
 } from '../lib/note-tags'
 import HoldButton from './HoldButton.vue'
+import NoteText from './NoteText.vue'
 import NoteTags from './NoteTags.vue'
 import ReorderableList from './ReorderableList.vue'
 import TagFilter from './TagFilter.vue'
@@ -285,13 +286,14 @@ const label = (note: IdeaNote) => {
               </div>
             </form>
             <div v-else :class="contentClass">
-              <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+              <NoteText :note="note" />
               <NoteTags :tags="note.tags" />
               <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
             </div>
           </template>
           <template #actions="{ item: note }">
             <button
+              v-if="!note.quote"
               type="button"
               class="btn btn-neutral"
               :data-edit-button="note.id"

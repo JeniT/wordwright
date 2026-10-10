@@ -48,6 +48,28 @@ describe('words pulled into a draft from notes', () => {
     expect(await (await ada.get(insertions())).json()).toHaveLength(1)
   })
 
+  it('lets a quotation in only as a blockquote', async () => {
+    await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
+    const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0]
+    const quote = await addNote('Meanders grow.', { readingItemId: item.id, quote: true })
+
+    const bare = await ada.post(insertions(), { noteId: quote.id, text: 'Meanders grow.' })
+    expect(bare.status).toBe(400)
+    expect((await bare.json()).error).toContain('as a quotation')
+    const half = await ada.post(insertions(), {
+      noteId: quote.id,
+      text: '> Meanders grow.\n\nAnd then some words of my own.',
+    })
+    expect(half.status).toBe(400)
+    expect(noteNow(quote.id).addedAt).toBeNull() // nothing was recorded, and the note is still available
+
+    const text = '> Meanders grow.\n>\n> — [A paper](https://example.org/paper)'
+    const ok = await ada.post(insertions(), { noteId: quote.id, text })
+    expect(ok.status).toBe(201)
+    expect(await ok.json()).toMatchObject({ text, origin: 'reading' })
+    expect(noteNow(quote.id).addedAt).toEqual(expect.any(String))
+  })
+
   it('takes the origin and source from the note, whatever the request says', async () => {
     await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
     const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0]

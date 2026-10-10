@@ -13,6 +13,7 @@ import {
   MAX_IDEA_NOTES,
   IdeaUpdateSchema,
   NoteAddedSchema,
+  markdownToNotes,
   NoteTagsInputSchema,
   ReadingItemReadSchema,
   SendMessageInputSchema,
@@ -52,7 +53,20 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
       .get('/:id', (c) => c.json(find(c)))
       .patch('/:id', validateJson(IdeaUpdateSchema), (c) => {
         const idea = find(c)
-        return c.json(ideas.update(idea.profileId, idea.id, c.req.valid('json')))
+        const changes = c.req.valid('json')
+        // The idea's notes as one text (transitional) would rewrite every note, quotations included.
+        if (
+          changes.notes !== undefined &&
+          notes.list(idea.id).some((n) => n.quote) &&
+          JSON.stringify(markdownToNotes(changes.notes)) !==
+            JSON.stringify(markdownToNotes(idea.notes))
+        ) {
+          throw new HTTPException(409, {
+            message:
+              "This idea has quotations, which can't be edited. Change the other notes one at a time in the Notes list.",
+          })
+        }
+        return c.json(ideas.update(idea.profileId, idea.id, changes))
       })
       .delete('/:id', (c) => {
         const idea = find(c)
@@ -102,7 +116,12 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
               message: `An idea can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
             })
           }
-          const { text, readingItemId } = c.req.valid('json')
+          const { text, readingItemId, quote } = c.req.valid('json')
+          if (quote && !readingItemId) {
+            throw new HTTPException(400, {
+              message: 'A quotation needs the reading-list item it comes from.',
+            })
+          }
           if (readingItemId && !idea.links.some((l) => l.id === readingItemId)) {
             throw new HTTPException(400, {
               message: "That item isn't on this idea's reading list.",
@@ -116,6 +135,7 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
             text,
             readingItemId ? 'reading' : 'entered',
             readingItemId ?? null,
+            !!quote,
           )
           ideas.touch(idea.id)
           return note
@@ -136,7 +156,15 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
       })
       .patch('/:id/notes/:noteId', validateJson(IdeaNoteEditSchema), (c) => {
         const idea = find(c)
-        const saved = notes.updateText(idea.id, c.req.param('noteId'), c.req.valid('json').text)
+        const current = notes.get(idea.id, c.req.param('noteId'))
+        if (!current) throw notFound()
+        if (current.quote) {
+          throw new HTTPException(409, {
+            message:
+              "A quotation can't be edited, so it stays exactly as it was on the page. Delete it and add it again if it needs correcting.",
+          })
+        }
+        const saved = notes.updateText(idea.id, current.id, c.req.valid('json').text)
         if (!saved) throw notFound()
         ideas.touch(idea.id)
         return c.json(saved)

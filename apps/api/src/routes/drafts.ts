@@ -39,6 +39,13 @@ export function draftRoutes(store: Store) {
         if (!note) {
           throw new HTTPException(400, { message: "That note isn't on this draft's idea." })
         }
+        // A quotation goes into a draft only as a blockquote, so it can't pass for the writer's own words.
+        if (note.quote && text.split('\n').some((line) => line.trim() && !line.startsWith('>'))) {
+          throw new HTTPException(400, {
+            message:
+              'A quotation has to go into the draft as a quotation (every line starting with >).',
+          })
+        }
         const idea = ideas.get(draft.profileId, draft.ideaId!)
         const item = idea?.links.find((l) => l.id === note.readingItemId)
         const inserted = store.transaction(() => {

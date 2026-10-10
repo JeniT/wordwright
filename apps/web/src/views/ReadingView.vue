@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaNote } from '@lfwa/core'
+import NoteText from '../components/NoteText.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import { api, errorMessage } from '../lib/api'
 import { noteOriginLabel } from '../lib/note-label'
@@ -44,11 +45,17 @@ const setRead = useMutation({
 const readBox = ref<HTMLInputElement>()
 
 const text = ref('')
+const isQuote = ref(false)
 const addBox = ref<HTMLElement>()
 const add = useMutation({
-  mutationFn: () => api.addIdeaNote(props.profileId, props.id, text.value, props.linkId),
+  mutationFn: () =>
+    api.addIdeaNote(props.profileId, props.id, text.value, {
+      readingItemId: props.linkId,
+      quote: isQuote.value || undefined,
+    }),
   onSuccess: async (note) => {
     text.value = ''
+    isQuote.value = false
     queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) => [...(old ?? []), note])
     // A note also changes the idea's "last changed" time, and its text as brainstorming sees it.
     await Promise.all([
@@ -124,7 +131,8 @@ const add = useMutation({
       </h2>
       <p class="mb-3 text-sm text-stone-700">
         Paste a quote, or put it in your own words. Each note keeps a link back to this page, and
-        joins the rest of the idea's notes.
+        joins the rest of the idea's notes. Say when something is a direct quote, so it can't be
+        mistaken for your own words later.
       </p>
 
       <p v-if="notes.isPending.value">Loading notes…</p>
@@ -140,7 +148,7 @@ const add = useMutation({
         </p>
         <ul v-else class="mb-4 divide-y divide-stone-200 rounded border border-stone-200 bg-white">
           <li v-for="note in itemNotes" :key="note.id" class="px-4 py-3">
-            <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+            <NoteText :note="note" />
             <p class="mt-1 text-xs text-stone-600">
               {{ noteOriginLabel(note, idea.data.value?.links ?? []) }}
             </p>
@@ -155,6 +163,16 @@ const add = useMutation({
             :maxlength="20000"
             :hint="add.isError.value ? errorMessage(add.error.value) : undefined"
           />
+          <label class="mb-3 flex items-start gap-2 text-sm">
+            <input v-model="isQuote" type="checkbox" class="mt-0.5 size-4 accent-accent" />
+            <span>
+              This is a direct quote.
+              <span class="block text-stone-600">
+                It is kept word for word: it can't be edited afterwards, and goes into a draft as a
+                quotation, with a link to this page.
+              </span>
+            </span>
+          </label>
           <button
             type="submit"
             class="btn btn-outline"

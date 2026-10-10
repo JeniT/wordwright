@@ -7,9 +7,13 @@ import type { IdeaLink, IdeaNote } from '@lfwa/core'
 export function noteMarkdown(note: IdeaNote, readingList: readonly IdeaLink[]): string {
   const item = readingList.find((l) => l.id === note.readingItemId)
   const text = note.text.trim()
-  if (!item) return text
-  const title = (item.title || item.url).replace(/[[\]]/g, '')
-  return `${text} ([${title}](${item.url}))`
+  const source = item && `[${(item.title || item.url).replace(/[[\]]/g, '')}](${item.url})`
+  // A direct quotation is a blockquote (every line starts with >), with its source as a last line inside it.
+  if (note.quote) {
+    const lines = text.split('\n').map((line) => (line.trim() ? `> ${line}` : '>'))
+    return (source ? [...lines, '>', `> — ${source}`] : lines).join('\n')
+  }
+  return source ? `${text} (${source})` : text
 }
 
 /** Case, spacing and Markdown punctuation ignored, so text can be found again after the editor rewrites it. */

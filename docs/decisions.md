@@ -356,9 +356,7 @@ taken from this item, and a box to add another. A note added here is sent with `
   views (Edge, Vivaldi, Firefox's experimental one, Zen) are, as far as we found, controlled only by the person. So the page only says, in plain words,
   that the two tabs are best put side by side. A browser extension would be the way to automate it; that is the
   "extension" option in D4 and not worth building for this.
-- **Quote or own words: not told apart yet.** Both are plain notes against the item. Marking a note as a quotation
-  (so a quotation can't be mistaken for the writer's own words once it is in a draft) needs a column and a rule for how
-  quotes are inserted; it is a follow-up, not part of this task.
+- **Quote or own words:** the writer says which (see the next section).
 - **Profile level.** Only an idea has a reading list so far (the profile's feeds are sources, not items), so this page
   is for an idea's items. A profile-level list (T37) would reuse the page.
 
@@ -381,6 +379,29 @@ order given, a tag unique per note ignoring case) and go with the note.
 - **Putting notes in order while filtered** still works: the notes that are hidden keep their places and the
   visible ones take the places the visible ones had, so the server still gets the complete order it requires.
 - **Not tags:** the AI's snapshot doesn't include them, and brainstorm doesn't tag notes (it can't edit notes).
+
+## A direct quotation is a note that can't be edited and goes into a draft as a blockquote (T32b)
+
+On the reading page, ticking **This is a direct quote** makes the note a quotation (`is_quote`, `quote` in the API).
+Unticked, it is the writer's own words about the page, as before. Why it matters: a quotation pasted into a draft as
+plain text is indistinguishable from the writer's own prose ([responsible-ai.md](responsible-ai.md), principle 5), and
+a quotation that has been "improved" is no longer a quotation.
+
+- **Needs a source.** `POST …/notes` with `quote: true` also needs `readingItemId` (400 otherwise): a quotation is
+  someone else's words, so it says whose. The note says "Quoted while reading “Title”, by Ada" and is set apart as a
+  blockquote wherever it is shown.
+- **Uneditable, in three places.** The notes list has no Edit button for it; `PATCH …/notes/:id` answers 409 ("Delete
+  it and add it again if it needs correcting"); and a database trigger aborts any `UPDATE` of a quotation's text, so a
+  later feature (merging notes, say) can't alter one by accident. It can still be tagged, put in order, set aside
+  and deleted. The idea's notes-as-one-text view (`PATCH /ideas/:id` with `notes`) rewrites every note, so it is
+  refused (409) when that would change anything while the idea has a quotation; sending the same text back is fine.
+- **Into a draft as a blockquote.** The text goes in with `> ` on every line and, if the item still exists, a last line
+  inside the quote, `> — [Title](url)`. The server checks it: a quotation's insertion is refused (400) unless every
+  non-blank line starts with `>`, so a quotation can't be recorded as pasted unquoted. Once it is in the draft it is
+  the writer's draft to edit; the provenance record still says whether it is "Still as inserted".
+- **Not done:** merging or splitting notes does not exist yet; when it does, a quotation must not be merged into
+  other text or split (the trigger will enforce it, but the interface should say why). No migration is needed for
+  existing notes: they are all `quote = 0`.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 

@@ -376,3 +376,47 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await expect(side.getByText('Deposition on the inside.')).toHaveCount(0)
   await noViolations(page, 'drafting page filtered by a tag')
 })
+
+test('a direct quote cannot be edited, and goes into a draft as a blockquote with its source', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  await page.getByRole('link', { name: 'Take notes' }).click()
+
+  await page.getByLabel('Add a note from this page').fill('Meanders grow because banks erode.')
+  await page.getByRole('checkbox', { name: /This is a direct quote/ }).check()
+  await page.getByRole('button', { name: 'Add note' }).click()
+  await expect(page.getByRole('list').locator('blockquote')).toContainText('Meanders grow')
+  await noViolations(page, 'reading page with a quotation')
+
+  // On the idea's notes the quotation can be tagged or deleted, but not edited.
+  await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByText(/^Quoted while reading/)).toBeVisible()
+  await expect(notes.getByRole('button', { name: /^Edit note “Meanders/ })).toHaveCount(0)
+  await expect(notes.getByRole('button', { name: /^Edit note “Erosion/ })).toBeVisible()
+  await noViolations(page, 'notes with a quotation')
+
+  // In the draft it is a blockquote that names its source, and the record says where it came from.
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await body.click()
+  await body.pressSequentially('My opening paragraph.')
+  await page
+    .getByRole('complementary')
+    .getByRole('button', { name: /^Add note “Meanders grow/ })
+    .click()
+  const quoted = body.locator('blockquote')
+  await expect(quoted).toContainText('Meanders grow because banks erode.')
+  await expect(quoted.getByRole('link')).toHaveAttribute('href', 'https://example.org/meanders')
+  await expect(body.locator('p').first()).toHaveText('My opening paragraph.')
+  await page.getByText(/Where some of the words came from \(1\)/).click()
+  await expect(page.getByText('Still as inserted')).toBeVisible()
+})

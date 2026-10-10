@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { noteOriginLabel } from '../lib/note-label'
+import NoteText from './NoteText.vue'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import NoteTags from './NoteTags.vue'
 import TagFilter from './TagFilter.vue'
@@ -89,7 +90,7 @@ const label = (note: IdeaNote) => {
           :key="note.id"
           class="rounded border border-stone-200 bg-white p-3"
         >
-          <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+          <NoteText :note="note" />
           <NoteTags :tags="note.tags" />
           <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
           <button
@@ -122,7 +123,7 @@ const label = (note: IdeaNote) => {
             :key="note.id"
             class="rounded border border-stone-200 bg-stone-50 p-3 text-stone-700"
           >
-            <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+            <NoteText :note="note" />
             <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
             <button
               type="button"

@@ -69,6 +69,7 @@ const note = (
     origin: string
     authorName: string | null
     readingItemId: string | null
+    quote: boolean
     addedAt: string | null
   }> = {},
 ) => ({
@@ -79,6 +80,7 @@ const note = (
   authorName: 'Ada',
   readingItemId: null,
   tags: [] as string[],
+  quote: false,
   addedAt: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -260,6 +262,32 @@ describe('the notes beside the draft', () => {
       const link = document.querySelector('.ProseMirror a')!
       expect(link).toHaveAttribute('href', 'https://example.org/paper')
       expect(link).toHaveTextContent('A paper')
+    })
+
+    it('puts a quotation in as a blockquote with its source inside it', async () => {
+      const api = mockDrafting({
+        notes: [
+          note('n1', 'Meanders grow.\nBends move.', {
+            origin: 'reading',
+            readingItemId: 'l1',
+            quote: true,
+          }),
+        ],
+      })
+      await renderAt('/p/p1/drafts/d1')
+      expect(await screen.findByText('Quoted while reading “A paper”, by Ada')).toBeInTheDocument()
+      await fireEvent.click(
+        await screen.findByRole('button', { name: /^Add note “Meanders grow\.” to the draft/ }),
+      )
+      await waitFor(() => expect(api.posted).toHaveLength(1))
+      expect(api.posted[0]).toEqual({
+        noteId: 'n1',
+        text: '> Meanders grow.\n> Bends move.\n>\n> — [A paper](https://example.org/paper)',
+      })
+      const quoted = document.querySelector('.ProseMirror blockquote')!
+      expect(quoted).toHaveTextContent('Meanders grow.')
+      expect(quoted.querySelector('a')).toHaveAttribute('href', 'https://example.org/paper')
+      expect(api.saved.at(-1)!.body).toMatch(/^> /m)
     })
 
     it('does not mark the note as added if the draft could not be saved, and says so', async () => {

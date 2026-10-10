@@ -18,6 +18,7 @@ type Note = {
   authorId: string | null
   authorName: string | null
   tags: string[]
+  quote: boolean
 }
 
 describe('idea notes', () => {
@@ -150,6 +151,70 @@ describe('idea notes', () => {
         origin: 'reading',
         readingItemId: item,
       })
+    })
+  })
+
+  describe('direct quotations', () => {
+    const itemOn = async () => {
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
+      return (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id as string
+    }
+    const quote = async (text = 'Meanders grow.') => {
+      const item = await itemOn()
+      const res = await ada.post(notes(), { text, readingItemId: item, quote: true })
+      return { item, res, note: (await res.json()) as Note }
+    }
+
+    it('are notes from reading that say they are quotations; other notes are not', async () => {
+      const { item, res, note } = await quote()
+      expect(res.status).toBe(201)
+      expect(note).toMatchObject({ quote: true, origin: 'reading', readingItemId: item })
+      const plain = await (await ada.post(notes(), { text: 'Mine.', readingItemId: item })).json()
+      expect(plain.quote).toBe(false)
+      expect((await add('Typed by hand')).quote).toBe(false)
+    })
+
+    it('need the reading-list item they come from', async () => {
+      const res = await ada.post(notes(), { text: 'Unsourced.', quote: true })
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain('needs the reading-list item')
+      expect(await list()).toEqual([])
+    })
+
+    it('cannot be edited, and are left as they were', async () => {
+      const { note } = await quote()
+      const res = await ada.patch(`${notes()}/${note.id}`, { text: 'Reworded.' })
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toContain("can't be edited")
+      expect(await list()).toMatchObject([{ text: 'Meanders grow.', quote: true }])
+    })
+
+    it('can still be tagged, put in order and deleted', async () => {
+      const { note } = await quote()
+      const tagged = await ada.put(`${notes()}/${note.id}/tags`, { tags: ['Intro'] })
+      expect((await tagged.json()).tags).toEqual(['Intro'])
+      expect((await ada.delete(`${notes()}/${note.id}`)).status).toBe(204)
+      expect(await list()).toEqual([])
+    })
+
+    it("are not rewritten by changing the idea's notes as one text", async () => {
+      await quote()
+      const idea0 = await (await ada.get(`${ideas()}/${idea}`)).json()
+      const res = await ada.patch(`${ideas()}/${idea}`, { notes: 'Something else entirely.' })
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toContain('quotations')
+      // Sending the same text back, or only a new name, is fine.
+      expect((await ada.patch(`${ideas()}/${idea}`, { notes: idea0.notes })).status).toBe(200)
+      expect((await ada.patch(`${ideas()}/${idea}`, { name: 'Renamed' })).status).toBe(200)
+      expect(await list()).toMatchObject([{ text: 'Meanders grow.', quote: true }])
+    })
+
+    it('keep their words even if something goes round the routes: the database refuses', async () => {
+      const { note } = await quote()
+      expect(() => ctx.store.notes.updateText(idea, note.id, 'Reworded.')).toThrow(
+        /cannot be edited/,
+      )
+      expect(ctx.store.notes.get(idea, note.id)?.text).toBe('Meanders grow.')
     })
   })
 
