@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
+import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 import ReorderableList from './ReorderableList.vue'
@@ -22,6 +22,7 @@ function mountList(initial = ['a', 'b', 'c'], { pageFollowsSaves = true } = {}) 
   const calls: Call[] = []
   let inFlight = 0
   let mostInFlight = 0
+  let renders = 0
   const save = (ids: string[], moved: Item) => {
     inFlight++
     mostInFlight = Math.max(mostInFlight, inFlight)
@@ -47,17 +48,28 @@ function mountList(initial = ['a', 'b', 'c'], { pageFollowsSaves = true } = {}) 
       h(
         ReorderableList as never,
         { items: items.value, itemLabel: (item: Item) => item.id, save },
-        { default: ({ item }: { item: Item }) => h('span', { 'data-row': item.id }, item.id) },
+        {
+          default: ({ item }: { item: Item }) => {
+            renders++
+            return h('span', { 'data-row': item.id }, item.id)
+          },
+        },
       ),
   })
   render(Parent)
-  return { items, calls, mostInFlight: () => mostInFlight }
+  return { items, calls, mostInFlight: () => mostInFlight, renders: () => renders }
 }
 
 const order = () =>
   Array.from(document.querySelectorAll('[data-row]')).map((el) => el.textContent as string)
 const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+/** jsdom has no layout, so a row's box is empty at y = 0: a positive clientY is its bottom half, a negative its top. */
+const dragOver = (row: Element, clientY: number, dataTransfer: object) => {
+  const event = createEvent.dragOver(row, { dataTransfer })
+  Object.defineProperty(event, 'clientY', { value: clientY })
+  return fireEvent(row, event)
+}
 
 describe('ReorderableList', () => {
   afterEach(() => vi.useRealTimers())
@@ -170,10 +182,42 @@ describe('ReorderableList', () => {
     const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
     const rows = screen.getAllByRole('listitem')
     await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
-    await fireEvent.dragOver(rows[0]!, { clientY: -1, dataTransfer }) // jsdom boxes are empty: negative is "above"
+    await dragOver(rows[0]!, -1, dataTransfer)
     await fireEvent.drop(rows[0]!, { dataTransfer })
     expect(order()).toEqual(['c', 'a', 'b'])
     expect(calls[0]!.ids).toEqual(['c', 'a', 'b'])
+  })
+
+  it('carries a small label while dragging, not a picture of the whole row, and tidies it away', async () => {
+    mountList()
+    const setDragImage = vi.fn()
+    const dataTransfer = { setData() {}, setDragImage, effectAllowed: '', dropEffect: '' }
+    const rows = screen.getAllByRole('listitem')
+    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+    expect(setDragImage).toHaveBeenCalledTimes(1)
+    const image = setDragImage.mock.calls[0]![0] as HTMLElement
+    expect(rows.some((row) => row === image || row.contains(image))).toBe(false)
+    expect(image).toHaveTextContent('c')
+    expect(image.getAttribute('aria-hidden')).toBe('true')
+    expect(document.body.contains(image)).toBe(true) // the browser copies it while it is in the page
+    await settle()
+    expect(document.body.contains(image)).toBe(false)
+  })
+
+  it('does not redraw the list for a dragover that changes nothing', async () => {
+    const { renders } = mountList()
+    const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
+    const rows = screen.getAllByRole('listitem')
+    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+    await dragOver(rows[0]!, -1, dataTransfer)
+    await settle()
+    const drawn = renders()
+    for (let i = 0; i < 5; i++) await dragOver(rows[0]!, -1, dataTransfer)
+    await settle()
+    expect(renders()).toBe(drawn) // the same place, said again
+    await dragOver(rows[0]!, 1, dataTransfer) // the other half of the row
+    await settle()
+    expect(renders()).toBeGreaterThan(drawn)
   })
 
   it('builds the next move on the order shown, not the saved one', async () => {

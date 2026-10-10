@@ -504,8 +504,8 @@ Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (
 priority later used to rank posts, so it is stored as a dense `position` and changed by sending the whole list of
 ids (`PUT .../sources/order`) rather than "move X to N": the server refuses (409) unless the ids are exactly the
 profile's current sources, so a stale screen can't drop or resurrect a feed, and drag, buttons and two editors
-all use the one operation. The UI offers drag and drop (HTML5, grip handle, whole-row drag image, a line shows
-where it will land) and, as the keyboard and touch route, up/down buttons; native drag and drop does not work on
+all use the one operation. The UI offers drag and drop (HTML5, grip handle, a small label as the drag image, a
+line shows where it will land) and, as the keyboard and touch route, up/down buttons; native drag and drop does not work on
 most touch screens, and a library for it wasn't worth a dependency. That interaction lives in one component,
 `ReorderableList` (also used for an idea's drafts and notes), so every list people can reorder looks and behaves
 alike: it works out the new order and the page's `save` stores it. A move is **shown at once and saved in the

@@ -149,14 +149,44 @@ const draggingId = ref<string | null>(null)
 /** The row the pointer is over while dragging, and which half of it. */
 const over = ref<{ id: string; after: boolean } | null>(null)
 
+/**
+ * A small label to carry under the pointer, in place of a picture of the whole row. Chrome on macOS
+ * was slow to finish a drag that used a large drag image (the dropped row stayed faded until the
+ * mouse moved), and a label says what is being moved without covering the rows it is moving past.
+ * The browser needs the element in the document, painted, when it copies it; it is removed straight
+ * after, and in any case when the drag ends.
+ */
+let label: HTMLElement | null = null
+function removeLabel() {
+  label?.remove()
+  label = null
+}
+onBeforeUnmount(removeLabel)
+
+function dragLabel(text: string) {
+  removeLabel()
+  const mine = document.createElement('div')
+  label = mine
+  mine.textContent = text
+  mine.setAttribute('aria-hidden', 'true')
+  mine.className =
+    'max-w-xs truncate rounded border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 shadow'
+  mine.style.cssText = 'position:fixed;top:-1000px;left:0;pointer-events:none'
+  document.body.appendChild(mine)
+  setTimeout(() => {
+    mine.remove()
+    if (label === mine) label = null
+  }, 0)
+  return mine
+}
+
 function onDragStart(event: DragEvent, item: T) {
   draggingId.value = item.id
   if (!event.dataTransfer) return
   event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('text/plain', props.itemLabel(item)) // Firefox only starts a drag if there is data
-  // Only the grip is draggable, but the whole row is what moves, so show the whole row.
-  const row = (event.currentTarget as HTMLElement).closest('li')
-  if (row) event.dataTransfer.setDragImage(row, 16, 16)
+  const name = props.itemLabel(item)
+  event.dataTransfer.setData('text/plain', name) // Firefox only starts a drag if there is data
+  event.dataTransfer.setDragImage(dragLabel(name), 12, 12)
 }
 
 function onDragOver(event: DragEvent, item: T) {
@@ -164,7 +194,10 @@ function onDragOver(event: DragEvent, item: T) {
   event.preventDefault() // allows dropping here
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  over.value = { id: item.id, after: event.clientY > rect.top + rect.height / 2 }
+  const after = event.clientY > rect.top + rect.height / 2
+  // The browser repeats this event many times a second, even with the pointer still. Only a change
+  // of place is worth redrawing the list for.
+  if (over.value?.id !== item.id || over.value.after !== after) over.value = { id: item.id, after }
 }
 
 function onDrop(event: DragEvent) {
@@ -184,6 +217,7 @@ function onDrop(event: DragEvent) {
 function endDrag() {
   draggingId.value = null
   over.value = null
+  removeLabel()
 }
 
 const buttonClass =
