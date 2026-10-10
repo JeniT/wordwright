@@ -172,11 +172,9 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(notes.getByText('Deposition on the inside.')).toHaveCount(0, { timeout: 4000 })
   await page.mouse.up()
 
-  // The list layout is a choice that sticks; the order and edits are saved.
-  await notes.getByRole('button', { name: 'List' }).click()
-  await noViolations(page, 'idea page with notes as a list')
+  // The order and edits are saved.
+  await noViolations(page, 'idea page with notes')
   await page.reload()
-  await expect(notes.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true')
   await expect(notes.getByRole('listitem')).toHaveText([
     /Erosion on the outside of each bend, deposition inside\./,
     /Oxbow lakes form when a loop is cut off\./,

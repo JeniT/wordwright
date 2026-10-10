@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -664,9 +664,7 @@ describe('idea page', () => {
       return state
     }
 
-    beforeEach(() => localStorage.clear())
-
-    it('shows each note with where it came from, in order, as cards by default', async () => {
+    it('shows each note with where it came from, in order', async () => {
       fakeNotes()
       await open()
       await screen.findByText('Erosion loops.')
@@ -679,11 +677,9 @@ describe('idea page', () => {
       expect(items[0]).toHaveTextContent('Added by Ada')
       expect(items[1]).toHaveTextContent('From brainstorming with Ada')
       expect(items[2]).toHaveTextContent('From reading, by Bob')
-      expect(within(region()).getByRole('button', { name: 'Cards' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
-      expect(items[0]!.closest('ol')).toHaveClass('grid')
+      // One plain list, with no choice of layout.
+      expect(items[0]!.closest('ol')).not.toHaveClass('grid')
+      expect(within(region()).queryByRole('group', { name: 'Show notes as' })).toBeNull()
     })
 
     it('offers no Edit for a direct quotation, and sets it apart; it can still be deleted', async () => {
@@ -727,34 +723,9 @@ describe('idea page', () => {
       expect(items[1]).toHaveTextContent('From brainstorming with a former member')
     })
 
-    it('switches between cards and a list, and remembers the choice', async () => {
-      fakeNotes()
-      const { unmount } = await open()
-      await screen.findByText('Erosion loops.')
-      await fireEvent.click(within(region()).getByRole('button', { name: 'List' }))
-      expect(within(region()).getByRole('button', { name: 'List' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
-      expect(within(region()).getByRole('button', { name: 'Cards' })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      )
-      expect(within(region()).getAllByRole('listitem')[0]!.closest('ol')).not.toHaveClass('grid')
-      unmount()
-
-      await open()
-      await screen.findByText('Erosion loops.')
-      expect(within(region()).getByRole('button', { name: 'List' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
-    })
-
-    it('says so when there are no notes, and offers no layout choice yet', async () => {
+    it('says so when there are no notes', async () => {
       await open()
       expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
-      expect(within(region()).queryByRole('button', { name: 'List' })).toBeNull()
     })
 
     it('explains when the notes cannot be loaded, and tries again', async () => {

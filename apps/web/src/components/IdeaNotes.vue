@@ -41,26 +41,6 @@ const refreshAround = () =>
     queryClient.invalidateQueries({ queryKey: ['ideas'] }),
   ])
 
-// ---- how the notes are laid out (a convenience that stays on this browser)
-type View = 'cards' | 'list'
-const VIEW_KEY = 'notes-view'
-function loadView(): View {
-  try {
-    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'cards'
-  } catch {
-    return 'cards'
-  }
-}
-const view = ref<View>(loadView())
-function chooseView(next: View) {
-  view.value = next
-  try {
-    localStorage.setItem(VIEW_KEY, next)
-  } catch {
-    // Not remembering the choice is fine.
-  }
-}
-
 // ---- tags: a flat label on a note, and showing only the notes with one
 const usedTags = computed(() => tagsUsedOn(notes.data.value ?? []))
 const tagFilter = ref<string | null>(null)
@@ -221,14 +201,6 @@ async function saveOrder(ids: string[]) {
   return true
 }
 
-/**
- * A card's text takes the full width beside its grip, so the buttons wrap underneath; in a list the text
- * keeps a readable width and the buttons sit beside it when there is room, and wrap below when there isn't.
- */
-const contentClass = computed(() =>
-  view.value === 'cards' ? 'min-w-0 basis-[calc(100%-2rem)]' : 'min-w-[12rem] flex-1',
-)
-
 /** A short name for a note, for button labels and announcements. */
 const label = (note: IdeaNote) => {
   const first = note.text.split('\n', 1)[0]!
@@ -238,27 +210,7 @@ const label = (note: IdeaNote) => {
 
 <template>
   <section aria-labelledby="notes-heading" class="mb-10">
-    <div class="mb-1 flex flex-wrap items-center justify-between gap-3">
-      <h2 id="notes-heading" class="font-serif text-xl font-semibold">Notes</h2>
-      <div
-        v-if="notes.data.value?.length"
-        role="group"
-        aria-label="Show notes as"
-        class="flex gap-1"
-      >
-        <button
-          v-for="option in ['cards', 'list'] as const"
-          :key="option"
-          type="button"
-          class="btn btn-neutral"
-          :class="{ 'border-accent': view === option }"
-          :aria-pressed="view === option"
-          @click="chooseView(option)"
-        >
-          {{ option === 'cards' ? 'Cards' : 'List' }}
-        </button>
-      </div>
-    </div>
+    <h2 id="notes-heading" class="mb-1 font-serif text-xl font-semibold">Notes</h2>
     <p class="mb-3 text-sm text-stone-700">
       One thought to a note, like index cards. Drag them, or use the arrows, to put them in order.
       To delete a note, press and hold its Delete button.
@@ -311,13 +263,12 @@ const label = (note: IdeaNote) => {
           :item-label="label"
           :save="saveOrder"
           :disabled="move.isPending.value"
-          :layout="view"
         >
           <template #default="{ item: note }">
             <form
               v-if="editingId === note.id"
               :data-edit-note="note.id"
-              :class="contentClass"
+              class="min-w-[12rem] flex-1"
               @submit.prevent="save.mutate(note)"
               @keydown.esc="stopEditing"
             >
@@ -380,7 +331,7 @@ const label = (note: IdeaNote) => {
                 </button>
               </div>
             </form>
-            <div v-else :class="contentClass">
+            <div v-else class="min-w-[12rem] flex-1">
               <label v-if="selecting && !note.quote" class="mb-1 flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
