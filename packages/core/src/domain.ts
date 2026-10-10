@@ -26,13 +26,12 @@ export const UsernameInputSchema = z
       .regex(HANDLE_PATTERN, 'Use only letters and numbers in your username'),
   )
 
-/** People type "mysite.substack.com"; assume https. Only web addresses are accepted, never e.g. javascript:. */
+/** A profile's website: a plausible web address (see `WebAddressSchema`), kept short. */
 export const SiteUrlSchema = z
   .string()
   .trim()
   .max(300, 'That web address is too long')
-  .transform(withScheme)
-  .pipe(z.url({ protocol: /^https?$/, message: 'Enter a web address, like https://example.com' }))
+  .pipe(WebAddressSchema)
 
 // ---- Accounts -----------------------------------------------------------
 

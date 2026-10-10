@@ -71,9 +71,15 @@ describe('SiteUrlSchema', () => {
       'ftp://example.com',
       '',
       'http://',
+      'https://rubbish',
+      'rubbish',
     ]) {
       expect(SiteUrlSchema.safeParse(bad).success, bad).toBe(false)
     }
+  })
+
+  it('refuses an address longer than 300 characters', () => {
+    expect(SiteUrlSchema.safeParse(`https://example.com/${'a'.repeat(300)}`).success).toBe(false)
   })
 
   it('is optional on create and clearable on update', () => {

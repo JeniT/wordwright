@@ -229,8 +229,10 @@ for uncompressed HTML so the cap is real; and treats the title strictly as text 
 but nothing is rendered as HTML). Each person may trigger 30 lookups a minute. It sits behind a port with a fake and a
 contract suite like our other external services; `PAGE_FETCHER=fake` is refused in production. The lookup happens
 inside the request that adds the link (up to the 5 s deadline) rather than in the background, so the person sees
-the title, or the reason it was refused, straight away. Not done: a per-site politeness delay or caching, and
-the profile's own website field still accepts `https://rubbish` (it uses the older, looser `SiteUrlSchema`).
+the title, or the reason it was refused, straight away. Not done: a per-site politeness delay or caching.
+The profile's own website field (`SiteUrlSchema`) applies the same `WebAddressSchema` check, with a 300-character
+cap. It is checked only when saved, so a site stored earlier that wouldn't pass still displays, but must be
+corrected or cleared the next time the profile settings are saved.
 
 ## Brainstorming proposes; it never edits, and it never drafts
 
