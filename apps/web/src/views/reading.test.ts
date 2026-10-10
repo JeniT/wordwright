@@ -43,6 +43,7 @@ const note = (id: string, text: string, readingItemId: string | null, origin = '
   authorId: 'u1',
   authorName: 'Ada',
   readingItemId,
+  tags: [] as string[],
   addedAt: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
