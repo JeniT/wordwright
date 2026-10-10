@@ -293,12 +293,31 @@ export const IdeaNotesSchema = z
 export const ReadingOriginSchema = z.enum(['entered', 'brainstorm', 'research', 'idea_generation'])
 export type ReadingOrigin = z.infer<typeof ReadingOriginSchema>
 
+/** Who wrote a piece: names as the page or the writer gave them. */
+export const MAX_AUTHORS = 10
+export const AUTHOR_NAME_MAX = 100
+export const AuthorNamesSchema = z
+  .array(
+    z
+      .string()
+      .transform((n) => n.trim().replace(/\s+/g, ' '))
+      .pipe(
+        z
+          .string()
+          .min(1)
+          .max(AUTHOR_NAME_MAX, `Use ${AUTHOR_NAME_MAX} characters or fewer in a name`),
+      ),
+  )
+  .max(MAX_AUTHORS, `A piece can have up to ${MAX_AUTHORS} authors`)
+
 /** An item on an idea's reading list (the stored shape is still called a link). */
 export const IdeaLinkSchema = z.object({
   id: z.string(),
   url: z.string(),
   /** What the person called it; empty when they just pasted the address. */
   title: z.string(),
+  /** Who wrote it: found on the page when the title was, or entered by the writer. Empty when unknown. */
+  authors: z.array(z.string()).default([]),
   /** When the writer marked it read (they may have read it offline); null while unread. */
   readAt: z.string().nullable(),
   origin: ReadingOriginSchema,
@@ -312,6 +331,11 @@ export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 export const IdeaLinkInputSchema = z.object({
   url: WebAddressSchema,
   title: z.string().trim().max(200, 'Use 200 characters or fewer for the title').default(''),
+  /**
+   * Omitted: left as they are (or looked up, for a new item or a changed address). Given: those names. Given as an
+   * empty list while the page is being looked up again: looked up, so "re-detect both" works from one form.
+   */
+  authors: AuthorNamesSchema.optional(),
 })
 export type IdeaLinkInput = z.infer<typeof IdeaLinkInputSchema>
 
@@ -446,7 +470,9 @@ export const DraftInsertionSchema = z.object({
   insertedByName: z.string().nullable(),
   insertedAt: z.string(),
   /** The reading-list item the note was taken from, as it was then. */
-  source: z.object({ title: z.string(), url: z.string() }).nullable(),
+  source: z
+    .object({ title: z.string(), url: z.string(), authors: z.array(z.string()).default([]) })
+    .nullable(),
 })
 export type DraftInsertion = z.infer<typeof DraftInsertionSchema>
 

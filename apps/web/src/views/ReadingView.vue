@@ -8,7 +8,7 @@ import NoteText from '../components/NoteText.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
-import { noteOriginPhrase } from '../lib/note-label'
+import { nameList, noteOriginPhrase } from '../lib/note-label'
 
 const props = defineProps<{ profileId: string; id: string; linkId: string }>()
 const queryClient = useQueryClient()
@@ -40,10 +40,12 @@ const label = computed(() => item.value?.title || item.value?.url || '')
 // ---- the title: often missing, when it couldn't be looked up from the page
 const editingTitle = ref(false)
 const title = ref('')
+const authors = ref('')
 const titleForm = useTemplateRef<HTMLFormElement>('titleForm')
 const titleButton = useTemplateRef<HTMLButtonElement>('titleButton')
 async function startEditingTitle() {
   title.value = item.value?.title ?? ''
+  authors.value = item.value?.authors.join(', ') ?? ''
   saveTitle.reset()
   editingTitle.value = true
   await nextTick()
@@ -60,6 +62,11 @@ const saveTitle = useMutation({
     api.updateIdeaLink(props.profileId, props.id, props.linkId, {
       url: item.value!.url,
       title: title.value,
+      // Names are separated by commas. Blank authors with a blank title look both up again; with a title, they clear.
+      authors: authors.value
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean),
     }),
   onSuccess: async (saved) => {
     queryClient.setQueryData(['idea', props.profileId, props.id], saved)
@@ -163,11 +170,20 @@ const add = useMutation({
         class="btn btn-neutral"
         @click="startEditingTitle"
       >
-        {{ item.title ? 'Edit title' : 'Add a title' }}
+        Edit title and authors
       </button>
     </div>
-    <p v-if="!item.title && !editingTitle" class="mb-3 text-sm text-stone-700">
-      We couldn't find this page's title, so it is shown by its address.
+    <p v-if="item.authors.length" class="mb-2 text-stone-800">By {{ nameList(item.authors) }}</p>
+    <p
+      v-if="(!item.title || !item.authors.length) && !editingTitle"
+      class="mb-3 text-sm text-stone-700"
+    >
+      <template v-if="!item.title">
+        We couldn't find this page's title, so it is shown by its address.
+      </template>
+      <template v-if="!item.authors.length">
+        We don't know who wrote it. Add the authors if you can see them on the page.
+      </template>
     </p>
     <form
       v-if="editingTitle"
@@ -185,8 +201,14 @@ const add = useMutation({
         :hint="
           saveTitle.isError.value
             ? errorMessage(saveTitle.error.value)
-            : 'Leave this blank to look the title up again.'
+            : 'Leave this blank to look the title and authors up again.'
         "
+      />
+      <TextField
+        v-model="authors"
+        label="Authors"
+        autocomplete="off"
+        hint="Who wrote it. Separate names with commas."
       />
       <div class="flex gap-2">
         <button
@@ -194,7 +216,7 @@ const add = useMutation({
           class="btn btn-neutral border-accent bg-accent text-white hover:bg-accent hover:opacity-90"
           :disabled="saveTitle.isPending.value"
         >
-          {{ saveTitle.isPending.value ? 'Saving…' : 'Save title' }}
+          {{ saveTitle.isPending.value ? 'Saving…' : 'Save details' }}
         </button>
         <button
           type="button"

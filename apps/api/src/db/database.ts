@@ -363,6 +363,12 @@ export const MIGRATIONS: Migration[] = [
     SELECT RAISE(ABORT, 'A quotation cannot be edited');
   END;
   `,
+  // #63: who wrote a reading-list item (a JSON list of names), and, in the record of where words came from, who
+  // wrote the source as it was when the words went in.
+  `
+  ALTER TABLE idea_links ADD COLUMN authors TEXT NOT NULL DEFAULT '[]';
+  ALTER TABLE draft_insertions ADD COLUMN source_authors TEXT;
+  `,
 ]
 
 /**

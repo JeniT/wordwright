@@ -28,19 +28,24 @@ export class IdeaLinkService {
     const { store } = this.deps
     this.checkRoom(idea)
     this.checkNotDuplicate(idea, input.url)
-    const title = input.title || (await this.lookUp(userId, input.url, signal))
+    // Looking the page up gives its title and who wrote it, unless the writer already said what the title is.
+    const found = input.title ? null : await this.lookUp(userId, input.url, signal)
+    const title = input.title || found?.title || ''
+    const authors = input.authors?.length ? input.authors : (found?.authors ?? [])
 
     // The lookup took time, so look again at what's there now before writing.
     const fresh = this.current(idea)
     this.checkRoom(fresh)
     this.checkNotDuplicate(fresh, input.url)
-    store.ideas.addLink(idea.id, { url: input.url, title })
+    store.ideas.addLink(idea.id, { url: input.url, title, authors })
     return this.current(idea)
   }
 
   /**
-   * Changes a link's address and/or title. A blank title, or an address changed without also
-   * changing the title, asks for the title to be fetched again.
+   * Changes a link's address, title and/or authors. A blank title, or an address changed without also
+   * changing the title, asks for the page to be looked up again. Authors the writer gives are kept as given; when
+   * none are given they stay as they are, unless the page was looked up again: then an empty list, or a different
+   * address, takes what the page says (and a lookup that finds no one leaves them empty or as they were).
    */
   async update(
     idea: Idea,
@@ -57,8 +62,13 @@ export class IdeaLinkService {
     const addressChanged = input.url !== existing.url
     const titleChanged = input.title !== existing.title
     let title = input.title
+    let authors = input.authors ?? existing.authors
     if (!input.title || (addressChanged && !titleChanged)) {
-      title = await this.lookUp(userId, input.url, signal)
+      const found = await this.lookUp(userId, input.url, signal)
+      title = found.title
+      const wantsDetected = input.authors ? input.authors.length === 0 : addressChanged
+      if (wantsDetected)
+        authors = found.authors.length ? found.authors : addressChanged ? [] : authors
     } else if (addressChanged) {
       await this.lookUp(userId, input.url, signal) // chosen title kept, but the address must be real
     }
@@ -66,7 +76,7 @@ export class IdeaLinkService {
     const fresh = this.current(idea)
     if (!fresh.links.some((l) => l.id === linkId)) throw fail(404, 'Not found')
     this.checkNotDuplicate(fresh, input.url, linkId)
-    store.ideas.updateLink(idea.id, linkId, { url: input.url, title })
+    store.ideas.updateLink(idea.id, linkId, { url: input.url, title, authors })
     return this.current(idea)
   }
 
@@ -90,8 +100,12 @@ export class IdeaLinkService {
     }
   }
 
-  /** The page's title ('' if it has none), refusing addresses that aren't real public sites. */
-  private async lookUp(userId: string, url: string, signal?: AbortSignal): Promise<string> {
+  /** The page's title ('' if it has none) and authors, refusing addresses that aren't real public sites. */
+  private async lookUp(
+    userId: string,
+    url: string,
+    signal?: AbortSignal,
+  ): Promise<{ title: string; authors: string[] }> {
     if (!this.deps.limiter.allow(userId)) {
       throw fail(429, "You're adding links very quickly. Wait a minute and try again.")
     }
@@ -102,6 +116,6 @@ export class IdeaLinkService {
     if (info.problem === 'not-public') {
       throw fail(400, "That address isn't a public website, so it can't be added as a link.")
     }
-    return info.title ?? ''
+    return { title: info.title ?? '', authors: info.authors ?? [] }
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { originPhrase } from './note-label'
+import { nameList, originPhrase } from './note-label'
 
 const source = { title: 'A paper', url: 'https://example.org/paper' }
 
@@ -29,5 +29,29 @@ describe('what a note is, without saying who took it', () => {
     for (const origin of ['entered', 'brainstorm', 'reading'] as const) {
       expect(originPhrase(origin, source, true)).not.toMatch(/\bby\b/)
     }
+  })
+
+  it('names the authors of the page after its title, so "by" is always the piece\'s author', () => {
+    const by = (authors: string[]) => originPhrase('reading', { ...source, authors }, true)
+    expect(by([])).toBe('Quoted from “A paper”')
+    expect(by(['Ada Author'])).toBe('Quoted from “A paper”, by Ada Author')
+    expect(by(['Ada Author', 'Bo Writer'])).toBe(
+      'Quoted from “A paper”, by Ada Author and Bo Writer',
+    )
+    expect(originPhrase('reading', { ...source, authors: ['Ada Author'] })).toBe(
+      'From reading “A paper”, by Ada Author',
+    )
+    expect(originPhrase('brainstorm', { ...source, authors: ['Ada Author'] })).toBe(
+      'From brainstorming',
+    )
+  })
+})
+
+describe('a list of names', () => {
+  it('reads like prose', () => {
+    expect(nameList([])).toBe('')
+    expect(nameList(['Ada'])).toBe('Ada')
+    expect(nameList(['Ada', 'Bo'])).toBe('Ada and Bo')
+    expect(nameList(['Ada', 'Bo', 'Cy'])).toBe('Ada, Bo and Cy')
   })
 })

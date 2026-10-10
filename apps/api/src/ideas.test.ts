@@ -79,6 +79,7 @@ describe('ideas', () => {
           id: expect.any(String),
           url: 'https://example.org/meanders',
           title: 'Fake title for example.org',
+          authors: [],
           readAt: null,
           origin: 'entered',
         },
@@ -243,6 +244,7 @@ describe('ideas', () => {
           id: link.id,
           url: 'https://example.com/c',
           title: 'Fake title for example.com',
+          authors: [],
           readAt: null,
           origin: 'entered',
         })

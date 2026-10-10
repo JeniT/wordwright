@@ -150,6 +150,24 @@ describe('reading page', () => {
       await waitFor(() => expect(texts()).toEqual(['Newest.', 'Middle.', 'Oldest.']))
     })
 
+    it('name the authors of the page after its title, apart from the person who took the note', async () => {
+      await open('l1', [
+        http.get(ideaUrl, () =>
+          HttpResponse.json({
+            ...idea,
+            links: [{ ...idea.links[0]!, authors: ['Ada Author', 'Bo Writer'] }, idea.links[1]!],
+          }),
+        ),
+        http.get(notesUrl, () =>
+          HttpResponse.json([{ ...note('n1', 'Exact words.', 'l1'), quote: true }]),
+        ),
+      ])
+      const item = (await screen.findAllByRole('listitem'))[0]!
+      expect(item).toHaveTextContent('Quoted from “A paper”, by Ada Author and Bo Writer')
+      // The person who took the note is the chip, and is a different Ada from the piece's author.
+      expect(within(item).getByText('Ada', { exact: true })).toHaveClass('rounded-full')
+    })
+
     it('says so when there are none yet', async () => {
       await open()
       expect(await screen.findByText(/No notes from this page yet/)).toBeInTheDocument()
@@ -245,67 +263,103 @@ describe('reading page', () => {
     })
   })
 
-  describe('the title', () => {
-    const titled = (title: string) => ({
+  describe('the title and authors', () => {
+    const detailed = (title: string, authors: string[] = []) => ({
       ...idea,
-      links: [{ ...idea.links[0]!, title }, idea.links[1]!],
+      links: [{ ...idea.links[0]!, title, authors }, idea.links[1]!],
     })
     const patchUrl = `${ideaUrl}/links/l1`
+    const edit = async () =>
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit title and authors' }))
 
-    it('is edited in place, sending the same address and the new title', async () => {
+    it('are edited in place, sending the same address, the title and the names as a list', async () => {
       const sent: unknown[] = []
       await open('l1', [
         http.patch(patchUrl, async ({ request }) => {
           sent.push(await request.json())
-          return HttpResponse.json(titled('A better title'))
+          return HttpResponse.json(detailed('A better title', ['Ada Author', 'Bo Writer']))
         }),
       ])
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit title' }))
+      await edit()
       const field = screen.getByLabelText('Title')
       expect(field).toHaveFocus()
       expect(field).toHaveValue('A paper')
+      expect(screen.getByLabelText('Authors')).toHaveValue('')
       await fireEvent.update(field, 'A better title')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save title' }))
+      await fireEvent.update(screen.getByLabelText('Authors'), ' Ada Author,Bo Writer , ')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
       expect(
         await screen.findByRole('heading', { level: 1, name: 'A better title' }),
       ).toBeInTheDocument()
-      expect(sent).toEqual([{ url: 'https://example.org/paper', title: 'A better title' }])
+      expect(sent).toEqual([
+        {
+          url: 'https://example.org/paper',
+          title: 'A better title',
+          authors: ['Ada Author', 'Bo Writer'],
+        },
+      ])
+      expect(await screen.findByText('By Ada Author and Bo Writer')).toBeInTheDocument()
       await waitFor(() => expect(screen.queryByLabelText('Title')).toBeNull())
-      await waitFor(() => expect(screen.getByRole('button', { name: 'Edit title' })).toHaveFocus())
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Edit title and authors' })).toHaveFocus(),
+      )
     })
 
-    it('says when none was found, and offers to add one', async () => {
+    it('start with the names already known, and clear them when emptied', async () => {
+      const sent: { authors: string[] }[] = []
+      await open('l1', [
+        http.get(ideaUrl, () => HttpResponse.json(detailed('A paper', ['Ada Author']))),
+        http.patch(patchUrl, async ({ request }) => {
+          sent.push((await request.json()) as { authors: string[] })
+          return HttpResponse.json(detailed('A paper'))
+        }),
+      ])
+      expect(await screen.findByText('By Ada Author')).toBeInTheDocument()
+      await edit()
+      expect(screen.getByLabelText('Authors')).toHaveValue('Ada Author')
+      await fireEvent.update(screen.getByLabelText('Authors'), '')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+      await waitFor(() => expect(sent).toEqual([expect.objectContaining({ authors: [] })]))
+    })
+
+    it('say what is not known, and what to do about it', async () => {
       await open('l2')
       expect(await screen.findByText(/couldn't find this page's title/)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Add a title' })).toBeInTheDocument()
+      expect(screen.getByText(/We don't know who wrote it/)).toBeInTheDocument()
+      expect(screen.queryByText(/^By /)).toBeNull()
     })
 
-    it('does not say that for an item that has a title', async () => {
-      await open()
-      await screen.findByRole('heading', { level: 1, name: 'A paper' })
+    it('say nothing about what is known', async () => {
+      await open('l1', [
+        http.get(ideaUrl, () => HttpResponse.json(detailed('A paper', ['Ada Author']))),
+      ])
+      await screen.findByText('By Ada Author')
       expect(screen.queryByText(/couldn't find this page's title/)).toBeNull()
+      expect(screen.queryByText(/We don't know who wrote it/)).toBeNull()
     })
 
-    it('can be cancelled, with Escape too, leaving it as it was', async () => {
+    it('can be cancelled, with Escape too, leaving them as they were', async () => {
       await open()
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit title' }))
+      await edit()
       await fireEvent.update(screen.getByLabelText('Title'), 'Changed my mind')
       await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
       expect(screen.getByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
-      await fireEvent.click(screen.getByRole('button', { name: 'Edit title' }))
+      await edit()
       await fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Escape' })
       expect(screen.queryByLabelText('Title')).toBeNull()
     })
 
-    it('keeps what was typed, and says what went wrong, when it could not be saved', async () => {
+    it('keeps what was typed, and says what went wrong, when they could not be saved', async () => {
       await open('l1', [
         http.patch(patchUrl, () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
       ])
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit title' }))
+      await edit()
       await fireEvent.update(screen.getByLabelText('Title'), 'Typed')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save title' }))
+      await fireEvent.update(screen.getByLabelText('Authors'), 'Typed Name')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
       await waitFor(() => expect(screen.getByLabelText('Title')).toBeInvalid())
       expect(screen.getByLabelText('Title')).toHaveValue('Typed')
+      expect(screen.getByLabelText('Authors')).toHaveValue('Typed Name')
     })
   })
 

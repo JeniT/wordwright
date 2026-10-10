@@ -20,6 +20,7 @@ const item = (extra: Partial<IdeaLink> = {}): IdeaLink => ({
   id: 'l1',
   url: 'https://example.org/paper',
   title: 'A paper',
+  authors: [],
   readAt: null,
   origin: 'entered',
   ...extra,

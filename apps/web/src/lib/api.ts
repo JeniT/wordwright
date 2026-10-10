@@ -183,7 +183,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       profileId: string,
       id: string,
       linkId: string,
-      input: { url: string; title: string },
+      input: { url: string; title: string; authors?: string[] },
     ) => get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}/links/${linkId}`, input),
     removeIdeaLink: (profileId: string, id: string, linkId: string) =>
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),

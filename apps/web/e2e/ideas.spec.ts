@@ -297,9 +297,13 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByLabel('Web address', { exact: true }).fill('rubbish')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(page.getByText('Enter a web address, like https://example.com')).toBeVisible()
-  await page.getByLabel('Web address', { exact: true }).fill('example.org/second')
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/authored')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(page.getByRole('status')).toContainText('to the reading list')
+  // The authors the page names are found along with its title.
+  await page.getByRole('link', { name: 'Read it and take notes' }).click()
+  await expect(page.getByText('By Ada Author and Bo Writer')).toBeVisible()
+  await page.goBack()
   await noViolations(page, 'reading page after adding another page')
   // The page itself opens in its own tab: most sites refuse to be shown inside another page.
   await expect(page.getByRole('link', { name: /Open the page/ })).toHaveAttribute(
@@ -307,11 +311,14 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
     'https://example.org/meanders',
   )
   // The title can be corrected here, which matters when it couldn't be found from the page.
-  await page.getByRole('button', { name: 'Edit title' }).click()
+  await expect(page.getByText(/We don't know who wrote it/)).toBeVisible()
+  await page.getByRole('button', { name: 'Edit title and authors' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders, explained')
-  await noViolations(page, 'reading page, editing the title')
-  await page.getByRole('button', { name: 'Save title' }).click()
+  await page.getByLabel('Authors', { exact: true }).fill('Pat Writer, Quinn Scribe')
+  await noViolations(page, 'reading page, editing the title and authors')
+  await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Meanders, explained' })).toBeVisible()
+  await expect(page.getByText('By Pat Writer and Quinn Scribe')).toBeVisible()
   await noViolations(page, 'reading page, no notes yet')
 
   // A quote, then the writer's own words: both are kept against the page and say where they came from.
@@ -325,7 +332,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(list.getByRole('listitem')).toHaveCount(2)
   // The newest is first, right under the box, so a note just added is in sight.
   await expect(list.getByRole('listitem').first()).toContainText('So the bend moves downstream.')
-  await expect(list).toContainText('From reading “Meanders, explained”')
+  await expect(list).toContainText(
+    'From reading “Meanders, explained”, by Pat Writer and Quinn Scribe',
+  )
   await expect(list).not.toContainText('by Ida') // the chip is who took the note, not who wrote the page
   await page.getByRole('checkbox', { name: 'I have read this' }).check()
   await noViolations(page, 'reading page with notes')
@@ -337,7 +346,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
-  await expect(notes.getByText('From reading “Meanders, explained”').first()).toBeVisible()
+  await expect(
+    notes.getByText('From reading “Meanders, explained”, by Pat Writer and Quinn Scribe').first(),
+  ).toBeVisible()
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
   // (the first item; the second, added from the reading page, is unread)
   await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toBeChecked()

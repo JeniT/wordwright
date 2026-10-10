@@ -209,12 +209,20 @@ export function pageInfoFetcherContract(
     untitled: string
     /** An address whose site doesn't exist. */
     missing: string
+    /** A page that names its authors. */
+    authored: { url: string; authors: string[] }
   },
 ) {
   describe(`PageInfoFetcher contract: ${name}`, () => {
     it('returns the title of a page that has one', async () => {
       const info = await create().fetchInfo(scenarios.titled.url)
       expect(info).toEqual({ title: scenarios.titled.title })
+    })
+
+    it('returns who wrote a page that says so, and no authors key for one that does not', async () => {
+      const info = await create().fetchInfo(scenarios.authored.url)
+      expect(info.authors).toEqual(scenarios.authored.authors)
+      expect('authors' in (await create().fetchInfo(scenarios.untitled))).toBe(false)
     })
 
     it('returns no title, and no problem, for a page without one', async () => {

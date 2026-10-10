@@ -360,9 +360,9 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **The box for a new note is above the notes taken so far** (#57), so it stays in the same place as the list
   grows instead of being pushed off the screen. For the same reason the page lists its notes **newest first**, so a
   note just added shows up right under the box (the idea page keeps the writer's own order).
-- **The title can be edited on the reading page** (an "Edit title" / "Add a title" button by the heading), because the
-  lookup often finds none and the page is then called by its address. It is the idea page's edit with the address
-  left alone; a blank title asks the server to look it up again.
+- **The title and authors can be edited on the reading page** (an "Edit title and authors" button by the heading),
+  because the lookup often finds none and the page is then called by its address. It is the idea page's edit with the
+  address left alone; a blank title asks the server to look the page up again (see "Who wrote a reading-list item").
 - **Other pages found while reading** (#56) are added from the same page: a web-address box (the idea page's checks
   and title lookup, same call) puts the page on the reading list as `entered`, the page stays open, and a link offers
   to read the new item next. Nothing is read or noted for the writer.
@@ -472,6 +472,31 @@ chip once their account is gone. Screen readers hear ", recorded by Ada". The sa
 Notes, the reading page, the notes beside the draft and the draft's record of where words came from. "By" is kept for
 the author of a piece (#63). Users have no pictures yet (only profiles do), so the chip is their name; a picture can go
 inside it when accounts get one.
+
+## Who wrote a reading-list item (#63)
+
+A reading-list item has `authors`: a list of names (stored as JSON in `idea_links.authors`, at most 10, 100 characters
+each). They are what the page says, found with the title, and the writer can correct them on the reading page.
+
+- **Detection.** `PageInfo` has an optional `authors`; it is absent when the page names no one, so the port's other
+  results are unchanged. The HTTP adapter now reads to the end of the `<head>` (it used to stop at `</title>`, before
+  the meta tags) and takes the first of these that names anyone: `<meta>` `author`, `article:author` (only when it
+  holds a name: it is often a profile address, which is skipped), `dc.creator`, `citation_author`, then schema.org
+  JSON-LD `author`. The first source that names anyone wins, so a page isn't credited twice. Text only: names are
+  decoded, tidied, de-duplicated and capped, and never treated as HTML. The fake names two authors for any address
+  containing `authored`; the shared contract suite covers it.
+- **The writer wins.** Authors given are kept as given. Omitted, they are left alone, unless the page is looked up
+  again (blank title, or a changed address): a changed address takes the new page's authors (the old page's don't
+  follow the item), and a re-lookup with an empty list asks for them to be detected again. So one form can say "look
+  both up again" (blank title, blank authors), and a lookup never overwrites names the writer entered. A title given
+  when adding means no lookup, so no authors are found.
+- **One field, commas.** Names are typed separated by commas. A name written "Last, First" would be split in two;
+  that is the cost of one plain field, and it can be revisited if people ask.
+- **"By" means the piece's author.** A note's origin line reads "Quoted from “Title”, by Ada Author and Bo Writer"; the
+  person who took the note is the chip (#62). The draft's record of where words came from keeps the authors **as they
+  were when the words went in** (`draft_insertions.source_authors`), like the title.
+- Items saved before this have no authors (`'[]'`), and an unreadable stored value reads as none rather than breaking
+  the page.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 

@@ -14,6 +14,12 @@ const server = http.createServer((req, res) => {
   switch (req.url) {
     case '/titled':
       return send(200, 'text/html; charset=utf-8', '<html><head><title>A fine page</title></head>')
+    case '/authored':
+      return send(
+        200,
+        'text/html',
+        '<html><head><title>A signed page</title><meta name="author" content="Ada Author"><meta name="author" content="Bo Writer"></head><body></body></html>',
+      )
     case '/untitled':
       return send(200, 'text/html', '<html><head></head><body>Nothing</body></html>')
     case '/latin1':
@@ -63,11 +69,19 @@ pageInfoFetcherContract('http', () => create(), {
   titled: { url: at('/titled'), title: 'A fine page' },
   untitled: at('/untitled'),
   missing: at('/titled', 'missing.test'),
+  authored: { url: at('/authored'), authors: ['Ada Author', 'Bo Writer'] },
 })
 
 describe('HttpPageInfoFetcher', () => {
   it('follows redirects', async () => {
     expect(await create().fetchInfo(at('/redirect'))).toEqual({ title: 'A fine page' })
+  })
+
+  it('finds the authors even though they come after the title in the head', async () => {
+    expect(await create().fetchInfo(at('/authored'))).toEqual({
+      title: 'A signed page',
+      authors: ['Ada Author', 'Bo Writer'],
+    })
   })
 
   it('gives up on redirect loops', async () => {

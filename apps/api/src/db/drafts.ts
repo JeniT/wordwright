@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 import type { Draft, DraftInput, DraftInsertion, NoteOrigin } from '@lfwa/core'
 import { nowIso } from './database'
+import { parseNames } from './names'
 
 /** Drafts are always accessed through their profile; callers check membership first. Each develops an idea. */
 export class DraftStore {
@@ -62,7 +63,11 @@ export class DraftStore {
         insertedByName: r.inserted_by_name as string | null,
         insertedAt: r.inserted_at as string,
         source: r.source_url
-          ? { title: r.source_title as string, url: r.source_url as string }
+          ? {
+              title: r.source_title as string,
+              url: r.source_url as string,
+              authors: parseNames(r.source_authors),
+            }
           : null,
       }))
   }
@@ -75,14 +80,14 @@ export class DraftStore {
       insertedBy: string
       text: string
       origin: NoteOrigin
-      source: { title: string; url: string } | null
+      source: { title: string; url: string; authors: string[] } | null
     },
   ): string {
     const id = randomUUID()
     this.db
       .prepare(
         `INSERT INTO draft_insertions (id, draft_id, note_id, note_author_id, inserted_by, text, origin,
-           source_title, source_url, inserted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           source_title, source_url, source_authors, inserted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -94,6 +99,7 @@ export class DraftStore {
         i.origin,
         i.source?.title ?? null,
         i.source?.url ?? null,
+        i.source ? JSON.stringify(i.source.authors) : null,
         nowIso(),
       )
     return id

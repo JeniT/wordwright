@@ -5,14 +5,17 @@ import type {
   Idea,
   IdeaInput,
   IdeaLink,
-  IdeaLinkInput,
   IdeaSummary,
   IdeaUpdate,
   NoteOrigin,
   ReadingOrigin,
 } from '@lfwa/core'
+import { parseNames } from './names'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
+
+/** What is written for a reading-list item: the address, the title (maybe empty) and who wrote it. */
+export type LinkWrite = { url: string; title: string; authors: string[] }
 
 /** Ideas are always accessed through their profile; callers check membership first. */
 export class IdeaStore {
@@ -45,13 +48,14 @@ export class IdeaStore {
     if (!row) return undefined
     const links = this.db
       .prepare(
-        'SELECT id, url, title, read_at, origin FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid',
+        'SELECT id, url, title, authors, read_at, origin FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid',
       )
       .all(id)
       .map((l) => ({
         id: l.id as string,
         url: l.url as string,
         title: l.title as string,
+        authors: parseNames(l.authors),
         readAt: l.read_at as string | null,
         origin: l.origin as ReadingOrigin,
       }))
@@ -130,16 +134,27 @@ export class IdeaStore {
   }
 
   /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
-  addLink(ideaId: string, input: IdeaLinkInput, origin: ReadingOrigin = 'entered'): IdeaLink {
+  addLink(
+    ideaId: string,
+    input: Omit<LinkWrite, 'authors'> & { authors?: string[] },
+    origin: ReadingOrigin = 'entered',
+  ): IdeaLink {
     const id = randomUUID()
     const now = nowIso()
     this.db
       .prepare(
-        'INSERT INTO idea_links (id, idea_id, url, title, origin, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO idea_links (id, idea_id, url, title, authors, origin, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(id, ideaId, input.url, input.title, origin, now)
+      .run(id, ideaId, input.url, input.title, JSON.stringify(input.authors ?? []), origin, now)
     this.touch(ideaId, now)
-    return { id, url: input.url, title: input.title, readAt: null, origin }
+    return {
+      id,
+      url: input.url,
+      title: input.title,
+      authors: input.authors ?? [],
+      readAt: null,
+      origin,
+    }
   }
 
   /** Marks an item read (when the writer says so) or unread again. Marking read again keeps the first date. */
@@ -156,11 +171,13 @@ export class IdeaStore {
     return changed
   }
 
-  updateLink(ideaId: string, linkId: string, input: IdeaLinkInput): boolean {
+  updateLink(ideaId: string, linkId: string, input: LinkWrite): boolean {
     const changed =
       this.db
-        .prepare('UPDATE idea_links SET url = ?, title = ? WHERE idea_id = ? AND id = ?')
-        .run(input.url, input.title, ideaId, linkId).changes > 0
+        .prepare(
+          'UPDATE idea_links SET url = ?, title = ?, authors = ? WHERE idea_id = ? AND id = ?',
+        )
+        .run(input.url, input.title, JSON.stringify(input.authors), ideaId, linkId).changes > 0
     if (changed) this.touch(ideaId)
     return changed
   }

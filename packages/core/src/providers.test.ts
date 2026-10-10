@@ -31,6 +31,7 @@ pageInfoFetcherContract('fake', () => new FakePageInfoFetcher(), {
   titled: { url: 'https://example.org/a', title: 'Fake title for example.org' },
   untitled: 'https://example.org/untitled',
   missing: 'https://nonexistent.example.org/',
+  authored: { url: 'https://example.org/authored', authors: ['Ada Author', 'Bo Writer'] },
 })
 
 describe('FakeLLMProvider chat', () => {

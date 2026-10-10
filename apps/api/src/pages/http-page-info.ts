@@ -4,6 +4,7 @@ import https from 'node:https'
 import { isIP } from 'node:net'
 import type { PageInfo, PageInfoFetcher } from '@lfwa/core'
 import { isPublicAddress } from './addresses'
+import { extractAuthors } from './authors'
 import { extractTitle } from './title'
 
 type Lookup = typeof dnsLookup
@@ -60,7 +61,12 @@ export class HttpPageInfoFetcher implements PageInfoFetcher {
       let current = new URL(url)
       for (let hop = 0; ; hop++) {
         const result = await this.visit(current, combined)
-        if ('html' in result) return { title: extractTitle(result.html) }
+        if ('html' in result) {
+          const authors = extractAuthors(result.html)
+          return authors.length
+            ? { title: extractTitle(result.html), authors }
+            : { title: extractTitle(result.html) }
+        }
         if ('none' in result) return { title: null }
         if (hop >= this.maxRedirects) return { title: null }
         current = new URL(result.redirect, current)
@@ -143,8 +149,8 @@ export class HttpPageInfoFetcher implements PageInfoFetcher {
           res.on('data', (chunk: Buffer) => {
             bytes += chunk.length
             text += decoder.decode(chunk, { stream: true })
-            // The title is in the head, so stop as soon as it is complete.
-            if (bytes >= this.maxBytes || /<\/title\s*>/i.test(text) || /<\/head\s*>/i.test(text)) {
+            // The title and who wrote the page are in the head, so stop once it is complete.
+            if (bytes >= this.maxBytes || /<\/head\s*>/i.test(text)) {
               finish()
             }
           })

@@ -55,7 +55,9 @@ export function draftRoutes(store: Store) {
             insertedBy: c.get('user').id,
             text,
             origin: note.origin,
-            source: item ? { title: item.title || item.url, url: item.url } : null,
+            source: item
+              ? { title: item.title || item.url, url: item.url, authors: item.authors }
+              : null,
           })
           notes.setAdded(draft.ideaId!, note.id, true)
           ideas.touch(draft.ideaId!)
