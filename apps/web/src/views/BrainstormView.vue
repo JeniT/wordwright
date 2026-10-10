@@ -22,6 +22,8 @@ const idea = useQuery({
 /** The reply being written right now by this person (kept apart from the saved thread until it finishes). */
 const streaming = ref<{
   user?: ConversationMessage
+  /** The reply as saved, once the stream says it is (null if nothing was kept). */
+  reply?: ConversationMessage | null
   text: string
   proposals: Proposal[]
   notes: RecordedNote[]
@@ -37,6 +39,16 @@ const messages = computed(() => {
   const saved = conversation.data.value?.messages ?? []
   const sent = streaming.value?.user
   return sent && !saved.some((m) => m.id === sent.id) ? [...saved, sent] : saved
+})
+/**
+ * The streamed copy of the reply is shown until the saved one is in the thread, and not a moment
+ * longer: re-reading the thread, the idea and its notes takes a while, and the saved reply can arrive
+ * well before the rest. The same check keeps the person's own message from showing twice (above).
+ */
+const liveReplyShown = computed(() => {
+  const live = streaming.value
+  if (!live) return false
+  return !(live.reply && savedMessages.value.some((m) => m.id === live.reply!.id))
 })
 const replyingNow = computed(() => (streaming.value ? null : conversation.data.value?.replyingNow))
 const savedMessages = computed(() => conversation.data.value?.messages ?? [])
@@ -78,10 +90,13 @@ async function send(body: SendMessageInput, restore?: string) {
         else if (event.type === 'text') live.text += event.text
         else if (event.type === 'note') live.notes.push(event.note)
         else if (event.type === 'proposal') live.proposals.push(event.proposal)
-        else if (event.type === 'error') {
+        else if (event.type === 'done') {
+          live.reply = event.message
+          announcement.value = 'The coach has replied.'
+        } else if (event.type === 'error') {
           replyProblem.value = { message: event.message, needsKey: event.code === 'auth' }
           announcement.value = event.message
-        } else announcement.value = 'The coach has replied.'
+        }
       },
       controller.signal,
     )
@@ -280,7 +295,7 @@ const busyNote = computed(() =>
           </li>
 
           <li
-            v-if="streaming"
+            v-if="streaming && liveReplyShown"
             aria-live="off"
             class="mr-8 rounded border border-stone-300 bg-stone-50 p-3"
           >

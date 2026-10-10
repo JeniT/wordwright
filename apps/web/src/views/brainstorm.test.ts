@@ -191,6 +191,36 @@ describe('the brainstorm page', () => {
     expect(screen.queryByRole('button', { name: 'Start brainstorming' })).toBeNull()
   })
 
+  it('never shows the coach’s reply twice while the rest of the page catches up', async () => {
+    // The thread is re-read, then the idea and its notes. While those are still on their way the
+    // saved reply is already in the thread, and the streamed copy must not be shown beside it.
+    let hold = false
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    mockConversation(
+      [kickoff(), aiMessage('What is the claim?')],
+      [
+        http.get('*/api/profiles/ada-substack/ideas/i1', async () => {
+          if (hold) await held
+          return HttpResponse.json(idea)
+        }),
+      ],
+    )
+    await renderAt(page)
+    await type('Hello')
+    hold = true
+    await sendWithKeyboard()
+    await screen.findByText('Hello')
+    // Once the saved thread has the reply the page can only have one copy of it.
+    await waitFor(() => expect(screen.queryByText('Thinking…')).toBeNull())
+    await new Promise((resolve) => setTimeout(resolve, 150)) // let the thread be re-read
+    expect(screen.getAllByText('Noted.')).toHaveLength(1)
+    expect(screen.getByLabelText('Your message')).toBeDisabled() // still finishing up
+    release()
+    await waitFor(() => expect(screen.getByLabelText('Your message')).toBeEnabled())
+    expect(screen.getAllByText('Noted.')).toHaveLength(1)
+  })
+
   it('starts by itself when sent here from the idea page (?start=1), once, and not again on reload', async () => {
     const api = mockConversation()
     const { router } = await renderAt(`${page}?start=1`)
