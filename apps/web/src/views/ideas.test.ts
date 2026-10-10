@@ -658,12 +658,15 @@ describe('idea page', () => {
       })
     })
 
-    it('deletes a note', async () => {
+    it('deletes a note only once it is confirmed, never on a single click', async () => {
       fakeNotes()
       await open()
-      await fireEvent.click(
-        await screen.findByRole('button', { name: /^Delete note “Erosion loops\.”/ }),
-      )
+      const button = await screen.findByRole('button', { name: /^Delete note “Erosion loops\.”/ })
+      expect(button).toHaveAccessibleDescription(/Press and hold to confirm/)
+      await fireEvent.click(button) // no hold: it only asks to be pressed again
+      expect(await screen.findByText('Press again to confirm')).toBeInTheDocument()
+      expect(screen.getByText('Erosion loops.')).toBeInTheDocument()
+      await fireEvent.click(button)
       await waitFor(() => expect(screen.queryByText('Erosion loops.')).toBeNull())
       expect(texts()).toHaveLength(2)
     })

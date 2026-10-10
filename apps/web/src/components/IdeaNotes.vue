@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
 import type { IdeaNote, NoteOrigin } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import HoldButton from './HoldButton.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextAreaField from './TextAreaField.vue'
 
@@ -164,6 +165,7 @@ const label = (note: IdeaNote) => {
     </div>
     <p class="mb-3 text-sm text-stone-700">
       One thought to a note, like index cards. Drag them, or use the arrows, to put them in order.
+      To delete a note, press and hold its Delete button.
     </p>
 
     <p v-if="notes.isPending.value">Loading notes…</p>
@@ -232,15 +234,14 @@ const label = (note: IdeaNote) => {
             >
               Edit
             </button>
-            <button
-              type="button"
+            <HoldButton
               class="btn btn-neutral"
               :disabled="remove.isPending.value"
               :aria-label="`Delete ${label(note)}`"
-              @click="remove.mutate(note.id)"
+              @confirm="remove.mutate(note.id)"
             >
               Delete
-            </button>
+            </HoldButton>
           </template>
         </ReorderableList>
         <p v-if="move.isError.value" role="alert" class="mt-2 text-red-700">

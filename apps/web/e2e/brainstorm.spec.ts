@@ -99,7 +99,11 @@ test('the points made in the chat are added to the idea as notes, as they are ma
   )
   await expect(notes.getByRole('listitem').nth(1)).toContainText('From brainstorming')
 
-  await notes.getByRole('button', { name: /^Delete note “oxbow lakes/ }).click()
+  // Hold the Delete button from the keyboard, which works the same way.
+  await notes.getByRole('button', { name: /^Delete note “oxbow lakes/ }).focus()
+  await page.keyboard.down('Enter')
+  await expect(notes.getByText(/oxbow lakes are loops/)).toHaveCount(0, { timeout: 4000 })
+  await page.keyboard.up('Enter')
   await page.getByRole('link', { name: 'Continue brainstorming' }).click()
   await expect(page.getByText('Noted, then deleted:')).toBeVisible()
 })

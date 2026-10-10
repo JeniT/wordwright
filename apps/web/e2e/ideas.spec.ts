@@ -150,8 +150,19 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(
     notes.getByText('Erosion on the outside of each bend, deposition inside.'),
   ).toBeVisible()
-  await notes.getByRole('button', { name: /^Delete note “Deposition on the inside/ }).click()
-  await expect(notes.getByText('Deposition on the inside.')).toHaveCount(0)
+  // Deleting takes a deliberate hold: a click or a short press does nothing; holding for a second does it.
+  const remove = notes.getByRole('button', { name: /^Delete note “Deposition on the inside/ })
+  await remove.hover()
+  await page.mouse.down()
+  await expect(page.getByTestId('hold-ring')).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.mouse.up()
+  await expect(page.getByTestId('hold-ring')).toHaveCount(0)
+  await expect(notes.getByText('Deposition on the inside.')).toBeVisible()
+  await remove.hover()
+  await page.mouse.down()
+  await expect(notes.getByText('Deposition on the inside.')).toHaveCount(0, { timeout: 4000 })
+  await page.mouse.up()
 
   // The list layout is a choice that sticks; the order and edits are saved.
   await notes.getByRole('button', { name: 'List' }).click()
