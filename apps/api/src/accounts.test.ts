@@ -425,6 +425,12 @@ describe('account deletion', () => {
     const ideaDraft = await (
       await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/drafts`, { title: 'Idea draft' })
     ).json()
+    const noteId = store.notes.list(idea.id)[0]!.id
+    await c.post(`/api/profiles/${second.id}/drafts/${ideaDraft.id}/insertions`, {
+      noteId,
+      text: 'A note',
+    })
+    expect(store.drafts.insertions(ideaDraft.id)).toHaveLength(1)
     await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
     expect(store.profiles.getImage(second.id)).toBeDefined()
 
@@ -444,6 +450,7 @@ describe('account deletion', () => {
     expect(store.ideas.countLinks(idea.id)).toBe(0)
     expect(store.notes.list(idea.id)).toEqual([])
     expect(store.drafts.get(second.id, ideaDraft.id)).toBeUndefined()
+    expect(store.drafts.insertions(ideaDraft.id)).toEqual([])
     expect(store.users.getPasswordHash(user.id)).toBeUndefined()
     expect(store.credentials.get(user.id)).toBeUndefined() // their API key goes too
     expect((await c.get('/api/auth/me')).status).toBe(401)

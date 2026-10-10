@@ -7,6 +7,8 @@ declare module 'vue-router' {
     guest?: boolean
     /** Pages that work the same whether or not someone is signed in (e.g. emailed links). */
     open?: boolean
+    /** Pages that need more room than a column of text (the drafting page has a side column). */
+    wide?: boolean
   }
 }
 
@@ -107,6 +109,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'draft',
     component: () => import('./views/EditorView.vue'),
     props: true,
+    meta: { wide: true },
   },
 ]
 

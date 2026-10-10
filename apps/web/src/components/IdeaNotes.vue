@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
-import type { IdeaLink, IdeaNote, NoteOrigin } from '@lfwa/core'
+import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { noteOriginLabel } from '../lib/note-label'
 import HoldButton from './HoldButton.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextAreaField from './TextAreaField.vue'
@@ -46,22 +47,6 @@ function chooseView(next: View) {
   } catch {
     // Not remembering the choice is fine.
   }
-}
-
-/** Where a note came from, and who was there: this is a trusted space, so people are named. */
-function originLabel(note: IdeaNote) {
-  const who = note.authorName ?? 'a former member'
-  const labels: Record<NoteOrigin, string> = {
-    entered: `Added by ${who}`,
-    brainstorm: `From brainstorming with ${who}`,
-    reading: `From reading, by ${who}`,
-  }
-  const item = props.readingList.find((l) => l.id === note.readingItemId)
-  // The item may have been removed since; the note keeps saying it came from reading.
-  if (note.origin === 'reading' && item) {
-    return `From reading “${item.title || item.url}”, by ${who}`
-  }
-  return labels[note.origin]
 }
 
 // ---- adding
@@ -235,7 +220,7 @@ const label = (note: IdeaNote) => {
             </form>
             <div v-else :class="contentClass">
               <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
-              <p class="mt-1 text-xs text-stone-600">{{ originLabel(note) }}</p>
+              <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
             </div>
           </template>
           <template #actions="{ item: note }">

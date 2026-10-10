@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { Draft, DraftInput } from '@lfwa/core'
+import type { Draft, DraftInput, DraftInsertion, NoteOrigin } from '@lfwa/core'
 import { nowIso } from './database'
 
 /** Drafts are always accessed through their profile; callers check membership first. Each develops an idea. */
@@ -41,6 +41,62 @@ export class DraftStore {
       )
       .run(input.title, input.body, nowIso(), profileId, id)
     return result.changes ? this.get(profileId, id) : undefined
+  }
+
+  /** What was pulled into a draft from notes, oldest first. */
+  insertions(draftId: string): DraftInsertion[] {
+    return this.db
+      .prepare(
+        `SELECT i.*, na.name AS note_author_name, ib.name AS inserted_by_name
+         FROM draft_insertions i
+         LEFT JOIN users na ON na.id = i.note_author_id
+         LEFT JOIN users ib ON ib.id = i.inserted_by
+         WHERE i.draft_id = ? ORDER BY i.inserted_at, i.rowid`,
+      )
+      .all(draftId)
+      .map((r) => ({
+        id: r.id as string,
+        text: r.text as string,
+        origin: r.origin as NoteOrigin,
+        noteAuthorName: r.note_author_name as string | null,
+        insertedByName: r.inserted_by_name as string | null,
+        insertedAt: r.inserted_at as string,
+        source: r.source_url
+          ? { title: r.source_title as string, url: r.source_url as string }
+          : null,
+      }))
+  }
+
+  addInsertion(
+    draftId: string,
+    i: {
+      noteId: string
+      noteAuthorId: string | null
+      insertedBy: string
+      text: string
+      origin: NoteOrigin
+      source: { title: string; url: string } | null
+    },
+  ): string {
+    const id = randomUUID()
+    this.db
+      .prepare(
+        `INSERT INTO draft_insertions (id, draft_id, note_id, note_author_id, inserted_by, text, origin,
+           source_title, source_url, inserted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        draftId,
+        i.noteId,
+        i.noteAuthorId,
+        i.insertedBy,
+        i.text,
+        i.origin,
+        i.source?.title ?? null,
+        i.source?.url ?? null,
+        nowIso(),
+      )
+    return id
   }
 
   /**

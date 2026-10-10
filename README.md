@@ -91,6 +91,10 @@ tests inject fakes and nothing hits the network.
   item also records where it came from (`entered`, or later `brainstorm`, `research`, `idea_generation`). A note can be
   taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
+  **Notes while drafting:** the drafting page lists the idea's notes beside the editor (a slide-over on a phone);
+  `POST /api/profiles/:id/drafts/:draft/insertions` (`{noteId, text}`) records that a note's words were put into the
+  draft (origin and source come from the note) and sets the note aside, `GET` lists them, and
+  `PUT …/ideas/:idea/notes/:note/added` (`{added}`) puts a note back.
   **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
   are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
   (`/p/<id>/drafts/<draft>` in the app), which links back to its idea.

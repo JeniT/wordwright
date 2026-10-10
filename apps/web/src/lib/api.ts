@@ -5,6 +5,7 @@ import {
   BrainstormPromptSchema,
   ConversationSchema,
   CritiqueSchema,
+  DraftInsertionSchema,
   DraftSchema,
   HandleAvailabilitySchema,
   IdeaNoteSchema,
@@ -21,6 +22,7 @@ import {
   UserSchema,
   type BrainstormEvent,
   type DraftInput,
+  type DraftInsertionInput,
   type IdeaInput,
   type IdeaUpdate,
   type LlmSettingsInput,
@@ -193,6 +195,24 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** `ids` is every draft of the idea, in the new order. Answers with the idea as saved. */
     reorderIdeaDrafts: (profileId: string, id: string, ids: string[]) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/drafts/order`, { ids }),
+    // what was pulled into a draft from the idea's notes, and where it came from
+    listDraftInsertions: (profileId: string, draftId: string) =>
+      get(
+        DraftInsertionSchema.array(),
+        'GET',
+        `/profiles/${profileId}/drafts/${draftId}/insertions`,
+      ),
+    /** Says the note's text went into the draft; the server sets the note aside and records its origin. */
+    addDraftInsertion: (profileId: string, draftId: string, input: DraftInsertionInput) =>
+      get(
+        DraftInsertionSchema,
+        'POST',
+        `/profiles/${profileId}/drafts/${draftId}/insertions`,
+        input,
+      ),
+    /** Puts a note back among those that can be pulled into a draft (`added: false`). */
+    setNoteAdded: (profileId: string, id: string, noteId: string, added: boolean) =>
+      get(IdeaNoteSchema, 'PUT', `${ideas(profileId)}/${id}/notes/${noteId}/added`, { added }),
     // notes: index cards for an idea, in the order the person arranged them
     listIdeaNotes: (profileId: string, id: string) =>
       get(IdeaNoteSchema.array(), 'GET', `${ideas(profileId)}/${id}/notes`),

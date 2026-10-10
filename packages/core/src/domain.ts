@@ -359,6 +359,10 @@ export const IdeaNoteInputSchema = z.object({
 /** Changing a note changes only its text; where it came from stays. */
 export const IdeaNoteEditSchema = z.object({ text: NoteTextSchema })
 
+/** Puts a note back among those that can be pulled into a draft (`added: false`), or sets it aside (`true`). */
+export const NoteAddedSchema = z.object({ added: z.boolean() })
+export type NoteAdded = z.infer<typeof NoteAddedSchema>
+
 /** Marks a reading-list item read, or unread again. */
 export const ReadingItemReadSchema = z.object({ read: z.boolean() })
 export type ReadingItemRead = z.infer<typeof ReadingItemReadSchema>
@@ -367,6 +371,35 @@ export type IdeaNoteInput = z.infer<typeof IdeaNoteInputSchema>
 /** Every note id of the idea, in the new order. Must name exactly the notes it has. */
 export const IdeaNoteOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_IDEA_NOTES) })
 export type IdeaNoteOrder = z.infer<typeof IdeaNoteOrderSchema>
+
+// ---- Words pulled into a draft from the idea's notes ---------------------
+// The origin follows the text (docs/responsible-ai.md, principle 5): a passage inserted from a note keeps saying who
+// the note came from and how, even after it is edited, instead of becoming anonymous prose.
+
+/** The writer says: this note's text was put into this draft. Origin and source are taken from the note by the server. */
+export const DraftInsertionInputSchema = z.object({
+  noteId: z.string(),
+  /** Exactly what was inserted (Markdown, with the source link if there was one). */
+  text: z
+    .string()
+    .trim()
+    .min(1)
+    .max(NOTE_TEXT_MAX + 1000),
+})
+export type DraftInsertionInput = z.infer<typeof DraftInsertionInputSchema>
+
+export const DraftInsertionSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  origin: NoteOriginSchema,
+  /** Who the note was by when it was inserted (their name now); null once they have left. */
+  noteAuthorName: z.string().nullable(),
+  insertedByName: z.string().nullable(),
+  insertedAt: z.string(),
+  /** The reading-list item the note was taken from, as it was then. */
+  source: z.object({ title: z.string(), url: z.string() }).nullable(),
+})
+export type DraftInsertion = z.infer<typeof DraftInsertionSchema>
 
 /** A draft as listed under its idea. */
 export const IdeaDraftSchema = z.object({

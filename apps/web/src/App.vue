@@ -64,7 +64,7 @@ function switchProfile(event: Event) {
       </nav>
     </header>
     <VerifyEmailBanner />
-    <main class="mx-auto max-w-3xl px-4 py-8">
+    <main class="mx-auto px-4 py-8" :class="route.meta.wide ? 'max-w-6xl' : 'max-w-3xl'">
       <div v-if="session.error" role="alert" class="rounded border border-red-200 bg-red-50 p-4">
         <p class="font-medium text-red-900">{{ session.error }}</p>
         <p class="mt-1 text-sm">Check your connection, or try again in a moment.</p>

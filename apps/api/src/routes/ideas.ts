@@ -12,6 +12,7 @@ import {
   IdeaNoteOrderSchema,
   MAX_IDEA_NOTES,
   IdeaUpdateSchema,
+  NoteAddedSchema,
   ReadingItemReadSchema,
   SendMessageInputSchema,
 } from '@lfwa/core'
@@ -135,6 +136,14 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
       .patch('/:id/notes/:noteId', validateJson(IdeaNoteEditSchema), (c) => {
         const idea = find(c)
         const saved = notes.updateText(idea.id, c.req.param('noteId'), c.req.valid('json').text)
+        if (!saved) throw notFound()
+        ideas.touch(idea.id)
+        return c.json(saved)
+      })
+      // Put a note back among those that can be pulled into a draft (it stays in any draft it was put in).
+      .put('/:id/notes/:noteId/added', validateJson(NoteAddedSchema), (c) => {
+        const idea = find(c)
+        const saved = notes.setAdded(idea.id, c.req.param('noteId'), c.req.valid('json').added)
         if (!saved) throw notFound()
         ideas.touch(idea.id)
         return c.json(saved)

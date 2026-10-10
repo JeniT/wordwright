@@ -68,6 +68,23 @@ export class NoteStore {
     return this.select('n.id = ?', id)[0]!
   }
 
+  /** Sets a note aside as used in a draft (keeping the first date), or puts it back. */
+  setAdded(ideaId: string, id: string, added: boolean): IdeaNote | undefined {
+    const now = nowIso()
+    const changed =
+      this.db
+        .prepare(
+          `UPDATE idea_notes SET added_at = CASE WHEN ? THEN coalesce(added_at, ?) ELSE NULL END
+           WHERE idea_id = ? AND id = ?`,
+        )
+        .run(added ? 1 : 0, now, ideaId, id).changes > 0
+    return changed ? this.select('n.id = ?', id)[0] : undefined
+  }
+
+  get(ideaId: string, id: string): IdeaNote | undefined {
+    return this.select('n.idea_id = ? AND n.id = ?', ideaId, id)[0]
+  }
+
   updateText(ideaId: string, id: string, text: string): IdeaNote | undefined {
     const changed =
       this.db

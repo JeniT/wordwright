@@ -29,6 +29,8 @@ export const server = setupServer(
   ),
   // No notes yet, on any idea.
   http.get('*/api/profiles/:profileId/ideas/:ideaId/notes', () => HttpResponse.json([])),
+  // Nothing has been pulled into any draft from notes.
+  http.get('*/api/profiles/:profileId/drafts/:draftId/insertions', () => HttpResponse.json([])),
   // No brainstorming has happened yet, on any idea.
   http.get('*/api/profiles/:profileId/ideas/:ideaId/conversation', () =>
     HttpResponse.json({ messages: [], replyingNow: null }),

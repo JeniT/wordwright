@@ -325,6 +325,24 @@ export const MIGRATIONS: Migration[] = [
     CHECK (origin IN ('entered', 'brainstorm', 'research', 'idea_generation'));
   ALTER TABLE idea_notes ADD COLUMN reading_item_id TEXT REFERENCES idea_links(id) ON DELETE SET NULL;
   `,
+  // T33: words pulled into a draft from a note keep their origin. The insertion records what was inserted and
+  // where it came from (the note's origin, who wrote it, the reading-list item as it was then), so the draft can say
+  // so even after the text is edited. The note, its author and the inserter may all go; the record stays.
+  `
+  CREATE TABLE draft_insertions (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    note_id TEXT REFERENCES idea_notes(id) ON DELETE SET NULL,
+    note_author_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    inserted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    text TEXT NOT NULL,
+    origin TEXT NOT NULL CHECK (origin IN ('entered', 'brainstorm', 'reading')),
+    source_title TEXT,
+    source_url TEXT,
+    inserted_at TEXT NOT NULL
+  );
+  CREATE INDEX draft_insertions_draft ON draft_insertions(draft_id);
+  `,
 ]
 
 /**
