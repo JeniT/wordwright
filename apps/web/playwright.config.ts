@@ -1,16 +1,31 @@
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
-// Ports can be overridden so agents working in separate worktrees can run e2e at the same time
-// without one silently reusing the other's servers (and so testing the wrong code).
-const webPort = process.env.E2E_WEB_PORT ?? '5174'
-const apiPort = process.env.E2E_API_PORT ?? '8788'
+// Each worktree gets its own pair of ports, so sessions working side by side can run e2e at the same
+// time. They come from a hash of where this file lives rather than from "whatever is free": Playwright
+// loads this config in every worker process too, and they must all agree. CI has one checkout and
+// keeps fixed ports. E2E_WEB_PORT / E2E_API_PORT override either.
+const slot =
+  parseInt(
+    createHash('sha1')
+      .update(fileURLToPath(import.meta.url))
+      .digest('hex')
+      .slice(0, 6),
+    16,
+  ) % 500
+const webPort = process.env.E2E_WEB_PORT ?? (process.env.CI ? '5174' : String(5200 + slot))
+const apiPort = process.env.E2E_API_PORT ?? (process.env.CI ? '8788' : String(8800 + slot))
 
+// Kept out of `test-results`, which Playwright empties at the start of every run, even one that then
+// fails because a run is already going in this worktree: that would delete the first run's data.
 // A real file (not :memory:) so the e2e run exercises migrations and WAL mode like production does.
-const e2eDb = fileURLToPath(new URL('./test-results/e2e.sqlite', import.meta.url))
+const e2eDb = fileURLToPath(new URL('./.e2e-data/e2e.sqlite', import.meta.url))
 // Emails are written here as JSON files; tests read them like an inbox.
-export const e2eOutbox = fileURLToPath(new URL('./test-results/outbox', import.meta.url))
+export const e2eOutbox = fileURLToPath(new URL('./.e2e-data/outbox', import.meta.url))
 
+// Servers are never reused: one already on these ports is somebody else's (another worktree's, or this
+// one's before you edited it), and testing against it would test the wrong code. A taken port fails loudly.
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -34,13 +49,13 @@ export default defineConfig({
         PUBLIC_URL: `http://localhost:${webPort}`,
       },
       url: `http://localhost:${apiPort}/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
       command: `pnpm exec vite --port ${webPort} --strictPort`,
       env: { API_URL: `http://localhost:${apiPort}` },
       url: `http://localhost:${webPort}`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
   ],
 })

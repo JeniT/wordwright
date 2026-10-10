@@ -8,4 +8,5 @@ coverage
 data/
 playwright-report
 test-results
+.e2e-data
 .DS_Store

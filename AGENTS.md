@@ -38,13 +38,11 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 | `pnpm build`    | typecheck + production build                                                                   |
 | `pnpm format`   | fix formatting                                                                                 |
 
-**Running `pnpm test:e2e` while another session does the same.** It starts its own web and API servers on fixed
-ports (web 5174, API 8788; its database is per worktree), so two sessions running it at once can take the servers
-down from under each other. The sign is a run where many tests fail together with `net::ERR_CONNECTION_REFUSED` (or
-a server that won't start because the port is in use), in tests that have nothing to do with your change. Don't kill
-the other session's processes. Check `lsof -nP -iTCP:5174 -iTCP:8788 -sTCP:LISTEN`, and rerun on free ports:
-`E2E_WEB_PORT=5184 E2E_API_PORT=8798 pnpm test:e2e` (any unused pair). If it only fails the same way on the default
-ports, say so in your report rather than calling it a pass.
+**Running `pnpm test:e2e` in several worktrees at once is fine.** Each worktree gets its own web and API ports
+(hashed from its path; CI uses fixed ones) and its own database, and servers are never reused, so sessions don't
+test each other's code. A second run in the _same_ worktree while one is going stops at once with "already used":
+wait for the first. If a port is taken by something unrelated, pick others with `E2E_WEB_PORT` and `E2E_API_PORT`.
+Don't kill another session's processes.
 
 ## Layout
 
