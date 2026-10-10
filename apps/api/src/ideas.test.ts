@@ -61,7 +61,7 @@ describe('ideas', () => {
     expect((await ada.patch(`${ideas()}/${idea.id}`, { name: '' })).status).toBe(400)
   })
 
-  describe('links to related work', () => {
+  describe('the reading list (links to things to read)', () => {
     let idea: { id: string }
     const links = () => `${ideas()}/${idea.id}/links`
     const read = async () => (await (await ada.get(`${ideas()}/${idea.id}`)).json()).links
@@ -79,6 +79,8 @@ describe('ideas', () => {
           id: expect.any(String),
           url: 'https://example.org/meanders',
           title: 'Fake title for example.org',
+          readAt: null,
+          origin: 'entered',
         },
       ])
       expect(ctx.pageFetcher.calls).toEqual(['https://example.org/meanders'])
@@ -93,6 +95,54 @@ describe('ideas', () => {
     it('uses a title the person supplied rather than the fetched one', async () => {
       const link = (await (await add('https://example.org/a', '  My title ')).json()).links[0]
       expect(link.title).toBe('My title')
+    })
+
+    describe('marking items read', () => {
+      it('marks an item read and unread again, answering with the whole idea', async () => {
+        await add('https://example.org/a')
+        await add('https://example.org/b')
+        const [first, second] = await read()
+        const readUrl = `${links()}/${first.id}/read`
+
+        const marked = await ada.put(readUrl, { read: true })
+        expect(marked.status).toBe(200)
+        const idea = await marked.json()
+        expect(idea.links[0].readAt).toEqual(expect.any(String))
+        expect(idea.links[1]).toMatchObject({ id: second.id, readAt: null }) // only that one
+
+        const unmarked = await (await ada.put(readUrl, { read: false })).json()
+        expect(unmarked.links[0].readAt).toBeNull()
+      })
+
+      it('keeps the first date when it is marked read twice, and counts as a change to the idea', async () => {
+        await add('https://example.org/a')
+        const [item] = await read()
+        const first = (await (await ada.put(`${links()}/${item.id}/read`, { read: true })).json())
+          .links[0].readAt
+        ctx.store.ideas.touch(idea.id, 'long ago')
+        const again = await (await ada.put(`${links()}/${item.id}/read`, { read: true })).json()
+        expect(again.links[0].readAt).toBe(first)
+        expect(again.updatedAt).not.toBe('long ago')
+      })
+
+      it('refuses a bad body, an unknown item, and someone outside the profile', async () => {
+        await add('https://example.org/a')
+        const [item] = await read()
+        expect((await ada.put(`${links()}/${item.id}/read`, { read: 'yes' })).status).toBe(400)
+        expect((await ada.put(`${links()}/nope/read`, { read: true })).status).toBe(404)
+        const eve = ctx.client()
+        await register(eve, 'eve@example.com', 'Eve')
+        expect((await eve.put(`${links()}/${item.id}/read`, { read: true })).status).toBe(404)
+      })
+
+      it('says where an item came from; those added by hand are "entered"', async () => {
+        await add('https://example.org/a')
+        ctx.store.ideas.addLink(idea.id, { url: 'https://example.org/b', title: 'B' }, 'brainstorm')
+        expect((await read()).map((l: { origin: string }) => l.origin)).toEqual([
+          'entered',
+          'brainstorm',
+        ])
+      })
     })
 
     it('removes a link', async () => {
@@ -193,7 +243,16 @@ describe('ideas', () => {
           id: link.id,
           url: 'https://example.com/c',
           title: 'Fake title for example.com',
+          readAt: null,
+          origin: 'entered',
         })
+      })
+
+      it('keeps it marked read', async () => {
+        await ada.put(`${links()}/${link.id}/read`, { read: true })
+        const saved = (await (await edit({ url: 'https://example.com/c', title: 'New' })).json())
+          .links[0]
+        expect(saved.readAt).toEqual(expect.any(String))
       })
 
       it('keeps a title the person typed when they change the address too', async () => {
@@ -452,6 +511,37 @@ describe('numbering existing drafts', () => {
     expect(db.prepare("SELECT position FROM drafts WHERE id = 'tie2'").get()).toEqual({
       position: 2,
     })
+  })
+})
+
+describe('the reading list columns', () => {
+  it('give links already saved no read date and the origin "entered", and notes no source', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    const at = MIGRATIONS.findIndex(
+      (m) => typeof m === 'string' && m.includes('ADD COLUMN read_at TEXT'),
+    )
+    expect(at).toBeGreaterThan(0)
+    migrate(db, 'test', MIGRATIONS.slice(0, at))
+    db.exec(`
+      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)
+        VALUES ('i', 'p', 'Idea', 'A note', 'then', 'then');
+      INSERT INTO idea_links (id, idea_id, url, title, created_at)
+        VALUES ('l', 'i', 'https://example.org', 'Old link', 'then');
+      INSERT INTO idea_notes (id, profile_id, idea_id, text, origin, position, created_at, updated_at)
+        VALUES ('n', 'p', 'i', 'A note', 'entered', 0, 'then', 'then');
+    `)
+    migrate(db, 'test')
+    expect(db.prepare('SELECT read_at, origin FROM idea_links').get()).toEqual({
+      read_at: null,
+      origin: 'entered',
+    })
+    expect(db.prepare('SELECT reading_item_id FROM idea_notes').get()).toEqual({
+      reading_item_id: null,
+    })
+    // An origin nobody has heard of is refused.
+    expect(() => db.exec("UPDATE idea_links SET origin = 'made-up'")).toThrow()
   })
 })
 

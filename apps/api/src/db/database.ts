@@ -317,6 +317,14 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX idea_message_notes_message ON idea_message_notes(message_id);
   `,
+  // T31: an idea's links become its reading list. Each item can be marked read (it may have been read offline) and
+  // says where it came from; a note can be taken from an item, and keeps no claim on it if the item is removed.
+  `
+  ALTER TABLE idea_links ADD COLUMN read_at TEXT;
+  ALTER TABLE idea_links ADD COLUMN origin TEXT NOT NULL DEFAULT 'entered'
+    CHECK (origin IN ('entered', 'brainstorm', 'research', 'idea_generation'));
+  ALTER TABLE idea_notes ADD COLUMN reading_item_id TEXT REFERENCES idea_links(id) ON DELETE SET NULL;
+  `,
 ]
 
 /**

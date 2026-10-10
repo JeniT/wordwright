@@ -9,6 +9,7 @@ import type {
   IdeaSummary,
   IdeaUpdate,
   NoteOrigin,
+  ReadingOrigin,
 } from '@lfwa/core'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
@@ -43,9 +44,17 @@ export class IdeaStore {
       .get(profileId, id)
     if (!row) return undefined
     const links = this.db
-      .prepare('SELECT id, url, title FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid')
+      .prepare(
+        'SELECT id, url, title, read_at, origin FROM idea_links WHERE idea_id = ? ORDER BY created_at, rowid',
+      )
       .all(id)
-      .map((l) => ({ id: l.id as string, url: l.url as string, title: l.title as string }))
+      .map((l) => ({
+        id: l.id as string,
+        url: l.url as string,
+        title: l.title as string,
+        readAt: l.read_at as string | null,
+        origin: l.origin as ReadingOrigin,
+      }))
     const drafts = this.db
       .prepare(
         'SELECT id, title, updated_at FROM drafts WHERE idea_id = ? ORDER BY position, created_at, rowid',
@@ -120,16 +129,31 @@ export class IdeaStore {
     ).n
   }
 
-  addLink(ideaId: string, input: IdeaLinkInput): IdeaLink {
+  /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
+  addLink(ideaId: string, input: IdeaLinkInput, origin: ReadingOrigin = 'entered'): IdeaLink {
     const id = randomUUID()
     const now = nowIso()
     this.db
       .prepare(
-        'INSERT INTO idea_links (id, idea_id, url, title, created_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO idea_links (id, idea_id, url, title, origin, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
-      .run(id, ideaId, input.url, input.title, now)
+      .run(id, ideaId, input.url, input.title, origin, now)
     this.touch(ideaId, now)
-    return { id, url: input.url, title: input.title }
+    return { id, url: input.url, title: input.title, readAt: null, origin }
+  }
+
+  /** Marks an item read (when the writer says so) or unread again. Marking read again keeps the first date. */
+  setLinkRead(ideaId: string, linkId: string, read: boolean): boolean {
+    const now = nowIso()
+    const changed =
+      this.db
+        .prepare(
+          `UPDATE idea_links SET read_at = CASE WHEN ? THEN coalesce(read_at, ?) ELSE NULL END
+           WHERE idea_id = ? AND id = ?`,
+        )
+        .run(read ? 1 : 0, now, ideaId, linkId).changes > 0
+    if (changed) this.touch(ideaId, now)
+    return changed
   }
 
   updateLink(ideaId: string, linkId: string, input: IdeaLinkInput): boolean {

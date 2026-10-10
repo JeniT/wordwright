@@ -97,6 +97,61 @@ describe('idea notes', () => {
     expect((await res.json()).error).toContain(`${MAX_IDEA_NOTES} notes`)
   })
 
+  describe('taken from the reading list', () => {
+    const itemOn = async () => {
+      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
+      return (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id as string
+    }
+
+    it('is a note from reading, remembering which item', async () => {
+      const item = await itemOn()
+      const res = await ada.post(notes(), { text: 'A useful quote.', readingItemId: item })
+      expect(res.status).toBe(201)
+      expect(await res.json()).toMatchObject({
+        text: 'A useful quote.',
+        origin: 'reading',
+        readingItemId: item,
+        authorName: 'Ada',
+      })
+      expect(await add('Typed by hand')).toMatchObject({ origin: 'entered', readingItemId: null })
+    })
+
+    it('must come from an item on this idea', async () => {
+      const other = (await (await ada.post(ideas(), { name: 'Other' })).json()).id
+      await ada.post(`${ideas()}/${other}/links`, { url: 'https://example.org/else' })
+      const elsewhere = (await (await ada.get(`${ideas()}/${other}`)).json()).links[0].id
+      const res = await ada.post(notes(), { text: 'x', readingItemId: elsewhere })
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toContain("isn't on this idea's reading list")
+      expect(await list()).toEqual([])
+    })
+
+    it('keeps its origin if the item is removed, and loses only the link to it', async () => {
+      const item = await itemOn()
+      await ada.post(notes(), { text: 'Quote.', readingItemId: item })
+      await ada.delete(`${ideas()}/${idea}/links/${item}`)
+      expect(await list()).toMatchObject([
+        { text: 'Quote.', origin: 'reading', readingItemId: null },
+      ])
+    })
+
+    it('stays attached when the note is edited', async () => {
+      const item = await itemOn()
+      const note = await (await ada.post(notes(), { text: 'Quote.', readingItemId: item })).json()
+      const edited = await (
+        await ada.patch(`${notes()}/${note.id}`, {
+          text: 'Better quote.',
+          readingItemId: 'ignored',
+        })
+      ).json()
+      expect(edited).toMatchObject({
+        text: 'Better quote.',
+        origin: 'reading',
+        readingItemId: item,
+      })
+    })
+  })
+
   it('marks the idea as changed', async () => {
     const stamp = () => ctx.store.ideas.get(profile, idea)!.updatedAt
     const touchedBy = async (change: () => Promise<unknown>) => {

@@ -20,7 +20,15 @@ const idea = {
   profileId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.',
-  links: [{ id: 'l1', url: 'https://example.org/paper', title: 'A paper' }],
+  links: [
+    {
+      id: 'l1',
+      url: 'https://example.org/paper',
+      title: 'A paper',
+      readAt: null as string | null,
+      origin: 'entered',
+    },
+  ],
   drafts: [{ id: 'd1', title: 'Part 1', updatedAt: '2026-01-02T00:00:00Z' }],
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
@@ -229,7 +237,16 @@ describe('idea page', () => {
       http.get(ideaUrl, () =>
         HttpResponse.json({
           ...idea,
-          links: [...idea.links, { id: 'l2', url: 'https://example.org/untitled', title: '' }],
+          links: [
+            ...idea.links,
+            {
+              id: 'l2',
+              url: 'https://example.org/untitled',
+              title: '',
+              readAt: null,
+              origin: 'entered',
+            },
+          ],
         }),
       ),
     )
@@ -241,6 +258,97 @@ describe('idea page', () => {
     expect(untitled.textContent).toContain('https://example.org/untitled')
   })
 
+  describe('the reading list', () => {
+    it('is headed Reading list, and says to tick off what has been read', async () => {
+      await open()
+      const section = (await screen.findByRole('heading', { name: 'Reading list' })).closest(
+        'section',
+      )!
+      expect(within(section).getByText(/Tick each one off/)).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Related work' })).toBeNull()
+    })
+
+    it('shows which items are read, and where an item that was not added by hand came from', async () => {
+      server.use(
+        signedInAs(testUser),
+        listProfiles,
+        http.get(ideaUrl, () =>
+          HttpResponse.json({
+            ...idea,
+            links: [
+              {
+                id: 'l1',
+                url: 'https://example.org/a',
+                title: 'Read one',
+                readAt: '2026-01-03T00:00:00Z',
+                origin: 'entered',
+              },
+              {
+                id: 'l2',
+                url: 'https://example.org/b',
+                title: 'Unread one',
+                readAt: null,
+                origin: 'brainstorm',
+              },
+              {
+                id: 'l3',
+                url: 'https://example.org/c',
+                title: 'Found one',
+                readAt: null,
+                origin: 'research',
+              },
+            ],
+          }),
+        ),
+      )
+      await renderAt('/p/ada-substack/ideas/i1')
+      expect(await screen.findByRole('checkbox', { name: 'Read: Read one' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Read: Unread one' })).not.toBeChecked()
+      expect(screen.getByText('Suggested in brainstorming')).toBeInTheDocument()
+      expect(screen.getByText('Found by research')).toBeInTheDocument()
+      expect(screen.queryByText('From idea generation')).toBeNull() // and nothing for those added by hand
+    })
+
+    it('marks an item read, then unread, saving each', async () => {
+      const sent: unknown[] = []
+      let current = idea
+      await open([
+        http.put(`${ideaUrl}/links/l1/read`, async ({ request }) => {
+          const body = (await request.json()) as { read: boolean }
+          sent.push(body)
+          current = {
+            ...idea,
+            links: [{ ...idea.links[0]!, readAt: body.read ? '2026-01-03T00:00:00Z' : null }],
+          }
+          return HttpResponse.json(current)
+        }),
+      ])
+      const box = await screen.findByRole('checkbox', { name: 'Read: A paper' })
+      expect(box).not.toBeChecked()
+      await fireEvent.click(box)
+      await waitFor(() => expect(sent).toEqual([{ read: true }]))
+      await waitFor(() =>
+        expect(screen.getByRole('checkbox', { name: 'Read: A paper' })).toBeChecked(),
+      )
+      await fireEvent.click(screen.getByRole('checkbox', { name: 'Read: A paper' }))
+      await waitFor(() => expect(sent).toEqual([{ read: true }, { read: false }]))
+      await waitFor(() =>
+        expect(screen.getByRole('checkbox', { name: 'Read: A paper' })).not.toBeChecked(),
+      )
+    })
+
+    it('says so when it could not be saved, and leaves the item as it was', async () => {
+      await open([
+        http.put(`${ideaUrl}/links/l1/read`, () =>
+          HttpResponse.json({ error: 'boom' }, { status: 500 }),
+        ),
+      ])
+      await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: A paper' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
+      expect(screen.getByRole('checkbox', { name: 'Read: A paper' })).not.toBeChecked()
+    })
+  })
+
   describe('adding a link', () => {
     it('sends just the address, then shows the link and clears the field, keeping an unsaved note', async () => {
       let sent: unknown
@@ -248,7 +356,13 @@ describe('idea page', () => {
         ...idea,
         links: [
           ...idea.links,
-          { id: 'l2', url: 'https://example.org/new', title: 'Fetched title' },
+          {
+            id: 'l2',
+            url: 'https://example.org/new',
+            title: 'Fetched title',
+            readAt: null,
+            origin: 'entered',
+          },
         ],
       }
       await open([
@@ -331,7 +445,15 @@ describe('idea page', () => {
           sent = await request.json()
           return HttpResponse.json({
             ...idea,
-            links: [{ id: 'l1', url: 'https://example.org/better', title: 'Better title' }],
+            links: [
+              {
+                id: 'l1',
+                url: 'https://example.org/better',
+                title: 'Better title',
+                readAt: null,
+                origin: 'entered',
+              },
+            ],
           })
         }),
       ])
@@ -452,6 +574,7 @@ describe('idea page', () => {
       origin,
       authorId: authorName ? 'u1' : null,
       authorName,
+      readingItemId: null as string | null,
       addedAt: null,
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
@@ -521,6 +644,18 @@ describe('idea page', () => {
         'true',
       )
       expect(items[0]!.closest('ol')).toHaveClass('grid')
+    })
+
+    it('names the reading-list item a note was taken from, or just says reading if it is gone', async () => {
+      fakeNotes([
+        { ...note('n1', 'A quote.', 'reading'), readingItemId: 'l1' },
+        { ...note('n2', 'From something removed.', 'reading'), readingItemId: null },
+      ])
+      await open()
+      await screen.findByText('A quote.')
+      const items = within(region()).getAllByRole('listitem')
+      expect(items[0]).toHaveTextContent('From reading “A paper”, by Ada')
+      expect(items[1]).toHaveTextContent('From reading, by Ada')
     })
 
     it('says "a former member" for a note whose author has left', async () => {
@@ -841,7 +976,7 @@ describe('idea page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1')
     await screen.findByText(/No drafts yet/)
-    expect(screen.getByText('No links yet.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing on the reading list yet.')).toBeInTheDocument()
   })
 
   it('asks before deleting, then returns to the profile', async () => {

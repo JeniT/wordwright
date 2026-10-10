@@ -11,7 +11,15 @@ const idea = {
   profileId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.\nSecond line.',
-  links: [{ id: 'l1', url: 'https://example.org/paper', title: 'A paper' }],
+  links: [
+    {
+      id: 'l1',
+      url: 'https://example.org/paper',
+      title: 'A paper',
+      readAt: null,
+      origin: 'entered',
+    },
+  ],
   drafts: [],
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',

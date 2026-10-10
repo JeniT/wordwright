@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { nextTick, ref, useTemplateRef } from 'vue'
-import type { IdeaLink } from '@lfwa/core'
+import type { IdeaLink, ReadingOrigin } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import TextField from './TextField.vue'
 
@@ -31,6 +31,28 @@ async function stopEditing() {
   await nextTick()
   editButton.value?.focus()
 }
+
+/** Where an item came from, when it wasn't the writer. */
+const originLabel: Partial<Record<ReadingOrigin, string>> = {
+  brainstorm: 'Suggested in brainstorming',
+  research: 'Found by research',
+  idea_generation: 'From idea generation',
+}
+
+// Whether it has been read is the writer's say-so (they may have read it offline), so it is a plain checkbox.
+const readBox = useTemplateRef<HTMLInputElement>('readBox')
+const setRead = useMutation({
+  mutationFn: (read: boolean) =>
+    api.setReadingItemRead(props.profileId, props.ideaId, props.link.id, read),
+  onSuccess: async (idea) => {
+    queryClient.setQueryData(['idea', props.profileId, props.ideaId], idea)
+    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
+  },
+  // The box has already flipped under the person's finger; put it back to what is saved.
+  onError: () => {
+    if (readBox.value) readBox.value.checked = !!props.link.readAt
+  },
+})
 
 const save = useMutation({
   mutationFn: () =>
@@ -86,12 +108,28 @@ const save = useMutation({
       </div>
     </form>
 
-    <div v-else class="flex items-center justify-between gap-3">
-      <a :href="link.url" target="_blank" rel="noopener noreferrer" class="min-w-0 underline">
-        <span class="block truncate">{{ label() }}</span>
-        <span v-if="link.title" class="block truncate text-sm text-stone-600">{{ link.url }}</span>
-        <span class="sr-only">(opens in a new tab)</span>
-      </a>
+    <div v-else class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <div class="flex min-w-0 flex-1 items-start gap-3">
+        <label class="mt-0.5 flex shrink-0 items-center gap-1.5 text-sm">
+          <input
+            ref="readBox"
+            type="checkbox"
+            class="size-4 accent-accent"
+            :checked="!!link.readAt"
+            :disabled="setRead.isPending.value"
+            :aria-label="`Read: ${label()}`"
+            @change="setRead.mutate(($event.target as HTMLInputElement).checked)"
+          />
+          Read
+        </label>
+        <a :href="link.url" target="_blank" rel="noopener noreferrer" class="min-w-0 underline">
+          <span class="block truncate">{{ label() }}</span>
+          <span v-if="link.title" class="block truncate text-sm text-stone-600">{{
+            link.url
+          }}</span>
+          <span class="sr-only">(opens in a new tab)</span>
+        </a>
+      </div>
       <div class="flex shrink-0 gap-2">
         <button
           ref="editButton"
@@ -111,6 +149,12 @@ const save = useMutation({
           Remove
         </button>
       </div>
+      <p v-if="originLabel[link.origin]" class="w-full text-xs text-stone-600">
+        {{ originLabel[link.origin] }}
+      </p>
+      <p v-if="setRead.isError.value" role="alert" class="w-full text-sm text-red-700">
+        Couldn't save that. Please try again.
+      </p>
     </div>
   </li>
 </template>

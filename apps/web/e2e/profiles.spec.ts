@@ -268,7 +268,7 @@ test('manages the ordered list of idea sources on the settings page', async ({ p
   await page.getByRole('button', { name: 'Create profile' }).click()
   await page.getByRole('link', { name: 'Settings' }).click()
 
-  const sources = page.getByRole('region', { name: 'Idea sources' })
+  const sources = page.getByRole('region', { name: 'Reading list sources' })
   await expect(sources.getByText('No sources yet')).toBeVisible()
   const add = async (address: string) => {
     await sources.getByLabel('Add a feed').fill(address)

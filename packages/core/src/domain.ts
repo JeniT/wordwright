@@ -289,11 +289,19 @@ export const IdeaNotesSchema = z
     `Use ${IDEA_NOTES_MAX.toLocaleString('en')} characters or fewer in the notes`,
   )
 
+/** Who or what put an item on a reading list. Only `entered` is used so far; the others are for later features. */
+export const ReadingOriginSchema = z.enum(['entered', 'brainstorm', 'research', 'idea_generation'])
+export type ReadingOrigin = z.infer<typeof ReadingOriginSchema>
+
+/** An item on an idea's reading list (the stored shape is still called a link). */
 export const IdeaLinkSchema = z.object({
   id: z.string(),
   url: z.string(),
   /** What the person called it; empty when they just pasted the address. */
   title: z.string(),
+  /** When the writer marked it read (they may have read it offline); null while unread. */
+  readAt: z.string().nullable(),
+  origin: ReadingOriginSchema,
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 
@@ -332,6 +340,8 @@ export const IdeaNoteSchema = z.object({
   authorId: z.string().nullable(),
   /** Their name now; null once they have left. */
   authorName: z.string().nullable(),
+  /** The reading-list item it was taken from, if any (null once that item is removed). */
+  readingItemId: z.string().nullable(),
   /** When it was pulled into a draft; null while it hasn't been. */
   addedAt: z.string().nullable(),
   createdAt: z.string(),
@@ -340,7 +350,18 @@ export const IdeaNoteSchema = z.object({
 export type IdeaNote = z.infer<typeof IdeaNoteSchema>
 
 /** Notes made through the API are the person's own; other origins are set by the server. */
-export const IdeaNoteInputSchema = z.object({ text: NoteTextSchema })
+export const IdeaNoteInputSchema = z.object({
+  text: NoteTextSchema,
+  /** A note taken while reading this item of the idea's reading list: it then has origin `reading`. */
+  readingItemId: z.string().optional(),
+})
+
+/** Changing a note changes only its text; where it came from stays. */
+export const IdeaNoteEditSchema = z.object({ text: NoteTextSchema })
+
+/** Marks a reading-list item read, or unread again. */
+export const ReadingItemReadSchema = z.object({ read: z.boolean() })
+export type ReadingItemRead = z.infer<typeof ReadingItemReadSchema>
 export type IdeaNoteInput = z.infer<typeof IdeaNoteInputSchema>
 
 /** Every note id of the idea, in the new order. Must name exactly the notes it has. */

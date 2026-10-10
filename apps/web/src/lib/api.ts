@@ -187,6 +187,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
+    /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
+    setReadingItemRead: (profileId: string, id: string, linkId: string, read: boolean) =>
+      get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/read`, { read }),
     /** `ids` is every draft of the idea, in the new order. Answers with the idea as saved. */
     reorderIdeaDrafts: (profileId: string, id: string, ids: string[]) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/drafts/order`, { ids }),

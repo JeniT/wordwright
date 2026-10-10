@@ -64,7 +64,7 @@ async function openSettings(role: 'owner' | 'editor' = 'owner') {
     http.get('*/api/profiles', () => HttpResponse.json([profile(role)])),
   )
   await renderAt('/p/adalovelace-blog/settings')
-  return screen.findByRole('heading', { name: 'Idea sources' })
+  return screen.findByRole('heading', { name: 'Reading list sources' })
 }
 /**
  * jsdom has no DragEvent, so a plain event stands in and the pointer position is set by hand.
@@ -86,7 +86,7 @@ beforeEach(() =>
   ),
 )
 
-describe('idea sources on the profile settings page', () => {
+describe('reading list sources on the profile settings page', () => {
   it('lists the sources in order with their title, description and address', async () => {
     fakeSources()
     await openSettings()

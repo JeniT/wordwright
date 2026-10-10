@@ -146,12 +146,13 @@ const remove = useMutation({
       </p>
     </form>
 
-    <IdeaNotes :profile-id="profileId" :idea-id="id" />
+    <IdeaNotes :profile-id="profileId" :idea-id="id" :reading-list="idea.data.value.links" />
 
     <section aria-labelledby="links-heading" class="mb-10">
-      <h2 id="links-heading" class="mb-1 font-serif text-xl font-semibold">Related work</h2>
+      <h2 id="links-heading" class="mb-1 font-serif text-xl font-semibold">Reading list</h2>
       <p class="mb-3 text-sm text-stone-700">
-        Articles, papers or earlier posts that this idea builds on or responds to.
+        Articles, papers or earlier posts that this idea builds on or responds to. Tick each one off
+        once you have read it, even if you read it somewhere else.
       </p>
       <ul
         v-if="idea.data.value.links.length"
@@ -166,7 +167,7 @@ const remove = useMutation({
           @remove="removeLink.mutate(link.id)"
         />
       </ul>
-      <p v-else class="mb-4 text-stone-600">No links yet.</p>
+      <p v-else class="mb-4 text-stone-600">Nothing on the reading list yet.</p>
       <p v-if="removeLink.isError.value" role="alert" class="mb-3 text-red-700">
         Couldn't remove that link. Please try again.
       </p>

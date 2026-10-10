@@ -7,10 +7,12 @@ import {
   DraftOrderSchema,
   IdeaInputSchema,
   IdeaLinkInputSchema,
+  IdeaNoteEditSchema,
   IdeaNoteInputSchema,
   IdeaNoteOrderSchema,
   MAX_IDEA_NOTES,
   IdeaUpdateSchema,
+  ReadingItemReadSchema,
   SendMessageInputSchema,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
@@ -75,6 +77,13 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
         )
         return c.json(saved)
       })
+      .put('/:id/links/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
+        const idea = find(c)
+        if (!ideas.setLinkRead(idea.id, c.req.param('linkId'), c.req.valid('json').read)) {
+          throw notFound()
+        }
+        return c.json(find(c))
+      })
       .delete('/:id/links/:linkId', (c) => {
         const idea = find(c)
         if (!ideas.removeLink(idea.id, c.req.param('linkId'))) throw notFound()
@@ -91,11 +100,20 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
               message: `An idea can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
             })
           }
+          const { text, readingItemId } = c.req.valid('json')
+          if (readingItemId && !idea.links.some((l) => l.id === readingItemId)) {
+            throw new HTTPException(400, {
+              message: "That item isn't on this idea's reading list.",
+            })
+          }
+          // A note taken from an item of the reading list is a note from reading.
           const note = notes.append(
             idea.profileId,
             idea.id,
             c.get('user').id,
-            c.req.valid('json').text,
+            text,
+            readingItemId ? 'reading' : 'entered',
+            readingItemId ?? null,
           )
           ideas.touch(idea.id)
           return note
@@ -114,7 +132,7 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
         ideas.touch(idea.id)
         return c.json(notes.list(idea.id))
       })
-      .patch('/:id/notes/:noteId', validateJson(IdeaNoteInputSchema), (c) => {
+      .patch('/:id/notes/:noteId', validateJson(IdeaNoteEditSchema), (c) => {
         const idea = find(c)
         const saved = notes.updateText(idea.id, c.req.param('noteId'), c.req.valid('json').text)
         if (!saved) throw notFound()

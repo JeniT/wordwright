@@ -39,7 +39,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.getByRole('button', { name: 'Save idea' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
 
-  // Related work. Text that isn't a web address is refused, in red under the field, and kept for fixing.
+  // The reading list. Text that isn't a web address is refused, in red under the field, and kept for fixing.
   const address = page.getByLabel('Web address', { exact: true })
   const add = page.getByRole('button', { name: 'Add link' })
   for (const bad of ['rubbish', 'not a web address']) {
@@ -58,6 +58,14 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   const paper = page.getByRole('link', { name: /Fake title for example\.org/ })
   await expect(paper).toHaveAttribute('href', 'https://example.org/meanders')
   await expect(address).toHaveValue('')
+
+  // Items are ticked off as they are read (perhaps elsewhere), and that is remembered.
+  const readBox = page.getByRole('checkbox', { name: /^Read: Fake title for example\.org/ })
+  await expect(readBox).not.toBeChecked()
+  await readBox.check()
+  await expect(readBox).toBeChecked()
+  await page.reload()
+  await expect(readBox).toBeChecked()
 
   // The same page twice is refused, however it is written, and what was typed stays put.
   await address.fill('http://www.example.org/meanders/')
@@ -182,7 +190,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await page.getByRole('button', { name: 'Remove link to Fake title for example.org' }).click()
   await page.getByRole('button', { name: 'Remove link to Fake title for example.net' }).click()
-  await expect(page.getByText('No links yet.')).toBeVisible()
+  await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
   await page.getByRole('button', { name: 'Delete idea' }).click()
   await noViolations(page, 'delete dialog')
   await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()

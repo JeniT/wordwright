@@ -294,6 +294,25 @@ a brainstorm reply in flight, which lasts at most the reply timeout. Unlike a us
 address, so there is no list of retired names and no daily cap, only the light per-person throttle other account
 changes share. Names are not unique, as before.
 
+## An idea's links are its reading list, and can be marked read (T31)
+
+What the idea page called "Related work" is now the idea's **Reading list**, and the profile's RSS feeds are
+**Reading list sources**: the two are still separate tables and routes (an idea's items are links someone chose; the
+profile's sources are feeds that will later fill a profile-level list, T37). The code keeps its old names (`idea_links`, `IdeaLink`, `ProfileSources`): renaming them is churn for no gain.
+
+- **Read is the writer's say-so.** Each item has `read_at` (null until marked), set by a plain checkbox, because the
+  app can't know that a page was read, and people read things offline. Marking read twice keeps the first date;
+  unticking clears it. The checkbox is the whole mechanism; the friction before citing an unread item is T34.
+- **Origin.** Each item records `origin`: `entered` (the writer, and everything so far), `brainstorm`, `research` or
+  `idea_generation`, so items an AI suggested are visibly marked ("Suggested in brainstorming", "Found by
+  research"), per [responsible-ai.md](responsible-ai.md) principle 5. Nothing but `entered` is produced yet; T38 and
+  T37 will. The database refuses any other value.
+- **Notes from reading.** `POST …/notes` takes an optional `readingItemId` (it must be on the same idea). Such a
+  note has origin `reading` and says which item it came from ("From reading “Title”, by Ada"). Removing the item
+  keeps the note, and its origin, but not the link to the item. The screen for taking notes while reading is T32.
+- **Not changed:** what the brainstorm AI is told. Its snapshot still says "Related links the writer has saved", and
+  doesn't mention what is read; changing that would be a prompt change for the owner to review.
+
 ## Idea sources: an ordered list of feeds, edited by any member
 
 Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the

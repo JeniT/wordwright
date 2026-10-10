@@ -70,11 +70,11 @@ const removeClass =
 
 <template>
   <section aria-labelledby="sources-heading">
-    <h2 id="sources-heading" class="mb-1 font-serif text-xl font-semibold">Idea sources</h2>
+    <h2 id="sources-heading" class="mb-1 font-serif text-xl font-semibold">Reading list sources</h2>
     <p class="mb-3 text-sm text-stone-600">
-      RSS feeds to look through for articles that could spark ideas. Posts from sources higher in
-      the list will be shown first: drag a source by its grip, or use the arrow buttons, to change
-      the order.
+      RSS feeds that feed this profile's reading list: articles to look through for things that
+      could spark ideas. Posts from sources higher in the list will be shown first: drag a source by
+      its grip, or use the arrow buttons, to change the order.
     </p>
 
     <p v-if="sources.isPending.value">Loading sources…</p>

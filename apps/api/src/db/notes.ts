@@ -11,6 +11,7 @@ const toNote = (r: Row): IdeaNote => ({
   origin: r.origin as NoteOrigin,
   authorId: r.created_by as string | null,
   authorName: r.author_name as string | null,
+  readingItemId: r.reading_item_id as string | null,
   addedAt: r.added_at as string | null,
   createdAt: r.created_at as string,
   updatedAt: r.updated_at as string,
@@ -54,15 +55,16 @@ export class NoteStore {
     authorId: string | null,
     text: string,
     origin: NoteOrigin = 'entered',
+    readingItemId: string | null = null,
   ): IdeaNote {
     const id = randomUUID()
     const now = nowIso()
     this.db
       .prepare(
-        `INSERT INTO idea_notes (id, profile_id, idea_id, created_by, text, origin, position, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE idea_id = ?), ?, ?)`,
+        `INSERT INTO idea_notes (id, profile_id, idea_id, created_by, text, origin, reading_item_id, position, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE idea_id = ?), ?, ?)`,
       )
-      .run(id, profileId, ideaId, authorId, text, origin, ideaId, now, now)
+      .run(id, profileId, ideaId, authorId, text, origin, readingItemId, ideaId, now, now)
     return this.select('n.id = ?', id)[0]!
   }
 

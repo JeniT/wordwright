@@ -83,11 +83,13 @@ tests inject fakes and nothing hits the network.
   added) for a linked set of posts. Anyone a profile is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. The **Brainstorm** button is a placeholder until the conversation is built. API:
   `/api/profiles/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
-  **Related-work links:** the person types only a web address (scheme optional). Text that isn't a plausible
+  **Reading list (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
-  and title; clearing the title looks it up again). The lookup goes through the `PageInfoFetcher` port
+  and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
+  item also records where it came from (`entered`, or later `brainstorm`, `research`, `idea_generation`). A note can be
+  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
   **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
   are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
@@ -114,7 +116,7 @@ tests inject fakes and nothing hits the network.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.
-- **Idea sources:** each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile
+- **Reading list sources** (the profile's feeds): each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile
   settings page by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
   its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,

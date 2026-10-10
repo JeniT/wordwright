@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
-import type { IdeaNote, NoteOrigin } from '@lfwa/core'
+import type { IdeaLink, IdeaNote, NoteOrigin } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import HoldButton from './HoldButton.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextAreaField from './TextAreaField.vue'
 
-const props = defineProps<{ profileId: string; ideaId: string }>()
+const props = defineProps<{
+  profileId: string
+  ideaId: string
+  /** The idea's reading list, to name the item a note was taken from. */
+  readingList: readonly IdeaLink[]
+}>()
 const queryClient = useQueryClient()
 
 const notesKey = () => ['notes', props.profileId, props.ideaId]
@@ -50,6 +55,11 @@ function originLabel(note: IdeaNote) {
     entered: `Added by ${who}`,
     brainstorm: `From brainstorming with ${who}`,
     reading: `From reading, by ${who}`,
+  }
+  const item = props.readingList.find((l) => l.id === note.readingItemId)
+  // The item may have been removed since; the note keeps saying it came from reading.
+  if (note.origin === 'reading' && item) {
+    return `From reading “${item.title || item.url}”, by ${who}`
   }
   return labels[note.origin]
 }
