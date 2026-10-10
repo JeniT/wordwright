@@ -318,6 +318,8 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByRole('button', { name: 'Add note' }).click()
   const list = page.getByRole('list')
   await expect(list.getByRole('listitem')).toHaveCount(2)
+  // The newest is first, right under the box, so a note just added is in sight.
+  await expect(list.getByRole('listitem').first()).toContainText('So the bend moves downstream.')
   await expect(list).toContainText('From reading “Fake title for example.org')
   await page.getByRole('checkbox', { name: 'I have read this' }).check()
   await noViolations(page, 'reading page with notes')

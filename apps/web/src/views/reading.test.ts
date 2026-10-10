@@ -126,6 +126,30 @@ describe('reading page', () => {
       expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
+    it('lists the newest first, so a note just added appears under the box for it', async () => {
+      const at = (n: ReturnType<typeof note>, createdAt: string) => ({ ...n, createdAt })
+      const saved = [
+        at(note('n1', 'Oldest.', 'l1'), '2026-01-01T00:00:00.000Z'),
+        at(note('n2', 'Middle.', 'l1'), '2026-01-02T00:00:00.000Z'),
+      ]
+      await open('l1', [
+        http.get(notesUrl, () => HttpResponse.json(saved)),
+        http.post(notesUrl, async ({ request }) => {
+          const body = (await request.json()) as { text: string }
+          const created = at(note('n3', body.text, 'l1'), '2026-01-03T00:00:00.000Z')
+          saved.push(created)
+          return HttpResponse.json(created, { status: 201 })
+        }),
+      ])
+      const texts = () =>
+        screen.getAllByRole('listitem').map((li) => li.querySelector('p')?.textContent)
+      await screen.findByText('Oldest.')
+      expect(texts()).toEqual(['Middle.', 'Oldest.'])
+      await fireEvent.update(screen.getByLabelText('Add a note from this page'), 'Newest.')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      await waitFor(() => expect(texts()).toEqual(['Newest.', 'Middle.', 'Oldest.']))
+    })
+
     it('says so when there are none yet', async () => {
       await open()
       expect(await screen.findByText(/No notes from this page yet/)).toBeInTheDocument()

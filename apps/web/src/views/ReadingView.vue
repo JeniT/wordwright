@@ -23,9 +23,15 @@ const notes = useQuery({
   queryKey: ['notes', () => props.profileId, () => props.id],
   queryFn: () => api.listIdeaNotes(props.profileId, props.id),
 })
-/** Only what was taken from this item; the idea page has all of the idea's notes. */
-const itemNotes = computed(
-  () => notes.data.value?.filter((n) => n.readingItemId === props.linkId) ?? [],
+/**
+ * Only what was taken from this item (the idea page has all of the idea's notes), newest first: the box for a new
+ * note is above them, so a note added now has to appear right under it, in sight, rather than at the bottom.
+ */
+const itemNotes = computed(() =>
+  (notes.data.value ?? [])
+    .filter((n) => n.readingItemId === props.linkId)
+    .reverse()
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 )
 
 const label = computed(() => item.value?.title || item.value?.url || '')
@@ -190,8 +196,8 @@ const add = useMutation({
       </h2>
       <p class="mb-3 text-sm text-stone-700">
         Paste a quote, or put it in your own words. Each note keeps a link back to this page, and
-        joins the rest of the idea's notes. Say when something is a direct quote, so it can't be
-        mistaken for your own words later.
+        joins the rest of the idea's notes. The newest is listed first. Say when something is a
+        direct quote, so it can't be mistaken for your own words later.
       </p>
 
       <p v-if="notes.isPending.value">Loading notes…</p>
