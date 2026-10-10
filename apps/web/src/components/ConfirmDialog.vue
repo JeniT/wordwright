@@ -9,8 +9,12 @@ const props = defineProps<{
   busy?: boolean
   /** Shown on the confirm button while busy. */
   busyLabel?: string
+  /** A second way forward, between Cancel and the confirm button ("Read it now"). */
+  alternateLabel?: string
+  /** `danger` (red, the default) is for deleting; `primary` for a choice that loses nothing. */
+  confirmTone?: 'danger' | 'primary'
 }>()
-const emit = defineEmits<{ confirm: []; cancel: [] }>()
+const emit = defineEmits<{ confirm: []; cancel: []; alternate: [] }>()
 
 const titleId = useId()
 const dialog = ref<HTMLElement | null>(null)
@@ -87,8 +91,18 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
             Cancel
           </button>
           <button
+            v-if="alternateLabel"
             type="button"
-            class="rounded bg-red-700 px-4 py-2 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
+            class="rounded border border-accent bg-white px-4 py-2 text-sm font-medium text-accent focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
+            :disabled="busy"
+            @click="emit('alternate')"
+          >
+            {{ alternateLabel }}
+          </button>
+          <button
+            type="button"
+            class="rounded px-4 py-2 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
+            :class="confirmTone === 'primary' ? 'bg-accent' : 'bg-red-700'"
             :disabled="busy"
             @click="emit('confirm')"
           >

@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
+import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
-import { RouterLink } from 'vue-router'
-import type { IdeaNote } from '@lfwa/core'
+import { RouterLink, useRouter } from 'vue-router'
+import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { ApiError, api, errorMessage } from '../lib/api'
-import { noteMarkdown } from '../lib/note-insert'
+import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 
 const props = defineProps<{ profileId: string; id: string }>()
 const queryClient = useQueryClient()
+const router = useRouter()
 
 const draft = useQuery({
   queryKey: ['draft', () => props.profileId, () => props.id],
@@ -44,9 +47,72 @@ const save = useMutation({
 // ---- pulling notes into the draft
 const editor = useTemplateRef<InstanceType<typeof RichEditor>>('editor')
 
+// ---- citing something on the reading list: only once it has been read
+type UnreadChoice = 'read-now' | 'mark' | 'cancel'
+const unreadAsk = ref<{ item: IdeaLink; settle: (choice: UnreadChoice) => void } | null>(null)
+const citeNotice = ref('')
+const askAboutUnread = (item: IdeaLink) =>
+  new Promise<UnreadChoice>((resolve) => {
+    unreadAsk.value = {
+      item,
+      settle: (choice) => {
+        unreadAsk.value = null
+        resolve(choice)
+      },
+    }
+  })
+
+/**
+ * Whether a link to this reading-list item may go into the draft. A read item may. An unread one asks the writer:
+ * read it now (it opens in a new tab, so nothing in this draft is lost, and nothing is inserted), mark it as read
+ * (they may have read it somewhere else), or cancel. The writer's say-so is all there is to go on, as with the tick.
+ */
+async function mayCite(item: IdeaLink): Promise<boolean> {
+  citeNotice.value = ''
+  if (item.readAt) return true
+  const choice = await askAboutUnread(item)
+  if (choice === 'cancel') return false
+  if (choice === 'read-now') {
+    const { href } = router.resolve({
+      name: 'reading',
+      params: { profileId: props.profileId, id: draft.data.value!.ideaId!, linkId: item.id },
+    })
+    window.open(href, '_blank', 'noopener')
+    citeNotice.value = `Opened “${item.title || item.url}” in a new tab. Come back and add it once you have read it.`
+    return false
+  }
+  try {
+    const updated = await api.setReadingItemRead(
+      props.profileId,
+      draft.data.value!.ideaId!,
+      item.id,
+      true,
+    )
+    queryClient.setQueryData(['idea', props.profileId, updated.id], updated)
+    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
+  } catch {
+    throw new Error("We couldn't mark it as read. Please try again.")
+  }
+  return true
+}
+
+/** Puts a link to a reading-list item in the line being written, if it may be cited, and saves the draft. */
+async function insertLink(item: IdeaLink) {
+  if (!(await mayCite(item))) return
+  if (!editor.value?.insertInlineMarkdown(linkMarkdown(item))) {
+    throw new Error("The draft isn't ready yet. Try again in a moment.")
+  }
+  try {
+    await save.mutateAsync()
+  } catch {
+    throw new Error("We couldn't save the draft. The link is in it above; press Save to keep it.")
+  }
+}
+
 /**
  * Puts a note's words (and its source link) into the draft, saves the draft, and only then marks the note as added,
- * so a note never disappears from the list unless its words are safely in the draft.
+ * so a note never disappears from the list unless its words are safely in the draft. A note taken from a reading-list
+ * item doesn't ask whether it was read: taking the note, on the item's page, was the reading.
  */
 async function insertNote(note: IdeaNote) {
   const markdown = noteMarkdown(note, idea.data.value?.links ?? [])
@@ -205,6 +271,25 @@ async function requestCritique() {
         :reading-list="idea.data.value?.links ?? []"
         :insert="insertNote"
       />
+      <p v-if="citeNotice" class="mt-3 text-sm text-stone-700" aria-live="polite">
+        {{ citeNotice }}
+      </p>
+      <DraftReadingList :reading-list="idea.data.value?.links ?? []" :insert-link="insertLink" />
     </aside>
+
+    <ConfirmDialog
+      :open="!!unreadAsk"
+      title="You haven't marked this as read"
+      confirm-label="Mark as read"
+      confirm-tone="primary"
+      alternate-label="Read it now"
+      @confirm="unreadAsk?.settle('mark')"
+      @alternate="unreadAsk?.settle('read-now')"
+      @cancel="unreadAsk?.settle('cancel')"
+    >
+      “{{ unreadAsk?.item.title || unreadAsk?.item.url }}” is on your reading list, but you haven't
+      marked it as read. Read it before you link to it. If you have already read it, perhaps
+      somewhere else, mark it as read.
+    </ConfirmDialog>
   </div>
 </template>

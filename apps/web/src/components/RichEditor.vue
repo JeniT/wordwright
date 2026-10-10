@@ -39,7 +39,17 @@ function insertMarkdown(markdown: string): boolean {
   const at = $to.parent.textContent.length ? $to.after() : $to.pos
   return e.chain().focus().insertContentAt(at, markdown, { contentType: 'markdown' }).run()
 }
-defineExpose({ insertMarkdown })
+/** Puts Markdown (a link) into the line where the cursor is, without starting a new paragraph. */
+function insertInlineMarkdown(markdown: string): boolean {
+  const e = editor.value
+  if (!e) return false
+  if (!touched) e.commands.focus('end')
+  // Parsed as a paragraph, of which only the inline content (the link and its text) goes into the current line.
+  const inline = e.markdown?.parse(markdown).content?.[0]?.content
+  if (!inline) return false
+  return e.chain().focus().insertContent(inline).run()
+}
+defineExpose({ insertMarkdown, insertInlineMarkdown })
 
 // Reflect external changes (e.g. a draft finishing loading) without clobbering typing.
 watch(model, (value) => {

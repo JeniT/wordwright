@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -100,7 +100,12 @@ const insertion = (text: string, extra: object = {}) => ({
 
 /** A fake of the endpoints the drafting page uses, which remembers what it was sent. */
 function mockDrafting(
-  start: { notes?: ReturnType<typeof note>[]; insertions?: ReturnType<typeof insertion>[] } = {},
+  start: {
+    notes?: ReturnType<typeof note>[]
+    insertions?: ReturnType<typeof insertion>[]
+    /** When the reading-list item (l1, "A paper") was marked read; null while it isn't. */
+    readAt?: string | null
+  } = {},
 ) {
   const state = {
     notes: start.notes ?? [
@@ -113,33 +118,42 @@ function mockDrafting(
     saved: [] as { title: string; body: string }[],
     posted: [] as unknown[],
     putBack: [] as unknown[],
+    readAt: (start.readAt ?? null) as string | null,
+    markedRead: [] as unknown[],
+    markFails: false,
     saveFails: false,
     postFails: false,
     notesFail: false,
   }
+  const ideaNow = () => ({
+    id: 'i1',
+    profileId: 'p1',
+    name: 'An idea',
+    notes: '',
+    links: [
+      {
+        id: 'l1',
+        url: 'https://example.org/paper',
+        title: 'A paper',
+        readAt: state.readAt,
+        origin: 'entered',
+      },
+    ],
+    drafts: [],
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  })
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/ideas/i1', () =>
-      HttpResponse.json({
-        id: 'i1',
-        profileId: 'p1',
-        name: 'An idea',
-        notes: '',
-        links: [
-          {
-            id: 'l1',
-            url: 'https://example.org/paper',
-            title: 'A paper',
-            readAt: null,
-            origin: 'entered',
-          },
-        ],
-        drafts: [],
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
-      }),
-    ),
+    http.get('*/api/profiles/p1/ideas/i1', () => HttpResponse.json(ideaNow())),
+    http.put('*/api/profiles/p1/ideas/i1/links/l1/read', async ({ request }) => {
+      const body = (await request.json()) as { read: boolean }
+      if (state.markFails) return HttpResponse.json({ error: 'boom' }, { status: 500 })
+      state.markedRead.push(body)
+      state.readAt = body.read ? '2026-01-04T00:00:00Z' : null
+      return HttpResponse.json(ideaNow())
+    }),
     http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
       const body = (await request.json()) as { title: string; body: string }
@@ -249,7 +263,7 @@ describe('the notes beside the draft', () => {
     })
 
     it('adds a link to the reading-list item a note came from', async () => {
-      const api = mockDrafting()
+      const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
         await screen.findByRole('button', { name: /^Add note “A useful quote\.” to the draft/ }),
@@ -320,6 +334,146 @@ describe('the notes beside the draft', () => {
     })
   })
 
+  describe('citing something from the reading list', () => {
+    const insertLink = async () =>
+      fireEvent.click(
+        await within(await screen.findByRole('complementary')).findByRole('button', {
+          name: 'Insert a link to A paper',
+        }),
+      )
+    const dialog = () => screen.findByRole('dialog', { name: "You haven't marked this as read" })
+
+    afterEach(() => vi.restoreAllMocks())
+
+    it('lists the items, saying which are read', async () => {
+      mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
+      await renderAt('/p/p1/drafts/d1')
+      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      expect(await list.findByText('A paper')).toBeInTheDocument()
+      expect(list.getByText('Read')).toBeInTheDocument()
+    })
+
+    it('says so when there is nothing on the reading list', async () => {
+      mockDrafting()
+      server.use(
+        http.get('*/api/profiles/p1/ideas/i1', () =>
+          HttpResponse.json({
+            id: 'i1',
+            profileId: 'p1',
+            name: 'An idea',
+            notes: '',
+            links: [],
+            drafts: [],
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          }),
+        ),
+      )
+      await renderAt('/p/p1/drafts/d1')
+      expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+    })
+
+    it('puts a link to a read item in the line being written, and saves the draft, without asking', async () => {
+      const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
+      await renderAt('/p/p1/drafts/d1')
+      await insertLink()
+      await waitFor(() => expect(api.saved).toHaveLength(1))
+      expect(api.saved[0]!.body).toContain('[A paper](https://example.org/paper)')
+      expect(screen.queryByRole('dialog')).toBeNull()
+      const link = document.querySelector('.ProseMirror a')!
+      expect(link).toHaveAttribute('href', 'https://example.org/paper')
+      expect(document.querySelectorAll('.ProseMirror p')).toHaveLength(1) // in the line, not a new paragraph
+    })
+
+    describe('when it is not marked read', () => {
+      it('asks first, with the safe choice focused, and offers to read it, mark it read, or cancel', async () => {
+        const api = mockDrafting()
+        await renderAt('/p/p1/drafts/d1')
+        await insertLink()
+        const box = await dialog()
+        expect(box).toHaveTextContent('“A paper” is on your reading list')
+        const cancel = within(box).getByRole('button', { name: 'Cancel' })
+        await waitFor(() => expect(cancel).toHaveFocus())
+        expect(within(box).getByRole('button', { name: 'Read it now' })).toBeInTheDocument()
+        expect(within(box).getByRole('button', { name: 'Mark as read' })).toBeInTheDocument()
+        expect(api.saved).toEqual([]) // nothing yet
+      })
+
+      it('inserts nothing, and marks nothing, when cancelled (also with Escape)', async () => {
+        const api = mockDrafting()
+        await renderAt('/p/p1/drafts/d1')
+        await insertLink()
+        await fireEvent.click(within(await dialog()).getByRole('button', { name: 'Cancel' }))
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+        await insertLink()
+        await dialog()
+        await fireEvent.keyDown(document, { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+        expect(document.querySelector('.ProseMirror a')).toBeNull()
+        expect(api.markedRead).toEqual([])
+        expect(api.saved).toEqual([])
+      })
+
+      it('marks it as read, then inserts the link', async () => {
+        const api = mockDrafting()
+        await renderAt('/p/p1/drafts/d1')
+        await insertLink()
+        await fireEvent.click(within(await dialog()).getByRole('button', { name: 'Mark as read' }))
+
+        await waitFor(() => expect(api.saved).toHaveLength(1))
+        expect(api.markedRead).toEqual([{ read: true }])
+        expect(api.saved[0]!.body).toContain('[A paper](https://example.org/paper)')
+        expect(screen.queryByRole('dialog')).toBeNull()
+        const list = within(screen.getByRole('region', { name: 'Reading list' }))
+        expect(await list.findByText('Read')).toBeInTheDocument() // the list now shows it as read
+      })
+
+      it('opens it in a new tab on "Read it now", inserting nothing and keeping the draft as it is', async () => {
+        const api = mockDrafting()
+        const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+        await renderAt('/p/p1/drafts/d1')
+        await insertLink()
+        await fireEvent.click(within(await dialog()).getByRole('button', { name: 'Read it now' }))
+
+        await waitFor(() =>
+          expect(open).toHaveBeenCalledWith('/p/p1/ideas/i1/reading/l1', '_blank', 'noopener'),
+        )
+        expect(await screen.findByText(/Opened “A paper” in a new tab/)).toBeInTheDocument()
+        expect(api.markedRead).toEqual([])
+        expect(api.saved).toEqual([])
+        expect(document.querySelector('.ProseMirror a')).toBeNull()
+        expect(screen.getByText('Not marked as read')).toBeInTheDocument()
+      })
+
+      it('says so if it could not be marked as read, and inserts nothing', async () => {
+        const api = mockDrafting()
+        api.markFails = true
+        await renderAt('/p/p1/drafts/d1')
+        await insertLink()
+        await fireEvent.click(within(await dialog()).getByRole('button', { name: 'Mark as read' }))
+        const alert = await within(screen.getByRole('region', { name: 'Reading list' })).findByRole(
+          'alert',
+        )
+        expect(alert).toHaveTextContent("couldn't mark it as read")
+        expect(api.saved).toEqual([])
+        expect(document.querySelector('.ProseMirror a')).toBeNull()
+      })
+    })
+
+    it('does not ask for a note taken from the item, even if the item is not ticked: taking the note was the reading', async () => {
+      const api = mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await fireEvent.click(
+        await screen.findByRole('button', { name: /^Add note “A useful quote\.” to the draft/ }),
+      )
+      await waitFor(() => expect(api.posted).toHaveLength(1))
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(api.markedRead).toEqual([])
+    })
+  })
+
   describe('tags', () => {
     const tagged = () => [
       { ...note('n1', 'Erosion loops.'), tags: ['intro'] },
@@ -328,7 +482,7 @@ describe('the notes beside the draft', () => {
       { ...note('n4', 'Already used.', { addedAt: '2026-01-02T00:00:00Z' }), tags: ['solo'] },
     ]
     const listed = () =>
-      within(drawer())
+      within(screen.getByRole('list', { name: 'Notes to add' }))
         .getAllByRole('listitem')
         .filter((li) => li.querySelector('p'))
         .map((li) => li.querySelector('p')!.textContent)

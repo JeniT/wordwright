@@ -84,7 +84,7 @@ const label = (note: IdeaNote) => {
         {{ tagFilter ? 'No notes left with this tag.' : 'All your notes are in a draft.' }}
       </p>
 
-      <ul v-if="waiting.length" class="mb-3 space-y-2">
+      <ul v-if="waiting.length" aria-label="Notes to add" class="mb-3 space-y-2">
         <li
           v-for="note in waiting"
           :key="note.id"

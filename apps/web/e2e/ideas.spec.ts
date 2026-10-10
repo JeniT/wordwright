@@ -420,3 +420,58 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   await page.getByText(/Where some of the words came from \(1\)/).click()
   await expect(page.getByText('Still as inserted')).toBeVisible()
 })
+
+test('a link to something on the reading list goes in only once it has been read', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  const title = /Fake title for example\.org/
+  await expect(page.getByRole('link', { name: title })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await body.click()
+  await body.pressSequentially('Rivers never run straight, as ')
+  const side = page.getByRole('complementary')
+  const insert = side.getByRole('button', { name: title })
+
+  // Unread: the writer is asked, and cancelling inserts nothing.
+  await insert.click()
+  const dialog = page.getByRole('dialog', { name: "You haven't marked this as read" })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+  await noViolations(page, 'the unread-source dialog')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(body.locator('a')).toHaveCount(0)
+
+  // "Read it now" opens the item's reading page in a new tab and leaves this draft as it is.
+  await insert.click()
+  const [reading] = await Promise.all([
+    page.context().waitForEvent('page'),
+    dialog.getByRole('button', { name: 'Read it now' }).click(),
+  ])
+  await expect(reading).toHaveURL(/\/ideas\/[^/]+\/reading\//)
+  await reading.close()
+  await expect(body.locator('a')).toHaveCount(0)
+  await expect(body).toContainText('Rivers never run straight, as')
+
+  // "Mark as read" marks it and puts the link in the line being written.
+  await insert.click()
+  await dialog.getByRole('button', { name: 'Mark as read' }).click()
+  await expect(body.locator('a')).toHaveAttribute('href', 'https://example.org/meanders')
+  await expect(body.locator('p')).toHaveCount(1)
+  await expect(side.getByText('Read', { exact: true })).toBeVisible()
+
+  // From now on it goes straight in, and the idea's reading list shows it ticked.
+  await insert.click()
+  await expect(dialog).toHaveCount(0)
+  await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
+  await page.getByRole('link', { name: /Back to “Why rivers meander”/ }).click()
+  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
+})
