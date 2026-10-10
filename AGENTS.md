@@ -5,9 +5,9 @@ sources, shaping an argument and outline, critiquing drafts _without losing the 
 titles/openings/social posts. Users bring their own LLM API key; the service has no server-wide LLM key.
 
 Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writing-assistant/issues) (what to work on; `gh issue list --label ready`) → [docs/decisions.md](docs/decisions.md)
-(why things are the way they are) → [README.md](README.md) (setup, architecture, accounts, BYOK).
+(why things are the way they are) → [docs/responsible-ai.md](docs/responsible-ai.md) (how AI may and may not be used here) → [README.md](README.md) (setup, architecture, accounts, BYOK).
 
-## The owner's three priorities (these decide trade-offs)
+## The owner's four priorities (these decide trade-offs)
 
 1. **Good, clean interface design.** Calm and book-like, not busy. Every screen must be keyboard-usable and
    pass the axe accessibility checks; every async action needs loading, empty and error states; error messages
@@ -20,6 +20,12 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 3. **Robust engineering practices.** Tests with every change (see Definition of done), strict TypeScript,
    validated inputs at every boundary (Zod schemas shared via `@lfwa/core`), secrets never logged or returned,
    migrations append-only, failures that explain themselves. Prefer boring, well-tested solutions.
+4. **Augment the writer; never substitute for them.** The AI helps people think and judge their own writing. It
+   does not write what they publish, and the service must not add AI-generated text to the information environment,
+   encourage dependence on it, or keep people using it for its own sake. The goal is **finished, published writing**,
+   so no engagement design, and anything that can be re-run forever (critique, "more options") is capped. Every
+   AI feature names its rung on the assistance ladder. Read [docs/responsible-ai.md](docs/responsible-ai.md) before
+   designing or changing anything that calls an LLM or edits a prompt.
 
 ## Commands (Node 24+, pnpm)
 
@@ -73,6 +79,9 @@ ports, say so in your report rather than calling it a pass.
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
 2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors.
 3. Docs updated where behaviour changed (README section, `.env.example`, `docs/decisions.md` for non-obvious choices).
+   A feature that calls an LLM also adds boundary evals, and an invariant test where a boundary is structural
+   (see [docs/responsible-ai.md](docs/responsible-ai.md)). A change to anything in `prompts/` is a change to the
+   product's behaviour: say so in the commit and ask the owner to review it.
 4. The task's issue closed by the landing commit (`Closes #7` in its message) and its `in-progress` label removed;
    follow-up work filed as new issues; the main checkout brought up to date with `origin/main` (see _Landing_, step 5).
 5. **Committed** with a message that says what and why. Commit after each feature; for large ones, commit at
@@ -95,8 +104,10 @@ directly**, and `gh issue list --label inbox` is the queue.
    something; don't file a second copy.
 2. **Talks it through with the owner before filing anything.** Ask a few questions at a time, only ones whose answers
    change the outcome. Offer a recommendation and the options you'd drop, rather than a survey. For a bug, try to
-   reproduce it first and say what you found. For an idea or feature, test it against the three priorities above
-   and name the cost (scope, new dependency, spending, migration).
+   reproduce it first and say what you found. For an idea or feature, test it against the four priorities above
+   and name the cost (scope, new dependency, spending, migration). If it calls an LLM, also state its rung on the
+   assistance ladder, what the writer does first, what text leaves the system, what is capped, and which boundary
+   evals it needs (see [docs/responsible-ai.md](docs/responsible-ai.md)); without those it is not `ready`.
 3. Agrees the outcome with the owner, which is one or more of:
    - **Task issues** for work that is clear: a "why", then acceptance criteria that include the tests and docs the
      Definition of done requires, small enough for one agent in one go. Label `ready`, or `backlog` if it waits on
