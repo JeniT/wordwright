@@ -50,7 +50,7 @@ test('researches areas, reviews what was found, and adds the ticked pages to the
   await expect(run).toContainText('Why the AI suggests it (unchecked):')
   await expect(run).toContainText("couldn't read a title from this page")
   await expect(run).toContainText("Problem: we couldn't find a website at this address")
-  await expect(run.getByLabel('A report that has moved')).toBeDisabled()
+  await expect(run.getByRole('checkbox', { name: 'A report that has moved' })).toBeDisabled()
   await noViolations(page, 'research page with a run to review')
 
   // Nothing is on the reading list until pages are ticked and added.
@@ -60,8 +60,8 @@ test('researches areas, reviews what was found, and adds the ticked pages to the
   ).toHaveCount(0)
   await page.getByRole('link', { name: 'Research', exact: true }).click()
 
-  await run.getByLabel('Fake title for research.example.org').check()
-  await run.getByLabel('Notes on channel migration').check()
+  await run.getByRole('checkbox', { name: 'Fake title for research.example.org' }).check()
+  await run.getByRole('checkbox', { name: 'Notes on channel migration' }).check()
   await run.getByRole('button', { name: 'Add ticked to the reading list (2)' }).click()
   await expect(run.getByText('Added to the reading list.')).toHaveCount(2)
 
@@ -89,11 +89,14 @@ test('several areas can be researched around one idea, and the research is kept'
   await expect(page.getByRole('article', { name: 'First area' })).toBeVisible()
   await expect(page.getByRole('article', { name: 'Second area' })).toBeVisible()
 
-  // Set a page aside, then delete a run after being asked.
+  // Ignore one page, add another with its own button, then delete a run after being asked.
   const first = page.getByRole('article', { name: 'First area' })
-  await first.getByLabel('Fake title for research.example.org').check()
-  await first.getByRole('button', { name: 'Set ticked aside' }).click()
-  await expect(first.getByText('Set aside.')).toBeVisible()
+  await first.getByRole('button', { name: 'Ignore: Fake title for research.example.org' }).click()
+  await expect(first.getByText('Ignored.')).toBeVisible()
+  await first
+    .getByRole('button', { name: 'Add to the reading list: Notes on channel migration' })
+    .click()
+  await expect(first.getByText('Added to the reading list.')).toBeVisible()
   await first.getByRole('button', { name: /^Delete this research/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Delete this research?' })
   await noViolations(page, 'delete research dialog')

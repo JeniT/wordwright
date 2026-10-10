@@ -259,12 +259,31 @@ describe('reviewing what research found', () => {
     expect(article.getByLabelText('Page C')).toBeInTheDocument()
   })
 
-  it('sets ticked pages aside without adding them', async () => {
+  it('ignores ticked pages without adding them', async () => {
     const { api, article } = await open()
     await fireEvent.click(article.getByLabelText('Page A'))
-    await fireEvent.click(article.getByRole('button', { name: 'Set ticked aside' }))
+    await fireEvent.click(article.getByRole('button', { name: 'Ignore ticked' }))
     await waitFor(() => expect(api.posts).toEqual([{ dismiss: ['a'] }]))
-    expect(await article.findByText('Set aside.')).toBeInTheDocument()
+    expect(await article.findByText('Ignored.')).toBeInTheDocument()
+  })
+
+  it('adds or ignores a single page with its own buttons', async () => {
+    const { api, article } = await open()
+    await fireEvent.click(article.getByRole('button', { name: 'Add to the reading list: Page A' }))
+    await waitFor(() => expect(api.posts).toEqual([{ add: ['a'] }]))
+    expect(await article.findByText('Added to the reading list.')).toBeInTheDocument()
+
+    await fireEvent.click(article.getByRole('button', { name: 'Ignore: Page B' }))
+    await waitFor(() => expect(api.posts).toEqual([{ add: ['a'] }, { dismiss: ['b'] }]))
+    expect(await article.findByText('Ignored.')).toBeInTheDocument()
+    expect(article.queryByRole('button', { name: 'Ignore: Page B' })).toBeNull() // decided
+  })
+
+  it('lets a page that cannot be added be ignored, to clear it off the list', async () => {
+    const { api, article } = await open()
+    expect(article.getByRole('button', { name: 'Add to the reading list: Page C' })).toBeDisabled()
+    await fireEvent.click(article.getByRole('button', { name: 'Ignore: Page C' }))
+    await waitFor(() => expect(api.posts).toEqual([{ dismiss: ['c'] }]))
   })
 
   it('ticks every page that can be added at once', async () => {

@@ -518,7 +518,7 @@ a first version built research into the brainstorm conversation was set aside.
   which is which: a label could change how the writer reads the source, and they might not take a page seriously that
   they expect to disagree with. The eval `research-includes-other-points-of-view` checks both parts.
 - **Review before anything is added.** A run is a list; the writer ticks pages and presses _Add ticked to the reading
-  list_ (all or nothing; a page that can't be added refuses the lot with the reason), or _Set ticked aside_. Unticked
+  list_ (all or nothing; a page that can't be added refuses the lot with the reason), or _Ignore ticked_. Each page also has its own **Add** and **Ignore** buttons, so an unwanted page is one click to take off the list (an ignored page stays in the run, marked "Ignored"; a page that can't be added can still be ignored). Unticked
   pages stay in the run to decide on later. Added items are marked `research` ("Found by research").
 - **The AI's reason is kept.** Each page has a reason from the researcher, shown as "Why the AI suggests it
   (unchecked)". When a page is added, the reason is stored with the reading-list item (`idea_links.why`) and shown there

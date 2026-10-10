@@ -192,7 +192,7 @@ export class ResearchService {
     return this.find(idea, runId)
   }
 
-  /** Sets pages aside: they stay in the run, marked, and nothing is added. */
+  /** Ignores pages: they stay in the run, marked, and nothing is added. */
   dismiss(idea: Idea, runId: string, itemIds: string[]): ResearchRun {
     const run = this.find(idea, runId)
     const ids = itemIds.filter((id) => run.items.some((i) => i.id === id))

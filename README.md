@@ -240,7 +240,7 @@ never shown), and each notes recorded is listed under the reply and each suggest
 button opens `/p/<profile>/ideas/<idea>/research`, a page apart from brainstorming that lists the idea's earlier research and takes
 a new request, a description of the areas to look into. `GET`/`POST /api/profiles/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add` and `/dismiss`
-(`{itemIds}`) add the ticked pages to the reading list or set them aside (`DELETE …/research/:run` forgets a run). The search
+(`{itemIds}`) add pages to the reading list or ignore them (`DELETE …/research/:run` forgets a run). The search
 looks for several points of view. It works through the `ResearchProvider` port (`@lfwa/core`: `AnthropicResearchProvider`,
 `FakeResearchProvider`, and `researchProviderContract` in `@lfwa/core/testing` for any new one), which may only return addresses that
 appeared in a search result. Web search must be enabled for the Anthropic account whose key is used. The server looks at each address

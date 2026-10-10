@@ -26,18 +26,20 @@ const refresh = () =>
   Promise.all(
     ['research', 'idea', 'ideas'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
   )
+// Each takes the pages to deal with: one page's own buttons, or everything ticked.
 const add = useMutation({
-  mutationFn: () => api.addResearchItems(props.profileId, props.ideaId, props.run.id, chosen.value),
-  onSuccess: () => (ticked.value = []),
+  mutationFn: (ids: string[]) =>
+    api.addResearchItems(props.profileId, props.ideaId, props.run.id, ids),
+  onSuccess: (_run, ids) => (ticked.value = ticked.value.filter((id) => !ids.includes(id))),
   onSettled: refresh,
 })
-const setAside = useMutation({
-  mutationFn: () =>
-    api.dismissResearchItems(props.profileId, props.ideaId, props.run.id, chosen.value),
-  onSuccess: () => (ticked.value = []),
+const ignore = useMutation({
+  mutationFn: (ids: string[]) =>
+    api.dismissResearchItems(props.profileId, props.ideaId, props.run.id, ids),
+  onSuccess: (_run, ids) => (ticked.value = ticked.value.filter((id) => !ids.includes(id))),
   onSettled: refresh,
 })
-const busy = computed(() => add.isPending.value || setAside.isPending.value)
+const busy = computed(() => add.isPending.value || ignore.isPending.value)
 
 const confirmingDelete = ref(false)
 const remove = useMutation({
@@ -135,8 +137,28 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
               Added to the reading list.
             </p>
             <p v-else-if="item.status === 'dismissed'" class="mt-1 text-sm text-stone-600">
-              Set aside.
+              Ignored.
             </p>
+            <div v-else class="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                :disabled="unusable(item) || busy"
+                :aria-label="`Add to the reading list: ${name(item)}`"
+                @click="add.mutate([item.id])"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-neutral"
+                :disabled="busy"
+                :aria-label="`Ignore: ${name(item)}`"
+                @click="ignore.mutate([item.id])"
+              >
+                Ignore
+              </button>
+            </div>
           </div>
         </div>
       </li>
@@ -147,7 +169,7 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
         type="button"
         class="btn btn-sm btn-primary"
         :disabled="!chosen.length || busy"
-        @click="add.mutate()"
+        @click="add.mutate(chosen)"
       >
         {{ add.isPending.value ? 'Adding…' : `Add ticked to the reading list (${chosen.length})` }}
       </button>
@@ -155,9 +177,9 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
         type="button"
         class="btn btn-sm btn-neutral"
         :disabled="!chosen.length || busy"
-        @click="setAside.mutate()"
+        @click="ignore.mutate(chosen)"
       >
-        Set ticked aside
+        Ignore ticked
       </button>
       <button
         v-if="choosable.length > 1"
@@ -170,11 +192,11 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       </button>
     </div>
     <p
-      v-if="add.isError.value || setAside.isError.value"
+      v-if="add.isError.value || ignore.isError.value"
       role="alert"
       class="mt-2 text-sm text-red-700"
     >
-      {{ errorMessage(add.error.value ?? setAside.error.value) }}
+      {{ errorMessage(add.error.value ?? ignore.error.value) }}
     </p>
 
     <p class="mt-3 border-t border-stone-200 pt-2 text-sm">
