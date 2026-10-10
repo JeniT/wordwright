@@ -1,11 +1,11 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { render } from '@testing-library/vue'
+import { render, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { createPinia, setActivePinia } from 'pinia'
 import type { Component } from 'vue'
 import { createMemoryHistory } from 'vue-router'
-import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest'
 import { createAppRouter } from './router'
 
 export const testUser = {
@@ -85,4 +85,14 @@ export async function renderAt(path: string, component?: Component) {
     global: { plugins: [pinia, [VueQueryPlugin, queries], router] },
   })
   return { ...view, router }
+}
+
+/**
+ * A note's origin line: what it is, then the person who recorded it as a chip (never "by <name>", which would read
+ * as the author of whatever was quoted).
+ */
+export function expectOrigin(element: HTMLElement, phrase: string, who: string) {
+  expect(element).toHaveTextContent(phrase)
+  expect(within(element).getByText(who, { exact: true })).toHaveClass('rounded-full')
+  expect(element).not.toHaveTextContent(`by ${who}`)
 }

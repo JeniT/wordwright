@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
 useMockServer()
 
@@ -674,9 +674,9 @@ describe('idea page', () => {
         'A quote from the paper.',
       ])
       const items = within(region()).getAllByRole('listitem')
-      expect(items[0]).toHaveTextContent('Added by Ada')
-      expect(items[1]).toHaveTextContent('From brainstorming with Ada')
-      expect(items[2]).toHaveTextContent('From reading, by Bob')
+      expectOrigin(items[0]!, 'Added', 'Ada')
+      expectOrigin(items[1]!, 'From brainstorming', 'Ada')
+      expectOrigin(items[2]!, 'From reading', 'Bob')
       // One plain list, with no choice of layout.
       expect(items[0]!.closest('ol')).not.toHaveClass('grid')
       expect(within(region()).queryByRole('group', { name: 'Show notes as' })).toBeNull()
@@ -695,7 +695,7 @@ describe('idea page', () => {
       expect(within(region()).getByText('Exact words.').closest('blockquote')).not.toBeNull()
       expect(within(region()).getByText('Erosion loops.').closest('blockquote')).toBeNull()
       const items = within(region()).getAllByRole('listitem')
-      expect(items[1]).toHaveTextContent('Quoted while reading “A paper”, by Ada')
+      expectOrigin(items[1]!, 'Quoted from “A paper”', 'Ada')
       expect(within(region()).getByRole('button', { name: /^Delete note “Exact/ })).toBeVisible()
     })
 
@@ -707,8 +707,8 @@ describe('idea page', () => {
       await open()
       await screen.findByText('A quote.')
       const items = within(region()).getAllByRole('listitem')
-      expect(items[0]).toHaveTextContent('From reading “A paper”, by Ada')
-      expect(items[1]).toHaveTextContent('From reading, by Ada')
+      expectOrigin(items[0]!, 'From reading “A paper”', 'Ada')
+      expectOrigin(items[1]!, 'From reading', 'Ada')
     })
 
     it('says "a former member" for a note whose author has left', async () => {
@@ -719,8 +719,8 @@ describe('idea page', () => {
       await open()
       await screen.findByText('Left behind.')
       const items = within(region()).getAllByRole('listitem')
-      expect(items[0]).toHaveTextContent('Added by a former member')
-      expect(items[1]).toHaveTextContent('From brainstorming with a former member')
+      expectOrigin(items[0]!, 'Added', 'A former member')
+      expectOrigin(items[1]!, 'From brainstorming', 'A former member')
     })
 
     it('says so when there are no notes', async () => {

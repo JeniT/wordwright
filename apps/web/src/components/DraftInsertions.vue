@@ -2,7 +2,8 @@
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api } from '../lib/api'
-import { originWords } from '../lib/note-label'
+import { originPhrase } from '../lib/note-label'
+import NoteOrigin from './NoteOrigin.vue'
 import { stillInDraft } from '../lib/note-insert'
 
 const props = defineProps<{ profileId: string; draftId: string; body: string }>()
@@ -14,7 +15,7 @@ const insertions = useQuery({
 const rows = computed(() =>
   (insertions.data.value ?? []).map((i) => ({
     ...i,
-    words: originWords(i.origin, i.noteAuthorName, i.source),
+    words: originPhrase(i.origin, i.source),
     kept: stillInDraft(props.body, i.text),
   })),
 )
@@ -35,7 +36,7 @@ const rows = computed(() =>
           “{{ row.text.length > 120 ? `${row.text.slice(0, 120)}…` : row.text }}”
         </p>
         <p class="text-xs text-stone-600">
-          {{ row.words }} ·
+          <NoteOrigin :phrase="row.words" :author-name="row.noteAuthorName" /> ·
           <span :class="row.kept ? '' : 'font-medium text-amber-900'">{{
             row.kept ? 'Still as inserted' : 'Edited or removed since'
           }}</span>

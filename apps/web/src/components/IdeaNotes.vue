@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
-import { noteOriginLabel } from '../lib/note-label'
+import { noteOriginPhrase } from '../lib/note-label'
 import {
   hasTag,
   orderWithHidden,
@@ -13,6 +13,7 @@ import {
   tagsUsedOn,
 } from '../lib/note-tags'
 import HoldButton from './HoldButton.vue'
+import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
 import NoteTags from './NoteTags.vue'
 import ReorderableList from './ReorderableList.vue'
@@ -344,7 +345,12 @@ const label = (note: IdeaNote) => {
               </label>
               <NoteText :note="note" />
               <NoteTags :tags="note.tags" />
-              <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
+              <p class="mt-1 text-xs text-stone-600">
+                <NoteOrigin
+                  :phrase="noteOriginPhrase(note, readingList)"
+                  :author-name="note.authorName"
+                />
+              </p>
             </div>
           </template>
           <template #actions="{ item: note }">

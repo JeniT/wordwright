@@ -3,11 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaNote } from '@lfwa/core'
+import NoteOrigin from '../components/NoteOrigin.vue'
 import NoteText from '../components/NoteText.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
-import { noteOriginLabel } from '../lib/note-label'
+import { noteOriginPhrase } from '../lib/note-label'
 
 const props = defineProps<{ profileId: string; id: string; linkId: string }>()
 const queryClient = useQueryClient()
@@ -328,7 +329,10 @@ const add = useMutation({
           <li v-for="note in itemNotes" :key="note.id" class="px-4 py-3">
             <NoteText :note="note" />
             <p class="mt-1 text-xs text-stone-600">
-              {{ noteOriginLabel(note, idea.data.value?.links ?? []) }}
+              <NoteOrigin
+                :phrase="noteOriginPhrase(note, idea.data.value?.links ?? [])"
+                :author-name="note.authorName"
+              />
             </p>
           </li>
         </ul>

@@ -97,7 +97,8 @@ test('the points made in the chat are added to the idea as notes, as they are ma
   await expect(notes.getByRole('listitem').nth(1)).toContainText(
     'oxbow lakes are loops that have been cut off.',
   )
-  await expect(notes.getByRole('listitem').nth(1)).toContainText('From brainstorming with Pru')
+  await expect(notes.getByRole('listitem').nth(1)).toContainText('From brainstorming')
+  await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toBeVisible()
 
   // Hold the Delete button from the keyboard, which works the same way.
   await notes.getByRole('button', { name: /^Delete note “oxbow lakes/ }).focus()

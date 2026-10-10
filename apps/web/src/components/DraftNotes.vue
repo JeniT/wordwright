@@ -4,7 +4,8 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
-import { noteOriginLabel } from '../lib/note-label'
+import { noteOriginPhrase } from '../lib/note-label'
+import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import NoteTags from './NoteTags.vue'
@@ -92,7 +93,12 @@ const label = (note: IdeaNote) => {
         >
           <NoteText :note="note" />
           <NoteTags :tags="note.tags" />
-          <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
+          <p class="mt-1 text-xs text-stone-600">
+            <NoteOrigin
+              :phrase="noteOriginPhrase(note, readingList)"
+              :author-name="note.authorName"
+            />
+          </p>
           <button
             type="button"
             class="btn btn-sm btn-outline mt-2"
@@ -124,7 +130,12 @@ const label = (note: IdeaNote) => {
             class="rounded border border-stone-200 bg-stone-50 p-3 text-stone-700"
           >
             <NoteText :note="note" />
-            <p class="mt-1 text-xs text-stone-600">{{ noteOriginLabel(note, readingList) }}</p>
+            <p class="mt-1 text-xs text-stone-600">
+              <NoteOrigin
+                :phrase="noteOriginPhrase(note, readingList)"
+                :author-name="note.authorName"
+              />
+            </p>
             <button
               type="button"
               class="btn btn-sm btn-neutral mt-2"

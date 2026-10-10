@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
 useMockServer()
 
@@ -196,9 +196,10 @@ describe('the notes beside the draft', () => {
     await renderAt('/p/p1/drafts/d1')
     const notes = within(await screen.findByRole('complementary'))
     await notes.findByText('Erosion loops.')
-    expect(notes.getByText('Added by Ada')).toBeInTheDocument()
-    expect(notes.getByText('From brainstorming with Ada')).toBeInTheDocument()
-    expect(notes.getByText('From reading “A paper”, by Bob')).toBeInTheDocument()
+    expect(notes.getByText('Added')).toBeInTheDocument()
+    expect(notes.getByText('From brainstorming')).toBeInTheDocument()
+    expect(notes.getByText('From reading “A paper”')).toBeInTheDocument()
+    expect(notes.getAllByText('Bob')[0]).toHaveClass('rounded-full') // the person, as a chip, not "by Bob"
     expect(notes.queryByText('Already used.')).toBeNull()
   })
 
@@ -289,7 +290,7 @@ describe('the notes beside the draft', () => {
         ],
       })
       await renderAt('/p/p1/drafts/d1')
-      expect(await screen.findByText('Quoted while reading “A paper”, by Ada')).toBeInTheDocument()
+      expect(await screen.findByText('Quoted from “A paper”')).toBeInTheDocument()
       await fireEvent.click(
         await screen.findByRole('button', { name: /^Add note “Meanders grow\.” to the draft/ }),
       )
@@ -540,9 +541,9 @@ describe('the notes beside the draft', () => {
         'details',
       )!
       const rows = within(summary).getAllByRole('listitem')
-      expect(rows[0]).toHaveTextContent('From brainstorming with Ada')
+      expectOrigin(rows[0]!, 'From brainstorming', 'Ada')
       expect(rows[0]).toHaveTextContent('Still as inserted')
-      expect(rows[1]).toHaveTextContent('From reading “A paper”, by Bob')
+      expectOrigin(rows[1]!, 'From reading “A paper”', 'Bob')
       expect(rows[1]).toHaveTextContent('Edited or removed since')
     })
 

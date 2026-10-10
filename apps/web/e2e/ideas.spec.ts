@@ -139,7 +139,8 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(1)
-  await expect(notes.getByRole('listitem').first()).toContainText('Added by Ida')
+  await expect(notes.getByRole('listitem').first()).toContainText('Added')
+  await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toBeVisible()
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
     await notes.getByLabel('Add a note').fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
@@ -228,7 +229,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   // Where the words came from is recorded, and says whether they are still as they were put in.
   const provenance = page.getByText(/Where some of the words came from \(1\)/)
   await provenance.click()
-  await expect(page.getByText('Added by Ida ·')).toBeVisible()
+  await expect(page.getByText('Ida', { exact: true }).last()).toBeVisible()
   await expect(page.getByText('Still as inserted')).toBeVisible()
   await noViolations(page, 'drafting page with the record of where words came from')
 
@@ -325,6 +326,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   // The newest is first, right under the box, so a note just added is in sight.
   await expect(list.getByRole('listitem').first()).toContainText('So the bend moves downstream.')
   await expect(list).toContainText('From reading “Meanders, explained”')
+  await expect(list).not.toContainText('by Ida') // the chip is who took the note, not who wrote the page
   await page.getByRole('checkbox', { name: 'I have read this' }).check()
   await noViolations(page, 'reading page with notes')
 
@@ -335,7 +337,8 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
-  await expect(notes.getByText('From reading “Meanders, explained”, by Ida').first()).toBeVisible()
+  await expect(notes.getByText('From reading “Meanders, explained”').first()).toBeVisible()
+  await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
   // (the first item; the second, added from the reading page, is unread)
   await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toBeChecked()
   await expect(page.getByRole('checkbox', { name: /^Read: / })).toHaveCount(2)
@@ -414,7 +417,7 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   // On the idea's notes the quotation can be tagged or deleted, but not edited.
   await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
   const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByText(/^Quoted while reading/)).toBeVisible()
+  await expect(notes.getByText(/^Quoted from/)).toBeVisible()
   await expect(notes.getByRole('button', { name: /^Edit note “Meanders/ })).toHaveCount(0)
   await expect(notes.getByRole('button', { name: /^Edit note “Erosion/ })).toBeVisible()
   await noViolations(page, 'notes with a quotation')

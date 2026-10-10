@@ -262,7 +262,7 @@ tabbing away cancels; finishing the hold deletes.
 
 ## Notes name their author (T42)
 
-A note's origin label names the person: "Added by Ada", "From brainstorming with Ada", "From reading, by Ada". It is
+A note's origin line names the person (see "Who took a note is a chip" below). It is
 a trusted space (the owner's call), and in a shared profile "added by hand" wouldn't say whose hand. `IdeaNote.authorName`
 is joined from `users` when notes are read, so it is always the person's current name; it is null once their
 account is gone (the note stays, `created_by` is set null), and the label then says "a former member". For a note
@@ -308,7 +308,7 @@ profile's sources are feeds that will later fill a profile-level list, T37). The
   research"), per [responsible-ai.md](responsible-ai.md) principle 5. Nothing but `entered` is produced yet; T38 and
   T37 will. The database refuses any other value.
 - **Notes from reading.** `POST …/notes` takes an optional `readingItemId` (it must be on the same idea). Such a
-  note has origin `reading` and says which item it came from ("From reading “Title”, by Ada"). Removing the item
+  note has origin `reading` and says which item it came from ("From reading “Title”", and Ada as a chip). Removing the item
   keeps the note, and its origin, but not the link to the item. The screen for taking notes while reading is T32.
 - **Not changed:** what the brainstorm AI is told. Its snapshot still says "Related links the writer has saved", and
   doesn't mention what is read; changing that would be a prompt change for the owner to review.
@@ -345,7 +345,7 @@ draft: a note goes into one piece, and putting it back is how it goes into anoth
 Each reading-list item has a **Take notes** page. It shows the item, an **Open the page** link (`target="_blank"`,
 `rel="noopener noreferrer"`), a "I have read this" checkbox (the same say-so as on the idea page), the notes already
 taken from this item, and a box to add another. A note added here is sent with `readingItemId`, so it has origin
-`reading`, names the item in its origin line ("From reading “Title”, by Ada") and appears among the idea's notes too.
+`reading`, names the item in its origin line ("From reading “Title”", and Ada as a chip) and appears among the idea's notes too.
 
 - **D4 option 1, not a reader view or an iframe.** Most sites forbid being framed (`X-Frame-Options` /
   `frame-ancestors`) and we can't override that, and a reader view means a new dependency, sanitising untrusted HTML
@@ -397,7 +397,7 @@ plain text is indistinguishable from the writer's own prose ([responsible-ai.md]
 a quotation that has been "improved" is no longer a quotation.
 
 - **Needs a source.** `POST …/notes` with `quote: true` also needs `readingItemId` (400 otherwise): a quotation is
-  someone else's words, so it says whose. The note says "Quoted while reading “Title”, by Ada" and is set apart as a
+  someone else's words, so it says whose. The note says "Quoted from “Title”" (Ada as a chip) and is set apart as a
   blockquote wherever it is shown.
 - **Uneditable, in three places.** The notes list has no Edit button for it; `PATCH …/notes/:id` answers 409 ("Delete
   it and add it again if it needs correcting"); and a database trigger aborts any `UPDATE` of a quotation's text, so a
@@ -462,6 +462,16 @@ limit.
 
 Both answer with all the idea's notes (the way reordering does), and neither is undoable: a merge deletes the
 other notes. Merged-away notes held nothing in a draft (those can't be merged), so nothing else points at them.
+
+## Who took a note is a chip, not "by Name" (#62)
+
+"Quoted while reading “Title”, by Jeni" read as if Jeni had written the piece. A note's origin line is now what it is
+("Added", "From brainstorming", "From reading “Title”", "Quoted from “Title”") followed by the person who recorded it as
+a **name chip**: a rounded pill like a tag but blue, so it can't be mistaken for one, with a neutral "A former member"
+chip once their account is gone. Screen readers hear ", recorded by Ada". The same component is used on the idea's
+Notes, the reading page, the notes beside the draft and the draft's record of where words came from. "By" is kept for
+the author of a piece (#63). Users have no pictures yet (only profiles do), so the chip is their name; a picture can go
+inside it when accounts get one.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 

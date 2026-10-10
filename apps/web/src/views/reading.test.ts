@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
 useMockServer()
 
@@ -112,7 +112,7 @@ describe('reading page', () => {
       const items = within(list).getAllByRole('listitem')
       expect(items).toHaveLength(1)
       expect(items[0]).toHaveTextContent('A quote from the paper.')
-      expect(items[0]).toHaveTextContent('From reading “A paper”, by Ada')
+      expectOrigin(items[0]!, 'From reading “A paper”', 'Ada')
     })
 
     it('puts the box for a new note above the notes, so it never gets pushed out of sight', async () => {
@@ -193,7 +193,7 @@ describe('reading page', () => {
       )
       const list = await screen.findByRole('list')
       expect(within(list).getByText('“Meanders grow.”')).toBeInTheDocument()
-      expect(list).toHaveTextContent('From reading “A paper”, by Ada')
+      expectOrigin(list, 'From reading “A paper”', 'Ada')
       expect(box).toHaveValue('')
     })
 
@@ -218,7 +218,7 @@ describe('reading page', () => {
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       const list = await screen.findByRole('list')
       expect(list.querySelector('blockquote')).toHaveTextContent('Meanders grow.')
-      expect(list).toHaveTextContent('Quoted while reading “A paper”, by Ada')
+      expectOrigin(list, 'Quoted from “A paper”', 'Ada')
       expect(screen.getByRole('checkbox', { name: /This is a direct quote/ })).not.toBeChecked()
 
       await fireEvent.update(box, 'So bends move.')
