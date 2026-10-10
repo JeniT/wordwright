@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { ProfileInputSchema, ProfileUpdateSchema, SiteUrlSchema } from './domain'
+import {
+  ProfileInputSchema,
+  ProfileUpdateSchema,
+  SiteUrlSchema,
+  UsernameInputSchema,
+} from './domain'
 import { firstAvailable, profileIdFor, slugify, suggestHandle } from './ids'
 import { detectImageType } from './images'
 
@@ -54,6 +59,20 @@ describe('firstAvailable', () => {
     expect(firstAvailable('a', () => false)).toBe('a')
     expect(firstAvailable('a', (c) => ['a', 'a2'].includes(c))).toBe('a3')
     expect(firstAvailable('a-b', (c) => c === 'a-b', '-')).toBe('a-b-2')
+  })
+})
+
+describe('UsernameInputSchema', () => {
+  it('tidies what was typed', () => {
+    expect(UsernameInputSchema.parse('  CountessAda ')).toBe('countessada')
+  })
+
+  it('refuses reserved names, however they are capitalised, with a message people can act on', () => {
+    for (const name of ['admin', 'Support', 'CLAUDE']) {
+      const result = UsernameInputSchema.safeParse(name)
+      expect(result.success, name).toBe(false)
+      expect(result.error?.issues[0]?.message).toBe('That username is reserved. Try another.')
+    }
   })
 })
 

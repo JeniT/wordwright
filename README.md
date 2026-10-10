@@ -95,7 +95,11 @@ tests inject fakes and nothing hits the network.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
-  identity provider have no form to choose it on, so they get one derived from their name, e.g. `jenit`. A profile's id is `<creator's handle>-<slug of its name>`, such as
+  identity provider have no form to choose it on, so they get one derived from their name, e.g. `jenit`, and the
+  landing page asks once whether they'd like another or want to keep it. Anyone can change theirs on the Account page
+  (`PUT /api/account/handle`, up to 5 changes a day). Profiles already created keep their address; new ones use the
+  new username. The old one is kept for its owner: nobody else can take it, but they can switch back. A few names
+  that look like the service itself (`admin`, `support`...) are reserved. A profile's id is `<creator's handle>-<slug of its name>`, such as
   `jenit-substack`; if that's taken by the same person a number is added (`jenit-substack-2`). Renaming a
   profile renames its id too; the old id permanently redirects to the new one, so shared links keep working. Two people can each have a
   `substack` because their handles differ.

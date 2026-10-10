@@ -135,6 +135,51 @@ test('renaming a profile changes its address, and the old address still works', 
   expect(res.headers()['location']).toBe(`/api/profiles/${newPath.slice(3)}`)
 })
 
+test('changes the username: existing profiles keep their address, new ones use it', async ({
+  page,
+  browser,
+}) => {
+  const who = uniqueName('Quinn')
+  const before = who.toLowerCase()
+  const after = uniqueName('writer').toLowerCase()
+  await registerUser(page, who)
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('First venue')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page).toHaveURL(`/p/${before}-first-venue`)
+
+  await page.getByRole('link', { name: who, exact: true }).click()
+  const section = page.getByRole('region', { name: 'Username' })
+  await expect(section).toContainText(`Your username is ${before}`)
+  await section.getByLabel('New username').fill('Not Valid!')
+  await expect(section.getByText('Use only letters and numbers in your username')).toBeVisible()
+  await section.getByLabel('New username').fill('admin')
+  await expect(section.getByText('That username is reserved. Try another.')).toBeVisible()
+  await expect(section.getByRole('button', { name: 'Change username' })).toBeDisabled()
+  await section.getByLabel('New username').fill(after)
+  await expect(section.getByText(`“${after}” is available.`)).toBeVisible()
+  await noViolations(page)
+  await section.getByRole('button', { name: 'Change username' }).click()
+  await expect(section).toContainText(`Your username is now ${after}`)
+
+  // The profile made earlier keeps its address; a new one starts with the new username.
+  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await expect(page.getByRole('main').getByRole('link', { name: /First venue/ })).toHaveAttribute(
+    'href',
+    `/p/${before}-first-venue`,
+  )
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Second venue')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page).toHaveURL(`/p/${after}-second-venue`)
+
+  // The old username is kept for them: nobody else can take it.
+  const other = await (await browser.newContext()).newPage()
+  await other.goto('/register')
+  await other.getByLabel('Username').fill(before)
+  await expect(other.getByText('That username is already taken. Try another.')).toBeVisible()
+})
+
 test('two people can each have a profile called "Substack", with different addresses', async ({
   page,
   browser,

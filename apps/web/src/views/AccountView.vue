@@ -8,6 +8,7 @@ import EmailSection from '../components/EmailSection.vue'
 import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import PasswordSection from '../components/PasswordSection.vue'
+import UsernameSection from '../components/UsernameSection.vue'
 
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
@@ -44,6 +45,8 @@ const deleteAccount = useMutation({
         Linked sign-in: {{ session.user.linkedProviders.join(', ') }}
       </p>
     </section>
+
+    <UsernameSection />
 
     <EmailSection />
 

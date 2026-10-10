@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { HANDLE_MAX, HANDLE_MIN, HANDLE_PATTERN } from './ids'
+import { HANDLE_MAX, HANDLE_MIN, HANDLE_PATTERN, RESERVED_HANDLES } from './ids'
 import { WebAddressSchema, withScheme } from './web-address'
 
 // ---- Shared field rules -------------------------------------------------
@@ -34,8 +34,11 @@ export const UsernameInputSchema = z
       .string()
       .min(HANDLE_MIN, `Use at least ${HANDLE_MIN} characters for your username`)
       .max(HANDLE_MAX, `Use ${HANDLE_MAX} characters or fewer for your username`)
-      .regex(HANDLE_PATTERN, 'Use only letters and numbers in your username'),
+      .regex(HANDLE_PATTERN, 'Use only letters and numbers in your username')
+      .refine((handle) => !RESERVED_HANDLES.has(handle), 'That username is reserved. Try another.'),
   )
+export const ChangeHandleInputSchema = z.object({ handle: UsernameInputSchema })
+export type ChangeHandleInput = z.infer<typeof ChangeHandleInputSchema>
 
 /** A profile's website: a plausible web address (see `WebAddressSchema`), kept short. */
 export const SiteUrlSchema = z
@@ -50,6 +53,8 @@ export const UserSchema = z.object({
   id: z.string(),
   /** Short, unique, lower-case name that prefixes the ids of profiles this person creates. */
   handle: HandleSchema,
+  /** False for a username we generated (sign-up through an identity provider) until the person answers. */
+  handleChosen: z.boolean(),
   name: z.string(),
   email: z.string(),
   /** Whether we've confirmed the person controls this address. */

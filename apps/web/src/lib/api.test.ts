@@ -6,6 +6,7 @@ import { ApiError, createApi } from './api'
 const user = {
   id: 'u1',
   handle: 'ada',
+  handleChosen: true,
   name: 'Ada',
   email: 'ada@example.com',
   emailVerified: false,

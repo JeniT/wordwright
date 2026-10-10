@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { safeNextPath, UsernameInputSchema } from '@lfwa/core'
+import { safeNextPath } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
+import { useUsernameCheck } from '../lib/useUsernameCheck'
 import { useSessionStore } from '../stores/session'
 
 const router = useRouter()
@@ -34,46 +35,7 @@ const register = useMutation({
   },
 })
 
-// ---- username availability, checked as the person types
-type Availability = 'idle' | 'checking' | 'available' | 'taken' | 'unknown'
-const availability = ref<Availability>('idle')
-const formatProblem = computed(() => {
-  if (!handle.value.trim()) return undefined
-  const parsed = UsernameInputSchema.safeParse(handle.value)
-  return parsed.success ? undefined : parsed.error.issues[0]?.message
-})
-let timer: ReturnType<typeof setTimeout> | undefined
-let latest = 0
-watch(handle, (value) => {
-  clearTimeout(timer)
-  const check = ++latest
-  if (!value.trim() || formatProblem.value) {
-    availability.value = 'idle'
-    return
-  }
-  availability.value = 'checking'
-  timer = setTimeout(async () => {
-    try {
-      const { available } = await api.handleAvailable(value)
-      // Ignore answers to anything but the latest text.
-      if (check === latest) availability.value = available ? 'available' : 'taken'
-    } catch {
-      // The server checks again on submit, so a failed check must not block signing up.
-      if (check === latest) availability.value = 'unknown'
-    }
-  }, 400)
-})
-onBeforeUnmount(() => clearTimeout(timer))
-
-const usernameHint = computed(() => {
-  if (formatProblem.value) return formatProblem.value
-  if (availability.value === 'taken') return 'That username is already taken. Try another.'
-  if (availability.value === 'available')
-    return `“${handle.value.trim().toLowerCase()}” is available.`
-  if (availability.value === 'checking') return 'Checking…'
-  return 'Letters and numbers only. It starts the address of each profile you create.'
-})
-const usernameInvalid = computed(() => !!formatProblem.value || availability.value === 'taken')
+const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle)
 </script>
 
 <template>

@@ -291,6 +291,18 @@ export const MIGRATIONS: Migration[] = [
            OR (d2.created_at = drafts.created_at AND d2.rowid < drafts.rowid))
   ) WHERE idea_id IS NOT NULL;
   `,
+  // T18: usernames can change. A former username is kept here and can't be taken by anyone else
+  // (profile addresses and invitations may still mention it), but its owner can come back to it.
+  // handle_chosen is false only for sign-ups through an identity provider, who were given one.
+  `
+  ALTER TABLE users ADD COLUMN handle_chosen INTEGER NOT NULL DEFAULT 1;
+  CREATE TABLE retired_handles (
+    handle TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    retired_at TEXT NOT NULL
+  );
+  CREATE INDEX retired_handles_user ON retired_handles(user_id);
+  `,
 ]
 
 /**

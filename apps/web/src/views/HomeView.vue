@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import ProfileImage from '../components/ProfileImage.vue'
+import UsernameSection from '../components/UsernameSection.vue'
 import { api } from '../lib/api'
 import { displayHost, useProfiles } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
@@ -16,6 +17,13 @@ const justConnected = ref(false)
 </script>
 
 <template>
+  <!-- Sign-ups through Google are given a username; ask once whether they'd like another. -->
+  <div
+    v-if="session.user && !session.user.handleChosen"
+    class="mb-10 rounded-lg border border-stone-200 bg-white p-5"
+  >
+    <UsernameSection prompt />
+  </div>
   <div
     v-if="llm.data.value && !llm.data.value.hasKey"
     class="mb-10 rounded-lg border border-stone-200 bg-white p-5"

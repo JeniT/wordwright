@@ -3,6 +3,7 @@ import { deleteCookie, getCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import {
   BrainstormPromptInputSchema,
+  ChangeHandleInputSchema,
   ChangeEmailInputSchema,
   ChangePasswordInputSchema,
   DeleteAccountInputSchema,
@@ -20,6 +21,7 @@ export function accountRoutes(
   emailChanges: EmailChangeService,
   limiter: RateLimiter,
   brainstormPrompts: BrainstormPromptService,
+  handleChangeLimiter: RateLimiter,
 ) {
   return (
     new Hono<AppEnv>()
@@ -42,6 +44,22 @@ export function accountRoutes(
         const { newEmail, password } = c.req.valid('json')
         await emailChanges.request(user, newEmail, password).catch(toHttpError)
         return c.json({ ok: true })
+      })
+      // Each change retires a username for good, so changes are capped per person.
+      .put('/handle', validateJson(ChangeHandleInputSchema), (c) => {
+        const user = c.get('user')
+        const { handle } = c.req.valid('json')
+        // Saying "keep this one" isn't a change, so it doesn't use up the allowance.
+        if (handle !== user.handle && !handleChangeLimiter.allow(user.id)) {
+          throw new HTTPException(429, {
+            message: 'You have changed your username several times today. Try again tomorrow.',
+          })
+        }
+        try {
+          return c.json(accounts.toPublic(accounts.changeHandle(user, handle)))
+        } catch (err) {
+          return toHttpError(err)
+        }
       })
       .post('/password/setup-email', (c) => {
         const user = c.get('user')

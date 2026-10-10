@@ -122,6 +122,22 @@ export class AccountService {
     return this.d.store.users.handleTaken(handle)
   }
 
+  /**
+   * Sets the person's username (which may be the one they have, to say they're happy with it).
+   * Profile ids that already exist keep the old one; only new profiles, and renamed ones, use it.
+   */
+  changeHandle(user: UserRecord, handle: string): UserRecord {
+    const { store } = this.d
+    if (store.users.handleTaken(handle, user.id)) throw handleInUse()
+    try {
+      store.transaction(() => store.users.setHandle(user.id, handle, user.handle))
+    } catch (err) {
+      if (String(err).includes('users.handle')) throw handleInUse()
+      throw err
+    }
+    return store.users.findById(user.id)!
+  }
+
   toPublic(user: UserRecord): User {
     return this.d.store.users.toPublic(user)
   }

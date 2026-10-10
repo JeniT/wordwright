@@ -6,6 +6,8 @@ import { nowIso } from './database'
 export interface UserRecord {
   id: string
   handle: string
+  /** False while the username is one we generated and the person hasn't answered yet. */
+  handleChosen: boolean
   name: string
   email: string
   emailVerified: boolean
@@ -42,14 +44,53 @@ export class UserStore {
       firstAvailable(suggestHandle(input.name, input.email), (h) => this.handleTaken(h))
     this.db
       .prepare(
-        'INSERT INTO users (id, handle, name, email, email_verified, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        `INSERT INTO users (id, handle, handle_chosen, name, email, email_verified, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, handle, input.name, input.email, input.emailVerified ? 1 : 0, nowIso())
-    return { id, handle, name: input.name, email: input.email, emailVerified: input.emailVerified }
+      .run(
+        id,
+        handle,
+        input.handle === undefined ? 0 : 1,
+        input.name,
+        input.email,
+        input.emailVerified ? 1 : 0,
+        nowIso(),
+      )
+    return {
+      id,
+      handle,
+      handleChosen: input.handle !== undefined,
+      name: input.name,
+      email: input.email,
+      emailVerified: input.emailVerified,
+    }
   }
 
-  handleTaken(handle: string): boolean {
-    return this.db.prepare('SELECT 1 FROM users WHERE handle = ?').get(handle) !== undefined
+  /** Whether someone else has it: in use, or kept for the person who used to have it. */
+  handleTaken(handle: string, exceptUserId?: string): boolean {
+    const owner = this.db.prepare('SELECT id FROM users WHERE handle = ?').get(handle) as
+      { id: string } | undefined
+    if (owner) return owner.id !== exceptUserId
+    const retired = this.db
+      .prepare('SELECT user_id FROM retired_handles WHERE handle = ?')
+      .get(handle) as { user_id: string } | undefined
+    return retired !== undefined && retired.user_id !== exceptUserId
+  }
+
+  /**
+   * Gives the user this username and records that they chose it. Their old one is kept for them
+   * (see `retired_handles`). Call inside a transaction, after checking `handleTaken`.
+   */
+  setHandle(id: string, handle: string, current: string) {
+    if (handle !== current) {
+      this.db
+        .prepare(
+          'INSERT OR IGNORE INTO retired_handles (handle, user_id, retired_at) VALUES (?, ?, ?)',
+        )
+        .run(current, id, nowIso())
+      this.db.prepare('DELETE FROM retired_handles WHERE handle = ?').run(handle)
+    }
+    this.db.prepare('UPDATE users SET handle = ?, handle_chosen = 1 WHERE id = ?').run(handle, id)
   }
 
   findById(id: string): UserRecord | undefined {
@@ -124,6 +165,7 @@ export class UserStore {
     return {
       id: user.id,
       handle: user.handle,
+      handleChosen: user.handleChosen,
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
@@ -187,6 +229,7 @@ export class UserStore {
     return {
       id: r.id as string,
       handle: r.handle as string,
+      handleChosen: r.handle_chosen === 1,
       name: r.name as string,
       email: r.email as string,
       emailVerified: r.email_verified === 1,

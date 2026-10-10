@@ -11,6 +11,7 @@ import { createAppRouter } from './router'
 export const testUser = {
   id: 'u1',
   handle: 'adalovelace',
+  handleChosen: true,
   name: 'Ada Lovelace',
   email: 'ada@example.com',
   emailVerified: true,

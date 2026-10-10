@@ -10,6 +10,31 @@
 export const HANDLE_MIN = 3
 export const HANDLE_MAX = 30
 export const HANDLE_PATTERN = /^[a-z0-9]+$/
+/**
+ * Usernames nobody may take, because they would look like the service or its staff in a profile
+ * address. Only checked when a username is chosen, so an account that already has one keeps it.
+ */
+export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
+  'admin',
+  'administrator',
+  'moderator',
+  'root',
+  'staff',
+  'support',
+  'help',
+  'team',
+  'official',
+  'security',
+  'abuse',
+  'system',
+  'postmaster',
+  'webmaster',
+  'api',
+  'www',
+  'mail',
+  'claude',
+  'anthropic',
+])
 
 const SLUG_MAX = 40
 /** Room kept for a numeric suffix when a candidate is already taken. */
