@@ -340,6 +340,28 @@ draft: a note goes into one piece, and putting it back is how it goes into anoth
 - **Found on the way:** the drafting page had no level-one heading (the title is a field), which the first axe check
   of that page caught; it now has a visually hidden one.
 
+## Reading an item: the page opens in its own tab, the notes stay here (T32, decision D4)
+
+Each reading-list item has a **Take notes** page. It shows the item, an **Open the page** link (`target="_blank"`,
+`rel="noopener noreferrer"`), a "I have read this" checkbox (the same say-so as on the idea page), the notes already
+taken from this item, and a box to add another. A note added here is sent with `readingItemId`, so it has origin
+`reading`, names the item in its origin line ("From reading “Title”, by Ada") and appears among the idea's notes too.
+
+- **D4 option 1, not a reader view or an iframe.** Most sites forbid being framed (`X-Frame-Options` /
+  `frame-ancestors`) and we can't override that, and a reader view means a new dependency, sanitising untrusted HTML
+  and copyright care. Opening the page in a tab works for every site, including paywalled ones the writer can already
+  read, and puts no third-party content on our origin. A reader view can come later behind the same page.
+- **Side by side is the writer's to arrange.** A web page cannot ask the browser for a split view: Chrome's Split View
+  API (`tabs.create({ splitWithTabId })`, Chrome 155) is for browser extensions only, and the other browsers' split
+  views (Edge, Vivaldi, Firefox's experimental one, Zen) are, as far as we found, controlled only by the person. So the page only says, in plain words,
+  that the two tabs are best put side by side. A browser extension would be the way to automate it; that is the
+  "extension" option in D4 and not worth building for this.
+- **Quote or own words: not told apart yet.** Both are plain notes against the item. Marking a note as a quotation
+  (so a quotation can't be mistaken for the writer's own words once it is in a draft) needs a column and a rule for how
+  quotes are inserted; it is a follow-up, not part of this task.
+- **Profile level.** Only an idea has a reading list so far (the profile's feeds are sources, not items), so this page
+  is for an idea's items. A profile-level list (T37) would reuse the page.
+
 ## Idea sources: an ordered list of feeds, edited by any member
 
 Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the

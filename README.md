@@ -89,7 +89,7 @@ tests inject fakes and nothing hits the network.
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
   and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
   item also records where it came from (`entered`, or later `brainstorm`, `research`, `idea_generation`). A note can be
-  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`). The lookup goes through the `PageInfoFetcher` port
+  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`); each item has a **Take notes** page (`/p/:profile/ideas/:idea/reading/:item`) that opens the page in a new tab and keeps a notes box beside it. The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
   **Notes while drafting:** the drafting page lists the idea's notes beside the editor (a slide-over on a phone);
   `POST /api/profiles/:id/drafts/:draft/insertions` (`{noteId, text}`) records that a note's words were put into the

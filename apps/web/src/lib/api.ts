@@ -216,8 +216,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // notes: index cards for an idea, in the order the person arranged them
     listIdeaNotes: (profileId: string, id: string) =>
       get(IdeaNoteSchema.array(), 'GET', `${ideas(profileId)}/${id}/notes`),
-    addIdeaNote: (profileId: string, id: string, text: string) =>
-      get(IdeaNoteSchema, 'POST', `${ideas(profileId)}/${id}/notes`, { text }),
+    /** With `readingItemId` the note is taken from that item of the reading list (its origin is then `reading`). */
+    addIdeaNote: (profileId: string, id: string, text: string, readingItemId?: string) =>
+      get(IdeaNoteSchema, 'POST', `${ideas(profileId)}/${id}/notes`, { text, readingItemId }),
     updateIdeaNote: (profileId: string, id: string, noteId: string, text: string) =>
       get(IdeaNoteSchema, 'PATCH', `${ideas(profileId)}/${id}/notes/${noteId}`, { text }),
     removeIdeaNote: (profileId: string, id: string, noteId: string) =>

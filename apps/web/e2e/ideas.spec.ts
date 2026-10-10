@@ -275,3 +275,53 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
     'The moon pulls the sea.',
   )
 })
+
+test('reads a reading-list item and takes notes from it, on a phone too', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 })
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Take notes' }).click()
+  await expect(
+    page.getByRole('heading', { level: 1, name: /Fake title for example\.org/ }),
+  ).toBeVisible()
+  await expect(page.getByText(/No notes from this page yet/)).toBeVisible()
+  // The page itself opens in its own tab: most sites refuse to be shown inside another page.
+  await expect(page.getByRole('link', { name: /Open the page/ })).toHaveAttribute(
+    'href',
+    'https://example.org/meanders',
+  )
+  await noViolations(page, 'reading page, no notes yet')
+
+  // A quote, then the writer's own words: both are kept against the page and say where they came from.
+  const box = page.getByLabel('Add a note from this page')
+  await box.fill('“Meanders grow because the outside of a bend erodes faster.”')
+  await page.getByRole('button', { name: 'Add note' }).click()
+  await expect(box).toHaveValue('')
+  await box.fill('So the bend moves downstream.')
+  await page.getByRole('button', { name: 'Add note' }).click()
+  const list = page.getByRole('list')
+  await expect(list.getByRole('listitem')).toHaveCount(2)
+  await expect(list).toContainText('From reading “Fake title for example.org')
+  await page.getByRole('checkbox', { name: 'I have read this' }).check()
+  await noViolations(page, 'reading page with notes')
+
+  // They are remembered, and they join the idea's other notes, still naming the page they came from.
+  await page.reload()
+  await expect(page.getByRole('checkbox', { name: 'I have read this' })).toBeChecked()
+  await expect(page.getByText('So the bend moves downstream.')).toBeVisible()
+  await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
+  await expect(
+    notes.getByText(/From reading “Fake title for example\.org.*”, by Ida/).first(),
+  ).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
+})

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { nextTick, ref, useTemplateRef } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { IdeaLink, ReadingOrigin } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import TextField from './TextField.vue'
@@ -109,7 +110,7 @@ const save = useMutation({
     </form>
 
     <div v-else class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-      <div class="flex min-w-0 flex-1 items-start gap-3">
+      <div class="flex min-w-[14rem] flex-1 items-start gap-3">
         <label class="mt-0.5 flex shrink-0 items-center gap-1.5 text-sm">
           <input
             ref="readBox"
@@ -122,7 +123,13 @@ const save = useMutation({
           />
           Read
         </label>
-        <a :href="link.url" target="_blank" rel="noopener noreferrer" class="min-w-0 underline">
+        <a
+          :id="`reading-item-${link.id}`"
+          :href="link.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="min-w-0 underline"
+        >
           <span class="block truncate">{{ label() }}</span>
           <span v-if="link.title" class="block truncate text-sm text-stone-600">{{
             link.url
@@ -131,6 +138,13 @@ const save = useMutation({
         </a>
       </div>
       <div class="flex shrink-0 gap-2">
+        <RouterLink
+          :to="{ name: 'reading', params: { profileId, id: ideaId, linkId: link.id } }"
+          class="btn btn-neutral"
+          :aria-describedby="`reading-item-${link.id}`"
+        >
+          Take notes
+        </RouterLink>
         <button
           ref="editButton"
           type="button"
