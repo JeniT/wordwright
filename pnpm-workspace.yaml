@@ -2,6 +2,7 @@ packages:
   - apps/*
   - packages/*
   - prompts
+  - evals
 minimumReleaseAgeExclude:
   - vite@8.3.4
 allowBuilds:

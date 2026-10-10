@@ -428,3 +428,33 @@ visiting or reloading never spends the person's money by itself; a direct visit 
 button instead. A message that couldn't begin (no key, throttled, someone else replying) goes back into the box.
 Found by the axe checks: `role="log"` isn't allowed on a list (it wraps one), and suggestion cards are `h2` under the
 page's `h1`.
+
+## Behaviour evals send what the app sends, and adapters must pass them
+
+The responsible-AI boundaries (`docs/responsible-ai.md`) are mostly prompt-level, and models differ on them, so they
+are tested against the real model. The harness (`evals/`, `@lfwa/evals`) is built so that what is tested is what is
+sent: it imports the app's own prompt files, tool list (`BRAINSTORM_TOOLS`), system-prompt assembly
+(`brainstormSystem`) and snapshot builder (`formatSnapshot`), and calls the model through our `LLMProvider` port, built
+by the app's `realLlmFactory`. So it evaluates the adapter and the way the app drives it, not a vendor SDK, and a new
+adapter registered in `llm-factory.ts` is evaluated with no change to the evals. The cases are typed data in
+`evals/src/cases.ts`; `pnpm eval` writes a promptfoo config from them (the only use of promptfoo, pinned, with its
+telemetry and sharing switched off, because the fixtures are writing) and promptfoo runs them through a TypeScript
+provider.
+
+- **Not CI, not `pnpm check`.** They cost money, need a key (the project has no shared key; the owner's or the
+  adapter-acceptor's goes in `EVAL_API_KEY`), are nondeterministic, and rubrics are graded by a second model call
+  (`anthropic:messages:claude-sonnet-5-5` by default; `--grader` changes it, and it needs `ANTHROPIC_API_KEY`). The
+  harness itself, the request builders and the config generator are unit-tested in `pnpm check`, with the fake adapter
+  as a dry run (`--provider fake` needs no key, though rubrics can't then be graded).
+- **Two groups.** `current` cases are behaviour the prompts already ask for, so a failure is a regression. `targets`
+  cases define work that is planned (#45 critique, #46 brainstorm wrap-up, #49 distress and flattery) and may fail
+  until it lands; that issue promotes its cases. Writing them first makes the issue's definition of done concrete.
+- **Structural boundaries are ordinary tests.** `brainstorm-boundaries.test.ts` fails if a tool gains a field that
+  could name a draft, an id or a profile, if a planted field survives validation, if a draft could carry text into the
+  snapshot, or if the person's prompt could displace the app's rules. Adding to a tool is allowed, but must be a
+  decision: the allowed-inputs list in the test has to be edited with it.
+- **Adapters.** Accepting a new LLM adapter now means the contract suite and `pnpm eval:adapter`, with the summary
+  pasted in the issue. Cases that a weaker model fails are information for the owner, not an automatic veto.
+- **Limits.** The cases were written without running them against a real model, so the first run may show a rubric
+  that is too strict or too loose; tune the case, and say so in the commit. LLM-graded rubrics can flake: rerun a
+  failure before believing it. The critique case calls `complete()` as the route does, so it does not use `chat()`.

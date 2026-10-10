@@ -15,6 +15,9 @@
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
     "test:e2e": "pnpm --filter @lfwa/web test:e2e",
+    "eval": "pnpm --filter @lfwa/evals eval",
+    "eval:targets": "pnpm --filter @lfwa/evals eval:targets",
+    "eval:adapter": "pnpm --filter @lfwa/evals eval:adapter",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {

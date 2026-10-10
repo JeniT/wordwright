@@ -1,0 +1,22 @@
+{
+  "name": "@lfwa/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "eval": "tsx src/run.ts current",
+    "eval:targets": "tsx src/run.ts targets",
+    "eval:adapter": "tsx src/run.ts all"
+  },
+  "dependencies": {
+    "@lfwa/core": "workspace:*",
+    "@lfwa/prompts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.3"
+  }
+}

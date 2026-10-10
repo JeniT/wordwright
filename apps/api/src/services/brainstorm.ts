@@ -41,7 +41,7 @@ export const REPLY_TIMEOUT_MS = 180_000
  * What the AI can do. `add_note` takes effect at once (it only ever adds a short note, which the writer can
  * delete); the other two only ever become proposals a person accepts.
  */
-const TOOLS = [
+export const BRAINSTORM_TOOLS = [
   llmTool({
     name: 'add_note',
     description: ADD_NOTE_TOOL_PROMPT,
@@ -94,6 +94,10 @@ interface ReplyContext {
 export interface Turn {
   run(signal: AbortSignal): AsyncIterable<BrainstormEvent>
 }
+
+/** What is sent as the system prompt: the person's prompt, then the rules they can't edit. The evals use this too. */
+export const brainstormSystem = (personsPrompt: string) =>
+  `${personsPrompt}\n\n${BRAINSTORM_RULES_PROMPT}`
 
 const fail = (status: 400 | 404 | 409 | 429, message: string) =>
   new HTTPException(status, { message })
@@ -187,7 +191,7 @@ export class BrainstormService {
       throw fail(429, "You're sending messages very quickly. Wait a few minutes and try again.")
     }
     const { llm, provider, model } = this.d.resolveLlm(user.id)
-    const system = `${this.d.prompts.effective(user.id)}\n\n${BRAINSTORM_RULES_PROMPT}`
+    const system = brainstormSystem(this.d.prompts.effective(user.id))
 
     this.replying.set(idea.id, { name: user.name, since: this.now() })
     try {
@@ -292,7 +296,7 @@ export class BrainstormService {
         const request = {
           system,
           messages: this.replay(store.conversations.messages(idea.id)),
-          tools: TOOLS,
+          tools: BRAINSTORM_TOOLS,
           effort: 'medium' as const,
           signal,
         }

@@ -22,8 +22,12 @@ The instructions we give the AI live here, as plain Markdown files, so they're e
 
 ## Checking a change
 
-[`evals/promptfooconfig.yaml`](../evals/promptfooconfig.yaml) runs example inputs through these prompts and grades
-the answers (it needs an `ANTHROPIC_API_KEY`; run it from the repo root, as the file's header says). Add a case when you change what a prompt should do.
+The behaviour evals in [`evals/`](../evals/src/cases.ts) send the model exactly what the app sends (these prompt
+files, the app's own tool list, a realistic snapshot) and grade the replies. `pnpm eval` runs the cases for behaviour the
+prompts already ask for; `pnpm eval:targets` runs the ones that define planned work. They need `EVAL_API_KEY` (or
+`ANTHROPIC_API_KEY`), spend that key's money, and are not part of `pnpm check` or CI. Add a case in
+[`evals/src/cases.ts`](../evals/src/cases.ts) when you change what a prompt should do, and tell the owner, who reviews
+prompt changes.
 
 ## How they're loaded
 

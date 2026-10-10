@@ -14,13 +14,13 @@ and an LLM-powered critique. The rest is built on the same provider architecture
 
 ## Stack
 
-| Concern         | Choice                                                                         |
-| --------------- | ------------------------------------------------------------------------------ |
-| Monorepo        | pnpm workspaces, TypeScript (strict)                                           |
-| `apps/web`      | Vue 3, Vite, Pinia, Vue Router, TanStack Query, Tiptap, Tailwind CSS v4        |
-| `apps/api`      | Hono on Node, Zod validation, SQLite (`node:sqlite`)                           |
-| `packages/core` | Domain schemas (Zod) and provider interfaces + adapters, shared by web and api |
-| Tests           | Vitest, Testing Library, MSW, Playwright (+ axe), Promptfoo (`evals/`)         |
+| Concern         | Choice                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| Monorepo        | pnpm workspaces, TypeScript (strict)                                                                 |
+| `apps/web`      | Vue 3, Vite, Pinia, Vue Router, TanStack Query, Tiptap, Tailwind CSS v4                              |
+| `apps/api`      | Hono on Node, Zod validation, SQLite (`node:sqlite`)                                                 |
+| `packages/core` | Domain schemas (Zod) and provider interfaces + adapters, shared by web and api                       |
+| Tests           | Vitest, Testing Library, MSW, Playwright (+ axe), Promptfoo (`evals/`, see `docs/responsible-ai.md`) |
 
 ## Getting started
 

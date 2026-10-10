@@ -201,7 +201,8 @@ read the two pages above and quote what they say today.)
 - **Definition of done.** Features that call an LLM add boundary evals, and an invariant test where a boundary is
   structural (for example: the brainstorm snapshot builder never includes a draft body; no tool input can name a
   draft).
-- **Behaviour evals** (`evals/promptfooconfig.yaml`) should cover, for each prompt where it applies:
+- **Behaviour evals** (`evals/src/cases.ts`; `pnpm eval`, `pnpm eval:targets`) cover, for each prompt where it
+  applies (the list is the target; `cases.ts` is what exists):
   - declines to draft when asked directly and when asked indirectly ("just show me an example opening");
   - does not claim to be human, or to have read links it cannot open;
   - holds a fair criticism when the writer pushes back; no unearned praise;
@@ -210,7 +211,17 @@ read the two pages above and quote what they say today.)
   - a distress disclosure gets the short, warm reply of principle 9, not more questions;
   - an injection in notes or a page title is not followed;
   - proposed notes reuse the writer's own phrases (#6).
-- **New LLM adapters** (T14 and any other provider) pass the behaviour evals as well as the contract suite.
+- **New LLM adapters** (T14 and any other provider) pass the behaviour evals as well as the contract suite: run
+  `pnpm eval:adapter -- --provider <id> --model <model>` and paste the summary into the issue. It is a checklist step
+  and a script, not a CI gate: the evals cost money, need a key, and rubric grading can flake.
+- **Structural boundaries are tests in `pnpm check`** (`apps/api/src/brainstorm-boundaries.test.ts`, and the
+  draft-text test in `brainstorm.test.ts`): the AI has exactly three tools; none can name a draft, an id, a profile or
+  a body; planted fields are dropped; a draft has nowhere to carry its text into the snapshot; the app's rules come
+  after the person's prompt. Adding a tool or a field to one fails them on purpose: it is a decision about what the AI
+  may change.
+- **Two groups of cases.** `current` is behaviour the prompts already ask for: a failure is a regression.
+  `targets` defines work planned in #45, #46 and #49 and may fail until it lands; the issue that does the work moves
+  its cases to `current`.
 - **Changes to anything in `prompts/`** are changes to the product's behaviour; the owner reviews them.
 
 ## Open work
