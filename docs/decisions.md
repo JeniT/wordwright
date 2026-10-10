@@ -359,6 +359,9 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **Quote or own words:** the writer says which (see the next section).
 - **The box for a new note is above the notes taken so far** (#57), so it stays in the same place as the list
   grows instead of being pushed off the screen.
+- **Other pages found while reading** (#56) are added from the same page: a web-address box (the idea page's checks
+  and title lookup, same call) puts the page on the reading list as `entered`, the page stays open, and a link offers
+  to read the new item next. Nothing is read or noted for the writer.
 - **Profile level.** Only an idea has a reading list so far (the profile's feeds are sources, not items), so this page
   is for an idea's items. A profile-level list (T37) would reuse the page.
 

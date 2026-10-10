@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import type { IdeaNote } from '@lfwa/core'
 import NoteText from '../components/NoteText.vue'
 import TextAreaField from '../components/TextAreaField.vue'
+import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { noteOriginLabel } from '../lib/note-label'
 
@@ -43,6 +44,23 @@ const setRead = useMutation({
   },
 })
 const readBox = ref<HTMLInputElement>()
+
+// ---- other pages found on this one: straight onto the reading list
+const linkUrl = ref('')
+/** The item just added, so the writer can go on to read it. */
+const justAdded = ref<{ id: string; label: string } | null>(null)
+// On failure what was typed stays in the field, with the reason shown under it.
+const addLink = useMutation({
+  mutationFn: () => api.addIdeaLink(props.profileId, props.id, { url: linkUrl.value }),
+  onSuccess: async (saved) => {
+    const before = new Set(idea.data.value?.links.map((l) => l.id))
+    const added = saved.links.find((l) => !before.has(l.id))
+    justAdded.value = added ? { id: added.id, label: added.title || added.url } : null
+    linkUrl.value = ''
+    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
+    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
+  },
+})
 
 const text = ref('')
 const isQuote = ref(false)
@@ -122,6 +140,47 @@ const add = useMutation({
       </label>
       <p v-if="setRead.isError.value" role="alert" class="mt-1 text-sm text-red-700">
         Couldn't save that. Please try again.
+      </p>
+    </section>
+
+    <section aria-labelledby="more-links-heading" class="mb-8">
+      <h2 id="more-links-heading" class="mb-1 font-serif text-xl font-semibold">
+        Other pages worth reading
+      </h2>
+      <p class="mb-3 text-sm text-stone-700">
+        Does this page link to something else you should read? Paste its web address to put it on
+        the reading list, and carry on here.
+      </p>
+      <form @submit.prevent="addLink.mutate()">
+        <TextField
+          v-model="linkUrl"
+          label="Web address"
+          required
+          autocomplete="off"
+          autocapitalize="none"
+          :spellcheck="false"
+          :invalid="addLink.isError.value"
+          :hint="
+            addLink.isError.value
+              ? errorMessage(addLink.error.value)
+              : 'For example, https://example.org/article. We look up its title for you.'
+          "
+          @update:model-value="addLink.isError.value && addLink.reset()"
+        />
+        <button type="submit" class="btn btn-outline" :disabled="addLink.isPending.value">
+          {{ addLink.isPending.value ? 'Adding…' : 'Add to reading list' }}
+        </button>
+      </form>
+      <p role="status" class="mt-2 text-sm">
+        <template v-if="justAdded">
+          Added “{{ justAdded.label }}” to the reading list.
+          <RouterLink
+            :to="{ name: 'reading', params: { profileId, id, linkId: justAdded.id } }"
+            class="underline"
+          >
+            Read it and take notes
+          </RouterLink>
+        </template>
       </p>
     </section>
 

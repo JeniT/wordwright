@@ -293,6 +293,15 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
     page.getByRole('heading', { level: 1, name: /Fake title for example\.org/ }),
   ).toBeVisible()
   await expect(page.getByText(/No notes from this page yet/)).toBeVisible()
+
+  // Another page found on this one goes straight onto the reading list, and can be read next.
+  await page.getByLabel('Web address', { exact: true }).fill('rubbish')
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await expect(page.getByText('Enter a web address, like https://example.com')).toBeVisible()
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/second')
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await expect(page.getByRole('status')).toContainText('to the reading list')
+  await noViolations(page, 'reading page after adding another page')
   // The page itself opens in its own tab: most sites refuse to be shown inside another page.
   await expect(page.getByRole('link', { name: /Open the page/ })).toHaveAttribute(
     'href',
@@ -323,7 +332,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(
     notes.getByText(/From reading “Fake title for example\.org.*”, by Ida/).first(),
   ).toBeVisible()
-  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
+  // (the first item; the second, added from the reading page, is unread)
+  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ }).first()).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toHaveCount(2)
 })
 
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({

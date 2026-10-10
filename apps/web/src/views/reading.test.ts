@@ -221,6 +221,62 @@ describe('reading page', () => {
     })
   })
 
+  describe('adding another page to the reading list', () => {
+    const added = (title: string) => ({
+      ...idea,
+      links: [
+        ...idea.links,
+        { id: 'l3', url: 'https://example.org/new', title, readAt: null, origin: 'entered' },
+      ],
+    })
+
+    it('sends just the address, clears the box, and offers to read the new page next', async () => {
+      const sent: unknown[] = []
+      await open('l1', [
+        http.post(`${ideaUrl}/links`, async ({ request }) => {
+          sent.push(await request.json())
+          return HttpResponse.json(added('Fetched title'), { status: 201 })
+        }),
+      ])
+      const box = await screen.findByLabelText('Web address')
+      await fireEvent.update(box, 'example.org/new')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      const status = await screen.findByRole('status')
+      await waitFor(() => expect(status).toHaveTextContent('Added “Fetched title”'))
+      expect(sent).toEqual([{ url: 'example.org/new' }])
+      expect(box).toHaveValue('')
+      expect(within(status).getByRole('link', { name: 'Read it and take notes' })).toHaveAttribute(
+        'href',
+        readingPath('l3'),
+      )
+      // Still on the page being read, with its notes box untouched.
+      expect(screen.getByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
+    })
+
+    it('calls a page with no title by its address', async () => {
+      await open('l1', [
+        http.post(`${ideaUrl}/links`, () => HttpResponse.json(added(''), { status: 201 })),
+      ])
+      await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      expect(await screen.findByText(/Added “https:\/\/example\.org\/new”/)).toBeInTheDocument()
+    })
+
+    it('keeps what was typed, and says what is wrong, when it could not be added', async () => {
+      await open('l1', [
+        http.post(`${ideaUrl}/links`, () =>
+          HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
+        ),
+      ])
+      const box = await screen.findByLabelText('Web address')
+      await fireEvent.update(box, 'example.org/paper')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      expect(await screen.findByText('That link is already in this idea.')).toBeInTheDocument()
+      expect(box).toHaveValue('example.org/paper')
+      expect(screen.queryByText(/to the reading list\./)).toBeNull()
+    })
+  })
+
   describe('marking it read', () => {
     it('saves read, then unread', async () => {
       const sent: unknown[] = []
