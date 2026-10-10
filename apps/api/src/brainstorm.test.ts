@@ -301,6 +301,20 @@ describe('carrying on the conversation', () => {
     }
   })
 
+  it("shows a sender's new name on the messages they sent before they changed it", async () => {
+    const { ctx, ada, send, thread, addBob } = await world()
+    const bob = await addBob()
+    ctx.setChat(() => ({ text: 'Noted.' }))
+    await send(ada, START)
+    await send(bob, say('Bob here.'))
+    const senders = async () =>
+      (await thread(ada)).messages.filter((m) => m.role === 'user').map((m) => m.authorName)
+    expect(await senders()).toEqual(['Ada', 'Bob'])
+
+    expect((await bob.put('/api/account/name', { name: 'Robert' })).status).toBe(200)
+    expect(await senders()).toEqual(['Ada', 'Robert'])
+  })
+
   it('shares one thread between members, each message using its sender key and prompt', async () => {
     const { ctx, ada, send, thread, addBob } = await world()
     const bob = await addBob()

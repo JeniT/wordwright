@@ -7,6 +7,7 @@ import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
 import EmailSection from '../components/EmailSection.vue'
 import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
+import NameSection from '../components/NameSection.vue'
 import PasswordSection from '../components/PasswordSection.vue'
 import UsernameSection from '../components/UsernameSection.vue'
 
@@ -45,6 +46,8 @@ const deleteAccount = useMutation({
         Linked sign-in: {{ session.user.linkedProviders.join(', ') }}
       </p>
     </section>
+
+    <NameSection />
 
     <UsernameSection />
 

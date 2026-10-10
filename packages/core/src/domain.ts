@@ -23,6 +23,8 @@ export const NameSchema = z
   .trim()
   .min(1, 'Enter a name')
   .max(100, 'Use 100 characters or fewer for the name')
+export const ChangeNameInputSchema = z.object({ name: NameSchema })
+export type ChangeNameInput = z.infer<typeof ChangeNameInputSchema>
 export const HandleSchema = z.string().min(HANDLE_MIN).max(HANDLE_MAX).regex(HANDLE_PATTERN)
 /** What people type as a username: tolerant of case and stray spaces, strict about the result. */
 export const UsernameInputSchema = z

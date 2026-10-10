@@ -108,6 +108,9 @@ tests inject fakes and nothing hits the network.
   page shows step-by-step instructions for getting an Anthropic API key, with a field to paste it into, until
   a key is saved (new users have to do this before the AI features work); a new user with no profile is also
   prompted to create one.
+- **Your name:** the name from sign-up is what other people see on notes, brainstorm messages, member lists and
+  invitations. It can be changed on the Account page (`PUT /api/account/name`) and changes everywhere at once, since
+  nothing stores a copy; emails already sent keep the old one.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.

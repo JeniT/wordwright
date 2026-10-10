@@ -138,6 +138,15 @@ export class AccountService {
     return store.users.findById(user.id)!
   }
 
+  /**
+   * Changes the name other people see (brainstorm messages, note authors, member lists, invitations).
+   * Nothing stores a copy of it: those places read the current name each time they are shown.
+   */
+  changeName(user: UserRecord, name: string): UserRecord {
+    this.d.store.users.setName(user.id, name)
+    return this.d.store.users.findById(user.id)!
+  }
+
   toPublic(user: UserRecord): User {
     return this.d.store.users.toPublic(user)
   }

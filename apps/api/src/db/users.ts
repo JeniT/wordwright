@@ -147,6 +147,10 @@ export class UserStore {
     return row && new Date(row.created_at)
   }
 
+  setName(id: string, name: string) {
+    this.db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, id)
+  }
+
   markEmailVerified(id: string) {
     this.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(id)
   }

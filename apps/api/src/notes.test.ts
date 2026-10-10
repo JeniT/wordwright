@@ -127,6 +127,13 @@ describe('idea notes', () => {
     expect((await eve.post(notes(), { text: 'hi' })).status).toBe(404)
   })
 
+  it("shows an author's new name on notes they wrote before they changed it", async () => {
+    await add('Written as Ada')
+    expect((await list()).map((n) => n.authorName)).toEqual(['Ada'])
+    expect((await ada.put('/api/account/name', { name: 'Ada King' })).status).toBe(200)
+    expect((await list()).map((n) => n.authorName)).toEqual(['Ada King'])
+  })
+
   it("names each note's author, and says nothing once they have left", async () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')

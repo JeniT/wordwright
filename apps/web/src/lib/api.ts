@@ -108,6 +108,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       act('POST', '/auth/reset-password', { token, password }),
     changePassword: (currentPassword: string, newPassword: string) =>
       act('POST', '/account/password', { currentPassword, newPassword }),
+    /** Sets the name other people see. Answers with the updated user. */
+    changeName: (name: string) => get(UserSchema, 'PUT', '/account/name', { name }),
     /** Sets the username (or confirms the current one). Answers with the updated user. */
     changeHandle: (handle: string) => get(UserSchema, 'PUT', '/account/handle', { handle }),
     changeEmail: (newEmail: string, password: string) =>

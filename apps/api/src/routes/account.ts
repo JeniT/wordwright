@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception'
 import {
   BrainstormPromptInputSchema,
   ChangeHandleInputSchema,
+  ChangeNameInputSchema,
   ChangeEmailInputSchema,
   ChangePasswordInputSchema,
   DeleteAccountInputSchema,
@@ -44,6 +45,12 @@ export function accountRoutes(
         const { newEmail, password } = c.req.valid('json')
         await emailChanges.request(user, newEmail, password).catch(toHttpError)
         return c.json({ ok: true })
+      })
+      // Costs nothing and guesses nothing, so it only gets the light per-person throttle.
+      .put('/name', validateJson(ChangeNameInputSchema), (c) => {
+        const user = c.get('user')
+        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        return c.json(accounts.toPublic(accounts.changeName(user, c.req.valid('json').name)))
       })
       // Each change retires a username for good, so changes are capped per person.
       .put('/handle', validateJson(ChangeHandleInputSchema), (c) => {

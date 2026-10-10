@@ -135,6 +135,49 @@ test('renaming a profile changes its address, and the old address still works', 
   expect(res.headers()['location']).toBe(`/api/profiles/${newPath.slice(3)}`)
 })
 
+test('changes the display name, which is then used wherever it is shown', async ({ page }) => {
+  const who = uniqueName('Remy')
+  await registerUser(page, who)
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Remy venue')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Remy venue' })).toBeVisible()
+  await page.getByRole('link', { name: 'Settings' }).click()
+  const member = (name: string) =>
+    page
+      .getByRole('main')
+      .getByRole('listitem')
+      .filter({ hasText: `${name} (` })
+  await expect(member(who)).toBeVisible()
+
+  await page.getByRole('link', { name: who, exact: true }).click()
+  const section = page.getByRole('region', { name: 'Your name' })
+  const field = section.getByLabel('What should we call you?')
+  const change = section.getByRole('button', { name: 'Change name' })
+  await expect(field).toHaveValue(who)
+  await expect(change).toBeDisabled()
+  await noViolations(page)
+
+  await field.fill('')
+  await expect(change).toBeDisabled()
+  await field.fill(`${who} Reed`)
+  await change.click()
+  await expect(section.getByRole('status')).toContainText(`${who} Reed`)
+  await noViolations(page)
+
+  // The header follows at once, and so does the list of people in the profile, with no other step.
+  await expect(page.getByRole('link', { name: `${who} Reed`, exact: true })).toBeVisible()
+  await page.reload()
+  await expect(field).toHaveValue(`${who} Reed`)
+  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /Remy venue/ })
+    .click()
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await expect(member(`${who} Reed`)).toBeVisible()
+})
+
 test('changes the username: existing profiles keep their address, new ones use it', async ({
   page,
   browser,
