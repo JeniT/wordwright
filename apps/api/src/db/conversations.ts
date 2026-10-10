@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { LLMContentBlock, LLMStopReason, ProposalStatus, ProposalTool } from '@lfwa/core'
+import type {
+  LLMContentBlock,
+  LLMStopReason,
+  ProposalStatus,
+  ProposalTool,
+  RecordedNote,
+} from '@lfwa/core'
 import { nowIso } from './database'
 
 export interface MessageRecord {
@@ -41,11 +47,18 @@ export interface ProposalRecord {
   toolCallId: string
   tool: ProposalTool
   input: { name?: string; notes?: string }
-  base: { name: string; notes: string } | null
+  /** The title when suggested (legacy threads also hold the notes). */
+  base: { name: string; notes?: string } | null
   status: ProposalStatus
   decidedByName: string | null
   decidedAt: string | null
   createdIdeaId: string | null
+}
+
+/** A point the AI recorded (or tried to record) as a note in one of its replies. */
+export interface RecordedNoteRecord extends RecordedNote {
+  messageId: string
+  toolCallId: string
 }
 
 /** The brainstorming thread of each idea. Callers check that the person belongs to the idea's profile first. */
@@ -137,6 +150,35 @@ export class ConversationStore {
         p.base && JSON.stringify(p.base),
       )
     return id
+  }
+
+  addRecordedNote(
+    messageId: string,
+    n: { toolCallId: string; text: string; outcome: RecordedNote['outcome']; noteId?: string },
+  ): string {
+    const id = randomUUID()
+    this.db
+      .prepare(
+        `INSERT INTO idea_message_notes (id, message_id, tool_call_id, text, outcome, note_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(id, messageId, n.toolCallId, n.text, n.outcome, n.noteId ?? null)
+    return id
+  }
+
+  /** The points recorded as notes in one message, in the order they were made. */
+  recordedNotes(messageId: string): RecordedNoteRecord[] {
+    return this.db
+      .prepare('SELECT * FROM idea_message_notes WHERE message_id = ? ORDER BY rowid')
+      .all(messageId)
+      .map((r) => ({
+        id: r.id as string,
+        messageId: r.message_id as string,
+        toolCallId: r.tool_call_id as string,
+        text: r.text as string,
+        outcome: r.outcome as RecordedNote['outcome'],
+        removed: r.outcome === 'added' && r.note_id === null,
+      }))
   }
 
   /** The suggestions made in one message, in the order they were made. */

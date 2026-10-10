@@ -1,7 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 import { markdownToNotes, notesToMarkdown } from '@lfwa/core'
-import type { Idea, IdeaInput, IdeaLink, IdeaLinkInput, IdeaSummary, IdeaUpdate } from '@lfwa/core'
+import type {
+  Idea,
+  IdeaInput,
+  IdeaLink,
+  IdeaLinkInput,
+  IdeaSummary,
+  IdeaUpdate,
+  NoteOrigin,
+} from '@lfwa/core'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
 
@@ -61,7 +69,13 @@ export class IdeaStore {
     }
   }
 
-  create(profileId: string, createdBy: string, input: IdeaInput): Idea {
+  /** `origin` is where the starting notes came from. */
+  create(
+    profileId: string,
+    createdBy: string,
+    input: IdeaInput,
+    origin: NoteOrigin = 'entered',
+  ): Idea {
     const id = randomUUID()
     const now = nowIso()
     this.db
@@ -70,7 +84,7 @@ export class IdeaStore {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(id, profileId, createdBy, input.name, '', now, now)
-    this.notes.replaceAll(profileId, id, createdBy, markdownToNotes(input.notes))
+    this.notes.replaceAll(profileId, id, createdBy, markdownToNotes(input.notes), origin)
     return this.get(profileId, id)!
   }
 

@@ -4,6 +4,8 @@ import {
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
+  MAX_IDEA_NOTES,
+  MAX_NOTES_PER_REPLY,
   MAX_PROPOSALS_PER_REPLY,
   type BrainstormEvent,
   type LLMContentBlock,
@@ -57,6 +59,7 @@ interface Thread {
     status: string
     stopReason: string | null
     proposals: ThreadProposal[]
+    notes: { id: string; text: string; outcome: string; removed: boolean }[]
   }[]
   replyingNow: { name: string } | null
 }
@@ -64,6 +67,7 @@ interface Thread {
 const say = (text: string) => ({ text })
 const START = { start: true }
 const RETRY = { retry: true }
+const addNote = (text: unknown) => ({ name: 'add_note', input: { text } })
 const update = (input: object) => ({ name: 'update_idea', input })
 const create = (input: object) => ({ name: 'create_idea', input })
 
@@ -158,12 +162,18 @@ describe('starting a brainstorm', () => {
     expect(request.system).toBe(`${DEFAULT_BRAINSTORM_PROMPT}\n\n${BRAINSTORM_RULES_PROMPT}`)
     expect(request.effort).toBe('medium')
     expect(config.apiKey).toBe('sk-ant-good-key-1234567890')
-    expect(request.tools?.map((t) => t.name)).toEqual(['update_idea', 'create_idea'])
+    expect(request.tools?.map((t) => t.name)).toEqual(['add_note', 'update_idea', 'create_idea'])
     expect(request.tools?.[0]?.inputSchema).toMatchObject({
       type: 'object',
-      properties: { name: { type: 'string' }, notes: { type: 'string' } },
+      properties: { text: { type: 'string' } },
+      required: ['text'],
     })
-    expect(request.tools?.[1]?.inputSchema).toMatchObject({ required: ['name', 'notes'] })
+    expect(request.tools?.[1]?.inputSchema).toMatchObject({
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+    })
+    expect(request.tools?.[1]?.inputSchema).not.toMatchObject({ properties: { notes: {} } })
+    expect(request.tools?.[2]?.inputSchema).toMatchObject({ required: ['name', 'notes'] })
 
     const first = request.messages[0]!
     expect(first.role).toBe('user')
@@ -321,7 +331,7 @@ describe('suggestions from the AI', () => {
     ctx.setChat(() => ({
       text: 'Try this.',
       toolCalls: [
-        update({ name: 'Why rivers loop', notes: 'Sharper notes.' }),
+        update({ name: 'Why rivers loop' }),
         create({ name: 'Oxbow lakes', notes: 'A separate piece.' }),
       ],
     }))
@@ -336,7 +346,7 @@ describe('suggestions from the AI', () => {
         tool: 'update_idea',
         status: 'pending',
         stale: false,
-        input: { name: 'Why rivers loop', notes: 'Sharper notes.' },
+        input: { name: 'Why rivers loop' },
       },
       {
         tool: 'create_idea',
@@ -349,17 +359,16 @@ describe('suggestions from the AI', () => {
     expect(await (await ada.get(ideas)).json()).toHaveLength(1)
   })
 
-  it('keep only the fields that would actually change, and drop ones that change nothing', async () => {
+  it('drop a title that repeats the current one, and a notes-only update (notes are recorded with add_note)', async () => {
     const { ctx, ada, send, proposalsOf } = await world()
     ctx.setChat(() => ({
       toolCalls: [
-        update({ name: 'Why rivers meander', notes: 'Different notes.' }), // same title
-        update({ name: 'Why rivers meander', notes: '- Erosion loops.' }), // nothing new at all
+        update({ name: 'Why rivers meander' }), // nothing new
+        update({ notes: 'Different notes.' }), // no longer something it can suggest
       ],
     }))
     await send(ada, START)
-    expect(await proposalsOf()).toMatchObject([{ input: { notes: 'Different notes.' } }])
-    expect((await proposalsOf())[0]!.input).not.toHaveProperty('name')
+    expect(await proposalsOf()).toEqual([])
   })
 
   it('are ignored when invalid, unknown or too many, but still answered on the next turn', async () => {
@@ -403,7 +412,7 @@ describe('suggestions from the AI', () => {
       call === 1
         ? {
             toolCalls: [
-              update({ notes: 'New notes.' }),
+              update({ name: 'A new title' }),
               create({ name: 'Oxbow', notes: 'n' }),
               create({ name: 'Delta', notes: 'n' }),
             ],
@@ -424,7 +433,7 @@ describe('suggestions from the AI', () => {
       'tool_result',
     ])
     expect(results.map((r) => r.type === 'tool_result' && r.content)).toEqual([
-      'The writer accepted this suggestion, and the idea was updated.',
+      'The writer accepted this suggestion, and the title was changed.',
       'The writer dismissed this suggestion. Nothing was changed.',
       'The writer has not decided on this suggestion yet. Nothing has been changed.',
     ])
@@ -440,12 +449,140 @@ describe('suggestions from the AI', () => {
   })
 })
 
+describe('notes the AI records', () => {
+  const notesOf = (
+    ctx: { store: { notes: { list: (id: string) => { text: string }[] } } },
+    id: string,
+  ) => ctx.store.notes.list(id)
+
+  it('are added to the idea at once, as brainstorm notes in the name of the person who was chatting', async () => {
+    const { ctx, ada, ideas, idea, send, thread } = await world()
+    ctx.setChat(() => ({
+      text: 'I have noted two points.',
+      toolCalls: [addNote('Meanders speed up erosion.'), addNote('Oxbow lakes are cut-off loops.')],
+    }))
+    const { events } = await send(ada, START)
+
+    expect(types(events).slice(-3)).toEqual(['note', 'note', 'done'])
+    const added = ctx.store.notes.list(idea.id)
+    expect(added.map((n) => n.text)).toEqual([
+      'Erosion loops.',
+      'Meanders speed up erosion.',
+      'Oxbow lakes are cut-off loops.',
+    ])
+    expect(added[1]).toMatchObject({ origin: 'brainstorm' })
+    expect(added[1]!.authorId).toBeTruthy()
+    expect(added[1]!.authorId).toBe(added[0]!.authorId) // Ada, who was chatting
+
+    expect((await thread()).messages.at(-1)!.notes).toMatchObject([
+      { text: 'Meanders speed up erosion.', outcome: 'added', removed: false },
+      { text: 'Oxbow lakes are cut-off loops.', outcome: 'added', removed: false },
+    ])
+    // The idea shows them too, as bullets, and counts as changed.
+    const fresh = await (await ada.get(`${ideas}/${idea.id}`)).json()
+    expect(fresh.notes).toBe(
+      '- Erosion loops.\n- Meanders speed up erosion.\n- Oxbow lakes are cut-off loops.',
+    )
+  })
+
+  it('names whoever sent the message that led to them', async () => {
+    const { ctx, ada, idea, send, addBob } = await world()
+    const bob = await addBob()
+    ctx.setChat(() => ({ text: 'Noted.', toolCalls: [addNote("Bob's point.")] }))
+    await send(bob, say('Here is my point.'))
+    const bobId = (await (await bob.get('/api/auth/me')).json()).id
+    expect(ctx.store.notes.list(idea.id).at(-1)).toMatchObject({
+      text: "Bob's point.",
+      authorId: bobId,
+    })
+    void ada
+  })
+
+  it('are not added twice: a point the idea (or this reply) already has is reported, not recorded', async () => {
+    const { ctx, ada, idea, send, thread } = await world()
+    ctx.setChat(() => ({
+      toolCalls: [
+        addNote('EROSION  loops!'), // the idea's own note, differently written
+        addNote('A new point.'),
+        addNote('a new point'), // repeated in the same reply
+      ],
+    }))
+    await send(ada, START)
+    expect(notesOf(ctx, idea.id).map((n) => n.text)).toEqual(['Erosion loops.', 'A new point.'])
+    expect((await thread()).messages.at(-1)!.notes.map((n) => n.outcome)).toEqual([
+      'duplicate',
+      'added',
+      'duplicate',
+    ])
+  })
+
+  it('stop at the most notes an idea can hold', async () => {
+    const { ctx, ada, idea, send, thread } = await world()
+    for (let i = 1; i < MAX_IDEA_NOTES - 1; i++)
+      ctx.store.notes.append(idea.profileId, idea.id, null, `n${i}`)
+    ctx.setChat(() => ({ toolCalls: [addNote('Fits'), addNote('Does not fit')] }))
+    await send(ada, START)
+    expect(ctx.store.notes.count(idea.id)).toBe(MAX_IDEA_NOTES)
+    expect((await thread()).messages.at(-1)!.notes.map((n) => n.outcome)).toEqual(['added', 'full'])
+  })
+
+  it('ignore invalid input and anything past the most per reply, but still answer every call', async () => {
+    const { ctx, ada, idea, send } = await world()
+    const many = Array.from({ length: MAX_NOTES_PER_REPLY + 2 }, (_, i) => addNote(`Point ${i}`))
+    ctx.setChat((_request, call) =>
+      call === 1
+        ? { toolCalls: [addNote(''), addNote(42), { name: 'add_note', input: {} }, ...many] }
+        : { text: 'Ok.' },
+    )
+    await send(ada, START)
+    expect(notesOf(ctx, idea.id)).toHaveLength(1 + MAX_NOTES_PER_REPLY) // Ada's own, and the cap
+
+    await send(ada, say('Go on.'))
+    const results = (
+      ctx.chats.at(-1)!.request.messages.at(-1)!.content as LLMContentBlock[]
+    ).filter((b) => b.type === 'tool_result')
+    expect(results).toHaveLength(3 + many.length)
+    expect(results.filter((r) => r.type === 'tool_result' && !r.isError)).toHaveLength(
+      MAX_NOTES_PER_REPLY,
+    )
+  })
+
+  it("are reported back to the AI, and shown to it among the idea's notes on the next turn", async () => {
+    const { ctx, ada, send } = await world()
+    ctx.setChat((_request, call) =>
+      call === 1
+        ? { toolCalls: [addNote('A new point.'), addNote('erosion loops')] }
+        : { text: 'Thanks.' },
+    )
+    await send(ada, START)
+    await send(ada, say('What next?'))
+    const content = ctx.chats.at(-1)!.request.messages.at(-1)!.content as LLMContentBlock[]
+    expect(content.flatMap((b) => (b.type === 'tool_result' ? [b.content] : []))).toEqual([
+      'Recorded as a note.',
+      'Not recorded: the idea already has this point in its notes.',
+    ])
+    // The snapshot carries the new note, since the idea changed.
+    expect(textOf(content)).toContain('- A new point.')
+  })
+
+  it('show as removed once the writer deletes the note', async () => {
+    const { ctx, ada, idea, send, thread } = await world()
+    ctx.setChat(() => ({ toolCalls: [addNote('A new point.')] }))
+    await send(ada, START)
+    const note = ctx.store.notes.list(idea.id).at(-1)!
+    ctx.store.notes.remove(idea.id, note.id)
+    expect((await thread()).messages.at(-1)!.notes).toMatchObject([
+      { text: 'A new point.', outcome: 'added', removed: true },
+    ])
+  })
+})
+
 describe('accepting and dismissing suggestions', () => {
   const suggestUpdate = async (options: TestOptions = {}) => {
     const w = await world(options)
     w.ctx.setChat(() => ({
       text: 'Suggestion.',
-      toolCalls: [update({ name: 'Why rivers loop', notes: 'Sharper notes.' })],
+      toolCalls: [update({ name: 'Why rivers loop' })],
     }))
     await w.send(w.ada, START)
     const [proposal] = await w.proposalsOf()
@@ -463,7 +600,7 @@ describe('accepting and dismissing suggestions', () => {
     })
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
       name: 'Why rivers loop',
-      notes: '- Sharper notes.',
+      notes: '- Erosion loops.', // the notes are untouched
     })
     expect((await thread()).messages.at(-1)!.proposals[0]).toMatchObject({ status: 'accepted' })
 
@@ -485,38 +622,30 @@ describe('accepting and dismissing suggestions', () => {
     expect((await decide(ada, proposal.id, 'accept')).status).toBe(409)
   })
 
-  it('will not overwrite what changed since it was suggested, unless told to', async () => {
+  it('will not overwrite a title that changed since it was suggested, unless told to', async () => {
     const { ada, ideas, idea, proposal, decide, proposalsOf } = await suggestUpdate()
-    await ada.patch(`${ideas}/${idea.id}`, { notes: 'I rewrote these myself.' })
+    await ada.patch(`${ideas}/${idea.id}`, { name: 'I renamed it myself' })
     expect(await proposalsOf()).toMatchObject([{ status: 'pending', stale: true }])
 
     const refused = await decide(ada, proposal.id, 'accept')
     expect(refused.status).toBe(409)
     expect((await refused.json()).error).toMatch(/has changed since this was suggested/)
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
-      notes: '- I rewrote these myself.',
+      name: 'I renamed it myself',
     })
 
     const forced = await decide(ada, proposal.id, 'accept', { overwrite: true })
     expect(forced.status).toBe(200)
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
       name: 'Why rivers loop',
-      notes: '- Sharper notes.',
     })
   })
 
-  it("only counts the fields a suggestion replaces: editing the title doesn't stale a notes suggestion", async () => {
-    const { ctx, ada, ideas, idea, send, proposalsOf, decide } = await world()
-    ctx.setChat(() => ({ toolCalls: [update({ notes: 'Only notes.' })] }))
-    await send(ada, START)
-    await ada.patch(`${ideas}/${idea.id}`, { name: 'A new title of mine' })
-    const [proposal] = await proposalsOf()
-    expect(proposal).toMatchObject({ stale: false })
-    expect((await decide(ada, proposal!.id, 'accept')).status).toBe(200)
-    expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
-      name: 'A new title of mine',
-      notes: '- Only notes.',
-    })
+  it("editing the notes doesn't make a title suggestion stale", async () => {
+    const { ada, ideas, idea, proposal, proposalsOf, decide } = await suggestUpdate()
+    await ada.post(`${ideas}/${idea.id}/notes`, { text: 'Something I added.' })
+    expect(await proposalsOf()).toMatchObject([{ status: 'pending', stale: false }])
+    expect((await decide(ada, proposal.id, 'accept')).status).toBe(200)
   })
 
   it('creates a new idea in the same profile, with its notes, for a create suggestion', async () => {
@@ -542,6 +671,10 @@ describe('accepting and dismissing suggestions', () => {
       drafts: [],
       links: [],
     })
+    // Its starting notes say they came out of a brainstorm.
+    expect(ctx.store.notes.list(accepted.createdIdeaId)).toMatchObject([
+      { text: 'Where meanders end.', origin: 'brainstorm' },
+    ])
     // The new idea starts with a clean slate; it does not inherit the thread.
     expect(
       (await (await ada.get(`${ideas}/${accepted.createdIdeaId}/conversation`)).json()).messages,
@@ -769,7 +902,7 @@ describe('stopping a reply', () => {
     const store = ctx.store
     const llm = new FakeLLMProvider(undefined, () => ({
       text: 'one two three four',
-      toolCalls: [update({ notes: 'never made' })],
+      toolCalls: [update({ name: 'never made' }), addNote('never noted')],
     }))
     const service = new BrainstormService({
       store,
@@ -787,9 +920,10 @@ describe('stopping a reply', () => {
     }
     expect(events.at(-1)).toMatchObject({
       type: 'done',
-      message: { text: 'one ', status: 'stopped', stopReason: null, proposals: [] },
+      message: { text: 'one ', status: 'stopped', stopReason: null, proposals: [], notes: [] },
     })
     expect(service.conversation(current).replyingNow).toBeNull()
+    expect(store.notes.list(idea.id).map((n) => n.text)).toEqual(['Erosion loops.']) // nothing was noted
     // A stopped reply is replayed as it stands.
     expect(store.conversations.messages(idea.id).at(-1)).toMatchObject({
       role: 'assistant',

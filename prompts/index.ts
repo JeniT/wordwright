@@ -20,6 +20,7 @@ export const BRAINSTORM_RULES_PROMPT = prompt('brainstorm-rules.md')
 /** Sent as the writer's first turn, with the idea snapshot, to make the AI open the session itself. */
 export const BRAINSTORM_KICKOFF_PROMPT = prompt('brainstorm-kickoff.md')
 
-/** What the AI is told the `update_idea` and `create_idea` tools do (shown to it with the tool). */
+/** What the AI is told the `add_note`, `update_idea` and `create_idea` tools do (shown to it with the tool). */
+export const ADD_NOTE_TOOL_PROMPT = prompt('tool-add-note.md')
 export const UPDATE_IDEA_TOOL_PROMPT = prompt('tool-update-idea.md')
 export const CREATE_IDEA_TOOL_PROMPT = prompt('tool-create-idea.md')

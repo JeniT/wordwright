@@ -303,6 +303,20 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX retired_handles_user ON retired_handles(user_id);
   `,
+  // T30: the points the AI recorded as notes while replying. Kept apart from the notes themselves so the chat can
+  // show them (and the AI be told what became of each call) even after a note is deleted or changed.
+  `
+  CREATE TABLE idea_message_notes (
+    id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL REFERENCES idea_messages(id) ON DELETE CASCADE,
+    tool_call_id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    outcome TEXT NOT NULL CHECK (outcome IN ('added', 'duplicate', 'full')),
+    -- The note it made; null once that note is deleted (or if none was made).
+    note_id TEXT REFERENCES idea_notes(id) ON DELETE SET NULL
+  );
+  CREATE INDEX idea_message_notes_message ON idea_message_notes(message_id);
+  `,
 ]
 
 /**

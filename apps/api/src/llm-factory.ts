@@ -15,7 +15,7 @@ export const realLlmFactory: LLMFactory = ({ provider, apiKey, model }) => {
 
 /**
  * The pretend editor of development and e2e runs. It opens with a question, and makes each kind of
- * suggestion when the person asks for it in so many words ("suggest a title", "suggest notes",
+ * thing when the person asks for it in so many words ("suggest a title", "note that ...",
  * "suggest a new idea"), so every part of the brainstorm page can be tried without a real AI.
  */
 export const fakeBrainstormReply: FakeChatResponder = (request) => {
@@ -37,16 +37,11 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
       toolCalls: [{ name: 'update_idea', input: { name: 'A sharper title for this idea' } }],
     }
   }
-  if (/suggest notes/i.test(said)) {
+  if (/note that/i.test(said)) {
     return {
-      text: 'Here are notes that capture where we have got to.',
+      text: 'Good point. I have noted it.',
       toolCalls: [
-        {
-          name: 'update_idea',
-          input: {
-            notes: 'Claim: rivers meander because of erosion.\nAudience: curious generalists.',
-          },
-        },
+        { name: 'add_note', input: { text: said.replace(/^.*?note that\s*/i, '').trim() } },
       ],
     }
   }

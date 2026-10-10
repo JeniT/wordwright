@@ -4,7 +4,6 @@ import { computed, useId } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Idea, Proposal } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
-import DiffView from './DiffView.vue'
 
 const props = defineProps<{
   profileId: string
@@ -18,16 +17,11 @@ const queryClient = useQueryClient()
 const headingId = useId()
 const pending = computed(() => props.proposal.status === 'pending')
 const name = computed(() => props.proposal.input.name)
-const notes = computed(() => props.proposal.input.notes)
 
 // What the suggestion is, for the buttons' names (there may be several cards on the page).
 const what = computed(() => {
   if (props.proposal.tool === 'create_idea') return `a new idea, “${props.proposal.input.name}”`
-  const parts = [
-    name.value !== undefined && 'a new title',
-    notes.value !== undefined && 'new notes',
-  ]
-  return parts.filter(Boolean).join(' and ')
+  return 'a new title'
 })
 
 // Whatever happens, the thread and the idea may have changed (someone else may have decided it first).
@@ -59,7 +53,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
     </h2>
 
     <template v-if="proposal.tool === 'update_idea'">
-      <div v-if="name !== undefined" class="mb-3">
+      <div class="mb-3">
         <p class="text-sm font-medium">Title</p>
         <p v-if="pending && idea" class="text-sm text-stone-600">
           Now: <span class="line-through decoration-stone-400">{{ idea.name }}</span>
@@ -67,18 +61,12 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
         </p>
         <p><span v-if="pending" class="text-sm text-stone-600">Suggested: </span>{{ name }}</p>
       </div>
-      <div v-if="notes !== undefined" class="mb-3">
-        <p class="mb-1 text-sm font-medium">Notes</p>
-        <DiffView v-if="pending && idea" :before="idea.notes" :after="notes" />
-        <details v-else>
-          <summary class="cursor-pointer text-sm underline">Show the suggested notes</summary>
-          <p class="mt-2 whitespace-pre-wrap text-sm">{{ notes }}</p>
-        </details>
-      </div>
     </template>
     <template v-else>
       <p class="mb-1 font-medium">{{ name }}</p>
-      <p v-if="notes" class="mb-3 whitespace-pre-wrap text-sm">{{ notes }}</p>
+      <p v-if="proposal.input.notes" class="mb-3 whitespace-pre-wrap text-sm">
+        {{ proposal.input.notes }}
+      </p>
       <p v-else class="mb-3 text-sm text-stone-600">No notes yet.</p>
     </template>
 
@@ -88,8 +76,8 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
         role="status"
         class="mb-3 rounded bg-amber-50 p-2 text-sm text-amber-900"
       >
-        The idea has changed since this was suggested. The comparison above shows what is there now;
-        accepting will replace it.
+        The title has changed since this was suggested. Accepting will replace it with the
+        suggestion.
       </p>
       <div class="flex flex-wrap gap-2">
         <button

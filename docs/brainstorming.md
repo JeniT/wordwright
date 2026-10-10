@@ -1,6 +1,6 @@
 # Brainstorming with an LLM: design (T20b)
 
-Status: **agreed; built: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt), T20b4 (the chat page). Not yet: T20b5 (evals and tuning the default prompt).** Written after a design discussion with the owner. The work is split into tasks
+Status: **agreed; changed by T30 (notes are recorded as you chat: see _Notes are recorded, not proposed_ below, which supersedes the rows and sections it contradicts); built: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt), T20b4 (the chat page). Not yet: T20b5 (evals and tuning the default prompt).** Written after a design discussion with the owner. The work is split into tasks
 T20b1–T20b5 (finished ones in [TODO.md](../TODO.md), the rest in GitHub issues). Why things are the way they are is here; code and tests are the source of
 truth once it exists.
 
@@ -15,8 +15,8 @@ tool: it never writes or edits drafts.
 
 | Question                             | Decision                                                                                                                                                                                                                 |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Does the model change things itself? | **No. It proposes, the person accepts.** Nothing is written until someone accepts a proposal.                                                                                                                            |
-| What may it propose?                 | Change the idea's **title**, change its **notes**, and **create new ideas** (name + initial notes) in the same profile. **Never** edit or create drafts.                                                                 |
+| Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.   |
+| What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same profile. It cannot edit or remove notes. **Never** edit or create drafts.                   |
 | Who sees the conversation?           | **One thread per idea, visible to every member of the profile.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                      |
 | How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                       |
 | What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **venue** (name, website and, once T16 exists, the **audience descriptions**). See _Context_ for what is deliberately left out. |
@@ -27,32 +27,52 @@ tool: it never writes or edits drafts.
 ### Tools, not parsing
 
 The model is given three **tools**. When it wants a change it returns a structured call alongside its chat text; we
-validate the call and turn it into a **proposal card** in the chat.
+validate the call and either apply it (`add_note`) or turn it into a **proposal card** in the chat.
 
-| Tool          | Input             | When accepted                                                 |
-| ------------- | ----------------- | ------------------------------------------------------------- |
-| `update_idea` | `name?`, `notes?` | Replaces the idea's title and/or notes (shown as a diff).     |
-| `create_idea` | `name`, `notes`   | Creates a new idea in the same profile (no drafts, no links). |
+| Tool          | Input           | What happens                                                                            |
+| ------------- | --------------- | --------------------------------------------------------------------------------------- |
+| `add_note`    | `text`          | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.  |
+| `update_idea` | `name`          | A proposal: replaces the idea's title when accepted.                                    |
+| `create_idea` | `name`, `notes` | A proposal: creates a new idea in the same profile (no drafts, no links) when accepted. |
 
-(One tool for name and notes means one card per suggested change.) Rules for tool calls:
+Rules for tool calls:
 
 - Tool inputs are **untrusted**: validated with Zod schemas in `@lfwa/core` (same limits as `IdeaInputSchema`),
   and the idea id is never supplied by the model, only taken from the conversation's own idea.
 - `tool_choice` stays `auto` (the current models reject forced tool use); the prompt tells the model when to use
   them, and every call's input is validated with its Zod schema regardless of what the model was told.
-- The API requires every tool call to be answered in the next user turn. We answer with the proposal's state at
-  that moment: _accepted_, _dismissed_, or _the person hasn't decided yet_.
-- A proposal records the text it was based on. If the idea has changed since, the card says so and shows the diff
-  against the **current** text before it can be accepted. Accepting never silently overwrites newer edits.
+- The API requires every tool call to be answered in the next user turn. We answer with what became of it: a
+  proposal's state at that moment (_accepted_, _dismissed_, or _the person hasn't decided yet_), or for a note
+  _recorded_, _already there_ or _the idea is full_.
+- A title proposal records the title it was based on. If the title has changed since, the card says so, and
+  accepting needs "Apply anyway". Accepting never silently overwrites a newer title.
 - Accepting a `create_idea` proposal creates the idea and links to it from the card. The new idea does not copy
   the thread.
+
+### Notes are recorded, not proposed (T30)
+
+The point of a brainstorm is to add notes, so as the writer talks the model records the points they make with
+`add_note`, one point to a note, in the writer's own words. Nothing waits for acceptance: the writer can delete any
+note (and the chat then says "noted, then deleted"). Because it writes without asking, the tool is bounded in code,
+not just in the prompt:
+
+- It can only **add**: no editing or removing notes (try without; revisit if the notes fill with stale points).
+- Text is validated like any note (`NoteTextSchema`); at most **6 per reply**; a point already in the idea
+  (ignoring case, spacing and closing punctuation) is reported back as already there, not added again; an idea
+  at its **200-note** limit reports "full". The model is told the outcome of each call on its next turn.
+- Each note has origin `brainstorm` and is attributed to the person whose message led to it.
+- The chat shows each recorded point under the reply (stored in `idea_message_notes`, so it still reads right
+  after the note is deleted), and a stopped reply records nothing.
+- The model sees the idea's notes in the snapshot (as Markdown bullets), so it doesn't repeat them.
+- Prompt-injection stays bounded: the worst a hostile page title or pasted note can make the model do is add some
+  short, deletable notes (the cap and the duplicate check limit even that), never change or remove anything.
 
 ### Context
 
 Built by the server on every turn, never by the client.
 
 - **System prompt**, in two parts, in this order: (1) the **user's brainstorming prompt** (or the default), then
-  (2) an **app-owned block** that the user can't edit: how tools work, what the model must not do (draft, claim
+  (2) an **app-owned block** that the user can't edit: how tools work (including that `add_note` takes effect at once), what the model must not do (draft, claim
   facts about the venue it wasn't given), and how to treat the context (below). Keeping them apart means editing
   your prompt can't break the tool protocol.
 - **Idea snapshot**, sent as the start of a user turn: the idea's title and notes, the related links (address and
@@ -164,12 +184,12 @@ All under `/api/profiles/:profileId/ideas/:id/conversation` (members only):
   `200` as a **server-sent event stream**, which the browser reads with `fetch` and a stream reader, not
   `EventSource`, so it can POST and cancel. Each event is `event: <type>` with `data:` the JSON of a
   `BrainstormEvent` (`packages/core/src/domain.ts`), in this order: `message` (the person's message as stored; not
-  sent on a retry), `text` (word-sized pieces of the reply), `proposal` (one per valid suggestion), then `done`
+  sent on a retry), `text` (word-sized pieces of the reply), `note` (one per point recorded or declined), `proposal` (one per valid suggestion), then `done`
   (the stored reply; `null` if stopped before it said anything) or `error` (`auth`, `rate_limit`, `provider`,
   `timeout` or `unknown`, with a message for people). Closing the connection stops the reply and keeps what was said.
 - `POST /proposals/:proposalId/accept` (body `{ overwrite?: true }`) and `/dismiss`: accept applies the change in one
-  transaction (updating the idea, or creating one) and answers `409` if the suggestion was already decided, or if
-  the idea's title or notes it would replace have changed since, unless `overwrite` is sent.
+  transaction (changing the title, or creating an idea) and answers `409` if the suggestion was already decided, or if
+  the title it would replace has changed since, unless `overwrite` is sent.
 - `DELETE`: start again (refused while a reply is in flight).
   And on the account: `GET`/`PUT`/`DELETE /api/account/brainstorm-prompt` (the effective prompt and whether it is
   the default; save; reset).
@@ -178,7 +198,7 @@ All under `/api/profiles/:profileId/ideas/:id/conversation` (members only):
 
 - **Idea page:** the disabled button becomes **Brainstorm**, opening `/p/:profile/ideas/:idea/brainstorm`. The idea
   page itself shows nothing of the conversation but a "Brainstorm" link (with "Continue" once a thread exists).
-- **Brainstorm page:** the thread (names, markdown, proposal cards with diffs and Accept/Dismiss), a message box, a
+- **Brainstorm page:** the thread (names, markdown, the notes recorded under each reply, title/new-idea proposal cards with Accept/Dismiss), a message box, a
   Stop button while streaming, and a collapsed summary of the idea being discussed. Keyboard-usable; the thread is
   a `role="log"`; streaming text is announced politely and not word by word; loading, empty, error and
   "someone else is waiting" states all designed, and checked at phone width.

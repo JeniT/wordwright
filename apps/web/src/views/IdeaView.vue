@@ -196,9 +196,9 @@ const remove = useMutation({
     <section aria-labelledby="brainstorm-heading" class="mb-10">
       <h2 id="brainstorm-heading" class="mb-1 font-serif text-xl font-semibold">Brainstorm</h2>
       <p class="mb-3 text-sm text-stone-700">
-        Talk the idea through with an editor (your AI assistant). It questions the idea and can
-        suggest a sharper title or notes, or a separate new idea, but nothing changes unless you
-        accept it.
+        Talk the idea through with your AI assistant. It asks questions, adds the points you make to
+        the notes above as you go, and can suggest a sharper title or a separate new idea, which
+        change nothing unless you accept them.
       </p>
       <RouterLink
         :to="{

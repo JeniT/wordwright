@@ -2,10 +2,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import type { ConversationMessage, Proposal, SendMessageInput } from '@lfwa/core'
+import type { ConversationMessage, Proposal, RecordedNote, SendMessageInput } from '@lfwa/core'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Markdown from '../components/Markdown.vue'
 import ProposalCard from '../components/ProposalCard.vue'
+import RecordedNotes from '../components/RecordedNotes.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
 
 const props = defineProps<{ profileId: string; id: string }>()
@@ -19,9 +20,12 @@ const idea = useQuery({
 })
 
 /** The reply being written right now by this person (kept apart from the saved thread until it finishes). */
-const streaming = ref<{ user?: ConversationMessage; text: string; proposals: Proposal[] } | null>(
-  null,
-)
+const streaming = ref<{
+  user?: ConversationMessage
+  text: string
+  proposals: Proposal[]
+  notes: RecordedNote[]
+} | null>(null)
 // While someone else's reply is being written, look again every few seconds to see it arrive.
 const conversation = useQuery({
   queryKey: ['conversation', () => props.profileId, () => props.id],
@@ -59,7 +63,7 @@ let controller: AbortController | undefined
 async function send(body: SendMessageInput, restore?: string) {
   if (streaming.value) return
   replyProblem.value = null
-  streaming.value = { text: '', proposals: [] }
+  streaming.value = { text: '', proposals: [], notes: [] }
   announcement.value = 'The editor is replying…'
   controller = new AbortController()
   try {
@@ -72,6 +76,7 @@ async function send(body: SendMessageInput, restore?: string) {
         if (!live) return
         if (event.type === 'message') live.user = event.message
         else if (event.type === 'text') live.text += event.text
+        else if (event.type === 'note') live.notes.push(event.note)
         else if (event.type === 'proposal') live.proposals.push(event.proposal)
         else if (event.type === 'error') {
           replyProblem.value = { message: event.message, needsKey: event.code === 'auth' }
@@ -94,7 +99,12 @@ async function send(body: SendMessageInput, restore?: string) {
   } finally {
     controller = undefined
     // The saved thread is the truth: fetch it, and only then drop the live copy, so nothing flickers.
-    await queryClient.invalidateQueries({ queryKey: ['conversation'] })
+    // Notes the AI recorded are now part of the idea, so the idea and its notes may have changed too.
+    await Promise.all(
+      ['conversation', 'idea', 'notes', 'ideas'].map((key) =>
+        queryClient.invalidateQueries({ queryKey: [key] }),
+      ),
+    )
     streaming.value = null
   }
 }
@@ -178,10 +188,11 @@ const busyNote = computed(() =>
     <h1 id="brainstorm-title" class="font-serif text-2xl font-semibold">Brainstorm</h1>
     <p class="mb-2 font-serif text-lg text-stone-700">{{ idea.data.value.name }}</p>
     <p class="mb-4 text-sm text-stone-600">
-      An editor (your AI, with your own key) will question this idea. Your idea, its notes and
-      links, and this publication's details are sent to your AI provider so it can discuss them; the
-      text of your drafts never is. Everyone in this profile sees this conversation, and nothing is
-      changed until someone accepts a suggestion.
+      Your AI (with your own key) will talk this idea through with you, and add the points you make
+      to its notes as you go. Your idea, its notes and links, and this publication's details are
+      sent to your AI provider so it can discuss them; the text of your drafts never is. Everyone in
+      this profile sees this conversation. A new title or a separate idea is only a suggestion until
+      someone accepts it.
     </p>
 
     <details class="mb-6 rounded border border-stone-200 bg-white p-3 text-sm">
@@ -216,9 +227,9 @@ const busyNote = computed(() =>
       >
         <h2 id="start-heading" class="mb-1 font-serif text-xl font-semibold">Talk it through</h2>
         <p class="mb-3 text-stone-700">
-          The editor will open by asking the questions that matter most for this idea, and you
-          answer. It can suggest a sharper title or notes, or a separate new idea, but only you
-          decide.
+          Your AI will open by asking the questions that matter most for this idea, and you answer.
+          It adds the points you make to the idea's notes as you go, and can suggest a sharper title
+          or a separate new idea, but only you decide on those.
         </p>
         <button type="button" class="btn btn-primary" @click="send({ start: true })">
           Start brainstorming
@@ -256,6 +267,7 @@ const busyNote = computed(() =>
               <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-stone-700">
                 The reply was stopped here.
               </p>
+              <RecordedNotes :notes="message.notes" />
               <ProposalCard
                 v-for="proposal in message.proposals"
                 :key="proposal.id"
@@ -275,6 +287,7 @@ const busyNote = computed(() =>
             <p class="mb-1 text-sm font-medium text-stone-700">Editor</p>
             <Markdown v-if="streaming.text" :text="streaming.text" />
             <p v-else class="text-stone-600">Thinking…</p>
+            <RecordedNotes :notes="streaming.notes" />
           </li>
         </ol>
       </div>

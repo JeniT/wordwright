@@ -395,30 +395,32 @@ export const IdeaUpdateSchema = z.object({
 export type IdeaUpdate = z.infer<typeof IdeaUpdateSchema>
 
 // ---- Brainstorming: a conversation about an idea ------------------------
-// The AI can only *propose* changes (a new title/notes, or a new idea); nothing is written until
-// a person accepts. See docs/brainstorming.md.
+// As the writer talks, the AI records the points they make as notes (`add_note`, applied straight away). Anything
+// bigger it can only *propose* (a new title, or a new idea); nothing of that is written until a person accepts.
+// See docs/brainstorming.md.
 
 export const BRAINSTORM_MESSAGE_MAX = 10_000
 /** More than this many suggestions in one reply is noise, so the rest are ignored. */
 export const MAX_PROPOSALS_PER_REPLY = 5
+/** More than this many notes recorded in one reply is the AI running away with it, so the rest are ignored. */
+export const MAX_NOTES_PER_REPLY = 6
+
+/** What the AI sends when it records a point as a note. Untrusted: always validate. */
+export const AddNoteToolInputSchema = z.object({
+  text: NoteTextSchema.describe("One point the writer made, in the writer's own words"),
+})
 
 /** What the AI sends when it suggests changing the idea being discussed. Untrusted: always validate. */
-export const UpdateIdeaToolInputSchema = z
-  .object({
-    name: IdeaNameSchema.optional().describe('A new title for the idea'),
-    notes: IdeaNotesSchema.optional().describe(
-      "The complete new text of the idea's notes, replacing the current notes",
-    ),
-  })
-  .refine(
-    (v) => v.name !== undefined || v.notes !== undefined,
-    'Suggest a new title, new notes, or both',
-  )
+export const UpdateIdeaToolInputSchema = z.object({
+  name: IdeaNameSchema.describe('A new title for the idea'),
+})
 
 /** What the AI sends when it suggests a separate new idea. Untrusted: always validate. */
 export const CreateIdeaToolInputSchema = z.object({
   name: IdeaNameSchema.describe('The title of the new idea'),
-  notes: IdeaNotesSchema.describe('Starting notes for the new idea'),
+  notes: IdeaNotesSchema.describe(
+    'Starting notes for the new idea, as Markdown bullets: one point to a bullet',
+  ),
 })
 
 export const ProposalToolSchema = z.enum(['update_idea', 'create_idea'])
@@ -430,7 +432,7 @@ export type ProposalStatus = z.infer<typeof ProposalStatusSchema>
 export const ProposalSchema = z.object({
   id: z.string(),
   tool: ProposalToolSchema,
-  /** What is suggested. For `update_idea`, only the fields that would change. */
+  /** What is suggested. `notes` on an `update_idea` is only found in threads from before notes were recorded directly. */
   input: z.object({ name: z.string().optional(), notes: z.string().optional() }),
   status: ProposalStatusSchema,
   /** Still waiting, but the idea has changed since it was suggested: accepting needs `overwrite`. */
@@ -441,6 +443,17 @@ export const ProposalSchema = z.object({
   decidedAt: z.string().nullable(),
 })
 export type Proposal = z.infer<typeof ProposalSchema>
+
+/** A point the AI recorded as a note while replying (or tried to). */
+export const RecordedNoteSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  /** `added`; or not added because the idea already has the point (`duplicate`) or is full (`full`). */
+  outcome: z.enum(['added', 'duplicate', 'full']),
+  /** It was added, and has since been deleted from the idea's notes. */
+  removed: z.boolean(),
+})
+export type RecordedNote = z.infer<typeof RecordedNoteSchema>
 
 export const ConversationMessageSchema = z.object({
   id: z.string(),
@@ -458,6 +471,8 @@ export const ConversationMessageSchema = z.object({
   /** `max_tokens`: cut short. `refusal`: the provider declined to answer. */
   stopReason: z.enum(['end', 'max_tokens', 'tool_use', 'refusal']).nullable(),
   proposals: z.array(ProposalSchema),
+  /** Points the AI recorded as notes in this reply. */
+  notes: z.array(RecordedNoteSchema),
   createdAt: z.string(),
 })
 export type ConversationMessage = z.infer<typeof ConversationMessageSchema>
@@ -491,10 +506,11 @@ export type SendMessageInput = z.infer<typeof SendMessageInputSchema>
 /** Accepting a suggestion made against older text must say so. */
 export const AcceptProposalInputSchema = z.object({ overwrite: z.boolean().optional() })
 
-/** The server-sent events a reply streams, in order: `message`?, `text`*, `proposal`*, then `done` or `error`. */
+/** The server-sent events a reply streams, in order: `message`?, `text`*, `note`* and `proposal`*, then `done` or `error`. */
 export const BrainstormEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('message'), message: ConversationMessageSchema }),
   z.object({ type: z.literal('text'), text: z.string() }),
+  z.object({ type: z.literal('note'), note: RecordedNoteSchema }),
   z.object({ type: z.literal('proposal'), proposal: ProposalSchema }),
   /** The finished AI message; null if the reply was stopped before it said anything. */
   z.object({ type: z.literal('done'), message: ConversationMessageSchema.nullable() }),

@@ -37,3 +37,11 @@ export function markdownToNotes(text: string): string[] {
   }
   return notes.map((lines) => lines.join('\n').trim()).filter(Boolean)
 }
+
+/** A note's text with case, spacing and closing punctuation ignored, for spotting a point that is already there. */
+export const noteKey = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[\s.!?;:,]+$/, '')
+    .trim()

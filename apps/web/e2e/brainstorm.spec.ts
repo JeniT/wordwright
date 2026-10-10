@@ -72,34 +72,36 @@ test('brainstorms an idea: the editor asks, suggests, and nothing changes until 
   await expect(page.getByText('Accepted by Pru.')).toBeVisible()
 })
 
-test('a suggestion made against older notes says so, and can still be applied', async ({
+test('the points made in the chat are added to the idea as notes, as they are made', async ({
   page,
 }) => {
   await setUp(page)
   await page.getByRole('link', { name: 'Brainstorm' }).click()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
-  await say(page, 'Please suggest notes')
-  const card = page.getByRole('region', { name: 'Suggested change to this idea' })
-  // The notes are shown as a difference: what goes and what comes, in words as well as colour.
-  await expect(card.getByText('Removed:').first()).toBeVisible()
-  await expect(card.getByText('Added:').first()).toBeVisible()
 
-  // Meanwhile the person edits the notes themselves.
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
-  await page.getByRole('button', { name: /^Edit note/ }).click()
-  await page.getByLabel(/^Text of note/).fill('My own rewrite of the notes.')
-  await page.getByRole('button', { name: 'Save note' }).click()
-  await expect(page.getByText('My own rewrite of the notes.')).toBeVisible()
-
-  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
-  await expect(page.getByText(/The idea has changed since this was suggested/)).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Accept:/ })).toHaveCount(0)
-  await page.getByRole('button', { name: /^Apply anyway:/ }).click()
-  await expect(page.getByText('Accepted by Pru.')).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
-  await expect(page.getByRole('region', { name: 'Notes' })).toContainText(
-    /Claim: rivers meander because of erosion/,
+  await say(page, 'Please note that oxbow lakes are loops that have been cut off.')
+  const recorded = page.getByRole('list', { name: 'Notes recorded in this reply' })
+  await expect(recorded).toContainText(
+    'Added to your notes: “oxbow lakes are loops that have been cut off.”',
   )
+  await noViolations(page, 'brainstorm page with a recorded note')
+
+  // Saying the same thing again doesn't add it twice.
+  await say(page, 'Please note that Oxbow lakes are loops that have been cut off')
+  await expect(page.getByText('Already in your notes:')).toBeVisible()
+
+  // The notes are on the idea, from brainstorming, and can be deleted like any other.
+  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByRole('listitem')).toHaveCount(2)
+  await expect(notes.getByRole('listitem').nth(1)).toContainText(
+    'oxbow lakes are loops that have been cut off.',
+  )
+  await expect(notes.getByRole('listitem').nth(1)).toContainText('From brainstorming')
+
+  await notes.getByRole('button', { name: /^Delete note “oxbow lakes/ }).click()
+  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
+  await expect(page.getByText('Noted, then deleted:')).toBeVisible()
 })
 
 test('a spin-off idea can be accepted and opened, and a suggestion can be dismissed', async ({

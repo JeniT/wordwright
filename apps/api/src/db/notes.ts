@@ -91,10 +91,16 @@ export class NoteStore {
     return true
   }
 
-  /** Replaces every note with `entered` notes holding `texts`, in order. Transitional: see `Idea.notes`. */
-  replaceAll(profileId: string, ideaId: string, authorId: string | null, texts: string[]) {
+  /** Replaces every note with notes holding `texts`, in order (`entered` unless said otherwise). Transitional: see `Idea.notes`. */
+  replaceAll(
+    profileId: string,
+    ideaId: string,
+    authorId: string | null,
+    texts: string[],
+    origin: NoteOrigin = 'entered',
+  ) {
     this.db.prepare('DELETE FROM idea_notes WHERE idea_id = ?').run(ideaId)
-    for (const text of texts) this.append(profileId, ideaId, authorId, text)
+    for (const text of texts) this.append(profileId, ideaId, authorId, text, origin)
   }
 
   private renumber(ideaId: string, ids: string[]) {

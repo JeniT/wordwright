@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import type { BrainstormEvent, ConversationMessage, Proposal } from '@lfwa/core'
+import type { BrainstormEvent, ConversationMessage, Proposal, RecordedNote } from '@lfwa/core'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -33,6 +33,7 @@ const userMessage = (
   status: 'complete',
   stopReason: null,
   proposals: [],
+  notes: [],
   createdAt: '2026-01-01T00:00:00Z',
   ...overrides,
 })
@@ -47,6 +48,13 @@ const aiMessage = (
   authorName: null,
   model: 'claude-sonnet-5-5',
   stopReason: 'end',
+  ...overrides,
+})
+const recorded = (overrides: Partial<RecordedNote> = {}): RecordedNote => ({
+  id: `n${++counter}`,
+  text: 'Meanders speed up erosion.',
+  outcome: 'added',
+  removed: false,
   ...overrides,
 })
 const proposal = (overrides: Partial<Proposal> = {}): Proposal => ({
@@ -371,33 +379,84 @@ describe('the brainstorm page', () => {
     expect(screen.getAllByText(/claude-sonnet-5-5/).length).toBeGreaterThan(0)
   })
 
+  describe('notes the AI records', () => {
+    it('are listed under its message, saying what became of each', async () => {
+      mockConversation([
+        kickoff(),
+        aiMessage('I have noted these.', {
+          notes: [
+            recorded({ text: 'Meanders speed up erosion.' }),
+            recorded({ text: 'Erosion loops.', outcome: 'duplicate' }),
+            recorded({ text: 'Too many.', outcome: 'full' }),
+            recorded({ text: 'Changed my mind.', removed: true }),
+          ],
+        }),
+      ])
+      await renderAt(page)
+      const list = await screen.findByRole('list', { name: 'Notes recorded in this reply' })
+      const lines = within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent!.replace(/\s+/g, ' ').replace('📝', '').trim())
+      expect(lines).toEqual([
+        'Added to your notes: “Meanders speed up erosion.”',
+        'Already in your notes: “Erosion loops.”',
+        "Couldn't add (this idea has as many notes as it can hold): “Too many.”",
+        'Noted, then deleted: “Changed my mind.”',
+      ])
+    })
+
+    it('show up as the reply is saved, and the idea is read again afterwards', async () => {
+      const api = mockConversation([kickoff(), aiMessage('Go on.')])
+      let ideaReads = 0
+      server.use(
+        http.get('*/api/profiles/ada-substack/ideas/i1', () => {
+          ideaReads++
+          return HttpResponse.json(idea)
+        }),
+      )
+      const note = recorded({ text: 'Erosion is faster on the outside bend.' })
+      api.respond = (body) => {
+        const sent = userMessage(String(body.text))
+        const reply = aiMessage('Good point.', { notes: [note] })
+        api.messages.push(sent, reply)
+        return sse([
+          { type: 'message', message: sent },
+          ...words('Good point.'),
+          { type: 'note', note },
+          { type: 'done', message: reply },
+        ])
+      }
+      await renderAt(page)
+      await screen.findByText('Go on.')
+      await type('Erosion is faster on the outside bend.')
+      await sendWithKeyboard()
+      expect(await screen.findByText(/Added to your notes:/)).toBeInTheDocument()
+      expect(screen.getByText(/“Erosion is faster on the outside bend\.”/)).toBeInTheDocument()
+      await waitFor(() => expect(ideaReads).toBeGreaterThan(1))
+    })
+
+    it('are not shown for a message that recorded none', async () => {
+      mockConversation([kickoff(), aiMessage('Just a question.')])
+      await renderAt(page)
+      await screen.findByText('Just a question.')
+      expect(screen.queryByRole('list', { name: 'Notes recorded in this reply' })).toBeNull()
+    })
+  })
+
   describe('suggestions', () => {
     const withProposals = (...proposals: Proposal[]) =>
       mockConversation([kickoff(), aiMessage('Try this.', { proposals })])
 
-    it('show a title and notes change against what is there now, with accept and dismiss', async () => {
-      withProposals(
-        proposal({
-          input: { name: 'Why rivers loop', notes: 'Erosion loops.\nA new second line.' },
-        }),
-      )
+    it('show a new title against the current one, with accept and dismiss', async () => {
+      withProposals(proposal({ input: { name: 'Why rivers loop' } }))
       await renderAt(page)
       const card = (
         await screen.findByRole('heading', { name: 'Suggested change to this idea' })
       ).closest('section')!
       expect(within(card).getByText('Why rivers meander')).toHaveClass('line-through') // what it replaces
       expect(within(card).getByText('Why rivers loop')).toBeInTheDocument()
-      // The notes show only what changes, in words as well as colour.
-      expect(within(card).getByText(/Removed:/)).toBeInTheDocument()
-      expect(within(card).getByText(/Added:/)).toBeInTheDocument()
-      expect(card.textContent).toContain('Second line.')
-      expect(card.textContent).toContain('A new second line.')
-      expect(
-        within(card).getByRole('button', { name: 'Accept: a new title and new notes' }),
-      ).toBeInTheDocument()
-      expect(
-        within(card).getByRole('button', { name: 'Dismiss: a new title and new notes' }),
-      ).toBeInTheDocument()
+      expect(within(card).getByRole('button', { name: 'Accept: a new title' })).toBeInTheDocument()
+      expect(within(card).getByRole('button', { name: 'Dismiss: a new title' })).toBeInTheDocument()
     })
 
     it('are accepted with one press, and then show who accepted them', async () => {
@@ -434,10 +493,10 @@ describe('the brainstorm page', () => {
       expect(await screen.findByText('Dismissed by Ada.')).toBeInTheDocument()
     })
 
-    it('warn when the idea has changed, and say "apply anyway" instead of "accept"', async () => {
+    it('warn when the title has changed, and say "apply anyway" instead of "accept"', async () => {
       let body: unknown
       const api = withProposals(
-        proposal({ id: 'p-stale', stale: true, input: { notes: 'New notes.' } }),
+        proposal({ id: 'p-stale', stale: true, input: { name: 'Another title' } }),
       )
       server.use(
         http.post(`${conversationUrl}/proposals/p-stale/accept`, async ({ request }) => {
@@ -450,10 +509,10 @@ describe('the brainstorm page', () => {
       )
       await renderAt(page)
       expect(
-        await screen.findByText(/The idea has changed since this was suggested/),
+        await screen.findByText(/The title has changed since this was suggested/),
       ).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^Accept:/ })).toBeNull()
-      await fireEvent.click(screen.getByRole('button', { name: 'Apply anyway: new notes' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Apply anyway: a new title' }))
       expect(await screen.findByText('Accepted by Ada.')).toBeInTheDocument()
       expect(body).toEqual({ overwrite: true })
     })

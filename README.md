@@ -213,13 +213,13 @@ adds its own fixed rules after it (`prompts/brainstorm-rules.md`).
 **Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/profiles/:id/ideas/:idea/conversation`
 holds one thread per idea, shared by the profile's members. `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
-AI's suggestions (a new title or notes for the idea, or a new idea: it can never touch drafts); `DELETE` starts
+AI's suggestions (a new title for the idea, or a new idea: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` starts
 again. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
-person accepts it. The page is `/p/<profile>/ideas/<idea>/brainstorm` (the idea page's **Brainstorm** button): the editor's reply
+person accepts it, except the notes it records. The page is `/p/<profile>/ideas/<idea>/brainstorm` (the idea page's **Brainstorm** button): the editor's reply
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
-never shown), and each suggestion is a card with a line-by-line comparison against the idea as it is now. With
-`FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "suggest notes" and
-"suggest a new idea" with the matching suggestion.
+never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
+`FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
+"suggest a new idea" with the matching call.
 
 ## Notes and next steps
 

@@ -42,9 +42,9 @@ describe('LLM factories', () => {
 
     it.each([
       ['suggest a title please', 'update_idea', 'name'],
-      ['Please suggest notes', 'update_idea', 'notes'],
+      ['Please note that rivers meander', 'add_note', 'text'],
       ['can you suggest a new idea from that?', 'create_idea', 'name'],
-    ])('answers "%s" with a %s suggestion', async (said, tool, field) => {
+    ])('answers "%s" with a %s call', async (said, tool, field) => {
       const { calls } = await turn(thread('first', said))
       expect(calls).toMatchObject([{ name: tool, input: { [field]: expect.any(String) } }])
     })

@@ -169,6 +169,7 @@ describe('idea page', () => {
             status: 'complete',
             stopReason: null,
             proposals: [],
+            notes: [],
             createdAt: '2026-01-01T00:00:00Z',
           },
         ]),

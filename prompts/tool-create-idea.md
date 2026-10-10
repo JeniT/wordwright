@@ -1,1 +1,1 @@
-Suggest a separate new idea that has come out of this conversation, with a title and starting notes. The writer can accept it, which creates it as its own idea, or dismiss it. It does not change the idea being discussed.
+Suggest a separate new idea that has come out of this conversation, with a title and starting notes (Markdown bullets, one point to a bullet, in the writer's own words). The writer can accept it, which creates it as its own idea, or dismiss it. It does not change the idea being discussed.

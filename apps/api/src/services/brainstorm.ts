@@ -1,11 +1,15 @@
 import { HTTPException } from 'hono/http-exception'
 import {
+  AddNoteToolInputSchema,
   CreateIdeaToolInputSchema,
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
   llmTool,
+  MAX_IDEA_NOTES,
+  MAX_NOTES_PER_REPLY,
   MAX_PROPOSALS_PER_REPLY,
+  noteKey,
   UpdateIdeaToolInputSchema,
   type BrainstormEvent,
   type Conversation,
@@ -19,21 +23,30 @@ import {
   type SendMessageInput,
 } from '@lfwa/core'
 import {
+  ADD_NOTE_TOOL_PROMPT,
   BRAINSTORM_KICKOFF_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   CREATE_IDEA_TOOL_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
 } from '@lfwa/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
-import type { MessageRecord, ProposalRecord } from '../db/conversations'
+import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/conversations'
 import type { Store } from '../db/store'
 import type { BrainstormPromptService } from './brainstorm-prompt'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
 export const REPLY_TIMEOUT_MS = 180_000
 
-/** The two things the AI may suggest. Both only ever become proposals a person accepts. */
+/**
+ * What the AI can do. `add_note` takes effect at once (it only ever adds a short note, which the writer can
+ * delete); the other two only ever become proposals a person accepts.
+ */
 const TOOLS = [
+  llmTool({
+    name: 'add_note',
+    description: ADD_NOTE_TOOL_PROMPT,
+    schema: AddNoteToolInputSchema,
+  }),
   llmTool({
     name: 'update_idea',
     description: UPDATE_IDEA_TOOL_PROMPT,
@@ -128,8 +141,8 @@ export function formatSnapshot(input: { idea: Idea; venue: Venue; readers: Reade
 
 /**
  * The brainstorming conversation about an idea: one thread shared by everyone in the profile, in
- * which each person's own AI (key, model and prompt) acts as a commissioning editor. The AI can only
- * propose changes; accepting is a separate, human step. Design: docs/brainstorming.md.
+ * which each person's own AI (key, model and prompt) draws out the writer's points and records them as
+ * notes. Anything bigger (a new title, a new idea) it can only propose; accepting is a separate, human step. Design: docs/brainstorming.md.
  */
 export class BrainstormService {
   /** One reply at a time per idea. In memory, which is right while the API is a single process. */
@@ -234,24 +247,21 @@ export class BrainstormService {
     return store.conversations.message(idea.id, id)!
   }
 
-  /** The AI's suggestions in its last message must each be answered before it speaks again. */
+  /** Every tool call in the AI's last message must be answered before it speaks again. */
   private toolResults(assistant: MessageRecord): LLMContentBlock[] {
-    const byCall = new Map(
-      this.d.store.conversations.proposals(assistant.id).map((p) => [p.toolCallId, p]),
-    )
+    const { conversations } = this.d.store
+    const proposals = new Map(conversations.proposals(assistant.id).map((p) => [p.toolCallId, p]))
+    const notes = new Map(conversations.recordedNotes(assistant.id).map((n) => [n.toolCallId, n]))
     return assistant.content.flatMap((block): LLMContentBlock[] => {
       if (block.type !== 'tool_call') return []
-      const proposal = byCall.get(block.id)
-      return [
-        {
-          type: 'tool_result',
-          toolCallId: block.id,
-          content: proposal
-            ? describeDecision(proposal)
-            : 'This suggestion could not be used, so nothing was changed.',
-          isError: !proposal,
-        },
-      ]
+      const proposal = proposals.get(block.id)
+      const note = notes.get(block.id)
+      const content = proposal
+        ? describeDecision(proposal)
+        : note
+          ? describeNote(note)
+          : 'This could not be used, so nothing was changed.'
+      return [{ type: 'tool_result', toolCallId: block.id, content, isError: !proposal && !note }]
     })
   }
 
@@ -311,6 +321,7 @@ export class BrainstormService {
 
       const message = this.saveReply(ctx, text, calls, done)
       const view = this.view(message, idea)
+      for (const note of view.notes) yield { type: 'note', note }
       for (const proposal of view.proposals) yield { type: 'proposal', proposal }
       yield { type: 'done', message: view }
     } finally {
@@ -363,6 +374,8 @@ export class BrainstormService {
       usage: done.usage,
     })
 
+    this.recordNotes(id, idea, user.id, calls)
+
     // The AI's input is untrusted: anything that doesn't validate is kept in the history (the model
     // must see its call answered) but never becomes a proposal.
     let made = 0
@@ -376,6 +389,51 @@ export class BrainstormService {
     return conversations.message(idea.id, id)!
   }
 
+  /**
+   * Adds the points the AI recorded to the idea's notes, in the name of the person whose message led to them.
+   * The input is untrusted: only valid text is used, at most `MAX_NOTES_PER_REPLY` per reply, and a point the
+   * idea already has (ignoring case and closing punctuation) or a full idea is recorded as such, not added.
+   */
+  private recordNotes(
+    messageId: string,
+    idea: Idea,
+    userId: string,
+    calls: { id: string; name: string; input: unknown }[],
+  ) {
+    const { conversations, notes } = this.d.store
+    const have = new Set(notes.list(idea.id).map((n) => noteKey(n.text)))
+    let count = notes.count(idea.id)
+    let handled = 0
+    for (const call of calls) {
+      if (call.name !== 'add_note' || handled >= MAX_NOTES_PER_REPLY) continue
+      const parsed = AddNoteToolInputSchema.safeParse(call.input)
+      if (!parsed.success) continue
+      handled++
+      const { text } = parsed.data
+      const key = noteKey(text)
+      if (have.has(key)) {
+        conversations.addRecordedNote(messageId, {
+          toolCallId: call.id,
+          text,
+          outcome: 'duplicate',
+        })
+      } else if (count >= MAX_IDEA_NOTES) {
+        conversations.addRecordedNote(messageId, { toolCallId: call.id, text, outcome: 'full' })
+      } else {
+        const note = notes.append(idea.profileId, idea.id, userId, text, 'brainstorm')
+        conversations.addRecordedNote(messageId, {
+          toolCallId: call.id,
+          text,
+          outcome: 'added',
+          noteId: note.id,
+        })
+        have.add(key)
+        count++
+      }
+    }
+    if (handled > 0) this.d.store.ideas.touch(idea.id)
+  }
+
   private toProposal(
     call: { id: string; name: string; input: unknown },
     idea: Idea,
@@ -383,18 +441,14 @@ export class BrainstormService {
     if (call.name === 'update_idea') {
       const parsed = UpdateIdeaToolInputSchema.safeParse(call.input)
       if (!parsed.success) return undefined
-      const { name, notes } = parsed.data
-      // Only what would actually change: a suggestion that repeats the idea back is not a suggestion.
-      const input = {
-        ...(name !== undefined && name !== idea.name && { name }),
-        ...(notes !== undefined && notes !== idea.notes && { notes }),
-      }
-      if (Object.keys(input).length === 0) return undefined
+      const { name } = parsed.data
+      // A suggestion that repeats the title back is not a suggestion.
+      if (name === idea.name) return undefined
       return {
         toolCallId: call.id,
         tool: 'update_idea',
-        input,
-        base: { name: idea.name, notes: idea.notes },
+        input: { name },
+        base: { name: idea.name },
       }
     }
     if (call.name === 'create_idea') {
@@ -467,10 +521,16 @@ export class BrainstormService {
     store.transaction(() => {
       let createdIdeaId: string | undefined
       if (proposal.tool === 'update_idea') {
-        store.ideas.update(idea.profileId, idea.id, proposal.input)
+        // Threads from before notes were recorded directly may carry notes; they are no longer applied.
+        store.ideas.update(idea.profileId, idea.id, { name: proposal.input.name })
       } else {
         const { name, notes } = CreateIdeaToolInputSchema.parse(proposal.input)
-        createdIdeaId = store.ideas.create(idea.profileId, user.id, { name, notes }).id
+        createdIdeaId = store.ideas.create(
+          idea.profileId,
+          user.id,
+          { name, notes },
+          'brainstorm',
+        ).id
       }
       if (!store.conversations.decide(proposal.id, 'accepted', user.id, createdIdeaId)) {
         throw fail(409, 'This suggestion was just decided by someone else.')
@@ -511,6 +571,9 @@ export class BrainstormService {
       status: m.status,
       stopReason: m.stopReason,
       proposals,
+      notes: this.d.store.conversations
+        .recordedNotes(m.id)
+        .map(({ messageId: _m, toolCallId: _t, ...note }) => note),
       createdAt: m.createdAt,
     }
   }
@@ -528,13 +591,22 @@ export class BrainstormService {
     }
   }
 
-  /** Only the fields a suggestion would replace count: editing the title doesn't stale a notes suggestion. */
+  /** A title suggestion made against a title that has since been changed. */
   private isStale(p: ProposalRecord, idea: Idea): boolean {
     if (p.tool !== 'update_idea' || !p.base) return false
-    return (
-      (p.input.name !== undefined && p.base.name !== idea.name) ||
-      (p.input.notes !== undefined && p.base.notes !== idea.notes)
-    )
+    return p.input.name !== undefined && p.base.name !== idea.name
+  }
+}
+
+/** What the AI is told about a point it recorded when it next speaks. */
+function describeNote(n: RecordedNoteRecord): string {
+  switch (n.outcome) {
+    case 'added':
+      return 'Recorded as a note.'
+    case 'duplicate':
+      return 'Not recorded: the idea already has this point in its notes.'
+    case 'full':
+      return 'Not recorded: the idea already has as many notes as it can hold.'
   }
 }
 
@@ -544,7 +616,7 @@ function describeDecision(p: ProposalRecord): string {
     case 'accepted':
       return p.tool === 'create_idea'
         ? 'The writer accepted this suggestion, and the new idea was created.'
-        : 'The writer accepted this suggestion, and the idea was updated.'
+        : 'The writer accepted this suggestion, and the title was changed.'
     case 'dismissed':
       return 'The writer dismissed this suggestion. Nothing was changed.'
     case 'pending':
