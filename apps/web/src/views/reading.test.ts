@@ -249,6 +249,80 @@ describe('reading page', () => {
       expect(list.querySelectorAll('blockquote')).toHaveLength(1)
     })
 
+    describe('pasting', () => {
+      const paste = (box: HTMLElement, text: string) =>
+        fireEvent.paste(box, { clipboardData: { getData: () => text } })
+      const quoteBox = () => screen.getByRole('checkbox', { name: /This is a direct quote/ })
+
+      it('ticks "This is a direct quote" when words are pasted into the empty box, and says so', async () => {
+        await open()
+        const box = await screen.findByLabelText('Add a note from this page')
+        expect(quoteBox()).not.toBeChecked()
+        await paste(box, 'Meanders grow because banks erode.')
+        expect(quoteBox()).toBeChecked()
+        expect(screen.getByText(/Ticked because you pasted this/)).toBeInTheDocument()
+      })
+
+      it('can be unticked, and then stays unticked; the message goes', async () => {
+        await open()
+        const box = await screen.findByLabelText('Add a note from this page')
+        await paste(box, 'Pasted words.')
+        await fireEvent.click(quoteBox())
+        expect(quoteBox()).not.toBeChecked()
+        expect(screen.queryByText(/Ticked because you pasted/)).toBeNull()
+      })
+
+      it('also ticks it when everything already in the box is pasted over', async () => {
+        await open()
+        const box = (await screen.findByLabelText(
+          'Add a note from this page',
+        )) as HTMLTextAreaElement
+        await fireEvent.update(box, 'My own first thoughts.')
+        box.setSelectionRange(0, box.value.length)
+        await paste(box, 'Replacement words.')
+        expect(quoteBox()).toBeChecked()
+      })
+
+      it("does not tick it for typing, for a paste into the middle of the writer's words, or for nothing", async () => {
+        await open()
+        const box = (await screen.findByLabelText(
+          'Add a note from this page',
+        )) as HTMLTextAreaElement
+        await fireEvent.update(box, 'Typed by hand.')
+        expect(quoteBox()).not.toBeChecked()
+        box.setSelectionRange(5, 5)
+        await paste(box, 'inserted')
+        expect(quoteBox()).not.toBeChecked()
+        await fireEvent.update(box, '')
+        await paste(box, '   ')
+        expect(quoteBox()).not.toBeChecked()
+      })
+
+      it('starts again unticked for the next note, and sends the quote flag it was ticked for', async () => {
+        const sent: unknown[] = []
+        const saved: ReturnType<typeof note>[] = []
+        await open('l1', [
+          http.get(notesUrl, () => HttpResponse.json(saved)),
+          http.post(notesUrl, async ({ request }) => {
+            const body = (await request.json()) as { text: string; quote?: boolean }
+            sent.push(body)
+            const created = { ...note('n1', body.text, 'l1'), quote: !!body.quote }
+            saved.push(created)
+            return HttpResponse.json(created, { status: 201 })
+          }),
+        ])
+        const box = await screen.findByLabelText('Add a note from this page')
+        await paste(box, 'Pasted words.') // the paste event comes first; then the words arrive in the box
+        await fireEvent.update(box, 'Pasted words.')
+        await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+        await waitFor(() =>
+          expect(sent).toEqual([{ text: 'Pasted words.', readingItemId: 'l1', quote: true }]),
+        )
+        await waitFor(() => expect(quoteBox()).not.toBeChecked())
+        expect(screen.queryByText(/Ticked because you pasted/)).toBeNull()
+      })
+    })
+
     it('keeps what was typed, and says what went wrong, when a note could not be saved', async () => {
       await open('l1', [
         http.post(notesUrl, () =>

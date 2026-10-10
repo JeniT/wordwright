@@ -109,6 +109,22 @@ const addLink = useMutation({
 
 const text = ref('')
 const isQuote = ref(false)
+/** The box was ticked by a paste, not by the writer: said out loud, so it can be undone. */
+const tickedByPaste = ref(false)
+/**
+ * Words pasted into an empty box (or over all of what's there) are almost always someone else's, and a quotation
+ * stored as the writer's own is the one mistake this page must not make easily. Typing never ticks the box, nor does
+ * pasting into the middle of the writer's own words.
+ */
+function onPaste(event: ClipboardEvent) {
+  const box = event.target as HTMLTextAreaElement
+  const pasted = event.clipboardData?.getData('text') ?? ''
+  const replacesAll =
+    !box.value.trim() || (box.selectionStart === 0 && box.selectionEnd === box.value.length)
+  if (!pasted.trim() || !replacesAll || isQuote.value) return
+  isQuote.value = true
+  tickedByPaste.value = true
+}
 const addBox = ref<HTMLElement>()
 const add = useMutation({
   mutationFn: () =>
@@ -119,6 +135,7 @@ const add = useMutation({
   onSuccess: async (note) => {
     text.value = ''
     isQuote.value = false
+    tickedByPaste.value = false
     queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) => [...(old ?? []), note])
     // A note also changes the idea's "last changed" time, and its text as brainstorming sees it.
     await Promise.all([
@@ -324,9 +341,15 @@ const add = useMutation({
             :rows="4"
             :maxlength="20000"
             :hint="add.isError.value ? errorMessage(add.error.value) : undefined"
+            @paste="onPaste"
           />
-          <label class="mb-3 flex items-start gap-2 text-sm">
-            <input v-model="isQuote" type="checkbox" class="mt-0.5 size-4 accent-accent" />
+          <label class="mb-1 flex items-start gap-2 text-sm">
+            <input
+              v-model="isQuote"
+              type="checkbox"
+              class="mt-0.5 size-4 accent-accent"
+              @change="tickedByPaste = false"
+            />
             <span>
               This is a direct quote.
               <span class="block text-stone-600">
@@ -335,6 +358,11 @@ const add = useMutation({
               </span>
             </span>
           </label>
+          <p aria-live="polite" class="mb-3 ml-6 text-sm text-stone-700" data-paste-note>
+            <template v-if="tickedByPaste && isQuote">
+              Ticked because you pasted this. Untick it if these are your own words.
+            </template>
+          </p>
           <button
             type="submit"
             class="btn btn-outline"

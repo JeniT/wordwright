@@ -419,8 +419,20 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   await page.getByRole('button', { name: 'Add link' }).click()
   await page.getByRole('link', { name: 'Take notes' }).click()
 
-  await page.getByLabel('Add a note from this page').fill('Meanders grow because banks erode.')
-  await page.getByRole('checkbox', { name: /This is a direct quote/ }).check()
+  // Pasting into the empty box ticks "This is a direct quote" (and says why); typing does not.
+  const noteBox = page.getByLabel('Add a note from this page')
+  const quoteBox = page.getByRole('checkbox', { name: /This is a direct quote/ })
+  await noteBox.fill('Typed words')
+  await expect(quoteBox).not.toBeChecked()
+  await noteBox.fill('')
+  await noteBox.evaluate((el) => {
+    const data = new DataTransfer()
+    data.setData('text', 'Meanders grow because banks erode.')
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true }))
+  })
+  await expect(quoteBox).toBeChecked()
+  await expect(page.getByText(/Ticked because you pasted this/)).toBeVisible()
+  await noteBox.fill('Meanders grow because banks erode.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByRole('list').locator('blockquote')).toContainText('Meanders grow')
   await noViolations(page, 'reading page with a quotation')

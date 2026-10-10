@@ -363,6 +363,11 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **The title and authors can be edited on the reading page** (an "Edit title and authors" button by the heading),
   because the lookup often finds none and the page is then called by its address. It is the idea page's edit with the
   address left alone; a blank title asks the server to look the page up again (see "Who wrote a reading-list item").
+- **Pasting ticks "This is a direct quote"** (#76). Words pasted into an empty note box, or over all of what is in it,
+  are almost always someone else's, and a quotation stored as the writer's own words is the mistake this page must
+  not make easily. So the box is ticked and the page says why ("Ticked because you pasted this. Untick it if these are
+  your own words"). Typing never ticks it, nor does a paste into the middle of the writer's own words, and a writer
+  who unticks it is not overruled. It is a default the writer can see and undo, not a rule.
 - **Other pages found while reading** (#56) are added from the same page: a web-address box (the idea page's checks
   and title lookup, same call) puts the page on the reading list as `entered`, the page stays open, and a link offers
   to read the new item next. Nothing is read or noted for the writer.
