@@ -70,14 +70,46 @@ export class ResearchStore {
     return id
   }
 
-  /** Sets the status of these items of one run, but only those still `suggested`. Returns how many changed. */
-  decide(researchId: string, itemIds: string[], status: 'added' | 'dismissed'): number {
-    const update = this.db.prepare(
-      `UPDATE idea_research_items SET status = ? WHERE research_id = ? AND id = ? AND status = 'suggested'`,
+  /** Marks a page of one run ignored, but only if it is still waiting for a decision. */
+  ignore(researchId: string, itemId: string): boolean {
+    return (
+      this.db
+        .prepare(
+          `UPDATE idea_research_items SET status = 'dismissed'
+           WHERE research_id = ? AND id = ? AND status = 'suggested'`,
+        )
+        .run(researchId, itemId).changes > 0
     )
-    let changed = 0
-    for (const id of itemIds) changed += Number(update.run(status, researchId, id).changes)
-    return changed
+  }
+
+  /** Marks a page added, remembering the reading-list item that adding it made. */
+  markAdded(researchId: string, itemId: string, linkId: string): boolean {
+    return (
+      this.db
+        .prepare(
+          `UPDATE idea_research_items SET status = 'added', link_id = ?
+           WHERE research_id = ? AND id = ? AND status = 'suggested'`,
+        )
+        .run(linkId, researchId, itemId).changes > 0
+    )
+  }
+
+  /**
+   * Puts a decided page back to waiting for a decision. Returns the reading-list item it had made, if it still
+   * exists, for the caller to remove; undefined when the page wasn't decided.
+   */
+  reopen(researchId: string, itemId: string): { linkId: string | null } | undefined {
+    const row = this.db
+      .prepare(
+        `SELECT link_id FROM idea_research_items
+         WHERE research_id = ? AND id = ? AND status <> 'suggested'`,
+      )
+      .get(researchId, itemId) as { link_id: string | null } | undefined
+    if (!row) return undefined
+    this.db
+      .prepare(`UPDATE idea_research_items SET status = 'suggested', link_id = NULL WHERE id = ?`)
+      .run(itemId)
+    return { linkId: row.link_id }
   }
 
   delete(ideaId: string, id: string): boolean {

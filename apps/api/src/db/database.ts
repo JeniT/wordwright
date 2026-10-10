@@ -425,6 +425,11 @@ export const MIGRATIONS: Migration[] = [
 
   ALTER TABLE idea_links ADD COLUMN why TEXT;
   `,
+  // T38 follow-up: a research page that was added remembers the reading-list item it made, so that reconsidering
+  // it can take that item off the list again. Null once the item is gone, or while the page isn't added.
+  `
+  ALTER TABLE idea_research_items ADD COLUMN link_id TEXT REFERENCES idea_links(id) ON DELETE SET NULL;
+  `,
 ]
 
 /**

@@ -9,16 +9,9 @@ const props = defineProps<{ profileId: string; ideaId: string; run: ResearchRun 
 
 const queryClient = useQueryClient()
 const headingId = useId()
-const fieldId = useId()
 
 /** A page that doesn't exist, or isn't public, can't go on the reading list. */
 const unusable = (item: ResearchItem) => item.check === 'not-found' || item.check === 'not-public'
-const open = computed(() => props.run.items.filter((i) => i.status === 'suggested'))
-const choosable = computed(() => open.value.filter((i) => !unusable(i)))
-const ticked = ref<string[]>([])
-// Ticks only count for pages that are still waiting for a decision (another member may have decided some).
-const chosen = computed(() => ticked.value.filter((id) => choosable.value.some((i) => i.id === id)))
-
 const name = (item: ResearchItem) => item.fetchedTitle || item.title || item.url
 
 // Whatever happens, the run and the reading list may have changed (someone else may have decided first).
@@ -26,20 +19,29 @@ const refresh = () =>
   Promise.all(
     ['research', 'idea', 'ideas'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
   )
-// Each takes the pages to deal with: one page's own buttons, or everything ticked.
 const add = useMutation({
-  mutationFn: (ids: string[]) =>
-    api.addResearchItems(props.profileId, props.ideaId, props.run.id, ids),
-  onSuccess: (_run, ids) => (ticked.value = ticked.value.filter((id) => !ids.includes(id))),
+  mutationFn: (id: string) => api.addResearchItem(props.profileId, props.ideaId, props.run.id, id),
   onSettled: refresh,
 })
 const ignore = useMutation({
-  mutationFn: (ids: string[]) =>
-    api.dismissResearchItems(props.profileId, props.ideaId, props.run.id, ids),
-  onSuccess: (_run, ids) => (ticked.value = ticked.value.filter((id) => !ids.includes(id))),
+  mutationFn: (id: string) =>
+    api.ignoreResearchItem(props.profileId, props.ideaId, props.run.id, id),
   onSettled: refresh,
 })
-const busy = computed(() => add.isPending.value || ignore.isPending.value)
+const reconsider = useMutation({
+  mutationFn: (id: string) =>
+    api.reconsiderResearchItem(props.profileId, props.ideaId, props.run.id, id),
+  onSettled: refresh,
+})
+const busy = computed(
+  () => add.isPending.value || ignore.isPending.value || reconsider.isPending.value,
+)
+const problem = computed(() => add.error.value ?? ignore.error.value ?? reconsider.error.value)
+function clearProblem() {
+  add.reset()
+  ignore.reset()
+  reconsider.reset()
+}
 
 const confirmingDelete = ref(false)
 const remove = useMutation({
@@ -69,135 +71,108 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       Nothing new turned up that looked worth reading. Try describing the areas differently.
     </p>
 
-    <ul v-else class="mb-3 space-y-4">
+    <ul v-else class="mb-3 space-y-3">
       <li
         v-for="item in run.items"
         :key="item.id"
         class="border-t border-stone-200 pt-3 first:border-t-0 first:pt-0"
       >
-        <div class="flex items-start gap-3">
-          <input
-            v-if="item.status === 'suggested'"
-            :id="`${fieldId}-${item.id}`"
-            v-model="ticked"
-            type="checkbox"
-            :value="item.id"
-            :disabled="unusable(item) || busy"
-            class="mt-1.5 h-4 w-4 shrink-0"
-          />
-          <div class="min-w-0 flex-1">
-            <component
-              :is="item.status === 'suggested' ? 'label' : 'p'"
-              :for="item.status === 'suggested' ? `${fieldId}-${item.id}` : undefined"
-              class="block break-words font-medium"
-              :class="item.status === 'dismissed' ? 'text-stone-500' : ''"
+        <!-- Decided: just the title, how it went, and a way back. -->
+        <div v-if="item.status !== 'suggested'" class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span
+            v-if="item.status === 'added'"
+            class="font-bold text-green-700"
+            role="img"
+            aria-label="Added to the reading list"
+            >✓</span
+          >
+          <span v-else class="font-bold text-red-700" role="img" aria-label="Ignored">✗</span>
+          <span
+            class="min-w-0 flex-1 break-words"
+            :class="item.status === 'dismissed' ? 'text-stone-500' : ''"
+            >{{ name(item) }}</span
+          >
+          <button
+            type="button"
+            class="btn btn-sm btn-neutral"
+            :disabled="busy"
+            :aria-label="`Reconsider: ${name(item)}`"
+            @click="reconsider.mutate(item.id)"
+          >
+            Reconsider
+          </button>
+        </div>
+
+        <!-- Waiting for a decision: everything needed to make one. -->
+        <div v-else>
+          <p class="break-words font-medium">{{ name(item) }}</p>
+          <p class="break-all text-sm">
+            {{ item.url }}
+            <a :href="item.url" target="_blank" rel="noopener noreferrer" class="ml-1 underline">
+              Open the page<span class="sr-only"> “{{ name(item) }}” (opens in a new tab)</span>
+            </a>
+          </p>
+          <p
+            v-if="item.fetchedTitle && item.title && item.title !== item.fetchedTitle"
+            class="text-sm"
+          >
+            <span class="font-medium">The search called it:</span> {{ item.title }}
+          </p>
+          <p v-if="item.fetchedAuthors.length" class="text-sm">
+            <span class="font-medium">The page names as author:</span>
+            {{ item.fetchedAuthors.join(', ') }}
+          </p>
+          <p class="text-sm">
+            <span class="font-medium">Why the AI suggests it (unchecked):</span> {{ item.why }}
+          </p>
+          <p
+            v-if="item.check === 'no-title'"
+            class="mt-1 rounded bg-amber-50 p-2 text-sm text-amber-900"
+          >
+            We couldn't read a title from this page, so we can't confirm what it is. If you add it,
+            it is listed as “{{ item.title || item.url }}”.
+          </p>
+          <p
+            v-else-if="item.check === 'not-found'"
+            class="mt-1 rounded bg-red-50 p-2 text-sm text-red-900"
+          >
+            Problem: we couldn't find a website at this address, so the page may not exist. It can't
+            be added.
+          </p>
+          <p
+            v-else-if="item.check === 'not-public'"
+            class="mt-1 rounded bg-red-50 p-2 text-sm text-red-900"
+          >
+            Problem: this address isn't a public website, so it can't be added.
+          </p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              :disabled="unusable(item) || busy"
+              :aria-label="`Add to the reading list: ${name(item)}`"
+              @click="add.mutate(item.id)"
             >
-              {{ name(item) }}
-            </component>
-            <p class="break-all text-sm">
-              {{ item.url }}
-              <a :href="item.url" target="_blank" rel="noopener noreferrer" class="ml-1 underline">
-                Open the page<span class="sr-only"> “{{ name(item) }}” (opens in a new tab)</span>
-              </a>
-            </p>
-            <p
-              v-if="item.fetchedTitle && item.title && item.title !== item.fetchedTitle"
-              class="text-sm"
+              Add
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-neutral"
+              :disabled="busy"
+              :aria-label="`Ignore: ${name(item)}`"
+              @click="ignore.mutate(item.id)"
             >
-              <span class="font-medium">The search called it:</span> {{ item.title }}
-            </p>
-            <p v-if="item.fetchedAuthors.length" class="text-sm">
-              <span class="font-medium">The page names as author:</span>
-              {{ item.fetchedAuthors.join(', ') }}
-            </p>
-            <p class="text-sm">
-              <span class="font-medium">Why the AI suggests it (unchecked):</span> {{ item.why }}
-            </p>
-            <p
-              v-if="item.check === 'no-title'"
-              class="mt-1 rounded bg-amber-50 p-2 text-sm text-amber-900"
-            >
-              We couldn't read a title from this page, so we can't confirm what it is. If you add
-              it, it is listed as “{{ item.title || item.url }}”.
-            </p>
-            <p
-              v-else-if="item.check === 'not-found'"
-              class="mt-1 rounded bg-red-50 p-2 text-sm text-red-900"
-            >
-              Problem: we couldn't find a website at this address, so the page may not exist. It
-              can't be added.
-            </p>
-            <p
-              v-else-if="item.check === 'not-public'"
-              class="mt-1 rounded bg-red-50 p-2 text-sm text-red-900"
-            >
-              Problem: this address isn't a public website, so it can't be added.
-            </p>
-            <p v-if="item.status === 'added'" class="mt-1 text-sm text-stone-700">
-              Added to the reading list.
-            </p>
-            <p v-else-if="item.status === 'dismissed'" class="mt-1 text-sm text-stone-600">
-              Ignored.
-            </p>
-            <div v-else class="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                class="btn btn-sm btn-outline"
-                :disabled="unusable(item) || busy"
-                :aria-label="`Add to the reading list: ${name(item)}`"
-                @click="add.mutate([item.id])"
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm btn-neutral"
-                :disabled="busy"
-                :aria-label="`Ignore: ${name(item)}`"
-                @click="ignore.mutate([item.id])"
-              >
-                Ignore
-              </button>
-            </div>
+              Ignore
+            </button>
           </div>
         </div>
       </li>
     </ul>
 
-    <div v-if="open.length" class="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        class="btn btn-sm btn-primary"
-        :disabled="!chosen.length || busy"
-        @click="add.mutate(chosen)"
-      >
-        {{ add.isPending.value ? 'Adding…' : `Add ticked to the reading list (${chosen.length})` }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-neutral"
-        :disabled="!chosen.length || busy"
-        @click="ignore.mutate(chosen)"
-      >
-        Ignore ticked
-      </button>
-      <button
-        v-if="choosable.length > 1"
-        type="button"
-        class="btn btn-sm btn-neutral"
-        :disabled="busy"
-        @click="ticked = choosable.map((i) => i.id)"
-      >
-        Tick all
-      </button>
+    <div v-if="problem" role="alert" class="mb-2 text-sm text-red-700">
+      {{ errorMessage(problem) }}
+      <button type="button" class="ml-2 underline" @click="clearProblem">Dismiss</button>
     </div>
-    <p
-      v-if="add.isError.value || ignore.isError.value"
-      role="alert"
-      class="mt-2 text-sm text-red-700"
-    >
-      {{ errorMessage(add.error.value ?? ignore.error.value) }}
-    </p>
 
     <p class="mt-3 border-t border-stone-200 pt-2 text-sm">
       <button type="button" class="text-red-700 underline" @click="confirmingDelete = true">

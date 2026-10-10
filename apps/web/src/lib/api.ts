@@ -322,11 +322,18 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     runResearch: (profileId: string, ideaId: string, areas: string) =>
       get(ResearchRunSchema, 'POST', research(profileId, ideaId), { areas }),
     /** Adds the ticked pages of a run to the idea's reading list. */
-    addResearchItems: (profileId: string, ideaId: string, runId: string, itemIds: string[]) =>
-      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/add`, { itemIds }),
-    dismissResearchItems: (profileId: string, ideaId: string, runId: string, itemIds: string[]) =>
+    addResearchItem: (profileId: string, ideaId: string, runId: string, itemId: string) =>
+      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/add`, {
+        itemIds: [itemId],
+      }),
+    ignoreResearchItem: (profileId: string, ideaId: string, runId: string, itemId: string) =>
       get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/dismiss`, {
-        itemIds,
+        itemIds: [itemId],
+      }),
+    /** Takes a decision back: an ignored page is waiting again; an added one also leaves the reading list. */
+    reconsiderResearchItem: (profileId: string, ideaId: string, runId: string, itemId: string) =>
+      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/reconsider`, {
+        itemIds: [itemId],
       }),
     deleteResearch: (profileId: string, ideaId: string, runId: string) =>
       act('DELETE', `${research(profileId, ideaId)}/${runId}`),

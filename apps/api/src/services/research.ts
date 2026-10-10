@@ -65,7 +65,7 @@ export interface ResearchDeps {
 /**
  * Research is kept apart from brainstorming: the writer describes the areas to look into, one request goes to their
  * own researcher, and what it finds is saved as a list to review. Nothing joins the reading list until a person
- * ticks it and adds it. Design: docs/decisions.md (T38).
+ * adds it. Design: docs/decisions.md (T38).
  */
 export class ResearchService {
   private readonly checker: ReadingChecker
@@ -130,9 +130,9 @@ export class ResearchService {
   }
 
   /**
-   * Adds the ticked pages to the reading list, marked as found by research and keeping the AI's reason. All or
+   * Adds pages to the reading list, marked as found by research and keeping the AI's reason. All or
    * nothing: a page that can't be added (it doesn't exist, it is already listed, or the list is full) refuses
-   * the lot, with the reason, so the person can untick it.
+   * the lot, with the reason, so the person can choose again.
    */
   add(idea: Idea, runId: string, itemIds: string[]): ResearchRun {
     const { store } = this.d
@@ -148,7 +148,7 @@ export class ResearchService {
       if (current.links.length + chosen.length > MAX_IDEA_LINKS) {
         throw fail(
           409,
-          `An idea can have up to ${MAX_IDEA_LINKS} links. Remove some you no longer need, or tick fewer.`,
+          `An idea can have up to ${MAX_IDEA_LINKS} links. Remove some you no longer need to make room.`,
         )
       }
       for (const item of chosen) {
@@ -157,22 +157,22 @@ export class ResearchService {
         if (item.check === 'not-found') {
           throw fail(
             409,
-            `We couldn't find a website at the address for “${name}”, so it can't be added. Untick it.`,
+            `We couldn't find a website at the address for “${name}”, so it can't be added. Choose another.`,
           )
         }
         if (item.check === 'not-public') {
           throw fail(
             409,
-            `The address for “${name}” isn't a public website, so it can't be added. Untick it.`,
+            `The address for “${name}” isn't a public website, so it can't be added. Choose another.`,
           )
         }
         if (listed.has(linkKey(item.url))) {
-          throw fail(409, `“${name}” is already on the reading list. Untick it.`)
+          throw fail(409, `“${name}” is already on the reading list. Choose another.`)
         }
         listed.add(linkKey(item.url))
       }
       for (const item of chosen) {
-        store.ideas.addLink(
+        const link = store.ideas.addLink(
           idea.id,
           {
             url: item.url,
@@ -182,12 +182,8 @@ export class ResearchService {
           },
           'research',
         )
+        store.research.markAdded(run.id, item.id, link.id)
       }
-      store.research.decide(
-        run.id,
-        chosen.map((c) => c.id),
-        'added',
-      )
     })
     return this.find(idea, runId)
   }
@@ -195,8 +191,27 @@ export class ResearchService {
   /** Ignores pages: they stay in the run, marked, and nothing is added. */
   dismiss(idea: Idea, runId: string, itemIds: string[]): ResearchRun {
     const run = this.find(idea, runId)
-    const ids = itemIds.filter((id) => run.items.some((i) => i.id === id))
-    this.d.store.research.decide(run.id, ids, 'dismissed')
+    for (const id of itemIds) {
+      if (run.items.some((i) => i.id === id)) this.d.store.research.ignore(run.id, id)
+    }
+    return this.find(idea, runId)
+  }
+
+  /**
+   * Takes a decision back: an ignored page is waiting again, and an added page is too, and is taken off the
+   * reading list (unless the writer has already removed it). Notes taken from the item stay, as when any item
+   * is removed, but lose their link to it.
+   */
+  reconsider(idea: Idea, runId: string, itemIds: string[]): ResearchRun {
+    const { store } = this.d
+    const run = this.find(idea, runId)
+    store.transaction(() => {
+      for (const id of itemIds) {
+        if (!run.items.some((i) => i.id === id)) continue
+        const reopened = store.research.reopen(run.id, id)
+        if (reopened?.linkId) store.ideas.removeLink(idea.id, reopened.linkId)
+      }
+    })
     return this.find(idea, runId)
   }
 

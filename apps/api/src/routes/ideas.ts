@@ -294,6 +294,9 @@ export function ideaRoutes(
       .post('/:id/research/:runId/dismiss', validateJson(ResearchItemIdsSchema), (c) =>
         c.json(research.dismiss(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
       )
+      .post('/:id/research/:runId/reconsider', validateJson(ResearchItemIdsSchema), (c) =>
+        c.json(research.reconsider(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
+      )
       .delete('/:id/research/:runId', (c) => {
         research.delete(find(c), c.req.param('runId'))
         return c.body(null, 204)

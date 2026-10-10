@@ -517,9 +517,15 @@ a first version built research into the brainstorm conversation was set aside.
   direction the writer seems to be taking _and_ ones that challenge or complicate it, best effort. It must not say
   which is which: a label could change how the writer reads the source, and they might not take a page seriously that
   they expect to disagree with. The eval `research-includes-other-points-of-view` checks both parts.
-- **Review before anything is added.** A run is a list; the writer ticks pages and presses _Add ticked to the reading
-  list_ (all or nothing; a page that can't be added refuses the lot with the reason), or _Ignore ticked_. Each page also has its own **Add** and **Ignore** buttons, so an unwanted page is one click to take off the list (an ignored page stays in the run, marked "Ignored"; a page that can't be added can still be ignored). Unticked
-  pages stay in the run to decide on later. Added items are marked `research` ("Found by research").
+- **Review before anything is added: one click each.** A run is a list; each page has **Add** and **Ignore**, and
+  nothing joins the reading list otherwise. (There are no checkboxes or bulk buttons: the owner preferred deciding
+  page by page.) A decided page collapses to its title with a green tick (added) or a red cross (ignored) and a
+  **Reconsider** button, which puts it back to undecided and expands it again. Reconsidering an _added_ page also
+  **removes it from the reading list** (the research item remembers the list item it made, `idea_research_items.link_id`;
+  if the writer already removed it there is nothing more to do). Notes taken from the item stay, as when any item is
+  removed, but lose their link to it. A page that can't be added can still be ignored. Adding refuses, with the reason,
+  a page that doesn't exist, is already listed, or would overflow the list. Added items are marked `research`
+  ("Found by research").
 - **The AI's reason is kept.** Each page has a reason from the researcher, shown as "Why the AI suggests it
   (unchecked)". When a page is added, the reason is stored with the reading-list item (`idea_links.why`) and shown there
   with the same label, so it can't pass for the writer's own note. Revisit after testing: the owner wants to see how

@@ -23,7 +23,7 @@ import {
 
 /**
  * Research (#38): the writer describes areas to look into, one request goes to their own researcher, and what it
- * finds is saved as a list to review. Nothing joins the reading list until pages are ticked and added.
+ * finds is saved as a list to review. Nothing joins the reading list until pages are added.
  */
 
 const OK = 'https://example.org/river-physics'
@@ -64,7 +64,9 @@ async function world(options: Parameters<typeof setup>[0] = {}) {
   const add = (runId: string, itemIds: string[]) => ada.post(`${base}/${runId}/add`, { itemIds })
   const dismiss = (runId: string, itemIds: string[]) =>
     ada.post(`${base}/${runId}/dismiss`, { itemIds })
-  return { ctx, ada, profile, idea, ideas, base, run, list, readingList, add, dismiss }
+  const reconsider = (runId: string, itemIds: string[]) =>
+    ada.post(`${base}/${runId}/reconsider`, { itemIds })
+  return { ctx, ada, profile, idea, ideas, base, run, list, readingList, add, dismiss, reconsider }
 }
 
 describe('running research', () => {
@@ -272,7 +274,7 @@ describe('reviewing a run', () => {
     return { ...w, saved, id: (n: number) => saved.items[n]!.id }
   }
 
-  it('adds only the ticked pages to the reading list, marked as found by research and keeping the AI’s reason', async () => {
+  it('adds only the pages asked for to the reading list, marked as found by research and keeping the AI’s reason', async () => {
     const { add, saved, id, readingList, list } = await ran()
     const res = await add(saved.id, [id(0), id(1)])
     expect(res.status).toBe(200)
@@ -291,7 +293,7 @@ describe('reviewing a run', () => {
       },
       { url: UNTITLED, title: 'Untitled report', origin: 'research' }, // no real title: the search's
     ])
-    expect((await list())[0]!.items[2]!.status).toBe('suggested') // not ticked: still there to decide on
+    expect((await list())[0]!.items[2]!.status).toBe('suggested') // not chosen: still there to decide on
   })
 
   it('carries the authors the page names onto the item', async () => {
@@ -302,7 +304,7 @@ describe('reviewing a run', () => {
     expect((await readingList()).at(-1)!.authors).toEqual(['Ada Author', 'Bo Writer'])
   })
 
-  it('refuses the lot, saying which page and why, when a ticked page does not exist or is not public', async () => {
+  it('refuses the lot, saying which page and why, when a chosen page does not exist or is not public', async () => {
     const { add, saved, id, readingList } = await ran([
       found(OK),
       found(MISSING, 'Gone'),
@@ -353,7 +355,7 @@ describe('reviewing a run', () => {
     expect(await readingList()).toHaveLength(1)
   })
 
-  it('knows nothing of pages from other runs, or of other ideas’ runs, or ticking nothing', async () => {
+  it('knows nothing of pages from other runs, or of other ideas’ runs, or asking for nothing', async () => {
     const { ada, add, saved, id, ideas, idea, base, ctx, run } = await ran()
     ctx.setResearch(() => [found('https://example.org/other')])
     const second = await (await run(ada, 'Another')).json()
@@ -366,6 +368,69 @@ describe('reviewing a run', () => {
         .status,
     ).toBe(404)
     void idea
+  })
+
+  describe('reconsidering', () => {
+    const statuses = (r: ResearchRun) => r.items.map((i) => i.status)
+
+    it('takes an added page back off the reading list, and the page is waiting for a decision again', async () => {
+      const { add, reconsider, saved, id, readingList } = await ran()
+      await add(saved.id, [id(0), id(1)])
+      expect(await readingList()).toHaveLength(3)
+
+      const res = await reconsider(saved.id, [id(0)])
+      expect(res.status).toBe(200)
+      expect(statuses(await res.json())).toEqual(['suggested', 'added', 'suggested'])
+      expect((await readingList()).map((l) => l.url)).toEqual([
+        'https://example.org/paper',
+        UNTITLED,
+      ])
+
+      // And it can be added again, as a fresh item.
+      expect((await add(saved.id, [id(0)])).status).toBe(200)
+      expect((await readingList()).map((l) => l.url)).toContain(OK)
+    })
+
+    it('puts an ignored page back to waiting, changing nothing else', async () => {
+      const { dismiss, reconsider, saved, id, readingList } = await ran()
+      await dismiss(saved.id, [id(0)])
+      const res = await reconsider(saved.id, [id(0)])
+      expect(statuses(await res.json())).toEqual(['suggested', 'suggested', 'suggested'])
+      expect(await readingList()).toHaveLength(1)
+    })
+
+    it('copes with an added page the writer has already removed from the list', async () => {
+      const { add, reconsider, saved, id, readingList, ada, ideas, idea } = await ran()
+      await add(saved.id, [id(0)])
+      const link = (await readingList()).find((l) => l.url === OK) as unknown as { id: string }
+      await ada.delete(`${ideas}/${idea.id}/links/${link.id}`)
+      const res = await reconsider(saved.id, [id(0)])
+      expect(res.status).toBe(200)
+      expect(statuses(await res.json())[0]).toBe('suggested')
+    })
+
+    it('keeps notes taken from the page, which only lose their link to it', async () => {
+      const { add, reconsider, saved, id, ada, ideas, idea, readingList } = await ran()
+      await add(saved.id, [id(0)])
+      const link = (await readingList()).find((l) => l.url === OK) as unknown as { id: string }
+      await ada.post(`${ideas}/${idea.id}/notes`, { text: 'From the page', readingItemId: link.id })
+      await reconsider(saved.id, [id(0)])
+      const notes = await (await ada.get(`${ideas}/${idea.id}/notes`)).json()
+      expect(notes).toContainEqual(
+        expect.objectContaining({ text: 'From the page', origin: 'reading', readingItemId: null }),
+      )
+    })
+
+    it('ignores pages that were never decided or belong elsewhere, and needs something to reconsider', async () => {
+      const { ada, base, reconsider, saved, id } = await ran()
+      expect(statuses(await (await reconsider(saved.id, [id(0), 'nope'])).json())).toEqual([
+        'suggested',
+        'suggested',
+        'suggested',
+      ])
+      expect((await reconsider('nope', [id(0)])).status).toBe(404)
+      expect((await ada.post(`${base}/${saved.id}/reconsider`, { itemIds: [] })).status).toBe(400)
+    })
   })
 
   it('forgets a run on request, leaving the pages already added where they are', async () => {

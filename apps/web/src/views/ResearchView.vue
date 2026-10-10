@@ -66,10 +66,10 @@ function submit() {
     <p class="mb-6 text-sm text-stone-600">
       Describe the areas you want to look into and your AI will search the web for pages worth
       reading, including some that may not agree with you. It only suggests: you review what it
-      finds, and nothing joins the reading list until you tick it and add it. The idea's title and
-      notes, the addresses already on its reading list and what you write here are sent to your AI
-      provider, which does the searching; the text of your drafts never is. Everyone in this profile
-      sees the research.
+      finds, and nothing joins the reading list until you add it. The idea's title and notes, the
+      addresses already on its reading list and what you write here are sent to your AI provider,
+      which does the searching; the text of your drafts never is. Everyone in this profile sees the
+      research.
     </p>
 
     <form class="mb-8" @submit.prevent="submit">
