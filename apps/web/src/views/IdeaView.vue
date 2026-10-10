@@ -68,7 +68,9 @@ const removeLink = useMutation({
 
 const moveDrafts = useMutation({
   mutationFn: (ids: string[]) => api.reorderIdeaDrafts(props.profileId, props.id, ids),
-  onSuccess: setIdea,
+  onSuccess: (saved) => {
+    void setIdea(saved) // the lists refresh in the background: nothing about the order waits on them
+  },
   // The list on screen may be out of date (the 409 says so); show the server's.
   onError: () => queryClient.invalidateQueries({ queryKey: ['idea'] }),
 })
@@ -236,7 +238,6 @@ const remove = useMutation({
         :items="idea.data.value.drafts"
         :item-label="(draft) => draft.title || 'Untitled'"
         :save="saveDraftOrder"
-        :disabled="moveDrafts.isPending.value"
       >
         <template #default="{ item: draft }">
           <RouterLink

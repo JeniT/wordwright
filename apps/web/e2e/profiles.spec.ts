@@ -319,6 +319,34 @@ test('manages the ordered list of idea sources on the settings page', async ({ p
     .dragTo(sources.getByRole('listitem').first(), { targetPosition: { x: 40, y: 3 } })
   await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
 
+  // A move shows at once, even when the server is slow to save it.
+  let asked = 0
+  let saved = 0
+  await page.route('**/sources/order', async (route) => {
+    asked++
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.continue()
+  })
+  page.on('response', (res) => {
+    if (res.url().includes('/sources/order') && res.request().method() === 'PUT') saved++
+  })
+  await sources.getByRole('button', { name: 'Move Feed of one.example up' }).click()
+  await expect
+    .poll(hosts, { timeout: 1000 })
+    .toEqual(['two.example', 'one.example', 'three.example'])
+  // Quick moves in a row show at once too, and the server is asked one at a time: the second
+  // save is only sent after the first has been answered, with the order as it is by then.
+  await sources.getByRole('button', { name: 'Move Feed of three.example up' }).click()
+  await sources.getByRole('button', { name: 'Move Feed of three.example up' }).click()
+  await expect
+    .poll(hosts, { timeout: 1000 })
+    .toEqual(['three.example', 'two.example', 'one.example'])
+  expect(asked).toBe(1)
+  await expect.poll(() => saved, { timeout: 10_000 }).toBe(2)
+  expect(asked).toBe(2)
+  expect(await hosts()).toEqual(['three.example', 'two.example', 'one.example'])
+  await page.unroute('**/sources/order')
+
   // The order, and removals, survive a reload.
   await sources.getByRole('button', { name: 'Remove Feed of three.example' }).click()
   await expect.poll(hosts).toEqual(['two.example', 'one.example'])

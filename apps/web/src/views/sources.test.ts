@@ -204,6 +204,28 @@ describe('reading list sources on the profile settings page', () => {
     ])
   })
 
+  it('shows a move at once, while the server is still answering', async () => {
+    const fake = fakeSources()
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    server.use(
+      http.put('*/api/profiles/:id/sources/order', async ({ request }) => {
+        await held
+        const { ids } = (await request.json()) as { ids: string[] }
+        fake.orders.push(ids)
+        fake.list = ids.map((id) => fake.list.find((s) => s.id === id)!)
+        return HttpResponse.json(fake.list)
+      }),
+    )
+    await openSettings()
+    await fireEvent.click(await screen.findByRole('button', { name: 'Move c.example/feed up' }))
+    expect(rows()[1]).toHaveTextContent('c.example/feed') // already there, nothing has been saved yet
+    expect(fake.orders).toEqual([])
+    release()
+    await waitFor(() => expect(fake.orders).toEqual([['s1', 's3', 's2']]))
+    expect(rows()[1]).toHaveTextContent('c.example/feed')
+  })
+
   it('cannot move the first source up or the last one down', async () => {
     fakeSources()
     await openSettings()

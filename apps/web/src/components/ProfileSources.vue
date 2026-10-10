@@ -93,7 +93,6 @@ const removeClass =
         :items="sources.data.value"
         :item-label="nameOf"
         :save="(ids) => saveOrder(ids)"
-        :disabled="move.isPending.value"
       >
         <template #default="{ item: source, index }">
           <ProfileImage

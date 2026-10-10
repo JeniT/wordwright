@@ -178,9 +178,9 @@ const remove = useMutation({
 // ---- reordering
 const move = useMutation({
   mutationFn: (ids: string[]) => api.reorderIdeaNotes(props.profileId, props.ideaId, ids),
-  onSuccess: async (saved) => {
+  onSuccess: (saved) => {
     queryClient.setQueryData(notesKey(), saved)
-    await refreshAround()
+    void refreshAround() // in the background: nothing about the order waits on it
   },
   // The 409 says the list on screen is out of date; show the server's.
   onError: () => notes.refetch(),
@@ -258,13 +258,7 @@ const label = (note: IdeaNote) => {
         </p>
         <TagFilter v-model="tagFilter" :tags="usedTags" />
         <p v-if="!visibleNotes.length" class="text-stone-600">No notes have this tag.</p>
-        <ReorderableList
-          v-else
-          :items="visibleNotes"
-          :item-label="label"
-          :save="saveOrder"
-          :disabled="move.isPending.value"
-        >
+        <ReorderableList v-else :items="visibleNotes" :item-label="label" :save="saveOrder">
           <template #default="{ item: note }">
             <form
               v-if="editingId === note.id"

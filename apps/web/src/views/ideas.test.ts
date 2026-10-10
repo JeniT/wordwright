@@ -1123,6 +1123,73 @@ describe('idea page', () => {
         ).toBeInTheDocument()
       })
 
+      it('shows a move at once, while the server is still answering', async () => {
+        const state = fakeNotes()
+        let release!: () => void
+        const held = new Promise<void>((resolve) => (release = resolve))
+        server.use(
+          http.put(`${notesUrl}/order`, async ({ request }) => {
+            await held
+            const { ids } = (await request.json()) as { ids: string[] }
+            state.orders.push(ids)
+            state.notes = ids.map((id) => state.notes.find((n) => n.id === id)!)
+            return HttpResponse.json(state.notes)
+          }),
+        )
+        await open()
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
+        )
+        expect(texts()[1]).toBe('A quote from the paper.') // already there; nothing has been saved yet
+        expect(state.orders).toEqual([])
+        release()
+        await waitFor(() => expect(state.orders).toEqual([['n1', 'n3', 'n2']]))
+        expect(texts()).toEqual([
+          'Erosion loops.',
+          'A quote from the paper.',
+          'Deposition inside the bend.\nSecond line.',
+        ])
+      })
+
+      it('copes with several quick moves: one request at a time, and the order you made', async () => {
+        const state = fakeNotes()
+        let inFlight = 0
+        let most = 0
+        server.use(
+          http.put(`${notesUrl}/order`, async ({ request }) => {
+            inFlight++
+            most = Math.max(most, inFlight)
+            await new Promise((resolve) => setTimeout(resolve, 60))
+            const { ids } = (await request.json()) as { ids: string[] }
+            state.orders.push(ids)
+            state.notes = ids.map((id) => state.notes.find((n) => n.id === id)!)
+            inFlight--
+            return HttpResponse.json(state.notes)
+          }),
+        )
+        await open()
+        const up = (text: string) =>
+          screen.getByRole('button', { name: new RegExp(`^Move note “${text}” up`) })
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
+        )
+        await fireEvent.click(up('A quote from the paper\\.')) // to the top, before the first save has answered
+        await fireEvent.click(up('Deposition inside the bend\\.')) // then the one that is now last
+        expect(texts()).toEqual([
+          'A quote from the paper.',
+          'Deposition inside the bend.\nSecond line.',
+          'Erosion loops.',
+        ])
+        await waitFor(() => expect(state.orders.at(-1)).toEqual(['n3', 'n2', 'n1']))
+        expect(most).toBe(1)
+        await new Promise((resolve) => setTimeout(resolve, 150))
+        expect(texts()).toEqual([
+          'A quote from the paper.',
+          'Deposition inside the bend.\nSecond line.',
+          'Erosion loops.',
+        ])
+      })
+
       it('has no arrow that goes nowhere', async () => {
         fakeNotes()
         await open()
@@ -1207,6 +1274,35 @@ describe('idea page', () => {
         ]),
       )
       expect(await screen.findByText('Moved Untitled to position 2 of 3')).toBeInTheDocument()
+    })
+
+    it('shows a move at once, while the server is still answering', async () => {
+      const fake = fakeIdea()
+      let release!: () => void
+      const held = new Promise<void>((resolve) => (release = resolve))
+      server.use(
+        http.put(`${ideaUrl}/drafts/order`, async ({ request }) => {
+          await held
+          const { ids } = (await request.json()) as { ids: string[] }
+          fake.orders.push(ids)
+          fake.current = {
+            ...fake.current,
+            drafts: ids.map((id) => fake.current.drafts.find((d) => d.id === id)!),
+          }
+          return HttpResponse.json(fake.current)
+        }),
+      )
+      await renderAt('/p/ada-substack/ideas/i1')
+      await fireEvent.click(await screen.findByRole('button', { name: 'Move Untitled up' }))
+      expect(titles()).toEqual([
+        expect.stringContaining('Part 1'),
+        expect.stringContaining('Untitled'),
+        expect.stringContaining('Part 2'),
+      ])
+      expect(fake.orders).toEqual([])
+      release()
+      await waitFor(() => expect(fake.orders).toEqual([['d1', 'd3', 'd2']]))
+      expect(titles()[1]).toContain('Untitled')
     })
 
     it('cannot move the first draft up or the last one down, and a single draft not at all', async () => {
