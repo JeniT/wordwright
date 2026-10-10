@@ -4,6 +4,7 @@ import { CredentialStore } from './credentials'
 import { openDatabase, transaction } from './database'
 import { DraftStore } from './drafts'
 import { IdeaStore } from './ideas'
+import { NoteStore } from './notes'
 import { InvitationStore } from './invitations'
 import { ProfileStore } from './profiles'
 import { SourceStore } from './sources'
@@ -17,6 +18,7 @@ export interface Store {
   profiles: ProfileStore
   drafts: DraftStore
   ideas: IdeaStore
+  notes: NoteStore
   conversations: ConversationStore
   sources: SourceStore
   invitations: InvitationStore
@@ -33,6 +35,7 @@ export function createStore(db: DatabaseSync): Store {
     profiles: new ProfileStore(db),
     drafts: new DraftStore(db),
     ideas: new IdeaStore(db),
+    notes: new NoteStore(db),
     conversations: new ConversationStore(db),
     sources: new SourceStore(db),
     invitations: new InvitationStore(db),

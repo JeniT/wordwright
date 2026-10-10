@@ -183,6 +183,25 @@ account, so the unconfirmed-account cleanup never deletes someone's ideas. Renam
 every table that points at it; `ideas` was missing from that list at first, which broke renaming any profile
 that had one, so the rename test now creates an idea.
 
+## Notes are separate cards, with an origin (T28)
+
+An idea's notes used to be one text column. They are now rows in `idea_notes` (text, origin, author, position,
+`added_at`), arranged by the person and changed through `/ideas/:id/notes` (add, edit, delete, and reorder by
+sending the whole list of ids, with a 409 if it is stale, as for feed sources; at most 200 per idea).
+`origin` is `entered`, `brainstorm` or `reading`; notes made through the API are always `entered`, and later
+tasks set the others on the server. `added_at` is for the drafting drawer (T33) and has no route yet.
+
+- **`profile_id` always, `idea_id` nullable.** A note can later belong to a profile before it has an idea
+  (starting an idea from notes, T37), so the table does not assume an idea. `profile_id` is in the profile-rename list.
+- **No tags or reading-item column yet.** Migrations are append-only and `ALTER TABLE ADD COLUMN` is cheap, so
+  T35 and T31 add theirs when they need them.
+- **Existing text becomes one note.** The migration copies each non-blank `ideas.notes` into a single `entered`
+  note. The old column is no longer read (SQLite can't cheaply drop a NOT NULL column); new ideas write `''`.
+- **Transitional single text.** `Idea.notes` is still returned, as the notes joined by blank lines, and
+  `PATCH /ideas/:id` / `POST /ideas` with `notes` still work, so the idea page and brainstorm are unchanged
+  until T29 and T30. Writing different text replaces all the notes with one; writing the text it already has
+  changes nothing, so a form that always sends `notes` can't merge cards. Remove it with T29/T30.
+
 ## Idea sources: an ordered list of feeds, edited by any member
 
 Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the

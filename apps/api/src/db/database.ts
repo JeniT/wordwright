@@ -257,6 +257,29 @@ export const MIGRATIONS: Migration[] = [
   `,
   // T3e: when an unconfirmed account was warned that it is about to be deleted (once only).
   `ALTER TABLE users ADD COLUMN deletion_reminded_at TEXT`,
+  `
+  -- Notes: index cards for an idea. profile_id is always set; idea_id is null for a note that belongs to the
+  -- profile as a whole (used later, when notes can be gathered before an idea exists). ideas.notes is no longer
+  -- read: it stays because SQLite can't cheaply drop a NOT NULL column, and new ideas write ''.
+  CREATE TABLE idea_notes (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    idea_id TEXT REFERENCES ideas(id) ON DELETE CASCADE,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    text TEXT NOT NULL,
+    origin TEXT NOT NULL CHECK (origin IN ('entered', 'brainstorm', 'reading')),
+    position INTEGER NOT NULL,
+    added_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX idea_notes_idea ON idea_notes(idea_id);
+  CREATE INDEX idea_notes_profile ON idea_notes(profile_id);
+  -- Each idea's existing notes become one note of its own.
+  INSERT INTO idea_notes (id, profile_id, idea_id, created_by, text, origin, position, created_at, updated_at)
+    SELECT lower(hex(randomblob(16))), profile_id, id, created_by, notes, 'entered', 0, created_at, updated_at
+    FROM ideas WHERE trim(notes, ' ' || char(9) || char(10) || char(13)) != '';
+  `,
 ]
 
 /**

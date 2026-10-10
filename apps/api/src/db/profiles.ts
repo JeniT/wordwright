@@ -96,6 +96,7 @@ export class ProfileStore {
         ['profile_images', 'profile_id'],
         ['drafts', 'profile_id'],
         ['ideas', 'profile_id'],
+        ['idea_notes', 'profile_id'],
         ['invitations', 'profile_id'],
         ['profile_sources', 'profile_id'],
       ]) {

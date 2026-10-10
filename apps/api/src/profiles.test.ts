@@ -131,6 +131,7 @@ describe('profile ids', () => {
     const created = await (await sam.post('/api/profiles', { name: 'Old name' })).json()
     await shareProfile(ctx, sam, created.id, pat, 'pat@example.com')
     const draft = await createDraft(sam, created.id, { title: 'Hello', body: 'x' })
+    await sam.post(`/api/profiles/${created.id}/ideas/${draft.ideaId}/notes`, { text: 'A note' })
     await sam.putBytes(`/api/profiles/${created.id}/image`, PNG_BYTES, 'image/png')
 
     const renamed = await (
@@ -146,6 +147,10 @@ describe('profile ids', () => {
     expect(kept).toMatchObject({ id: draft.id, title: 'Hello' })
     const ideas = await (await sam.get('/api/profiles/sam-new-name/ideas')).json()
     expect(ideas).toMatchObject([{ id: draft.ideaId, draftCount: 1 }])
+    const notes = await (
+      await sam.get(`/api/profiles/sam-new-name/ideas/${draft.ideaId}/notes`)
+    ).json()
+    expect(notes).toMatchObject([{ text: 'A note' }])
     expect((await sam.get('/api/profiles/sam-new-name/image')).status).toBe(200)
   })
 

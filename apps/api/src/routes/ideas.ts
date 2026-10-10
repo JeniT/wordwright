@@ -6,6 +6,9 @@ import {
   DraftInputSchema,
   IdeaInputSchema,
   IdeaLinkInputSchema,
+  IdeaNoteInputSchema,
+  IdeaNoteOrderSchema,
+  MAX_IDEA_NOTES,
   IdeaUpdateSchema,
   SendMessageInputSchema,
 } from '@lfwa/core'
@@ -24,7 +27,7 @@ type Ctx = Context<AppEnv>
 
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
 export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: BrainstormService) {
-  const { ideas, drafts } = store
+  const { ideas, drafts, notes } = store
   /** A path parameter every route here has; a missing one can only mean the URL didn't match. */
   const param = (c: Ctx, name: string) => c.req.param(name) ?? notFoundError()
   const profileOf = (c: Ctx) => param(c, 'profileId')
@@ -74,6 +77,53 @@ export function ideaRoutes(store: Store, links: IdeaLinkService, brainstorm: Bra
       .delete('/:id/links/:linkId', (c) => {
         const idea = find(c)
         if (!ideas.removeLink(idea.id, c.req.param('linkId'))) throw notFound()
+        return c.body(null, 204)
+      })
+
+      // ---- notes: index cards, in the order the person arranged them ----
+      .get('/:id/notes', (c) => c.json(notes.list(find(c).id)))
+      .post('/:id/notes', validateJson(IdeaNoteInputSchema), (c) => {
+        const idea = find(c)
+        const saved = store.transaction(() => {
+          if (notes.count(idea.id) >= MAX_IDEA_NOTES) {
+            throw new HTTPException(409, {
+              message: `An idea can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
+            })
+          }
+          const note = notes.append(
+            idea.profileId,
+            idea.id,
+            c.get('user').id,
+            c.req.valid('json').text,
+          )
+          ideas.touch(idea.id)
+          return note
+        })
+        return c.json(saved, 201)
+      })
+      // Registered before `/:id/notes/:noteId` so that "order" is not taken for an id.
+      .put('/:id/notes/order', validateJson(IdeaNoteOrderSchema), (c) => {
+        const idea = find(c)
+        const ok = store.transaction(() => notes.reorder(idea.id, c.req.valid('json').ids))
+        if (!ok) {
+          throw new HTTPException(409, {
+            message: 'The notes have changed since you opened them. Reload the page and try again.',
+          })
+        }
+        ideas.touch(idea.id)
+        return c.json(notes.list(idea.id))
+      })
+      .patch('/:id/notes/:noteId', validateJson(IdeaNoteInputSchema), (c) => {
+        const idea = find(c)
+        const saved = notes.updateText(idea.id, c.req.param('noteId'), c.req.valid('json').text)
+        if (!saved) throw notFound()
+        ideas.touch(idea.id)
+        return c.json(saved)
+      })
+      .delete('/:id/notes/:noteId', (c) => {
+        const idea = find(c)
+        if (!store.transaction(() => notes.remove(idea.id, c.req.param('noteId')))) throw notFound()
+        ideas.touch(idea.id)
         return c.body(null, 204)
       })
 

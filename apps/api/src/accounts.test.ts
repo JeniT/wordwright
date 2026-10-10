@@ -421,6 +421,7 @@ describe('account deletion', () => {
     await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/links`, {
       url: 'https://example.org',
     })
+    await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/notes`, { text: 'A note' })
     const ideaDraft = await (
       await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/drafts`, { title: 'Idea draft' })
     ).json()
@@ -441,6 +442,7 @@ describe('account deletion', () => {
     expect(store.drafts.list(second.id)).toEqual([])
     expect(store.ideas.list(second.id)).toEqual([])
     expect(store.ideas.countLinks(idea.id)).toBe(0)
+    expect(store.notes.list(idea.id)).toEqual([])
     expect(store.drafts.get(second.id, ideaDraft.id)).toBeUndefined()
     expect(store.users.getPasswordHash(user.id)).toBeUndefined()
     expect(store.credentials.get(user.id)).toBeUndefined() // their API key goes too

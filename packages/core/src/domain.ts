@@ -300,6 +300,44 @@ export const IdeaLinkInputSchema = z.object({
 })
 export type IdeaLinkInput = z.infer<typeof IdeaLinkInputSchema>
 
+/** Bounds how much one idea can hold. */
+export const MAX_IDEA_NOTES = 200
+export const NOTE_TEXT_MAX = 20_000
+
+/** Where a note came from: typed by a person, proposed in a brainstorm, or taken while reading. */
+export const NoteOriginSchema = z.enum(['entered', 'brainstorm', 'reading'])
+export type NoteOrigin = z.infer<typeof NoteOriginSchema>
+
+export const NoteTextSchema = z
+  .string()
+  .trim()
+  .min(1, 'Write something in the note')
+  .max(
+    NOTE_TEXT_MAX,
+    `Use ${NOTE_TEXT_MAX.toLocaleString('en')} characters or fewer in a note; split it into two`,
+  )
+
+export const IdeaNoteSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  origin: NoteOriginSchema,
+  /** Who added it; null once that person has left. */
+  authorId: z.string().nullable(),
+  /** When it was pulled into a draft; null while it hasn't been. */
+  addedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+export type IdeaNote = z.infer<typeof IdeaNoteSchema>
+
+/** Notes made through the API are the person's own; other origins are set by the server. */
+export const IdeaNoteInputSchema = z.object({ text: NoteTextSchema })
+export type IdeaNoteInput = z.infer<typeof IdeaNoteInputSchema>
+
+/** Every note id of the idea, in the new order. Must name exactly the notes it has. */
+export const IdeaNoteOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_IDEA_NOTES) })
+export type IdeaNoteOrder = z.infer<typeof IdeaNoteOrderSchema>
+
 /** A draft as listed under its idea. */
 export const IdeaDraftSchema = z.object({
   id: z.string(),
@@ -321,6 +359,10 @@ export const IdeaSchema = z.object({
   id: z.string(),
   profileId: z.string(),
   name: z.string(),
+  /**
+   * The notes' text, joined by blank lines. Transitional: the idea page and brainstorm still treat the notes
+   * as one text; writing it replaces all the notes with one. Use the `/notes` routes for the real thing.
+   */
   notes: z.string(),
   links: z.array(IdeaLinkSchema),
   /** Oldest first: for a linked set of posts this is the order to read them in. */

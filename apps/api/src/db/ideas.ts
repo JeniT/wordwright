@@ -2,10 +2,15 @@ import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 import type { Idea, IdeaInput, IdeaLink, IdeaLinkInput, IdeaSummary, IdeaUpdate } from '@lfwa/core'
 import { nowIso } from './database'
+import { NoteStore } from './notes'
 
 /** Ideas are always accessed through their profile; callers check membership first. */
 export class IdeaStore {
-  constructor(private readonly db: DatabaseSync) {}
+  private readonly notes: NoteStore
+
+  constructor(private readonly db: DatabaseSync) {
+    this.notes = new NoteStore(db)
+  }
 
   list(profileId: string): IdeaSummary[] {
     return this.db
@@ -46,7 +51,11 @@ export class IdeaStore {
       id,
       profileId: row.profile_id as string,
       name: row.name as string,
-      notes: row.notes as string,
+      // Transitional: see `Idea.notes`. The column of the same name is no longer read.
+      notes: this.notes
+        .list(id)
+        .map((n) => n.text)
+        .join('\n\n'),
       links,
       drafts,
       createdAt: row.created_at as string,
@@ -62,7 +71,8 @@ export class IdeaStore {
         `INSERT INTO ideas (id, profile_id, created_by, name, notes, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, profileId, createdBy, input.name, input.notes, now, now)
+      .run(id, profileId, createdBy, input.name, '', now, now)
+    this.notes.replaceAllWithText(profileId, id, createdBy, input.notes)
     return this.get(profileId, id)!
   }
 
@@ -70,12 +80,15 @@ export class IdeaStore {
     const current = this.get(profileId, id)
     if (!current) return undefined
     this.db
-      .prepare('UPDATE ideas SET name = ?, notes = ?, updated_at = ? WHERE id = ?')
-      .run(changes.name ?? current.name, changes.notes ?? current.notes, nowIso(), id)
+      .prepare('UPDATE ideas SET name = ?, updated_at = ? WHERE id = ?')
+      .run(changes.name ?? current.name, nowIso(), id)
+    // Saving unchanged text must not collapse several notes into one.
+    if (changes.notes !== undefined && changes.notes !== current.notes)
+      this.notes.replaceAllWithText(profileId, id, null, changes.notes)
     return this.get(profileId, id)
   }
 
-  /** Deletes the idea along with its links and the drafts that develop it. */
+  /** Deletes the idea along with its links, notes and the drafts that develop it. */
   delete(profileId: string, id: string): boolean {
     return (
       this.db.prepare('DELETE FROM ideas WHERE profile_id = ? AND id = ?').run(profileId, id)
