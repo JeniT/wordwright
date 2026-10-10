@@ -1,8 +1,8 @@
-import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { DraftInputSchema } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
+import { validateJson } from '../validate'
 
 /**
  * Mounted under `/profiles/:profileId`, after membership has been checked. Drafts are created and
@@ -15,7 +15,7 @@ export function draftRoutes(store: Store) {
       const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
       return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
     })
-    .put('/:id', zValidator('json', DraftInputSchema), (c) => {
+    .put('/:id', validateJson(DraftInputSchema), (c) => {
       const draft = drafts.update(c.req.param('profileId')!, c.req.param('id'), c.req.valid('json'))
       return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
     })

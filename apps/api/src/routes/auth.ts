@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-import { zValidator } from '@hono/zod-validator'
 import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
@@ -113,7 +112,7 @@ export function authRoutes(d: AuthRouteDeps) {
         return c.json(d.accounts.toPublic(session.user), 201)
       })
 
-      .post('/login', zValidator('json', LoginInputSchema), async (c) => {
+      .post('/login', validateJson(LoginInputSchema), async (c) => {
         const { email, password } = c.req.valid('json')
         throttle(d.loginLimiter, email)
         const session = await d.accounts.login(email, password).catch(toHttpError)
@@ -128,7 +127,7 @@ export function authRoutes(d: AuthRouteDeps) {
         return c.body(null, 204)
       })
 
-      .post('/forgot-password', zValidator('json', ForgotPasswordInputSchema), async (c) => {
+      .post('/forgot-password', validateJson(ForgotPasswordInputSchema), async (c) => {
         const { email } = c.req.valid('json')
         throttle(d.resetLimiter, email)
         await d.accounts.requestPasswordReset(email)
@@ -136,13 +135,13 @@ export function authRoutes(d: AuthRouteDeps) {
         return c.json({ ok: true })
       })
 
-      .post('/reset-password', zValidator('json', ResetPasswordInputSchema), async (c) => {
+      .post('/reset-password', validateJson(ResetPasswordInputSchema), async (c) => {
         const { token, password } = c.req.valid('json')
         await d.accounts.resetPassword(token, password).catch(toHttpError)
         return c.json({ ok: true })
       })
 
-      .post('/verify-email', zValidator('json', VerifyEmailInputSchema), (c) => {
+      .post('/verify-email', validateJson(VerifyEmailInputSchema), (c) => {
         try {
           d.accounts.verifyEmail(c.req.valid('json').token)
         } catch (err) {
@@ -151,7 +150,7 @@ export function authRoutes(d: AuthRouteDeps) {
         return c.json({ ok: true })
       })
 
-      .post('/confirm-email-change', zValidator('json', VerifyEmailInputSchema), (c) => {
+      .post('/confirm-email-change', validateJson(VerifyEmailInputSchema), (c) => {
         try {
           d.emailChanges.confirm(c.req.valid('json').token)
         } catch (err) {
@@ -160,7 +159,7 @@ export function authRoutes(d: AuthRouteDeps) {
         return c.json({ ok: true })
       })
 
-      .post('/undo-email-change', zValidator('json', VerifyEmailInputSchema), (c) => {
+      .post('/undo-email-change', validateJson(VerifyEmailInputSchema), (c) => {
         try {
           d.emailChanges.undo(c.req.valid('json').token)
         } catch (err) {

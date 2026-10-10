@@ -4,9 +4,20 @@ import { WebAddressSchema, withScheme } from './web-address'
 
 // ---- Shared field rules -------------------------------------------------
 
-export const EmailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254))
+export const EmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(
+    z
+      .email('Enter an email address, like name@example.com')
+      .max(254, 'That email address is too long'),
+  )
 /** Max length bounds the cost of hashing attacker-supplied input. */
-export const PasswordSchema = z.string().min(10, 'Use at least 10 characters').max(128)
+export const PasswordSchema = z
+  .string()
+  .min(10, 'Use at least 10 characters')
+  .max(128, 'Use 128 characters or fewer for the password')
 export const NameSchema = z
   .string()
   .trim()
@@ -63,7 +74,7 @@ export type HandleAvailability = z.infer<typeof HandleAvailabilitySchema>
 
 export const LoginInputSchema = z.object({
   email: EmailSchema,
-  password: z.string().min(1).max(128),
+  password: z.string().min(1, 'Enter your password').max(128, 'That password is too long'),
 })
 export type LoginInput = z.infer<typeof LoginInputSchema>
 
@@ -77,21 +88,24 @@ export const VerifyEmailInputSchema = z.object({ token: z.string().min(1).max(20
 
 /** Changing a password while signed in re-checks the current one. */
 export const ChangePasswordInputSchema = z.object({
-  currentPassword: z.string().min(1).max(128),
+  currentPassword: z
+    .string()
+    .min(1, 'Enter your current password')
+    .max(128, 'That password is too long'),
   newPassword: PasswordSchema,
 })
 
 /** Changing the email address re-checks the password, like changing the password does. */
 export const ChangeEmailInputSchema = z.object({
   newEmail: EmailSchema,
-  password: z.string().min(1).max(128),
+  password: z.string().min(1, 'Enter your password').max(128, 'That password is too long'),
 })
 export type ChangeEmailInput = z.infer<typeof ChangeEmailInputSchema>
 
 /** Deleting an account needs deliberate confirmation (and the password, if there is one). */
 export const DeleteAccountInputSchema = z.object({
   confirmEmail: EmailSchema,
-  password: z.string().max(128).optional(),
+  password: z.string().max(128, 'That password is too long').optional(),
 })
 
 export const AuthConfigSchema = z.object({
@@ -496,7 +510,12 @@ export const LlmSettingsInputSchema = z.object({
   provider: LLMProviderIdSchema,
   model: z.string().max(100),
   /** Omit to keep the stored key and only change the model. */
-  apiKey: z.string().trim().min(10).max(500).optional(),
+  apiKey: z
+    .string()
+    .trim()
+    .min(10, 'That API key looks too short. Copy the whole key from your provider')
+    .max(500, 'That API key is too long')
+    .optional(),
 })
 export type LlmSettingsInput = z.infer<typeof LlmSettingsInputSchema>
 

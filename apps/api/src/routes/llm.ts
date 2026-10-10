@@ -1,10 +1,10 @@
-import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { LlmSettingsInputSchema } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { LlmError, type LlmKeyService } from '../services/llm'
+import { validateJson } from '../validate'
 
 const STATUS = {
   not_configured: 409,
@@ -23,7 +23,7 @@ export function toLlmHttpError(err: unknown): never {
 export function llmRoutes(llm: LlmKeyService, limiter: RateLimiter) {
   return new Hono<AppEnv>()
     .get('/', (c) => c.json(llm.settings(c.get('user').id)))
-    .put('/', zValidator('json', LlmSettingsInputSchema), async (c) => {
+    .put('/', validateJson(LlmSettingsInputSchema), async (c) => {
       const userId = c.get('user').id
       // Saving a key makes a paid call to the provider; don't let this be used as a key-checking oracle.
       if (!limiter.allow(userId))

@@ -577,6 +577,15 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await expect(page.getByRole('heading', { level: 1, name: 'Grace letters' })).toBeVisible()
 })
 
+test('the sign-up form explains a problem the server finds, in words', async ({ page }) => {
+  await page.goto('/register')
+  await fillSignUp(page, 'Hopper')
+  await page.getByLabel('Password').fill('short')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Use at least 10 characters')
+  await expect(page.getByText('[object Object]')).toHaveCount(0)
+})
+
 test('deletes an account', async ({ page }) => {
   const email = await registerUser(page)
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()

@@ -1,4 +1,3 @@
-import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import {
@@ -11,6 +10,7 @@ import { requireUser, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { InvitationError, type InvitationService } from '../services/invitations'
 import type { AccountService } from '../services/accounts'
+import { validateJson } from '../validate'
 
 const STATUS = {
   owner_unverified: 403,
@@ -34,7 +34,7 @@ export function profileInvitationRoutes(invitations: InvitationService, limiter:
   return new Hono<AppEnv>()
     .get('/', (c) => c.json(invitations.listPending(c.req.param('profileId')!)))
 
-    .post('/', zValidator('json', InviteInputSchema), (c) => {
+    .post('/', validateJson(InviteInputSchema), (c) => {
       const owner = c.get('user')
       // Every invitation sends an email to a stranger from our server, so cap how many one person can send.
       if (!limiter.allow(owner.id)) {
@@ -65,7 +65,7 @@ export function profileInvitationRoutes(invitations: InvitationService, limiter:
 export function invitationRoutes(invitations: InvitationService, accounts: AccountService) {
   return (
     new Hono<AppEnv>()
-      .post('/preview', zValidator('json', InvitationTokenInputSchema), (c) => {
+      .post('/preview', validateJson(InvitationTokenInputSchema), (c) => {
         try {
           return c.json(invitations.preview(c.req.valid('json').token))
         } catch (err) {
@@ -73,7 +73,7 @@ export function invitationRoutes(invitations: InvitationService, accounts: Accou
         }
       })
       // Declining works signed out: the link proves the inbox.
-      .post('/decline', zValidator('json', DeclineInvitationInputSchema), (c) => {
+      .post('/decline', validateJson(DeclineInvitationInputSchema), (c) => {
         const { token, block } = c.req.valid('json')
         try {
           invitations.decline(token, block)
@@ -89,19 +89,14 @@ export function invitationRoutes(invitations: InvitationService, accounts: Accou
           return toHttpError(err)
         }
       })
-      .put(
-        '/blocks/all',
-        requireUser(accounts),
-        zValidator('json', SetBlockAllInputSchema),
-        (c) => {
-          try {
-            invitations.setBlockAll(c.get('user'), c.req.valid('json').blocked)
-          } catch (err) {
-            return toHttpError(err)
-          }
-          return c.json({ ok: true })
-        },
-      )
+      .put('/blocks/all', requireUser(accounts), validateJson(SetBlockAllInputSchema), (c) => {
+        try {
+          invitations.setBlockAll(c.get('user'), c.req.valid('json').blocked)
+        } catch (err) {
+          return toHttpError(err)
+        }
+        return c.json({ ok: true })
+      })
       .delete('/blocks/senders/:senderId', requireUser(accounts), (c) => {
         try {
           invitations.unblockSender(c.get('user'), c.req.param('senderId'))
@@ -110,17 +105,12 @@ export function invitationRoutes(invitations: InvitationService, accounts: Accou
         }
         return c.body(null, 204)
       })
-      .post(
-        '/accept',
-        requireUser(accounts),
-        zValidator('json', InvitationTokenInputSchema),
-        (c) => {
-          try {
-            return c.json(invitations.accept(c.get('user'), c.req.valid('json').token))
-          } catch (err) {
-            return toHttpError(err)
-          }
-        },
-      )
+      .post('/accept', requireUser(accounts), validateJson(InvitationTokenInputSchema), (c) => {
+        try {
+          return c.json(invitations.accept(c.get('user'), c.req.valid('json').token))
+        } catch (err) {
+          return toHttpError(err)
+        }
+      })
   )
 }
