@@ -606,6 +606,32 @@ that site who is looking at the list and when. Failure to get a picture never bl
 stands in. Feed details are read only at the time of adding, so they can go stale and sources added before this
 existed have none (they show their address); refreshing is a follow-up (T19c).
 
+## Inspiration is its own page, and "Find a feed" builds addresses from recipes
+
+The profile's feeds moved out of Settings onto an **Inspiration** page (`/p/:profileId/inspiration`, linked from the
+profile page): they are where ideas start, not a setting, and the posts they bring (T6c) and the reading list will
+live nearby. Same component, same API.
+
+Most people don't know that a section of the Guardian or an arXiv category has a feed, so Find a feed turns "a
+service and a topic" into an address (`packages/core/src/feed-recipes.ts`; sources are in
+`docs/research/idea-source-feeds.md`). Choices:
+
+- **Recipes are code, not database rows or an LLM.** An address pattern is a small pure function with unit tests, in
+  `@lfwa/core` so web and API share it; adding a service is adding an entry. Finding a feed is a chore, so it is not on
+  the assistance ladder and nothing leaves the system but the feed address we then fetch.
+- **Every built address is read before it can be added**, through a new `POST .../sources/preview` that uses the same
+  `FeedFetcher` (so the same SSRF checks, size and time limits) and the same hourly limit as adding. The person sees
+  the feed's real title and description, and "already in your list", and a recipe that has stopped working says so in
+  the fetcher's words rather than quietly adding something empty. The recipes themselves also validate what they are
+  given (slugs, hosts, fixed lists) so a topic can't change the host or path of the address.
+- **Where no address can be built (PubMed, Google Scholar), a guide** says how to get one. PubMed makes its feed address
+  on its own site, and Scholar has email alerts only.
+- Fixed lists (BBC and NYT sections, Science journals) are written out, because those publishers have no query
+  feeds. They were checked on 10 Oct 2026; a section that disappears fails at the preview step with a message.
+- Not verified: Ghost tag feeds on a live site (the pattern comes from Ghost's help pages), and NYT's list beyond the
+  sections checked (Technology, Science, Climate, Education, Arts, Opinion). The locale of Google News is a choice
+  of UK or US for now.
+
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
 
 Links are added by address alone; the server fetches the page and keeps its `<title>` (or `og:title`) as the link's

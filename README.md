@@ -76,7 +76,7 @@ tests inject fakes and nothing hits the network.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
-  and deletes it. Still to come: reader personas and idea sources (see the GitHub issues).
+  and deletes it; `/p/<id>/inspiration` holds its feeds. Still to come: reader personas (see the GitHub issues).
 - **Ideas** (`/p/<id>/ideas/new`, `/p/<id>/ideas/<idea>`): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were
@@ -126,14 +126,20 @@ tests inject fakes and nothing hits the network.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.
-- **Reading list sources** (the profile's feeds): each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile
-  settings page by any member: paste a feed link, or the address of a site that has one, and the server reads
+- **Inspiration: the profile's feeds**: each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile's
+  **Inspiration** page (`/p/<id>/inspiration`, linked from the profile page) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
   its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
+  **Find a feed** (on the same page) helps people who don't know where a site keeps its feed: pick a service
+  (Guardian, BBC, NYT, Google News search, arXiv, bioRxiv/medRxiv, Nature, Science, Substack, Medium, WordPress,
+  Ghost, Bluesky, Hacker News search, Reddit), say what to follow, and the address is built, read and shown
+  (title, description) before it can be added. PubMed and the email-only scholarly sites get step-by-step
+  guides instead. The recipes are plain code in `packages/core/src/feed-recipes.ts`: add a service by adding an entry.
   Nothing scans the feeds for articles yet; that is idea generation (T6).
-  API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `PUT .../sources/order`
+  API: `GET/POST /api/profiles/:id/sources`, `POST .../sources/preview` (reads a feed without adding it; counts
+  towards the same hourly limit), `GET .../sources/:sourceId/icon`, `PUT .../sources/order`
   (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored

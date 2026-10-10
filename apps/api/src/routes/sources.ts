@@ -31,6 +31,13 @@ export function sourceRoutes(
     new HTTPException(409, {
       message: `A profile can have up to ${MAX_SOURCES_PER_PROFILE} sources. Remove one you no longer read to make room.`,
     })
+  const tooManyAdds = () =>
+    new HTTPException(429, { message: 'You have added a lot of sources. Try again later.' })
+  const readFeed = (url: string, signal = AbortSignal.timeout(ADD_TIMEOUT_MS)) =>
+    feeds.inspect(url, { signal }).catch((err: unknown) => {
+      if (err instanceof FeedError) throw new HTTPException(422, { message: err.message })
+      throw err
+    })
   const duplicate = () => new HTTPException(409, { message: 'That feed is already in your list.' })
 
   return (
@@ -38,24 +45,32 @@ export function sourceRoutes(
       .use(member)
       .get('/', (c) => c.json(sources.list(c.req.param('profileId')!)))
 
+      // Reads a feed without adding it, so the person can see what an address leads to first.
+      .post('/preview', validateJson(SourceInputSchema), async (c) => {
+        const profileId = c.req.param('profileId')!
+        const { url } = c.req.valid('json')
+        if (!addLimiter.allow(c.get('user').id)) throw tooManyAdds()
+        const feed = await readFeed(url)
+        return c.json({
+          url: feed.url,
+          title: feed.title,
+          description: feed.description,
+          siteUrl: feed.siteUrl,
+          alreadyAdded: sources.has(profileId, feed.url),
+        })
+      })
+
       .post('/', validateJson(SourceInputSchema), async (c) => {
         const profileId = c.req.param('profileId')!
         const { url } = c.req.valid('json')
         if (sources.has(profileId, url)) throw duplicate()
         if (sources.count(profileId) >= MAX_SOURCES_PER_PROFILE) throw tooMany()
         // Each add makes our server fetch pages from the internet, so cap how many one person can start.
-        if (!addLimiter.allow(c.get('user').id)) {
-          throw new HTTPException(429, {
-            message: 'You have added a lot of sources. Try again later.',
-          })
-        }
+        if (!addLimiter.allow(c.get('user').id)) throw tooManyAdds()
 
         // Read the feed first: it tells us what to call it, and refuses things that aren't feeds.
         const signal = AbortSignal.timeout(ADD_TIMEOUT_MS)
-        const feed = await feeds.inspect(url, { signal }).catch((err: unknown) => {
-          if (err instanceof FeedError) throw new HTTPException(422, { message: err.message })
-          throw err
-        })
+        const feed = await readFeed(url, signal)
         const icon = await feeds.fetchIcon(feed, { signal })
 
         // The checks are repeated: other requests may have run while we were waiting on the network.

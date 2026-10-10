@@ -58,13 +58,13 @@ function fakeSources(initial = [A, B, C]) {
   return state
 }
 
-async function openSettings(role: 'owner' | 'editor' = 'owner') {
+async function openInspiration(role: 'owner' | 'editor' = 'owner') {
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([profile(role)])),
   )
-  await renderAt('/p/adalovelace-blog/settings')
-  return screen.findByRole('heading', { name: 'Reading list sources' })
+  await renderAt('/p/adalovelace-blog/inspiration')
+  return screen.findByRole('heading', { name: 'Feeds' })
 }
 /**
  * jsdom has no DragEvent, so a plain event stands in and the pointer position is set by hand.
@@ -86,10 +86,10 @@ beforeEach(() =>
   ),
 )
 
-describe('reading list sources on the profile settings page', () => {
+describe('feeds on the Inspiration page', () => {
   it('lists the sources in order with their title, description and address', async () => {
     fakeSources()
-    await openSettings()
+    await openInspiration()
     await screen.findByText('Alpha Notes')
     const [first, second, third] = rows()
     expect(first).toHaveTextContent('Alpha Notes')
@@ -101,7 +101,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('shows each feed’s icon, and a lettered tile when it has none', async () => {
     fakeSources()
-    await openSettings()
+    await openInspiration()
     await screen.findByText('Alpha Notes')
     const [first, second] = rows()
     expect(first!.querySelector('img')).toHaveAttribute('src', A.iconUrl)
@@ -112,7 +112,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('explains an empty list and what to do', async () => {
     fakeSources([])
-    await openSettings()
+    await openInspiration()
     expect(await screen.findByText(/No sources yet/)).toBeInTheDocument()
     expect(screen.getByLabelText('Add a feed')).toBeInTheDocument()
   })
@@ -126,7 +126,7 @@ describe('reading list sources on the profile settings page', () => {
           : HttpResponse.json([A]),
       ),
     )
-    await openSettings()
+    await openInspiration()
     expect(await screen.findByText(/couldn't load the sources/)).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByText('Alpha Notes')).toBeInTheDocument()
@@ -134,7 +134,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('adds a pasted link to the end of the list and clears the field', async () => {
     const fake = fakeSources([A])
-    await openSettings()
+    await openInspiration()
     await screen.findByText('Alpha Notes')
     await fireEvent.update(screen.getByLabelText('Add a feed'), 'new.example/feed')
     await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
@@ -154,7 +154,7 @@ describe('reading list sources on the profile settings page', () => {
         return HttpResponse.json(B, { status: 201 })
       }),
     )
-    await openSettings()
+    await openInspiration()
     await screen.findByText('Alpha Notes')
     await fireEvent.update(screen.getByLabelText('Add a feed'), 'b.example')
     await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
@@ -173,7 +173,7 @@ describe('reading list sources on the profile settings page', () => {
         ),
       ),
     )
-    await openSettings()
+    await openInspiration()
     await screen.findByText('Alpha Notes')
     await fireEvent.update(screen.getByLabelText('Add a feed'), 'a.example/page')
     await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
@@ -183,7 +183,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('removes a source', async () => {
     fakeSources()
-    await openSettings()
+    await openInspiration()
     await fireEvent.click(await screen.findByRole('button', { name: 'Remove Beta Weekly' }))
     await waitFor(() => expect(screen.queryByText('Beta Weekly')).not.toBeInTheDocument())
     expect(screen.getByText('Alpha Notes')).toBeInTheDocument()
@@ -192,7 +192,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('moves a source up or down with the buttons, sending the complete new order', async () => {
     const fake = fakeSources()
-    await openSettings()
+    await openInspiration()
     await fireEvent.click(await screen.findByRole('button', { name: 'Move c.example/feed up' }))
     await waitFor(() => expect(fake.orders).toEqual([['s1', 's3', 's2']]))
     await fireEvent.click(screen.getByRole('button', { name: 'Move Alpha Notes down' }))
@@ -217,7 +217,7 @@ describe('reading list sources on the profile settings page', () => {
         return HttpResponse.json(fake.list)
       }),
     )
-    await openSettings()
+    await openInspiration()
     await fireEvent.click(await screen.findByRole('button', { name: 'Move c.example/feed up' }))
     expect(rows()[1]).toHaveTextContent('c.example/feed') // already there, nothing has been saved yet
     expect(fake.orders).toEqual([])
@@ -228,7 +228,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('cannot move the first source up or the last one down', async () => {
     fakeSources()
-    await openSettings()
+    await openInspiration()
     expect(await screen.findByRole('button', { name: 'Move Alpha Notes up' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Move c.example/feed down' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Move Beta Weekly up' })).toBeEnabled()
@@ -236,7 +236,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('keeps keyboard focus on the moved source', async () => {
     fakeSources()
-    await openSettings()
+    await openInspiration()
     const down = await screen.findByRole('button', { name: 'Move Alpha Notes down' })
     down.focus()
     await fireEvent.click(down)
@@ -252,7 +252,7 @@ describe('reading list sources on the profile settings page', () => {
         HttpResponse.json({ error: 'The list has changed since you opened it.' }, { status: 409 }),
       ),
     )
-    await openSettings()
+    await openInspiration()
     await fireEvent.click(await screen.findByRole('button', { name: 'Move Beta Weekly up' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('list has changed')
   })
@@ -273,7 +273,7 @@ describe('reading list sources on the profile settings page', () => {
 
     it('drops a source before another, sending the complete new order', async () => {
       const fake = fakeSources()
-      await openSettings()
+      await openInspiration()
       await screen.findByText('Alpha Notes')
       await drag(2, 0, 'top')
       await waitFor(() => expect(fake.orders).toEqual([['s3', 's1', 's2']]))
@@ -285,7 +285,7 @@ describe('reading list sources on the profile settings page', () => {
 
     it('drops a source after another', async () => {
       const fake = fakeSources()
-      await openSettings()
+      await openInspiration()
       await screen.findByText('Alpha Notes')
       await drag(0, 2, 'bottom')
       await waitFor(() => expect(fake.orders).toEqual([['s2', 's3', 's1']]))
@@ -293,7 +293,7 @@ describe('reading list sources on the profile settings page', () => {
 
     it('does nothing when a source is dropped where it already is', async () => {
       const fake = fakeSources()
-      await openSettings()
+      await openInspiration()
       await screen.findByText('Alpha Notes')
       await drag(1, 1, 'top')
       await drag(0, 1, 'top') // before Beta, where Alpha already is
@@ -302,7 +302,7 @@ describe('reading list sources on the profile settings page', () => {
 
     it('draws a line where the source will land, and removes it afterwards', async () => {
       fakeSources()
-      await openSettings()
+      await openInspiration()
       await screen.findByText('Alpha Notes')
       const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
       const items = rows()
@@ -315,7 +315,7 @@ describe('reading list sources on the profile settings page', () => {
 
     it('ignores things dragged in from elsewhere', async () => {
       const fake = fakeSources()
-      await openSettings()
+      await openInspiration()
       await screen.findByText('Alpha Notes')
       const items = rows()
       await fireEvent.dragOver(items[0]!, { dataTransfer: { dropEffect: '' } })
@@ -326,7 +326,7 @@ describe('reading list sources on the profile settings page', () => {
 
   it('lets an editor, not just the owner, add, move and remove sources', async () => {
     const fake = fakeSources()
-    await openSettings('editor')
+    await openInspiration('editor')
     expect(await screen.findByText('Alpha Notes')).toBeInTheDocument()
     await fireEvent.update(screen.getByLabelText('Add a feed'), 'new.example/feed')
     await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
@@ -335,5 +335,147 @@ describe('reading list sources on the profile settings page', () => {
     await waitFor(() => expect(fake.orders).toHaveLength(1))
     await fireEvent.click(screen.getByRole('button', { name: 'Remove Alpha Notes' }))
     await waitFor(() => expect(screen.queryByText('Alpha Notes')).not.toBeInTheDocument())
+  })
+})
+
+describe('Find a feed on the Inspiration page', () => {
+  const preview = (extra = {}) => ({
+    url: 'https://www.theguardian.com/technology/artificialintelligenceai/rss',
+    title: 'AI | The Guardian',
+    description: 'Latest AI news',
+    siteUrl: 'https://www.theguardian.com',
+    alreadyAdded: false,
+    ...extra,
+  })
+  /** Records the address each preview was asked about. */
+  function fakePreview(
+    answer: () => Response | Promise<Response> = () => HttpResponse.json(preview()),
+  ) {
+    const asked: string[] = []
+    server.use(
+      http.post('*/api/profiles/:id/sources/preview', async ({ request }) => {
+        asked.push(((await request.json()) as { url: string }).url)
+        return answer()
+      }),
+    )
+    return asked
+  }
+  const choose = async (name: string) => {
+    await fireEvent.click(await screen.findByText('Find a feed'))
+    await fireEvent.update(screen.getByLabelText('Where from'), name)
+  }
+
+  it('builds the address from a service and a topic, shows what it found, and adds it', async () => {
+    const fake = fakeSources([A])
+    const asked = fakePreview()
+    await openInspiration()
+    await screen.findByText('Alpha Notes')
+    await choose('guardian')
+    await fireEvent.update(
+      screen.getByLabelText('Section, topic or writer'),
+      'technology/artificialintelligenceai',
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Find feed' }))
+    expect(await screen.findByText('AI | The Guardian')).toBeInTheDocument()
+    expect(asked).toEqual(['https://www.theguardian.com/technology/artificialintelligenceai/rss'])
+    expect(fake.added).toEqual([]) // looking is not adding
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Add this feed' }))
+    await waitFor(() => expect(fake.added).toHaveLength(1))
+    expect(fake.added[0]).toBe(asked[0])
+    expect(await screen.findByText('Added Feed of ' + asked[0])).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add this feed' })).not.toBeInTheDocument()
+  })
+
+  it('offers a choice for fields that have a few options, and says if a feed is broad', async () => {
+    fakeSources([])
+    const asked = fakePreview()
+    await openInspiration()
+    await choose('bbc')
+    await fireEvent.update(screen.getByLabelText('Section'), 'technology')
+    await fireEvent.click(screen.getByRole('button', { name: 'Find feed' }))
+    await waitFor(() => expect(asked).toEqual(['https://feeds.bbci.co.uk/news/technology/rss.xml']))
+
+    await fireEvent.update(screen.getByLabelText('Where from'), 'arxiv')
+    expect(screen.getByText(/covers a lot/)).toBeInTheDocument()
+  })
+
+  it('says what to fix when the topic is missing, without asking the server', async () => {
+    fakeSources([])
+    const asked = fakePreview()
+    await openInspiration()
+    await choose('hacker-news')
+    await fireEvent.click(screen.getByRole('button', { name: 'Find feed' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('some words to search for')
+    expect(asked).toEqual([])
+  })
+
+  it('shows when the feed is one the site doesn’t have, and lets the person try again', async () => {
+    fakeSources([])
+    fakePreview(() =>
+      HttpResponse.json(
+        { error: 'That address doesn’t look like an RSS or Atom feed.' },
+        { status: 422 },
+      ),
+    )
+    await openInspiration()
+    await choose('guardian')
+    await fireEvent.update(screen.getByLabelText('Section, topic or writer'), 'nonsense')
+    await fireEvent.click(screen.getByRole('button', { name: 'Find feed' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('RSS or Atom')
+    expect(screen.getByLabelText('Section, topic or writer')).toHaveValue('nonsense')
+    expect(screen.getByRole('button', { name: 'Find feed' })).toBeEnabled()
+  })
+
+  it('tells the person we are checking while it waits', async () => {
+    fakeSources([])
+    let release = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    fakePreview(async () => {
+      await gate
+      return HttpResponse.json(preview())
+    })
+    await openInspiration()
+    await choose('guardian')
+    await fireEvent.update(screen.getByLabelText('Section, topic or writer'), 'world')
+    await fireEvent.click(screen.getByRole('button', { name: 'Find feed' }))
+    expect(await screen.findByRole('button', { name: 'Checking…' })).toBeDisabled()
+    release()
+    await screen.findByText('AI | The Guardian')
+  })
+
+  it('does not offer to add a feed that is already in the list', async () => {
+    fakeSources([])
+    fakePreview(() => HttpResponse.json(preview({ alreadyAdded: true })))
+    await openInspiration()
+    await choose('guardian')
+    await fireEvent.update(screen.getByLabelText('Section, topic or writer'), 'world')
+    await fireEvent.click(screen.getByRole('button', { name: 'Find feed' }))
+    expect(await screen.findByText('This feed is already in your list.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add this feed' })).not.toBeInTheDocument()
+  })
+
+  it('explains how to get a feed where none can be built', async () => {
+    fakeSources([])
+    await openInspiration()
+    await choose('pubmed')
+    expect(screen.getByRole('region', { name: 'PubMed' })).toHaveTextContent('Create RSS')
+    expect(screen.queryByRole('button', { name: 'Find feed' })).not.toBeInTheDocument()
+  })
+})
+
+describe('where the feeds live', () => {
+  it('is reached from the profile page, and is no longer in Settings', async () => {
+    fakeSources([A])
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile('owner')])),
+      http.get('*/api/profiles/:id/ideas', () => HttpResponse.json([])),
+      http.get('*/api/profiles/:id/invitations', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/adalovelace-blog')
+    await fireEvent.click(await screen.findByRole('link', { name: 'Inspiration' }))
+    expect(await screen.findByRole('heading', { name: 'Inspiration' })).toBeInTheDocument()
+    expect(await screen.findByText('Alpha Notes')).toBeInTheDocument()
   })
 })

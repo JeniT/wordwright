@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Source } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import FindFeed from './FindFeed.vue'
 import ProfileImage from './ProfileImage.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
@@ -70,11 +71,11 @@ const removeClass =
 
 <template>
   <section aria-labelledby="sources-heading">
-    <h2 id="sources-heading" class="mb-1 font-serif text-xl font-semibold">Reading list sources</h2>
+    <h2 id="sources-heading" class="mb-1 font-serif text-xl font-semibold">Feeds</h2>
     <p class="mb-3 text-sm text-stone-600">
-      RSS feeds that feed this profile's reading list: articles to look through for things that
-      could spark ideas. Posts from sources higher in the list will be shown first: drag a source by
-      its grip, or use the arrow buttons, to change the order.
+      RSS feeds to look through for things that could spark ideas. Posts from feeds higher in the
+      list will be shown first: drag a feed by its grip, or use the arrow buttons, to change the
+      order.
     </p>
 
     <p v-if="sources.isPending.value">Loading sources…</p>
@@ -149,6 +150,8 @@ const removeClass =
       <p v-if="add.isError.value" role="alert" class="mt-2 text-red-700">
         {{ errorMessage(add.error.value) }}
       </p>
+      <FindFeed :profile-id="profileId" />
+
       <p v-if="remove.isError.value" role="alert" class="mt-2 text-red-700">
         {{ errorMessage(remove.error.value) }}
       </p>

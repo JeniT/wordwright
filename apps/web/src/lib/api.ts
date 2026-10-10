@@ -20,6 +20,7 @@ import {
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceListSchema,
+  SourcePreviewSchema,
   SourceSchema,
   UserSchema,
   type BrainstormEvent,
@@ -253,6 +254,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),
     addSource: (profileId: string, url: string) =>
       get(SourceSchema, 'POST', `/profiles/${profileId}/sources`, { url }),
+    /** Reads a feed without adding it. */
+    previewSource: (profileId: string, url: string) =>
+      get(SourcePreviewSchema, 'POST', `/profiles/${profileId}/sources/preview`, { url }),
     removeSource: (profileId: string, id: string) =>
       act('DELETE', `/profiles/${profileId}/sources/${id}`),
     /** `ids` is every source, in the new order. Answers with the list as saved. */

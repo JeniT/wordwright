@@ -45,6 +45,12 @@ const ideas = useQuery({
         </p>
       </div>
       <RouterLink
+        :to="{ name: 'inspiration', params: { profileId: profile.id } }"
+        class="rounded border border-stone-300 px-3 py-2 text-sm hover:bg-stone-50"
+      >
+        Inspiration
+      </RouterLink>
+      <RouterLink
         :to="{ name: 'profile-settings', params: { profileId: profile.id } }"
         class="rounded border border-stone-300 px-3 py-2 text-sm hover:bg-stone-50"
       >
