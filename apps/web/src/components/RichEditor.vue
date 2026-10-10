@@ -13,9 +13,23 @@ let touched = false
 const editor = useEditor({
   content: model.value,
   contentType: 'markdown',
-  extensions: [StarterKit, Markdown, Placeholder.configure({ placeholder: 'Start writing…' })],
+  extensions: [
+    // A plain click puts the cursor in the link to edit it; Ctrl or Cmd with the click opens it (see handleClick).
+    StarterKit.configure({ link: { openOnClick: false } }),
+    Markdown,
+    Placeholder.configure({ placeholder: 'Start writing…' }),
+  ],
   editorProps: {
     attributes: { 'aria-label': 'Draft body', role: 'textbox', 'aria-multiline': 'true' },
+    handleDOMEvents: {
+      click: (_view, event) => {
+        const link = (event.target as HTMLElement).closest('a')
+        if (!link || !(event.ctrlKey || event.metaKey)) return false
+        event.preventDefault()
+        window.open(link.href, '_blank', 'noopener')
+        return true
+      },
+    },
   },
   onFocus: () => {
     touched = true

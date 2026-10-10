@@ -182,6 +182,9 @@ async function requestCritique() {
       />
 
       <RichEditor ref="editor" v-model="body" />
+      <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-stone-600">
+        Ctrl or ⌘ and click a link to open it.
+      </p>
 
       <div class="mt-6 flex items-center gap-3 border-t border-stone-200 pt-4">
         <button

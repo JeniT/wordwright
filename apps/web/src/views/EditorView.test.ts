@@ -386,6 +386,26 @@ describe('the notes beside the draft', () => {
       expect(document.querySelectorAll('.ProseMirror p')).toHaveLength(1) // in the line, not a new paragraph
     })
 
+    it('makes the link something that can be opened: Ctrl or Cmd and click opens it, a plain click only edits', async () => {
+      mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
+      const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+      await renderAt('/p/p1/drafts/d1')
+      await insertLink()
+      const link = await waitFor(() => {
+        const a = document.querySelector('.ProseMirror a')
+        if (!a) throw new Error('no link yet')
+        return a
+      })
+      expect(screen.getByText('Ctrl or ⌘ and click a link to open it.')).toBeInTheDocument()
+
+      await fireEvent.click(link)
+      expect(open).not.toHaveBeenCalled()
+      await fireEvent.click(link, { ctrlKey: true })
+      expect(open).toHaveBeenCalledWith('https://example.org/paper', '_blank', 'noopener')
+      await fireEvent.click(link, { metaKey: true })
+      expect(open).toHaveBeenCalledTimes(2)
+    })
+
     describe('when it is not marked read', () => {
       it('asks first, with the safe choice focused, and offers to read it, mark it read, or cancel', async () => {
         const api = mockDrafting()

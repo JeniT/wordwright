@@ -33,6 +33,13 @@ body {
 .prose-editor .ProseMirror h2 {
   font-size: 1.5rem;
 }
+/* A link in the draft must read as a link (the reset makes anchors look like their text). */
+.prose-editor .ProseMirror a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
 .prose-editor .ProseMirror blockquote {
   border-left: 3px solid var(--color-accent);
   padding-left: 1em;

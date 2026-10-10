@@ -571,6 +571,16 @@ a first version built research into the brainstorm conversation was set aside.
 - **Not done:** re-fetching on add; the friction before citing an unread AI-found page is T34, unchanged; a
   profile-level reading list (T37); idea generation (T6) can reuse the item list with its own origin.
 
+## Links in the draft look like links (#78)
+
+A note from a source went into the draft with a real Markdown link (`([Title](address))`), but the editor had no style
+for links and the CSS reset makes anchors look like their text, so it read as plain "(Title)" in brackets. Links in
+the editor are now underlined in the accent colour. Because the editor edits rather than navigates, a plain click
+puts the cursor in the link; **Ctrl or ⌘ and click** opens it in a new tab (a hint under the editor says so, shown only
+when the draft has a link). It is a DOM `click` handler, not ProseMirror's `handleClick`, which only runs on a real
+mouse down/up with layout. StarterKit's link `HTMLAttributes` (a tooltip) were not applied, and adding
+`@tiptap/extension-link` as a direct dependency just for a tooltip wasn't worth it.
+
 ## Idea sources: an ordered list of feeds, edited by any member
 
 Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the

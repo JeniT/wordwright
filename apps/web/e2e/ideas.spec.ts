@@ -461,6 +461,7 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   const quoted = body.locator('blockquote')
   await expect(quoted).toContainText('Meanders grow because banks erode.')
   await expect(quoted.getByRole('link')).toHaveAttribute('href', 'https://example.org/meanders')
+  await expect(quoted.getByRole('link')).toHaveCSS('text-decoration-line', 'underline')
   await expect(body.locator('p').first()).toHaveText('My opening paragraph.')
   await page.getByText(/Where some of the words came from \(1\)/).click()
   await expect(page.getByText('Still as inserted')).toBeVisible()
@@ -510,6 +511,7 @@ test('a link to something on the reading list goes in only once it has been read
   await insert.click()
   await dialog.getByRole('button', { name: 'Mark as read' }).click()
   await expect(body.locator('a')).toHaveAttribute('href', 'https://example.org/meanders')
+  await expect(body.locator('a')).toHaveCSS('text-decoration-line', 'underline')
   await expect(body.locator('p')).toHaveCount(1)
   await expect(side.getByText('Read', { exact: true })).toBeVisible()
 
@@ -563,4 +565,41 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await expect(cards.nth(1)).toContainText('Oxbow lakes form when a loop is cut off.')
   await page.reload()
   await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(3)
+})
+
+test('a note taken from a source goes into the draft with a real link to it, which looks like one', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  await page.getByRole('link', { name: 'Take notes' }).click()
+  await page.getByLabel('Add a note from this page').fill('Meanders grow because banks erode.')
+  await page.getByRole('button', { name: 'Add note' }).click()
+  await expect(page.getByText('Meanders grow because banks erode.')).toBeVisible()
+  await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
+
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await page
+    .getByRole('complementary')
+    .getByRole('button', { name: /^Add note “Meanders grow/ })
+    .click()
+  // The source is a link in the words ("… (Title)"), not just its title in brackets: it is underlined, and
+  // it is in the saved Markdown as [Title](address).
+  const link = body.getByRole('link', { name: /Fake title for example\.org/ })
+  await expect(link).toHaveAttribute('href', 'https://example.org/meanders')
+  await expect(link).toHaveCSS('text-decoration-line', 'underline')
+  await expect(body).toContainText(
+    /Meanders grow because banks erode\. \(Fake title for example\.org.*\)/,
+  )
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  await page.reload()
+  await expect(
+    page.getByRole('textbox', { name: 'Draft body' }).getByRole('link', { name: /Fake title/ }),
+  ).toHaveAttribute('href', 'https://example.org/meanders')
 })
