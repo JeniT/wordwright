@@ -345,7 +345,7 @@ describe('suggestions from the AI', () => {
       },
     ])
     const unchanged = await (await ada.get(`${ideas}/${idea.id}`)).json()
-    expect(unchanged).toMatchObject({ name: 'Why rivers meander', notes: 'Erosion loops.' })
+    expect(unchanged).toMatchObject({ name: 'Why rivers meander', notes: '- Erosion loops.' })
     expect(await (await ada.get(ideas)).json()).toHaveLength(1)
   })
 
@@ -354,7 +354,7 @@ describe('suggestions from the AI', () => {
     ctx.setChat(() => ({
       toolCalls: [
         update({ name: 'Why rivers meander', notes: 'Different notes.' }), // same title
-        update({ name: 'Why rivers meander', notes: 'Erosion loops.' }), // nothing new at all
+        update({ name: 'Why rivers meander', notes: '- Erosion loops.' }), // nothing new at all
       ],
     }))
     await send(ada, START)
@@ -463,7 +463,7 @@ describe('accepting and dismissing suggestions', () => {
     })
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
       name: 'Why rivers loop',
-      notes: 'Sharper notes.',
+      notes: '- Sharper notes.',
     })
     expect((await thread()).messages.at(-1)!.proposals[0]).toMatchObject({ status: 'accepted' })
 
@@ -480,7 +480,7 @@ describe('accepting and dismissing suggestions', () => {
     expect(await res.json()).toMatchObject({ status: 'dismissed', decidedByName: 'Ada' })
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
       name: 'Why rivers meander',
-      notes: 'Erosion loops.',
+      notes: '- Erosion loops.',
     })
     expect((await decide(ada, proposal.id, 'accept')).status).toBe(409)
   })
@@ -494,14 +494,14 @@ describe('accepting and dismissing suggestions', () => {
     expect(refused.status).toBe(409)
     expect((await refused.json()).error).toMatch(/has changed since this was suggested/)
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
-      notes: 'I rewrote these myself.',
+      notes: '- I rewrote these myself.',
     })
 
     const forced = await decide(ada, proposal.id, 'accept', { overwrite: true })
     expect(forced.status).toBe(200)
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
       name: 'Why rivers loop',
-      notes: 'Sharper notes.',
+      notes: '- Sharper notes.',
     })
   })
 
@@ -515,7 +515,7 @@ describe('accepting and dismissing suggestions', () => {
     expect((await decide(ada, proposal!.id, 'accept')).status).toBe(200)
     expect(await (await ada.get(`${ideas}/${idea.id}`)).json()).toMatchObject({
       name: 'A new title of mine',
-      notes: 'Only notes.',
+      notes: '- Only notes.',
     })
   })
 
@@ -538,7 +538,7 @@ describe('accepting and dismissing suggestions', () => {
     const made = await (await ada.get(`${ideas}/${accepted.createdIdeaId}`)).json()
     expect(made).toMatchObject({
       name: 'Oxbow lakes',
-      notes: 'Where meanders end.',
+      notes: '- Where meanders end.',
       drafts: [],
       links: [],
     })

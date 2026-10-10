@@ -199,10 +199,13 @@ tasks set the others on the server. `added_at` is for the drafting drawer (T33) 
   T35 and T31 add theirs when they need them.
 - **Existing text becomes one note.** The migration copies each non-blank `ideas.notes` into a single `entered`
   note. The old column is no longer read (SQLite can't cheaply drop a NOT NULL column); new ideas write `''`.
-- **Transitional single text.** `Idea.notes` is still returned, as the notes joined by blank lines, and
-  `PATCH /ideas/:id` / `POST /ideas` with `notes` still work, so the idea page and brainstorm are unchanged
-  until T29 and T30. Writing different text replaces all the notes with one; writing the text it already has
-  changes nothing, so a form that always sends `notes` can't merge cards. Remove it with T29/T30.
+- **Transitional single text.** `Idea.notes` is still returned, and `PATCH /ideas/:id` / `POST /ideas` with
+  `notes` still work, so the idea page and brainstorm are unchanged until T29 and T30. It is the notes as
+  Markdown bullets (`notesToMarkdown`, T28b): one top-level bullet per note, the rest of a note's lines (and any
+  bullets of its own) indented two spaces under it, so a line break inside a note can't be mistaken for a new
+  note. Writing it back (`markdownToNotes`) splits text made only of such bullets into notes; any other text
+  becomes one note. Text that reads as the notes already there changes nothing, so a form that always sends
+  `notes` keeps each note's id and origin. Remove it with T29/T30.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 

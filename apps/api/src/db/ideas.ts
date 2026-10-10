@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
+import { markdownToNotes, notesToMarkdown } from '@lfwa/core'
 import type { Idea, IdeaInput, IdeaLink, IdeaLinkInput, IdeaSummary, IdeaUpdate } from '@lfwa/core'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
@@ -52,10 +53,7 @@ export class IdeaStore {
       profileId: row.profile_id as string,
       name: row.name as string,
       // Transitional: see `Idea.notes`. The column of the same name is no longer read.
-      notes: this.notes
-        .list(id)
-        .map((n) => n.text)
-        .join('\n\n'),
+      notes: notesToMarkdown(this.notes.list(id).map((n) => n.text)),
       links,
       drafts,
       createdAt: row.created_at as string,
@@ -72,7 +70,7 @@ export class IdeaStore {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(id, profileId, createdBy, input.name, '', now, now)
-    this.notes.replaceAllWithText(profileId, id, createdBy, input.notes)
+    this.notes.replaceAll(profileId, id, createdBy, markdownToNotes(input.notes))
     return this.get(profileId, id)!
   }
 
@@ -82,9 +80,13 @@ export class IdeaStore {
     this.db
       .prepare('UPDATE ideas SET name = ?, updated_at = ? WHERE id = ?')
       .run(changes.name ?? current.name, nowIso(), id)
-    // Saving unchanged text must not collapse several notes into one.
-    if (changes.notes !== undefined && changes.notes !== current.notes)
-      this.notes.replaceAllWithText(profileId, id, null, changes.notes)
+    // Text that reads the same as the current notes must not replace them (and lose their ids and origins).
+    if (changes.notes !== undefined) {
+      const texts = markdownToNotes(changes.notes)
+      const same = this.notes.list(id).map((n) => n.text)
+      if (texts.length !== same.length || texts.some((t, i) => t !== same[i]))
+        this.notes.replaceAll(profileId, id, null, texts)
+    }
     return this.get(profileId, id)
   }
 

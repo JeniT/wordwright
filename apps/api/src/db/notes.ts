@@ -91,13 +91,10 @@ export class NoteStore {
     return true
   }
 
-  /**
-   * The old single-text behaviour: replaces every note with one `entered` note holding `text` (or with
-   * none when it is blank). Transitional, until the idea page and brainstorm work with separate notes.
-   */
-  replaceAllWithText(profileId: string, ideaId: string, authorId: string | null, text: string) {
+  /** Replaces every note with `entered` notes holding `texts`, in order. Transitional: see `Idea.notes`. */
+  replaceAll(profileId: string, ideaId: string, authorId: string | null, texts: string[]) {
     this.db.prepare('DELETE FROM idea_notes WHERE idea_id = ?').run(ideaId)
-    if (text.trim()) this.append(profileId, ideaId, authorId, text)
+    for (const text of texts) this.append(profileId, ideaId, authorId, text)
   }
 
   private renumber(ideaId: string, ids: string[]) {

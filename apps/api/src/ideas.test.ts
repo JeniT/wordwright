@@ -34,7 +34,7 @@ describe('ideas', () => {
     expect(idea).toMatchObject({
       profileId: profile,
       name: 'Why rivers meander', // trimmed
-      notes: 'Erosion loops.',
+      notes: '- Erosion loops.',
       links: [],
       drafts: [],
     })
@@ -55,9 +55,9 @@ describe('ideas', () => {
   it('updates the name and notes independently', async () => {
     const idea = await (await ada.post(ideas(), { name: 'Old', notes: 'Keep me' })).json()
     const renamed = await (await ada.patch(`${ideas()}/${idea.id}`, { name: 'New' })).json()
-    expect(renamed).toMatchObject({ name: 'New', notes: 'Keep me' })
+    expect(renamed).toMatchObject({ name: 'New', notes: '- Keep me' })
     const rewritten = await (await ada.patch(`${ideas()}/${idea.id}`, { notes: 'Changed' })).json()
-    expect(rewritten).toMatchObject({ name: 'New', notes: 'Changed' })
+    expect(rewritten).toMatchObject({ name: 'New', notes: '- Changed' })
     expect((await ada.patch(`${ideas()}/${idea.id}`, { name: '' })).status).toBe(400)
   })
 

@@ -118,7 +118,7 @@ test('a spin-off idea can be accepted and opened, and a suggestion can be dismis
   await card.getByRole('link', { name: 'Open the new idea' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'A spin-off idea' })).toBeVisible()
   await expect(page.getByLabel('Expand on your idea here')).toHaveValue(
-    'Came out of a conversation.',
+    '- Came out of a conversation.',
   )
 })
 

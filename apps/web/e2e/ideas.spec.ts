@@ -133,7 +133,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
   await page.reload()
-  await expect(page.getByLabel('Expand on your idea here')).toHaveValue('Now with oxbow lakes.')
+  await expect(page.getByLabel('Expand on your idea here')).toHaveValue('- Now with oxbow lakes.')
 
   // The profile lists it.
   await page.getByRole('link', { name: '← Back to the profile' }).click()

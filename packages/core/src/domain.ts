@@ -364,8 +364,9 @@ export const IdeaSchema = z.object({
   profileId: z.string(),
   name: z.string(),
   /**
-   * The notes' text, joined by blank lines. Transitional: the idea page and brainstorm still treat the notes
-   * as one text; writing it replaces all the notes with one. Use the `/notes` routes for the real thing.
+   * The notes as Markdown bullets, one per note (see `notesToMarkdown`). Transitional: the idea page and
+   * brainstorm still treat the notes as one text. Writing it back splits the bullets into notes again, and
+   * writing text that reads the same changes nothing. Use the `/notes` routes for the real thing.
    */
   notes: z.string(),
   links: z.array(IdeaLinkSchema),

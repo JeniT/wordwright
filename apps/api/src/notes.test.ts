@@ -128,10 +128,12 @@ describe('idea notes', () => {
   })
 
   describe('the idea\'s single "notes" text (until the screens use separate notes)', () => {
-    it('is the notes joined by blank lines', async () => {
-      await add('one')
-      await add('two')
-      expect((await (await ada.get(`${ideas()}/${idea}`)).json()).notes).toBe('one\n\ntwo')
+    it("is the notes as bullets, with a note's own lines and bullets indented under it", async () => {
+      await add('one\nstill one')
+      await add('two:\n- a\n- b')
+      expect((await (await ada.get(`${ideas()}/${idea}`)).json()).notes).toBe(
+        '- one\n  still one\n- two:\n  - a\n  - b',
+      )
     })
 
     it('creating with notes makes one note; blank makes none', async () => {
@@ -143,15 +145,26 @@ describe('idea notes', () => {
       expect(ctx.store.notes.list(without.id)).toEqual([])
     })
 
-    it('saving different text replaces the notes with one; saving the same text keeps them', async () => {
+    it("saving bullets splits them into notes, keeping each note's own lines", async () => {
+      await ada.patch(`${ideas()}/${idea}`, { notes: '- one\n  still one\n- two:\n  - a\n  - b' })
+      expect((await list()).map((n) => n.text)).toEqual(['one\nstill one', 'two:\n- a\n- b'])
+    })
+
+    it('saving text that is not bullets makes it one note; blank removes the notes', async () => {
       await add('one')
       await add('two')
-      await ada.patch(`${ideas()}/${idea}`, { name: 'Renamed', notes: 'one\n\ntwo' })
-      expect(await list()).toHaveLength(2)
-      await ada.patch(`${ideas()}/${idea}`, { notes: 'rewritten' })
-      expect((await list()).map((n) => n.text)).toEqual(['rewritten'])
+      await ada.patch(`${ideas()}/${idea}`, { notes: 'rewritten\n\nin two paragraphs' })
+      expect((await list()).map((n) => n.text)).toEqual(['rewritten\n\nin two paragraphs'])
       await ada.patch(`${ideas()}/${idea}`, { notes: '' })
       expect(await list()).toEqual([])
+    })
+
+    it('saving the same text, or the same notes laid out differently, keeps the existing notes', async () => {
+      const [one, two] = [await add('one'), await add('two')]
+      const text = (await (await ada.get(`${ideas()}/${idea}`)).json()).notes
+      await ada.patch(`${ideas()}/${idea}`, { name: 'Renamed', notes: text })
+      await ada.patch(`${ideas()}/${idea}`, { notes: '- one\n\n- two\n\n' })
+      expect((await list()).map((n) => n.id)).toEqual([one.id, two.id])
     })
   })
 })
