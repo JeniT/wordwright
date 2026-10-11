@@ -1012,9 +1012,8 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
 
 **Choices the owner made along the way.**
 
-- **Notes** at profile level are gathered and, when a group becomes an idea, they **appear in** the idea (shared, not
-  copied). That grouping ("make an idea from these notes") is a separate feature and is not built yet; the profile's
-  notes step exists, and ideas are still started from "New idea".
+- **Notes** at profile level are gathered and, when a group becomes an idea, they **appear in** the idea (moved, not
+  copied). That arrived with T37d (**Move notes** on the profile's Notes step); the menu needed no change for it.
 - **The idea's reading list is separate from the profile's** (as the data already was). The profile's reading list lives
   in Inspiration (step 01); the idea's in Research (step 01).
 - **Publish** is for getting a finished draft out: now **Copy Markdown**; later, publishing straight to Substack and help
@@ -1039,4 +1038,4 @@ annoying). Several e2e specs had to change because they found links by names ("B
 that are now step names in the menu.
 
 **Revisit if** people with many ideas find going up a level to switch tiresome (add an idea switcher, or reconsider the
-map); the Notes-to-idea grouping is built (it may want its own place in the menu); or Publish grows beyond copying.
+map); or Publish grows beyond copying.

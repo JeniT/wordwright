@@ -253,7 +253,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
 }) => {
   await signUpWithProfile(page)
   // A feed, and its newest post added to the reading list.
-  await page.getByRole('link', { name: 'Inspiration' }).click()
+  await goTo(page, 'Inspiration')
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
   await feeds.getByRole('button', { name: 'Add source' }).click()
@@ -263,17 +263,14 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
 
   // Read it, taking two notes, and jot one down of the writer's own.
-  await page.getByRole('link', { name: 'Gathering', exact: true }).click()
-  await page.getByRole('link', { name: 'Reading list' }).click()
   await page.getByRole('link', { name: 'Take notes' }).click()
   for (const text of ['The feed made me think about erosion.', 'Bends migrate downstream.']) {
     await page.getByLabel('Add a note from this page').fill(text)
     await page.getByRole('button', { name: 'Add note' }).click()
     await expect(page.getByText(text)).toBeVisible()
   }
-  await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
-  await page.getByRole('link', { name: /^← Gathering/ }).click()
-  await page.getByRole('link', { name: 'Notes', exact: true }).click()
+  await page.getByRole('link', { name: /Back to the reading list/ }).click()
+  await goTo(page, 'Notes')
   await page.getByLabel('Add a note', { exact: true }).fill('An unrelated thought')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   await expect(page.getByText('An unrelated thought')).toBeVisible()
@@ -295,16 +292,18 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await expect(page.getByText('Bends migrate downstream.')).toHaveCount(0)
 
   // The idea has the notes, and the post they came from on its reading list (the original is still on the profile's).
-  await page.getByRole('link', { name: /^← Gathering/ }).click()
+  await goTo(page, 'Ideas')
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Bends migrate downstream.')).toBeVisible()
   await expect(
     notes.getByText(/From reading “A post in Feed of read.example”/).first(),
   ).toBeVisible()
+  await goTo(page, 'Research')
   await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(page.getByRole('link', { name: new RegExp(title) })).toBeVisible()
+  await goTo(page, 'Notes')
 
   // And a note can go on to another place: back to the profile, with Undo to put it where it was.
   await page.getByRole('button', { name: 'Move notes' }).click()
