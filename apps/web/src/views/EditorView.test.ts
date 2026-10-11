@@ -227,26 +227,77 @@ describe('EditorView critique', () => {
     expect(region).toHaveTextContent('This one is gone.')
   })
 
-  it('sets a point aside, which takes its mark away, and brings it back', async () => {
-    const dismissed: boolean[] = []
-    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+  it('marks a comment Read, which takes its mark away and leaves it where it is, and unmarks it', async () => {
+    const sent: boolean[] = []
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1'), pointOn('p2')]))
     server.use(
       http.put('*/api/profiles/p1/drafts/d1/critique/points/p1', async ({ request }) => {
-        const { dismissed: d } = (await request.json()) as { dismissed: boolean }
-        dismissed.push(d)
-        return HttpResponse.json(state(round([pointOn('p1', { dismissed: d })])))
+        const { dismissed } = (await request.json()) as { dismissed: boolean }
+        sent.push(dismissed)
+        return HttpResponse.json(state(round([pointOn('p1', { dismissed }), pointOn('p2')])))
       }),
     )
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
-    await fireEvent.click(await screen.findByRole('button', { name: /^Set aside/ }))
+    const read = await screen.findByRole('switch', { name: 'Read: point 1' })
+    expect(read).not.toBeChecked()
+    expect(screen.getByRole('tab', { name: 'Comments, 2' })).toBeTruthy()
+    await fireEvent.click(read)
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Read: point 1' })).toBeChecked())
+    // Its mark is gone and the tab counts one fewer; the comment itself has not moved or been hidden.
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Critique point 1' })).toBeNull(),
     )
-    await fireEvent.click(await screen.findByText(/^Set aside \(1\)/))
-    await fireEvent.click(await screen.findByRole('button', { name: /^Bring back/ }))
+    expect(screen.getByRole('button', { name: 'Critique point 2' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy()
+    const items = within(await critiqueRegion()).getAllByRole('listitem')
+    expect(items[0]).toHaveTextContent('Tighten the opening.')
+    expect(items).toHaveLength(2)
+    expect(screen.queryByText(/Set aside/)).toBeNull()
+    // A Read comment still shows its paragraph.
+    await fireEvent.click(within(items[0]!).getByRole('button', { name: /Tighten the opening/ }))
+    await waitFor(() => expect(document.querySelector('.ProseMirror')).toHaveFocus())
+
+    await fireEvent.click(screen.getByRole('switch', { name: 'Read: point 1' }))
     await screen.findByRole('button', { name: 'Critique point 1' })
-    expect(dismissed).toEqual([true, false])
+    expect(sent).toEqual([true, false])
+  })
+
+  it('puts the switch back, and says so, when Read could not be saved', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    server.use(
+      http.put('*/api/profiles/p1/drafts/d1/critique/points/p1', () =>
+        HttpResponse.json({ error: 'The server is having a bad day' }, { status: 500 }),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    await fireEvent.click(await screen.findByRole('switch', { name: 'Read: point 1' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't save that/i)
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: 'Read: point 1' })).not.toBeChecked(),
+    )
+    expect(screen.getByRole('button', { name: 'Critique point 1' })).toBeTruthy() // still marked
+  })
+
+  it('has the switch on comments about the whole piece and about a rewritten passage too', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([
+        pointOn('p1'),
+        pointOn('p2', { block: 'whole', excerpt: '', hash: null, point: 'The order is odd.' }),
+        pointOn('p3', {
+          hash: blockHash('A paragraph that is not in the draft any more.'),
+          excerpt: 'A paragraph that is not in the draft any more.',
+          point: 'This one is gone.',
+        }),
+      ]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    for (const n of [1, 2, 3]) {
+      expect(await screen.findByRole('switch', { name: `Read: point ${n}` })).toBeTruthy()
+    }
   })
 
   it('says how many looks are used before the button is pressed, and updates it afterwards', async () => {

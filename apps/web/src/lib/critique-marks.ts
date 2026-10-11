@@ -18,6 +18,8 @@ export interface CritiqueMarkPoint {
   number: number
   /** Said by the mark to a screen reader. */
   label: string
+  /** Read: still placed (so its comment can show its paragraph) but not marked in the text. */
+  hidden?: boolean
 }
 
 export interface CritiqueMarkOptions {
@@ -74,7 +76,7 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
         )
         if (at === null) continue
         positions.set(p.id, blocks[at]!.pos)
-        byBlock.set(at, [...(byBlock.get(at) ?? []), p])
+        if (!p.hidden) byBlock.set(at, [...(byBlock.get(at) ?? []), p])
       }
       return { blocks, positions, byBlock }
     }

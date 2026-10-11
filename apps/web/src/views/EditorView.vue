@@ -212,21 +212,29 @@ const critique = useMutation({
     if (!sideIsBeside()) await openNotes()
   },
 })
-const setAside = useMutation({
-  mutationFn: (v: { pointId: string; dismissed: boolean }) =>
-    api.setCritiquePointDismissed(props.profileId, props.id, v.pointId, v.dismissed),
+// A comment is marked Read (or not) as soon as the switch is flipped; if that cannot be saved the switch goes back.
+const readProblem = ref('')
+const setRead = useMutation({
+  mutationFn: (v: { pointId: string; read: boolean }) =>
+    api.setCritiquePointDismissed(props.profileId, props.id, v.pointId, v.read),
+  onMutate: () => (readProblem.value = ''),
   onSuccess: (state) => queryClient.setQueryData(['critique', props.profileId, props.id], state),
+  onError: (err, v) => {
+    readProblem.value = `We couldn't save that: ${errorMessage(err)}`
+    critiquePanel.value?.revert(v.pointId)
+  },
 })
 const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
+/** Comments not yet marked Read: what the tab counts. */
 const openComments = computed(() => round.value?.points.filter((p) => !p.dismissed).length ?? 0)
 const critiquePanel = useTemplateRef<InstanceType<typeof CritiquePanel>>('critiquePanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
 const markPoints = computed<CritiqueMarkPoint[]>(() =>
   (round.value?.points ?? []).flatMap((p, i) =>
-    p.dismissed || p.block === 'whole'
+    p.block === 'whole'
       ? []
       : [
           {
@@ -236,6 +244,7 @@ const markPoints = computed<CritiqueMarkPoint[]>(() =>
             excerpt: p.excerpt,
             number: i + 1,
             label: `Critique point ${i + 1}`,
+            hidden: p.dismissed, // a comment marked Read has no mark in the text, but still finds its paragraph
           },
         ],
   ),
@@ -411,8 +420,9 @@ async function requestCritique() {
             :round="round"
             :located="located"
             :active-id="activePointId"
+            :read-problem="readProblem"
             @show="showInDraft"
-            @set-aside="(pointId, dismissed) => setAside.mutate({ pointId, dismissed })"
+            @set-read="(pointId, read) => setRead.mutate({ pointId, read })"
           />
         </template>
       </TabPanels>

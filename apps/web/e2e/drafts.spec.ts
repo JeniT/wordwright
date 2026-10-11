@@ -206,14 +206,15 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Critique point 1' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
-  // The writer can set a point aside, and bring it back.
-  await page
-    .getByRole('button', { name: /^Set aside/ })
-    .first()
-    .click()
-  await expect(page.getByText('Set aside (1)')).toBeVisible()
-  await page.getByText('Set aside (1)').click()
-  await page.getByRole('button', { name: /^Bring back/ }).click()
+  // The writer marks a comment Read when they have dealt with it. It stays where it is, and the tab counts one fewer.
+  const side2 = page.getByRole('complementary')
+  await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
+  await side2.getByRole('switch', { name: 'Read: point 1' }).check()
+  await expect(side2.getByRole('tab', { name: 'Comments, 1' })).toBeVisible()
+  await expect(side2.getByRole('switch', { name: 'Read: point 1' })).toBeChecked()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'a Read comment').toEqual([])
+  await side2.getByRole('switch', { name: 'Read: point 1' }).uncheck()
+  await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
   // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.

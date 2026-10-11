@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { CritiqueRound } from '@lfwa/core'
 import { ApiError, errorMessage } from '../lib/api'
 import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
+import CritiqueComment from './CritiqueComment.vue'
 
 /**
  * The comments on the draft: the latest critique's summary, then its points in order of importance. Pressing a
  * comment about a paragraph shows that paragraph in the draft. A point about a paragraph that has since been
- * rewritten is listed apart, without a mark, rather than put on the wrong paragraph. The writer can set a point
- * aside (it is kept, and can be brought back): the call is theirs.
+ * rewritten is listed apart, without a mark, rather than put on the wrong paragraph. The writer marks a comment Read
+ * when they have dealt with it: it stays where it is, quieter, and its mark leaves the text.
  */
 const props = defineProps<{
   pending: boolean
@@ -18,25 +19,31 @@ const props = defineProps<{
   /** Ids of the points whose paragraph is in the text now. */
   located: ReadonlySet<string>
   activeId: string | null
+  /** Why the last Read switch could not be saved, if it could not. */
+  readProblem?: string
 }>()
 const emit = defineEmits<{
   /** A comment was pressed: show it in the draft. */
   show: [id: string]
-  setAside: [id: string, dismissed: boolean]
+  setRead: [id: string, read: boolean]
 }>()
 
 type Entry = CritiqueRound['points'][number] & { number: number }
 const entries = computed<Entry[]>(() =>
   (props.round?.points ?? []).map((p, i) => ({ ...p, number: i + 1 })),
 )
-const open = computed(() => entries.value.filter((p) => !p.dismissed))
 const placed = computed(() =>
-  open.value.filter((p) => p.block === 'whole' || props.located.has(p.id)),
+  entries.value.filter((p) => p.block === 'whole' || props.located.has(p.id)),
 )
 const changed = computed(() =>
-  open.value.filter((p) => p.block !== 'whole' && !props.located.has(p.id)),
+  entries.value.filter((p) => p.block !== 'whole' && !props.located.has(p.id)),
 )
-const setAside = computed(() => entries.value.filter((p) => p.dismissed))
+
+/** Each comment, so a Read switch that could not be saved can be put back. */
+const comments = ref<Record<string, InstanceType<typeof CritiqueComment> | null>>({})
+const remember = (id: string) => (el: unknown) => {
+  comments.value[id] = el as InstanceType<typeof CritiqueComment> | null
+}
 
 /**
  * Scrolls the comments so this one is at the top of their area, and (unless `focus` is false) moves focus to it,
@@ -49,12 +56,12 @@ async function focusPoint(id: string, { focus = true } = {}) {
   scrollAreaToTop(el, scrollAreaOf(el))
   if (focus) el.focus({ preventScroll: true })
 }
-defineExpose({ focusPoint })
+defineExpose({ focusPoint, revert: (id: string) => comments.value[id]?.revert() })
 </script>
 
 <template>
   <!-- With several comments, room below the last so that it too can scroll to the top of the area. -->
-  <section aria-labelledby="critique-heading" :class="open.length > 1 ? 'pb-[70vh]' : ''">
+  <section aria-labelledby="critique-heading" :class="entries.length > 1 ? 'pb-[70vh]' : ''">
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="critique-heading" class="sr-only">Comments</h2>
     <p v-if="pending" role="status">Reading your draft…</p>
@@ -80,41 +87,14 @@ defineExpose({ focusPoint })
 
       <ol v-if="placed.length" class="mt-3 space-y-3">
         <li v-for="p in placed" :key="p.id">
-          <!-- A comment about a paragraph is a button: pressing it shows the paragraph in the draft. -->
-          <button
-            v-if="p.block !== 'whole'"
-            :id="`critique-point-${p.id}`"
-            type="button"
-            class="block w-full rounded-ctl border-2 bg-surface p-3 text-left hover:bg-sunken"
-            :class="p.id === activeId ? 'border-accent' : 'border-line-strong'"
-            :aria-current="p.id === activeId ? 'true' : undefined"
-            @click="emit('show', p.id)"
-          >
-            <span class="block text-sm text-ink-soft">
-              <span class="chip chip-ai mr-1">{{ p.number }}</span
-              >“{{ p.excerpt }}”
-            </span>
-            <span class="block font-medium">{{ p.point }}</span>
-            <span class="block text-ink-soft">{{ p.reason }}</span>
-            <span class="sr-only">Press to show it in the draft.</span>
-          </button>
-          <div v-else class="rounded-ctl border-2 border-line-strong p-3">
-            <p class="text-sm text-ink-soft">
-              <span class="chip chip-ai mr-1">{{ p.number }}</span
-              >The whole piece
-            </p>
-            <p class="font-medium">{{ p.point }}</p>
-            <p class="text-ink-soft">{{ p.reason }}</p>
-          </div>
-          <p class="mt-1">
-            <button
-              type="button"
-              class="btn btn-sm btn-quiet"
-              @click="emit('setAside', p.id, true)"
-            >
-              Set aside<span class="sr-only"> point {{ p.number }}</span>
-            </button>
-          </p>
+          <CritiqueComment
+            :ref="remember(p.id)"
+            :entry="p"
+            :kind="p.block === 'whole' ? 'plain' : 'show'"
+            :active="p.id === activeId"
+            @show="emit('show', p.id)"
+            @set-read="(read) => emit('setRead', p.id, read)"
+          />
         </li>
       </ol>
 
@@ -126,49 +106,17 @@ defineExpose({ focusPoint })
         </p>
         <ol class="mt-2 space-y-3">
           <li v-for="p in changed" :key="p.id">
-            <div class="rounded-ctl border-2 border-line p-3">
-              <p class="text-sm text-ink-soft">
-                <span class="chip chip-ai mr-1">{{ p.number }}</span>
-                It was: “{{ p.excerpt }}”
-              </p>
-              <p class="font-medium">{{ p.point }}</p>
-              <p class="text-ink-soft">{{ p.reason }}</p>
-            </div>
-            <p class="mt-1">
-              <button
-                type="button"
-                class="btn btn-sm btn-quiet"
-                @click="emit('setAside', p.id, true)"
-              >
-                Set aside<span class="sr-only"> point {{ p.number }}</span>
-              </button>
-            </p>
+            <CritiqueComment
+              :ref="remember(p.id)"
+              :entry="p"
+              kind="changed"
+              @set-read="(read) => emit('setRead', p.id, read)"
+            />
           </li>
         </ol>
       </template>
 
-      <details v-if="setAside.length" class="mt-4">
-        <summary class="cursor-pointer underline">Set aside ({{ setAside.length }})</summary>
-        <ol class="mt-2 space-y-3">
-          <li v-for="p in setAside" :key="p.id" class="border-l-2 border-line pl-3 text-ink-soft">
-            <p class="text-sm">
-              <span class="chip chip-quiet mr-1">{{ p.number }}</span>
-              <template v-if="p.block === 'whole'">The whole piece</template>
-              <template v-else>“{{ p.excerpt }}”</template>
-            </p>
-            <p>{{ p.point }}</p>
-            <p class="mt-1">
-              <button
-                type="button"
-                class="btn btn-sm btn-quiet"
-                @click="emit('setAside', p.id, false)"
-              >
-                Bring back<span class="sr-only"> point {{ p.number }}</span>
-              </button>
-            </p>
-          </li>
-        </ol>
-      </details>
+      <p v-if="readProblem" role="alert" class="mt-3 text-danger">{{ readProblem }}</p>
     </template>
   </section>
 </template>

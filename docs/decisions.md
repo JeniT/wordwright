@@ -1111,8 +1111,11 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   The hash ignores case, spacing, punctuation, list markers and link addresses, so a paragraph reads the same from
   the Markdown (what the model was shown) as from the editor (what is placed). Two paragraphs with the same words
   and a heavy rewrite are the known blind spots. Marks are decorations, so they never reach the saved text. A point
-  can be **set aside** (kept, and brought back from a "Set aside" list): it is the writer's call whether a point
-  matters, so it is not deleted.
+  can be marked **Read** with a switch when the writer has dealt with it (#110, which replaced a "Set aside" button
+  and list): it stays where it is, quieter, its mark leaves the text, and the tab counts only the unread. It is the
+  writer's call whether a point matters, so nothing is deleted. The stored field and endpoint are still called
+  `dismissed`; only the wording and the interface changed. A Read comment is still placed in the text (just not
+  marked), so pressing it still shows its paragraph. If saving the switch fails it goes back, and says so.
 - **Rationed (T9c, #92).** A draft gets **3** critiques by default, which each writer can change from 1 to 5 in their
   account settings (`user_settings`, one row per person; no row means the default, so changing the default reaches
   everyone who has not chosen). The count is of the draft's saved rounds, shown before the button is pressed ("2 of
