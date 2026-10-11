@@ -1,6 +1,6 @@
 import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, ref } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import { showArrows } from '../test-utils'
 import ReorderableList from './ReorderableList.vue'
 
@@ -80,27 +80,45 @@ const dragOver = (row: Element, clientY: number, dataTransfer: object) => {
 describe('ReorderableList', () => {
   afterEach(() => vi.useRealTimers())
 
-  it('keeps the arrows out of sight until a row’s grip is pressed, and puts them away again', async () => {
+  const moves = () => screen.queryAllByRole('button', { name: /^Move / })
+  const listRoot = () =>
+    document.querySelector('[data-testid="rail"]')!.closest('ol')!.parentElement!.parentElement!
+
+  it('shows the arrows for every row, or for none: while the pointer is over the list or focus is in it', async () => {
     await mountList(['a', 'b'], { arrows: false })
-    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
-    const grip = screen.getByRole('button', { name: 'Reorder b' })
-    expect(grip).toHaveAttribute('aria-expanded', 'false')
-    await fireEvent.click(grip)
-    expect(grip).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('button', { name: 'Move b up' })).toBeEnabled()
-    expect(screen.queryByRole('button', { name: 'Move a down' })).not.toBeInTheDocument() // only that row's
-    await fireEvent.click(grip)
-    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
+    expect(moves()).toHaveLength(0)
+    await fireEvent.mouseEnter(listRoot())
+    expect(moves()).toHaveLength(4) // up and down, on both rows
+    expect(screen.getByRole('button', { name: 'Move a up' })).toBeDisabled()
+    await fireEvent.mouseLeave(listRoot())
+    expect(moves()).toHaveLength(0)
+    screen.getByRole('button', { name: 'Reorder b' }).focus()
+    await nextTick()
+    expect(moves()).toHaveLength(4)
+    screen.getByRole('button', { name: 'Reorder b' }).blur()
+    await nextTick()
+    expect(moves()).toHaveLength(0)
   })
 
-  it('shows a row’s arrows when its dotted rail is clicked or tapped, anywhere but on its checkbox', async () => {
+  it('hides the arrows while a row is dragged, so the two do not compete', async () => {
     await mountList(['a', 'b'], { arrows: false })
-    const rails = document.querySelectorAll('[data-testid="rail"]')
-    await fireEvent.click(rails[1]!)
-    expect(screen.getByRole('button', { name: 'Move b up' })).toBeEnabled()
-    expect(rails[1]).toHaveClass('list-rail-grab')
-    await fireEvent.click(rails[1]!)
-    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
+    await fireEvent.mouseEnter(listRoot())
+    expect(moves()).toHaveLength(4)
+    const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
+    await fireEvent.dragStart(document.querySelectorAll('[data-testid="rail"]')[0]!, {
+      dataTransfer,
+    })
+    expect(moves()).toHaveLength(0)
+    await fireEvent.dragEnd(document.querySelectorAll('[data-testid="rail"]')[0]!)
+    expect(moves()).toHaveLength(4)
+  })
+
+  it('shows the arrows when a rail is tapped, by putting focus on its hidden button', async () => {
+    await mountList(['a', 'b'], { arrows: false })
+    await fireEvent.click(document.querySelectorAll('[data-testid="rail"]')[1]!)
+    expect(screen.getByRole('button', { name: 'Reorder b' })).toHaveFocus()
+    expect(moves()).toHaveLength(4)
+    expect(document.querySelectorAll('[data-testid="rail"]')[1]).toHaveClass('list-rail-grab')
   })
 
   it('moves a row with the arrow keys on its grip, keeping focus on the grip', async () => {

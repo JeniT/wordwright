@@ -139,7 +139,10 @@ test('captures an idea, adds related work, and develops it into a linked set of 
     .getByRole('listitem')
     .first()
     .getByTestId('rail')
-    .dragTo(drafts.getByRole('listitem').nth(1), { targetPosition: { x: 40, y: 40 } })
+    .dragTo(drafts.getByRole('listitem').nth(1), {
+      sourcePosition: { x: 3, y: 3 },
+      targetPosition: { x: 40, y: 80 },
+    })
   await expect.poll(draftTitles).toEqual(['Part 1', 'Part 2'])
   await page.getByRole('button', { name: 'Move Part 2: the oxbow up' }).click()
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])

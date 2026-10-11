@@ -92,7 +92,7 @@ Don't kill another session's processes.
   and ends with `NextStep` where a next step makes sense. Numbered steps are always links, never locked; a step that
   calls the AI waits for a button (visiting spends nothing); pages read beside another window set `compact: true`.
   Don't add a second `aside` (the drafting notes own the `complementary` landmark).
-- **Reorderable lists:** use `ReorderableList` (a dotted left rail you drag, or click for up/down arrow buttons, with
+- **Reorderable lists:** use `ReorderableList` (a dotted left rail you drag, with up/down arrow buttons that show for the whole list on hover or focus, with
   focus and announcements) for any list whose order people can change, so they all look and behave alike.
 - **Controls in lists** (full rules in [docs/design.md](docs/design.md#actions-and-lists)): checkboxes only _select_
   items; a state of an item or the view is a **switch** (`SwitchField`); actions are buttons, icon-only

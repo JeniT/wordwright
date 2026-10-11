@@ -1143,3 +1143,8 @@ Remove is an icon button and a plain click, not a hold, because the feed is easy
 **The grip button became a dotted rail (#104).** A small grip button in the rail looked wrong, so the rail itself is dotted
 (`list-rail-grab`) and is the drag area and the thing to click or tap for the arrows. A hidden "Reorder" button stays in
 it for the keyboard and screen readers. Clicking the rail's checkbox or the arrows does not toggle the arrows.
+
+**Rail polish (#112).** Dots are inset and tiled with `space` so no dot is ever cut by an edge. The arrows are always laid out
+and invisible until the pointer is over the list or focus is in it, then shown for every row (or none), and hidden while
+dragging; laying them out always means rows are taller than their content (about 90px at least), a deliberate trade for
+nothing jumping when the pointer arrives. They are 28px, solid when disabled, and centred in the row under the checkbox.

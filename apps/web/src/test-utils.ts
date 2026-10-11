@@ -103,11 +103,11 @@ export function expectOrigin(element: HTMLElement, phrase: string, who: string) 
 }
 
 /**
- * Shows the up/down arrows of every row of a reorderable list (they appear when a row's grip is pressed), so a test
- * can use them. Waits for the list to be drawn.
+ * Shows the up/down arrows of a reorderable list. They show for the whole list while focus is in it, so this puts focus
+ * on the first row's hidden Reorder button. Waits for the list to be drawn.
  */
 export async function showArrows() {
   const grips = await screen.findAllByRole('button', { name: /^Reorder / })
-  for (const grip of grips) if (grip.getAttribute('aria-expanded') === 'false') grip.click()
+  grips[0]!.focus()
   await nextTick()
 }

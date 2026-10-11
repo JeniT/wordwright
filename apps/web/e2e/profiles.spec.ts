@@ -331,7 +331,10 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
     .getByRole('listitem')
     .nth(2)
     .getByTestId('rail')
-    .dragTo(sources.getByRole('listitem').first(), { targetPosition: { x: 40, y: 3 } })
+    .dragTo(sources.getByRole('listitem').first(), {
+      sourcePosition: { x: 3, y: 3 },
+      targetPosition: { x: 40, y: 3 },
+    })
   await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
 
   // A move shows at once, even when the server is slow to save it.

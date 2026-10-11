@@ -438,16 +438,42 @@
 }
 /*
  * A rail you can grab: dotted, with a grab cursor, so a reorderable row looks draggable without a handle button. The
- * dots are drawn with a radial gradient (the only way to tile a dot in plain CSS), not as a gradient fill.
+ * dots sit on an inset layer and repeat with `space`, which only ever places whole dots (never one cut by an edge).
+ * They are a tiled radial gradient, the only way to repeat a dot in plain CSS, not a gradient fill. Whatever is on
+ * the rail (the checkbox, the arrows) has a solid background, so no dot shows through it.
  */
 @utility list-rail-grab {
+  position: relative;
   cursor: grab;
-  background-image: radial-gradient(circle, var(--color-line-strong) 1px, transparent 1.4px);
-  background-size: 10px 10px;
-  background-position: 5px 5px;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0.4rem;
+    background-image: radial-gradient(circle, var(--color-line-strong) 1px, transparent 1.4px);
+    background-size: 10px 10px;
+    background-repeat: space;
+    pointer-events: none;
+  }
+  & > :not(.sr-only) {
+    position: relative; /* above the dots */
+  }
   &:has([data-grip]:focus-visible) {
     outline: 3px solid var(--color-focus);
     outline-offset: -3px;
+  }
+}
+/* The small up/down arrows in a reorderable rail: solid whether enabled or not (a disabled one is not see-through). */
+@utility btn-rail {
+  width: 1.75rem;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0;
+  background: var(--color-surface);
+  &:disabled {
+    opacity: 1;
+    background: var(--color-sunken);
+    color: var(--color-ink-soft);
+    border-color: var(--color-line);
   }
 }
 /* Notices. Plain = information; with -danger or -ok for errors and success. Always put words in them. */

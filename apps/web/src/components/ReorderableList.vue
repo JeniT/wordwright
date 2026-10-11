@@ -137,26 +137,27 @@ function arrange(ids: string[], moved: T) {
 
 // ---- the rail and the arrows it reveals
 /**
- * The rows whose arrows are showing: pressing a row's rail toggles them. They stay until pressed again (or Escape on
- * the hidden button): putting them away when focus moves would shift the rows under a pointer that is about to click one.
+ * The arrows show for the whole list or for none of it: while the pointer is over the list or focus is inside it, and
+ * never while a row is being dragged (arrows and dragging together are confusing). They are always laid out, only
+ * invisible, so showing them never moves a row. On a touch screen a tap on a rail puts focus on its hidden button,
+ * which shows them.
  */
-const open = ref(new Set<string>())
-function toggleArrows(id: string) {
-  const next = new Set(open.value)
-  if (!next.delete(id)) next.add(id)
-  open.value = next
+const hovered = ref(false)
+const focused = ref(false)
+const showArrows = computed(() => (hovered.value || focused.value) && !draggingId.value)
+function onFocusOut(event: FocusEvent) {
+  const root = event.currentTarget as HTMLElement
+  if (!root.contains(event.relatedTarget as Node | null)) focused.value = false
 }
-/** A click or tap on the rail itself (not on its checkbox or the arrows) shows or hides that row's arrows. */
+/** A click or tap on the rail itself (not on its checkbox or the arrows) shows the arrows, by focusing its button. */
 function onRailClick(event: MouseEvent, item: T) {
   if ((event.target as HTMLElement).closest('input, [data-move]')) return
-  toggleArrows(item.id)
+  document.querySelector<HTMLButtonElement>(`[data-grip="${item.id}"]`)?.focus()
 }
 function onGripKey(event: KeyboardEvent, item: T) {
   if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
     event.preventDefault()
     void moveBy(item, event.key === 'ArrowUp' ? -1 : 1, true)
-  } else if (event.key === 'Escape' && open.value.has(item.id)) {
-    toggleArrows(item.id)
   }
 }
 
@@ -228,11 +229,16 @@ function endDrag() {
   removeDragLabel()
 }
 
-const buttonClass = 'btn btn-sm btn-icon btn-quiet bg-surface'
+const buttonClass = 'btn btn-quiet btn-rail'
 </script>
 
 <template>
-  <div>
+  <div
+    @mouseenter="hovered = true"
+    @mouseleave="hovered = false"
+    @focusin="focused = true"
+    @focusout="onFocusOut"
+  >
     <div class="overflow-hidden rounded-ctl border border-line bg-surface">
       <slot name="toolbar" />
       <ol class="divide-y divide-line">
@@ -252,7 +258,7 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet bg-surface'
             class="list-rail list-rail-grab select-none"
             draggable="true"
             data-testid="rail"
-            title="Drag to change the order, or click for arrows"
+            title="Drag to change the order"
             @click="onRailClick($event, item)"
             @dragstart="onDragStart($event, item)"
             @dragend="endDrag"
@@ -265,10 +271,16 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet bg-surface'
               data-testid="grip"
               :data-grip="item.id"
               :aria-label="`Reorder ${itemLabel(item)}`"
-              :aria-expanded="open.has(item.id)"
+              :aria-expanded="showArrows"
               @keydown="onGripKey($event, item)"
             ></button>
-            <template v-if="open.has(item.id)">
+            <!-- Always laid out, so showing them moves nothing; centred in the row (the checkbox stays on top). -->
+            <div
+              class="my-auto flex flex-col gap-1"
+              :class="{ invisible: !showArrows }"
+              :aria-hidden="!showArrows"
+              :inert="!showArrows"
+            >
               <button
                 type="button"
                 :class="buttonClass"
@@ -277,7 +289,7 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet bg-surface'
                 :aria-label="`Move ${itemLabel(item)} up`"
                 @click="moveBy(item, -1)"
               >
-                <Icon name="up" />
+                <Icon name="up" :size="16" />
               </button>
               <button
                 type="button"
@@ -287,9 +299,9 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet bg-surface'
                 :aria-label="`Move ${itemLabel(item)} down`"
                 @click="moveBy(item, 1)"
               >
-                <Icon name="down" />
+                <Icon name="down" :size="16" />
               </button>
-            </template>
+            </div>
           </div>
           <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
             <slot :item="item" :index="index" />
