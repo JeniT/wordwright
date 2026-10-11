@@ -673,6 +673,18 @@ feed's own preview. The order is by date only: nothing ranks posts by how intere
 AI or the service deciding what the writer should write about (docs/responsible-ai.md). Adding to the reading list
 (T6c) builds on this list.
 
+**Adding posts to the reading list reuses the research review's decisions** (Add, Ignore, Reconsider; a decided
+post stays in the list, collapsed and marked, with a way back), applied to the combined list. The server adds a post
+from its own kept copy of the feed, named by feed and post id, never from what the browser sends, so only what a
+feed really said can be added, and nothing is fetched. A post becomes a profile-level reading item with origin
+`feed` and the feed it came from. What is stored is only what was **ignored** (`feed_post_ignores`, by the post's
+address as links are compared, shared by the whole profile): whether a post was **added** is read from the reading
+lists themselves, so a post added by hand, or since moved to an idea, shows as added, and one whose item is removed by
+hand is offered again. Reconsidering an add takes the profile-level item off (notes taken from it stay but lose their
+link to it, as when any item is removed); if the post is only on an idea's list, that has to be taken off there. Adding
+several at once is all or nothing, the profile's list has the same limit as an idea's, and a post already on a list
+refuses the add with the reason. Posts are shown in date order only, as before: nothing ranks them.
+
 Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
 served from our own origin like profile pictures. Pointing browsers at the other site's image directly would tell

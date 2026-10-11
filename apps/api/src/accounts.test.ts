@@ -443,6 +443,7 @@ describe('account deletion', () => {
       toIdeaId: null,
       merged: false,
     })
+    store.feedDecisions.ignore(second.id, 'https://x.example/post', user.id)
     expect(store.reading.list({ profileId: second.id })).toHaveLength(1)
     const feed = store.sources.add(second.id, 'https://news.example/feed')
     store.sources.saveFetch(feed.id, {
@@ -465,6 +466,7 @@ describe('account deletion', () => {
     expect(store.reading.list({ profileId: second.id })).toEqual([])
     expect(store.notes.list({ profileId: second.id })).toEqual([])
     expect(store.moves.list(second.id)).toEqual([])
+    expect(store.feedDecisions.ignored(second.id).size).toBe(0)
 
     expect(store.users.findById(user.id)).toBeUndefined()
     expect(store.profiles.listIdsForUser(user.id)).toEqual([])

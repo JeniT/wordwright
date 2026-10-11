@@ -4,12 +4,14 @@ import {
   FeedError,
   MAX_SOURCES_PER_PROFILE,
   RECENT_DAYS_DEFAULT,
+  PostRefsSchema,
   RECENT_DAYS_MAX,
   SourceInputSchema,
   SourceOrderSchema,
   type FeedFetcher,
 } from '@lfwa/core'
 import type { FeedItemService } from '../services/feed-items'
+import type { FeedPostService } from '../services/feed-posts'
 import type { AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
@@ -29,6 +31,7 @@ export function sourceRoutes(
   addLimiter: RateLimiter,
   member: MiddlewareHandler<AppEnv>,
   feedItems: FeedItemService,
+  feedPosts: FeedPostService,
 ) {
   const { sources } = store
   const tooMany = () =>
@@ -103,11 +106,30 @@ export function sourceRoutes(
           })
         }
         return c.json(
-          await feedItems.recent(c.get('user').id, sources.list(c.req.param('profileId')!), days, {
-            refresh: c.req.query('refresh') === 'true',
-          }),
+          await feedItems.recent(
+            c.get('user').id,
+            c.req.param('profileId')!,
+            sources.list(c.req.param('profileId')!),
+            days,
+            { refresh: c.req.query('refresh') === 'true' },
+          ),
         )
       })
+
+      // Deciding about posts of the combined list: put on the profile's reading list, ignore, or take back.
+      .post('/recent/add', validateJson(PostRefsSchema), (c) =>
+        c.json(
+          feedPosts.add(c.req.param('profileId')!, c.get('user').id, c.req.valid('json').posts),
+        ),
+      )
+      .post('/recent/ignore', validateJson(PostRefsSchema), (c) =>
+        c.json(
+          feedPosts.ignore(c.req.param('profileId')!, c.get('user').id, c.req.valid('json').posts),
+        ),
+      )
+      .post('/recent/reconsider', validateJson(PostRefsSchema), (c) =>
+        c.json(feedPosts.reconsider(c.req.param('profileId')!, c.req.valid('json').posts)),
+      )
 
       // The feed's recent posts: the kept copy if it is recent, else the feed is asked again.
       .get('/:id/items', async (c) => {

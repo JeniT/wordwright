@@ -125,6 +125,14 @@ describe('the profile page', () => {
 describe('the profile’s reading list', () => {
   beforeEach(() => fakeProfile())
 
+  it('leads to the Inspiration page, where posts from the feeds are added to it', async () => {
+    await renderAt('/p/ada-substack/reading')
+    expect(await screen.findByRole('link', { name: 'Add to reading list' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/inspiration',
+    )
+  })
+
   it('says it is empty, and what the list is for', async () => {
     await renderAt('/p/ada-substack/reading')
     expect(

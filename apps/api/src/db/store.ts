@@ -3,6 +3,7 @@ import { ConversationStore } from './conversations'
 import { CredentialStore } from './credentials'
 import { openDatabase, transaction } from './database'
 import { DraftStore } from './drafts'
+import { FeedDecisionStore } from './feed-decisions'
 import { IdeaStore } from './ideas'
 import { MoveStore } from './moves'
 import { NoteStore } from './notes'
@@ -24,6 +25,7 @@ export interface Store {
   notes: NoteStore
   reading: ReadingStore
   moves: MoveStore
+  feedDecisions: FeedDecisionStore
   conversations: ConversationStore
   research: ResearchStore
   sources: SourceStore
@@ -44,6 +46,7 @@ export function createStore(db: DatabaseSync): Store {
     notes: new NoteStore(db),
     reading: new ReadingStore(db),
     moves: new MoveStore(db),
+    feedDecisions: new FeedDecisionStore(db),
     conversations: new ConversationStore(db),
     research: new ResearchStore(db),
     sources: new SourceStore(db),

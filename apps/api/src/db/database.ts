@@ -500,6 +500,18 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX moves_profile ON moves(profile_id, moved_at);
   `,
+  // #70: posts from a profile's feeds that someone in the profile chose to ignore. Keyed by the post's address (as
+  // links are compared), so a post carried by two feeds is one decision. Whether a post was added is not kept here:
+  // it is added if it is on one of the profile's reading lists, however it got there.
+  `
+  CREATE TABLE feed_post_ignores (
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    post_key TEXT NOT NULL,
+    ignored_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    ignored_at TEXT NOT NULL,
+    PRIMARY KEY (profile_id, post_key)
+  );
+  `,
 ]
 
 /**

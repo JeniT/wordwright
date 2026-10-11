@@ -93,3 +93,47 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await expect(page.getByRole('listitem').first()).toContainText('A thought of my own')
   await noViolations(page, 'profile notes')
 })
+
+test('adds recent posts from the feeds to the profile’s reading list, or ignores them', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'Inspiration' }).click()
+  const feeds = page.getByRole('region', { name: 'Feeds' })
+  await feeds.getByLabel('Add a feed').fill('read.example/feed')
+  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await expect(
+    feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
+  ).toBeVisible()
+
+  // The newest posts, with a decision to make about each.
+  const recent = page.getByRole('region', { name: 'Recent posts' })
+  const title = 'A post in Feed of read.example'
+  await expect(recent.getByRole('link', { name: new RegExp(title) })).toBeVisible()
+  await noViolations(page, 'recent posts with decisions to make')
+  await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
+  await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
+  await expect(recent.getByRole('button', { name: /^Add to the reading list/ })).toHaveCount(0)
+  await noViolations(page, 'recent posts after adding')
+
+  // It is on the profile's reading list, marked as from a feed.
+  await page.getByRole('link', { name: 'Gathering', exact: true }).click()
+  await page.getByRole('link', { name: 'Reading list' }).click()
+  const item = page.getByRole('listitem').filter({ hasText: title })
+  await expect(item).toContainText('From a feed')
+
+  // From there, "Add to reading list" goes back to choose more; reconsidering takes it off again.
+  await page.getByRole('link', { name: 'Add to reading list' }).click()
+  await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
+  await expect(
+    recent.getByRole('button', { name: `Add to the reading list: ${title}` }),
+  ).toBeVisible()
+
+  // Ignoring is remembered, and can be taken back.
+  await recent.getByRole('button', { name: `Ignore: ${title}` }).click()
+  await expect(recent.getByRole('img', { name: 'Ignored' })).toBeVisible()
+  await page.reload()
+  await expect(recent.getByRole('img', { name: 'Ignored' })).toBeVisible()
+  await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
+  await expect(recent.getByRole('button', { name: `Ignore: ${title}` })).toBeVisible()
+})

@@ -261,8 +261,19 @@ export const RECENT_DAYS_MAX = 365
 /** The most posts one recent-posts answer carries. */
 export const MAX_RECENT_POSTS = 100
 
+/**
+ * What has become of a post: `added` to a reading list (here, or by hand: it is on one), `ignored` by someone in
+ * the profile, or still `new`. A decision is shared by everyone in the profile and is about the post's address, so
+ * the same post carried by two feeds is one decision.
+ */
+export const PostStatusSchema = z.enum(['new', 'added', 'ignored'])
+export type PostStatus = z.infer<typeof PostStatusSchema>
+
 /** One post from any of the profile's feeds, with the feed it came from. */
-export const RecentPostSchema = FeedItemSchema.extend({ sourceId: z.string() })
+export const RecentPostSchema = FeedItemSchema.extend({
+  sourceId: z.string(),
+  status: PostStatusSchema.default('new'),
+})
 export type RecentPost = z.infer<typeof RecentPostSchema>
 
 /**
@@ -280,6 +291,23 @@ export const RecentPostsSchema = z.object({
   failed: z.array(z.object({ sourceId: z.string(), error: z.string() })),
 })
 export type RecentPosts = z.infer<typeof RecentPostsSchema>
+
+/** Posts, named by their feed and their id in it, to add to the reading list, ignore or reconsider. */
+export const MAX_POSTS_PER_DECISION = 20
+export const PostRefsSchema = z.object({
+  posts: z
+    .array(z.object({ sourceId: z.string(), postId: z.string() }))
+    .min(1, 'Choose at least one post')
+    .max(MAX_POSTS_PER_DECISION),
+})
+export type PostRefs = z.infer<typeof PostRefsSchema>
+
+export const PostDecisionSchema = z.object({
+  results: z.array(
+    z.object({ sourceId: z.string(), postId: z.string(), status: PostStatusSchema }),
+  ),
+})
+export type PostDecision = z.infer<typeof PostDecisionSchema>
 
 /** Every source id, in the new order. Must name exactly the sources the profile has. */
 export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })

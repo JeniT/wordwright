@@ -21,6 +21,7 @@ import {
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceChoicesSchema,
+  PostDecisionSchema,
   RecentPostsSchema,
   SourceItemsSchema,
   SourceListSchema,
@@ -288,6 +289,16 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
         'GET',
         `/profiles/${profileId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
       ),
+    /**
+     * Puts posts of the combined list on the profile's reading list (`add`), ignores them, or takes either back
+     * (`reconsider`). Each post is named by its feed and its id in it. Answers with what each has become.
+     */
+    decideFeedPosts: (
+      profileId: string,
+      what: 'add' | 'ignore' | 'reconsider',
+      posts: { sourceId: string; postId: string }[],
+    ) =>
+      get(PostDecisionSchema, 'POST', `/profiles/${profileId}/sources/recent/${what}`, { posts }),
     /** The feed's recent posts: the server's kept copy, or a fresh read if that is old. */
     sourceItems: (profileId: string, id: string) =>
       get(SourceItemsSchema, 'GET', `/profiles/${profileId}/sources/${id}/items`),

@@ -57,6 +57,14 @@ export class ReadingStore {
     return row && toLink(row)
   }
 
+  /** Every item's address in the profile, wherever it is (the profile's own list or any idea's). */
+  urls(profileId: string): string[] {
+    return this.db
+      .prepare('SELECT url FROM idea_links WHERE profile_id = ?')
+      .all(profileId)
+      .map((r) => r.url as string)
+  }
+
   /**
    * An item wherever it is in the profile: with the idea it belongs to (null: the profile itself). For moving.
    */

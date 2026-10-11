@@ -163,6 +163,11 @@ tests inject fakes and nothing hits the network.
   first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
   posts twice a year doesn't clutter it. It shows five posts at a time (Previous / Next above and below the list; the bottom ones scroll back to the top) out of at most 100, counts posts that carry no date (they can't be
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
+  Each post has **Add** and **Ignore** (as in the research review): Add puts it on the profile's reading list
+  (marked "From a feed"; `POST …/sources/recent/add`, `…/ignore`, `…/reconsider`, each `{posts: [{sourceId, postId}]}`);
+  an ignored post stays in the list, marked, and **Reconsider** takes either back. A post is "on a reading list" if it
+  is on any of the profile's lists, however it got there. The profile's **Reading list** page has an **Add to reading
+  list** button that goes there.
   Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
   hours, asks again with `ETag`/`If-Modified-Since` so an unchanged feed costs little, leaves a feed that failed

@@ -481,6 +481,169 @@ describe('recent posts from all the feeds', () => {
   })
 })
 
+describe('deciding about the recent posts', () => {
+  const post = (id: string, title: string, status = 'new') => ({
+    id,
+    sourceId: 's1',
+    title,
+    url: `https://s1.example/${id}`,
+    summary: null,
+    authors: [],
+    publishedAt: '2026-10-10T10:00:00.000Z',
+    status,
+  })
+  /** A small fake of the list and its decisions, remembering what it was sent. */
+  function fake(initial = [post('p1', 'First post'), post('p2', 'Second post')]) {
+    const state = { posts: [...initial], sent: [] as { what: string; postId: string }[] }
+    server.use(
+      http.get('*/api/profiles/:id/sources/recent', () =>
+        HttpResponse.json({ days: 30, posts: state.posts, omitted: 0, undated: 0, failed: [] }),
+      ),
+      http.post('*/api/profiles/:id/sources/recent/:what', async ({ params, request }) => {
+        const { posts } = (await request.json()) as {
+          posts: { sourceId: string; postId: string }[]
+        }
+        const what = params.what as string
+        for (const { postId } of posts) state.sent.push({ what, postId })
+        state.posts = state.posts.map((p) =>
+          posts.some((x) => x.postId === p.id)
+            ? { ...p, status: what === 'add' ? 'added' : what === 'ignore' ? 'ignored' : 'new' }
+            : p,
+        )
+        return HttpResponse.json({
+          results: posts.map((x) => ({
+            ...x,
+            status: state.posts.find((p) => p.id === x.postId)!.status,
+          })),
+        })
+      }),
+    )
+    return state
+  }
+  const section = () => screen.findByRole('region', { name: 'Recent posts' })
+
+  it('puts a post on the reading list with one click, and says so', async () => {
+    fakeSources([A])
+    const state = fake()
+    await openInspiration()
+    const recent = await section()
+    await fireEvent.click(
+      await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
+    )
+    await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
+    const row = (await within(recent).findByText(/on a reading list/)).closest('li')!
+    expect(row).toHaveTextContent('First post')
+    expect(within(row).getByRole('img', { name: 'On a reading list' })).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: /^Add/ })).not.toBeInTheDocument()
+    expect(within(recent).getByText('Added “First post” to the reading list.')).toBeInTheDocument()
+    // The other post still waits for a decision.
+    await waitFor(() =>
+      expect(
+        within(recent).getByRole('button', { name: 'Add to the reading list: Second post' }),
+      ).toBeEnabled(),
+    )
+  })
+
+  it('ignores a post, which stays listed but marked, and can be reconsidered', async () => {
+    fakeSources([A])
+    const state = fake()
+    await openInspiration()
+    const recent = await section()
+    await fireEvent.click(
+      await within(recent).findByRole('button', { name: 'Ignore: Second post' }),
+    )
+    const row = (await within(recent).findByText(/· ignored/)).closest('li')!
+    expect(within(row).getByRole('img', { name: 'Ignored' })).toBeInTheDocument()
+    expect(within(row).getByText(/Second post/)).toBeInTheDocument()
+
+    await fireEvent.click(within(row).getByRole('button', { name: 'Reconsider: Second post' }))
+    await waitFor(() => expect(state.sent.at(-1)).toEqual({ what: 'reconsider', postId: 'p2' }))
+    expect(
+      await within(recent).findByRole('button', { name: 'Add to the reading list: Second post' }),
+    ).toBeInTheDocument()
+  })
+
+  it('takes an add back, with Reconsider, so the post is waiting again', async () => {
+    fakeSources([A])
+    fake([post('p1', 'First post', 'added')])
+    await openInspiration()
+    const recent = await section()
+    await fireEvent.click(
+      await within(recent).findByRole('button', { name: 'Reconsider: First post' }),
+    )
+    expect(
+      await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows posts decided earlier, by anyone, as decided', async () => {
+    fakeSources([A])
+    fake([
+      post('p1', 'Added earlier', 'added'),
+      post('p2', 'Ignored earlier', 'ignored'),
+      post('p3', 'Not yet'),
+    ])
+    await openInspiration()
+    const recent = await section()
+    expect(await within(recent).findByText(/Added earlier/)).toBeInTheDocument()
+    expect(
+      within(recent).queryByRole('button', { name: /Add to the reading list: Added earlier/ }),
+    ).toBeNull()
+    expect(within(recent).queryByRole('button', { name: /Ignore: Ignored earlier/ })).toBeNull()
+    expect(within(recent).getByRole('button', { name: 'Ignore: Not yet' })).toBeInTheDocument()
+  })
+
+  it('says why it could not, and keeps the post waiting', async () => {
+    fakeSources([A])
+    fake()
+    server.use(
+      http.post('*/api/profiles/:id/sources/recent/add', () =>
+        HttpResponse.json(
+          {
+            error:
+              'A profile can have up to 50 links. Remove some you no longer need to make room.',
+          },
+          { status: 409 },
+        ),
+      ),
+    )
+    await openInspiration()
+    const recent = await section()
+    await fireEvent.click(
+      await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
+    )
+    const alert = await within(recent).findByRole('alert')
+    expect(alert).toHaveTextContent('A profile can have up to 50 links')
+    expect(
+      within(recent).getByRole('button', { name: 'Add to the reading list: First post' }),
+    ).toBeEnabled()
+    await fireEvent.click(within(alert).getByRole('button', { name: 'Dismiss' }))
+    expect(within(recent).queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('stops other decisions while one is being made', async () => {
+    fakeSources([A])
+    fake()
+    let release = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    server.use(
+      http.post('*/api/profiles/:id/sources/recent/ignore', async () => {
+        await gate
+        return HttpResponse.json({ results: [{ sourceId: 's1', postId: 'p1', status: 'ignored' }] })
+      }),
+    )
+    await openInspiration()
+    const recent = await section()
+    await fireEvent.click(await within(recent).findByRole('button', { name: 'Ignore: First post' }))
+    await waitFor(() =>
+      expect(
+        within(recent).getByRole('button', { name: 'Add to the reading list: Second post' }),
+      ).toBeDisabled(),
+    )
+    release()
+  })
+})
+
 describe('paging through the recent posts', () => {
   const many = (n: number) =>
     Array.from({ length: n }, (_, i) => ({

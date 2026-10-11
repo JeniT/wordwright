@@ -21,6 +21,7 @@ import { moveRoutes, profileReadingRoutes } from './reading'
 import { noteRoutes } from './notes'
 import { NoteEditService } from '../services/note-edits'
 import { MoveService } from '../services/moves'
+import { FeedPostService } from '../services/feed-posts'
 import type { BrainstormService } from '../services/brainstorm'
 import type { ResearchService } from '../services/research'
 import type { FeedItemService } from '../services/feed-items'
@@ -61,6 +62,7 @@ export function profileRoutes({
   const owner = requireMember(store, true)
   const noteEdits = new NoteEditService(store)
   const moves = new MoveService(store)
+  const feedPosts = new FeedPostService(store)
 
   return (
     new Hono<AppEnv>()
@@ -162,7 +164,10 @@ export function profileRoutes({
           .use(member)
           .route('/', ideaRoutes(store, ideaLinks, brainstorm, research)),
       )
-      .route('/:profileId/sources', sourceRoutes(store, feeds, feedLimiter, member, feedItems))
+      .route(
+        '/:profileId/sources',
+        sourceRoutes(store, feeds, feedLimiter, member, feedItems, feedPosts),
+      )
       // The profile's own reading list and notes, gathered before there is an idea.
       .route(
         '/:profileId/reading',

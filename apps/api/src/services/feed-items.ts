@@ -1,6 +1,7 @@
 import { HTTPException } from 'hono/http-exception'
 import {
   FeedError,
+  linkKey,
   MAX_RECENT_POSTS,
   type FeedFetcher,
   type RecentPosts,
@@ -9,6 +10,7 @@ import {
 } from '@lfwa/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { SourceFetch } from '../db/sources'
+import { postStatuses } from './feed-posts'
 import type { Store } from '../db/store'
 
 const MINUTE = 60_000
@@ -77,6 +79,7 @@ export class FeedItemService {
    */
   async recent(
     userId: string,
+    profileId: string,
     sources: Source[],
     days: number,
     options: { refresh?: boolean } = {},
@@ -96,6 +99,7 @@ export class FeedItemService {
       )
     }
 
+    const status = postStatuses(this.store, profileId)
     const seen = new Set<string>()
     const posts: RecentPosts['posts'] = []
     let undated = 0
@@ -106,12 +110,13 @@ export class FeedItemService {
       }
       if (result.lastError) failed.push({ sourceId: source.id, error: result.lastError })
       for (const item of result.items) {
-        if (seen.has(item.url)) continue
-        seen.add(item.url)
+        // The same address however it is written ("#top", "www.") is the same post.
+        if (seen.has(linkKey(item.url))) continue
+        seen.add(linkKey(item.url))
         if (!item.publishedAt || Number.isNaN(Date.parse(item.publishedAt))) {
           undated++
         } else if (Date.parse(item.publishedAt) >= since) {
-          posts.push({ ...item, sourceId: source.id })
+          posts.push({ ...item, sourceId: source.id, status: status(item.url) })
         }
       }
     }

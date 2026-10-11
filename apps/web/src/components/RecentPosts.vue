@@ -79,6 +79,30 @@ function goFromBottom(step: -1 | 1) {
   heading.value?.focus({ preventScroll: true }) // keyboard users continue from the top too
 }
 
+// ---- deciding: Add to the reading list, Ignore, or take either back (as in the research review)
+type Post = NonNullable<typeof shown.value>['posts'][number]
+const notice = ref('') // said out loud to screen readers after each decision
+const decide = useMutation({
+  mutationFn: ({ what, post }: { what: 'add' | 'ignore' | 'reconsider'; post: Post }) =>
+    api.decideFeedPosts(props.profileId, what, [{ sourceId: post.sourceId, postId: post.id }]),
+  onSuccess: (_, { what, post }) => {
+    notice.value =
+      what === 'add'
+        ? `Added “${post.title}” to the reading list.`
+        : what === 'ignore'
+          ? `Ignored “${post.title}”.`
+          : `“${post.title}” is back in the list.`
+  },
+  // Whatever happened, someone else may have decided first: show how things are now.
+  onSettled: () =>
+    Promise.all(
+      ['recent-posts', 'reading', 'ideas'].map((key) =>
+        queryClient.invalidateQueries({ queryKey: [key] }),
+      ),
+    ),
+})
+const busy = computed(() => decide.isPending.value)
+
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 const failedNames = computed(() =>
@@ -136,6 +160,11 @@ const failedNames = computed(() =>
         <p v-if="refresh.isError.value" role="alert" class="mb-2 text-danger">
           {{ errorMessage(refresh.error.value) }}
         </p>
+        <div v-if="decide.isError.value" role="alert" class="mb-2 text-sm text-danger">
+          {{ errorMessage(decide.error.value) }}
+          <button type="button" class="ml-2 underline" @click="decide.reset()">Dismiss</button>
+        </div>
+        <p class="sr-only" aria-live="polite">{{ notice }}</p>
         <p v-if="shown.failed.length" role="alert" class="mb-2 text-sm text-danger">
           We couldn’t read {{ failedNames.join(', ') }} just now, so recent posts from
           {{ shown.failed.length === 1 ? 'it' : 'them' }} may be missing.
@@ -166,7 +195,40 @@ const failedNames = computed(() =>
               kind="source"
               class="mt-0.5"
             />
-            <div class="min-w-0 flex-1">
+            <!-- Decided: just the title, how it went, and a way back. -->
+            <div
+              v-if="post.status !== 'new'"
+              class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1"
+            >
+              <span
+                v-if="post.status === 'added'"
+                class="font-bold text-ok"
+                role="img"
+                aria-label="On a reading list"
+                >✓</span
+              >
+              <span v-else class="font-bold text-danger" role="img" aria-label="Ignored">✗</span>
+              <span
+                class="min-w-0 flex-1 break-words"
+                :class="post.status === 'ignored' ? 'text-ink-soft' : ''"
+                >{{ post.title }}
+                <span class="text-sm text-ink-soft">
+                  · {{ nameOf(byId.get(post.sourceId)) }} ·
+                  {{ post.status === 'added' ? 'on a reading list' : 'ignored' }}</span
+                ></span
+              >
+              <button
+                type="button"
+                class="btn btn-sm btn-neutral"
+                :disabled="busy"
+                :aria-label="`Reconsider: ${post.title}`"
+                @click="decide.mutate({ what: 'reconsider', post })"
+              >
+                Reconsider
+              </button>
+            </div>
+            <!-- Waiting for a decision: everything needed to make one. -->
+            <div v-else class="min-w-0 flex-1">
               <a
                 :href="post.url"
                 target="_blank"
@@ -183,6 +245,26 @@ const failedNames = computed(() =>
               <p v-if="post.summary" class="line-clamp-2 break-words text-sm text-ink-soft">
                 {{ post.summary }}
               </p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  :disabled="busy"
+                  :aria-label="`Add to the reading list: ${post.title}`"
+                  @click="decide.mutate({ what: 'add', post })"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-neutral"
+                  :disabled="busy"
+                  :aria-label="`Ignore: ${post.title}`"
+                  @click="decide.mutate({ what: 'ignore', post })"
+                >
+                  Ignore
+                </button>
+              </div>
             </div>
           </li>
         </ul>

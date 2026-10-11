@@ -27,6 +27,14 @@ const { profiles, profile } = useProfile(() => props.profileId)
       </RouterLink>
     </p>
     <h1 class="mb-6 font-display text-2xl font-semibold">Reading list</h1>
+    <p class="mb-6">
+      <RouterLink :to="{ name: 'inspiration', params: { profileId } }" class="btn btn-primary">
+        Add to reading list
+      </RouterLink>
+      <span class="ml-3 text-sm text-ink-soft">
+        Choose from the latest posts of your feeds on the Inspiration page.
+      </span>
+    </p>
     <ReadingList :profile-id="profileId" :idea-id="null" quiet-heading />
     <p class="text-sm text-ink-soft">
       Notes you take from these are kept with
