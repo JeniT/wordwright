@@ -314,6 +314,8 @@ test('manages the ordered list of feeds on the Inspiration page', async ({ page 
 
   // Reordering works from the keyboard and keeps focus on the moved source.
   const up = sources.getByRole('button', { name: 'Move Feed of three.example up' })
+  await expect(up).toHaveCount(0) // the arrows appear when a feed's grip is pressed
+  await sources.getByRole('button', { name: 'Reorder Feed of three.example' }).click()
   await up.focus()
   await page.keyboard.press('Enter')
   await expect.poll(hosts).toEqual(['one.example', 'three.example', 'two.example'])
@@ -327,7 +329,7 @@ test('manages the ordered list of feeds on the Inspiration page', async ({ page 
   await sources
     .getByRole('listitem')
     .nth(2)
-    .getByTestId('grip')
+    .getByTestId('rail')
     .dragTo(sources.getByRole('listitem').first(), { targetPosition: { x: 40, y: 3 } })
   await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
 
@@ -342,6 +344,7 @@ test('manages the ordered list of feeds on the Inspiration page', async ({ page 
   page.on('response', (res) => {
     if (res.url().includes('/sources/order') && res.request().method() === 'PUT') saved++
   })
+  await sources.getByRole('button', { name: 'Reorder Feed of one.example' }).click()
   await sources.getByRole('button', { name: 'Move Feed of one.example up' }).click()
   await expect
     .poll(hosts, { timeout: 1000 })

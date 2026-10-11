@@ -417,6 +417,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
   await filter.getByRole('button', { name: 'part 1' }).click()
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
+  await notes.getByRole('button', { name: /^Reorder note “Deposition/ }).click()
   await notes.getByRole('button', { name: /^Move note “Deposition.*up/ }).click()
   await filter.getByRole('button', { name: 'All' }).click()
   await expect(notes.getByRole('listitem').filter({ hasText: 'Deposition' }).first()).toBeVisible()

@@ -131,18 +131,15 @@ function arrange(ids: string[], moved: T) {
 }
 
 // ---- the grip and the arrows it reveals
-/** The rows whose arrows are showing: pressing a row's grip toggles them. */
+/**
+ * The rows whose arrows are showing: pressing a row's grip toggles them. They stay until pressed again (or Escape on
+ * the grip): putting them away when focus moves would shift the rows under a pointer that is about to click one.
+ */
 const open = ref(new Set<string>())
 function toggleArrows(id: string) {
   const next = new Set(open.value)
   if (!next.delete(id)) next.add(id)
   open.value = next
-}
-/** Tabbing or clicking away from a row's rail puts its arrows away again. */
-function closeUnlessInside(event: FocusEvent, id: string) {
-  const rail = event.currentTarget as HTMLElement
-  if (rail.contains(event.relatedTarget as Node | null) || !open.value.has(id)) return
-  toggleArrows(id)
 }
 function onGripKey(event: KeyboardEvent, item: T) {
   if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -245,7 +242,6 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet'
           data-testid="rail"
           @dragstart="onDragStart($event, item)"
           @dragend="endDrag"
-          @focusout="closeUnlessInside($event, item.id)"
         >
           <button
             type="button"

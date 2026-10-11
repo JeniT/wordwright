@@ -186,7 +186,7 @@ function saveLink() {
               <Icon name="edit" />
             </button>
             <HoldButton
-              class="btn btn-sm btn-icon btn-danger"
+              class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
               :title="removeHint()"
               :aria-label="`Remove link to ${label()}`"
               @confirm="emit('remove')"

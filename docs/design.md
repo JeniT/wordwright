@@ -118,14 +118,85 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                  |
 | `btn btn-quiet`                                                   | Icon-only and low-emphasis actions (edit, remove, reorder grips). Keeps a faint outline                                         |
 | `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                     |
+| `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                         |
+| `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_            |
+| `list-rail`                                                       | The left zone of a list row: select checkbox, and for reorderable lists the grip. Top-aligned                                   |
 | `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones |
 | `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                             |
 | `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                   |
-| `chip` + `chip-accent` / `chip-ai` / `chip-ok`                    | Small labels. `chip-ai` is the highlighter: AI-suggested only                                                                   |
+| `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)            |
 | `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                     |
 | `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                        |
 | `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                     |
 | `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                             |
+
+## Actions and lists
+
+Which control for which job, so every list (reading lists, notes, feeds, drafts) looks and behaves alike. The reading
+list is the reference implementation: `ReadingList.vue`, `IdeaLinkItem.vue`, `ListToolbar.vue`.
+
+**Checkbox, switch, button or link**
+
+| It...                                             | Use                                 | Examples                                     |
+| ------------------------------------------------- | ----------------------------------- | -------------------------------------------- |
+| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this link, Select all                 |
+| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                   |
+| sets a view option for the list                   | **switch** or a select, on the left | Show read items                              |
+| does something or opens something                 | **button**                          | Take notes, Edit, Remove, Move to…, Add link |
+| goes somewhere                                    | **link** (underlined)               | The title                                    |
+
+- **Checkboxes only ever mean "select".** Never use one to trigger an action or to hold a state; never use a button for
+  a yes/no state.
+- A switch's label is a fixed word ("Read", never "Unread"). On is shown by the knob's place and a tick, not by colour
+  alone. It flips under the finger and goes back (`revert()`) if saving fails.
+- Put explanations in `meta` text and only where they apply (an item that isn't kept says on which day it goes), not in
+  the label.
+
+**Icons or text**
+
+- **Text** for an action that is the row's main verb, is unfamiliar, or has no standard icon (Take notes, Move to…, Add
+  link), and for everything in the toolbar.
+- **Icon only** (`btn btn-sm btn-icon btn-quiet` + `Icon`) for actions that repeat on every row, are rare, and have a
+  universal icon: Edit (pencil), Remove (bin). Always an `aria-label` that names the item ("Remove link to A paper") and
+  a `title`; a 36px target.
+- **Icon with text** where the icon backs up the words, as in a destructive confirmation.
+- At most one text button per row; the rest are icons.
+
+**Emphasis: what draws the eye**
+
+| Level          | Style                                            | For                                                           |
+| -------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| Primary        | `btn-primary`, one per screen area               | The page's main action (not in a list)                        |
+| Section action | `btn-outline` (accent)                           | The thing the list is for: Add link                           |
+| Row's verb     | `btn-neutral btn-sm`                             | Take notes                                                    |
+| Row utilities  | `btn-quiet btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
+| Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Move to…, Remove N                                            |
+
+Accent means "act here", so it appears at most once per visible group, never once per row. Repeated rows use neutral
+and quiet buttons. A chip is a **fact**, not a control: use `chip-quiet` (flat) so that only what you can press has a
+strong outline, and give an item one link (the title), with its host as plain text.
+
+**The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
+select checkbox and, where order matters, its grip. The whole rail (not just the icon) is the drag area, so a tall
+row has a big handle. Reordering without dragging is always available: pressing the grip shows that row's up/down
+arrow buttons (and, with the grip focused, the arrow keys move the row too); they stay until the grip is pressed again,
+so rows never shift under a pointer. A list is **either reorderable or paginated, never both** (you can't drag across
+pages). Long items clamp their titles to two lines; the actions stay top-right and wrap below on a phone. Notes are the
+exception: show them in full.
+
+**The toolbar (`ListToolbar`).** Filters on the **left** (after the select-all checkbox, which sits above the rail of
+row checkboxes); actions for the selected items on the **right**, with a "3 selected" count. The actions are always
+shown and disabled until something is selected, so the row never jumps. Text, not icons. Select all means the page;
+when there are more pages, "Select all N" offers the rest. Selection clears when the filter or the page changes, so
+what an action touches is always what is on screen.
+
+**Removing.** Not undoable, so it takes the same press-and-hold as deleting a profile, idea or draft (`HoldButton`),
+single or bulk. Its tooltip says where to find the item again ("It stays in the feed it came from").
+
+**Pagination.** Notes show everything. Every other list pages client-side with `PageNav` above and below (the top one
+announces the new range; the bottom one returns you to the top of the list), five at a time (`PAGE_SIZE` in
+`lib/paging.ts`, `usePaging`). Filter first, then page; a new filter returns to page 1; removing the last item on a page
+steps back one. No page controls when everything fits on one page.
 
 ## Pictures and logos from other sites
 
@@ -208,7 +279,7 @@ later; neither is built.
 
 - Contrast: enforced by `palette.test.ts` (text 4.5:1, borders and focus 3:1) in light and dark.
 - **Focus:** one 3px outline in `focus`, from the base layer. Don't remove outlines or restyle focus per control.
-- **Targets:** buttons 44px (`btn-sm` 36px), checkboxes 20px.
+- **Targets:** buttons 44px (`btn-sm` and icon buttons 36px), checkboxes 20px, switches 44px wide and 44px high with their label.
 - **Text:** 16px minimum in fields (stops iOS zoom), links underlined, no text in images.
 - **Motion:** reduced motion is honoured globally; don't add animation that carries meaning.
 - **Not by colour alone:** errors have words and (where it fits) an icon; AI-suggested things have a label, not just

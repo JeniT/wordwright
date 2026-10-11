@@ -119,8 +119,8 @@ const removeClass = 'btn btn-neutral btn-sm'
     <h2 id="sources-heading" class="mb-1 font-display text-xl font-semibold">Feeds</h2>
     <p class="mb-3 text-sm text-ink-soft">
       RSS feeds to look through for things that could spark ideas. Posts from feeds higher in the
-      list will be shown first: drag a feed by its grip, or use the arrow buttons, to change the
-      order.
+      list will be shown first: drag a feed by its grip, or press the grip for arrow buttons, to
+      change the order.
     </p>
 
     <p v-if="sources.isPending.value">Loading sources…</p>

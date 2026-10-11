@@ -348,6 +348,7 @@
   }
   & > [data-switch-track] {
     position: relative;
+    pointer-events: none; /* a press lands on the input beneath, so the whole switch is one target */
     flex: none;
     width: 2.75rem;
     height: 1.5rem;
