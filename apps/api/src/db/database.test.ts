@@ -136,7 +136,18 @@ describe('migrations', () => {
 
     it('#88: keeps the links the writer already added by hand to a profile’s own list, and no others', () => {
       const db = new DatabaseSync(':memory:')
-      migrate(db, 'test', MIGRATIONS.slice(0, -1))
+      // Everything before the migration that adds `kept` (found by what it adds, so later migrations don't matter).
+      let before = 0
+      for (let n = 1; n <= MIGRATIONS.length; n++) {
+        const probe = new DatabaseSync(':memory:')
+        migrate(probe, 'test', MIGRATIONS.slice(0, n))
+        const has = probe
+          .prepare("SELECT 1 FROM pragma_table_info('idea_links') WHERE name = 'kept'")
+          .get()
+        if (has) break
+        before = n
+      }
+      migrate(db, 'test', MIGRATIONS.slice(0, before))
       db.exec('PRAGMA foreign_keys = OFF')
       const link = db.prepare(
         'INSERT INTO idea_links (id, profile_id, idea_id, url, title, created_at, origin) VALUES (?, ?, ?, ?, ?, ?, ?)',

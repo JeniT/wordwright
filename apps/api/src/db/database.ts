@@ -518,6 +518,30 @@ export const MIGRATIONS: Migration[] = [
   // #88: a link the writer added themselves to the profile's own list is kept from the start (they can switch it
   // off); only what a feed brought drops off after a month. Links already there are brought into line.
   `UPDATE idea_links SET kept = 1 WHERE idea_id IS NULL AND origin = 'entered'`,
+  // T9b: critique rounds are kept with their draft, each point with the block it was about (its hash and the start of
+  // its text, so it can be found again after edits) and whether the writer set it aside. They go with the draft.
+  `
+  CREATE TABLE critique_rounds (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    summary TEXT NOT NULL,
+    ready INTEGER NOT NULL CHECK (ready IN (0, 1)),
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX critique_rounds_draft ON critique_rounds(draft_id, created_at);
+  CREATE TABLE critique_points (
+    id TEXT PRIMARY KEY,
+    round_id TEXT NOT NULL REFERENCES critique_rounds(id) ON DELETE CASCADE,
+    rank INTEGER NOT NULL,
+    block TEXT NOT NULL,
+    block_hash TEXT,
+    excerpt TEXT NOT NULL,
+    point TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    dismissed_at TEXT
+  );
+  CREATE INDEX critique_points_round ON critique_points(round_id, rank);
+  `,
 ]
 
 /**

@@ -47,6 +47,7 @@ export function parseCritique(reply: string, blocks: readonly Block[]): Critique
     .map((p) => ({
       block: p.block,
       excerpt: p.block === 'whole' ? '' : excerptOf(byId.get(p.block)!.text),
+      hash: p.block === 'whole' ? null : byId.get(p.block)!.hash,
       point: p.point,
       reason: p.reason,
     }))

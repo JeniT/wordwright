@@ -35,7 +35,7 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
           message: 'The AI sent back something we could not read. Please try again.',
         })
       }
-      return c.json(critique)
+      return c.json(store.critiques.add(draft.id, critique))
     } catch (err) {
       if (err instanceof LLMAuthError) {
         throw new HTTPException(400, {

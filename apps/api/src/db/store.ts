@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { ConversationStore } from './conversations'
 import { CredentialStore } from './credentials'
+import { CritiqueStore } from './critiques'
 import { openDatabase, transaction } from './database'
 import { DraftStore } from './drafts'
 import { FeedDecisionStore } from './feed-decisions'
@@ -21,6 +22,7 @@ export interface Store {
   tokens: TokenStore
   profiles: ProfileStore
   drafts: DraftStore
+  critiques: CritiqueStore
   ideas: IdeaStore
   notes: NoteStore
   reading: ReadingStore
@@ -42,6 +44,7 @@ export function createStore(db: DatabaseSync): Store {
     tokens: new TokenStore(db),
     profiles: new ProfileStore(db),
     drafts: new DraftStore(db),
+    critiques: new CritiqueStore(db),
     ideas: new IdeaStore(db),
     notes: new NoteStore(db),
     reading: new ReadingStore(db),

@@ -1083,6 +1083,17 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   (`MAX_CRITIQUE_POINTS`, in the order given: most important first), and refuses a reply that is not a critique
   (the writer sees "something we could not read, try again"). Points carry no replacement text by design: there is no
   field for it. The prompt also forbids it, and an eval checks that.
+- **Kept, and found again (T9b, #91).** Each critique is saved as a round (`critique_rounds`, `critique_points`,
+  both `ON DELETE CASCADE` from the draft, so they go with it and with its profile). Only the latest round is shown
+  and nothing counts rounds yet (T9c). A point stores its block id, the block's hash and the start of its text.
+  The editor places each point again whenever the text changes (`locateBlock`, `@lfwa/core`): first a paragraph with
+  the same words (nearest to where it was, if two are alike), then one that still starts with the same words, and
+  otherwise none, so a point is never put on the wrong paragraph; it shows under "This passage has changed" instead.
+  The hash ignores case, spacing, punctuation, list markers and link addresses, so a paragraph reads the same from
+  the Markdown (what the model was shown) as from the editor (what is placed). Two paragraphs with the same words
+  and a heavy rewrite are the known blind spots. Marks are decorations, so they never reach the saved text. A point
+  can be **set aside** (kept, and brought back from a "Set aside" list): it is the writer's call whether a point
+  matters, so it is not deleted.
 - **Rung 3, as before.** What leaves the system is the draft's title and body, to the writer's own provider with
   their own key. Rounds are not capped yet (T9c, #92).
 - **Evals.** The two critique cases that targeted #45 ("short and ranked", "says when ready") are now `current`; all

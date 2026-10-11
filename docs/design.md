@@ -130,6 +130,17 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                     |
 | `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                             |
 
+### Critique marks in the editor
+
+A point of a critique that is about a paragraph is shown beside it, in the editor, without touching the writer's words:
+the paragraph gets a 3px edge in the highlighter colour (the text itself is not tinted, so it stays visibly theirs)
+and a small numbered button (`btn btn-sm btn-icon critique-mark`, named "Critique point 2") at the end of its last line.
+The number is the point's rank. The one being looked at has the accent edge and an outline, and `aria-current`.
+Pressing a mark takes you to its point in the Critique panel, and "Show in draft" in the panel takes you back to the
+paragraph. Marks are ProseMirror decorations (`lib/critique-marks.ts`): they are drawn, never saved, and never in
+`getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A point
+whose paragraph has been rewritten loses its mark and moves to "This passage has changed" in the panel.
+
 ## Actions and lists
 
 Which control for which job, so every list (reading lists, notes, feeds, drafts) looks and behaves alike. The reading

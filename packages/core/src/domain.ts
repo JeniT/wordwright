@@ -940,8 +940,10 @@ export const ModelCritiqueSchema = z.object({
 export const CritiquePointSchema = z.object({
   /** `b3`: the paragraph (or heading, list item...) it is about; `whole`: the piece as a whole. */
   block: z.string(),
-  /** The start of that block, to show which one it is; empty for `whole`. */
+  /** The start of that block, to show which one it is and to find it again after edits; empty for `whole`. */
   excerpt: z.string(),
+  /** The block's `blockHash` when it was critiqued; null for `whole`. */
+  hash: z.string().nullable(),
   point: z.string(),
   reason: z.string(),
 })
@@ -954,6 +956,17 @@ export const CritiqueSchema = z.object({
   points: z.array(CritiquePointSchema),
 })
 export type Critique = z.infer<typeof CritiqueSchema>
+
+/** A critique as kept with its draft: one round, with each point given an id and whether the writer set it aside. */
+export const CritiqueRoundSchema = CritiqueSchema.omit({ points: true }).extend({
+  id: z.string(),
+  createdAt: z.string(),
+  points: z.array(CritiquePointSchema.extend({ id: z.string(), dismissed: z.boolean() })),
+})
+export type CritiqueRound = z.infer<typeof CritiqueRoundSchema>
+
+/** Sets a point aside (it stays on record and can be brought back), or brings it back. */
+export const CritiquePointDismissSchema = z.object({ dismissed: z.boolean() })
 
 // ---- Bring-your-own LLM credentials ------------------------------------
 

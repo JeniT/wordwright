@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blockHash, splitBlocks } from './blocks'
+import { blockHash, locateBlock, splitBlocks } from './blocks'
 
 const texts = (md: string) => splitBlocks(md).map((b) => b.text)
 
@@ -57,5 +57,55 @@ describe('blockHash', () => {
   it('ignores case, spacing and Markdown punctuation, but not words', () => {
     expect(blockHash('A *light*  rewrite.')).toBe(blockHash('a light rewrite'))
     expect(blockHash('a light rewrite')).not.toBe(blockHash('a heavy rewrite'))
+  })
+})
+
+describe('blockHash and the editor', () => {
+  it('reads Markdown and the words shown in the editor alike', () => {
+    expect(blockHash('See [the report](https://example.org/r) for **more**.')).toBe(
+      blockHash('See the report for more.'),
+    )
+    expect(blockHash('3. third item')).toBe(blockHash('third item'))
+    expect(blockHash('## A heading')).toBe(blockHash('A heading'))
+    expect(blockHash('> a\n> quote')).toBe(blockHash('a quote'))
+  })
+})
+
+describe('locateBlock', () => {
+  const text = (...texts: string[]) => texts.map((t) => ({ text: t }))
+  const point = (draftText: string, index: number) => ({
+    hash: blockHash(draftText),
+    excerpt: draftText,
+    index,
+  })
+
+  it('finds the same words wherever they have moved to', () => {
+    const was = 'The river bends because the outer bank erodes faster.'
+    expect(locateBlock(point(was, 1), text('Intro.', 'Another.', was))).toBe(2)
+  })
+
+  it('takes the nearest of two identical paragraphs', () => {
+    const same = 'Repeated words in a paragraph.'
+    expect(locateBlock(point(same, 4), text(same, 'x', 'y', 'z', 'w', same))).toBe(5)
+    expect(locateBlock(point(same, 0), text(same, 'x', same))).toBe(0)
+  })
+
+  it('falls back to the start of the paragraph when it has been edited further on', () => {
+    const was = 'The river bends because the outer bank erodes faster than the inner one.'
+    const now = 'The river bends because the outer bank erodes faster, which is the whole story.'
+    // The excerpt kept with a point is only the start of the paragraph, so a change after it does not matter.
+    expect(
+      locateBlock({ ...point(was, 0), excerpt: `${was.slice(0, 45)}…` }, text('Other.', now)),
+    ).toBe(1)
+  })
+
+  it('does not guess when the passage has changed or gone', () => {
+    const was = 'The river bends because the outer bank erodes faster than the inner one.'
+    expect(locateBlock(point(was, 0), text('Something quite different now.'))).toBeNull()
+    expect(locateBlock(point(was, 0), [])).toBeNull()
+  })
+
+  it('does not match on a short start', () => {
+    expect(locateBlock(point('Rivers.', 0), text('Rivers run.'))).toBeNull()
   })
 })

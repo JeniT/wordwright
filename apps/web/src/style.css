@@ -24,6 +24,35 @@
 .prose-editor .ProseMirror h2 {
   font-size: 1.5rem;
 }
+/*
+ * Critique points: the paragraph they are about gets an edge in the highlighter colour (the writer's words are not
+ * tinted), and a numbered mark at its end. The editor draws these as decorations, so they are never saved.
+ */
+.prose-editor .ProseMirror .critique-block {
+  border-left: 3px solid var(--color-mark);
+  margin-left: -0.9rem;
+  padding-left: 0.75rem;
+}
+.prose-editor .ProseMirror .critique-block.is-active {
+  border-left-color: var(--color-accent);
+}
+.prose-editor .ProseMirror .critique-marks {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  user-select: none;
+}
+.prose-editor .ProseMirror .critique-mark {
+  background: var(--color-mark);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.prose-editor .ProseMirror .critique-mark[aria-current='true'] {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+}
+
 /* A link in the draft must read as a link (the reset makes anchors look like their text). */
 .prose-editor .ProseMirror a {
   color: var(--color-accent);

@@ -4,10 +4,26 @@ import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { watch } from 'vue'
+import {
+  CritiqueMarks,
+  critiqueMarksKey,
+  type CritiqueMarkPoint,
+  type CritiqueMarkStorage,
+} from '../lib/critique-marks'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 
 const model = defineModel<string>({ required: true })
+const props = defineProps<{
+  /** The points of the latest critique to mark in the text, beside the paragraphs they are about. */
+  critiquePoints?: CritiqueMarkPoint[]
+  /** The point being looked at: its paragraph is marked more strongly. */
+  activePointId?: string | null
+}>()
 const emit = defineEmits<{
+  /** A critique mark was pressed. */
+  pointPick: [id: string]
+  /** Which critique points found their paragraph in the text as it is now. */
+  located: [ids: string[]]
   /** A note from the side bar was dropped on the text, at this position in it (unknown when it can't be worked out). */
   noteDrop: [noteId: string, position: number | undefined]
 }>()
@@ -25,6 +41,12 @@ const editor = useEditor({
       dropcursor: { color: 'var(--color-accent)', width: 2 }, // shows where a dragged note will land
     }),
     Markdown,
+    CritiqueMarks.configure({
+      points: () => props.critiquePoints ?? [],
+      activeId: () => props.activePointId ?? null,
+      onPick: (id) => emit('pointPick', id),
+      onLocated: (ids) => emit('located', ids),
+    }),
     Placeholder.configure({ placeholder: 'Start writing…' }),
   ],
   editorProps: {
@@ -98,7 +120,31 @@ function insertInlineMarkdown(markdown: string): boolean {
   if (!inline) return false
   return e.chain().focus().insertContent(inline).run()
 }
-defineExpose({ insertMarkdown, insertInlineMarkdown })
+/** Puts the cursor at the paragraph a critique point is about, and scrolls to it. False if it is not in the text now. */
+function focusPoint(id: string): boolean {
+  const e = editor.value
+  const pos = (
+    e?.storage as unknown as { critiqueMarks: CritiqueMarkStorage } | undefined
+  )?.critiqueMarks.positions.get(id)
+  if (!e || pos === undefined) return false
+  return e
+    .chain()
+    .focus()
+    .setTextSelection(pos + 1)
+    .scrollIntoView()
+    .run()
+}
+defineExpose({ insertMarkdown, insertInlineMarkdown, focusPoint })
+
+// The marks are redrawn when the points or the one being looked at change, not only when the text does.
+watch(
+  () => [props.critiquePoints, props.activePointId],
+  () => {
+    const e = editor.value
+    if (e) e.view.dispatch(e.state.tr.setMeta(critiqueMarksKey, 'refresh'))
+  },
+  { deep: true },
+)
 
 // Reflect external changes (e.g. a draft finishing loading) without clobbering typing.
 watch(model, (value) => {

@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { blockHash } from '@lfwa/core'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
@@ -16,7 +17,8 @@ const draft = {
   updatedAt: '2026-01-01T00:00:00Z',
 }
 
-function mockEditor(critique: () => Response) {
+/** The critique the server has kept for the draft (null: none yet), and what a new request answers. */
+function mockEditor(critique: () => Response, latest: object | null = null) {
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([])),
@@ -34,9 +36,30 @@ function mockEditor(critique: () => Response) {
     ),
     http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.put('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.get('*/api/profiles/p1/drafts/d1/critique', () => HttpResponse.json(latest)),
     http.post('*/api/profiles/p1/assist/critique', critique),
   )
 }
+
+const round = (points: object[], extra: object = {}) => ({
+  id: 'r1',
+  createdAt: '2026-01-02T00:00:00Z',
+  summary: 'A decent start.',
+  ready: false,
+  points,
+  ...extra,
+})
+const pointOn = (id: string, over: object = {}) => ({
+  id,
+  block: 'b1',
+  excerpt: 'Some text',
+  hash: blockHash('Some text'),
+  point: 'Tighten the opening.',
+  reason: 'Readers skim.',
+  dismissed: false,
+  ...over,
+})
+const critiqueRegion = async () => screen.findByRole('region', { name: 'Critique' })
 
 describe('EditorView critique', () => {
   it('points users without an API key to their account settings', async () => {
@@ -53,50 +76,116 @@ describe('EditorView critique', () => {
     await screen.findByRole('link', { name: 'Go to account settings' })
   })
 
-  it('shows the critique when it works', async () => {
+  it('shows the critique when it works, and marks the paragraph a point is about', async () => {
     mockEditor(() =>
-      HttpResponse.json({
-        summary: 'A decent start.',
-        ready: false,
-        points: [
-          {
-            block: 'b1',
-            excerpt: 'Hello there',
-            point: 'Tighten the opening.',
-            reason: 'Readers skim.',
-          },
-          {
-            block: 'whole',
-            excerpt: '',
-            point: 'The order is odd.',
-            reason: 'The ending comes first.',
-          },
-        ],
-      }),
+      HttpResponse.json(
+        round([
+          pointOn('p1'),
+          pointOn('p2', { block: 'whole', excerpt: '', hash: null, point: 'The order is odd.' }),
+        ]),
+      ),
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
     await screen.findByText('A decent start.')
-    const points = within(await screen.findByRole('region', { name: 'Critique' })).getAllByRole(
-      'listitem',
-    )
-    expect(points[0]).toHaveTextContent('Hello there')
+    const points = within(await critiqueRegion()).getAllByRole('listitem')
+    expect(points[0]).toHaveTextContent('Some text')
     expect(points[0]).toHaveTextContent('Tighten the opening.')
     expect(points[0]).toHaveTextContent('Readers skim.')
     expect(points[1]).toHaveTextContent('The whole piece')
     expect(points[1]).toHaveTextContent('The order is odd.')
+    // Only the paragraph point is marked, in the text; the whole-piece point has no paragraph to mark.
+    expect(await screen.findAllByRole('button', { name: /^Critique point/ })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Critique point 1' })).toBeTruthy()
+  })
+
+  it('shows the critique kept from last time, without asking for another', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByText('A decent start.')
+    await screen.findByRole('button', { name: 'Critique point 1' })
+  })
+
+  it('ties a mark in the text to its point in the list, and back', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
+    const item = within(await critiqueRegion()).getByRole('listitem')
+    await waitFor(() => expect(item).toHaveAttribute('aria-current', 'true'))
+    await waitFor(() => expect(item).toHaveFocus())
+    // The mark is drawn again to show it is the one being looked at.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Critique point 1' })).toHaveAttribute(
+        'aria-current',
+        'true',
+      ),
+    )
+  })
+
+  it('keeps the marks out of the draft itself', async () => {
+    const saved: unknown[] = []
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    server.use(
+      http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
+        saved.push(await request.json())
+        return HttpResponse.json(draft)
+      }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('button', { name: 'Critique point 1' })
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(saved).toEqual([{ title: 'T', body: 'Some text' }]))
+  })
+
+  it('lists a point whose paragraph has been rewritten apart, without a mark', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([
+        pointOn('p1'),
+        pointOn('p2', {
+          hash: blockHash('A paragraph that is not in the draft any more.'),
+          excerpt: 'A paragraph that is not in the draft any more.',
+          point: 'This one is gone.',
+        }),
+      ]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('button', { name: 'Critique point 1' })
+    const region = await critiqueRegion()
+    await within(region).findByRole('heading', { name: 'This passage has changed' })
+    expect(screen.queryByRole('button', { name: 'Critique point 2' })).toBeNull()
+    expect(region).toHaveTextContent('This one is gone.')
+  })
+
+  it('sets a point aside, which takes its mark away, and brings it back', async () => {
+    const dismissed: boolean[] = []
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    server.use(
+      http.put('*/api/profiles/p1/drafts/d1/critique/points/p1', async ({ request }) => {
+        const { dismissed: d } = (await request.json()) as { dismissed: boolean }
+        dismissed.push(d)
+        return HttpResponse.json(round([pointOn('p1', { dismissed: d })]))
+      }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('button', { name: /^Set aside/ }))
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Critique point 1' })).toBeNull(),
+    )
+    await fireEvent.click(await screen.findByText(/^Set aside \(1\)/))
+    await fireEvent.click(await screen.findByRole('button', { name: /^Bring back/ }))
+    await screen.findByRole('button', { name: 'Critique point 1' })
+    expect(dismissed).toEqual([true, false])
   })
 
   it('says so when a draft is ready, rather than finding something', async () => {
     mockEditor(() =>
-      HttpResponse.json({ summary: 'This is ready to publish.', ready: true, points: [] }),
+      HttpResponse.json(round([], { summary: 'This is ready to publish.', ready: true })),
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
     await screen.findByText('This is ready to publish.')
-    expect(
-      within(screen.getByRole('region', { name: 'Critique' })).queryByRole('listitem'),
-    ).toBeNull()
+    expect(within(await critiqueRegion()).queryByRole('listitem')).toBeNull()
     expect(screen.getByText(/nothing important left/i)).toBeTruthy()
   })
 })

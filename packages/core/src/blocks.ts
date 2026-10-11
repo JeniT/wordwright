@@ -16,18 +16,52 @@ const HEADING = /^\s{0,3}#{1,6}(\s|$)/
 const LIST_ITEM = /^(?:[-*+]|\d{1,9}[.)])\s/
 const QUOTE = /^\s{0,3}>/
 
-/** A short, stable fingerprint of a block's words (case, spacing and Markdown punctuation ignored). Not for security. */
-export function blockHash(text: string): string {
-  const words = text
+/**
+ * The words of a bit of Markdown, lower-cased and spaced evenly: link addresses, list markers, `#` and `>` and other
+ * punctuation are dropped, so the same words read the same whether they came from the Markdown or from the editor.
+ */
+export function plainWords(text: string): string {
+  return text
     .toLowerCase()
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s*(?:#{1,6}|>+|[-*+]|\d{1,9}[.)])\s+/gm, '')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
+}
+
+/** A short, stable fingerprint of a block's words (see `plainWords`). Not for security. */
+export function blockHash(text: string): string {
+  const words = plainWords(text)
   let h = 0x811c9dc5
   for (let i = 0; i < words.length; i++) {
     h ^= words.charCodeAt(i)
     h = Math.imul(h, 0x01000193)
   }
   return (h >>> 0).toString(16).padStart(8, '0')
+}
+
+/** The shortest start of a block that is trusted to find it again when its words have changed. */
+const MIN_SNIPPET = 12
+
+/**
+ * Finds, among the blocks a draft has now, the one a point was made about: the one with the same words, or failing
+ * that the one that still starts with the quoted start (a light edit further on). Of several candidates it takes the
+ * one nearest to where the block was (`index`, from 0). Returns its place in `candidates`, or null if the passage has
+ * changed too much (or gone), when the point is shown without a marker rather than put on the wrong paragraph.
+ */
+export function locateBlock(
+  point: { hash: string; excerpt: string; index: number },
+  candidates: readonly { text: string }[],
+): number | null {
+  const nearest = (matches: number[]) =>
+    matches.sort((a, b) => Math.abs(a - point.index) - Math.abs(b - point.index) || a - b)[0] ??
+    null
+  const plain = candidates.map((c) => plainWords(c.text))
+  const same = candidates.flatMap((c, i) => (blockHash(c.text) === point.hash ? [i] : []))
+  if (same.length) return nearest(same)
+  const start = plainWords(point.excerpt.replace(/…$/, ''))
+  if (start.length < MIN_SNIPPET) return null
+  return nearest(plain.flatMap((words, i) => (words.startsWith(start) ? [i] : [])))
 }
 
 export function splitBlocks(markdown: string): Block[] {

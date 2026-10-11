@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import CritiquePanel from '../components/CritiquePanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
-import { ApiError, api, errorMessage } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import type { CritiqueMarkPoint } from '../lib/critique-marks'
 import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 
 const props = defineProps<{ profileId: string; id: string }>()
@@ -182,7 +184,53 @@ async function closeNotes() {
   openButton.value?.focus()
 }
 
-const critique = useMutation({ mutationFn: () => api.critique(props.profileId, props.id) })
+// ---- critique: the latest round is kept with the draft, and its points are marked beside their paragraphs
+const critiqueKey = ['critique', () => props.profileId, () => props.id] as const
+const lastCritique = useQuery({
+  queryKey: critiqueKey,
+  queryFn: () => api.latestCritique(props.profileId, props.id),
+})
+const critique = useMutation({
+  mutationFn: () => api.critique(props.profileId, props.id),
+  onSuccess: (round) => {
+    queryClient.setQueryData(['critique', props.profileId, props.id], round)
+    activePointId.value = null
+  },
+})
+const setAside = useMutation({
+  mutationFn: (v: { pointId: string; dismissed: boolean }) =>
+    api.setCritiquePointDismissed(props.profileId, props.id, v.pointId, v.dismissed),
+  onSuccess: (round) => queryClient.setQueryData(['critique', props.profileId, props.id], round),
+})
+const round = computed(() => lastCritique.data.value)
+const critiquePanel = useTemplateRef<InstanceType<typeof CritiquePanel>>('critiquePanel')
+const activePointId = ref<string | null>(null)
+const located = ref<ReadonlySet<string>>(new Set())
+const markPoints = computed<CritiqueMarkPoint[]>(() =>
+  (round.value?.points ?? []).flatMap((p, i) =>
+    p.dismissed || p.block === 'whole'
+      ? []
+      : [
+          {
+            id: p.id,
+            block: p.block,
+            hash: p.hash,
+            excerpt: p.excerpt,
+            number: i + 1,
+            label: `Critique point ${i + 1}`,
+          },
+        ],
+  ),
+)
+
+function pickPoint(id: string) {
+  activePointId.value = id
+  void critiquePanel.value?.focusPoint(id)
+}
+function showInDraft(id: string) {
+  activePointId.value = id
+  editor.value?.focusPoint(id)
+}
 
 async function requestCritique() {
   await save.mutateAsync() // critique the latest text
@@ -215,7 +263,15 @@ async function requestCritique() {
         placeholder="Title"
       />
 
-      <RichEditor ref="editor" v-model="body" @note-drop="onNoteDrop" />
+      <RichEditor
+        ref="editor"
+        v-model="body"
+        :critique-points="markPoints"
+        :active-point-id="activePointId"
+        @note-drop="onNoteDrop"
+        @point-pick="pickPoint"
+        @located="located = new Set($event)"
+      />
       <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-ink-soft">
         Ctrl or ⌘ and click a link to open it.
       </p>
@@ -255,47 +311,17 @@ async function requestCritique() {
         </p>
       </div>
 
-      <section
-        v-if="critique.isPending.value || critique.data.value || critique.isError.value"
-        class="mt-6 rounded-ctl border border-line bg-surface p-4"
-        aria-labelledby="critique-heading"
-      >
-        <h2 id="critique-heading" class="mb-2 font-semibold">Critique</h2>
-        <p v-if="critique.isPending.value">Reading your draft…</p>
-        <p v-else-if="critique.isError.value" role="alert" class="text-danger">
-          {{ errorMessage(critique.error.value) }}
-          <RouterLink
-            v-if="
-              critique.error.value instanceof ApiError &&
-              [400, 409].includes(critique.error.value.status)
-            "
-            to="/account"
-            class="underline"
-            >Go to account settings</RouterLink
-          >
-        </p>
-        <template v-else-if="critique.data.value">
-          <p>{{ critique.data.value.summary }}</p>
-          <p v-if="critique.data.value.ready" class="mt-2 text-ink-soft">
-            Nothing important left to fix. What remains is a matter of taste, so it may be time to
-            publish.
-          </p>
-          <ol v-if="critique.data.value.points.length" class="mt-3 space-y-3">
-            <li
-              v-for="p in critique.data.value.points"
-              :key="p.block + p.point"
-              class="border-l-2 border-line-strong pl-3"
-            >
-              <p class="text-sm text-ink-soft">
-                <template v-if="p.block === 'whole'">The whole piece</template>
-                <template v-else>“{{ p.excerpt }}”</template>
-              </p>
-              <p class="font-medium">{{ p.point }}</p>
-              <p class="text-ink-soft">{{ p.reason }}</p>
-            </li>
-          </ol>
-        </template>
-      </section>
+      <CritiquePanel
+        ref="critiquePanel"
+        :pending="critique.isPending.value"
+        :error="critique.error.value ?? lastCritique.error.value"
+        :round="round"
+        :located="located"
+        :active-id="activePointId"
+        @pick="activePointId = $event"
+        @show-in-draft="showInDraft"
+        @set-aside="(pointId, dismissed) => setAside.mutate({ pointId, dismissed })"
+      />
 
       <DraftInsertions :profile-id="profileId" :draft-id="id" :body="body" />
     </article>

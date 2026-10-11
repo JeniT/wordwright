@@ -4,7 +4,7 @@ import {
   BrainstormEventSchema,
   BrainstormPromptSchema,
   ConversationSchema,
-  CritiqueSchema,
+  CritiqueRoundSchema,
   DraftInsertionSchema,
   DraftSchema,
   HandleAvailabilitySchema,
@@ -408,8 +408,25 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(DraftSchema, 'GET', `${drafts(profileId)}/${id}`),
     updateDraft: (profileId: string, id: string, input: DraftInput) =>
       get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
+    /** Asks for a critique of the saved draft; it is kept with the draft. */
     critique: (profileId: string, draftId: string) =>
-      get(CritiqueSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
+      get(CritiqueRoundSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
+    /** The latest critique of the draft, or null if it has had none. */
+    latestCritique: (profileId: string, draftId: string) =>
+      get(CritiqueRoundSchema.nullable(), 'GET', `${drafts(profileId)}/${draftId}/critique`),
+    /** Sets a point aside (or, with `dismissed: false`, brings it back). Answers with the latest round. */
+    setCritiquePointDismissed: (
+      profileId: string,
+      draftId: string,
+      pointId: string,
+      dismissed: boolean,
+    ) =>
+      get(
+        CritiqueRoundSchema.nullable(),
+        'PUT',
+        `${drafts(profileId)}/${draftId}/critique/points/${pointId}`,
+        { dismissed },
+      ),
   }
 }
 

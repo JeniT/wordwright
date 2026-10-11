@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { DraftInputSchema, DraftInsertionInputSchema } from '@lfwa/core'
+import { CritiquePointDismissSchema, DraftInputSchema, DraftInsertionInputSchema } from '@lfwa/core'
 import { HTTPException } from 'hono/http-exception'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
@@ -10,7 +10,7 @@ import { validateJson } from '../validate'
  * listed through their idea (`/ideas/:id/drafts`); these routes open, save and delete one by id.
  */
 export function draftRoutes(store: Store) {
-  const { drafts, notes, ideas } = store
+  const { drafts, notes, ideas, critiques } = store
   return (
     new Hono<AppEnv>()
       .get('/:id', (c) => {
@@ -24,6 +24,23 @@ export function draftRoutes(store: Store) {
           c.req.valid('json'),
         )
         return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
+      })
+      // The latest critique of the draft (null if it has none), and the writer setting one of its points aside.
+      .get('/:id/critique', (c) => {
+        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        return draft
+          ? c.json(critiques.latest(draft.id) ?? null)
+          : c.json({ error: 'Not found' }, 404)
+      })
+      .put('/:id/critique/points/:pointId', validateJson(CritiquePointDismissSchema), (c) => {
+        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        if (!draft) return c.json({ error: 'Not found' }, 404)
+        const done = critiques.setDismissed(
+          draft.id,
+          c.req.param('pointId'),
+          c.req.valid('json').dismissed,
+        )
+        return done ? c.json(critiques.latest(draft.id)) : c.json({ error: 'Not found' }, 404)
       })
       // Words pulled into the draft from the idea's notes, and where they came from.
       .get('/:id/insertions', (c) => {

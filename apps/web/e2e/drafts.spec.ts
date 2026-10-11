@@ -139,6 +139,38 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(
     page.getByRole('listitem').filter({ hasText: 'Rivers rarely flow straight.' }),
   ).toContainText('Fake critique: the opening could say what is at stake.')
+
+  // The point is marked beside the paragraph it is about, and the page is still accessible with the marks in.
+  const mark = page.getByRole('button', { name: 'Critique point 1' })
+  await expect(mark).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await mark.click()
+  await expect(page.getByRole('listitem').filter({ hasText: 'Fake critique' })).toBeFocused()
+  await page.getByRole('button', { name: /^Show in draft/ }).click()
+  await expect(page.getByRole('textbox', { name: 'Draft body' })).toBeFocused()
+
+  // It is kept with the draft: after a reload it is still there, and nothing was asked of the AI again.
+  await page.reload()
+  await expect(page.getByText('A fake critique: one thing to look at.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Critique point 1' })).toBeVisible()
+
+  // Rewriting the paragraph takes the mark away and moves the point to its own list.
+  await page.getByRole('textbox', { name: 'Draft body' }).fill('Meanders come from erosion.')
+  await expect(page.getByRole('button', { name: 'Critique point 1' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
+
+  // The writer can set a point aside, and bring it back.
+  await page.getByRole('button', { name: /^Set aside/ }).click()
+  await expect(page.getByText('Set aside (1)')).toBeVisible()
+  await page.getByText('Set aside (1)').click()
+  await page.getByRole('button', { name: /^Bring back/ }).click()
+  await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
+
+  // On a phone nothing spills sideways.
+  await page.setViewportSize({ width: 390, height: 800 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
 })
 
 test('sign out and back in, and the session survives a reload', async ({ page }) => {

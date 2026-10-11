@@ -396,7 +396,7 @@ describe('drafts and critique within a profile', () => {
     expect(idea.drafts).toMatchObject([{ id: draft.id, title: 'Hi' }])
 
     const critique = await c.post(`${base}/assist/critique`, { draftId: draft.id })
-    expect(await critique.json()).toEqual({
+    expect(await critique.json()).toMatchObject({
       summary: 'Critique from claude-sonnet-5-5.',
       ready: false,
       points: [
@@ -405,6 +405,7 @@ describe('drafts and critique within a profile', () => {
           excerpt: 'There',
           point: 'Needs a stronger opening.',
           reason: 'It is the first thing read.',
+          dismissed: false,
         },
       ],
     })
