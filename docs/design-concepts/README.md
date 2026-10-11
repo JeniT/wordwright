@@ -1,5 +1,7 @@
 # Design concepts
 
+> **Navigation** (how to lead people through Home, Profile and Idea) has its own set of mock-ups: see [navigation/](navigation/README.md).
+
 > **Outcome: Ember (the burnt-orange Slate in round 3) was chosen and is implemented.** See
 > [../design.md](../design.md) for the design system and [../decisions.md](../decisions.md#visual-design-ember) for
 > why, with every option compared. This folder is the **archive** of what was considered: example screens,

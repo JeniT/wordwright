@@ -1,0 +1,32 @@
+/*
+ * The navigation mock-ups use the app's real Ember theme (apps/web/src/theme), so what you see is what the app
+ * would render. Only the step numerals below are new; if an approach is adopted they move into theme.css.
+ */
+@import 'tailwindcss';
+@import '../../../apps/web/src/theme/palette-ember.css';
+@import '../../../apps/web/src/theme/theme.css';
+@source "./**/*.html";
+
+/* "01", "02" ...: tabular figures in a small outlined badge. Numbers orient; they never lock anything. */
+@utility step-num {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 2rem;
+  height: 1.75rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+/* The current step: a filled badge. `group` goes on the link, which carries aria-current. */
+@utility step-num-current {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}

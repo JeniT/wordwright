@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inspiration · Steady menu, steps on the page</title>
+    <link rel="stylesheet" href="../theme.css" />
+    <script>
+      ;(function () {
+        var q = new URLSearchParams(location.search).get('theme')
+        if (q) document.documentElement.setAttribute('data-theme', q)
+        document.addEventListener('DOMContentLoaded', function () {
+          var b = document.querySelector('[data-menu]')
+          if (!b) return
+          var m = document.getElementById('side-menu'),
+            s = document.querySelector('[data-summary]')
+          b.addEventListener('click', function () {
+            var open = b.getAttribute('aria-expanded') !== 'true'
+            b.setAttribute('aria-expanded', String(open))
+            m.classList.toggle('hidden', !open)
+            m.classList.toggle('flex', open)
+            if (s) s.classList.toggle('hidden', open)
+          })
+          if (new URLSearchParams(location.search).get('menu') === 'open') b.click()
+        })
+      })()
+    </script>
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="sr-only z-50 bg-surface px-4 py-2 font-semibold focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
+      >Skip to content</a
+    >
+    <div class="min-h-screen md:grid md:grid-cols-[16rem_minmax(0,1fr)]">
+      <header class="border-b border-line bg-surface md:border-r md:border-b-0">
+        <div class="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:overflow-y-auto">
+          <div class="flex items-center justify-between gap-3 px-5 py-4 md:py-5">
+            <a href="home.html" class="flex items-center gap-3 font-semibold no-underline"
+              ><span
+                class="grid size-9 place-items-center rounded-ctl bg-accent text-sm text-on-accent"
+                aria-hidden="true"
+                >W</span
+              ><span class="text-lg">Wordwright</span></a
+            >
+            <button
+              type="button"
+              class="btn btn-neutral btn-sm md:hidden"
+              aria-controls="side-menu"
+              aria-expanded="false"
+              data-menu
+            >
+              Menu
+            </button>
+          </div>
+
+          <div id="side-menu" class="hidden flex-col md:flex md:flex-1">
+            <div class="px-4 pb-3">
+              <label class="meta mb-1 block" for="ps">Profile</label
+              ><select id="ps" class="field">
+                <option>Notes from the Allotment (shared)</option>
+                <option>Slow Systems</option>
+                <option>Maya on Mondays</option>
+              </select>
+            </div>
+            <nav aria-label="Main" class="px-3 pb-3">
+              <ul>
+                <li>
+                  <a
+                    href="home.html"
+                    class="flex min-h-11 items-center justify-between gap-3 rounded-ctl px-3 py-1.5 no-underline hover:bg-sunken aria-[current=page]:bg-accent-wash aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--color-accent)]"
+                    >Your profiles</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex min-h-11 items-center justify-between gap-3 rounded-ctl px-3 py-1.5 no-underline hover:bg-sunken aria-[current=page]:bg-accent-wash aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--color-accent)]"
+                    >Account settings</a
+                  >
+                </li>
+              </ul>
+            </nav>
+            <div class="border-t border-line p-4 md:mt-auto">
+              <p class="meta">Signed in as</p>
+              <a href="#" class="link font-semibold">Maya Okafor</a>
+              <div class="mt-2 flex items-center justify-between gap-2">
+                <button type="button" class="link">Sign out</button
+                ><button type="button" class="btn btn-quiet btn-sm" aria-pressed="false">
+                  Light
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="main" class="mx-auto w-full max-w-4xl min-w-0 px-4 py-8 sm:px-8 md:py-12">
+        <nav aria-label="Breadcrumb" class="meta mb-3">
+          <ol class="flex flex-wrap items-center gap-x-2">
+            <li>
+              <a class="link" href="home.html">Your profiles</a
+              ><span aria-hidden="true" class="ml-2">/</span>
+            </li>
+            <li aria-current="page" class="truncate">Notes from the Allotment</li>
+          </ol>
+        </nav>
+        <p class="mb-3 text-lg font-semibold">Notes from the Allotment</p>
+        <nav
+          aria-label="Profile steps"
+          class="mb-8 flex items-end justify-between gap-4 border-b border-line"
+        >
+          <ol class="-mb-px flex min-w-0 gap-1 overflow-x-auto">
+            <li class="shrink-0">
+              <a
+                href="profile-inspiration.html"
+                aria-current="page"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">01</span
+                >Inspiration</a
+              >
+            </li>
+            <li class="shrink-0">
+              <a
+                href="profile-notes.html"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">02</span>Notes</a
+              >
+            </li>
+            <li class="shrink-0">
+              <a
+                href="profile-ideas.html"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">03</span>Ideas</a
+              >
+            </li>
+          </ol>
+          <a href="#" class="link shrink-0 pb-3 text-sm">Profile settings</a>
+        </nav>
+        <h1 class="h1 flex items-center gap-3">
+          <span class="step-num step-num-current !h-9 !min-w-10 !text-base">01</span>Inspiration
+        </h1>
+        <div class="mt-6">
+          <p class="mb-8 max-w-prose">
+            Posts from the feeds you follow. Add the ones worth reading to your reading list, then
+            read them and take notes.
+          </p>
+          <div class="grid gap-8 lg:grid-cols-2">
+            <section aria-labelledby="posts">
+              <div class="mb-3 flex items-baseline justify-between">
+                <h2 id="posts" class="h2">Latest posts</h2>
+                <a href="#" class="link meta">Manage feeds (6)</a>
+              </div>
+              <ul class="panel divide-y divide-line">
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">The case for slow revision</a>
+                    <p class="meta">Harbour Quarterly · today</p>
+                  </div>
+                  <button class="btn btn-neutral btn-sm">Add to reading list</button>
+                </li>
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">How working editors actually cut</a>
+                    <p class="meta">The Dispatch · yesterday</p>
+                  </div>
+                  <span class="chip chip-ok">On your reading list</span>
+                </li>
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">Notes on pruning fruit trees</a>
+                    <p class="meta">Open Methods · 3 days ago</p>
+                  </div>
+                  <button class="btn btn-neutral btn-sm">Add to reading list</button>
+                </li>
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">Against “kill your darlings”</a>
+                    <p class="meta">Kestrel Press · last week</p>
+                  </div>
+                  <button class="btn btn-neutral btn-sm">Add to reading list</button>
+                </li>
+              </ul>
+            </section>
+            <section aria-labelledby="rl">
+              <div class="mb-3 flex items-baseline justify-between">
+                <h2 id="rl" class="h2">Reading list</h2>
+                <span class="meta">4 items · 1 read</span>
+              </div>
+              <ul class="panel divide-y divide-line">
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked
+                    aria-label="Mark “How working editors actually cut” as read"
+                  />
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">How working editors actually cut</a>
+                    <p class="meta">The Dispatch</p>
+                  </div>
+                  <a href="#" class="btn btn-neutral btn-sm">Read and take notes</a>
+                </li>
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    aria-label="Mark “Why seed catalogues sell a dream” as read"
+                  />
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">Why seed catalogues sell a dream</a>
+                    <p class="meta">Kestrel Press</p>
+                  </div>
+                  <a href="#" class="btn btn-neutral btn-sm">Read and take notes</a>
+                </li>
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <input type="checkbox" aria-label="Mark “The compost heap, explained” as read" />
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">The compost heap, explained</a>
+                    <p class="meta">Lumen Journal</p>
+                  </div>
+                  <a href="#" class="btn btn-neutral btn-sm">Read and take notes</a>
+                </li>
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    aria-label="Mark “Pruning as an editing metaphor” as read"
+                  />
+                  <div class="min-w-[14rem] flex-1">
+                    <a href="#" class="link font-medium">Pruning as an editing metaphor</a>
+                    <p class="meta">Harbour Quarterly</p>
+                  </div>
+                  <a href="#" class="btn btn-neutral btn-sm">Read and take notes</a>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </div>
+        <nav
+          aria-label="Next step"
+          class="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6"
+        >
+          <p class="meta max-w-md">
+            Read what you’ve gathered and take notes from it. Then the notes can be clustered into
+            ideas.
+          </p>
+          <a href="profile-notes.html" class="btn btn-outline"
+            >Next: 02 Notes <span aria-hidden="true">→</span></a
+          >
+        </nav>
+      </main>
+    </div>
+  </body>
+</html>

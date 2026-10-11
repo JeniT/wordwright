@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notes · Steady menu, steps on the page</title>
+    <link rel="stylesheet" href="../theme.css" />
+    <script>
+      ;(function () {
+        var q = new URLSearchParams(location.search).get('theme')
+        if (q) document.documentElement.setAttribute('data-theme', q)
+        document.addEventListener('DOMContentLoaded', function () {
+          var b = document.querySelector('[data-menu]')
+          if (!b) return
+          var m = document.getElementById('side-menu'),
+            s = document.querySelector('[data-summary]')
+          b.addEventListener('click', function () {
+            var open = b.getAttribute('aria-expanded') !== 'true'
+            b.setAttribute('aria-expanded', String(open))
+            m.classList.toggle('hidden', !open)
+            m.classList.toggle('flex', open)
+            if (s) s.classList.toggle('hidden', open)
+          })
+          if (new URLSearchParams(location.search).get('menu') === 'open') b.click()
+        })
+      })()
+    </script>
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="sr-only z-50 bg-surface px-4 py-2 font-semibold focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
+      >Skip to content</a
+    >
+    <div class="min-h-screen md:grid md:grid-cols-[16rem_minmax(0,1fr)]">
+      <header class="border-b border-line bg-surface md:border-r md:border-b-0">
+        <div class="md:sticky md:top-0 md:flex md:h-screen md:flex-col md:overflow-y-auto">
+          <div class="flex items-center justify-between gap-3 px-5 py-4 md:py-5">
+            <a href="home.html" class="flex items-center gap-3 font-semibold no-underline"
+              ><span
+                class="grid size-9 place-items-center rounded-ctl bg-accent text-sm text-on-accent"
+                aria-hidden="true"
+                >W</span
+              ><span class="text-lg">Wordwright</span></a
+            >
+            <button
+              type="button"
+              class="btn btn-neutral btn-sm md:hidden"
+              aria-controls="side-menu"
+              aria-expanded="false"
+              data-menu
+            >
+              Menu
+            </button>
+          </div>
+
+          <div id="side-menu" class="hidden flex-col md:flex md:flex-1">
+            <div class="px-4 pb-3">
+              <label class="meta mb-1 block" for="ps">Profile</label
+              ><select id="ps" class="field">
+                <option>Notes from the Allotment (shared)</option>
+                <option>Slow Systems</option>
+                <option>Maya on Mondays</option>
+              </select>
+            </div>
+            <nav aria-label="Main" class="px-3 pb-3">
+              <ul>
+                <li>
+                  <a
+                    href="home.html"
+                    class="flex min-h-11 items-center justify-between gap-3 rounded-ctl px-3 py-1.5 no-underline hover:bg-sunken aria-[current=page]:bg-accent-wash aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--color-accent)]"
+                    >Your profiles</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex min-h-11 items-center justify-between gap-3 rounded-ctl px-3 py-1.5 no-underline hover:bg-sunken aria-[current=page]:bg-accent-wash aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--color-accent)]"
+                    >Account settings</a
+                  >
+                </li>
+              </ul>
+            </nav>
+            <div class="border-t border-line p-4 md:mt-auto">
+              <p class="meta">Signed in as</p>
+              <a href="#" class="link font-semibold">Maya Okafor</a>
+              <div class="mt-2 flex items-center justify-between gap-2">
+                <button type="button" class="link">Sign out</button
+                ><button type="button" class="btn btn-quiet btn-sm" aria-pressed="false">
+                  Light
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="main" class="mx-auto w-full max-w-4xl min-w-0 px-4 py-8 sm:px-8 md:py-12">
+        <nav aria-label="Breadcrumb" class="meta mb-3">
+          <ol class="flex flex-wrap items-center gap-x-2">
+            <li>
+              <a class="link" href="home.html">Your profiles</a
+              ><span aria-hidden="true" class="ml-2">/</span>
+            </li>
+            <li>
+              <a class="link" href="profile-ideas.html">Notes from the Allotment</a
+              ><span aria-hidden="true" class="ml-2">/</span>
+            </li>
+            <li aria-current="page" class="truncate">What the allotment taught me about editing</li>
+          </ol>
+        </nav>
+        <p class="mb-3 text-lg font-semibold">What the allotment taught me about editing</p>
+        <nav
+          aria-label="Idea steps"
+          class="mb-8 flex items-end justify-between gap-4 border-b border-line"
+        >
+          <ol class="-mb-px flex min-w-0 gap-1 overflow-x-auto">
+            <li class="shrink-0">
+              <a
+                href="idea-research.html"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">01</span
+                >Research</a
+              >
+            </li>
+            <li class="shrink-0">
+              <a
+                href="idea-notes.html"
+                aria-current="page"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">02</span>Notes</a
+              >
+            </li>
+            <li class="shrink-0">
+              <a
+                href="idea-refine.html"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">03</span
+                >Refine</a
+              >
+            </li>
+            <li class="shrink-0">
+              <a
+                href="idea-draft.html"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">04</span>Draft</a
+              >
+            </li>
+            <li class="shrink-0">
+              <a
+                href="idea-publish.html"
+                class="group flex min-h-12 items-center gap-2 border-b-[3px] border-transparent px-3 no-underline hover:bg-sunken aria-[current=page]:border-accent aria-[current=page]:font-semibold"
+                ><span class="step-num group-aria-[current=page]:step-num-current">05</span
+                >Publish</a
+              >
+            </li>
+          </ol>
+          <a href="#" class="link shrink-0 pb-3 text-sm">Idea settings</a>
+        </nav>
+        <h1 class="h1 flex items-center gap-3">
+          <span class="step-num step-num-current !h-9 !min-w-10 !text-base">02</span>Notes
+        </h1>
+        <div class="mt-6">
+          <p class="mb-6 max-w-prose">
+            One thought to a note. Tag them by section, merge ones that belong together, and put
+            them in order.
+          </p>
+          <div
+            class="mb-4 flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Filter by tag"
+          >
+            <span class="meta mr-1">Show</span
+            ><button class="btn btn-primary btn-sm" aria-pressed="true">All 9</button
+            ><button class="btn btn-neutral btn-sm">intro 3</button
+            ><button class="btn btn-neutral btn-sm">pruning 4</button
+            ><button class="btn btn-neutral btn-sm">ending 2</button>
+          </div>
+          <ul class="panel divide-y divide-line">
+            <li class="flex gap-3 px-4 py-3">
+              <input type="checkbox" class="mt-1" aria-label="Select note" />
+              <div class="min-w-0 flex-1">
+                <p>The first thing my neighbour told me was that I had been too gentle.</p>
+                <p class="mt-1 flex flex-wrap gap-1.5"><span class="chip">intro</span></p>
+              </div>
+              <button class="btn btn-quiet btn-sm self-start" aria-label="Edit note">Edit</button>
+            </li>
+            <li class="flex gap-3 px-4 py-3">
+              <input type="checkbox" class="mt-1" checked aria-label="Select note" />
+              <div class="min-w-0 flex-1">
+                <p>A cut is a question you ask the plant. It answers by growing.</p>
+                <p class="mt-1 flex flex-wrap gap-1.5"><span class="chip">pruning</span></p>
+              </div>
+              <button class="btn btn-quiet btn-sm self-start" aria-label="Edit note">Edit</button>
+            </li>
+            <li class="flex gap-3 px-4 py-3">
+              <input type="checkbox" class="mt-1" checked aria-label="Select note" />
+              <div class="min-w-0 flex-1">
+                <p>Take out a third, and take it from the middle.</p>
+                <p class="meta mt-1">Quote · The Dispatch</p>
+                <p class="mt-1 flex flex-wrap gap-1.5"><span class="chip">pruning</span></p>
+              </div>
+              <button class="btn btn-quiet btn-sm self-start" aria-label="Edit note">Edit</button>
+            </li>
+            <li class="flex gap-3 px-4 py-3">
+              <input type="checkbox" class="mt-1" aria-label="Select note" />
+              <div class="min-w-0 flex-1">
+                <p>Which shoot is doing the work, and which is only taking the light?</p>
+                <p class="mt-1 flex flex-wrap gap-1.5"><span class="chip">ending</span></p>
+              </div>
+              <button class="btn btn-quiet btn-sm self-start" aria-label="Edit note">Edit</button>
+            </li>
+          </ul>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button class="btn btn-neutral btn-sm">Merge 2 selected</button
+            ><button class="btn btn-neutral btn-sm">Tag selected</button>
+          </div>
+          <form class="mt-8 max-w-xl">
+            <label class="label" for="nn">Add a note</label
+            ><textarea id="nn" rows="3" class="field !min-h-0"></textarea
+            ><button class="btn btn-primary mt-3">Add note</button>
+          </form>
+        </div>
+        <nav
+          aria-label="Next step"
+          class="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6"
+        >
+          <p class="meta max-w-md">
+            Happy with the notes? Talk the idea through with the assistant, which asks questions and
+            records the points you make.
+          </p>
+          <a href="idea-refine.html" class="btn btn-outline"
+            >Next: 03 Refine <span aria-hidden="true">→</span></a
+          >
+        </nav>
+      </main>
+    </div>
+  </body>
+</html>
