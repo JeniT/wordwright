@@ -69,6 +69,12 @@ describe('a profile’s landing page', () => {
     await renderAt('/p/ada-substack')
     const notes = await screen.findByRole('region', { name: 'Notes' })
     const ideas = screen.getByRole('region', { name: 'Ideas' })
+    expect(screen.getByRole('region', { name: 'Search' }).querySelector('h2')).toHaveTextContent(
+      /^01\s*Search$/,
+    )
+    expect(screen.getByRole('region', { name: 'Read' }).querySelector('h2')).toHaveTextContent(
+      /^02\s*Read$/,
+    )
     expect(notes.querySelector('h2')).toHaveTextContent(/^03\s*Notes$/)
     expect(ideas.querySelector('h2')).toHaveTextContent(/^04\s*Ideas$/)
     // The numbers are decoration: the headings are named without them.
@@ -171,5 +177,209 @@ describe('a profile’s landing page', () => {
       await renderAt('/p/ada-substack')
       expect(await screen.findByText(/Couldn't load ideas/)).toBeInTheDocument()
     })
+  })
+})
+
+const source = (id: string, title: string) => ({
+  id,
+  url: `https://${id}.example/feed`,
+  title,
+  description: null,
+  siteUrl: null,
+  iconUrl: null,
+})
+const post = (id: string, sourceId: string, title: string, day: number, status = 'new') => ({
+  id,
+  sourceId,
+  title,
+  url: `https://${sourceId}.example/${id}`,
+  authors: [] as string[],
+  summary: null,
+  publishedAt: `2026-01-${String(day).padStart(2, '0')}T00:00:00Z`,
+  status,
+})
+function fakeFeeds(sources: ReturnType<typeof source>[], posts: ReturnType<typeof post>[]) {
+  server.use(
+    http.get('*/api/profiles/ada-substack/sources', () => HttpResponse.json(sources)),
+    http.get('*/api/profiles/ada-substack/sources/recent', () =>
+      HttpResponse.json({ days: 30, posts, omitted: 0, undated: 0, failed: [] }),
+    ),
+  )
+}
+
+describe('a profile’s landing page: search', () => {
+  it('says there are no feeds, and leads to where to add one', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    const region = await screen.findByRole('region', { name: 'Search' })
+    expect(await within(region).findByText(/No feeds yet/)).toBeInTheDocument()
+    expect(within(region).getByRole('link', { name: /Add a blog/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/search',
+    )
+  })
+
+  it('shows the five newest posts still waiting, not those already decided, and links to Search', async () => {
+    fakeHome()
+    fakeFeeds(
+      [source('s1', 'Alpha Notes')],
+      [
+        post('p1', 's1', 'Post 1', 9),
+        post('p2', 's1', 'Post 2', 8),
+        post('p3', 's1', 'Post 3', 7),
+        post('p4', 's1', 'Post 4', 6),
+        post('p5', 's1', 'Post 5', 5),
+        post('p6', 's1', 'Post 6', 4),
+        post('p7', 's1', 'Added already', 3, 'added'),
+      ],
+    )
+    await renderAt('/p/ada-substack')
+    const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
+    const titles = within(list)
+      .getAllByRole('link')
+      .map((a) => a.textContent?.replace(/\s*\(opens in a new tab\)/, '').trim())
+    expect(titles).toEqual(['Post 1', 'Post 2', 'Post 3', 'Post 4', 'Post 5'])
+    expect(within(list).getByRole('link', { name: /Post 1/ })).toHaveAttribute(
+      'href',
+      'https://s1.example/p1',
+    )
+    expect(within(list).getAllByText(/Alpha Notes/)).toHaveLength(5)
+    expect(screen.getByRole('link', { name: 'See more and set up feeds' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/search',
+    )
+  })
+
+  it('says when nothing is new', async () => {
+    fakeHome()
+    fakeFeeds([source('s1', 'Alpha Notes')], [])
+    await renderAt('/p/ada-substack')
+    expect(await screen.findByText(/Nothing new from your feeds/)).toBeInTheDocument()
+  })
+
+  it('says when the feeds can’t be loaded, or their posts, and can try again', async () => {
+    fakeHome()
+    server.use(
+      http.get('*/api/profiles/ada-substack/sources', () =>
+        HttpResponse.json({ error: 'Nope' }, { status: 500 }),
+      ),
+    )
+    await renderAt('/p/ada-substack')
+    expect(await screen.findByText(/couldn’t load your feeds/)).toBeInTheDocument()
+  })
+
+  it('never asks the feeds to check again just because the page was opened', async () => {
+    fakeHome()
+    const asked: string[] = []
+    server.use(
+      http.get('*/api/profiles/ada-substack/sources', () => HttpResponse.json([source('s1', 'A')])),
+      http.get('*/api/profiles/ada-substack/sources/recent', ({ request }) => {
+        asked.push(new URL(request.url).search)
+        return HttpResponse.json({ days: 30, posts: [], omitted: 0, undated: 0, failed: [] })
+      }),
+    )
+    await renderAt('/p/ada-substack')
+    await screen.findByText(/Nothing new from your feeds/)
+    expect(asked.every((q) => !q.includes('refresh'))).toBe(true)
+  })
+})
+
+const link = (id: string, title: string, extra = {}) => ({
+  id,
+  url: `https://example.org/${id}`,
+  title,
+  authors: [] as string[],
+  readAt: null as string | null,
+  origin: 'entered',
+  why: null,
+  addedAt: '2026-01-02T00:00:00Z',
+  ...extra,
+})
+
+describe('a profile’s landing page: read', () => {
+  function fakeReading(initial: ReturnType<typeof link>[]) {
+    const state = { links: [...initial], added: [] as string[] }
+    server.use(
+      http.get('*/api/profiles/ada-substack/reading', () => HttpResponse.json(state.links)),
+      http.post('*/api/profiles/ada-substack/reading', async ({ request }) => {
+        const { url } = (await request.json()) as { url: string }
+        state.added.push(url)
+        state.links.push(link(`n${state.links.length + 1}`, `Title of ${url}`, { url }))
+        return HttpResponse.json(state.links, { status: 201 })
+      }),
+    )
+    return state
+  }
+
+  it('says when the list is empty, and still offers the form', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Web address')).toBeInTheDocument()
+  })
+
+  it('shows the first five still to read, each leading to its reading page, and links to the list', async () => {
+    fakeHome()
+    fakeReading([
+      ...[1, 2, 3, 4, 5, 6].map((n) => link(`l${n}`, `Item ${n}`)),
+      link('l0', 'Already read', { readAt: '2026-02-02T00:00:00Z' }),
+    ])
+    await renderAt('/p/ada-substack')
+    const list = await screen.findByRole('list', { name: 'To read' })
+    const items = within(list).getAllByRole('link')
+    expect(items.map((a) => within(a).getByText(/^Item \d$/).textContent)).toEqual([
+      'Item 1',
+      'Item 2',
+      'Item 3',
+      'Item 4',
+      'Item 5',
+    ])
+    expect(within(items[0]!).getByText('example.org')).toBeInTheDocument()
+    expect(items[0]).toHaveAttribute('href', '/p/ada-substack/reading/l1')
+    expect(screen.getByRole('link', { name: /See the reading list/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/read',
+    )
+  })
+
+  it('adds an item without leaving the page, and checks the address like the Read page does', async () => {
+    fakeHome()
+    const state = fakeReading([])
+    await renderAt('/p/ada-substack')
+    await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+    await waitFor(() => expect(state.added).toEqual(['example.org/new']))
+    const list = await screen.findByRole('list', { name: 'To read' })
+    expect(within(list).getByText('Title of example.org/new')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
+  })
+
+  it('says what went wrong when an address is refused, and keeps what was typed', async () => {
+    fakeHome()
+    fakeReading([])
+    server.use(
+      http.post('*/api/profiles/ada-substack/reading', () =>
+        HttpResponse.json(
+          { error: 'Enter a web address, like https://example.com' },
+          { status: 400 },
+        ),
+      ),
+    )
+    await renderAt('/p/ada-substack')
+    await fireEvent.update(await screen.findByLabelText('Web address'), 'rubbish')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+    expect(await screen.findByText(/Enter a web address/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Web address')).toHaveValue('rubbish')
+  })
+
+  it('says when the list can’t be loaded', async () => {
+    fakeHome()
+    server.use(
+      http.get('*/api/profiles/ada-substack/reading', () =>
+        HttpResponse.json({ error: 'Nope' }, { status: 500 }),
+      ),
+    )
+    await renderAt('/p/ada-substack')
+    expect(await screen.findByText(/Couldn't load the reading list/)).toBeInTheDocument()
   })
 })

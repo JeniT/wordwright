@@ -29,6 +29,8 @@ export const server = setupServer(
   ),
   // The default number of critiques a draft gets (the account page shows the setting).
   http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds: 3 })),
+  // No feeds yet, and so no recent posts.
+  http.get('*/api/profiles/:profileId/sources', () => HttpResponse.json([])),
   // An empty reading list (the profile's, which the Read page shows).
   http.get('*/api/profiles/:profileId/reading', () => HttpResponse.json([])),
   // No notes yet, on the profile or on any idea.

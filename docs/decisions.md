@@ -715,8 +715,14 @@ moved to 03 and 04.
 **Landing pages (#98).** Opening a profile used to redirect to its Ideas step. `/p/:profileId` is now a page of its
 own, titled "Overview", that summarises the profile: its five latest notes with a form to add one, and its ideas. It is
 none of the numbered steps, so the menu marks nothing current, like the settings pages. "Latest" notes means newest
-made, not the writer's own order on the Notes step. The Search and Read summaries follow (#100), and the idea level gets
-the same treatment (#99), under umbrella #95.
+made, not the writer's own order on the Notes step. The idea level gets the same treatment (#99), under umbrella #95.
+
+**Search and Read panels (#100).** The profile's page also summarises Search (the five newest posts still waiting for a
+decision, newest first, each opening in a new tab, with "See more and set up feeds") and Read (the first five items not
+yet read, each opening its reading page, a box to add a web address, and "See the reading list"). The posts panel
+asks for the same lists under the same keys as the Search page, at its default period, so they share what has been
+fetched; opening the page never asks the feeds to check again. It has no Add or Ignore buttons: deciding is on Search.
+The add-a-link form is shared with the Read page (`AddLinkForm`).
 
 **Landing page look (#111).** The title is the profile's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The profile's name in the menu, and above a step's title, links to the landing page; so does "← profile" in the idea menu.
 

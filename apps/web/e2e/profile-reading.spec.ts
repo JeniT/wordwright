@@ -163,6 +163,42 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
   await expect(recent.getByRole('button', { name: `Ignore: ${title}` })).toBeVisible()
 })
 
+test('the profile’s own page summarises the feeds and the reading list, and adds to the list', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await goTo(page, 'Search')
+  const feeds = page.getByRole('region', { name: 'Feeds' })
+  await feeds.getByLabel('Add a feed').fill('read.example/feed')
+  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await expect(
+    feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
+  ).toBeVisible()
+
+  // The profile's page shows what is waiting in the feeds, and leads to Search.
+  await page.getByRole('link', { name: 'Gathering', exact: true }).first().click()
+  const search = page.getByRole('region', { name: 'Search' })
+  await expect(search.getByRole('link', { name: /A post in Feed of read\.example/ })).toBeVisible()
+  await expect(search.getByRole('link', { name: 'See more and set up feeds' })).toBeVisible()
+
+  // A link can be added to the reading list from here, and is on the Read step too.
+  const read = page.getByRole('region', { name: 'Read' })
+  await expect(read.getByText('Nothing on the reading list yet.')).toBeVisible()
+  await read.getByLabel('Web address').fill('example.org/meanders')
+  await read.getByRole('button', { name: 'Add link' }).click()
+  const item = read.getByRole('link', { name: /Fake title for example\.org/ })
+  await expect(item).toBeVisible()
+  await noViolations(page, 'profile page with feeds and reading list')
+  await item.click()
+  await expect(
+    page.getByRole('heading', { level: 1, name: /Fake title for example\.org/ }),
+  ).toBeVisible()
+  await page.goBack()
+  await read.getByRole('link', { name: /See the reading list/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
+})
+
 test('a post that is added or ignored moves to the end of the recent posts', async ({ page }) => {
   await signUpWithProfile(page)
   await goTo(page, 'Search')

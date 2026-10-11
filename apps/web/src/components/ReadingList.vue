@@ -4,13 +4,13 @@ import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
+import AddLinkForm from './AddLinkForm.vue'
 import HoldButton from './HoldButton.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
 import PageNav from './PageNav.vue'
 import SwitchField from './SwitchField.vue'
-import TextField from './TextField.vue'
 
 /**
  * The reading list of an idea, or (no `ideaId`) of the profile: the items, with a box to add one. The items open
@@ -120,12 +120,6 @@ const canMove = computed(
 // ---- removing the selected items: held, like deleting anything that can't be got back
 function removeChosen() {
   list.removeMany.mutate(chosen.value, { onSuccess: clearSelection })
-}
-
-const linkUrl = ref('')
-// On failure what was typed stays in the field, with the reason shown under it.
-function add() {
-  list.add.mutate(linkUrl.value, { onSuccess: () => (linkUrl.value = '') })
 }
 </script>
 
@@ -296,26 +290,7 @@ function add() {
         try again.
       </p>
 
-      <form @submit.prevent="add">
-        <TextField
-          v-model="linkUrl"
-          label="Web address"
-          required
-          autocomplete="off"
-          autocapitalize="none"
-          :spellcheck="false"
-          :invalid="list.add.isError.value"
-          :hint="
-            list.add.isError.value
-              ? errorMessage(list.add.error.value)
-              : 'For example, https://example.org/article. We look up its title for you.'
-          "
-          @update:model-value="list.add.isError.value && list.add.reset()"
-        />
-        <button type="submit" class="btn btn-outline" :disabled="list.add.isPending.value">
-          {{ list.add.isPending.value ? 'Adding…' : 'Add link' }}
-        </button>
-      </form>
+      <AddLinkForm :profile-id="profileId" :idea-id="ideaId" />
     </template>
   </section>
 </template>

@@ -5,6 +5,8 @@ import LandingSection from '../components/LandingSection.vue'
 import ProfileGate from '../components/ProfileGate.vue'
 import ProfileImage from '../components/ProfileImage.vue'
 import RecentNotes from '../components/RecentNotes.vue'
+import RecentPostsSummary from '../components/RecentPostsSummary.vue'
+import RecentReading from '../components/RecentReading.vue'
 import { api } from '../lib/api'
 import { displayHost } from '../lib/useProfiles'
 
@@ -33,6 +35,14 @@ const ideas = useQuery({
         </p>
       </div>
     </div>
+
+    <RecentPostsSummary :profile-id="profileId" :to="{ name: 'search', params: { profileId } }" />
+
+    <RecentReading
+      :profile-id="profileId"
+      :idea-id="null"
+      :to="{ name: 'read', params: { profileId } }"
+    />
 
     <RecentNotes
       :profile-id="profileId"
