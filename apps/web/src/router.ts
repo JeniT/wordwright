@@ -93,6 +93,24 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/p/:profileId/reading',
+    name: 'profile-reading',
+    component: () => import('./views/ProfileReadingView.vue'),
+    props: true,
+  },
+  {
+    path: '/p/:profileId/reading/:linkId',
+    name: 'profile-reading-item',
+    component: () => import('./views/ReadingView.vue'),
+    props: true,
+  },
+  {
+    path: '/p/:profileId/notes',
+    name: 'profile-notes',
+    component: () => import('./views/ProfileNotesView.vue'),
+    props: true,
+  },
+  {
     path: '/p/:profileId/ideas/new',
     name: 'new-idea',
     component: () => import('./views/NewIdeaView.vue'),

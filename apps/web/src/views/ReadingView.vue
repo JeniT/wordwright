@@ -9,20 +9,26 @@ import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { nameList, noteOriginPhrase } from '../lib/note-label'
+import { readingBackRoute, readingRoute, useReadingList } from '../lib/reading'
 
-const props = defineProps<{ profileId: string; id: string; linkId: string }>()
+/** Reading one item of an idea's reading list, or (no `id`) of the profile's own, and taking notes from it. */
+const props = defineProps<{ profileId: string; id?: string; linkId: string }>()
 const queryClient = useQueryClient()
+const owner = computed(() => ({ profileId: props.profileId, ideaId: props.id ?? null }))
 
-const idea = useQuery({
-  queryKey: ['idea', () => props.profileId, () => props.id],
-  queryFn: () => api.getIdea(props.profileId, props.id),
-})
-const item = computed(() => idea.data.value?.links.find((l) => l.id === props.linkId))
+const list = useReadingList(() => owner.value)
+const item = computed(() => list.links.value?.find((l) => l.id === props.linkId))
+const backTo = computed(() => readingBackRoute(owner.value))
+const backLabel = computed(() =>
+  owner.value.ideaId
+    ? `← Back to “${list.idea.value?.name ?? 'the idea'}”`
+    : '← Back to the profile’s reading list',
+)
 
-const notesKey = () => ['notes', props.profileId, props.id]
+const notesKey = () => ['notes', props.profileId, props.id ?? 'profile']
 const notes = useQuery({
-  queryKey: ['notes', () => props.profileId, () => props.id],
-  queryFn: () => api.listIdeaNotes(props.profileId, props.id),
+  queryKey: ['notes', () => props.profileId, () => props.id ?? 'profile'],
+  queryFn: () => api.listIdeaNotes(props.profileId, props.id ?? null),
 })
 /**
  * Only what was taken from this item (the idea page has all of the idea's notes), newest first: the box for a new
@@ -57,9 +63,11 @@ async function stopEditingTitle() {
   titleButton.value?.focus()
 }
 // Only the title changes; a blank one asks the server to look it up again, as on the idea page.
-const saveTitle = useMutation({
-  mutationFn: () =>
-    api.updateIdeaLink(props.profileId, props.id, props.linkId, {
+const saveTitle = list.update
+function submitTitle() {
+  saveTitle.mutate(
+    {
+      linkId: props.linkId,
       url: item.value!.url,
       title: title.value,
       // Names are separated by commas. Blank authors with a blank title look both up again; with a title, they clear.
@@ -67,45 +75,42 @@ const saveTitle = useMutation({
         .split(',')
         .map((n) => n.trim())
         .filter(Boolean),
-    }),
-  onSuccess: async (saved) => {
-    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
-    await stopEditingTitle()
-  },
-})
+    },
+    { onSuccess: stopEditingTitle },
+  )
+}
 
 // Whether it has been read is the writer's say-so (they may have read it offline), as on the idea page.
-const setRead = useMutation({
-  mutationFn: (read: boolean) =>
-    api.setReadingItemRead(props.profileId, props.id, props.linkId, read),
-  onSuccess: async (saved) => {
-    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
-  },
-  // The box has already flipped under the person's finger; put it back to what is saved.
-  onError: () => {
-    if (readBox.value) readBox.value.checked = !!item.value?.readAt
-  },
-})
+const setRead = list.setRead
 const readBox = ref<HTMLInputElement>()
+function toggleRead(read: boolean) {
+  setRead.mutate(
+    { linkId: props.linkId, read },
+    // The box has already flipped under the person's finger; put it back to what is saved.
+    {
+      onError: () => {
+        if (readBox.value) readBox.value.checked = !!item.value?.readAt
+      },
+    },
+  )
+}
 
 // ---- other pages found on this one: straight onto the reading list
 const linkUrl = ref('')
 /** The item just added, so the writer can go on to read it. */
 const justAdded = ref<{ id: string; label: string } | null>(null)
 // On failure what was typed stays in the field, with the reason shown under it.
-const addLink = useMutation({
-  mutationFn: () => api.addIdeaLink(props.profileId, props.id, { url: linkUrl.value }),
-  onSuccess: async (saved) => {
-    const before = new Set(idea.data.value?.links.map((l) => l.id))
-    const added = saved.links.find((l) => !before.has(l.id))
-    justAdded.value = added ? { id: added.id, label: added.title || added.url } : null
-    linkUrl.value = ''
-    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
-  },
-})
+const addLink = list.add
+function submitLink() {
+  const before = new Set(list.links.value?.map((l) => l.id))
+  addLink.mutate(linkUrl.value, {
+    onSuccess: (saved) => {
+      const added = list.listOf(saved).find((l) => !before.has(l.id))
+      justAdded.value = added ? { id: added.id, label: added.title || added.url } : null
+      linkUrl.value = ''
+    },
+  })
+}
 
 const text = ref('')
 const isQuote = ref(false)
@@ -128,7 +133,7 @@ function onPaste(event: ClipboardEvent) {
 const addBox = ref<HTMLElement>()
 const add = useMutation({
   mutationFn: () =>
-    api.addIdeaNote(props.profileId, props.id, text.value, {
+    api.addIdeaNote(props.profileId, props.id ?? null, text.value, {
       readingItemId: props.linkId,
       quote: isQuote.value || undefined,
     }),
@@ -137,9 +142,11 @@ const add = useMutation({
     isQuote.value = false
     tickedByPaste.value = false
     queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) => [...(old ?? []), note])
-    // A note also changes the idea's "last changed" time, and its text as brainstorming sees it.
+    // A note also changes the idea's "last changed" time, and its text as brainstorming sees it. Taking one
+    // marks the item read, which the list shows too.
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['idea', props.profileId, props.id] }),
+      queryClient.invalidateQueries({ queryKey: ['reading', props.profileId] }),
       queryClient.invalidateQueries({ queryKey: ['ideas'] }),
     ])
     addBox.value?.querySelector('textarea')?.focus()
@@ -148,26 +155,21 @@ const add = useMutation({
 </script>
 
 <template>
-  <p v-if="idea.isPending.value">Loading…</p>
-  <div v-else-if="idea.isError.value || !item" role="alert" class="panel p-6">
+  <p v-if="list.isPending.value">Loading…</p>
+  <div v-else-if="list.isError.value || !item" role="alert" class="panel p-6">
     <h1 class="font-display text-lg">We couldn't open that reading-list item</h1>
     <p class="mt-1 text-ink-soft">
       It may have been removed from the reading list, or the connection may have dropped. Try
       reloading the page.
     </p>
-    <RouterLink
-      :to="{ name: 'idea', params: { profileId, id } }"
-      class="mt-3 inline-block underline"
-    >
-      Back to the idea
+    <RouterLink :to="backTo" class="mt-3 inline-block underline">
+      {{ id ? 'Back to the idea' : 'Back to the reading list' }}
     </RouterLink>
   </div>
 
   <article v-else aria-labelledby="reading-heading" class="max-w-2xl">
     <p class="mb-2 text-sm">
-      <RouterLink :to="{ name: 'idea', params: { profileId, id } }" class="underline">
-        ← Back to “{{ idea.data.value?.name }}”
-      </RouterLink>
+      <RouterLink :to="backTo" class="underline">{{ backLabel }}</RouterLink>
     </p>
     <div class="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
       <h1
@@ -202,7 +204,7 @@ const add = useMutation({
       v-if="editingTitle"
       ref="titleForm"
       class="mb-4"
-      @submit.prevent="saveTitle.mutate()"
+      @submit.prevent="submitTitle"
       @keydown.esc="stopEditingTitle"
     >
       <TextField
@@ -257,7 +259,7 @@ const add = useMutation({
           class="size-4 accent-accent"
           :checked="!!item.readAt"
           :disabled="setRead.isPending.value"
-          @change="setRead.mutate(($event.target as HTMLInputElement).checked)"
+          @change="toggleRead(($event.target as HTMLInputElement).checked)"
         />
         I have read this
       </label>
@@ -274,7 +276,7 @@ const add = useMutation({
         Does this page link to something else you should read? Paste its web address to put it on
         the reading list, and carry on here.
       </p>
-      <form @submit.prevent="addLink.mutate()">
+      <form @submit.prevent="submitLink">
         <TextField
           v-model="linkUrl"
           label="Web address"
@@ -297,10 +299,7 @@ const add = useMutation({
       <p role="status" class="mt-2 text-sm">
         <template v-if="justAdded">
           Added “{{ justAdded.label }}” to the reading list.
-          <RouterLink
-            :to="{ name: 'reading', params: { profileId, id, linkId: justAdded.id } }"
-            class="underline"
-          >
+          <RouterLink :to="readingRoute(owner, justAdded.id)" class="underline">
             Read it and take notes
           </RouterLink>
         </template>
@@ -313,8 +312,9 @@ const add = useMutation({
       </h2>
       <p class="mb-3 text-sm text-ink-soft">
         Paste a quote, or put it in your own words. Each note keeps a link back to this page, and
-        joins the rest of the idea's notes. The newest is listed first. Say when something is a
-        direct quote, so it can't be mistaken for your own words later.
+        joins the rest of {{ id ? 'the idea’s' : 'the profile’s' }} notes. The newest is listed
+        first. Say when something is a direct quote, so it can't be mistaken for your own words
+        later.
       </p>
 
       <p v-if="notes.isPending.value">Loading notes…</p>
@@ -372,7 +372,7 @@ const add = useMutation({
             <NoteText :note="note" />
             <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
-                :phrase="noteOriginPhrase(note, idea.data.value?.links ?? [])"
+                :phrase="noteOriginPhrase(note, list.links.value ?? [])"
                 :author-name="note.authorName"
               />
             </p>

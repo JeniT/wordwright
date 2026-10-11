@@ -21,26 +21,32 @@ import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
 import TextField from './TextField.vue'
 
+/** An idea's notes, or (no `ideaId`) the profile's own, gathered before there is an idea. */
 const props = defineProps<{
   profileId: string
-  ideaId: string
-  /** The idea's reading list, to name the item a note was taken from. */
+  ideaId: string | null
+  /** The reading list they were taken from (the idea's, or the profile's), to name each note's source. */
   readingList: readonly IdeaLink[]
 }>()
 const queryClient = useQueryClient()
 
-const notesKey = () => ['notes', props.profileId, props.ideaId]
+const notesKey = () => ['notes', props.profileId, props.ideaId ?? 'profile']
 const notes = useQuery({
-  queryKey: ['notes', () => props.profileId, () => props.ideaId],
+  queryKey: ['notes', () => props.profileId, () => props.ideaId ?? 'profile'],
   queryFn: () => api.listIdeaNotes(props.profileId, props.ideaId),
 })
 
-/** A change to the notes also changes the idea's "last changed" time, and its text as brainstorming sees it. */
+/**
+ * A change to an idea's notes also changes the idea's "last changed" time, and its text as brainstorming sees it.
+ * The profile's own notes belong to no idea, so nothing else shows them.
+ */
 const refreshAround = () =>
-  Promise.all([
-    queryClient.invalidateQueries({ queryKey: ['idea', props.profileId, props.ideaId] }),
-    queryClient.invalidateQueries({ queryKey: ['ideas'] }),
-  ])
+  props.ideaId
+    ? Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['idea', props.profileId, props.ideaId] }),
+        queryClient.invalidateQueries({ queryKey: ['ideas'] }),
+      ])
+    : Promise.resolve()
 
 // ---- tags: a flat label on a note, and showing only the notes with one
 const usedTags = computed(() => tagsUsedOn(notes.data.value ?? []))
@@ -215,6 +221,9 @@ const label = (note: IdeaNote) => {
     <p class="mb-3 text-sm text-ink-soft">
       One thought to a note, like index cards. Drag them, or use the arrows, to put them in order.
       To delete a note, press and hold its Delete button.
+      <template v-if="!ideaId">
+        These notes belong to the profile, not to any one idea yet.
+      </template>
     </p>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 

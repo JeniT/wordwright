@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, ReadingOrigin } from '@lfwa/core'
-import { api, errorMessage } from '../lib/api'
+import { errorMessage } from '../lib/api'
+import { readingRoute, useReadingActions } from '../lib/reading'
 import TextField from './TextField.vue'
 
-const props = defineProps<{ profileId: string; ideaId: string; link: IdeaLink }>()
+/** An item of an idea's reading list, or (no `ideaId`) of the profile's own. */
+const props = defineProps<{ profileId: string; ideaId: string | null; link: IdeaLink }>()
 const emit = defineEmits<{ remove: [] }>()
-const queryClient = useQueryClient()
+const owner = () => ({ profileId: props.profileId, ideaId: props.ideaId })
+const { setRead, update: save } = useReadingActions(owner)
 
 /** What the link is called: its title, or failing that the address itself. */
 const label = () => props.link.title || props.link.url
@@ -33,45 +35,38 @@ async function stopEditing() {
   editButton.value?.focus()
 }
 
-/** Where an item came from, when it wasn't the writer. */
-const originLabel: Partial<Record<ReadingOrigin, string>> = {
+/** Where an item came from, when it wasn't the writer. The AI's are marked with the highlighter; a feed's are not. */
+const aiOrigin: Partial<Record<ReadingOrigin, string>> = {
   brainstorm: 'Suggested in brainstorming',
   research: 'Found by research',
   idea_generation: 'From idea generation',
 }
+const otherOrigin: Partial<Record<ReadingOrigin, string>> = { feed: 'From a feed' }
 
 // Whether it has been read is the writer's say-so (they may have read it offline), so it is a plain checkbox.
 const readBox = useTemplateRef<HTMLInputElement>('readBox')
-const setRead = useMutation({
-  mutationFn: (read: boolean) =>
-    api.setReadingItemRead(props.profileId, props.ideaId, props.link.id, read),
-  onSuccess: async (idea) => {
-    queryClient.setQueryData(['idea', props.profileId, props.ideaId], idea)
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
-  },
-  // The box has already flipped under the person's finger; put it back to what is saved.
-  onError: () => {
-    if (readBox.value) readBox.value.checked = !!props.link.readAt
-  },
-})
-
-const save = useMutation({
-  mutationFn: () =>
-    api.updateIdeaLink(props.profileId, props.ideaId, props.link.id, {
-      url: url.value,
-      title: title.value,
-    }),
-  onSuccess: async (idea) => {
-    queryClient.setQueryData(['idea', props.profileId, props.ideaId], idea)
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
-    await stopEditing()
-  },
-})
+function toggleRead(read: boolean) {
+  setRead.mutate(
+    { linkId: props.link.id, read },
+    // The box has already flipped under the person's finger; put it back to what is saved.
+    {
+      onError: () => {
+        if (readBox.value) readBox.value.checked = !!props.link.readAt
+      },
+    },
+  )
+}
+function saveLink() {
+  save.mutate(
+    { linkId: props.link.id, url: url.value, title: title.value },
+    { onSuccess: stopEditing },
+  )
+}
 </script>
 
 <template>
   <li class="px-4 py-3">
-    <form v-if="editing" ref="form" @submit.prevent="save.mutate()" @keydown.esc="stopEditing">
+    <form v-if="editing" ref="form" @submit.prevent="saveLink" @keydown.esc="stopEditing">
       <TextField
         v-model="url"
         label="Web address of this link"
@@ -115,7 +110,7 @@ const save = useMutation({
             :checked="!!link.readAt"
             :disabled="setRead.isPending.value"
             :aria-label="`Read: ${label()}`"
-            @change="setRead.mutate(($event.target as HTMLInputElement).checked)"
+            @change="toggleRead(($event.target as HTMLInputElement).checked)"
           />
           Read
         </label>
@@ -133,7 +128,7 @@ const save = useMutation({
       </div>
       <div class="flex shrink-0 gap-2">
         <RouterLink
-          :to="{ name: 'reading', params: { profileId, id: ideaId, linkId: link.id } }"
+          :to="readingRoute(owner(), link.id)"
           class="btn btn-neutral"
           :aria-describedby="`reading-item-${link.id}`"
         >
@@ -157,9 +152,12 @@ const save = useMutation({
           Remove
         </button>
       </div>
-      <p v-if="originLabel[link.origin]" class="w-full">
+      <p v-if="aiOrigin[link.origin]" class="w-full">
         <!-- The highlighter marks anything the AI, not the writer, put here. -->
-        <span class="chip chip-ai">{{ originLabel[link.origin] }}</span>
+        <span class="chip chip-ai">{{ aiOrigin[link.origin] }}</span>
+      </p>
+      <p v-else-if="otherOrigin[link.origin]" class="w-full">
+        <span class="chip">{{ otherOrigin[link.origin] }}</span>
       </p>
       <p v-if="link.why" class="w-full text-sm text-ink-soft">
         <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}

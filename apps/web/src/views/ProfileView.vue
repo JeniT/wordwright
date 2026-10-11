@@ -87,5 +87,26 @@ const ideas = useQuery({
         </li>
       </ul>
     </section>
+
+    <section aria-labelledby="gather-heading" class="mt-10">
+      <h2 id="gather-heading" class="mb-1 font-display text-xl font-semibold">
+        Before there's an idea
+      </h2>
+      <p class="mb-3 text-sm text-ink-soft">
+        Keep a reading list and notes for the profile as a whole. Read, take notes, and gather them
+        into an idea when one takes shape.
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <RouterLink
+          :to="{ name: 'profile-reading', params: { profileId } }"
+          class="btn btn-outline"
+        >
+          Reading list
+        </RouterLink>
+        <RouterLink :to="{ name: 'profile-notes', params: { profileId } }" class="btn btn-outline">
+          Notes
+        </RouterLink>
+      </div>
+    </section>
   </div>
 </template>

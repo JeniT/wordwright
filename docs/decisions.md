@@ -749,6 +749,13 @@ an idea or the profile.
   be moving. A note that had been put into a draft is no longer "added", because it hasn't been put into any of the
   new owner's drafts. A move that would pass the limits (links or notes) is refused whole, and moving to where
   something already is is refused ("already there") rather than silently doing nothing.
+- **The pages are the idea's pages, parametrised by owner.** `lib/reading.ts` has `Owner` (`{profileId, ideaId}`; null
+  idea is the profile) and two composables: `useReadingList` (the list, from the idea's own query or the profile's) and
+  `useReadingActions` (add, mark read, edit, remove, each keeping the server's answer in the right cache). `ReadingList`,
+  `IdeaLinkItem`, `IdeaNotes` and the reading page each take an owner instead of an idea, and the web client's note
+  functions take `ideaId: string | null`. The idea pages behave as before (their tests are unchanged); the profile's are
+  `/p/:id/reading`, `/p/:id/reading/:item` and `/p/:id/notes`. Items from a feed (origin `feed`) are labelled "From a
+  feed" without the highlighter, which stays for what the AI suggested.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
   with the profile.

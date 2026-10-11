@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import IdeaLinkItem from '../components/IdeaLinkItem.vue'
 import IdeaNotes from '../components/IdeaNotes.vue'
+import ReadingList from '../components/ReadingList.vue'
 import ReorderableList from '../components/ReorderableList.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
@@ -50,20 +50,6 @@ const setIdea = (saved: Awaited<ReturnType<typeof api.getIdea>>) => {
 const save = useMutation({
   mutationFn: () => api.updateIdea(props.profileId, props.id, { name: name.value }),
   onSuccess: setIdea,
-})
-
-const linkUrl = ref('')
-// On failure what was typed stays in the field, with the reason shown under it.
-const addLink = useMutation({
-  mutationFn: () => api.addIdeaLink(props.profileId, props.id, { url: linkUrl.value }),
-  onSuccess: async (saved) => {
-    linkUrl.value = ''
-    await setIdea(saved)
-  },
-})
-const removeLink = useMutation({
-  mutationFn: (linkId: string) => api.removeIdeaLink(props.profileId, props.id, linkId),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['idea'] }),
 })
 
 const moveDrafts = useMutation({
@@ -146,51 +132,7 @@ const remove = useMutation({
 
     <IdeaNotes :profile-id="profileId" :idea-id="id" :reading-list="idea.data.value.links" />
 
-    <section aria-labelledby="links-heading" class="mb-10">
-      <h2 id="links-heading" class="mb-1 font-display text-xl font-semibold">Reading list</h2>
-      <p class="mb-3 text-sm text-ink-soft">
-        Articles, papers or earlier posts that this idea builds on or responds to. Tick each one off
-        once you have read it, even if you read it somewhere else.
-      </p>
-      <ul
-        v-if="idea.data.value.links.length"
-        class="mb-4 divide-y divide-line rounded-ctl border border-line bg-surface"
-      >
-        <IdeaLinkItem
-          v-for="link in idea.data.value.links"
-          :key="link.id"
-          :profile-id="profileId"
-          :idea-id="id"
-          :link="link"
-          @remove="removeLink.mutate(link.id)"
-        />
-      </ul>
-      <p v-else class="mb-4 text-ink-soft">Nothing on the reading list yet.</p>
-      <p v-if="removeLink.isError.value" role="alert" class="mb-3 text-danger">
-        Couldn't remove that link. Please try again.
-      </p>
-
-      <form @submit.prevent="addLink.mutate()">
-        <TextField
-          v-model="linkUrl"
-          label="Web address"
-          required
-          autocomplete="off"
-          autocapitalize="none"
-          :spellcheck="false"
-          :invalid="addLink.isError.value"
-          :hint="
-            addLink.isError.value
-              ? errorMessage(addLink.error.value)
-              : 'For example, https://example.org/article. We look up its title for you.'
-          "
-          @update:model-value="addLink.isError.value && addLink.reset()"
-        />
-        <button type="submit" class="btn btn-outline" :disabled="addLink.isPending.value">
-          {{ addLink.isPending.value ? 'Adding…' : 'Add link' }}
-        </button>
-      </form>
-    </section>
+    <ReadingList :profile-id="profileId" :idea-id="id" />
 
     <section aria-labelledby="brainstorm-heading" class="mb-10">
       <h2 id="brainstorm-heading" class="mb-1 font-display text-xl font-semibold">Brainstorm</h2>

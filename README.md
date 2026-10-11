@@ -110,7 +110,11 @@ tests inject fakes and nothing hits the network.
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
   **Dragging notes into a draft:** the drafting side bar's notes can be dragged by their grip onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor).
-  **The profile's own reading list and notes** (API only so far; the pages are T37b): items and notes can belong to a
+  **The profile's own reading list and notes** have pages: from the profile page, **Reading list**
+  (`/p/<id>/reading`; each item opens its own reading page at `/p/<id>/reading/<item>`) and **Notes**
+  (`/p/<id>/notes`). They are the idea's screens with a different owner (reading list, reading page, notes with
+  reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
+  drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
   profile as a whole, to be gathered before there is an idea. `GET/POST /api/profiles/:id/reading`, `PATCH|DELETE
 …/reading/:item`, `PUT …/reading/:item/read` mirror an idea's links (answering with the list), and
   `/api/profiles/:id/notes` (with `/order`, `/merge`, `/:note/split`, `/:note/tags`) mirrors an idea's notes, without

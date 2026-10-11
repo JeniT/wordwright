@@ -8,6 +8,7 @@ import {
   DraftInsertionSchema,
   DraftSchema,
   HandleAvailabilitySchema,
+  IdeaLinkSchema,
   IdeaNoteSchema,
   IdeaSchema,
   IdeaSummarySchema,
@@ -91,6 +92,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
   const ProfileList = ProfileSchema.array()
   const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
   const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
+  /** An idea's notes, or (no idea) the profile's own. */
+  const notesPath = (profileId: string, ideaId: string | null) =>
+    ideaId ? `${ideas(profileId)}/${ideaId}/notes` : `/profiles/${profileId}/notes`
   const research = (profileId: string, ideaId: string) => `${ideas(profileId)}/${ideaId}/research`
   const conversation = (profileId: string, ideaId: string) =>
     `${ideas(profileId)}/${ideaId}/conversation`
@@ -193,20 +197,40 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     ) => get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}/links/${linkId}`, input),
     removeIdeaLink: (profileId: string, id: string, linkId: string) =>
       act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
+    // the profile's own reading list (items gathered before there is an idea); each answers with the list
+    listProfileReading: (profileId: string) =>
+      get(IdeaLinkSchema.array(), 'GET', `/profiles/${profileId}/reading`),
+    addProfileLink: (profileId: string, input: { url: string; title?: string }) =>
+      get(IdeaLinkSchema.array(), 'POST', `/profiles/${profileId}/reading`, input),
+    updateProfileLink: (
+      profileId: string,
+      linkId: string,
+      input: { url: string; title: string; authors?: string[] },
+    ) => get(IdeaLinkSchema.array(), 'PATCH', `/profiles/${profileId}/reading/${linkId}`, input),
+    setProfileLinkRead: (profileId: string, linkId: string, read: boolean) =>
+      get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/read`, { read }),
+    removeProfileLink: (profileId: string, linkId: string) =>
+      act('DELETE', `/profiles/${profileId}/reading/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
     /** Joins notes into the first of them. Answers with all the idea's notes. */
-    mergeIdeaNotes: (profileId: string, id: string, ids: string[]) =>
-      get(IdeaNoteSchema.array(), 'POST', `${ideas(profileId)}/${id}/notes/merge`, { ids }),
+    mergeIdeaNotes: (profileId: string, id: string | null, ids: string[]) =>
+      get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/merge`, { ids }),
     /** Cuts a note in two (the second follows the first). Answers with all the idea's notes. */
-    splitIdeaNote: (profileId: string, id: string, noteId: string, before: string, after: string) =>
-      get(IdeaNoteSchema.array(), 'POST', `${ideas(profileId)}/${id}/notes/${noteId}/split`, {
+    splitIdeaNote: (
+      profileId: string,
+      id: string | null,
+      noteId: string,
+      before: string,
+      after: string,
+    ) =>
+      get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/${noteId}/split`, {
         before,
         after,
       }),
     /** Gives a note exactly these tags. Answers with the note as saved. */
-    setIdeaNoteTags: (profileId: string, id: string, noteId: string, tags: string[]) =>
-      get(IdeaNoteSchema, 'PUT', `${ideas(profileId)}/${id}/notes/${noteId}/tags`, { tags }),
+    setIdeaNoteTags: (profileId: string, id: string | null, noteId: string, tags: string[]) =>
+      get(IdeaNoteSchema, 'PUT', `${notesPath(profileId, id)}/${noteId}/tags`, { tags }),
     /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
     setReadingItemRead: (profileId: string, id: string, linkId: string, read: boolean) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/read`, { read }),
@@ -232,25 +256,25 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     setNoteAdded: (profileId: string, id: string, noteId: string, added: boolean) =>
       get(IdeaNoteSchema, 'PUT', `${ideas(profileId)}/${id}/notes/${noteId}/added`, { added }),
     // notes: index cards for an idea, in the order the person arranged them
-    listIdeaNotes: (profileId: string, id: string) =>
-      get(IdeaNoteSchema.array(), 'GET', `${ideas(profileId)}/${id}/notes`),
+    listIdeaNotes: (profileId: string, id: string | null) =>
+      get(IdeaNoteSchema.array(), 'GET', notesPath(profileId, id)),
     /**
      * With `readingItemId` the note is taken from that item of the reading list (its origin is then `reading`);
      * with `quote` too, it is a direct quotation, kept word for word.
      */
     addIdeaNote: (
       profileId: string,
-      id: string,
+      id: string | null,
       text: string,
       source: { readingItemId?: string; quote?: boolean } = {},
-    ) => get(IdeaNoteSchema, 'POST', `${ideas(profileId)}/${id}/notes`, { text, ...source }),
-    updateIdeaNote: (profileId: string, id: string, noteId: string, text: string) =>
-      get(IdeaNoteSchema, 'PATCH', `${ideas(profileId)}/${id}/notes/${noteId}`, { text }),
-    removeIdeaNote: (profileId: string, id: string, noteId: string) =>
-      act('DELETE', `${ideas(profileId)}/${id}/notes/${noteId}`),
+    ) => get(IdeaNoteSchema, 'POST', notesPath(profileId, id), { text, ...source }),
+    updateIdeaNote: (profileId: string, id: string | null, noteId: string, text: string) =>
+      get(IdeaNoteSchema, 'PATCH', `${notesPath(profileId, id)}/${noteId}`, { text }),
+    removeIdeaNote: (profileId: string, id: string | null, noteId: string) =>
+      act('DELETE', `${notesPath(profileId, id)}/${noteId}`),
     /** `ids` is every note of the idea, in the new order. Answers with the notes as saved. */
-    reorderIdeaNotes: (profileId: string, id: string, ids: string[]) =>
-      get(IdeaNoteSchema.array(), 'PUT', `${ideas(profileId)}/${id}/notes/order`, { ids }),
+    reorderIdeaNotes: (profileId: string, id: string | null, ids: string[]) =>
+      get(IdeaNoteSchema.array(), 'PUT', `${notesPath(profileId, id)}/order`, { ids }),
     // idea sources (the list is in priority order, highest first)
     listSources: (profileId: string) =>
       get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),
