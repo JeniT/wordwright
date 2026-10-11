@@ -19,6 +19,7 @@ import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
 import type { BrainstormService } from '../services/brainstorm'
 import type { ResearchService } from '../services/research'
+import type { FeedItemService } from '../services/feed-items'
 import type { IdeaLinkService } from '../services/idea-links'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
@@ -34,6 +35,7 @@ export interface ProfileRouteDeps {
   feeds: FeedFetcher
   /** Per person: each new source makes the server fetch pages. */
   feedLimiter: RateLimiter
+  feedItems: FeedItemService
   ideaLinks: IdeaLinkService
   brainstorm: BrainstormService
   research: ResearchService
@@ -46,6 +48,7 @@ export function profileRoutes({
   inviteLimiter,
   feeds,
   feedLimiter,
+  feedItems,
   ideaLinks,
   brainstorm,
   research,
@@ -153,7 +156,7 @@ export function profileRoutes({
           .use(member)
           .route('/', ideaRoutes(store, ideaLinks, brainstorm, research)),
       )
-      .route('/:profileId/sources', sourceRoutes(store, feeds, feedLimiter, member))
+      .route('/:profileId/sources', sourceRoutes(store, feeds, feedLimiter, member, feedItems))
       .route(
         '/:profileId/assist',
         new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),

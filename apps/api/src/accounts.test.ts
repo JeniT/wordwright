@@ -433,6 +433,16 @@ describe('account deletion', () => {
     expect(store.drafts.insertions(ideaDraft.id)).toHaveLength(1)
     await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
     expect(store.profiles.getImage(second.id)).toBeDefined()
+    const feed = store.sources.add(second.id, 'https://news.example/feed')
+    store.sources.saveFetch(feed.id, {
+      items: [],
+      validators: {},
+      checkedAt: '2026-01-01T00:00:00.000Z',
+      lastWorkedAt: null,
+      lastError: 'x',
+      lastErrorAt: null,
+    })
+    expect(store.sources.getFetch(feed.id)).toBeDefined()
 
     const res = await c.delete('/api/account', {
       confirmEmail: 'ada@example.com',
@@ -440,6 +450,7 @@ describe('account deletion', () => {
     })
     expect(res.status).toBe(204)
     expect(store.profiles.getImage(second.id)).toBeUndefined()
+    expect(store.sources.getFetch(feed.id)).toBeUndefined()
 
     expect(store.users.findById(user.id)).toBeUndefined()
     expect(store.profiles.listIdsForUser(user.id)).toEqual([])

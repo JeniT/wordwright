@@ -430,6 +430,20 @@ export const MIGRATIONS: Migration[] = [
   `
   ALTER TABLE idea_research_items ADD COLUMN link_id TEXT REFERENCES idea_links(id) ON DELETE SET NULL;
   `,
+  `
+  -- The latest read of each feed's posts: kept so a page view doesn't ask the feed again, and so a
+  -- feed that has stopped working can be shown as such. The posts are a JSON list of FeedItem.
+  CREATE TABLE profile_source_fetches (
+    source_id TEXT PRIMARY KEY REFERENCES profile_sources(id) ON DELETE CASCADE,
+    items TEXT NOT NULL DEFAULT '[]',
+    etag TEXT,
+    last_modified TEXT,
+    checked_at TEXT,
+    last_worked_at TEXT,
+    last_error TEXT,
+    last_error_at TEXT
+  );
+  `,
 ]
 
 /**

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Source, SourceChoices } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import SourceItems from './SourceItems.vue'
 import ProfileImage from './ProfileImage.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
@@ -157,6 +158,11 @@ const removeClass =
             <p class="break-all text-xs text-stone-500" :title="source.url">
               {{ shortName(source.url) }}
             </p>
+            <p v-if="source.lastError" class="text-sm text-red-700">
+              We couldn’t read this feed on the last try. Open its recent posts for details, or
+              remove it.
+            </p>
+            <SourceItems :profile-id="profileId" :source="source" :name="nameOf(source)" />
           </div>
         </template>
         <template #actions="{ item: source }">

@@ -183,6 +183,25 @@ export const FeedUrlSchema = z
     return url.href
   })
 
+/**
+ * One post in a feed: what the feed itself gives, never the article. The summary is plain text and
+ * short (feeds often carry the whole article; we keep only the start).
+ */
+export const FeedItemSchema = z.object({
+  /** Stable across reads: the feed's own id for the post, else its address. */
+  id: z.string(),
+  title: z.string(),
+  url: z.string(),
+  summary: z.string().nullable(),
+  authors: z.array(z.string()),
+  /** ISO time, or null when the feed gives none we can read. */
+  publishedAt: z.string().nullable(),
+})
+export type FeedItem = z.infer<typeof FeedItemSchema>
+
+/** The most items kept from one feed. */
+export const MAX_FEED_ITEMS = 50
+
 export const SourceSchema = z.object({
   id: z.string(),
   /** The feed's own address. */
@@ -194,8 +213,22 @@ export const SourceSchema = z.object({
   siteUrl: z.string().nullable(),
   /** Same-origin URL of the picture we kept for it, or null (the UI then draws a placeholder). */
   iconUrl: z.string().nullable(),
+  /** When we last managed to read the feed's posts; null if never. */
+  lastWorkedAt: z.string().nullable().default(null),
+  /** Why the latest attempt to read it failed, in words for the person; null if it didn't. */
+  lastError: z.string().nullable().default(null),
 })
 export type Source = z.infer<typeof SourceSchema>
+
+/** A feed's recent posts as we last read them (see `docs/decisions.md`: we cache, and read politely). */
+export const SourceItemsSchema = z.object({
+  items: z.array(FeedItemSchema),
+  /** When the feed was last asked; null if never. */
+  checkedAt: z.string().nullable(),
+  lastWorkedAt: z.string().nullable(),
+  lastError: z.string().nullable(),
+})
+export type SourceItems = z.infer<typeof SourceItemsSchema>
 
 /** The list in priority order: the first source matters most. */
 export const SourceListSchema = z.array(SourceSchema)

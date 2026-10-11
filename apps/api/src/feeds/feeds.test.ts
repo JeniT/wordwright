@@ -5,7 +5,7 @@ import { FeedError, TINY_PNG } from '@lfwa/core'
 import { feedFetcherContract } from '@lfwa/core/testing'
 import { isPublicAddress } from './addresses'
 import { HttpFeedFetcher } from './http-feed-fetcher'
-import { parseFeed, parseHtmlLinks } from './parse-feed'
+import { parseFeed, parseFeedItems, parseHtmlLinks } from './parse-feed'
 
 const RSS = `<?xml version="1.0"?>
 <rss version="2.0"><channel>
@@ -13,7 +13,7 @@ const RSS = `<?xml version="1.0"?>
   <description>&lt;p&gt;Essays on   reading &amp;amp; thinking&lt;/p&gt;</description>
   <link>https://slow.example/</link>
   <image><url>/logo.png</url><title>x</title></image>
-  <item><title>First</title></item>
+  <item><title>First</title><link>https://slow.example/first</link><guid>post-1</guid></item>
 </channel></rss>`
 
 const ATOM = `<?xml version="1.0" encoding="utf-8"?>
@@ -104,6 +104,124 @@ describe('parseFeed', () => {
   })
 })
 
+describe('parseFeedItems', () => {
+  const address = 'https://blog.example/feed'
+  const rss = (items: string) =>
+    `<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>T</title>${items}</channel></rss>`
+
+  it('reads RSS posts: id, title, address, plain short summary, authors, date', () => {
+    const [post] = parseFeedItems(
+      rss(`<item>
+        <title>Hello &amp; welcome</title>
+        <link>/posts/hello</link>
+        <guid isPermaLink="false">abc-123</guid>
+        <description>&lt;p&gt;Some &lt;b&gt;bold&lt;/b&gt; words &amp;amp; more.&lt;/p&gt;</description>
+        <dc:creator>Ada Lovelace</dc:creator>
+        <pubDate>Fri, 09 Oct 2026 10:00:00 GMT</pubDate>
+      </item>`),
+      address,
+    )
+    expect(post).toEqual({
+      id: 'abc-123',
+      title: 'Hello & welcome',
+      url: 'https://blog.example/posts/hello',
+      summary: 'Some bold words & more.',
+      authors: ['Ada Lovelace'],
+      publishedAt: '2026-10-09T10:00:00.000Z',
+    })
+  })
+
+  it('keeps only the start of a long summary, and never the full article', () => {
+    const body = 'word '.repeat(2000)
+    const [post] = parseFeedItems(
+      rss(
+        `<item><title>Long</title><link>https://b.example/l</link><content:encoded><![CDATA[<p>${body}</p>]]></content:encoded></item>`,
+      ),
+      address,
+    )
+    expect(post!.summary!.length).toBeLessThanOrEqual(400)
+    expect(post!.summary!.endsWith('…')).toBe(true)
+  })
+
+  it('reads Atom entries: the alternate link, summary, author name and published date', () => {
+    const items = parseFeedItems(
+      `<feed xmlns="http://www.w3.org/2005/Atom"><title>A</title>
+        <entry><id>tag:x,1</id><title>One</title>
+          <link rel="replies" href="/one/comments"/><link rel="alternate" href="/one"/>
+          <summary>Short</summary><author><name>Bo Writer</name></author>
+          <published>2026-10-08T09:00:00Z</published><updated>2026-10-09T09:00:00Z</updated></entry>
+      </feed>`,
+      address,
+    )
+    expect(items).toEqual([
+      {
+        id: 'tag:x,1',
+        title: 'One',
+        url: 'https://blog.example/one',
+        summary: 'Short',
+        authors: ['Bo Writer'],
+        publishedAt: '2026-10-08T09:00:00.000Z',
+      },
+    ])
+  })
+
+  it('reads RSS 1.0, where the posts sit beside the channel', () => {
+    const items = parseFeedItems(
+      `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.rss.org/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <channel><title>R</title></channel>
+        <item><title>Old style</title><link>https://r.example/1</link><dc:date>2026-01-02T00:00:00Z</dc:date></item>
+      </rdf:RDF>`,
+      address,
+    )
+    expect(items.map((i) => i.title)).toEqual(['Old style'])
+  })
+
+  it('never keeps an email address as an author, but keeps the name beside it', () => {
+    const items = parseFeedItems(
+      rss(`<item><title>A</title><link>https://b.example/a</link><author>ada@example.com (Ada Lovelace)</author></item>
+           <item><title>B</title><link>https://b.example/b</link><author>bob@example.com</author></item>`),
+      address,
+    )
+    expect(items.map((i) => i.authors)).toEqual([['Ada Lovelace'], []])
+  })
+
+  it('skips posts with no usable address, repeats, and addresses that are not web pages', () => {
+    const items = parseFeedItems(
+      rss(`<item><title>No link</title></item>
+           <item><title>Script</title><link>javascript:alert(1)</link></item>
+           <item><title>One</title><link>https://b.example/1</link><guid>g</guid></item>
+           <item><title>One again</title><link>https://b.example/1b</link><guid>g</guid></item>`),
+      address,
+    )
+    expect(items.map((i) => i.title)).toEqual(['One'])
+  })
+
+  it('puts the newest first when it has dates, keeps the feed’s order otherwise, and caps the list', () => {
+    const dated = parseFeedItems(
+      rss(`<item><title>Old</title><link>https://b.example/o</link><pubDate>Mon, 01 Jun 2026 00:00:00 GMT</pubDate></item>
+           <item><title>New</title><link>https://b.example/n</link><pubDate>Mon, 01 Sep 2026 00:00:00 GMT</pubDate></item>`),
+      address,
+    )
+    expect(dated.map((i) => i.title)).toEqual(['New', 'Old'])
+    const many = parseFeedItems(
+      rss(
+        Array.from(
+          { length: 80 },
+          (_, i) => `<item><title>P${i}</title><link>https://b.example/${i}</link></item>`,
+        ).join(''),
+      ),
+      address,
+    )
+    expect(many).toHaveLength(50)
+    expect(many[0]!.title).toBe('P0')
+  })
+
+  it('refuses a document that is not a feed', () => {
+    expect(() => parseFeedItems('<html><body>hi</body></html>', address)).toThrow(FeedError)
+    expect(() => parseFeedItems('not xml at all', address)).toThrow(FeedError)
+  })
+})
+
 describe('parseHtmlLinks', () => {
   const html = `<html><head>
     <link rel="stylesheet" href="/a.css">
@@ -171,8 +289,20 @@ function startSite() {
       res.writeHead(status, { 'content-type': type })
       res.end(body)
     }
+    if (path === '/feed.xml') {
+      if (req.headers['if-none-match'] === '"v1"') {
+        requests.push('304')
+        res.writeHead(304)
+        return res.end()
+      }
+      res.writeHead(200, {
+        'content-type': 'application/rss+xml',
+        etag: '"v1"',
+        'last-modified': 'Fri, 09 Oct 2026 10:00:00 GMT',
+      })
+      return res.end(RSS)
+    }
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-    if (path === '/feed.xml') return send('application/rss+xml', RSS)
     if (path === '/atom.xml') return send('application/atom+xml', ATOM)
     if (path === '/old-feed') {
       res.writeHead(301, { location: '/feed.xml' })
@@ -270,6 +400,24 @@ describe('HttpFeedFetcher', () => {
       title: 'The Slow Reader',
       url: `${site.base}/old-feed`,
     })
+  })
+
+  it('reads a feed’s posts, and is told when nothing has changed since', async () => {
+    const first = await fetcher.readItems(`${site.base}/feed.xml`)
+    if (first.status !== 'modified') throw new Error('expected posts')
+    expect(first.items).toEqual([
+      expect.objectContaining({ id: 'post-1', title: 'First', url: 'https://slow.example/first' }),
+    ])
+    expect(first.validators).toEqual({
+      etag: '"v1"',
+      lastModified: 'Fri, 09 Oct 2026 10:00:00 GMT',
+    })
+    expect(
+      await fetcher.readItems(`${site.base}/feed.xml`, { validators: first.validators }),
+    ).toEqual({
+      status: 'not-modified',
+    })
+    expect(site.requests.filter((r) => r === '304')).toHaveLength(1)
   })
 
   it('discovers the feeds a page offers, as the page names them, comments last, without duplicates', async () => {

@@ -237,6 +237,8 @@ describe('idea sources', () => {
       description: 'Essays on reading',
       siteUrl: 'https://slow.example/',
       iconUrl: null,
+      lastWorkedAt: null,
+      lastError: null,
     })
     expect(fetcher.inspected).toEqual(['https://slow.example/feed'])
   })
@@ -364,5 +366,151 @@ describe('idea sources', () => {
       ).status,
     ).toBe(204)
     expect(ctx.store.sources.count(profileId)).toBe(0)
+  })
+})
+
+describe('recent posts of a source', () => {
+  const post = (n: number) => ({
+    id: `p${n}`,
+    title: `Post ${n}`,
+    url: `https://news.example/p${n}`,
+    summary: `About ${n}`,
+    authors: ['Ada'],
+    publishedAt: '2026-01-01T00:00:00.000Z',
+  })
+  let fetcher: FakeFeedFetcher
+  let ctx: ReturnType<typeof setup>
+  let ada: TestClient
+  let base: string
+  let sourceId: string
+
+  async function start(feeds: ConstructorParameters<typeof FakeFeedFetcher>[0]) {
+    fetcher = new FakeFeedFetcher(feeds)
+    ctx = setup({ feeds: fetcher })
+    ada = ctx.client()
+    await register(ada)
+    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
+    sourceId = (await (await ada.post(base, { url: 'https://news.example/feed' })).json()).id
+  }
+  const items = (query = '') => ada.get(`${base}/${sourceId}/items${query}`)
+  const listed = async () => (await (await ada.get(base)).json())[0]
+
+  it('reads the posts the first time, and answers from the kept copy for the next few hours', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1), post(2)] } })
+    const first = await items()
+    expect(first.status).toBe(200)
+    expect(await first.json()).toEqual({
+      items: [post(1), post(2)],
+      checkedAt: '2026-01-01T00:00:00.000Z',
+      lastWorkedAt: '2026-01-01T00:00:00.000Z',
+      lastError: null,
+    })
+    ctx.clock.now = new Date('2026-01-01T02:59:00Z')
+    await items()
+    await items()
+    expect(fetcher.itemsRead).toHaveLength(1) // not asked again
+    ctx.clock.now = new Date('2026-01-01T03:01:00Z')
+    await items()
+    expect(fetcher.itemsRead).toHaveLength(2)
+  })
+
+  it('asks with what the feed last told us, and keeps the posts when nothing has changed', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)], etag: '"v1"' } })
+    await items()
+    ctx.clock.now = new Date('2026-01-01T04:00:00Z')
+    const again = await (await items()).json()
+    expect(fetcher.itemsRead).toHaveLength(2)
+    expect(again.items).toEqual([post(1)])
+    expect(again.checkedAt).toBe('2026-01-01T04:00:00.000Z')
+    expect(again.lastWorkedAt).toBe('2026-01-01T04:00:00.000Z')
+  })
+
+  it('remembers a failure, keeps the old posts, and does not retry at once', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    await items()
+    // The feed disappears.
+    ;(fetcher as unknown as { feeds: Record<string, unknown> }).feeds = {}
+    ctx.clock.now = new Date('2026-01-01T04:00:00Z')
+    const failed = await (await items()).json()
+    expect(failed.items).toEqual([post(1)])
+    expect(failed.lastError).toContain('RSS or Atom')
+    expect(failed.lastWorkedAt).toBe('2026-01-01T00:00:00.000Z')
+    const reads = fetcher.itemsRead.length
+
+    ctx.clock.now = new Date('2026-01-01T04:20:00Z')
+    await items()
+    expect(fetcher.itemsRead).toHaveLength(reads) // 20 minutes on: left alone
+    ctx.clock.now = new Date('2026-01-01T04:31:00Z')
+    await items()
+    expect(fetcher.itemsRead).toHaveLength(reads + 1)
+  })
+
+  it('shows on the source itself when it last worked and why it stopped', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    expect(await listed()).toMatchObject({ lastWorkedAt: null, lastError: null })
+    await items()
+    expect(await listed()).toMatchObject({
+      lastWorkedAt: '2026-01-01T00:00:00.000Z',
+      lastError: null,
+    })
+    ;(fetcher as unknown as { feeds: Record<string, unknown> }).feeds = {}
+    ctx.clock.now = new Date('2026-01-01T05:00:00Z')
+    await items()
+    expect(await listed()).toMatchObject({
+      lastWorkedAt: '2026-01-01T00:00:00.000Z',
+      lastError: expect.stringContaining('RSS or Atom'),
+    })
+  })
+
+  it('refreshes on request, but not more than every five minutes', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    await items()
+    ctx.clock.now = new Date('2026-01-01T00:03:00Z')
+    await items('?refresh=true')
+    expect(fetcher.itemsRead).toHaveLength(1)
+    ctx.clock.now = new Date('2026-01-01T00:06:00Z')
+    await items('?refresh=true')
+    expect(fetcher.itemsRead).toHaveLength(2)
+  })
+
+  it('shares one read between people who ask at the same moment', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    await Promise.all([items(), items(), items()])
+    expect(fetcher.itemsRead).toHaveLength(1)
+  })
+
+  it('limits how many reads one person can start in an hour, but still shows what is kept', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    await items() // now a copy is kept
+    const profileId = base.split('/')[3]!
+    const ids: string[] = []
+    for (let i = 0; i < 125; i++) {
+      ids.push(ctx.store.sources.add(profileId, `https://s${i}.example/feed`).id)
+    }
+    let refused = 0
+    for (const id of ids) {
+      const res = await ada.get(`${base}/${id}/items`)
+      if (res.status === 429) refused++
+    }
+    expect(refused).toBeGreaterThan(0)
+    expect((await items()).status).toBe(200) // the kept copy needs no outbound read
+  })
+
+  it('is for members only, and a source of another profile cannot be reached through this one', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    const bob = ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    expect((await bob.get(`${base}/${sourceId}/items`)).status).toBe(404)
+    const bobBase = `/api/profiles/${(await (await bob.get('/api/profiles')).json())[0].id}/sources`
+    expect((await bob.get(`${bobBase}/${sourceId}/items`)).status).toBe(404)
+    expect((await ada.get(`${base}/nope/items`)).status).toBe(404)
+  })
+
+  it('goes with the source when it is removed', async () => {
+    await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
+    await items()
+    await ada.delete(`${base}/${sourceId}`)
+    expect(ctx.store.sources.getFetch(sourceId)).toBeUndefined()
+    expect((await items()).status).toBe(404)
   })
 })

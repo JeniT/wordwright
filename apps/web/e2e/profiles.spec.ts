@@ -382,3 +382,29 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
   ).toBeVisible()
   await expect(feeds.getByLabel('Add a feed')).toHaveValue('')
 })
+
+test('shows the recent posts of a feed, only when asked', async ({ page }) => {
+  await registerUser(page, uniqueName('Pia'))
+  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Posts to read')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('link', { name: 'Inspiration' }).click()
+
+  const feeds = page.getByRole('region', { name: 'Feeds' })
+  await feeds.getByLabel('Add a feed').fill('read.example/feed')
+  await feeds.getByRole('button', { name: 'Add source' }).click()
+  const row = feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' })
+
+  let asked = 0
+  page.on('request', (r) => {
+    if (r.url().includes('/items')) asked++
+  })
+  await expect(row).toBeVisible()
+  expect(asked).toBe(0) // not read until someone looks
+
+  await row.getByText('Recent posts').click()
+  const post = row.getByRole('link', { name: /A post in Feed of read.example/ })
+  await expect(post).toHaveAttribute('href', 'https://read.example/post-1')
+  await noViolations(page)
+  expect(asked).toBe(1)
+})

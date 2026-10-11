@@ -7,6 +7,7 @@ import {
   SourceOrderSchema,
   type FeedFetcher,
 } from '@lfwa/core'
+import type { FeedItemService } from '../services/feed-items'
 import type { AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
@@ -25,6 +26,7 @@ export function sourceRoutes(
   feeds: FeedFetcher,
   addLimiter: RateLimiter,
   member: MiddlewareHandler<AppEnv>,
+  feedItems: FeedItemService,
 ) {
   const { sources } = store
   const tooMany = () =>
@@ -88,6 +90,17 @@ export function sourceRoutes(
         const icon = sources.getIcon(c.req.param('profileId')!, c.req.param('id'))
         if (!icon) throw new HTTPException(404, { message: 'Not found' })
         return imageResponse(c, icon)
+      })
+
+      // The feed's recent posts: the kept copy if it is recent, else the feed is asked again.
+      .get('/:id/items', async (c) => {
+        const source = sources.find(c.req.param('profileId')!, c.req.param('id'))
+        if (!source) throw new HTTPException(404, { message: 'Not found' })
+        return c.json(
+          await feedItems.items(c.get('user').id, source, {
+            refresh: c.req.query('refresh') === 'true',
+          }),
+        )
       })
 
       // Registered before `/:id` so that "order" is not taken for an id.

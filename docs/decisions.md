@@ -648,6 +648,19 @@ one as ordinary addresses, so each is read, checked and rate-limited like any ot
 page with exactly one feed, is added at once as before, at the cost of reading it twice (once to discover, once to
 add). Choices are not pre-ticked: which feed to follow is the writer's call.
 
+A feed's recent posts are read by `FeedFetcher.readItems` and kept (`profile_source_fetches`, the posts as a JSON
+list) so that opening a page never asks the feed. The rules, in `FeedItemService`: a read is used for 3 hours; a read
+sends `If-None-Match`/`If-Modified-Since` from the last one, and a `304` only renews the time; after a failure the feed
+is left alone for 30 minutes and the old posts keep being shown, with the error and when it last worked; an explicit
+refresh can't ask the same feed within 5 minutes; people asking at once share one read; and each person may start 120
+outbound reads an hour (the kept copy is still shown when they hit the limit). Per-feed ceilings like this are what
+"be a good client" means in `docs/research/idea-source-feeds.md`, and all reads go through the same SSRF-safe fetch as
+adding. What is kept is limited on purpose: at most 50 posts, titles, addresses, authors, the date, and the first 400
+characters of the summary as plain text. Feeds often carry whole articles, and the terms of many allow personal reading
+and not republishing, so we never store the body. Posts with no web address are dropped (nothing to open), `mailto:`
+and similar are refused, and RSS "authors" that are email addresses are not kept. Not done: a background poller (reads
+happen when someone looks, so a feed nobody opens is never fetched), JSON Feed, and per-post "seen" state (T6c).
+
 Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
 served from our own origin like profile pictures. Pointing browsers at the other site's image directly would tell

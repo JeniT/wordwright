@@ -1,8 +1,9 @@
 import { XMLParser } from 'fast-xml-parser'
-import { FeedError, type FeedDetails } from '@lfwa/core'
+import { FeedError, MAX_FEED_ITEMS, type FeedDetails, type FeedItem } from '@lfwa/core'
 
 const TITLE_MAX = 200
 const DESCRIPTION_MAX = 500
+const SUMMARY_MAX = 400
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -117,6 +118,109 @@ export function parseFeed(xml: string, address: string): FeedDetails {
     })
   }
   throw notAFeed()
+}
+
+/**
+ * The posts in an RSS 2.0, RSS 1.0 or Atom document, as the feed lists them (newest first when the
+ * feed gives dates), at most `MAX_FEED_ITEMS`. Only what the feed says is kept: a short plain-text
+ * summary, never the article. Posts without an address we can use are skipped. Throws `not-a-feed`
+ * for anything that isn't a feed.
+ */
+export function parseFeedItems(xml: string, address: string): FeedItem[] {
+  let doc: unknown
+  try {
+    doc = parser.parse(xml)
+  } catch {
+    throw notAFeed()
+  }
+  if (!isNode(doc)) throw notAFeed()
+  const rss = doc['rss']
+  const rdf = doc['RDF']
+  const atom = doc['feed']
+
+  let raw: { node: Node; atom: boolean }[]
+  if (isNode(rss) || isNode(rdf)) {
+    const root = isNode(rss) ? rss : (rdf as Node)
+    const channel = list(root['channel']).find(isNode)
+    if (!channel) throw notAFeed()
+    // RSS 1.0 lists items beside the channel, RSS 2.0 inside it.
+    raw = [...list(channel['item']), ...list(root['item'])]
+      .filter(isNode)
+      .map((node) => ({ node, atom: false }))
+  } else if (isNode(atom)) {
+    raw = list(atom['entry'])
+      .filter(isNode)
+      .map((node) => ({ node, atom: true }))
+  } else {
+    throw notAFeed()
+  }
+
+  const seen = new Set<string>()
+  const items: FeedItem[] = []
+  for (const { node, atom: isAtom } of raw) {
+    const url = isAtom ? atomItemLink(node, address) : webUrl(node['link'], address)
+    if (!url) continue
+    const id = (text(node['guid']) ?? text(node['id']) ?? url).slice(0, 500)
+    if (seen.has(id)) continue
+    seen.add(id)
+    const authors = isAtom
+      ? list(node['author']).map((a) => (isNode(a) ? text(a['name']) : text(a)))
+      : [...list(node['creator']), ...list(node['author'])].map((a) => text(a))
+    items.push({
+      id,
+      title: plain(text(node['title']), TITLE_MAX) ?? url,
+      url,
+      summary: plain(
+        text(node['summary']) ??
+          text(node['description']) ??
+          text(node['encoded']) ??
+          text(node['content']),
+        SUMMARY_MAX,
+      ),
+      authors: [
+        ...new Set(authors.map((a) => personName(a)).filter((a): a is string => !!a)),
+      ].slice(0, 5),
+      publishedAt: isoDate(
+        text(node['published']) ??
+          text(node['pubDate']) ??
+          text(node['date']) ??
+          text(node['updated']),
+      ),
+    })
+  }
+  // Newest first when we can tell; otherwise the order the feed uses, which is almost always that.
+  const dated = items.map((item, i) => ({
+    item,
+    i,
+    t: item.publishedAt ? Date.parse(item.publishedAt) : null,
+  }))
+  dated.sort((a, b) => (b.t ?? -Infinity) - (a.t ?? -Infinity) || a.i - b.i)
+  return (dated.some((d) => d.t !== null) ? dated.map((d) => d.item) : items).slice(
+    0,
+    MAX_FEED_ITEMS,
+  )
+}
+
+/** An Atom entry's link to the post itself (not its "edit" or "replies" links). */
+function atomItemLink(entry: Node, base: string): string | null {
+  const links = list(entry['link']).filter(isNode)
+  const pick =
+    links.find((l) => l['@_rel'] === 'alternate') ?? links.find((l) => l['@_rel'] === undefined)
+  return webUrl(pick?.['@_href'], base)
+}
+
+/** RSS authors are often "me@example.com (Ada Lovelace)"; keep the name, never an email address. */
+function personName(v: string | null): string | null {
+  if (!v) return null
+  const inBrackets = /\(([^)]+)\)/.exec(v)?.[1]
+  const name = plain(inBrackets ?? v, 100)
+  return name && !name.includes('@') ? name : null
+}
+
+function isoDate(v: string | null): string | null {
+  if (!v) return null
+  const t = Date.parse(v)
+  return Number.isNaN(t) ? null : new Date(t).toISOString()
 }
 
 function details(d: {

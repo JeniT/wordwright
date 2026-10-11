@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LLMChatEvent, LLMChatRequest, LLMProvider } from '../providers/llm'
+import { MAX_FEED_ITEMS } from '../domain'
 import { FeedError, MAX_FEED_CANDIDATES, type FeedFetcher } from '../providers/feeds'
 import type { PageInfoFetcher } from '../providers/pages'
 import type { ResearchProvider } from '../providers/research'
@@ -169,6 +170,53 @@ export function feedFetcherContract(
           ...page.comments.map(() => true),
         ])
         expect(found.length).toBeLessThanOrEqual(MAX_FEED_CANDIDATES)
+      } finally {
+        await close?.()
+      }
+    })
+
+    it('reads the recent posts of a feed, each with an id, a title and a web address', async () => {
+      const { fetcher, feed, close } = await setup()
+      try {
+        const result = await fetcher.readItems(feed)
+        expect(result.status).toBe('modified')
+        if (result.status !== 'modified') return
+        expect(result.items.length).toBeGreaterThan(0)
+        expect(result.items.length).toBeLessThanOrEqual(MAX_FEED_ITEMS)
+        for (const item of result.items) {
+          expect(item.id).not.toBe('')
+          expect(item.title).not.toBe('')
+          expect(new URL(item.url).protocol).toMatch(/^https?:$/)
+          expect(Array.isArray(item.authors)).toBe(true)
+          expect(item.publishedAt === null || !Number.isNaN(Date.parse(item.publishedAt))).toBe(
+            true,
+          )
+        }
+        expect(new Set(result.items.map((i) => i.id)).size).toBe(result.items.length)
+      } finally {
+        await close?.()
+      }
+    })
+
+    it('answers not-modified when asked again with the validators it gave, if it gave any', async () => {
+      const { fetcher, feed, close } = await setup()
+      try {
+        const first = await fetcher.readItems(feed)
+        if (first.status !== 'modified') throw new Error('first read should be modified')
+        const { etag, lastModified } = first.validators
+        if (!etag && !lastModified) return // a source with no validators is read in full each time
+        const again = await fetcher.readItems(feed, { validators: first.validators })
+        expect(again.status).toBe('not-modified')
+      } finally {
+        await close?.()
+      }
+    })
+
+    it('rejects reading posts when the address is not a feed or cannot be reached', async () => {
+      const { fetcher, notAFeed, unreachable, close } = await setup()
+      try {
+        await expect(fetcher.readItems(notAFeed)).rejects.toMatchObject({ reason: 'not-a-feed' })
+        await expect(fetcher.readItems(unreachable)).rejects.toBeInstanceOf(FeedError)
       } finally {
         await close?.()
       }

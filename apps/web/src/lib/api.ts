@@ -20,6 +20,7 @@ import {
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceChoicesSchema,
+  SourceItemsSchema,
   SourceListSchema,
   SourceSchema,
   UserSchema,
@@ -255,6 +256,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Adds the feed at `url`, or, if it is a website offering several feeds, answers with the choices. */
     addSource: (profileId: string, url: string) =>
       get(SourceSchema.or(SourceChoicesSchema), 'POST', `/profiles/${profileId}/sources`, { url }),
+    /** The feed's recent posts: the server's kept copy, or a fresh read if that is old. */
+    sourceItems: (profileId: string, id: string) =>
+      get(SourceItemsSchema, 'GET', `/profiles/${profileId}/sources/${id}/items`),
     removeSource: (profileId: string, id: string) =>
       act('DELETE', `/profiles/${profileId}/sources/${id}`),
     /** `ids` is every source, in the new order. Answers with the list as saved. */

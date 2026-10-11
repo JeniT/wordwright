@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { FeedDetails, FetchedIcon, IconType, Source } from '@lfwa/core'
+import type {
+  FeedDetails,
+  FeedItem,
+  FeedValidators,
+  FetchedIcon,
+  IconType,
+  Source,
+} from '@lfwa/core'
 import { nowIso } from './database'
 
 export interface SourceIcon {
@@ -15,6 +22,18 @@ interface Row {
   description: string | null
   site_url: string | null
   icon_updated_at: string | null
+  last_worked_at: string | null
+  last_error: string | null
+}
+
+/** What we last learned from reading a feed's posts. */
+export interface SourceFetch {
+  items: FeedItem[]
+  validators: FeedValidators
+  checkedAt: string | null
+  lastWorkedAt: string | null
+  lastError: string | null
+  lastErrorAt: string | null
 }
 
 /**
@@ -29,8 +48,11 @@ export class SourceStore {
     return (
       this.db
         .prepare(
-          `SELECT s.id, s.url, s.title, s.description, s.site_url, i.updated_at AS icon_updated_at
-           FROM profile_sources s LEFT JOIN profile_source_icons i ON i.source_id = s.id
+          `SELECT s.id, s.url, s.title, s.description, s.site_url, i.updated_at AS icon_updated_at,
+                  f.last_worked_at, f.last_error
+           FROM profile_sources s
+           LEFT JOIN profile_source_icons i ON i.source_id = s.id
+           LEFT JOIN profile_source_fetches f ON f.source_id = s.id
            WHERE s.profile_id = ? ORDER BY s.position`,
         )
         .all(profileId) as unknown as Row[]
@@ -94,6 +116,62 @@ export class SourceStore {
     return row && { contentType: row.content_type, data: row.data }
   }
 
+  profileOf(id: string): string | undefined {
+    const row = this.db.prepare('SELECT profile_id FROM profile_sources WHERE id = ?').get(id) as
+      { profile_id: string } | undefined
+    return row?.profile_id
+  }
+
+  find(profileId: string, id: string): Source | undefined {
+    return this.list(profileId).find((s) => s.id === id)
+  }
+
+  getFetch(sourceId: string): SourceFetch | undefined {
+    const r = this.db
+      .prepare('SELECT * FROM profile_source_fetches WHERE source_id = ?')
+      .get(sourceId) as
+      | {
+          items: string
+          etag: string | null
+          last_modified: string | null
+          checked_at: string | null
+          last_worked_at: string | null
+          last_error: string | null
+          last_error_at: string | null
+        }
+      | undefined
+    return (
+      r && {
+        items: JSON.parse(r.items) as FeedItem[],
+        validators: { etag: r.etag, lastModified: r.last_modified },
+        checkedAt: r.checked_at,
+        lastWorkedAt: r.last_worked_at,
+        lastError: r.last_error,
+        lastErrorAt: r.last_error_at,
+      }
+    )
+  }
+
+  /** Replaces what we know about the source's posts. Callers hold the source, so it exists. */
+  saveFetch(sourceId: string, f: SourceFetch) {
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO profile_source_fetches
+           (source_id, items, etag, last_modified, checked_at, last_worked_at, last_error, last_error_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        sourceId,
+        JSON.stringify(f.items),
+        f.validators.etag ?? null,
+        f.validators.lastModified ?? null,
+        f.checkedAt,
+        f.lastWorkedAt,
+        f.lastError,
+        f.lastErrorAt,
+      )
+  }
+
   remove(profileId: string, id: string): boolean {
     const removed =
       this.db
@@ -139,5 +217,7 @@ function toSource(profileId: string, r: Row): Source {
     iconUrl: r.icon_updated_at
       ? `/api/profiles/${profileId}/sources/${r.id}/icon?v=${Date.parse(r.icon_updated_at)}`
       : null,
+    lastWorkedAt: r.last_worked_at,
+    lastError: r.last_error,
   }
 }

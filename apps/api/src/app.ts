@@ -22,6 +22,7 @@ import { invitationRoutes } from './routes/invitations'
 import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
 import { BrainstormService } from './services/brainstorm'
+import { FeedItemService } from './services/feed-items'
 import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { ResearchService } from './services/research'
 import { IdeaLinkService } from './services/idea-links'
@@ -167,6 +168,13 @@ export function createApp(deps: AppDeps) {
         feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
         feedLimiter: limiter(30, HOUR),
+        feedItems: new FeedItemService(
+          store,
+          deps.feeds,
+          deps.now ?? (() => new Date()),
+          // Reads are mostly answered from the kept copy; this caps the ones that go out.
+          limiter(120, HOUR),
+        ),
         ideaLinks,
         brainstorm,
         research,

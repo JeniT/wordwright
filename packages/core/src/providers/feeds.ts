@@ -1,3 +1,4 @@
+import { MAX_FEED_ITEMS, type FeedItem } from '../domain'
 import type { IconType } from '../images'
 
 /** What a feed says about itself. */
@@ -24,6 +25,17 @@ export interface FeedCandidate {
 
 /** The most feeds one page is asked about, so a page that lists hundreds can't flood the person. */
 export const MAX_FEED_CANDIDATES = 10
+
+/** What a server told us about the copy we hold, so asking again can be cheap. */
+export interface FeedValidators {
+  etag?: string | null
+  lastModified?: string | null
+}
+
+export type FeedItemsResult =
+  | { status: 'modified'; items: FeedItem[]; validators: FeedValidators }
+  /** The feed said our copy is still current. */
+  | { status: 'not-modified' }
 
 export interface FetchedIcon {
   contentType: IconType
@@ -60,6 +72,15 @@ export interface FeedFetcher {
    */
   discover(address: string, options?: { signal?: AbortSignal }): Promise<FeedCandidate[]>
   /**
+   * The feed's recent posts, newest first, at most `MAX_FEED_ITEMS`. Pass the `validators` from the last
+   * read to make a conditional request; a feed that hasn't changed answers `not-modified`. Rejects with
+   * a `FeedError` (not a feed, unreachable, blocked, too large).
+   */
+  readItems(
+    address: string,
+    options?: { signal?: AbortSignal; validators?: FeedValidators },
+  ): Promise<FeedItemsResult>
+  /**
    * A small picture for the feed: the logo it names, else its website's icon. Never rejects;
    * resolves to null when there is none or it can't be fetched (the icon is a nicety).
    */
@@ -88,6 +109,10 @@ export function tidyCandidates(candidates: FeedCandidate[]): FeedCandidate[] {
 type KnownFeed = Partial<FeedDetails> & {
   icon?: boolean
   advertises?: (Pick<FeedCandidate, 'url'> & Partial<FeedCandidate>)[]
+  /** The posts it will answer with (a default single post if not given). */
+  items?: FeedItem[]
+  /** Answered as the feed's validator, so that asking again with it gets `not-modified`. */
+  etag?: string
 }
 
 /**
@@ -97,6 +122,7 @@ type KnownFeed = Partial<FeedDetails> & {
 export class FakeFeedFetcher implements FeedFetcher {
   readonly inspected: string[] = []
   readonly discovered: string[] = []
+  readonly itemsRead: string[] = []
   readonly iconsFetched: string[] = []
 
   constructor(
@@ -136,6 +162,33 @@ export class FakeFeedFetcher implements FeedFetcher {
       throw new FeedError('not-a-feed', 'That address doesn’t look like an RSS or Atom feed.')
     }
     return [{ url: known.url ?? address, title: known.title ?? null, comments: false }]
+  }
+
+  async readItems(
+    address: string,
+    options: { validators?: FeedValidators } = {},
+  ): Promise<FeedItemsResult> {
+    this.itemsRead.push(address)
+    const known = this.feeds[address] ?? this.fallback?.(address)
+    if (address.includes('unreachable')) {
+      throw new FeedError('unreachable', 'We couldn’t reach that address. Check it and try again.')
+    }
+    if (!known) {
+      throw new FeedError('not-a-feed', 'That address doesn’t look like an RSS or Atom feed.')
+    }
+    const etag = known.etag ?? null
+    if (etag && options.validators?.etag === etag) return { status: 'not-modified' }
+    const items = known.items ?? [
+      {
+        id: `${address}#1`,
+        title: `A post in ${known.title ?? new URL(address).host}`,
+        url: `${new URL(address).origin}/post-1`,
+        summary: null,
+        authors: [],
+        publishedAt: null,
+      },
+    ]
+    return { status: 'modified', items: items.slice(0, MAX_FEED_ITEMS), validators: { etag } }
   }
 
   async fetchIcon(feed: FeedDetails): Promise<FetchedIcon | null> {

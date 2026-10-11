@@ -10,10 +10,12 @@ import {
   type FeedCandidate,
   type FeedDetails,
   type FeedFetcher,
+  type FeedItemsResult,
+  type FeedValidators,
   type FetchedIcon,
 } from '@lfwa/core'
 import { isPublicAddress } from './addresses'
-import { parseFeed, parseHtmlLinks, webUrl } from './parse-feed'
+import { parseFeed, parseFeedItems, parseHtmlLinks, webUrl } from './parse-feed'
 
 export interface HttpFeedFetcherOptions {
   /** Seconds are too long to make a person wait; feeds that are slower than this are unusable anyway. */
@@ -29,7 +31,10 @@ interface Response {
   url: string
   contentType: string
   body: Buffer
+  etag: string | null
+  lastModified: string | null
 }
+type NotModified = { notModified: true }
 
 const USER_AGENT = 'LongFormWritingAssistant/1.0 (feed reader)'
 
@@ -66,6 +71,19 @@ export class HttpFeedFetcher implements FeedFetcher {
       if (found) return found
     }
     throw notAFeed()
+  }
+
+  async readItems(
+    address: string,
+    options: { signal?: AbortSignal; validators?: FeedValidators } = {},
+  ): Promise<FeedItemsResult> {
+    const response = await this.getRaw(address, this.maxBytes, options.signal, options.validators)
+    if ('notModified' in response) return { status: 'not-modified' }
+    return {
+      status: 'modified',
+      items: parseFeedItems(response.body.toString('utf8'), response.url),
+      validators: { etag: response.etag, lastModified: response.lastModified },
+    }
   }
 
   async discover(
@@ -110,11 +128,25 @@ export class HttpFeedFetcher implements FeedFetcher {
     return null
   }
 
-  /** GET with redirects followed by hand, so every hop is checked, with time and size limits. */
   private async get(address: string, maxBytes: number, signal?: AbortSignal): Promise<Response> {
+    const response = await this.getRaw(address, maxBytes, signal)
+    if ('notModified' in response) throw unreachable() // only possible when we asked for it
+    return response
+  }
+
+  /**
+   * GET with redirects followed by hand, so every hop is checked, with time and size limits.
+   * With `validators`, the server may answer that our copy is current.
+   */
+  private async getRaw(
+    address: string,
+    maxBytes: number,
+    signal?: AbortSignal,
+    validators?: FeedValidators,
+  ): Promise<Response | NotModified> {
     let url = address
     for (let hop = 0; hop <= this.maxRedirects; hop++) {
-      const result = await this.once(url, maxBytes, signal)
+      const result = await this.once(url, maxBytes, signal, validators)
       if (!('redirect' in result)) return result
       const next = webUrl(result.redirect, url)
       if (!next) throw unreachable()
@@ -130,7 +162,8 @@ export class HttpFeedFetcher implements FeedFetcher {
     address: string,
     maxBytes: number,
     outerSignal?: AbortSignal,
-  ): Promise<Response | { redirect: string }> {
+    validators?: FeedValidators,
+  ): Promise<Response | NotModified | { redirect: string }> {
     return new Promise((resolve, reject) => {
       let url: URL
       try {
@@ -158,6 +191,8 @@ export class HttpFeedFetcher implements FeedFetcher {
             accept:
               'application/atom+xml, application/rss+xml, application/xml, text/xml, text/html;q=0.8, image/*;q=0.8, */*;q=0.5',
             'accept-encoding': 'identity', // so the size we count is the size we hold
+            ...(validators?.etag ? { 'if-none-match': validators.etag } : {}),
+            ...(validators?.lastModified ? { 'if-modified-since': validators.lastModified } : {}),
           },
           lookup: (hostname, lookupOptions, callback) => {
             dnsLookup(hostname, { ...lookupOptions, all: true }, (err, addresses) => {
@@ -179,6 +214,10 @@ export class HttpFeedFetcher implements FeedFetcher {
           if ([301, 302, 303, 307, 308].includes(status) && location) {
             res.resume()
             return resolve({ redirect: location })
+          }
+          if (status === 304 && validators) {
+            res.resume()
+            return resolve({ notModified: true })
           }
           if (status < 200 || status >= 300) {
             res.resume()
@@ -211,6 +250,8 @@ export class HttpFeedFetcher implements FeedFetcher {
             resolve({
               url: url.href,
               contentType: String(res.headers['content-type'] ?? ''),
+              etag: header(res.headers.etag),
+              lastModified: header(res.headers['last-modified']),
               body: Buffer.concat(chunks),
             }),
           )
@@ -233,6 +274,9 @@ export class HttpFeedFetcher implements FeedFetcher {
 }
 
 class BlockedError extends Error {}
+
+const header = (v: string | string[] | undefined) =>
+  typeof v === 'string' && v ? v.slice(0, 300) : null
 
 const notAFeed = () =>
   new FeedError(
