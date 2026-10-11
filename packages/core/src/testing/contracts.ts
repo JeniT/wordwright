@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LLMChatEvent, LLMChatRequest, LLMProvider } from '../providers/llm'
-import { FeedError, type FeedFetcher } from '../providers/feeds'
+import { FeedError, MAX_FEED_CANDIDATES, type FeedFetcher } from '../providers/feeds'
 import type { PageInfoFetcher } from '../providers/pages'
 import type { ResearchProvider } from '../providers/research'
 import type { SearchProvider } from '../providers/search'
@@ -140,10 +140,52 @@ export function feedFetcherContract(
     feed: string
     notAFeed: string
     unreachable: string
+    /** A web page that advertises these feeds (of posts, then comments), in this order. */
+    page?: { address: string; posts: string[]; comments: string[] }
     close?: () => Promise<void>
   }>,
 ) {
   describe(`FeedFetcher contract: ${name}`, () => {
+    it('discovers a feed as the one feed at its own address', async () => {
+      const { fetcher, feed, close } = await setup()
+      try {
+        const found = await fetcher.discover(feed)
+        expect(found).toHaveLength(1)
+        expect(found[0]!.url).toBe(feed)
+        expect(found[0]!.comments).toBe(false)
+      } finally {
+        await close?.()
+      }
+    })
+
+    it('discovers every feed a page advertises, with feeds of comments last', async () => {
+      const { fetcher, page, close } = await setup()
+      try {
+        if (!page) return
+        const found = await fetcher.discover(page.address)
+        expect(found.map((c) => c.url)).toEqual([...page.posts, ...page.comments])
+        expect(found.map((c) => c.comments)).toEqual([
+          ...page.posts.map(() => false),
+          ...page.comments.map(() => true),
+        ])
+        expect(found.length).toBeLessThanOrEqual(MAX_FEED_CANDIDATES)
+      } finally {
+        await close?.()
+      }
+    })
+
+    it('rejects discovery with a message for people when there is no feed', async () => {
+      const { fetcher, notAFeed, unreachable, close } = await setup()
+      try {
+        const err = await fetcher.discover(notAFeed).catch((e: unknown) => e)
+        expect(err).toBeInstanceOf(FeedError)
+        expect((err as FeedError).reason).toBe('not-a-feed')
+        await expect(fetcher.discover(unreachable)).rejects.toBeInstanceOf(FeedError)
+      } finally {
+        await close?.()
+      }
+    })
+
     it('reads the title of a feed and reports the address it was found at', async () => {
       const { fetcher, feed, close } = await setup()
       try {

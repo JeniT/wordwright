@@ -124,6 +124,14 @@ describe('parseHtmlLinks', () => {
       'https://site.example/favicon.ico',
     ])
   })
+
+  it('keeps what the page calls each feed, in page order', () => {
+    const { feedLinks } = parseHtmlLinks(html, 'https://site.example/blog/')
+    expect(feedLinks).toEqual([
+      { url: 'https://site.example/feed.xml', title: 'RSS' },
+      { url: 'https://other.example/atom?a=1&b=2', title: null },
+    ])
+  })
 })
 
 describe('isPublicAddress', () => {
@@ -179,6 +187,21 @@ function startSite() {
         'text/html',
         `<html><head><link rel="alternate" type="application/rss+xml" href="/feed.xml"><link rel="icon" href="/site-icon.png"></head></html>`,
       )
+    if (path === '/multi')
+      return send(
+        'text/html',
+        `<html><head>
+        <link rel="alternate" type="application/rss+xml" title="Comments on Notes" href="/comments/feed">
+        <link rel="alternate" type="application/rss+xml" title="Notes &amp; essays" href="/feed.xml">
+        <link rel="alternate" type="application/atom+xml" title="Podcast" href="/atom.xml">
+        <link rel="alternate" type="application/rss+xml" title="Notes again" href="/feed.xml">
+        </head></html>`,
+      )
+    if (path === '/many')
+      return send(
+        'text/html',
+        `<html><head>${Array.from({ length: 15 }, (_, i) => `<link rel="alternate" type="application/rss+xml" href="/f${i}.xml">`).join('')}</head></html>`,
+      )
     if (path === '/plain') return send('text/html', '<html><body>No feeds here</body></html>')
     if (path === '/huge')
       return send(
@@ -222,6 +245,11 @@ feedFetcherContract('http', async () => {
     feed: `${site.base}/feed.xml`,
     notAFeed: `${site.base}/plain`,
     unreachable: 'http://127.0.0.1:1/feed',
+    page: {
+      address: `${site.base}/multi`,
+      posts: [`${site.base}/feed.xml`, `${site.base}/atom.xml`],
+      comments: [`${site.base}/comments/feed`],
+    },
     close: site.close,
   }
 })
@@ -241,6 +269,34 @@ describe('HttpFeedFetcher', () => {
     expect(await fetcher.inspect(`${site.base}/old-feed`)).toMatchObject({
       title: 'The Slow Reader',
       url: `${site.base}/old-feed`,
+    })
+  })
+
+  it('discovers the feeds a page offers, as the page names them, comments last, without duplicates', async () => {
+    expect(await fetcher.discover(`${site.base}/multi`)).toEqual([
+      { url: `${site.base}/feed.xml`, title: 'Notes & essays', comments: false },
+      { url: `${site.base}/atom.xml`, title: 'Podcast', comments: false },
+      { url: `${site.base}/comments/feed`, title: 'Comments on Notes', comments: true },
+    ])
+  })
+
+  it('discovers a feed address as that one feed, a page with one feed as that one, and caps long lists', async () => {
+    expect(await fetcher.discover(`${site.base}/feed.xml`)).toEqual([
+      { url: `${site.base}/feed.xml`, title: 'The Slow Reader', comments: false },
+    ])
+    expect((await fetcher.discover(`${site.base}/site`)).map((c) => c.url)).toEqual([
+      `${site.base}/feed.xml`,
+    ])
+    expect(await fetcher.discover(`${site.base}/many`)).toHaveLength(10)
+  })
+
+  it('discovery refuses private addresses and pages without feeds, like reading does', async () => {
+    await expect(fetcher.discover(`${site.base}/plain`)).rejects.toMatchObject({
+      reason: 'not-a-feed',
+    })
+    const strict = new HttpFeedFetcher()
+    await expect(strict.discover('http://127.0.0.1/multi')).rejects.toMatchObject({
+      reason: 'blocked',
     })
   })
 

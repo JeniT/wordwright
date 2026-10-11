@@ -19,6 +19,7 @@ import {
   ProposalSchema,
   ResearchRunSchema,
   ResearchRunsSchema,
+  SourceChoicesSchema,
   SourceListSchema,
   SourceSchema,
   UserSchema,
@@ -251,8 +252,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // idea sources (the list is in priority order, highest first)
     listSources: (profileId: string) =>
       get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),
+    /** Adds the feed at `url`, or, if it is a website offering several feeds, answers with the choices. */
     addSource: (profileId: string, url: string) =>
-      get(SourceSchema, 'POST', `/profiles/${profileId}/sources`, { url }),
+      get(SourceSchema.or(SourceChoicesSchema), 'POST', `/profiles/${profileId}/sources`, { url }),
     removeSource: (profileId: string, id: string) =>
       act('DELETE', `/profiles/${profileId}/sources/${id}`),
     /** `ids` is every source, in the new order. Answers with the list as saved. */

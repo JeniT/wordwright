@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { Source } from '@lfwa/core'
+import type { Source, SourceChoices } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import ProfileImage from './ProfileImage.vue'
@@ -20,14 +20,60 @@ const notice = ref('') // announced politely to screen readers after each change
 /** What to call a source: its own title, or failing that its address without the "https://". */
 const nameOf = (source: Source) => source.title ?? shortName(source.url)
 
+// A website that offers several feeds comes back as choices instead of being added.
+const choices = ref<SourceChoices['choices']>([])
+const chosen = ref<string[]>([])
+const choiceName = (c: SourceChoices['choices'][number]) => c.title ?? shortName(c.url)
+
 const add = useMutation({
   mutationFn: (address: string) => api.addSource(props.profileId, address),
-  onSuccess: async (added) => {
+  onSuccess: async (result) => {
+    if ('choices' in result) {
+      choices.value = result.choices
+      chosen.value = []
+      notice.value = `That site has ${result.choices.length} feeds. Choose which to add.`
+      return
+    }
     url.value = ''
-    notice.value = `Added ${nameOf(added)}`
+    choices.value = []
+    notice.value = `Added ${nameOf(result)}`
     await queryClient.invalidateQueries({ queryKey: ['sources'] })
   },
 })
+
+/** Adds each ticked feed in turn; those that fail stay on the page, with the reason. */
+const addChosen = useMutation({
+  mutationFn: async (addresses: string[]) => {
+    const added: string[] = []
+    const failed: { url: string; reason: string }[] = []
+    for (const address of addresses) {
+      try {
+        const result = await api.addSource(props.profileId, address)
+        if ('choices' in result) throw new Error('That address offers more than one feed.')
+        added.push(nameOf(result))
+      } catch (err) {
+        failed.push({ url: address, reason: errorMessage(err) })
+      }
+    }
+    return { added, failed }
+  },
+  onSuccess: async ({ added, failed }) => {
+    if (added.length) notice.value = `Added ${added.join(', ')}`
+    choices.value = choices.value.filter((c) => failed.some((f) => f.url === c.url))
+    chosen.value = chosen.value.filter((u) => failed.some((f) => f.url === u))
+    if (!failed.length) url.value = ''
+    await queryClient.invalidateQueries({ queryKey: ['sources'] })
+  },
+})
+function submitAddress() {
+  cancelChoice()
+  add.mutate(url.value)
+}
+function cancelChoice() {
+  choices.value = []
+  chosen.value = []
+  addChosen.reset()
+}
 
 const remove = useMutation({
   mutationFn: (source: Source) => api.removeSource(props.profileId, source.id),
@@ -126,7 +172,7 @@ const removeClass =
         </template>
       </ReorderableList>
 
-      <form @submit.prevent="add.mutate(url)">
+      <form @submit.prevent="submitAddress">
         <TextField
           v-model="url"
           label="Add a feed"
@@ -144,6 +190,64 @@ const removeClass =
         >
           {{ add.isPending.value ? 'Reading the feed…' : 'Add source' }}
         </button>
+      </form>
+
+      <form
+        v-if="choices.length"
+        class="mt-4 rounded border border-stone-200 bg-white p-4"
+        @submit.prevent="addChosen.mutate(chosen)"
+      >
+        <fieldset>
+          <legend class="mb-2 font-medium">
+            That site has more than one feed. Which would you like?
+          </legend>
+          <div v-for="c in choices" :key="c.url" class="mb-2 flex items-start gap-2">
+            <input
+              :id="`choice-${c.url}`"
+              v-model="chosen"
+              type="checkbox"
+              :value="c.url"
+              :disabled="c.alreadyAdded || addChosen.isPending.value"
+              class="mt-1"
+            />
+            <label :for="`choice-${c.url}`" class="min-w-0">
+              <span class="break-words">{{ choiceName(c) }}</span>
+              <span v-if="c.comments" class="text-sm text-stone-600"> (comments)</span>
+              <span v-if="c.alreadyAdded" class="text-sm text-stone-600">
+                (already in your list)</span
+              >
+              <span class="block break-all text-xs text-stone-500">{{ shortName(c.url) }}</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="mt-3 flex gap-2">
+          <button
+            type="submit"
+            class="rounded border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
+            :disabled="!chosen.length || addChosen.isPending.value"
+          >
+            {{
+              addChosen.isPending.value
+                ? 'Adding…'
+                : chosen.length > 1
+                  ? 'Add chosen feeds'
+                  : 'Add chosen feed'
+            }}
+          </button>
+          <button
+            type="button"
+            class="rounded border border-stone-300 px-3 py-2 text-sm"
+            :disabled="addChosen.isPending.value"
+            @click="cancelChoice"
+          >
+            Cancel
+          </button>
+        </div>
+        <ul v-if="addChosen.data.value?.failed.length" role="alert" class="mt-2 text-red-700">
+          <li v-for="f in addChosen.data.value.failed" :key="f.url">
+            {{ shortName(f.url) }}: {{ f.reason }}
+          </li>
+        </ul>
       </form>
 
       <p v-if="add.isError.value" role="alert" class="mt-2 text-red-700">

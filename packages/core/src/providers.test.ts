@@ -23,8 +23,22 @@ searchProviderContract(
 )
 
 feedFetcherContract('fake', async () => ({
-  fetcher: new FakeFeedFetcher({ 'https://a.example/feed': { title: 'A feed', icon: true } }),
+  fetcher: new FakeFeedFetcher({
+    'https://a.example/feed': { title: 'A feed', icon: true },
+    'https://a.example/': {
+      advertises: [
+        { url: 'https://a.example/comments/feed', comments: true },
+        { url: 'https://a.example/feed' },
+        { url: 'https://a.example/podcast' },
+      ],
+    },
+  }),
   feed: 'https://a.example/feed',
+  page: {
+    address: 'https://a.example/',
+    posts: ['https://a.example/feed', 'https://a.example/podcast'],
+    comments: ['https://a.example/comments/feed'],
+  },
   notAFeed: 'https://a.example/page',
   unreachable: 'https://unreachable.example/feed',
 }))

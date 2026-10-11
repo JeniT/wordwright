@@ -203,6 +203,25 @@ export const SourceListSchema = z.array(SourceSchema)
 export const SourceInputSchema = z.object({ url: FeedUrlSchema })
 export type SourceInput = z.infer<typeof SourceInputSchema>
 
+/**
+ * What adding a website can answer instead of a source: the website offers several feeds, and the
+ * person chooses. Nothing has been added yet.
+ */
+export const SourceChoicesSchema = z.object({
+  choices: z.array(
+    z.object({
+      url: z.string(),
+      /** What the website calls this feed; null when it doesn't say. */
+      title: z.string().nullable(),
+      /** A feed of comments rather than of posts. */
+      comments: z.boolean(),
+      /** Already in this profile's list. */
+      alreadyAdded: z.boolean(),
+    }),
+  ),
+})
+export type SourceChoices = z.infer<typeof SourceChoicesSchema>
+
 /** Every source id, in the new order. Must name exactly the sources the profile has. */
 export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })
 export type SourceOrder = z.infer<typeof SourceOrderSchema>

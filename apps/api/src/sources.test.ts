@@ -135,6 +135,87 @@ describe('idea sources', () => {
     expect(await list(bob, bobBase)).toEqual([])
   })
 
+  describe('a website that offers several feeds', () => {
+    const fetcher = new FakeFeedFetcher({
+      'https://site.example/': {
+        advertises: [
+          { url: 'https://site.example/comments/feed', title: 'Comments', comments: true },
+          { url: 'https://site.example/feed', title: 'Posts' },
+          { url: 'https://site.example/podcast', title: 'Podcast' },
+        ],
+      },
+      'https://site.example/feed': { title: 'Posts' },
+      'https://site.example/podcast': { title: 'Podcast' },
+      'https://one.example/': { advertises: [{ url: 'https://one.example/feed' }] },
+      'https://one.example/feed': { title: 'Only feed' },
+    })
+    let user: TestClient
+    let path: string
+    beforeEach(async () => {
+      const c = setup({ feeds: fetcher })
+      user = c.client()
+      await register(user)
+      path = `/api/profiles/${(await (await user.get('/api/profiles')).json())[0].id}/sources`
+    })
+    const listed = async () =>
+      (await (await user.get(path)).json()).map((s: { url: string }) => s.url)
+
+    it('answers with the choices, posts first and comments last, and adds nothing', async () => {
+      const res = await user.post(path, { url: 'site.example' })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({
+        choices: [
+          {
+            url: 'https://site.example/feed',
+            title: 'Posts',
+            comments: false,
+            alreadyAdded: false,
+          },
+          {
+            url: 'https://site.example/podcast',
+            title: 'Podcast',
+            comments: false,
+            alreadyAdded: false,
+          },
+          {
+            url: 'https://site.example/comments/feed',
+            title: 'Comments',
+            comments: true,
+            alreadyAdded: false,
+          },
+        ],
+      })
+      expect(await listed()).toEqual([])
+    })
+
+    it('adds a chosen feed the ordinary way, and then marks it as already added', async () => {
+      const added = await user.post(path, { url: 'https://site.example/podcast' })
+      expect(added.status).toBe(201)
+      expect(await added.json()).toMatchObject({ url: 'https://site.example/podcast' })
+      const again = await (await user.post(path, { url: 'site.example' })).json()
+      expect(again.choices.map((c: { alreadyAdded: boolean }) => c.alreadyAdded)).toEqual([
+        false,
+        true,
+        false,
+      ])
+    })
+
+    it('adds the feed straight away when a site advertises just one', async () => {
+      const res = await user.post(path, { url: 'https://one.example/' })
+      expect(res.status).toBe(201)
+      expect(await res.json()).toMatchObject({
+        url: 'https://one.example/feed',
+        title: 'Only feed',
+      })
+    })
+
+    it('explains when a site has no feed, and counts discovery towards the hourly limit', async () => {
+      const res = await user.post(path, { url: 'https://x.example/notafeed' })
+      expect(res.status).toBe(422)
+      expect((await res.json()).error).toContain('RSS or Atom')
+    })
+  })
+
   it('reads each feed when it is added and keeps its title, description and website', async () => {
     const fetcher = new FakeFeedFetcher({
       'https://slow.example/feed': {
@@ -215,6 +296,7 @@ describe('idea sources', () => {
   it('stores the feed found on a website, and spots when it is already listed', async () => {
     const fetcher = new FakeFeedFetcher({
       'https://site.example/': { url: 'https://site.example/feed.xml', title: 'Site' },
+      'https://site.example/feed.xml': { title: 'Site' },
     })
     const c = setup({ feeds: fetcher })
     const user = c.client()

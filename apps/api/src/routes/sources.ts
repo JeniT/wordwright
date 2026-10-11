@@ -38,6 +38,11 @@ export function sourceRoutes(
       if (err instanceof FeedError) throw new HTTPException(422, { message: err.message })
       throw err
     })
+  const discover = (url: string, signal: AbortSignal) =>
+    feeds.discover(url, { signal }).catch((err: unknown) => {
+      if (err instanceof FeedError) throw new HTTPException(422, { message: err.message })
+      throw err
+    })
   const duplicate = () => new HTTPException(409, { message: 'That feed is already in your list.' })
 
   return (
@@ -53,9 +58,18 @@ export function sourceRoutes(
         // Each add makes our server fetch pages from the internet, so cap how many one person can start.
         if (!addLimiter.allow(c.get('user').id)) throw tooManyAdds()
 
-        // Read the feed first: it tells us what to call it, and refuses things that aren't feeds.
         const signal = AbortSignal.timeout(ADD_TIMEOUT_MS)
-        const feed = await readFeed(url, signal)
+        // A website may offer several feeds. Which one is wanted is the person's call, so say what
+        // is on offer and add nothing; each choice then comes back here as an address of its own.
+        const offered = await discover(url, signal)
+        if (offered.length > 1) {
+          return c.json({
+            choices: offered.map((o) => ({ ...o, alreadyAdded: sources.has(profileId, o.url) })),
+          })
+        }
+
+        // Read the feed first: it tells us what to call it, and refuses things that aren't feeds.
+        const feed = await readFeed(offered[0]!.url, signal)
         const icon = await feeds.fetchIcon(feed, { signal })
 
         // The checks are repeated: other requests may have run while we were waiting on the network.

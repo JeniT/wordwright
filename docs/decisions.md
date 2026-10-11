@@ -640,6 +640,14 @@ the one new dependency: parsing XML by hand is a worse risk) has entity expansio
 web page that advertises a feed (`<link rel="alternate" type="application/rss+xml">`) that feed is used, one hop only.
 Adding is throttled (30/hour/person) because each add makes outbound requests.
 
+A website can offer several feeds (WordPress also advertises one for comments; some sites have one per category or
+podcast), and taking the first was often wrong. `FeedFetcher.discover` lists what a page advertises, using the page's
+own titles and without reading each feed, at most 10, feeds of comments (spotted by "comment" in the title or address)
+last. Adding a website that offers more than one answers `200 {choices}` and adds nothing; the choices go back one by
+one as ordinary addresses, so each is read, checked and rate-limited like any other add. A direct feed address, or a
+page with exactly one feed, is added at once as before, at the cost of reading it twice (once to discover, once to
+add). Choices are not pre-ticked: which feed to follow is the writer's call.
+
 Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
 served from our own origin like profile pictures. Pointing browsers at the other site's image directly would tell

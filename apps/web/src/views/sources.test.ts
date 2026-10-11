@@ -338,6 +338,124 @@ describe('feeds on the Inspiration page', () => {
   })
 })
 
+describe('a website that offers several feeds', () => {
+  const choices = (extra: Record<string, unknown> = {}) => ({
+    choices: [
+      { url: 'https://s.example/feed', title: 'Posts', comments: false, alreadyAdded: false },
+      { url: 'https://s.example/podcast', title: null, comments: false, alreadyAdded: false },
+      {
+        url: 'https://s.example/comments',
+        title: 'Comments',
+        comments: true,
+        alreadyAdded: false,
+        ...extra,
+      },
+    ],
+  })
+  /** Answers the site address with choices; any feed address is added. */
+  function fakeSite(answer: (url: string) => Response | null = () => null) {
+    const asked: string[] = []
+    server.use(
+      http.post('*/api/profiles/:id/sources', async ({ request }) => {
+        const { url } = (await request.json()) as { url: string }
+        asked.push(url)
+        const custom = answer(url)
+        if (custom) return custom
+        if (url === 's.example') return HttpResponse.json(choices())
+        return HttpResponse.json(
+          source(`n${asked.length}`, url.replace('https://', '').replace('/feed', ''), {
+            title: `Feed ${url}`,
+          }),
+          { status: 201 },
+        )
+      }),
+    )
+    return asked
+  }
+  const ask = async () => {
+    await screen.findByText('Alpha Notes')
+    await fireEvent.update(screen.getByLabelText('Add a feed'), 's.example')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    return screen.findByRole('group', {
+      name: 'That site has more than one feed. Which would you like?',
+    })
+  }
+
+  it('lists the feeds on offer, labels comments, and adds nothing until one is chosen', async () => {
+    fakeSources([A])
+    const asked = fakeSite()
+    await openInspiration()
+    const group = await ask()
+    expect(within(group).getByLabelText(/Posts/)).not.toBeChecked()
+    expect(within(group).getByLabelText(/s\.example\/podcast/)).toBeInTheDocument() // untitled: its address
+    expect(within(group).getByLabelText(/Comments \(comments\)/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add chosen feed' })).toBeDisabled()
+    expect(asked).toEqual(['s.example'])
+  })
+
+  it('adds each ticked feed, and clears the choice and the address', async () => {
+    fakeSources([A])
+    const asked = fakeSite()
+    await openInspiration()
+    const group = await ask()
+    await fireEvent.click(within(group).getByLabelText(/Posts/))
+    await fireEvent.click(within(group).getByLabelText(/s\.example\/podcast/))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add chosen feeds' }))
+    await waitFor(() => expect(screen.queryByRole('group')).not.toBeInTheDocument())
+    expect(asked).toEqual(['s.example', 'https://s.example/feed', 'https://s.example/podcast'])
+    expect(screen.getByLabelText('Add a feed')).toHaveValue('')
+  })
+
+  it('keeps the feeds that could not be added, with the reason, and drops the rest', async () => {
+    fakeSources([A])
+    fakeSite((url) =>
+      url === 'https://s.example/podcast'
+        ? HttpResponse.json({ error: 'That feed is already in your list.' }, { status: 409 })
+        : null,
+    )
+    await openInspiration()
+    const group = await ask()
+    await fireEvent.click(within(group).getByLabelText(/Posts/))
+    await fireEvent.click(within(group).getByLabelText(/s\.example\/podcast/))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add chosen feeds' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('already in your list')
+    const left = screen.getByRole('group')
+    expect(within(left).queryByLabelText(/Posts/)).not.toBeInTheDocument()
+    expect(within(left).getByLabelText(/s\.example\/podcast/)).toBeInTheDocument()
+  })
+
+  it('does not offer a feed that is already listed, and lets the person back out', async () => {
+    fakeSources([A])
+    fakeSite((url) =>
+      url === 's.example'
+        ? HttpResponse.json({
+            choices: [
+              {
+                url: 'https://s.example/feed',
+                title: 'Posts',
+                comments: false,
+                alreadyAdded: true,
+              },
+              {
+                url: 'https://s.example/podcast',
+                title: 'Podcast',
+                comments: false,
+                alreadyAdded: false,
+              },
+            ],
+          })
+        : null,
+    )
+    await openInspiration()
+    const group = await ask()
+    expect(within(group).getByLabelText(/Posts/)).toBeDisabled()
+    expect(group).toHaveTextContent('already in your list')
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('group')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Add a feed')).toHaveValue('s.example')
+  })
+})
+
 describe('where the feeds live', () => {
   it('is reached from the profile page, and is no longer in Settings', async () => {
     fakeSources([A])

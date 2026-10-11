@@ -6,6 +6,8 @@ import {
   detectIconType,
   FeedError,
   MAX_ICON_BYTES,
+  tidyCandidates,
+  type FeedCandidate,
   type FeedDetails,
   type FeedFetcher,
   type FetchedIcon,
@@ -63,10 +65,25 @@ export class HttpFeedFetcher implements FeedFetcher {
       const found = tryParse(second, advertised)
       if (found) return found
     }
-    throw new FeedError(
-      'not-a-feed',
-      'That address doesn’t look like an RSS or Atom feed. Look for a link or button called “RSS” or “Subscribe” on the site, and paste that address instead.',
-    )
+    throw notAFeed()
+  }
+
+  async discover(
+    address: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<FeedCandidate[]> {
+    const first = await this.get(address, this.maxBytes, options.signal)
+    // A feed offers itself. As in `inspect`, the address asked for is the one kept.
+    const asFeed = tryParse(first, address)
+    if (asFeed) return [{ url: address, title: asFeed.title, comments: false }]
+
+    // Only the page's own links are listed, not read: each is read when it is chosen and added.
+    const found = parseHtmlLinks(first.body.toString('utf8'), first.url).feedLinks.map((f) => ({
+      ...f,
+      comments: isCommentFeed(f),
+    }))
+    if (!found.length) throw notAFeed()
+    return tidyCandidates(found)
   }
 
   async fetchIcon(
@@ -216,6 +233,19 @@ export class HttpFeedFetcher implements FeedFetcher {
 }
 
 class BlockedError extends Error {}
+
+const notAFeed = () =>
+  new FeedError(
+    'not-a-feed',
+    'That address doesn’t look like an RSS or Atom feed. Look for a link or button called “RSS” or “Subscribe” on the site, and paste that address instead.',
+  )
+
+/** WordPress and others advertise a feed of comments beside the one of posts; it says so in its title or address. */
+function isCommentFeed({ url, title }: { url: string; title: string | null }) {
+  return (
+    /\bcomments?\b/i.test(title ?? '') || /\/comments?(\/|$|\.|\?)|[?&]feed=comments/i.test(url)
+  )
+}
 
 const unreachable = () =>
   new FeedError('unreachable', 'We couldn’t reach that address. Check it and try again.')

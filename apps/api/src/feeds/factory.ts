@@ -5,10 +5,21 @@ import { HttpFeedFetcher } from './http-feed-fetcher'
 /**
  * A fake that treats every `*.example` address as a feed named after its host (with a logo), except
  * those containing "notafeed" or "unreachable", so e2e tests can see both outcomes without a network.
+ * `several.<name>.example` is a site that offers three feeds.
  */
 export const exampleFeeds = () =>
   new FakeFeedFetcher({}, (address) => {
     const { host } = new URL(address)
+    // A site offering three feeds, to see the choice.
+    if (host.startsWith('several.') && host.endsWith('.example') && !address.includes('/feed')) {
+      return {
+        advertises: [
+          { url: 'https://posts.example/feed', title: 'Posts' },
+          { url: 'https://podcast.example/feed', title: 'Podcast' },
+          { url: 'https://posts.example/comments/feed', title: 'Comments', comments: true },
+        ],
+      }
+    }
     return host.endsWith('.example') && !address.includes('notafeed')
       ? {
           title: `Feed of ${host}`,

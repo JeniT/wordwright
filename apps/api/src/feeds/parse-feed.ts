@@ -146,13 +146,15 @@ const notAFeed = () =>
 export interface PageLinks {
   /** Feeds the page advertises, best first. */
   feeds: string[]
+  /** The same feeds with what the page calls each, in page order. */
+  feedLinks: { url: string; title: string | null }[]
   /** Icons the page advertises, best first. */
   icons: string[]
 }
 
 /** Finds the feed and icon links a web page declares in its <head>. */
 export function parseHtmlLinks(html: string, base: string): PageLinks {
-  const feeds: string[] = []
+  const feedLinks: { url: string; title: string | null }[] = []
   const icons: { href: string; rank: number }[] = []
   for (const tag of html.match(/<link\b[^>]*>/gi) ?? []) {
     const attr = (name: string) =>
@@ -165,12 +167,15 @@ export function parseHtmlLinks(html: string, base: string): PageLinks {
     const type = value('type').toLowerCase()
     const href = webUrl(value('href').replace(/&amp;/g, '&'), base)
     if (!href) continue
-    if (rel.includes('alternate') && /^application\/(rss|atom)\+xml$/.test(type)) feeds.push(href)
-    else if (rel.includes('apple-touch-icon')) icons.push({ href, rank: 0 })
+    if (rel.includes('alternate') && /^application\/(rss|atom)\+xml$/.test(type)) {
+      const title = value('title').replace(/&amp;/g, '&').replace(/\s+/g, ' ')
+      feedLinks.push({ url: href, title: title || null })
+    } else if (rel.includes('apple-touch-icon')) icons.push({ href, rank: 0 })
     else if (rel.includes('icon')) icons.push({ href, rank: type === 'image/svg+xml' ? 3 : 1 })
   }
   return {
-    feeds,
+    feeds: feedLinks.map((f) => f.url),
+    feedLinks,
     // SVG is not accepted as an icon (it can carry script), so it only counts if nothing else does.
     icons: icons.sort((a, b) => a.rank - b.rank).map((i) => i.href),
   }

@@ -12,6 +12,19 @@ export interface FeedDetails {
   iconUrl: string | null
 }
 
+/** A feed a web page says it offers. */
+export interface FeedCandidate {
+  /** The feed's address. */
+  url: string
+  /** What the page calls it (its `title`), if it says; reading the feed itself comes later. */
+  title: string | null
+  /** A feed of comments rather than of posts: rarely what a person wants, so listed last. */
+  comments: boolean
+}
+
+/** The most feeds one page is asked about, so a page that lists hundreds can't flood the person. */
+export const MAX_FEED_CANDIDATES = 10
+
 export interface FetchedIcon {
   contentType: IconType
   data: Uint8Array
@@ -41,6 +54,12 @@ export interface FeedFetcher {
    */
   inspect(address: string, options?: { signal?: AbortSignal }): Promise<FeedDetails>
   /**
+   * Every feed offered at `address`: the feed itself if that is what it is, else the feeds the web
+   * page advertises (at most `MAX_FEED_CANDIDATES`, feeds of comments last). Rejects with a
+   * `FeedError` when there are none.
+   */
+  discover(address: string, options?: { signal?: AbortSignal }): Promise<FeedCandidate[]>
+  /**
    * A small picture for the feed: the logo it names, else its website's icon. Never rejects;
    * resolves to null when there is none or it can't be fetched (the icon is a nicety).
    */
@@ -59,15 +78,30 @@ export const TINY_PNG = Uint8Array.from(
  * In-memory fake. Knows the feeds it is given; anything else is "not a feed" unless `fallback`
  * answers for it. Records every address it was asked about.
  */
+/** Puts feeds of comments last and applies the cap, as every adapter must. */
+export function tidyCandidates(candidates: FeedCandidate[]): FeedCandidate[] {
+  const seen = new Set<string>()
+  const unique = candidates.filter((c) => !seen.has(c.url) && !!seen.add(c.url))
+  return [...unique.filter((c) => !c.comments), ...unique.filter((c) => c.comments)].slice(
+    0,
+    MAX_FEED_CANDIDATES,
+  )
+}
+
+/** What a fake knows about an address: a feed's details, or (with `advertises`) a page offering feeds. */
+type KnownFeed = Partial<FeedDetails> & {
+  icon?: boolean
+  advertises?: (Pick<FeedCandidate, 'url'> & Partial<FeedCandidate>)[]
+}
+
 export class FakeFeedFetcher implements FeedFetcher {
   readonly inspected: string[] = []
+  readonly discovered: string[] = []
   readonly iconsFetched: string[] = []
 
   constructor(
-    private readonly feeds: Record<string, Partial<FeedDetails> & { icon?: boolean }> = {},
-    private readonly fallback?: (
-      address: string,
-    ) => (Partial<FeedDetails> & { icon?: boolean }) | undefined,
+    private readonly feeds: Record<string, KnownFeed> = {},
+    private readonly fallback?: (address: string) => KnownFeed | undefined,
   ) {}
 
   async inspect(address: string): Promise<FeedDetails> {
@@ -87,6 +121,21 @@ export class FakeFeedFetcher implements FeedFetcher {
       iconUrl: known.iconUrl ?? null,
       ...(known.icon ? { iconUrl: known.iconUrl ?? `${new URL(address).origin}/logo.png` } : {}),
     }
+  }
+
+  async discover(address: string): Promise<FeedCandidate[]> {
+    this.discovered.push(address)
+    const known = this.feeds[address] ?? this.fallback?.(address)
+    if (address.includes('unreachable')) {
+      throw new FeedError('unreachable', 'We couldn’t reach that address. Check it and try again.')
+    }
+    if (known?.advertises?.length) {
+      return tidyCandidates(known.advertises.map((c) => ({ title: null, comments: false, ...c })))
+    }
+    if (!known) {
+      throw new FeedError('not-a-feed', 'That address doesn’t look like an RSS or Atom feed.')
+    }
+    return [{ url: known.url ?? address, title: known.title ?? null, comments: false }]
   }
 
   async fetchIcon(feed: FeedDetails): Promise<FetchedIcon | null> {

@@ -353,3 +353,32 @@ test('manages the ordered list of feeds on the Inspiration page', async ({ page 
   await page.reload()
   await expect.poll(hosts).toEqual(['two.example', 'one.example'])
 })
+
+test('pasting a site that offers several feeds asks which to add', async ({ page }) => {
+  await registerUser(page, uniqueName('Wren'))
+  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Choosing feeds')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('link', { name: 'Inspiration' }).click()
+
+  const feeds = page.getByRole('region', { name: 'Feeds' })
+  await feeds.getByLabel('Add a feed').fill('several.site.example')
+  await feeds.getByRole('button', { name: 'Add source' }).click()
+
+  const choice = feeds.getByRole('group', { name: /more than one feed/ })
+  await expect(choice.getByLabel(/Comments/)).toBeVisible() // comments are listed, and labelled
+  await expect(feeds.getByRole('listitem')).toHaveCount(0) // nothing yet
+  await noViolations(page)
+
+  await choice.getByLabel(/Posts/).check()
+  await choice.getByLabel(/Podcast/).check()
+  await feeds.getByRole('button', { name: 'Add chosen feeds' }).click()
+  await expect(choice).toHaveCount(0)
+  await expect(
+    feeds.getByRole('listitem').filter({ hasText: 'Feed of posts.example' }),
+  ).toBeVisible()
+  await expect(
+    feeds.getByRole('listitem').filter({ hasText: 'Feed of podcast.example' }),
+  ).toBeVisible()
+  await expect(feeds.getByLabel('Add a feed')).toHaveValue('')
+})

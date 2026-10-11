@@ -135,6 +135,8 @@ tests inject fakes and nothing hits the network.
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
   Nothing scans the feeds for articles yet; that is idea generation (T6).
+  If a pasted website offers several feeds, the person is shown them (posts first, feeds of comments last and
+  labelled, at most 10) and ticks which to add; `POST` then answers `200 {choices}` instead of `201`.
   API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `PUT .../sources/order`
   (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
