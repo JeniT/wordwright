@@ -5,13 +5,14 @@ sources, shaping an argument and outline, critiquing drafts _without losing the 
 titles/openings/social posts. Users bring their own LLM API key; the service has no server-wide LLM key.
 
 Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writing-assistant/issues) (what to work on; `gh issue list --label ready`) → [docs/decisions.md](docs/decisions.md)
-(why things are the way they are) → [docs/responsible-ai.md](docs/responsible-ai.md) (how AI may and may not be used here) → [README.md](README.md) (setup, architecture, accounts, BYOK).
+(why things are the way they are) → [docs/responsible-ai.md](docs/responsible-ai.md) (how AI may and may not be used here) → [README.md](README.md) (setup, architecture, accounts, BYOK). **Before changing anything people see, read [docs/design.md](docs/design.md).**
 
 ## The owner's four priorities (these decide trade-offs)
 
 1. **Good, clean interface design.** Calm and book-like, not busy. Every screen must be keyboard-usable and
    pass the axe accessibility checks; every async action needs loading, empty and error states; error messages
    say what the person can do next. Use semantic HTML and labelled controls. Check layouts at phone width.
+   The look is the **Ember** design system ([docs/design.md](docs/design.md)): follow it, don't improvise.
 2. **Flexibility to plug in and rely on external services.** Application code depends on **ports** (interfaces
    in `packages/core`), never on a vendor SDK. Each external service (LLM, search/news/scholarly sources,
    email, identity providers) is an adapter behind a port, with a fake for tests, and is injected, not imported.
@@ -56,7 +57,10 @@ Don't kill another session's processes.
 - `apps/api`: Hono API. `routes/` (HTTP only) → `services/` (business rules) → `db/` (SQLite stores).
   `createApp(deps)` takes every dependency as an argument; tests inject fakes and never touch the network.
 - `apps/web`: Vue 3 + Vite + Pinia + TanStack Query + Tiptap + Tailwind v4. `lib/api.ts` is the only place that
-  calls the API, and it validates responses with the shared schemas.
+  calls the API, and it validates responses with the shared schemas. `src/theme/` is the design: the colour
+  palette (`palette-ember.css`, the only place a colour is chosen) and the components built on it (`theme.css`).
+- `docs/design.md`: the design system and how to apply it. `docs/design-concepts/`: the options we considered
+  (an archive; the decision and reasons are in `docs/decisions.md`).
 
 ## Conventions
 
@@ -71,6 +75,18 @@ Don't kill another session's processes.
 - **Per-user spending:** AI calls use the _requesting_ user's own key (`LlmKeyService.resolve`). Never add a
   fallback to a shared key.
 - **UI text:** plain, friendly English; no jargon in error messages.
+- **Styling (full rules in [docs/design.md](docs/design.md)):**
+  - Use **roles, never raw colours**: `bg-surface`, `text-ink-soft`, `border-line-strong`, `text-danger`,
+    `bg-accent-wash` ... Tailwind's default palette is switched off, so `bg-stone-100` or `text-red-700` simply
+    does nothing. Never write a hex value or a `dark:` variant in a component; dark mode lives in the palette file.
+  - Use the **component classes** (`btn btn-primary|outline|neutral|danger|quiet`, `field`, `panel`, `card`, `chip`,
+    `callout`) instead of long utility strings, and `rounded-ctl` / `rounded-panel` instead of `rounded`.
+    No shadows or gradients. One sans typeface, in the editor and chat too.
+  - The **highlighter** (`chip-ai`, `bg-mark`) is only for what the AI suggested. Errors use `danger` (raspberry),
+    with words and an icon, never colour alone.
+  - Other websites' icons and logos go through `ProfileImage kind="source"` (a light plate, never bare).
+  - Need a role, component or rule that doesn't exist? Add it to `theme/` (and the palette test) and update
+    `docs/design.md`; don't style one screen differently.
 - **Reorderable lists:** use `ReorderableList` (drag grip, arrow buttons, focus and announcements) for any list
   whose order people can change, so they all look and behave alike.
 - Don't add dependencies casually; prefer the platform and what's already installed. Explain any new one in the commit.
@@ -79,7 +95,8 @@ Don't kill another session's processes.
 
 1. Behaviour covered by tests at the right level: unit/API tests for logic, component tests for UI states
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
-2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors.
+2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors. UI changes follow
+   [docs/design.md](docs/design.md) and have been looked at in light **and** dark mode and at phone width (390px).
 3. Docs updated where behaviour changed (README section, `.env.example`, `docs/decisions.md` for non-obvious choices).
    A feature that calls an LLM also adds boundary evals, and an invariant test where a boundary is structural
    (see [docs/responsible-ai.md](docs/responsible-ai.md)). A change to anything in `prompts/` is a change to the

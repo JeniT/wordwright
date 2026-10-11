@@ -22,6 +22,21 @@ and an LLM-powered critique. The rest is built on the same provider architecture
 | `packages/core` | Domain schemas (Zod) and provider interfaces + adapters, shared by web and api                       |
 | Tests           | Vitest, Testing Library, MSW, Playwright (+ axe), Promptfoo (`evals/`, see `docs/responsible-ai.md`) |
 
+## Design
+
+The look is the **Ember** design system: a side menu, IBM Plex Sans throughout, warm stone neutrals with one
+burnt-orange accent, clearly outlined controls, and a light and dark mode (it follows your system; the button at
+the foot of the side menu overrides it). Colours are chosen by _role_ in one palette file, never in components, so
+the design is easy to edit or swap:
+
+- [docs/design.md](docs/design.md): the principles, colour roles, components, and how to apply the design to a change
+- [`apps/web/src/theme/`](apps/web/src/theme): `palette-ember.css` (the colours, light and dark) and `theme.css` (fonts, components)
+- [docs/decisions.md](docs/decisions.md#visual-design-ember): why Ember, and the other options we looked at
+  (screens and write-ups in [docs/design-concepts/](docs/design-concepts/README.md))
+
+Contrast is tested (`palette.test.ts`) and axe runs in the e2e suite; fonts are self-hosted (SIL OFL), so no
+request goes to a font service.
+
 ## Getting started
 
 Requires Node 24+ and pnpm.
@@ -267,6 +282,6 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 
 - **Storage:** stores in `apps/api/src/db` use `node:sqlite` with versioned migrations
   (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
-- **UI components:** Tailwind only for now; add headless primitives (Reka UI / shadcn-vue) when you need
-  dialogs, menus and comboboxes.
+- **UI components:** Tailwind plus our own component classes ([docs/design.md](docs/design.md)); add headless primitives
+  (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
 - **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.

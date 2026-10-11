@@ -1,0 +1,154 @@
+/*
+ * What every concept shares: the things that are about accessibility and robustness, not taste.
+ * A concept's theme.css supplies the colours (tokens.css), the faces and the shape of each component.
+ */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* A focused control must never end up hidden under a sticky header (WCAG 2.4.11). */
+    scroll-padding-block: 5rem;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-mark);
+    color: var(--color-ink);
+  }
+  /* One focus style for everything, drawn with an outline so it survives forced-colours mode. */
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    accent-color: var(--color-accent);
+  }
+  [aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+  img,
+  svg {
+    display: block;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Line icons: stroke follows the text colour, size follows the text size. */
+@utility icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/*
+ * Logos and pictures that come from other websites (source icons, identity providers).
+ *
+ * We can't control them: they may be transparent, dark-on-transparent, full-bleed colour, white-backed,
+ * tiny, or the wrong shape. So they are never shown bare. They always sit on a "plate" of fixed size
+ * with its own light background (which keeps dark marks legible in dark mode), contained rather than
+ * cropped, and are decorative (alt="") because the source's name is always printed beside them.
+ * A letter on a tinted tile stands in when there is no usable picture. Each theme chooses the plate's shape.
+ */
+@utility source-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--mark-size, 2.5rem);
+  height: var(--mark-size, 2.5rem);
+  overflow: hidden;
+  background: #fff; /* deliberately not a token: it must stay light in every mode */
+  & > img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: calc(var(--mark-size, 2.5rem) * 0.12);
+  }
+}
+/* The stand-in when a site has no picture, or its picture is unusable (very wide, unreadable). */
+@utility source-letter {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--mark-size, 2.5rem);
+  height: var(--mark-size, 2.5rem);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: calc(var(--mark-size, 2.5rem) * 0.45);
+  line-height: 1;
+  background: var(--tint-bg, var(--color-sunken));
+  color: var(--tint-fg, var(--color-ink));
+}
+@utility mark-sm {
+  --mark-size: 1.5rem;
+}
+@utility mark-lg {
+  --mark-size: 3.5rem;
+}
+@utility tint-1 {
+  --tint-bg: var(--tint-1-bg);
+  --tint-fg: var(--tint-1-fg);
+}
+@utility tint-2 {
+  --tint-bg: var(--tint-2-bg);
+  --tint-fg: var(--tint-2-fg);
+}
+@utility tint-3 {
+  --tint-bg: var(--tint-3-bg);
+  --tint-fg: var(--tint-3-fg);
+}
+@utility tint-4 {
+  --tint-bg: var(--tint-4-bg);
+  --tint-fg: var(--tint-4-fg);
+}
+
+/* A neutral count or status chip: tinted with the accent, so it never competes with the highlighter. */
+@utility chip-accent {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent);
+  color: var(--color-ink);
+}
+
+/* The brainstorm conversation. Each message says who is speaking in words, not only by position or colour. */
+@utility msg {
+  max-width: 42rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel, var(--radius-ctl));
+  background: var(--color-surface);
+}
+@utility msg-user {
+  margin-left: auto;
+  background: var(--color-accent-wash);
+  border-color: transparent;
+}
+@utility msg-who {
+  margin-bottom: 0.15rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}

@@ -1,0 +1,333 @@
+/*
+ * Concept 2: LEDGER. A well-kept working record: cool chalk paper, black ink, one ultramarine, square corners,
+ * firm 1.5px rules. A grotesk for the interface, a mono for facts (hosts, dates, counts) and a serif only
+ * on the writing surface. Drop-in replacement for the @theme block in apps/web/src/style.css.
+ */
+@import 'tailwindcss';
+@import './tokens.css';
+@import '../base.css';
+@source "./*.html";
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../fonts/ibm-plex-sans-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../fonts/ibm-plex-sans-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('../fonts/ibm-plex-serif-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('../fonts/ibm-plex-serif-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Serif';
+  src: url('../fonts/ibm-plex-serif-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-accent-wash: var(--accent-wash);
+  --color-mark: var(--mark);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-ok: var(--ok);
+  --color-ok-wash: var(--ok-wash);
+  --color-focus: var(--focus);
+}
+@theme {
+  --font-display: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-text: 'IBM Plex Serif', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+:root {
+  --font-body: var(--font-ui);
+  --radius-ctl: 0;
+  --rule: 1.5px;
+}
+
+/* A second, louder focus ring: ink, with a highlighter halo that shows on any background. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-mark);
+  border-radius: 0;
+}
+
+/* ——— type ——— */
+@utility h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.375rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+@utility h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+@utility h3 {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+/* Labels and facts are set in the mono, as in a ledger's column heads. */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+@utility meta {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-ink-soft);
+}
+@utility reading {
+  font-family: var(--font-text);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  max-width: 38em;
+  & p {
+    margin-block: 0 1.1em;
+  }
+  & h2 {
+    font-family: var(--font-display);
+    font-size: 1.375rem;
+    font-weight: 600;
+    margin: 1.6em 0 0.5em;
+  }
+  & blockquote {
+    margin: 1.4em 0;
+    padding-left: 1.25em;
+    border-left: 4px solid var(--color-accent);
+  }
+  & a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+}
+@utility link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  &:hover {
+    background: var(--color-accent-wash);
+  }
+}
+
+/* ——— controls ——— */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.1rem;
+  border: var(--rule) solid var(--color-ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+@utility btn-sm {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+@utility btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+  &:hover:not(:disabled) {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+}
+@utility btn-outline {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  &:hover:not(:disabled) {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+}
+@utility btn-neutral {
+  background: var(--color-surface);
+  &:hover:not(:disabled) {
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+}
+@utility btn-danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  &:hover:not(:disabled) {
+    background: var(--color-danger);
+    color: #fff;
+  }
+}
+@utility btn-quiet {
+  border-color: transparent;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  &:hover:not(:disabled) {
+    background: var(--color-accent-wash);
+  }
+}
+@utility label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+@utility hint {
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
+}
+@utility field {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: var(--rule) solid var(--color-ink);
+  border-radius: 0;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.4;
+  &::placeholder {
+    color: var(--color-ink-soft);
+  }
+  &[aria-invalid='true'] {
+    border-color: var(--color-danger);
+    background: var(--color-danger-wash);
+  }
+}
+
+/* ——— surfaces ——— */
+@utility panel {
+  background: var(--color-surface);
+  border: var(--rule) solid var(--color-ink);
+}
+@utility card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: var(--rule) solid var(--color-ink);
+  text-decoration: none;
+  &:hover {
+    background: var(--color-accent-wash);
+  }
+}
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
+}
+@utility chip-ai {
+  background: var(--color-mark);
+}
+@utility chip-ok {
+  background: var(--color-ok-wash);
+  border-color: var(--color-ok);
+  color: var(--color-ok);
+}
+@utility callout {
+  padding: 0.9rem 1rem;
+  border: var(--rule) solid var(--color-accent);
+  background: var(--color-accent-wash);
+  font-size: 0.9375rem;
+}
+@utility callout-danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger-wash);
+}
+@utility callout-ok {
+  border-color: var(--color-ok);
+  background: var(--color-ok-wash);
+}
+
+/* ——— other people's logos: a square plate with the same hard rule as every control ——— */
+@utility source-mark {
+  border: var(--rule) solid var(--color-ink);
+}
+@utility source-letter {
+  border: var(--rule) solid var(--color-ink);
+}
