@@ -2,8 +2,10 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import SideMenu from './components/SideMenu.vue'
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
+import { useNav } from './lib/nav'
 import { useProfileAddressRedirect, useProfiles } from './lib/useProfiles'
 import { useTheme } from './lib/useTheme'
 import { useSessionStore } from './stores/session'
@@ -13,9 +15,15 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 
-const profiles = useProfiles()
+useProfiles() // loaded once for everything that needs the list (the menu, the home page)
 useProfileAddressRedirect()
-const currentProfileId = computed(() => (route.params.profileId as string | undefined) ?? '')
+
+const nav = useNav()
+/** Where you are, for the phone's top bar while the menu is folded: "What the allotment…  02 Notes". */
+const here = computed(() => {
+  const step = nav.steps.value.find((s) => s.key === nav.stepKey.value)
+  return step ? `${step.number} ${step.label}` : ''
+})
 
 const signOut = useMutation({
   mutationFn: () => api.logout(),
@@ -36,11 +44,6 @@ watch(
   () => route.fullPath,
   () => (menuOpen.value = false),
 )
-
-function switchProfile(event: Event) {
-  const profileId = (event.target as HTMLSelectElement).value
-  if (profileId) router.push({ name: 'profile', params: { profileId } })
-}
 </script>
 
 <template>
@@ -49,14 +52,30 @@ function switchProfile(event: Event) {
     class="sr-only z-50 bg-surface px-4 py-2 font-semibold focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
     >Skip to content</a
   >
-  <!-- Signed in: a side menu (a top bar with a Menu button on phones). Signed out: just the name. -->
+  <!--
+    Signed in: a side menu that follows you (a top bar with a Menu button on phones, and at every width on pages
+    read beside another window: nav.compact). Signed out: just the name.
+  -->
   <div
     class="min-h-screen"
-    :class="session.user ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]' : ''"
+    :class="session.user && !nav.compact.value ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]' : ''"
   >
-    <header v-if="session.user" class="border-b border-line bg-surface md:border-r md:border-b-0">
-      <div class="md:sticky md:top-0 md:flex md:h-screen md:flex-col">
-        <div class="flex items-center justify-between gap-3 px-5 py-4 md:py-5">
+    <header
+      v-if="session.user"
+      class="border-b border-line bg-surface"
+      :class="nav.compact.value ? '' : 'md:border-r md:border-b-0'"
+    >
+      <div
+        :class="
+          nav.compact.value
+            ? ''
+            : 'md:sticky md:top-0 md:flex md:h-screen md:flex-col md:overflow-y-auto'
+        "
+      >
+        <div
+          class="flex items-center justify-between gap-3 px-5 py-4"
+          :class="nav.compact.value ? '' : 'md:py-5'"
+        >
           <RouterLink to="/" class="flex items-center gap-3 font-semibold no-underline">
             <span
               class="grid size-9 place-items-center rounded-ctl bg-accent text-sm text-on-accent"
@@ -67,7 +86,8 @@ function switchProfile(event: Event) {
           </RouterLink>
           <button
             type="button"
-            class="btn btn-neutral btn-sm md:hidden"
+            class="btn btn-neutral btn-sm"
+            :class="nav.compact.value ? '' : 'md:hidden'"
             aria-controls="side-menu"
             :aria-expanded="menuOpen"
             @click="menuOpen = !menuOpen"
@@ -75,34 +95,21 @@ function switchProfile(event: Event) {
             Menu
           </button>
         </div>
+        <p
+          v-if="!menuOpen && (nav.eyebrow.value || here)"
+          class="px-5 pb-3 text-sm break-words"
+          :class="nav.compact.value ? '' : 'md:hidden'"
+        >
+          {{ nav.eyebrow.value }}<template v-if="nav.eyebrow.value && here"> · </template
+          ><strong>{{ here }}</strong>
+        </p>
 
         <div
           id="side-menu"
-          class="flex-col md:flex md:flex-1"
-          :class="menuOpen ? 'flex' : 'hidden'"
+          class="flex-col"
+          :class="[menuOpen ? 'flex' : 'hidden', nav.compact.value ? '' : 'md:flex md:flex-1']"
         >
-          <div v-if="profiles.data.value?.length" class="px-4 pb-4">
-            <label class="meta mb-1 block" for="profile-switcher">Profile</label>
-            <select
-              id="profile-switcher"
-              class="field"
-              :value="currentProfileId"
-              @change="switchProfile"
-            >
-              <option value="" disabled>Choose profile…</option>
-              <option v-for="p in profiles.data.value" :key="p.id" :value="p.id">
-                {{ p.name }}{{ p.members.length > 1 ? ' (shared)' : '' }}
-              </option>
-            </select>
-          </div>
-
-          <nav class="px-3 pb-3" aria-label="Main">
-            <RouterLink
-              to="/"
-              class="flex min-h-11 items-center rounded-ctl px-3 no-underline hover:bg-sunken aria-[current=page]:bg-accent-wash aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--color-accent)]"
-              >Your profiles</RouterLink
-            >
-          </nav>
+          <SideMenu />
 
           <div class="mt-auto border-t border-line p-4">
             <p class="meta">Signed in as</p>

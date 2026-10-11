@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { expect, goTo, test } from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -16,10 +16,11 @@ async function signUpWithProfile(page: Page) {
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
 
-/** Adds a draft from the idea page and waits for the editor, so we don't type into the old page. */
+/** Goes to the Draft step, adds a draft and waits for the editor, so we don't type into the old page. */
 async function startDraft(page: Page) {
+  await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
-  await expect(page.getByRole('link', { name: /Back to “/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
 }
 
 const noViolations = async (page: Page, what: string) =>
@@ -37,8 +38,9 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
 
+  await goTo(page, 'Research')
   // The reading list. Text that isn't a web address is refused, in red under the field, and kept for fixing.
   const address = page.getByLabel('Web address', { exact: true })
   const add = page.getByRole('button', { name: 'Add link' })
@@ -102,22 +104,24 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save link' })).toHaveCount(0)
 
-  // Brainstorming has its own page (see brainstorm.spec.ts); from here it is a link.
-  await expect(page.getByRole('link', { name: 'Brainstorm' })).toBeVisible()
+  // Brainstorming has its own step, Refine (see brainstorm.spec.ts).
+  await expect(
+    page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Refine' }),
+  ).toBeVisible()
 
   // Two drafts make a linked set; each opens in the editor and links back.
   await startDraft(page)
   await page.getByLabel('Title', { exact: true }).fill('Part 1: the bend')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
-  await page.getByRole('link', { name: /Back to “Why rivers meander”/ }).click()
+  await page.getByRole('link', { name: '← All drafts' }).click()
   await startDraft(page)
   await page.getByLabel('Title', { exact: true }).fill('Part 2: the oxbow')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
-  await page.getByRole('link', { name: /Back to “Why rivers meander”/ }).click()
+  await page.getByRole('link', { name: '← All drafts' }).click()
 
-  const drafts = page.getByRole('list').filter({ hasText: 'Part 1: the bend' })
+  const drafts = page.getByRole('main').getByRole('list').filter({ hasText: 'Part 1: the bend' })
   await expect(drafts.getByRole('listitem')).toHaveText([/Part 1: the bend/, /Part 2: the oxbow/])
   await noViolations(page, 'idea page')
 
@@ -140,6 +144,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.reload()
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
 
+  await goTo(page, 'Notes')
   // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(1)
@@ -186,15 +191,17 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   ])
 
   // The profile lists it.
-  await page.getByRole('link', { name: '← Back to the profile' }).click()
+  await page.getByRole('link', { name: '← Weekly letters' }).click()
   await expect(page.getByRole('link', { name: /Why rivers meander/ })).toContainText('2 drafts')
 
   // Removing a link and deleting the idea both work, and deleting asks first.
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await goTo(page, 'Research')
   await page.getByRole('checkbox', { name: /^Show read items/ }).check() // example.org was read
   await page.getByRole('button', { name: 'Remove link to Fake title for example.org' }).click()
   await page.getByRole('button', { name: 'Remove link to Fake title for example.net' }).click()
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
+  await page.getByRole('link', { name: 'Idea settings' }).click()
   await page.getByRole('button', { name: 'Delete idea' }).click()
   await noViolations(page, 'delete dialog')
   await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()
@@ -214,7 +221,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await notes.getByRole('button', { name: 'Add note' }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(2)
 
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await body.click()
   await body.pressSequentially('My opening paragraph.')
@@ -264,7 +271,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   await page.getByLabel("What's your core idea?").fill('Tides')
   await page.getByLabel('Expand on your idea here').fill('The moon pulls the sea.')
   await page.getByRole('button', { name: 'Save idea' }).click()
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
 
   const open = page.getByRole('button', { name: 'Notes', exact: true })
   await expect(page.getByRole('complementary')).toBeHidden()
@@ -287,7 +294,8 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add link' }).click()
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
@@ -333,7 +341,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(box).toHaveValue('')
   await box.fill('So the bend moves downstream.')
   await page.getByRole('button', { name: 'Add note' }).click()
-  const list = page.getByRole('list')
+  const list = page.getByRole('main').getByRole('list')
   await expect(list.getByRole('listitem')).toHaveCount(2)
   // The newest is first, right under the box, so a note just added is in sight.
   await expect(list.getByRole('listitem').first()).toContainText('So the bend moves downstream.')
@@ -349,13 +357,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.reload()
   await expect(page.getByRole('checkbox', { name: 'I have read this' })).toBeChecked()
   await expect(page.getByText('So the bend moves downstream.')).toBeVisible()
-  await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
-  const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
-  await expect(
-    notes.getByText('From reading “Meanders, explained”, by Pat Writer and Quinn Scribe').first(),
-  ).toBeVisible()
-  await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
   // (the first item; the second, added from the reading page, is unread; read items are hidden until shown)
   await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toHaveCount(0)
   await page.getByRole('checkbox', { name: /^Show read items/ }).check()
@@ -364,6 +366,13 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   // Read items go last: the unread page found while reading comes first, the one just read after it.
   await expect(page.getByRole('checkbox', { name: /^Read: / }).first()).not.toBeChecked()
   await expect(page.getByRole('checkbox', { name: /^Read: / }).last()).toBeChecked()
+  await goTo(page, 'Notes')
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
+  await expect(
+    notes.getByText('From reading “Meanders, explained”, by Pat Writer and Quinn Scribe').first(),
+  ).toBeVisible()
+  await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
 })
 
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({
@@ -406,7 +415,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await expect(after.getByRole('list', { name: 'Tags' }).first()).toBeVisible()
 
   // Beside the draft, the same tags narrow the list to what belongs in this part.
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
   const side = page.getByRole('complementary')
   await side
     .getByRole('group', { name: 'Show notes with a tag' })
@@ -425,7 +434,8 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add link' }).click()
   await page.getByRole('link', { name: 'Take notes' }).click()
@@ -445,11 +455,14 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   await expect(page.getByText(/Ticked because you pasted this/)).toBeVisible()
   await noteBox.fill('Meanders grow because banks erode.')
   await page.getByRole('button', { name: 'Add note' }).click()
-  await expect(page.getByRole('list').locator('blockquote')).toContainText('Meanders grow')
+  await expect(page.getByRole('main').getByRole('list').locator('blockquote')).toContainText(
+    'Meanders grow',
+  )
   await noViolations(page, 'reading page with a quotation')
 
   // On the idea's notes the quotation can be tagged or deleted, but not edited.
-  await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
+  await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText(/^Quoted from/)).toBeVisible()
   await expect(notes.getByRole('button', { name: /^Edit note “Meanders/ })).toHaveCount(0)
@@ -457,7 +470,7 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   await noViolations(page, 'notes with a quotation')
 
   // In the draft it is a blockquote that names its source, and the record says where it came from.
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await body.click()
   await body.pressSequentially('My opening paragraph.')
@@ -481,12 +494,13 @@ test('a link to something on the reading list goes in only once it has been read
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add link' }).click()
   const title = /Fake title for example\.org/
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await body.click()
   await body.pressSequentially('Rivers never run straight, as ')
@@ -526,7 +540,7 @@ test('a link to something on the reading list goes in only once it has been read
   await insert.click()
   await expect(dialog).toHaveCount(0)
   await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
-  await page.getByRole('link', { name: /Back to “Why rivers meander”/ }).click()
+  await goTo(page, 'Research')
   await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
 })
@@ -582,15 +596,16 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add link' }).click()
   await page.getByRole('link', { name: 'Take notes' }).click()
   await page.getByLabel('Add a note from this page').fill('Meanders grow because banks erode.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Meanders grow because banks erode.')).toBeVisible()
-  await page.getByRole('link', { name: /^← Back to “Why rivers meander”/ }).click()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
 
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await page
     .getByRole('complementary')
@@ -625,7 +640,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   await notes.getByRole('button', { name: 'Add note' }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(2)
 
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await body.click()
   await page.keyboard.type('First paragraph.')

@@ -152,11 +152,7 @@ describe('the brainstorm page', () => {
   it('shows the idea and who sees what, and invites a start when there is no conversation', async () => {
     mockConversation()
     await renderAt(page)
-    expect(await screen.findByRole('heading', { name: 'Brainstorm' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '← Back to the idea' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/ideas/i1',
-    )
+    expect(await screen.findByRole('heading', { name: 'Refine' })).toBeInTheDocument()
     expect(screen.getByText(/the text of your\s+drafts never is/)).toBeInTheDocument()
     expect(screen.getByText(/Everyone in this profile sees this conversation/)).toBeInTheDocument()
 
@@ -593,7 +589,7 @@ describe('the brainstorm page', () => {
       expect(screen.getByText('No notes yet.')).toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'Open the new idea' })).toHaveAttribute(
         'href',
-        '/p/ada-substack/ideas/i2',
+        '/p/ada-substack/ideas/i2/notes',
       )
       expect(screen.getByText('Accepted by Bob.')).toBeInTheDocument()
     })

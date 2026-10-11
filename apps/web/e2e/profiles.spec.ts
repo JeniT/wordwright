@@ -45,11 +45,13 @@ test('creates a profile with a website and picture, and opens its page', async (
   await page.getByRole('button', { name: 'Create profile' }).click()
 
   // Lands on the profile page at its readable address.
-  await expect(page).toHaveURL(new RegExp(`/p/${handle}-my-substack$`))
-  await expect(page.getByRole('heading', { level: 1, name: 'My Substack' })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/p/${handle}-my-substack/ideas$`))
+  await expect(
+    page.getByRole('banner').getByText('My Substack').filter({ visible: true }).first(),
+  ).toBeVisible()
   const site = page.getByRole('link', { name: /pat\.substack\.com/ })
   await expect(site).toHaveAttribute('href', 'https://pat.substack.com')
-  const image = page.getByRole('main').locator('img')
+  const image = page.getByRole('banner').locator('img')
   await expect(image).toBeVisible()
   expect(await image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1)
   await noViolations(page)
@@ -68,10 +70,12 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Draft venue')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Draft venue' })).toBeVisible()
-  await expect(page.getByRole('main').locator('img')).toHaveCount(0) // monogram placeholder
+  await expect(
+    page.getByRole('banner').getByText('Draft venue').filter({ visible: true }).first(),
+  ).toBeVisible()
+  await expect(page.getByRole('banner').locator('img')).toHaveCount(0) // monogram placeholder
 
-  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Profile settings' }).click()
   await noViolations(page)
   await page.getByLabel('Name', { exact: true }).fill('Final venue')
   await page.getByLabel('Website').fill('not a url')
@@ -110,11 +114,13 @@ test('renaming a profile changes its address, and the old address still works', 
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Early name')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Early name' })).toBeVisible()
-  const oldPath = new URL(page.url()).pathname
+  await expect(
+    page.getByRole('banner').getByText('Early name').filter({ visible: true }).first(),
+  ).toBeVisible()
+  const oldPath = new URL(page.url()).pathname.replace(/\/ideas$/, '')
   expect(oldPath).toMatch(/^\/p\/[a-z0-9]+-early-name$/)
 
-  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Profile settings' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Later name')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
@@ -124,8 +130,10 @@ test('renaming a profile changes its address, and the old address still works', 
 
   // Bookmarks and shared links to the old address end up at the new one.
   await page.goto(oldPath)
-  await expect(page).toHaveURL(newPath)
-  await expect(page.getByRole('heading', { level: 1, name: 'Later name' })).toBeVisible()
+  await expect(page).toHaveURL(`${newPath}/ideas`)
+  await expect(
+    page.getByRole('banner').getByText('Later name').filter({ visible: true }).first(),
+  ).toBeVisible()
   await page.goto(`${oldPath}/settings`)
   await expect(page).toHaveURL(`${newPath}/settings`)
 
@@ -141,8 +149,10 @@ test('changes the display name, which is then used wherever it is shown', async 
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Remy venue')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Remy venue' })).toBeVisible()
-  await page.getByRole('link', { name: 'Settings' }).click()
+  await expect(
+    page.getByRole('banner').getByText('Remy venue').filter({ visible: true }).first(),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Profile settings' }).click()
   const member = (name: string) =>
     page
       .getByRole('main')
@@ -174,7 +184,7 @@ test('changes the display name, which is then used wherever it is shown', async 
     .getByRole('main')
     .getByRole('link', { name: /Remy venue/ })
     .click()
-  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Profile settings' }).click()
   await expect(member(`${who} Reed`)).toBeVisible()
 })
 
@@ -189,7 +199,7 @@ test('changes the username: existing profiles keep their address, new ones use i
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('First venue')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page).toHaveURL(`/p/${before}-first-venue`)
+  await expect(page).toHaveURL(`/p/${before}-first-venue/ideas`)
 
   await page.getByRole('link', { name: who, exact: true }).click()
   const section = page.getByRole('region', { name: 'Username' })
@@ -214,7 +224,7 @@ test('changes the username: existing profiles keep their address, new ones use i
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Second venue')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page).toHaveURL(`/p/${after}-second-venue`)
+  await expect(page).toHaveURL(`/p/${after}-second-venue/ideas`)
 
   // The old username is kept for them: nobody else can take it.
   const other = await (await browser.newContext()).newPage()
@@ -240,7 +250,7 @@ test('two people can each have a profile called "Substack", with different addre
     await p.getByRole('link', { name: 'New profile' }).click()
     await p.getByLabel('Name', { exact: true }).fill('Substack')
     await p.getByRole('button', { name: 'Create profile' }).click()
-    await expect(p).toHaveURL(new RegExp(`/p/${who.toLowerCase()}-substack$`))
+    await expect(p).toHaveURL(new RegExp(`/p/${who.toLowerCase()}-substack/ideas$`))
   }
 
   // One person's profile address doesn't open for the other.
@@ -311,7 +321,9 @@ test('manages the ordered list of feeds on the Inspiration page', async ({ page 
   await page.keyboard.press('Enter')
   await expect.poll(hosts).toEqual(['three.example', 'one.example', 'two.example'])
 
-  // ...and by dragging a source by its grip.
+  // ...and by dragging a source by its grip (with the list in view: the page above it is long, and a drag
+  // that has to scroll partway through is not what is being tested).
+  await sources.getByRole('listitem').first().scrollIntoViewIfNeeded()
   await sources
     .getByRole('listitem')
     .nth(2)

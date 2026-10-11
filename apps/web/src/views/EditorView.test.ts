@@ -225,7 +225,7 @@ describe('the notes beside the draft', () => {
     expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Add some on the idea page.' })).toHaveAttribute(
       'href',
-      '/p/p1/ideas/i1',
+      '/p/p1/ideas/i1/notes',
     )
   })
 

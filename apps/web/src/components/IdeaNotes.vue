@@ -29,6 +29,8 @@ const props = defineProps<{
   ideaId: string | null
   /** The reading list they were taken from (the idea's, or the profile's), to name each note's source. */
   readingList: readonly IdeaLink[]
+  /** The page's own title already says "Notes": keep this heading for screen readers only. */
+  quietHeading?: boolean
 }>()
 const queryClient = useQueryClient()
 
@@ -300,7 +302,13 @@ const label = (note: IdeaNote) => {
 
 <template>
   <section aria-labelledby="notes-heading" class="mb-10">
-    <h2 id="notes-heading" class="mb-1 font-display text-xl font-semibold">Notes</h2>
+    <h2
+      id="notes-heading"
+      class="mb-1 font-display text-xl font-semibold"
+      :class="{ 'sr-only': quietHeading }"
+    >
+      Notes
+    </h2>
     <p class="mb-3 text-sm text-ink-soft">
       One thought to a note, like index cards. Drag them, or use the arrows, to put them in order.
       To delete a note, press and hold its Delete button.

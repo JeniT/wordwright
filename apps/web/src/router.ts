@@ -9,6 +9,14 @@ declare module 'vue-router' {
     open?: boolean
     /** Pages that need more room than a column of text (the drafting page has a side column). */
     wide?: boolean
+    /** Which level of the app the page belongs to, which decides what the side menu lists (see lib/nav.ts). */
+    level?: 'profile' | 'idea'
+    /** The numbered step the page belongs to (a key from PROFILE_STEPS or IDEA_STEPS); none for settings. */
+    step?: string
+    /** For the drafting page: the idea it belongs to is found from the draft, not from the address. */
+    ideaFromDraft?: boolean
+    /** Pages used beside another window (reading a source): the side menu folds away at every width. */
+    compact?: boolean
   }
 }
 
@@ -74,83 +82,148 @@ export const routes: RouteRecordRaw[] = [
     name: 'new-profile',
     component: () => import('./views/NewProfileView.vue'),
   },
+  // ——— A profile: its three steps (01 Inspiration, 02 Notes, 03 Ideas) and its settings ———
   {
     path: '/p/:profileId',
     name: 'profile',
-    component: () => import('./views/ProfileView.vue'),
-    props: true,
-  },
-  {
-    path: '/p/:profileId/settings',
-    name: 'profile-settings',
-    component: () => import('./views/ProfileSettingsView.vue'),
-    props: true,
+    redirect: (to) => ({ name: 'profile-ideas', params: to.params }),
   },
   {
     path: '/p/:profileId/inspiration',
     name: 'inspiration',
     component: () => import('./views/InspirationView.vue'),
     props: true,
+    meta: { level: 'profile', step: 'inspiration' },
   },
+  // The profile's reading list is part of Inspiration now; the old address still lands there.
   {
     path: '/p/:profileId/reading',
     name: 'profile-reading',
-    component: () => import('./views/ProfileReadingView.vue'),
-    props: true,
+    redirect: (to) => ({ name: 'inspiration', params: to.params, hash: '#reading-list' }),
   },
   {
     path: '/p/:profileId/reading/:linkId',
     name: 'profile-reading-item',
     component: () => import('./views/ReadingView.vue'),
     props: true,
+    meta: { level: 'profile', step: 'inspiration', compact: true },
   },
   {
     path: '/p/:profileId/notes',
     name: 'profile-notes',
     component: () => import('./views/ProfileNotesView.vue'),
     props: true,
+    meta: { level: 'profile', step: 'notes' },
+  },
+  {
+    path: '/p/:profileId/ideas',
+    name: 'profile-ideas',
+    component: () => import('./views/ProfileIdeasView.vue'),
+    props: true,
+    meta: { level: 'profile', step: 'ideas' },
   },
   {
     path: '/p/:profileId/ideas/new',
     name: 'new-idea',
     component: () => import('./views/NewIdeaView.vue'),
     props: true,
+    meta: { level: 'profile', step: 'ideas' },
   },
   {
-    path: '/p/:profileId/ideas/:id/brainstorm',
-    name: 'brainstorm',
-    component: () => import('./views/BrainstormView.vue'),
+    path: '/p/:profileId/settings',
+    name: 'profile-settings',
+    component: () => import('./views/ProfileSettingsView.vue'),
     props: true,
+    meta: { level: 'profile' },
   },
-  {
-    path: '/p/:profileId/ideas/:id/research',
-    name: 'research',
-    component: () => import('./views/ResearchView.vue'),
-    props: true,
-  },
+
+  // ——— An idea: 01 Research, 02 Notes, 03 Refine, 04 Draft, 05 Publish, and its settings ———
   {
     path: '/p/:profileId/ideas/:id',
     name: 'idea',
-    component: () => import('./views/IdeaView.vue'),
+    redirect: (to) => ({ name: 'idea-notes', params: to.params }),
+  },
+  {
+    path: '/p/:profileId/ideas/:id/research',
+    name: 'idea-research',
+    component: () => import('./views/IdeaResearchView.vue'),
     props: true,
+    meta: { level: 'idea', step: 'research' },
+  },
+  {
+    path: '/p/:profileId/ideas/:id/research/find',
+    name: 'research',
+    component: () => import('./views/ResearchView.vue'),
+    props: true,
+    meta: { level: 'idea', step: 'research' },
   },
   {
     path: '/p/:profileId/ideas/:id/reading/:linkId',
     name: 'reading',
     component: () => import('./views/ReadingView.vue'),
     props: true,
+    meta: { level: 'idea', step: 'research', compact: true },
+  },
+  {
+    path: '/p/:profileId/ideas/:id/notes',
+    name: 'idea-notes',
+    component: () => import('./views/IdeaNotesView.vue'),
+    props: true,
+    meta: { level: 'idea', step: 'notes' },
+  },
+  {
+    path: '/p/:profileId/ideas/:id/refine',
+    name: 'brainstorm',
+    component: () => import('./views/BrainstormView.vue'),
+    props: true,
+    meta: { level: 'idea', step: 'refine' },
+  },
+  {
+    path: '/p/:profileId/ideas/:id/brainstorm',
+    redirect: (to) => ({ name: 'brainstorm', params: to.params, query: to.query }),
+  },
+  {
+    path: '/p/:profileId/ideas/:id/drafts',
+    name: 'idea-drafts',
+    component: () => import('./views/IdeaDraftsView.vue'),
+    props: true,
+    meta: { level: 'idea', step: 'draft' },
+  },
+  {
+    path: '/p/:profileId/ideas/:id/publish',
+    name: 'idea-publish',
+    component: () => import('./views/IdeaPublishView.vue'),
+    props: true,
+    meta: { level: 'idea', step: 'publish' },
+  },
+  {
+    path: '/p/:profileId/ideas/:id/settings',
+    name: 'idea-settings',
+    component: () => import('./views/IdeaSettingsView.vue'),
+    props: true,
+    meta: { level: 'idea' },
   },
   {
     path: '/p/:profileId/drafts/:id',
     name: 'draft',
     component: () => import('./views/EditorView.vue'),
     props: true,
-    meta: { wide: true },
+    meta: { wide: true, level: 'idea', step: 'draft', ideaFromDraft: true },
   },
 ]
 
 export function createAppRouter(history = createWebHistory()) {
-  const router = createRouter({ history, routes })
+  const router = createRouter({
+    history,
+    routes,
+    // A new page starts at the top (a step is its own page now); going back returns to where you were;
+    // an address with a #section goes to the section.
+    scrollBehavior(to, from, saved) {
+      if (saved) return saved
+      if (to.hash) return { el: to.hash }
+      if (to.path !== from.path) return { top: 0 }
+    },
+  })
 
   router.beforeEach(async (to) => {
     const session = useSessionStore()

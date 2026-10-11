@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { expect, goTo, test } from './fixtures'
 
 /** Signs up, optionally connects an AI key (any key works with the fake AI), and creates an idea to talk about. */
 async function setUp(page: Page, { withKey = true } = {}) {
@@ -23,7 +23,13 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion loops.\nSecond line.')
   await page.getByRole('button', { name: 'Save idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+}
+
+/** From wherever you are in the idea: Research (step 01), then into the tool that searches the web. */
+async function openResearchTool(page: Page) {
+  await goTo(page, 'Research')
+  await page.getByRole('link', { name: 'Start research' }).click()
 }
 
 const noViolations = async (page: Page, what: string) =>
@@ -33,7 +39,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   page,
 }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Research', exact: true }).click()
+  await openResearchTool(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
   await expect(page.getByText(/Nothing yet/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled()
@@ -56,11 +62,11 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await noViolations(page, 'research page with a run to review')
 
   // Nothing is on the reading list until pages are added.
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(
     page.getByRole('link', { name: /Fake title for research\.example\.org/ }),
   ).toHaveCount(0)
-  await page.getByRole('link', { name: 'Research', exact: true }).click()
+  await page.getByRole('link', { name: 'Start research' }).click()
 
   // One click each: added pages collapse to a green tick, ignored ones to a red cross.
   await run
@@ -77,20 +83,20 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await noViolations(page, 'research page with decided pages')
 
   // The reading list has them, marked, with the AI's reason kept.
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(
     page.getByRole('link', { name: /Fake title for research\.example\.org/ }),
   ).toBeVisible()
   await expect(page.getByText('Found by research')).toHaveCount(2)
   await expect(page.getByText('Why the AI suggested it (unchecked):').first()).toBeVisible()
-  await noViolations(page, 'idea page with researched items')
+  await noViolations(page, 'reading list with researched items')
 })
 
 test('several areas can be researched around one idea, and the research is kept', async ({
   page,
 }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Research', exact: true }).click()
+  await openResearchTool(page)
   for (const areas of ['First area', 'Second area']) {
     await page.getByLabel('What areas do you want to research?').fill(areas)
     await page.getByRole('button', { name: 'Research', exact: true }).click()
@@ -108,16 +114,16 @@ test('several areas can be researched around one idea, and the research is kept'
     .getByRole('button', { name: 'Add to the reading list: Notes on channel migration' })
     .click()
   await expect(first.getByRole('img', { name: 'Added to the reading list' })).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(page.getByRole('link', { name: /Notes on channel migration/ })).toBeVisible()
-  await page.getByRole('link', { name: 'Research', exact: true }).click()
+  await page.getByRole('link', { name: 'Start research' }).click()
   await first.getByRole('button', { name: 'Reconsider: Notes on channel migration' }).click()
   await expect(
     first.getByRole('button', { name: 'Add to the reading list: Notes on channel migration' }),
   ).toBeVisible() // expanded again
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(page.getByRole('link', { name: /Notes on channel migration/ })).toHaveCount(0)
-  await page.getByRole('link', { name: 'Research', exact: true }).click()
+  await page.getByRole('link', { name: 'Start research' }).click()
 
   await first.getByRole('button', { name: /^Delete this research/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Delete this research?' })
@@ -129,7 +135,7 @@ test('several areas can be researched around one idea, and the research is kept'
 
 test('without an AI key, says where to add one', async ({ page }) => {
   await setUp(page, { withKey: false })
-  await page.getByRole('link', { name: 'Research', exact: true }).click()
+  await openResearchTool(page)
   await page.getByLabel('What areas do you want to research?').fill('Anything')
   await page.getByRole('button', { name: 'Research', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('API key')

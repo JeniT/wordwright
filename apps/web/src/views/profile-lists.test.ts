@@ -113,17 +113,22 @@ function fakeProfile(initial: { links?: Link[]; notes?: ReturnType<typeof note>[
   return state
 }
 
-describe('the profile page', () => {
-  it('leads to the reading list and the notes', async () => {
+describe('the profile’s menu', () => {
+  it('leads to its three steps, which include the reading list and the notes', async () => {
     fakeProfile()
     await renderAt('/p/ada-substack')
-    expect(await screen.findByRole('link', { name: 'Reading list' })).toHaveAttribute(
+    const menu = within(await screen.findByRole('navigation', { name: 'Profile' }))
+    expect(await menu.findByRole('link', { name: 'Inspiration' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/reading',
+      '/p/ada-substack/inspiration',
     )
-    expect(screen.getByRole('link', { name: 'Notes' })).toHaveAttribute(
+    expect(menu.getByRole('link', { name: 'Notes' })).toHaveAttribute(
       'href',
       '/p/ada-substack/notes',
+    )
+    expect(menu.getByRole('link', { name: 'Ideas' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas',
     )
   })
 })
@@ -131,18 +136,19 @@ describe('the profile page', () => {
 describe('the profile’s reading list', () => {
   beforeEach(() => fakeProfile())
 
-  it('leads to the Inspiration page, where posts from the feeds are added to it', async () => {
-    await renderAt('/p/ada-substack/reading')
-    expect(await screen.findByRole('link', { name: 'Add to reading list' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/inspiration',
-    )
+  it('is part of the Inspiration page, and the old address leads there', async () => {
+    const { router } = await renderAt('/p/ada-substack/reading')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Inspiration' }),
+    ).toBeInTheDocument()
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/inspiration')
+    expect(router.currentRoute.value.hash).toBe('#reading-list')
   })
 
   it('says it is empty, and what the list is for', async () => {
     await renderAt('/p/ada-substack/reading')
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Reading list' }),
+      await screen.findByRole('heading', { level: 2, name: 'Reading list' }),
     ).toBeInTheDocument()
     expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
     expect(screen.getByText(/before any one idea/)).toBeInTheDocument()
@@ -199,7 +205,7 @@ describe('the profile’s reading list', () => {
 
   it('marks an item read and unread, and removes it', async () => {
     const state = fakeProfile({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/inspiration')
     const box = await screen.findByRole('checkbox', { name: 'Read: A paper' })
     await fireEvent.click(box)
     await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
@@ -324,7 +330,7 @@ describe('the profile’s reading list', () => {
         link('l2', 'From a feed', { origin: 'feed' }),
       ],
     })
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/inspiration')
     const research = (await screen.findByText('Found by research')).closest('span')!
     expect(research).toHaveClass('chip-ai')
     const feed = screen.getByText('From a feed', { selector: '.chip' })
@@ -523,9 +529,10 @@ describe('reading an item of the profile’s own list', () => {
       'href',
       'https://example.org/l1',
     )
-    expect(
-      screen.getByRole('link', { name: /Back to the profile’s reading list/ }),
-    ).toHaveAttribute('href', '/p/ada-substack/reading')
+    expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/inspiration#reading-list',
+    )
   })
 
   it('says so when the item is not on the list', async () => {
@@ -549,7 +556,9 @@ describe('reading an item of the profile’s own list', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }))
     await waitFor(() => expect(state.sentNotes).toHaveLength(2))
     expect(state.sentNotes[1]).toEqual({ text: 'Exact words', readingItemId: 'l1', quote: true })
-    const items = within(await screen.findByRole('list')).getAllByRole('listitem')
+    const items = within(
+      await within(await screen.findByRole('main')).findByRole('list'),
+    ).getAllByRole('listitem')
     expectOrigin(items[0]!, 'Quoted from “A paper”', 'Ada')
   })
 

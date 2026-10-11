@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { expect, goTo, test } from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -24,9 +24,10 @@ test('reads and takes notes before there is an idea: a profile reading list and 
 }) => {
   await signUpWithProfile(page)
 
-  // From the profile page to the profile's own reading list.
-  await page.getByRole('link', { name: 'Reading list' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Reading list' })).toBeVisible()
+  // The profile's own reading list is part of Inspiration (step 01).
+  await goTo(page, 'Inspiration')
+  await expect(page.getByRole('heading', { level: 1, name: 'Inspiration' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Reading list' })).toBeVisible()
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
   await noViolations(page, 'empty profile reading list')
 
@@ -51,7 +52,7 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await expect(
     page.getByRole('heading', { level: 1, name: /Fake title for example\.org/ }),
   ).toBeVisible()
-  await expect(page.getByRole('link', { name: /Back to the profile’s reading list/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Back to the reading list/ })).toBeVisible()
   await page.getByLabel('Add a note from this page').fill('Rivers tire of straight lines.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Rivers tire of straight lines.')).toBeVisible()
@@ -74,7 +75,7 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await page.getByRole('link', { name: 'Take notes' }).click()
 
   // Taking a note marks it read.
-  await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
+  await page.getByRole('link', { name: /Back to the reading list/ }).click()
   await expect(page.getByText('1 read item is hidden.')).toBeVisible()
   await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(
@@ -82,8 +83,7 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   ).toBeChecked()
 
   // The notes are the profile's own, naming where each came from, and are not on any idea.
-  await page.getByRole('link', { name: /^← Gathering/ }).click()
-  await page.getByRole('link', { name: 'Notes', exact: true }).click()
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const quote = page
     .getByRole('listitem')
@@ -101,10 +101,16 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
   await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
   await expect
-    .poll(async () => (await page.getByRole('listitem').first().innerText()).includes('A thought'))
+    .poll(async () =>
+      (await page.getByRole('main').getByRole('listitem').first().innerText()).includes(
+        'A thought',
+      ),
+    )
     .toBe(true)
   await page.reload()
-  await expect(page.getByRole('listitem').first()).toContainText('A thought of my own')
+  await expect(page.getByRole('main').getByRole('listitem').first()).toContainText(
+    'A thought of my own',
+  )
   await noViolations(page, 'profile notes')
 })
 
@@ -112,7 +118,7 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
   page,
 }) => {
   await signUpWithProfile(page)
-  await page.getByRole('link', { name: 'Inspiration' }).click()
+  await goTo(page, 'Inspiration')
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
   await feeds.getByRole('button', { name: 'Add source' }).click()
@@ -130,14 +136,14 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
   await expect(recent.getByRole('button', { name: /^Add to the reading list/ })).toHaveCount(0)
   await noViolations(page, 'recent posts after adding')
 
-  // It is on the profile's reading list, marked as from a feed.
-  await page.getByRole('link', { name: 'Gathering', exact: true }).click()
-  await page.getByRole('link', { name: 'Reading list' }).click()
-  const item = page.getByRole('listitem').filter({ hasText: title })
+  // It is on the profile's reading list, on the same page, marked as from a feed.
+  const item = page
+    .getByRole('region', { name: 'Reading list' })
+    .getByRole('listitem')
+    .filter({ hasText: title })
   await expect(item).toContainText('From a feed')
 
-  // From there, "Add to reading list" goes back to choose more; reconsidering takes it off again.
-  await page.getByRole('link', { name: 'Add to reading list' }).click()
+  // Reconsidering takes it off again.
   await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
   await expect(
     recent.getByRole('button', { name: `Add to the reading list: ${title}` }),

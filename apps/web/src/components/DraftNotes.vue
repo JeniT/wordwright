@@ -86,7 +86,10 @@ const label = (note: IdeaNote) => {
     <template v-else>
       <p v-if="!notes.data.value?.length" class="text-ink-soft">
         No notes yet.
-        <RouterLink :to="{ name: 'idea', params: { profileId, id: ideaId } }" class="underline">
+        <RouterLink
+          :to="{ name: 'idea-notes', params: { profileId, id: ideaId } }"
+          class="underline"
+        >
           Add some on the idea page.
         </RouterLink>
       </p>

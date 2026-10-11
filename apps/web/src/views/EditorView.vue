@@ -198,12 +198,12 @@ async function requestCritique() {
       <p v-if="draft.data.value?.ideaId" class="mb-4 text-sm">
         <RouterLink
           :to="{
-            name: 'idea',
+            name: 'idea-drafts',
             params: { profileId: props.profileId, id: draft.data.value.ideaId },
           }"
           class="underline"
         >
-          ← {{ idea.data.value ? `Back to “${idea.data.value.name}”` : 'Back to the idea' }}
+          ← All drafts
         </RouterLink>
       </p>
       <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>

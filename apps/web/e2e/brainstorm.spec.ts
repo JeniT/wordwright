@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { expect, goTo, test } from './fixtures'
 
 /** Signs up, optionally connects an AI key (any key works with the fake AI), and creates an idea to talk about. */
 async function setUp(page: Page, { withKey = true } = {}) {
@@ -23,7 +23,13 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion loops.\nSecond line.')
   await page.getByRole('button', { name: 'Save idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+}
+
+/** Refining (step 03) is a conversation. Visiting the step spends nothing; this begins it, with the coach's questions. */
+async function startBrainstorming(page: Page) {
+  await goTo(page, 'Refine')
+  await page.getByRole('button', { name: 'Start brainstorming' }).click()
 }
 
 const noViolations = async (page: Page, what: string) =>
@@ -39,8 +45,8 @@ test('brainstorms an idea: the coach asks, suggests, and nothing changes until a
 }) => {
   await setUp(page)
 
-  // Brainstorm from the idea page starts at once, with the coach's questions.
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  // Refining starts only when asked, with the coach's questions.
+  await startBrainstorming(page)
   await expect(page.getByText('Brainstorm started by Pru')).toBeVisible()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
   await expect(page.getByLabel('Your message')).toBeEnabled()
@@ -53,20 +59,26 @@ test('brainstorms an idea: the coach asks, suggests, and nothing changes until a
   await expect(card.getByText('A sharper title for this idea')).toBeVisible()
   await expect(card.getByText('Why rivers meander')).toBeVisible() // what it would replace
   await noViolations(page, 'brainstorm page with a suggestion')
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await goTo(page, 'Notes')
+  await expect(
+    page.getByRole('banner').getByText('Why rivers meander').filter({ visible: true }).first(),
+  ).toBeVisible()
 
   // Back in the same conversation (it was kept), accepting changes the idea.
-  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
+  await goTo(page, 'Refine')
   await page.getByRole('button', { name: /^Accept:/ }).click()
   await expect(page.getByText('Accepted by Pru.')).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await goTo(page, 'Notes')
   await expect(
-    page.getByRole('heading', { level: 1, name: 'A sharper title for this idea' }),
+    page
+      .getByRole('banner')
+      .getByText('A sharper title for this idea')
+      .filter({ visible: true })
+      .first(),
   ).toBeVisible()
 
   // The conversation survives a reload.
-  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
+  await goTo(page, 'Refine')
   await page.reload()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
   await expect(page.getByText('Accepted by Pru.')).toBeVisible()
@@ -76,7 +88,7 @@ test('the points made in the chat are added to the idea as notes, as they are ma
   page,
 }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Please note that oxbow lakes are loops that have been cut off.')
@@ -91,7 +103,7 @@ test('the points made in the chat are added to the idea as notes, as they are ma
   await expect(page.getByText('Already in your notes:')).toBeVisible()
 
   // The notes are on the idea, from brainstorming, and can be deleted like any other.
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(2)
   await expect(notes.getByRole('listitem').nth(1)).toContainText(
@@ -105,7 +117,7 @@ test('the points made in the chat are added to the idea as notes, as they are ma
   await page.keyboard.down('Enter')
   await expect(notes.getByText(/oxbow lakes are loops/)).toHaveCount(0, { timeout: 4000 })
   await page.keyboard.up('Enter')
-  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
+  await goTo(page, 'Refine')
   await expect(page.getByText('Noted, then deleted:')).toBeVisible()
 })
 
@@ -113,7 +125,7 @@ test('a spin-off idea can be accepted and opened, and a suggestion can be dismis
   page,
 }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Please suggest a title')
@@ -124,7 +136,9 @@ test('a spin-off idea can be accepted and opened, and a suggestion can be dismis
   const card = page.getByRole('region', { name: 'Suggested new idea' })
   await card.getByRole('button', { name: /^Accept:/ }).click()
   await card.getByRole('link', { name: 'Open the new idea' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'A spin-off idea' })).toBeVisible()
+  await expect(
+    page.getByRole('banner').getByText('A spin-off idea').filter({ visible: true }).first(),
+  ).toBeVisible()
   await expect(page.getByRole('region', { name: 'Notes' })).toContainText(
     'Came out of a conversation.',
   )
@@ -134,7 +148,7 @@ test('the coach passes on an address the writer gave: it is checked, shown besid
   page,
 }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Please add https://example.org/river-physics to my reading list')
@@ -146,13 +160,13 @@ test('the coach passes on an address the writer gave: it is checked, shown besid
   await noViolations(page, 'brainstorm page with a reading suggestion')
 
   // Nothing is on the reading list until it is accepted.
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await goTo(page, 'Research')
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Continue brainstorming' }).click()
+  await goTo(page, 'Refine')
   await page.getByRole('button', { name: /^Accept: / }).click()
   await expect(page.getByText('Added to the reading list by Pru.')).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the idea' }).click()
+  await goTo(page, 'Research')
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
   await expect(page.getByText('Suggested in brainstorming')).toBeVisible()
   await expect(page.getByText('You said it bears on this idea.')).toBeVisible()
@@ -162,7 +176,7 @@ test('asked to do research, the coach points to the Research tool and suggests n
   page,
 }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Can you research this for me?')
@@ -172,7 +186,7 @@ test('asked to do research, the coach points to the Research tool and suggests n
 
 test('start again clears the conversation, after asking', async ({ page }) => {
   await setUp(page)
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await page.getByRole('button', { name: 'Start again' }).click()
@@ -192,7 +206,7 @@ test('without an AI key, says where to add one and keeps the way open to try aga
   page,
 }) => {
   await setUp(page, { withKey: false })
-  await page.getByRole('link', { name: 'Brainstorm' }).click()
+  await startBrainstorming(page)
   await expect(page.getByRole('alert')).toContainText('Add your Anthropic API key')
   await expect(page.getByRole('link', { name: 'Go to account settings' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start brainstorming' })).toBeVisible()

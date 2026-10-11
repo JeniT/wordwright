@@ -13,7 +13,8 @@ describe('route guards', () => {
     server.use(signedInAs(null), noProviders)
     const { router } = await renderAt('/p/abc')
     await screen.findByRole('heading', { name: 'Sign in' })
-    expect(router.currentRoute.value.query.next).toBe('/p/abc')
+    // /p/abc is a front door to the profile's Ideas step, and that is where they were going.
+    expect(router.currentRoute.value.query.next).toBe('/p/abc/ideas')
   })
 
   it('keeps signed-in users away from the sign-in page', async () => {

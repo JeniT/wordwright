@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import StepHeading from '../components/StepHeading.vue'
 import { RESEARCH_AREAS_MAX } from '@lfwa/core'
 import ResearchRun from '../components/ResearchRun.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
@@ -44,21 +45,20 @@ function submit() {
       It may have been deleted, or the connection may have dropped. Try reloading the page.
     </p>
     <RouterLink
-      :to="{ name: 'profile', params: { profileId } }"
+      :to="{ name: 'profile-ideas', params: { profileId } }"
       class="mt-3 inline-block underline"
     >
       Back to the profile
     </RouterLink>
   </div>
 
-  <article v-else-if="idea.data.value" aria-labelledby="research-title" class="max-w-2xl">
-    <p class="mb-2 text-sm">
-      <RouterLink :to="{ name: 'idea', params: { profileId, id } }" class="underline">
-        ← Back to the idea
+  <article v-else-if="idea.data.value" class="max-w-2xl">
+    <StepHeading>Research</StepHeading>
+    <p class="mb-4 text-sm">
+      <RouterLink :to="{ name: 'idea-research', params: { profileId, id } }" class="link">
+        ← Back to the reading list
       </RouterLink>
     </p>
-    <h1 id="research-title" class="font-display text-2xl font-semibold">Research</h1>
-    <p class="mb-2 font-display text-lg text-ink-soft">{{ idea.data.value.name }}</p>
     <p class="mb-6 text-sm text-ink-soft">
       Describe the areas you want to look into and your AI will search the web for pages worth
       reading, including some that may not agree with you. It only suggests: you review what it

@@ -17,18 +17,13 @@ const create = useMutation({
   mutationFn: () => api.createIdea(props.profileId, { name: name.value, notes: notes.value }),
   onSuccess: async (idea) => {
     await queryClient.invalidateQueries({ queryKey: ['ideas'] })
-    await router.push({ name: 'idea', params: { profileId: props.profileId, id: idea.id } })
+    await router.push({ name: 'idea-notes', params: { profileId: props.profileId, id: idea.id } })
   },
 })
 </script>
 
 <template>
   <section aria-labelledby="new-idea-heading" class="max-w-xl">
-    <p class="mb-2 text-sm">
-      <RouterLink :to="{ name: 'profile', params: { profileId } }" class="underline">
-        ← Back to the profile
-      </RouterLink>
-    </p>
     <h1 id="new-idea-heading" class="mb-1 font-display text-2xl font-semibold">New idea</h1>
     <p class="mb-6 text-ink-soft">
       Capture it while it's fresh. You can add links, brainstorm and start drafts afterwards.
@@ -45,7 +40,7 @@ const create = useMutation({
         <button type="submit" class="btn btn-primary" :disabled="create.isPending.value">
           {{ create.isPending.value ? 'Saving…' : 'Save idea' }}
         </button>
-        <RouterLink :to="{ name: 'profile', params: { profileId } }" class="text-sm underline">
+        <RouterLink :to="{ name: 'profile-ideas', params: { profileId } }" class="link text-sm">
           Cancel
         </RouterLink>
       </div>

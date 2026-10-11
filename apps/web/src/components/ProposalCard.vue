@@ -184,7 +184,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       }}{{ proposal.decidedByName ? ` by ${proposal.decidedByName}` : '' }}.
       <RouterLink
         v-if="proposal.createdIdeaId"
-        :to="{ name: 'idea', params: { profileId, id: proposal.createdIdeaId } }"
+        :to="{ name: 'idea-notes', params: { profileId, id: proposal.createdIdeaId } }"
         class="underline"
       >
         Open the new idea

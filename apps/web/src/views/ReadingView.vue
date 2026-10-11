@@ -19,11 +19,7 @@ const owner = computed(() => ({ profileId: props.profileId, ideaId: props.id ?? 
 const list = useReadingList(() => owner.value)
 const item = computed(() => list.links.value?.find((l) => l.id === props.linkId))
 const backTo = computed(() => readingBackRoute(owner.value))
-const backLabel = computed(() =>
-  owner.value.ideaId
-    ? `← Back to “${list.idea.value?.name ?? 'the idea'}”`
-    : '← Back to the profile’s reading list',
-)
+const backLabel = '← Back to the reading list'
 
 const notesKey = () => ['notes', props.profileId, props.id ?? 'profile']
 const notes = useQuery({
@@ -163,7 +159,7 @@ const add = useMutation({
       reloading the page.
     </p>
     <RouterLink :to="backTo" class="mt-3 inline-block underline">
-      {{ id ? 'Back to the idea' : 'Back to the reading list' }}
+      Back to the reading list
     </RouterLink>
   </div>
 

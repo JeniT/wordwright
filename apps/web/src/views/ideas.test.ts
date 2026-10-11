@@ -107,7 +107,9 @@ describe('new idea page', () => {
     await fireEvent.update(screen.getByLabelText('Expand on your idea here'), 'Erosion loops.')
     await fireEvent.click(screen.getByRole('button', { name: 'Save idea' }))
 
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1'))
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/notes'),
+    )
     expect(sent).toEqual({ name: 'Why rivers meander', notes: 'Erosion loops.' })
   })
 
@@ -128,7 +130,8 @@ describe('new idea page', () => {
 })
 
 describe('idea page', () => {
-  const open = (extra: Parameters<typeof server.use> = []) => {
+  // An idea is a set of pages (steps); each test opens the one it is about.
+  const openAt = (path: string, extra: Parameters<typeof server.use> = []) => {
     server.use(
       signedInAs(testUser),
       listProfiles,
@@ -136,63 +139,30 @@ describe('idea page', () => {
       http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
       ...extra,
     )
-    return renderAt('/p/ada-substack/ideas/i1')
+    return renderAt(`/p/ada-substack/ideas/i1${path}`)
   }
+  const open = (extra: Parameters<typeof server.use> = []) => openAt('/research', extra)
 
-  it('shows the idea, its links and its drafts in order', async () => {
+  it('shows the idea’s links on the Research step', async () => {
     await open()
-    expect(await screen.findByLabelText("What's your core idea?")).toHaveValue('Why rivers meander')
-    const link = screen.getByRole('link', { name: /A paper/ })
+    const link = await screen.findByRole('link', { name: /A paper/ })
     expect(link).toHaveAttribute('href', 'https://example.org/paper')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getByRole('link', { name: /Part 1/ })).toHaveAttribute(
+  })
+
+  it('shows its drafts, in order, on the Draft step', async () => {
+    await openAt('/drafts')
+    expect(await screen.findByRole('link', { name: /Part 1/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/drafts/d1',
     )
   })
 
-  describe('the Brainstorm link', () => {
-    const conversationUrl = '*/api/profiles/ada-substack/ideas/i1/conversation'
-    const withConversation = (messages: unknown[]) =>
-      http.get(conversationUrl, () => HttpResponse.json({ messages, replyingNow: null }))
-
-    it('begins a conversation straight away when there is none yet', async () => {
-      await open([withConversation([])])
-      const link = await screen.findByRole('link', { name: 'Brainstorm' })
-      await waitFor(() =>
-        expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/brainstorm?start=1'),
-      )
-    })
-
-    it('goes back to the existing conversation, without restarting it', async () => {
-      await open([
-        withConversation([
-          {
-            id: 'm1',
-            role: 'user',
-            kind: 'kickoff',
-            text: '',
-            authorName: 'Ada',
-            model: null,
-            status: 'complete',
-            stopReason: null,
-            proposals: [],
-            notes: [],
-            createdAt: '2026-01-01T00:00:00Z',
-          },
-        ]),
-      ])
-      const link = await screen.findByRole('link', { name: 'Continue brainstorming' })
-      expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/brainstorm')
-    })
-
-    it('does not start anything while it is still unknown whether there is a conversation', async () => {
-      await open([
-        http.get(conversationUrl, () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-      ])
-      const link = await screen.findByRole('link', { name: 'Brainstorm' })
-      expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/brainstorm')
-    })
+  it('is the front door to the Notes step', async () => {
+    const { router } = await openAt('')
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/notes'),
+    )
   })
 
   it('explains when the idea cannot be opened', async () => {
@@ -207,7 +177,7 @@ describe('idea page', () => {
 
   it('saves a change to the name', async () => {
     let sent: unknown
-    await open([
+    await openAt('/settings', [
       http.patch(ideaUrl, async ({ request }) => {
         sent = await request.json()
         return HttpResponse.json({ ...idea, name: 'Meanders' })
@@ -217,11 +187,12 @@ describe('idea page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'))
     expect(sent).toEqual({ name: 'Meanders' }) // the notes have their own routes
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Meanders')
+    // The menu, which names the idea, follows the change.
+    expect(within(screen.getByRole('banner')).getAllByText('Meanders').length).toBeGreaterThan(0)
   })
 
   it('shows why a save failed', async () => {
-    await open([
+    await openAt('/settings', [
       http.patch(ideaUrl, () =>
         HttpResponse.json({ error: 'Describe your idea in a few words' }, { status: 400 }),
       ),
@@ -250,7 +221,7 @@ describe('idea page', () => {
         }),
       ),
     )
-    await renderAt('/p/ada-substack/ideas/i1')
+    await renderAt('/p/ada-substack/ideas/i1/research')
     const titled = await screen.findByRole('link', { name: /A paper/ })
     expect(titled).toHaveTextContent('https://example.org/paper')
     const untitled = screen.getByRole('link', { name: /example\.org\/untitled/ })
@@ -302,7 +273,7 @@ describe('idea page', () => {
           }),
         ),
       )
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/research')
       // Read items are out of the way until asked for.
       expect(await screen.findByRole('checkbox', { name: 'Read: Unread one' })).not.toBeChecked()
       expect(screen.queryByRole('checkbox', { name: 'Read: Read one' })).not.toBeInTheDocument()
@@ -358,7 +329,7 @@ describe('idea page', () => {
   })
 
   describe('adding a link', () => {
-    it('sends just the address, then shows the link and clears the field, keeping an unsaved note', async () => {
+    it('sends just the address, then shows the link and clears the field', async () => {
       let sent: unknown
       const added = {
         ...idea,
@@ -380,14 +351,12 @@ describe('idea page', () => {
         }),
       ])
       expect(screen.queryByLabelText(/Title/)).toBeNull() // adding a link doesn't ask for a title
-      await fireEvent.update(await screen.findByLabelText('Add a note'), 'Unsaved')
-      await fireEvent.update(screen.getByLabelText('Web address'), 'example.org/new')
+      await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
       await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
 
       await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
       expect(sent).toEqual({ url: 'example.org/new' })
       expect(await screen.findByRole('link', { name: /Fetched title/ })).toBeInTheDocument()
-      expect(screen.getByLabelText('Add a note')).toHaveValue('Unsaved')
     })
 
     it.each([
@@ -533,7 +502,7 @@ describe('idea page', () => {
 
   it('adds a draft and opens it', async () => {
     let sent: unknown
-    await open([
+    await openAt('/drafts', [
       http.post(`${ideaUrl}/drafts`, async ({ request }) => {
         sent = await request.json()
         return HttpResponse.json(
@@ -562,14 +531,16 @@ describe('idea page', () => {
       ),
     ])
     await fireEvent.click(await screen.findByRole('button', { name: 'Add a draft' }))
-    // The new draft opens in the editor, which links back to the idea.
-    expect(
-      await screen.findByRole('link', { name: /Back to “Why rivers meander”/ }),
-    ).toHaveAttribute('href', '/p/ada-substack/ideas/i1')
+    // The new draft opens in the editor, which links back to the idea's drafts.
+    expect(await screen.findByRole('link', { name: '← All drafts' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas/i1/drafts',
+    )
     expect(sent).toEqual({ title: 'Untitled' })
   })
 
   describe('notes', () => {
+    const open = (extra: Parameters<typeof server.use> = []) => openAt('/notes', extra)
     const notesUrl = `${ideaUrl}/notes`
     const note = (
       id: string,
@@ -1271,7 +1242,7 @@ describe('idea page', () => {
 
     it('moves a draft with the buttons, sending the complete new order and showing it', async () => {
       const fake = fakeIdea()
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
       await fireEvent.click(await screen.findByRole('button', { name: 'Move Untitled up' }))
       await waitFor(() => expect(fake.orders).toEqual([['d1', 'd3', 'd2']]))
       await waitFor(() =>
@@ -1300,7 +1271,7 @@ describe('idea page', () => {
           return HttpResponse.json(fake.current)
         }),
       )
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
       await fireEvent.click(await screen.findByRole('button', { name: 'Move Untitled up' }))
       expect(titles()).toEqual([
         expect.stringContaining('Part 1'),
@@ -1315,7 +1286,7 @@ describe('idea page', () => {
 
     it('cannot move the first draft up or the last one down, and a single draft not at all', async () => {
       fakeIdea()
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
       expect(await screen.findByRole('button', { name: 'Move Part 1 up' })).toBeDisabled()
       expect(screen.getByRole('button', { name: 'Move Untitled down' })).toBeDisabled()
       expect(screen.getByRole('button', { name: 'Move Part 2 up' })).toBeEnabled()
@@ -1323,7 +1294,7 @@ describe('idea page', () => {
 
     it('drags a draft by its grip', async () => {
       const fake = fakeIdea()
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
       await screen.findByRole('button', { name: 'Move Part 1 up' })
       const items = within(screen.getByRole('region', { name: 'Drafts' })).getAllByRole('listitem')
       const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
@@ -1340,7 +1311,7 @@ describe('idea page', () => {
           HttpResponse.json({ error: 'The drafts have changed.' }, { status: 409 }),
         ),
       )
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
       await fireEvent.click(await screen.findByRole('button', { name: 'Move Part 2 up' }))
       expect(await screen.findByRole('alert')).toHaveTextContent('The drafts have changed.')
     })
@@ -1351,7 +1322,7 @@ describe('idea page', () => {
         listProfiles,
         http.get(ideaUrl, () => HttpResponse.json({ ...idea, drafts: [] })),
       )
-      await renderAt('/p/ada-substack/ideas/i1')
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
       await screen.findByText(/No drafts yet/)
       expect(screen.queryByRole('button', { name: /Move .* up/ })).not.toBeInTheDocument()
     })
@@ -1363,14 +1334,13 @@ describe('idea page', () => {
       listProfiles,
       http.get(ideaUrl, () => HttpResponse.json({ ...idea, links: [], drafts: [] })),
     )
-    await renderAt('/p/ada-substack/ideas/i1')
-    await screen.findByText(/No drafts yet/)
-    expect(screen.getByText('Nothing on the reading list yet.')).toBeInTheDocument()
+    await renderAt('/p/ada-substack/ideas/i1/research')
+    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
   })
 
   it('asks before deleting, then returns to the profile', async () => {
     let deleted = false
-    await open([
+    await openAt('/settings', [
       http.delete(ideaUrl, () => {
         deleted = true
         return new HttpResponse(null, { status: 204 })

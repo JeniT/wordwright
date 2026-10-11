@@ -5,8 +5,10 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import type { ConversationMessage, Proposal, RecordedNote, SendMessageInput } from '@lfwa/core'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Markdown from '../components/Markdown.vue'
+import NextStep from '../components/NextStep.vue'
 import ProposalCard from '../components/ProposalCard.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
+import StepHeading from '../components/StepHeading.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
 
 const props = defineProps<{ profileId: string; id: string }>()
@@ -183,21 +185,15 @@ const busyNote = computed(() =>
       It may have been deleted, or the connection may have dropped. Try reloading the page.
     </p>
     <RouterLink
-      :to="{ name: 'profile', params: { profileId } }"
+      :to="{ name: 'profile-ideas', params: { profileId } }"
       class="mt-3 inline-block underline"
     >
       Back to the profile
     </RouterLink>
   </div>
 
-  <article v-else-if="idea.data.value" aria-labelledby="brainstorm-title" class="max-w-2xl">
-    <p class="mb-2 text-sm">
-      <RouterLink :to="{ name: 'idea', params: { profileId, id } }" class="underline">
-        ← Back to the idea
-      </RouterLink>
-    </p>
-    <h1 id="brainstorm-title" class="font-display text-2xl font-semibold">Brainstorm</h1>
-    <p class="mb-2 font-display text-lg text-ink-soft">{{ idea.data.value.name }}</p>
+  <article v-else-if="idea.data.value" class="max-w-2xl">
+    <StepHeading>Refine</StepHeading>
     <p class="mb-4 text-sm text-ink-soft">
       Your AI (with your own key) will talk this idea through with you, and add the points you make
       to its notes as you go. Your idea, its notes and links, and this publication's details are
@@ -219,8 +215,8 @@ const busyNote = computed(() =>
         </li>
       </ul>
       <p class="mt-2">
-        <RouterLink :to="{ name: 'idea', params: { profileId, id } }" class="underline">
-          Open the idea to edit it
+        <RouterLink :to="{ name: 'idea-notes', params: { profileId, id } }" class="link">
+          Open the notes to edit them
         </RouterLink>
       </p>
     </details>
@@ -376,5 +372,9 @@ const busyNote = computed(() =>
       This deletes the whole conversation for everyone in this profile, including suggestions nobody
       has decided on. Changes you have already accepted stay.
     </ConfirmDialog>
+
+    <NextStep :to="{ name: 'idea-drafts', params: { profileId, id } }" label="Next: 04 Draft">
+      When you know what you want to say, start a draft.
+    </NextStep>
   </article>
 </template>

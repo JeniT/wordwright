@@ -114,7 +114,9 @@ describe('new profile', () => {
     await fireEvent.update(screen.getByLabelText(/Website/), ' ada.substack.com ')
     await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
 
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack'))
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack/ideas'),
+    )
     expect(sent).toEqual({ name: "Ada's Weekly Letters!", siteUrl: 'ada.substack.com' })
   })
 
@@ -155,7 +157,9 @@ describe('new profile', () => {
     await fireEvent.change(screen.getByLabelText(/Picture/), { target: { files: [file] } })
     await fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
 
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack'))
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/adalovelace-substack/ideas'),
+    )
     expect(uploadedType).toBe('image/png')
     expect(uploaded?.size).toBe(3)
   })
@@ -225,12 +229,13 @@ describe('profile page', () => {
   it('shows the profile and links out to its website', async () => {
     server.use(signedInAs(testUser), listProfiles([substack]), noIdeas)
     await renderAt('/p/adalovelace-substack')
-    const main = within(await screen.findByRole('main'))
-    await main.findByRole('heading', { level: 1, name: 'Substack' })
-    const site = main.getByRole('link', { name: /ada\.substack\.com/ })
+    // The profile's name, website and settings are in the side menu, which says whose Ideas these are.
+    const menu = within(await screen.findByRole('banner'))
+    await menu.findByText('Substack')
+    const site = menu.getByRole('link', { name: /ada\.substack\.com/ })
     expect(site).toHaveAttribute('href', 'https://ada.substack.com/about')
     expect(site).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(main.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+    expect(menu.getByRole('link', { name: 'Profile settings' })).toHaveAttribute(
       'href',
       '/p/adalovelace-substack/settings',
     )

@@ -327,6 +327,37 @@
 }
 
 /*
+ * Step numbers ("01", "02" ...): tabular figures in a small outlined badge. They orient and never lock anything.
+ * `group` goes on the link that carries aria-current; the current step's badge fills with the accent.
+ */
+@utility step-num {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 2rem;
+  height: 1.75rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+@utility step-num-current {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+@utility step-num-lg {
+  min-width: 2.5rem;
+  height: 2.25rem;
+  font-size: 1rem;
+}
+
+/*
  * Pictures and logos from other websites are never shown bare. A source's icon sits on a fixed-size light plate
  * (a square, hairline-framed, barely rounded): contained not cropped, with its own white background so dark marks
  * stay legible in dark mode. The app's own corner radius never wraps another site's artwork.

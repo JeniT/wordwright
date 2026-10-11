@@ -15,4 +15,8 @@ Element.prototype.getClientRects ??= noRects
 Range.prototype.getClientRects ??= noRects
 Range.prototype.getBoundingClientRect ??= () => new DOMRect()
 
+// jsdom has no scrolling; the router asks for it when a page changes.
+window.scrollTo = () => {}
+Element.prototype.scrollIntoView ??= () => {}
+
 afterEach(cleanup)

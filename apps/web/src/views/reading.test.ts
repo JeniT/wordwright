@@ -71,9 +71,9 @@ describe('reading page', () => {
     expect(page).toHaveAttribute('target', '_blank')
     expect(page).toHaveAttribute('rel', 'noopener noreferrer')
     expect(screen.getByText(/can't be shown inside another page/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Back to “Why rivers meander”/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
       'href',
-      '/p/ada-substack/ideas/i1',
+      '/p/ada-substack/ideas/i1/research',
     )
   })
 
@@ -180,7 +180,7 @@ describe('reading page', () => {
       http.get('*/api/profiles', () => HttpResponse.json([profile])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
-    await renderAt('/p/ada-substack/ideas/i1')
+    await renderAt('/p/ada-substack/ideas/i1/research')
     const [first, second] = await screen.findAllByRole('link', { name: 'Take notes' })
     expect(first).toHaveAttribute('href', readingPath('l1'))
     expect(second).toHaveAttribute('href', readingPath('l2'))
@@ -198,7 +198,7 @@ describe('reading page', () => {
           ]),
         ),
       ])
-      const list = await screen.findByRole('list')
+      const list = await within(await screen.findByRole('main')).findByRole('list')
       const items = within(list).getAllByRole('listitem')
       expect(items).toHaveLength(1)
       expect(items[0]).toHaveTextContent('A quote from the paper.')
@@ -212,7 +212,7 @@ describe('reading page', () => {
         ),
       ])
       const box = await screen.findByLabelText('Add a note from this page')
-      const list = await screen.findByRole('list')
+      const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
@@ -232,7 +232,9 @@ describe('reading page', () => {
         }),
       ])
       const texts = () =>
-        screen.getAllByRole('listitem').map((li) => li.querySelector('p')?.textContent)
+        within(screen.getByRole('main'))
+          .getAllByRole('listitem')
+          .map((li) => li.querySelector('p')?.textContent)
       await screen.findByText('Oldest.')
       expect(texts()).toEqual(['Middle.', 'Oldest.'])
       await fireEvent.update(screen.getByLabelText('Add a note from this page'), 'Newest.')
@@ -252,7 +254,7 @@ describe('reading page', () => {
           HttpResponse.json([{ ...note('n1', 'Exact words.', 'l1'), quote: true }]),
         ),
       ])
-      const item = (await screen.findAllByRole('listitem'))[0]!
+      const item = (await within(screen.getByRole('main')).findAllByRole('listitem'))[0]!
       expect(item).toHaveTextContent('Quoted from “A paper”, by Ada Author and Bo Writer')
       // The person who took the note is the chip, and is a different Ada from the piece's author.
       expect(within(item).getByText('Ada', { exact: true })).toHaveClass('rounded-full')
@@ -299,7 +301,7 @@ describe('reading page', () => {
       await waitFor(() =>
         expect(sent).toEqual([{ text: '  “Meanders grow.”  ', readingItemId: 'l1' }]),
       )
-      const list = await screen.findByRole('list')
+      const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(within(list).getByText('“Meanders grow.”')).toBeInTheDocument()
       expectOrigin(list, 'From reading “A paper”', 'Ada')
       expect(box).toHaveValue('')
@@ -324,7 +326,7 @@ describe('reading page', () => {
       await fireEvent.update(box, 'Meanders grow.')
       await fireEvent.click(isQuote)
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
-      const list = await screen.findByRole('list')
+      const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(list.querySelector('blockquote')).toHaveTextContent('Meanders grow.')
       expectOrigin(list, 'Quoted from “A paper”', 'Ada')
       expect(screen.getByRole('checkbox', { name: /This is a direct quote/ })).not.toBeChecked()
@@ -672,9 +674,9 @@ describe('reading page', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(
         "We couldn't open that reading-list item",
       )
-      expect(screen.getByRole('link', { name: 'Back to the idea' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Back to the reading list' })).toHaveAttribute(
         'href',
-        '/p/ada-substack/ideas/i1',
+        '/p/ada-substack/ideas/i1/research',
       )
     })
 

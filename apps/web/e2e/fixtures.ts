@@ -36,4 +36,19 @@ export const test = base.extend<{ problems: string[] }>({
   ],
 })
 
+/**
+ * Goes to a step of the profile or idea you are in, from the side menu (the menu follows you, so "Notes" means the
+ * notes of whichever you are in).
+ */
+export async function goTo(page: Page, step: string) {
+  // On a phone the menu is folded behind a button.
+  const menu = page.getByRole('button', { name: 'Menu', exact: true })
+  if ((await menu.isVisible()) && (await menu.getAttribute('aria-expanded')) === 'false')
+    await menu.click()
+  await page
+    .locator('nav[aria-label="Idea"], nav[aria-label="Profile"]')
+    .getByRole('link', { name: step, exact: true })
+    .click()
+}
+
 export { expect }

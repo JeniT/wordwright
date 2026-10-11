@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Page } from '@playwright/test'
 import { e2eOutbox } from '../playwright.config'
-import { expect, test, watchForProblems } from './fixtures'
+import { expect, goTo, test, watchForProblems } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -56,7 +56,7 @@ async function openFirstProfile(page: Page) {
 async function openSettings(page: Page) {
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstProfile(page)
-  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Profile settings' }).click()
   await expect(page.getByRole('heading', { name: 'Profile settings' })).toBeVisible()
 }
 
@@ -107,8 +107,9 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
-  await expect(page.getByRole('link', { name: /Back to “/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
   await page.getByLabel('Title', { exact: true }).fill('Why rivers meander')
   await page.getByRole('textbox', { name: 'Draft body' }).fill('Rivers rarely flow straight.')
 
@@ -130,6 +131,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstProfile(page)
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await goTo(page, 'Draft')
   await page.getByRole('link', { name: 'Why rivers meander' }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
   await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
@@ -351,9 +353,7 @@ test('invites someone who has no account yet: they register from the email and j
   await expect(newbie.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   // Accepting proved they own the address, so there is no "please confirm" banner.
   await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
-  await expect(newbie.getByLabel('Profile').locator('option', { hasText: '(shared)' })).toHaveCount(
-    1,
-  )
+  await expect(newbie.getByText('Shared with 1 person')).toBeVisible()
 
   // Ada now sees them as a member, and the invitation is no longer pending.
   await page.reload()
@@ -456,9 +456,6 @@ test('invites someone who already has an account; the link only works for that a
   await bobPage.goto(link)
   await bobPage.getByRole('button', { name: /^Join / }).click()
   await expect(bobPage.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
-  await expect(
-    bobPage.getByLabel('Profile').locator('option', { hasText: '(shared)' }),
-  ).toHaveCount(1)
   await expect(bobPage.getByText('Shared with 1 person')).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
@@ -574,7 +571,9 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await page.getByRole('link', { name: 'Create your first profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Grace letters')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Grace letters' })).toBeVisible()
+  await expect(
+    page.getByRole('banner').getByText('Grace letters').filter({ visible: true }).first(),
+  ).toBeVisible()
 })
 
 test('the sign-up form explains a problem the server finds, in words', async ({ page }) => {
