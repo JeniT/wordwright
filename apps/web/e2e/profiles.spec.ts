@@ -45,7 +45,7 @@ test('creates a profile with a website and picture, and opens its page', async (
   await page.getByRole('button', { name: 'Create profile' }).click()
 
   // Lands on the profile page at its readable address.
-  await expect(page).toHaveURL(new RegExp(`/p/${handle}-my-substack/ideas$`))
+  await expect(page).toHaveURL(new RegExp(`/p/${handle}-my-substack$`))
   await expect(
     page.getByRole('banner').getByText('My Substack').filter({ visible: true }).first(),
   ).toBeVisible()
@@ -117,7 +117,7 @@ test('renaming a profile changes its address, and the old address still works', 
   await expect(
     page.getByRole('banner').getByText('Early name').filter({ visible: true }).first(),
   ).toBeVisible()
-  const oldPath = new URL(page.url()).pathname.replace(/\/ideas$/, '')
+  const oldPath = new URL(page.url()).pathname
   expect(oldPath).toMatch(/^\/p\/[a-z0-9]+-early-name$/)
 
   await page.getByRole('link', { name: 'Profile settings' }).click()
@@ -130,7 +130,7 @@ test('renaming a profile changes its address, and the old address still works', 
 
   // Bookmarks and shared links to the old address end up at the new one.
   await page.goto(oldPath)
-  await expect(page).toHaveURL(`${newPath}/ideas`)
+  await expect(page).toHaveURL(newPath)
   await expect(
     page.getByRole('banner').getByText('Later name').filter({ visible: true }).first(),
   ).toBeVisible()
@@ -199,7 +199,7 @@ test('changes the username: existing profiles keep their address, new ones use i
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('First venue')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page).toHaveURL(`/p/${before}-first-venue/ideas`)
+  await expect(page).toHaveURL(`/p/${before}-first-venue`)
 
   await page.getByRole('link', { name: who, exact: true }).click()
   const section = page.getByRole('region', { name: 'Username' })
@@ -224,7 +224,7 @@ test('changes the username: existing profiles keep their address, new ones use i
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Second venue')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page).toHaveURL(`/p/${after}-second-venue/ideas`)
+  await expect(page).toHaveURL(`/p/${after}-second-venue`)
 
   // The old username is kept for them: nobody else can take it.
   const other = await (await browser.newContext()).newPage()
@@ -250,7 +250,7 @@ test('two people can each have a profile called "Substack", with different addre
     await p.getByRole('link', { name: 'New profile' }).click()
     await p.getByLabel('Name', { exact: true }).fill('Substack')
     await p.getByRole('button', { name: 'Create profile' }).click()
-    await expect(p).toHaveURL(new RegExp(`/p/${who.toLowerCase()}-substack/ideas$`))
+    await expect(p).toHaveURL(new RegExp(`/p/${who.toLowerCase()}-substack$`))
   }
 
   // One person's profile address doesn't open for the other.

@@ -82,11 +82,13 @@ export const routes: RouteRecordRaw[] = [
     name: 'new-profile',
     component: () => import('./views/NewProfileView.vue'),
   },
-  // ——— A profile: its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
+  // ——— A profile: its landing page, its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
   {
     path: '/p/:profileId',
     name: 'profile',
-    redirect: (to) => ({ name: 'profile-ideas', params: to.params }),
+    component: () => import('./views/ProfileHomeView.vue'),
+    props: true,
+    meta: { level: 'profile' },
   },
   {
     path: '/p/:profileId/search',

@@ -31,7 +31,8 @@ export const server = setupServer(
   http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds: 3 })),
   // An empty reading list (the profile's, which the Read page shows).
   http.get('*/api/profiles/:profileId/reading', () => HttpResponse.json([])),
-  // No notes yet, on any idea.
+  // No notes yet, on the profile or on any idea.
+  http.get('*/api/profiles/:profileId/notes', () => HttpResponse.json([])),
   http.get('*/api/profiles/:profileId/ideas/:ideaId/notes', () => HttpResponse.json([])),
   // Nothing has been pulled into any draft from notes.
   http.get('*/api/profiles/:profileId/drafts/:draftId/insertions', () => HttpResponse.json([])),

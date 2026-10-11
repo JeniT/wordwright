@@ -102,10 +102,12 @@ describe('the menu in a profile', () => {
     ).toBeInTheDocument()
   })
 
-  it('opens at the Ideas step, where you choose what to work on', async () => {
+  it('opens at the profile’s own page, which is not one of the steps', async () => {
     mockApp()
     const { router } = await renderAt('/p/ada-substack')
-    expect(router.currentRoute.value.name).toBe('profile-ideas')
+    expect(router.currentRoute.value.name).toBe('profile')
+    const nav = await screen.findByRole('navigation', { name: 'Profile' })
+    expect(within(nav).queryByRole('link', { current: 'page' })).not.toBeInTheDocument()
   })
 })
 

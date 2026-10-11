@@ -114,6 +114,27 @@ test('leads through a profile and an idea step by step, without ever locking one
   await expect(
     page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Account settings' }),
   ).toBeVisible()
+
+  // Opening a profile lands on its own page, which is none of the steps.
+  await page.getByRole('link', { name: /Garden notes/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible()
+  await expect(profile.locator('[aria-current="page"]')).toHaveCount(0)
+  await noViolations(page, 'Profile landing page')
+
+  // A note can be jotted down there, and shows at once, and on the Notes step too.
+  await page.getByLabel('Add a note').fill('Prune in late winter.')
+  await page.getByRole('button', { name: 'Add note' }).click()
+  const recent = page.getByRole('list', { name: 'Recent notes' })
+  await expect(recent.getByText('Prune in late winter.')).toBeVisible()
+  await expect(page.getByLabel('Add a note')).toHaveValue('')
+  await page.getByRole('link', { name: /See all notes/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await expect(page.getByText('Prune in late winter.')).toBeVisible()
+
+  // Its ideas are listed, and lead on.
+  await page.goBack()
+  await page.getByRole('link', { name: /What pruning teaches/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
 })
 
 test('looks right, and has no accessibility violations, in dark mode', async ({ page }) => {

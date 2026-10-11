@@ -258,6 +258,9 @@ The principles (they are the point of the pattern; keep them when you add a page
    Research's **Start research**); arriving by the menu must never cost the writer money.
 6. **Always a way up**: "← All profiles", "← {profile}".
 7. **Settings sit apart from the steps**, at their own level, with no step current.
+8. **A level has a landing page** (a profile's, at `/p/:profileId`) that is none of the numbered steps: a summary of
+   each step with its quick action (latest notes and a form to add one; the ideas). Nothing in the menu is current there.
+   Panels reuse the step pages' components, and, like the steps, visiting spends nothing.
 
 |                                                           |                                                          |
 | --------------------------------------------------------- | -------------------------------------------------------- |

@@ -56,7 +56,7 @@ describe('accept-invitation page', () => {
     )
     const { router } = await renderAt('/accept-invite?token=abc')
     await fireEvent.click(await screen.findByRole('button', { name: 'Join Joint piece' }))
-    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/p/p1/ideas'))
+    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/p/p1'))
     expect(accepted).toEqual({ token: 'abc' })
   })
 

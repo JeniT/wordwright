@@ -46,7 +46,7 @@ gentle "Next: …" suggestion. Home → profile → idea:
 | Level   | Menu lists                                                                                                                          | Front door                     |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | Home    | Profiles, Account settings (`/`, `/account`)                                                                                        | `/`                            |
-| Profile | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; Profile settings                       | `/p/<id>` → Ideas              |
+| Profile | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; Profile settings                       | `/p/<id>` → its landing page   |
 | Idea    | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft**, **05 Publish** (copy the draft as Markdown); Idea settings | `/p/<id>/ideas/<idea>` → Notes |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
@@ -107,7 +107,7 @@ tests inject fakes and nothing hits the network.
   adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
-  `/profiles/new` creates one; `/p/<id>` opens its **Ideas** step (see _Navigation_ below for its three steps);
+  `/profiles/new` creates one; `/p/<id>` is its landing page, an overview with its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);
   `/p/<id>/settings` edits it, shares it and deletes it. Still to come: reader personas (see the GitHub issues).
 - **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to

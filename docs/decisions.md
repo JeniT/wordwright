@@ -712,6 +712,12 @@ posts and the feeds) and **Read** (`/p/:profileId/read`: the profile's reading l
 `/inspiration` address leads to Search (to Read when it has `#reading-list`), and `/reading` to Read. Notes and Ideas
 moved to 03 and 04.
 
+**Landing pages (#98).** Opening a profile used to redirect to its Ideas step. `/p/:profileId` is now a page of its
+own, titled "Overview", that summarises the profile: its five latest notes with a form to add one, and its ideas. It is
+none of the numbered steps, so the menu marks nothing current, like the settings pages. "Latest" notes means newest
+made, not the writer's own order on the Notes step. The Search and Read summaries follow (#100), and the idea level gets
+the same treatment (#99), under umbrella #95.
+
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
 
 Links are added by address alone; the server fetches the page and keeps its `<title>` (or `og:title`) as the link's
