@@ -84,6 +84,7 @@ describe('ideas', () => {
           why: null,
           origin: 'entered',
           kept: false,
+          addedAt: expect.any(String),
         },
       ])
       expect(ctx.pageFetcher.calls).toEqual(['https://example.org/meanders'])
@@ -266,6 +267,7 @@ describe('ideas', () => {
           why: null,
           origin: 'entered',
           kept: false,
+          addedAt: expect.any(String),
         })
       })
 

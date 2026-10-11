@@ -226,6 +226,12 @@
     border-color: var(--color-accent);
   }
 }
+/* A square button holding only an icon (add `btn-sm` and `btn-quiet`). Its name comes from an aria-label. */
+@utility btn-icon {
+  width: 2.25rem;
+  min-width: 2.25rem;
+  padding: 0;
+}
 @utility field {
   display: block;
   width: 100%;
@@ -299,6 +305,13 @@
   background: var(--color-accent-wash);
   border-color: var(--color-accent);
 }
+/* A fact about an item (where it came from). Flat, so that only what you can press has a strong outline. */
+@utility chip-quiet {
+  background: var(--color-sunken);
+  border-color: var(--color-line);
+  color: var(--color-ink-soft);
+  font-weight: 500;
+}
 /* The highlighter: ONLY for what the AI suggested. If it is everywhere it marks nothing. */
 @utility chip-ai {
   background: var(--color-mark);
@@ -308,6 +321,95 @@
   background: var(--color-ok-wash);
   border-color: var(--color-ok);
   color: var(--color-ok);
+}
+/*
+ * A switch: the state of one thing (Read, Keep, Show read), saved as soon as it is flipped. A checkbox only ever
+ * means "select this item". Markup: <label class="switch"><input type="checkbox" role="switch"> <span data-switch-track
+ * aria-hidden="true"></span> <span>Label</span></label>. On is shown by the knob's place and a tick, not by colour alone.
+ */
+@utility switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  & > input {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    translate: 0 -50%;
+    width: 2.75rem;
+    height: 1.75rem;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  & > [data-switch-track] {
+    position: relative;
+    flex: none;
+    width: 2.75rem;
+    height: 1.5rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-sunken);
+    color: var(--color-on-accent);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.35rem;
+    padding-inline-start: 0.4rem;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      inset-inline-start: 3px;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 999px;
+      background: var(--color-ink-soft);
+      transition: translate 120ms;
+    }
+  }
+  & > input:checked + [data-switch-track] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    &::before {
+      translate: 1.25rem 0;
+      background: var(--color-on-accent);
+    }
+    &::after {
+      content: '✓';
+    }
+  }
+  & > input:hover:not(:disabled) + [data-switch-track] {
+    border-color: var(--color-ink);
+  }
+  & > input:focus-visible + [data-switch-track] {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  & > input:disabled {
+    cursor: not-allowed;
+  }
+  & > input:disabled + [data-switch-track] {
+    opacity: 0.55;
+  }
+}
+/*
+ * The left rail of a list row: a fixed-width zone that holds the row's select checkbox and, where the list can be
+ * reordered, its grip and arrows. It is top-aligned so it works for rows of any height.
+ */
+@utility list-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 3rem;
+  padding-block: 0.75rem;
+  border-inline-end: 1px solid var(--color-line);
+  background: var(--color-sunken);
 }
 /* Notices. Plain = information; with -danger or -ok for errors and success. Always put words in them. */
 @utility callout {

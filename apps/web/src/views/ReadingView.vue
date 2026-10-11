@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import type { IdeaNote } from '@lfwa/core'
 import NoteOrigin from '../components/NoteOrigin.vue'
 import NoteText from '../components/NoteText.vue'
+import SwitchField from '../components/SwitchField.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
@@ -78,16 +79,12 @@ function submitTitle() {
 
 // Whether it has been read is the writer's say-so (they may have read it offline), as on the idea page.
 const setRead = list.setRead
-const readBox = ref<HTMLInputElement>()
+const readSwitch = useTemplateRef<InstanceType<typeof SwitchField>>('readSwitch')
 function toggleRead(read: boolean) {
   setRead.mutate(
     { linkId: props.linkId, read },
-    // The box has already flipped under the person's finger; put it back to what is saved.
-    {
-      onError: () => {
-        if (readBox.value) readBox.value.checked = !!item.value?.readAt
-      },
-    },
+    // The switch has already flipped under the person's finger; put it back to what is saved.
+    { onError: () => readSwitch.value?.revert() },
   )
 }
 
@@ -248,17 +245,13 @@ const add = useMutation({
         Most websites can't be shown inside another page, so it opens in its own tab. Put the two
         tabs side by side if you can, and keep this one open to write down what you find.
       </p>
-      <label class="flex items-center gap-2 text-sm">
-        <input
-          ref="readBox"
-          type="checkbox"
-          class="size-4 accent-accent"
-          :checked="!!item.readAt"
-          :disabled="setRead.isPending.value"
-          @change="toggleRead(($event.target as HTMLInputElement).checked)"
-        />
-        I have read this
-      </label>
+      <SwitchField
+        ref="readSwitch"
+        :model-value="!!item.readAt"
+        label="I have read this"
+        :disabled="setRead.isPending.value"
+        @update:model-value="toggleRead"
+      />
       <p v-if="setRead.isError.value" role="alert" class="mt-1 text-sm text-danger">
         Couldn't save that. Please try again.
       </p>

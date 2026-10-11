@@ -1,6 +1,7 @@
 import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
+import { showArrows } from '../test-utils'
 import ReorderableList from './ReorderableList.vue'
 
 interface Item {
@@ -17,7 +18,10 @@ interface Call {
  * A list whose saves wait until the test answers them, inside a parent that keeps the saved order
  * the way the pages do (the answer to a save becomes `items`).
  */
-function mountList(initial = ['a', 'b', 'c'], { pageFollowsSaves = true } = {}) {
+async function mountList(
+  initial = ['a', 'b', 'c'],
+  { pageFollowsSaves = true, arrows = true } = {},
+) {
   const items = ref<Item[]>(initial.map((id) => ({ id })))
   const calls: Call[] = []
   let inFlight = 0
@@ -57,6 +61,8 @@ function mountList(initial = ['a', 'b', 'c'], { pageFollowsSaves = true } = {}) 
       ),
   })
   render(Parent)
+  if (arrows) await showArrows()
+  else await screen.findAllByRole('button', { name: /^Reorder / })
   return { items, calls, mostInFlight: () => mostInFlight, renders: () => renders }
 }
 
@@ -74,8 +80,33 @@ const dragOver = (row: Element, clientY: number, dataTransfer: object) => {
 describe('ReorderableList', () => {
   afterEach(() => vi.useRealTimers())
 
+  it('keeps the arrows out of sight until a row’s grip is pressed, and puts them away again', async () => {
+    await mountList(['a', 'b'], { arrows: false })
+    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
+    const grip = screen.getByRole('button', { name: 'Reorder b' })
+    expect(grip).toHaveAttribute('aria-expanded', 'false')
+    await fireEvent.click(grip)
+    expect(grip).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Move b up' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: 'Move a down' })).not.toBeInTheDocument() // only that row's
+    await fireEvent.click(grip)
+    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
+  })
+
+  it('moves a row with the arrow keys on its grip, keeping focus on the grip', async () => {
+    const { calls } = await mountList(['a', 'b', 'c'], { arrows: false })
+    const grip = screen.getByRole('button', { name: 'Reorder b' })
+    grip.focus()
+    await fireEvent.keyDown(grip, { key: 'ArrowUp' })
+    expect(order()).toEqual(['b', 'a', 'c'])
+    expect(calls[0]!.ids).toEqual(['b', 'a', 'c'])
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reorder b' })).toHaveFocus())
+    await fireEvent.keyDown(screen.getByRole('button', { name: 'Reorder b' }), { key: 'ArrowUp' })
+    expect(order()).toEqual(['b', 'a', 'c']) // already first: nothing to do
+  })
+
   it('shows a move at once, before the save has answered, and keeps focus on the moved row', async () => {
-    const { calls } = mountList()
+    const { calls } = await mountList()
     await press('Move b up')
     expect(order()).toEqual(['b', 'a', 'c'])
     expect(calls).toHaveLength(1)
@@ -85,14 +116,14 @@ describe('ReorderableList', () => {
   })
 
   it('keeps the arrows usable while a save is in flight', async () => {
-    mountList()
+    await mountList()
     await press('Move b up')
     expect(screen.getByRole('button', { name: 'Move c up' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Move a down' })).toBeEnabled()
   })
 
   it('saves one at a time, and only the latest order once the first has answered', async () => {
-    const { calls, items, mostInFlight } = mountList()
+    const { calls, items, mostInFlight } = await mountList()
     await press('Move b up') // b a c, sent
     await press('Move c up') // b c a, waits
     await press('Move c up') // c b a, waits (replaces the one waiting)
@@ -114,7 +145,7 @@ describe('ReorderableList', () => {
   })
 
   it('does not flash the old order while the page catches up with a save', async () => {
-    const { calls, items } = mountList(['a', 'b'], { pageFollowsSaves: false })
+    const { calls, items } = await mountList(['a', 'b'], { pageFollowsSaves: false })
     await press('Move b up')
     calls[0]!.resolve(true)
     await settle() // the save has answered, but `items` still holds the old order
@@ -126,7 +157,7 @@ describe('ReorderableList', () => {
 
   it('stops showing its own order a few seconds after a save if the page never agrees', async () => {
     vi.useFakeTimers()
-    const { calls } = mountList(['a', 'b'], { pageFollowsSaves: false })
+    const { calls } = await mountList(['a', 'b'], { pageFollowsSaves: false })
     await fireEvent.click(screen.getByRole('button', { name: 'Move b up' }))
     calls[0]!.resolve(true)
     await vi.advanceTimersByTimeAsync(100)
@@ -136,7 +167,7 @@ describe('ReorderableList', () => {
   })
 
   it('goes back to the saved order when a save fails, says so, and drops moves that were waiting', async () => {
-    const { calls } = mountList()
+    const { calls } = await mountList()
     await press('Move b up')
     await press('Move c up')
     calls[0]!.resolve(false)
@@ -149,14 +180,14 @@ describe('ReorderableList', () => {
   })
 
   it('treats a save that throws like one that failed', async () => {
-    const { calls } = mountList()
+    const { calls } = await mountList()
     await press('Move c up')
     calls[0]!.reject(new Error('offline'))
     await waitFor(() => expect(order()).toEqual(['a', 'b', 'c']))
   })
 
   it('lets the next move start fresh after a failure', async () => {
-    const { calls } = mountList()
+    const { calls } = await mountList()
     await press('Move b up')
     calls[0]!.resolve(false)
     await waitFor(() => expect(order()).toEqual(['a', 'b', 'c']))
@@ -167,7 +198,7 @@ describe('ReorderableList', () => {
   })
 
   it('puts a row someone else added meanwhile at the end, and drops one that went', async () => {
-    const { items } = mountList()
+    const { items } = await mountList()
     await press('Move c up') // a c b, still saving
     items.value = [...items.value, { id: 'd' }]
     await settle()
@@ -178,10 +209,10 @@ describe('ReorderableList', () => {
   })
 
   it('shows a drag and drop at once too', async () => {
-    const { calls } = mountList()
+    const { calls } = await mountList()
     const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
     const rows = screen.getAllByRole('listitem')
-    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="rail"]')!, { dataTransfer })
     await dragOver(rows[0]!, -1, dataTransfer)
     await fireEvent.drop(rows[0]!, { dataTransfer })
     expect(order()).toEqual(['c', 'a', 'b'])
@@ -189,11 +220,11 @@ describe('ReorderableList', () => {
   })
 
   it('carries a small label while dragging, not a picture of the whole row, and tidies it away', async () => {
-    mountList()
+    await mountList()
     const setDragImage = vi.fn()
     const dataTransfer = { setData() {}, setDragImage, effectAllowed: '', dropEffect: '' }
     const rows = screen.getAllByRole('listitem')
-    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="rail"]')!, { dataTransfer })
     expect(setDragImage).toHaveBeenCalledTimes(1)
     const image = setDragImage.mock.calls[0]![0] as HTMLElement
     expect(rows.some((row) => row === image || row.contains(image))).toBe(false)
@@ -205,10 +236,10 @@ describe('ReorderableList', () => {
   })
 
   it('does not redraw the list for a dragover that changes nothing', async () => {
-    const { renders } = mountList()
+    const { renders } = await mountList()
     const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
     const rows = screen.getAllByRole('listitem')
-    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+    await fireEvent.dragStart(rows[2]!.querySelector('[data-testid="rail"]')!, { dataTransfer })
     await dragOver(rows[0]!, -1, dataTransfer)
     await settle()
     const drawn = renders()
@@ -221,7 +252,7 @@ describe('ReorderableList', () => {
   })
 
   it('builds the next move on the order shown, not the saved one', async () => {
-    const { calls } = mountList()
+    const { calls } = await mountList()
     await press('Move b up') // b a c
     await press('Move b down') // back to a b c, built on the pending order
     expect(order()).toEqual(['a', 'b', 'c'])

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test } from './fixtures'
+import { expect, goTo, holdToConfirm, test } from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -62,15 +62,14 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(address).toHaveValue('')
 
   // Items are ticked off as they are read (perhaps elsewhere), and that is remembered.
-  const readBox = page.getByRole('checkbox', { name: /^Read: Fake title for example\.org/ })
+  const readBox = page.getByRole('switch', { name: /^Read: Fake title for example\.org/ })
   await expect(readBox).not.toBeChecked()
   await readBox.check()
   await expect(readBox).toBeChecked() // still in view, so it can be unticked
   await page.reload()
   // Read items are out of the way until asked for.
   await expect(readBox).toHaveCount(0)
-  await expect(page.getByText('1 read item is hidden.')).toBeVisible()
-  await page.getByRole('checkbox', { name: 'Show read items (1)' }).check()
+  await page.getByRole('switch', { name: 'Show read items (1)' }).check()
   await expect(readBox).toBeChecked()
 
   // The same page twice is refused, however it is written, and what was typed stays put.
@@ -129,6 +128,9 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   const draftTitles = async () =>
     (await drafts.getByRole('listitem').allInnerTexts()).map((t) => t.match(/Part \d/)![0])
   const moveUp = drafts.getByRole('button', { name: 'Move Part 2: the oxbow up' })
+  // The arrows appear when a row's grip is pressed.
+  await expect(moveUp).toHaveCount(0)
+  await drafts.getByRole('button', { name: 'Reorder Part 2: the oxbow' }).click()
   await moveUp.focus()
   await page.keyboard.press('Enter')
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
@@ -136,7 +138,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await drafts
     .getByRole('listitem')
     .first()
-    .getByTestId('grip')
+    .getByTestId('rail')
     .dragTo(drafts.getByRole('listitem').nth(1), { targetPosition: { x: 40, y: 40 } })
   await expect.poll(draftTitles).toEqual(['Part 1', 'Part 2'])
   await page.getByRole('button', { name: 'Move Part 2: the oxbow up' }).click()
@@ -158,6 +160,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(notes.getByLabel('Add a note')).toHaveValue('')
   await noViolations(page, 'idea page with notes')
 
+  await notes.getByRole('button', { name: /^Reorder note “Oxbow lakes/ }).click()
   await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*up/ }).click()
   await expect(notes.getByRole('listitem').nth(1)).toContainText('Oxbow lakes')
   await notes.getByRole('button', { name: /^Edit note “Erosion on the outside/ }).click()
@@ -197,9 +200,16 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   // Removing a link and deleting the idea both work, and deleting asks first.
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await goTo(page, 'Research')
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check() // example.org was read
-  await page.getByRole('button', { name: 'Remove link to Fake title for example.org' }).click()
-  await page.getByRole('button', { name: 'Remove link to Fake title for example.net' }).click()
+  await page.getByRole('switch', { name: /^Show read items/ }).check() // example.org was read
+  await holdToConfirm(
+    page,
+    page.getByRole('button', { name: 'Remove link to Fake title for example.org' }),
+  )
+  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toHaveCount(0)
+  await holdToConfirm(
+    page,
+    page.getByRole('button', { name: 'Remove link to Fake title for example.net' }),
+  )
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
   await page.getByRole('link', { name: 'Idea settings' }).click()
   await page.getByRole('button', { name: 'Delete idea' }).click()
@@ -350,22 +360,22 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   )
   await expect(list).not.toContainText('by Ida') // the chip is who took the note, not who wrote the page
   // Taking notes from a page marks it read (it can still be unticked).
-  await expect(page.getByRole('checkbox', { name: 'I have read this' })).toBeChecked()
+  await expect(page.getByRole('switch', { name: 'I have read this' })).toBeChecked()
   await noViolations(page, 'reading page with notes')
 
   // They are remembered, and they join the idea's other notes, still naming the page they came from.
   await page.reload()
-  await expect(page.getByRole('checkbox', { name: 'I have read this' })).toBeChecked()
+  await expect(page.getByRole('switch', { name: 'I have read this' })).toBeChecked()
   await expect(page.getByText('So the bend moves downstream.')).toBeVisible()
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
   // (the first item; the second, added from the reading page, is unread; read items are hidden until shown)
-  await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toHaveCount(0)
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
-  await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toBeChecked()
-  await expect(page.getByRole('checkbox', { name: /^Read: / })).toHaveCount(2)
+  await expect(page.getByRole('switch', { name: 'Read: Meanders, explained' })).toHaveCount(0)
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await expect(page.getByRole('switch', { name: 'Read: Meanders, explained' })).toBeChecked()
+  await expect(page.getByRole('switch', { name: /^Read: / })).toHaveCount(2)
   // Read items go last: the unread page found while reading comes first, the one just read after it.
-  await expect(page.getByRole('checkbox', { name: /^Read: / }).first()).not.toBeChecked()
-  await expect(page.getByRole('checkbox', { name: /^Read: / }).last()).toBeChecked()
+  await expect(page.getByRole('switch', { name: /^Read: / }).first()).not.toBeChecked()
+  await expect(page.getByRole('switch', { name: /^Read: / }).last()).toBeChecked()
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
@@ -541,8 +551,8 @@ test('a link to something on the reading list goes in only once it has been read
   await expect(dialog).toHaveCount(0)
   await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
   await goTo(page, 'Research')
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
-  await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await expect(page.getByRole('switch', { name: /^Read: Fake title/ })).toBeChecked()
 })
 
 test('notes can be merged into one, and one note cut in two', async ({ page }) => {

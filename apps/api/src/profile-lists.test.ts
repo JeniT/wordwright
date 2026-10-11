@@ -9,6 +9,7 @@ type Link = {
   readAt: string | null
   authors: string[]
   kept?: boolean
+  addedAt?: string
 }
 type Note = {
   id: string
@@ -635,11 +636,25 @@ describe('items dropping off the profile’s reading list after a month', () => 
   })
   afterEach(() => vi.useRealTimers())
   const urls = async () => (await s.links()).map((l) => l.url)
+  /** What a feed brings is not kept; a link typed in by hand is, so these switch Keep off to be able to drop. */
+  const addUnkept = async (url: string) => {
+    const item = await add(url)
+    await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: false })
+    return item
+  }
+
+  it('keeps a link the writer added by hand from the start, dated from when it was added', async () => {
+    const item = await add('https://mine.example/')
+    expect(item.kept).toBe(true)
+    expect(item.addedAt).toBe('2026-05-01T12:00:00.000Z')
+    at(90)
+    expect(await urls()).toEqual(['https://mine.example/'])
+  })
 
   it('drops items a month after they were put there, quietly, and not before', async () => {
-    await add('https://old.example/')
+    await addUnkept('https://old.example/')
     at(10)
-    await add('https://newer.example/')
+    await addUnkept('https://newer.example/')
     at(29)
     expect(await urls()).toEqual(['https://old.example/', 'https://newer.example/'])
     at(31)
@@ -649,7 +664,7 @@ describe('items dropping off the profile’s reading list after a month', () => 
   })
 
   it('keeps an item that was marked to be kept, and drops it again once that is undone', async () => {
-    const item = await add('https://kept.example/')
+    const item = await addUnkept('https://kept.example/')
     const kept = await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: true })
     expect(kept.status).toBe(200)
     expect((await kept.json())[0].kept).toBe(true)
@@ -660,8 +675,8 @@ describe('items dropping off the profile’s reading list after a month', () => 
   })
 
   it('never drops an item that notes were taken from, kept or not', async () => {
-    const item = await add('https://noted.example/')
-    await add('https://plain.example/')
+    const item = await addUnkept('https://noted.example/')
+    await addUnkept('https://plain.example/')
     await s.ada.post(s.notes(), { text: 'Taken from it', readingItemId: item.id })
     at(60)
     expect(await urls()).toEqual(['https://noted.example/'])

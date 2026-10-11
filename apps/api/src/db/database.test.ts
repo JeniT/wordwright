@@ -134,6 +134,24 @@ describe('migrations', () => {
       )
     })
 
+    it('#88: keeps the links the writer already added by hand to a profile’s own list, and no others', () => {
+      const db = new DatabaseSync(':memory:')
+      migrate(db, 'test', MIGRATIONS.slice(0, -1))
+      db.exec('PRAGMA foreign_keys = OFF')
+      const link = db.prepare(
+        'INSERT INTO idea_links (id, profile_id, idea_id, url, title, created_at, origin) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
+      link.run('mine', 'p', null, 'https://a/', 'a', 'x', 'entered')
+      link.run('feed', 'p', null, 'https://b/', 'b', 'x', 'feed')
+      link.run('idea', 'p', 'i', 'https://c/', 'c', 'x', 'entered')
+      migrate(db, 'test', MIGRATIONS)
+      expect(db.prepare('SELECT id, kept FROM idea_links ORDER BY id').all()).toEqual([
+        { id: 'feed', kept: 0 },
+        { id: 'idea', kept: 0 },
+        { id: 'mine', kept: 1 },
+      ])
+    })
+
     it('works on an empty database', () => {
       const db = new DatabaseSync(':memory:')
       expect(() => migrate(db, 'test', MIGRATIONS)).not.toThrow()

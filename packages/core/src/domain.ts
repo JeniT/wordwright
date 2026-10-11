@@ -443,6 +443,8 @@ export const IdeaLinkSchema = z.object({
    * month after they were put there (`PROFILE_READING_DAYS`). Always false on an idea's list, which isn't swept.
    */
   kept: z.boolean().optional(),
+  /** When it was put on this list (not when it was written): the month before an unkept item drops runs from here. */
+  addedAt: z.string().optional(),
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 

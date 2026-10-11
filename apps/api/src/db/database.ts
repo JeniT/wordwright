@@ -515,6 +515,9 @@ export const MIGRATIONS: Migration[] = [
   // #84: an item on a profile's own reading list can be kept; the others drop off a month after they were put there.
   // Only meaningful on a profile's own list (idea_id null), where it is the writer's choice.
   `ALTER TABLE idea_links ADD COLUMN kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1))`,
+  // #88: a link the writer added themselves to the profile's own list is kept from the start (they can switch it
+  // off); only what a feed brought drops off after a month. Links already there are brought into line.
+  `UPDATE idea_links SET kept = 1 WHERE idea_id IS NULL AND origin = 'entered'`,
 ]
 
 /**

@@ -85,7 +85,7 @@ describe('reading page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
     expect(await screen.findAllByRole('link', { name: 'Take notes' })).toHaveLength(2)
-    expect(screen.queryByRole('checkbox', { name: /^Keep:/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: /^Keep:/ })).not.toBeInTheDocument()
   })
 
   it('moves items from an idea to the profile’s reading list or another idea, never to itself or a new idea', async () => {
@@ -111,8 +111,8 @@ describe('reading page', () => {
       }),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move items' }))
-    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select to move: A paper' }))
+    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select A paper' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     const picker = await screen.findByLabelText('Move to')
     expect(
       within(picker)
@@ -431,7 +431,7 @@ describe('reading page', () => {
           return HttpResponse.json({ ...idea, links: idea.links })
         }),
       ])
-      const read = await screen.findByRole('checkbox', { name: 'I have read this' })
+      const read = await screen.findByRole('switch', { name: 'I have read this' })
       expect(read).not.toBeChecked()
       await fireEvent.update(
         await screen.findByLabelText('Add a note from this page'),
@@ -439,11 +439,11 @@ describe('reading page', () => {
       )
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       await waitFor(() =>
-        expect(screen.getByRole('checkbox', { name: 'I have read this' })).toBeChecked(),
+        expect(screen.getByRole('switch', { name: 'I have read this' })).toBeChecked(),
       )
-      await fireEvent.click(screen.getByRole('checkbox', { name: 'I have read this' }))
+      await fireEvent.click(screen.getByRole('switch', { name: 'I have read this' }))
       await waitFor(() =>
-        expect(screen.getByRole('checkbox', { name: 'I have read this' })).not.toBeChecked(),
+        expect(screen.getByRole('switch', { name: 'I have read this' })).not.toBeChecked(),
       )
     })
 
@@ -633,14 +633,14 @@ describe('reading page', () => {
           })
         }),
       ])
-      const box = await screen.findByRole('checkbox', { name: 'I have read this' })
+      const box = await screen.findByRole('switch', { name: 'I have read this' })
       expect(box).not.toBeChecked()
       await fireEvent.click(box)
       await waitFor(() => expect(sent).toEqual([{ read: true }]))
       await waitFor(() =>
-        expect(screen.getByRole('checkbox', { name: 'I have read this' })).toBeChecked(),
+        expect(screen.getByRole('switch', { name: 'I have read this' })).toBeChecked(),
       )
-      await fireEvent.click(screen.getByRole('checkbox', { name: 'I have read this' }))
+      await fireEvent.click(screen.getByRole('switch', { name: 'I have read this' }))
       await waitFor(() => expect(sent).toEqual([{ read: true }, { read: false }]))
     })
 
@@ -653,7 +653,7 @@ describe('reading page', () => {
           }),
         ),
       ])
-      expect(await screen.findByRole('checkbox', { name: 'I have read this' })).toBeChecked()
+      expect(await screen.findByRole('switch', { name: 'I have read this' })).toBeChecked()
     })
 
     it('says so when it could not be saved, and leaves it as it was', async () => {
@@ -662,9 +662,9 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'boom' }, { status: 500 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('checkbox', { name: 'I have read this' }))
+      await fireEvent.click(await screen.findByRole('switch', { name: 'I have read this' }))
       expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
-      expect(screen.getByRole('checkbox', { name: 'I have read this' })).not.toBeChecked()
+      expect(screen.getByRole('switch', { name: 'I have read this' })).not.toBeChecked()
     })
   })
 

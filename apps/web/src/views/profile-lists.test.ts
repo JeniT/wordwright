@@ -1,7 +1,15 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { expectOrigin, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import {
+  expectOrigin,
+  renderAt,
+  server,
+  showArrows,
+  signedInAs,
+  testUser,
+  useMockServer,
+} from '../test-utils'
 
 useMockServer()
 
@@ -22,6 +30,7 @@ type Link = {
   origin: string
   why: string | null
   kept?: boolean
+  addedAt?: string
 }
 const link = (id: string, title: string, extra: Partial<Link> = {}): Link => ({
   id,
@@ -31,6 +40,7 @@ const link = (id: string, title: string, extra: Partial<Link> = {}): Link => ({
   readAt: null,
   origin: 'entered',
   why: null,
+  addedAt: '2026-01-02T00:00:00Z',
   ...extra,
 })
 const note = (id: string, text: string, readingItemId: string | null = null, extra = {}) => ({
@@ -206,13 +216,17 @@ describe('the profile’s reading list', () => {
   it('marks an item read and unread, and removes it', async () => {
     const state = fakeProfile({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
     await renderAt('/p/ada-substack/inspiration')
-    const box = await screen.findByRole('checkbox', { name: 'Read: A paper' })
+    const box = await screen.findByRole('switch', { name: 'Read: A paper' })
     await fireEvent.click(box)
     await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
-    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: A paper' }))
+    await fireEvent.click(await screen.findByRole('switch', { name: 'Read: A paper' }))
     await waitFor(() => expect(state.links[0]!.readAt).toBeNull())
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove link to Another' }))
+    // Removing is held (a screen reader's activation asks twice), and says nothing is lost silently.
+    const remove = screen.getByRole('button', { name: 'Remove link to Another' })
+    await fireEvent.click(remove)
+    expect(state.links).toHaveLength(2)
+    await fireEvent.click(remove)
     await waitFor(() => expect(screen.queryByText('Another')).not.toBeInTheDocument())
     expect(state.links.map((l) => l.id)).toEqual(['l1'])
   })
@@ -230,13 +244,11 @@ describe('the profile’s reading list', () => {
       await renderAt('/p/ada-substack/reading')
       expect(await screen.findByText('Still to read')).toBeInTheDocument()
       expect(screen.queryByText('Already read')).not.toBeInTheDocument()
-      expect(screen.getByText('2 read items are hidden.')).toBeInTheDocument()
 
-      const tick = screen.getByRole('checkbox', { name: 'Show read items (2)' })
+      const tick = screen.getByRole('switch', { name: 'Show read items (2)' })
       await fireEvent.click(tick)
       expect(await screen.findByText('Already read')).toBeInTheDocument()
       expect(screen.getByText('Also read')).toBeInTheDocument()
-      expect(screen.queryByText(/read items are hidden/)).not.toBeInTheDocument()
 
       await fireEvent.click(tick)
       await waitFor(() => expect(screen.queryByText('Already read')).not.toBeInTheDocument())
@@ -246,7 +258,6 @@ describe('the profile’s reading list', () => {
       fakeProfile({ links: [link('l2', 'Already read', { readAt: read })] })
       await renderAt('/p/ada-substack/reading')
       expect(await screen.findByText('Everything on the list has been read.')).toBeInTheDocument()
-      expect(screen.getByText('1 read item is hidden.')).toBeInTheDocument()
       expect(screen.queryByText('Nothing on the reading list yet.')).not.toBeInTheDocument()
     })
 
@@ -254,41 +265,40 @@ describe('the profile’s reading list', () => {
       fakeProfile({ links: [link('l1', 'Still to read')] })
       await renderAt('/p/ada-substack/reading')
       await screen.findByText('Still to read')
-      expect(screen.queryByRole('checkbox', { name: /Show read items/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('switch', { name: /Show read items/ })).not.toBeInTheDocument()
     })
 
     it('stay in view when ticked during this visit, so they can be unticked', async () => {
       const state = fakeProfile({ links: items() })
       await renderAt('/p/ada-substack/reading')
-      await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: Still to read' }))
+      await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
       await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
       // It was just ticked, so it is still there, ticked, and the others are still hidden.
-      expect(screen.getByRole('checkbox', { name: 'Read: Still to read' })).toBeChecked()
+      expect(screen.getByRole('switch', { name: 'Read: Still to read' })).toBeChecked()
       expect(screen.queryByText('Already read')).not.toBeInTheDocument()
-      expect(await screen.findByText('2 read items are hidden.')).toBeInTheDocument()
       // Unticking it makes it an ordinary unread item again.
-      await fireEvent.click(screen.getByRole('checkbox', { name: 'Read: Still to read' }))
+      await fireEvent.click(screen.getByRole('switch', { name: 'Read: Still to read' }))
       await waitFor(() => expect(state.links[0]!.readAt).toBeNull())
-      expect(screen.getByRole('checkbox', { name: 'Read: Still to read' })).not.toBeChecked()
+      expect(screen.getByRole('switch', { name: 'Read: Still to read' })).not.toBeChecked()
     })
 
     it('go out of view once the tick is changed, if they were read this visit', async () => {
       const state = fakeProfile({ links: items() })
       await renderAt('/p/ada-substack/reading')
-      await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: Still to read' }))
+      await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
       await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
-      const show = await screen.findByRole('checkbox', { name: 'Show read items (3)' })
+      const show = await screen.findByRole('switch', { name: 'Show read items (3)' })
       await fireEvent.click(show) // show them all
       await fireEvent.click(show) // and hide them again
       await waitFor(() => expect(screen.queryByText('Still to read')).not.toBeInTheDocument())
     })
   })
 
-  it('has no limit, and says what is removed after a month and what is not', async () => {
+  it('says what stays and what goes after a month, briefly', async () => {
     await renderAt('/p/ada-substack/reading')
-    expect(await screen.findByText(/There is no limit to the list/)).toBeInTheDocument()
-    expect(screen.getByText(/removed a month after it was added/)).toBeInTheDocument()
-    expect(screen.getByText(/never removed/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Links you add stay; links from your feeds go after a month/),
+    ).toBeInTheDocument()
   })
 
   it('has a Keep tick on each item, saved when it is changed', async () => {
@@ -296,16 +306,16 @@ describe('the profile’s reading list', () => {
       links: [link('l1', 'A paper'), link('l2', 'Another', { kept: true })],
     })
     await renderAt('/p/ada-substack/reading')
-    const first = await screen.findByRole('checkbox', { name: 'Keep: A paper' })
+    const first = await screen.findByRole('switch', { name: 'Keep: A paper' })
     expect(first).not.toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Keep: Another' })).toBeChecked()
-    expect(screen.getAllByText(/otherwise it is removed a month after it was added/)).toHaveLength(
-      2,
-    )
+    expect(screen.getByRole('switch', { name: 'Keep: Another' })).toBeChecked()
+    // Only an item that isn't kept says when it will go (a month after it was added), and on what date.
+    expect(screen.getAllByText(/Removed from this list on/)).toHaveLength(1)
+    expect(screen.getByText('Removed from this list on 1 Feb unless kept')).toBeInTheDocument()
 
     await fireEvent.click(first)
     await waitFor(() => expect(state.links[0]!.kept).toBe(true))
-    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Keep: Another' }))
+    await fireEvent.click(await screen.findByRole('switch', { name: 'Keep: Another' }))
     await waitFor(() => expect(state.links[1]!.kept).toBe(false))
   })
 
@@ -317,7 +327,7 @@ describe('the profile’s reading list', () => {
       ),
     )
     await renderAt('/p/ada-substack/reading')
-    const box = await screen.findByRole('checkbox', { name: 'Keep: A paper' })
+    const box = await screen.findByRole('switch', { name: 'Keep: A paper' })
     await fireEvent.click(box)
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
     await waitFor(() => expect(box).not.toBeChecked())
@@ -384,22 +394,29 @@ describe('moving reading items', () => {
   }
   const open = async () => {
     await renderAt('/p/ada-substack/reading')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move items' }))
+    await screen.findByRole('checkbox', { name: 'Select A paper' })
   }
   const tick = (title: string) =>
-    fireEvent.click(screen.getByRole('checkbox', { name: `Select to move: ${title}` }))
+    fireEvent.click(screen.getByRole('checkbox', { name: `Select ${title}` }))
+  /** The Move to… action is for what is selected, so choose first. */
+  const openMove = () => fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+  const chooseDestination = async (value: string) => {
+    await openMove()
+    await fireEvent.update(await screen.findByLabelText('Move to'), value)
+  }
 
   it('offers ticks on each item and a place to move to, and moves only once both are chosen', async () => {
     fake()
     await open()
-    expect(screen.getByRole('button', { name: 'Stop moving' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    const button = screen.getByRole('button', { name: 'Move 0 items' })
-    expect(button).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Move to…' })).toBeDisabled() // nothing selected yet
     await tick('A paper')
     await tick('Another')
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+    await openMove()
+    expect(screen.getByRole('button', { name: 'Move to…' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
     expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeDisabled() // no place chosen yet
     await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
     expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeEnabled()
@@ -410,15 +427,12 @@ describe('moving reading items', () => {
     await open()
     await tick('A paper')
     await tick('Another')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await chooseDestination('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 2 items' }))
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Moved 2 items and 5 notes to “Rivers”.',
     )
     expect(f.moves).toEqual([{ ids: ['l1', 'l2'], to: { ideaId: 'i1' } }])
-    await waitFor(() =>
-      expect(screen.queryByRole('checkbox', { name: /Select to move/ })).not.toBeInTheDocument(),
-    ) // done selecting
     expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
   })
 
@@ -426,7 +440,7 @@ describe('moving reading items', () => {
     const f = fake()
     await open()
     await tick('A paper')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i2')
+    await chooseDestination('i2')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(f.moves).toHaveLength(2))
@@ -440,7 +454,7 @@ describe('moving reading items', () => {
     f.setResult({ readingItems: 1, merged: 1, notes: 0 })
     await open()
     await tick('A paper')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await chooseDestination('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     const status = await screen.findByRole('status')
     expect(status).toHaveTextContent(
@@ -455,7 +469,7 @@ describe('moving reading items', () => {
     const f = fake()
     await open()
     await tick('A paper')
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__new')
+    await chooseDestination('__new')
     const button = screen.getByRole('button', { name: 'Move 1 item' })
     expect(button).toBeDisabled() // it needs a name
     await fireEvent.update(screen.getByLabelText("What's your core idea?"), '  Why rivers meander ')
@@ -480,12 +494,12 @@ describe('moving reading items', () => {
     )
     await open()
     await tick('A paper')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await chooseDestination('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     expect(
       await within(screen.getByRole('region', { name: 'Reading list' })).findByRole('alert'),
     ).toHaveTextContent('An idea can have up to 50 links')
-    expect(screen.getByRole('checkbox', { name: 'Select to move: A paper' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
     expect(screen.getByLabelText('Move to')).toHaveValue('i1')
   })
 
@@ -497,25 +511,133 @@ describe('moving reading items', () => {
       ),
     )
     await open()
+    await tick('A paper')
+    await openMove()
     expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load your ideas")
     expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
   })
 
-  it('stops moving, clearing what was ticked', async () => {
+  it('closes the move form on Cancel, and keeps what was selected', async () => {
     fake()
     await open()
     await tick('A paper')
-    await fireEvent.click(screen.getByRole('button', { name: 'Stop moving' }))
-    expect(screen.queryByRole('checkbox', { name: /Select to move/ })).not.toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('button', { name: 'Move items' }))
-    expect(screen.getByRole('checkbox', { name: 'Select to move: A paper' })).not.toBeChecked()
+    await openMove()
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
   })
 
-  it('has no Move button for an empty list', async () => {
+  it('has no toolbar for an empty list', async () => {
     fake([])
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Nothing on the reading list yet.')
-    expect(screen.queryByRole('button', { name: 'Move items' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Move to…' })).not.toBeInTheDocument()
+  })
+})
+
+describe('selecting, bulk actions and pages on the reading list', () => {
+  const seven = () =>
+    Array.from({ length: 7 }, (_, i) => link(`l${i + 1}`, `Link ${i + 1}`, { origin: 'feed' }))
+  const titles = () =>
+    screen
+      .getAllByRole('checkbox', { name: /^Select Link/ })
+      .map((c) => c.getAttribute('aria-label')!.replace('Select ', ''))
+  const selectAll = () => screen.getByRole('checkbox', { name: 'Select all links on this page' })
+
+  it('pages the list five at a time, with where you are, and keeps the filter ahead of the paging', async () => {
+    fakeProfile({ links: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })] })
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Link 1')
+    expect(titles()).toEqual(['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5'])
+    expect(screen.getAllByText('Links 1–5 of 7').length).toBeGreaterThan(0)
+    await fireEvent.click(screen.getAllByRole('button', { name: /^Next/ })[0]!)
+    expect(titles()).toEqual(['Link 6', 'Link 7'])
+    // A new filter starts again at the first page, and the count is of the filtered list.
+    await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
+    expect(titles()).toHaveLength(5)
+    expect(screen.getAllByText('Links 1–5 of 8').length).toBeGreaterThan(0)
+  })
+
+  it('shows no page controls for a list that fits on one page', async () => {
+    fakeProfile({ links: seven().slice(0, 3) })
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Link 1')
+    expect(screen.queryByRole('button', { name: /^Next/ })).not.toBeInTheDocument()
+  })
+
+  it('selects the page with the box at the top, which shows a partial selection as such', async () => {
+    fakeProfile({ links: seven() })
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Link 1')
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 2' }))
+    expect(selectAll()).toHaveProperty('indeterminate', true)
+    await fireEvent.click(selectAll())
+    expect(screen.getByText('5 selected')).toBeInTheDocument()
+    expect(selectAll()).toBeChecked()
+    await fireEvent.click(selectAll())
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
+  })
+
+  it('offers the rest of the pages once the whole page is selected, and clears the selection on a new page', async () => {
+    fakeProfile({ links: seven() })
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Link 1')
+    await fireEvent.click(selectAll())
+    await fireEvent.click(screen.getByRole('button', { name: 'Select all 7' }))
+    expect(screen.getByText('7 selected')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove 7' })).toBeEnabled()
+    await fireEvent.click(screen.getAllByRole('button', { name: /^Next/ })[0]!)
+    expect(screen.getByText('0 selected')).toBeInTheDocument() // what an action touches is always what is on screen
+  })
+
+  it('removes the selected links only after a hold, and nothing until something is selected', async () => {
+    const state = fakeProfile({ links: seven().slice(0, 3) })
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Link 1')
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 1' }))
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 3' }))
+    const remove = screen.getByRole('button', { name: 'Remove 2' })
+    await fireEvent.click(remove) // a screen reader's first activation only arms it
+    expect(state.links).toHaveLength(3)
+    await fireEvent.click(remove)
+    await waitFor(() => expect(state.links.map((l) => l.id)).toEqual(['l2']))
+    await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
+  })
+
+  it('says so when some of the selected links could not be removed, and keeps those selected', async () => {
+    fakeProfile({ links: seven().slice(0, 2) })
+    server.use(
+      http.delete('*/api/profiles/ada-substack/reading/l2', () =>
+        HttpResponse.json({ error: 'x' }, { status: 500 }),
+      ),
+    )
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Link 1')
+    await fireEvent.click(selectAll())
+    const remove = screen.getByRole('button', { name: 'Remove 2' })
+    await fireEvent.click(remove)
+    await fireEvent.click(remove)
+    expect(await screen.findByText(/Couldn't remove all of those links/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
+    expect(screen.getByRole('checkbox', { name: 'Select Link 2' })).toBeChecked()
+  })
+
+  it('puts a link’s facts under it, plain: the host as text, where it came from as a flat chip', async () => {
+    fakeProfile({
+      links: [
+        link('l1', 'A paper', { url: 'https://www.example.org/a/long/path', origin: 'feed' }),
+      ],
+    })
+    await renderAt('/p/ada-substack/reading')
+    const item = (await screen.findByRole('link', { name: /A paper/ })).closest('li')!
+    expect(within(item).getByText('example.org')).toBeInTheDocument()
+    expect(within(item).queryByText(/long\/path/)).not.toBeInTheDocument() // one link, not two
+    expect(within(item).getByText('From a feed')).toHaveClass('chip-quiet')
+    expect(within(item).getAllByRole('link')).toHaveLength(2) // the title, and Take notes
   })
 })
 
@@ -575,7 +697,7 @@ describe('reading an item of the profile’s own list', () => {
 
   it('marks it read, and edits its title and authors', async () => {
     const { state } = open()
-    await fireEvent.click(await screen.findByRole('checkbox', { name: 'I have read this' }))
+    await fireEvent.click(await screen.findByRole('switch', { name: 'I have read this' }))
     await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
 
     server.use(
@@ -860,6 +982,7 @@ describe('the profile’s notes', () => {
     const state = fakeProfile({ notes: [note('n1', 'One'), note('n2', 'Two')] })
     await renderAt('/p/ada-substack/notes')
     await screen.findByText('One')
+    await showArrows()
     await fireEvent.click(screen.getByRole('button', { name: /Move note “Two” up/ }))
     await waitFor(() => expect(state.orders).toEqual([['n2', 'n1']]))
 

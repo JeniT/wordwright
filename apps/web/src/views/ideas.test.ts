@@ -1,7 +1,15 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
+import {
+  renderAt,
+  server,
+  showArrows,
+  signedInAs,
+  testUser,
+  useMockServer,
+  expectOrigin,
+} from '../test-utils'
 
 useMockServer()
 
@@ -201,7 +209,7 @@ describe('idea page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Describe your idea')
   })
 
-  it('shows a link by its title, with the address beneath, and by its address when it has no title', async () => {
+  it('shows a link by its title, with just its host beneath (one link per item), and by its address when it has no title', async () => {
     server.use(
       signedInAs(testUser),
       listProfiles,
@@ -223,7 +231,10 @@ describe('idea page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
     const titled = await screen.findByRole('link', { name: /A paper/ })
-    expect(titled).toHaveTextContent('https://example.org/paper')
+    expect(titled).toHaveAttribute('href', 'https://example.org/paper')
+    expect(titled).not.toHaveTextContent('https://example.org/paper')
+    expect(titled.closest('li')).toHaveTextContent('example.org')
+    expect(screen.getAllByRole('link', { name: /A paper/ })).toHaveLength(1)
     const untitled = screen.getByRole('link', { name: /example\.org\/untitled/ })
     expect(untitled).toHaveAttribute('href', 'https://example.org/untitled')
     expect(untitled.textContent).toContain('https://example.org/untitled')
@@ -235,7 +246,7 @@ describe('idea page', () => {
       const section = (await screen.findByRole('heading', { name: 'Reading list' })).closest(
         'section',
       )!
-      expect(within(section).getByText(/Tick each one off/)).toBeInTheDocument()
+      expect(within(section).getByText(/Mark each one/)).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Related work' })).toBeNull()
     })
 
@@ -275,10 +286,10 @@ describe('idea page', () => {
       )
       await renderAt('/p/ada-substack/ideas/i1/research')
       // Read items are out of the way until asked for.
-      expect(await screen.findByRole('checkbox', { name: 'Read: Unread one' })).not.toBeChecked()
-      expect(screen.queryByRole('checkbox', { name: 'Read: Read one' })).not.toBeInTheDocument()
-      await fireEvent.click(screen.getByRole('checkbox', { name: 'Show read items (1)' }))
-      expect(await screen.findByRole('checkbox', { name: 'Read: Read one' })).toBeChecked()
+      expect(await screen.findByRole('switch', { name: 'Read: Unread one' })).not.toBeChecked()
+      expect(screen.queryByRole('switch', { name: 'Read: Read one' })).not.toBeInTheDocument()
+      await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
+      expect(await screen.findByRole('switch', { name: 'Read: Read one' })).toBeChecked()
       expect(screen.getByText('Suggested in brainstorming')).toBeInTheDocument()
       expect(screen.getByText('Found by research')).toBeInTheDocument()
       expect(
@@ -302,17 +313,17 @@ describe('idea page', () => {
           return HttpResponse.json(current)
         }),
       ])
-      const box = await screen.findByRole('checkbox', { name: 'Read: A paper' })
+      const box = await screen.findByRole('switch', { name: 'Read: A paper' })
       expect(box).not.toBeChecked()
       await fireEvent.click(box)
       await waitFor(() => expect(sent).toEqual([{ read: true }]))
       await waitFor(() =>
-        expect(screen.getByRole('checkbox', { name: 'Read: A paper' })).toBeChecked(),
+        expect(screen.getByRole('switch', { name: 'Read: A paper' })).toBeChecked(),
       )
-      await fireEvent.click(screen.getByRole('checkbox', { name: 'Read: A paper' }))
+      await fireEvent.click(screen.getByRole('switch', { name: 'Read: A paper' }))
       await waitFor(() => expect(sent).toEqual([{ read: true }, { read: false }]))
       await waitFor(() =>
-        expect(screen.getByRole('checkbox', { name: 'Read: A paper' })).not.toBeChecked(),
+        expect(screen.getByRole('switch', { name: 'Read: A paper' })).not.toBeChecked(),
       )
     })
 
@@ -322,9 +333,9 @@ describe('idea page', () => {
           HttpResponse.json({ error: 'boom' }, { status: 500 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: A paper' }))
+      await fireEvent.click(await screen.findByRole('switch', { name: 'Read: A paper' }))
       expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
-      expect(screen.getByRole('checkbox', { name: 'Read: A paper' })).not.toBeChecked()
+      expect(screen.getByRole('switch', { name: 'Read: A paper' })).not.toBeChecked()
     })
   })
 
@@ -496,7 +507,11 @@ describe('idea page', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     ])
-    await fireEvent.click(await screen.findByRole('button', { name: 'Remove link to A paper' }))
+    // Removing is held, like deleting anything that can't be got back; a screen reader's activation asks twice.
+    const remove = await screen.findByRole('button', { name: 'Remove link to A paper' })
+    await fireEvent.click(remove)
+    expect(removed).toBe(false)
+    await fireEvent.click(remove)
     await waitFor(() => expect(removed).toBe(true))
   })
 
@@ -892,6 +907,7 @@ describe('idea page', () => {
         await open()
         await screen.findByText('Erosion loops.')
         await fireEvent.click(within(region()).getByRole('button', { name: 'draft 2' }))
+        await showArrows()
         // Shown: n1, n2. Move n2 above n1; n3 and n4 are hidden and keep their places.
         await fireEvent.click(
           screen.getByRole('button', { name: /^Move note “Deposition inside the bend\.” up/ }),
@@ -1092,6 +1108,7 @@ describe('idea page', () => {
       it('moves a note with the buttons, sending the complete new order and announcing it', async () => {
         const state = fakeNotes()
         await open()
+        await showArrows()
         await fireEvent.click(
           await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
         )
@@ -1116,6 +1133,7 @@ describe('idea page', () => {
           }),
         )
         await open()
+        await showArrows()
         await fireEvent.click(
           await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
         )
@@ -1147,6 +1165,7 @@ describe('idea page', () => {
           }),
         )
         await open()
+        await showArrows()
         const up = (text: string) =>
           screen.getByRole('button', { name: new RegExp(`^Move note “${text}” up`) })
         await fireEvent.click(
@@ -1172,6 +1191,7 @@ describe('idea page', () => {
       it('has no arrow that goes nowhere', async () => {
         fakeNotes()
         await open()
+        await showArrows()
         expect(
           await screen.findByRole('button', { name: /^Move note “Erosion loops\.” up/ }),
         ).toBeDisabled()
@@ -1195,6 +1215,7 @@ describe('idea page', () => {
           }),
         )
         await open()
+        await showArrows()
         await fireEvent.click(
           await screen.findByRole('button', { name: /^Move note “A quote from the paper\.” up/ }),
         )
@@ -1243,6 +1264,7 @@ describe('idea page', () => {
     it('moves a draft with the buttons, sending the complete new order and showing it', async () => {
       const fake = fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1/drafts')
+      await showArrows()
       await fireEvent.click(await screen.findByRole('button', { name: 'Move Untitled up' }))
       await waitFor(() => expect(fake.orders).toEqual([['d1', 'd3', 'd2']]))
       await waitFor(() =>
@@ -1272,6 +1294,7 @@ describe('idea page', () => {
         }),
       )
       await renderAt('/p/ada-substack/ideas/i1/drafts')
+      await showArrows()
       await fireEvent.click(await screen.findByRole('button', { name: 'Move Untitled up' }))
       expect(titles()).toEqual([
         expect.stringContaining('Part 1'),
@@ -1287,6 +1310,7 @@ describe('idea page', () => {
     it('cannot move the first draft up or the last one down, and a single draft not at all', async () => {
       fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1/drafts')
+      await showArrows()
       expect(await screen.findByRole('button', { name: 'Move Part 1 up' })).toBeDisabled()
       expect(screen.getByRole('button', { name: 'Move Untitled down' })).toBeDisabled()
       expect(screen.getByRole('button', { name: 'Move Part 2 up' })).toBeEnabled()
@@ -1295,10 +1319,11 @@ describe('idea page', () => {
     it('drags a draft by its grip', async () => {
       const fake = fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1/drafts')
+      await showArrows()
       await screen.findByRole('button', { name: 'Move Part 1 up' })
       const items = within(screen.getByRole('region', { name: 'Drafts' })).getAllByRole('listitem')
       const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
-      await fireEvent.dragStart(items[2]!.querySelector('[data-testid="grip"]')!, { dataTransfer })
+      await fireEvent.dragStart(items[2]!.querySelector('[data-testid="rail"]')!, { dataTransfer })
       await fireEvent.dragOver(items[0]!, { clientY: -1, dataTransfer })
       await fireEvent.drop(items[0]!, { dataTransfer })
       await waitFor(() => expect(fake.orders).toEqual([['d3', 'd1', 'd2']]))
@@ -1312,6 +1337,7 @@ describe('idea page', () => {
         ),
       )
       await renderAt('/p/ada-substack/ideas/i1/drafts')
+      await showArrows()
       await fireEvent.click(await screen.findByRole('button', { name: 'Move Part 2 up' }))
       expect(await screen.findByRole('alert')).toHaveTextContent('The drafts have changed.')
     })

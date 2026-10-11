@@ -96,7 +96,28 @@ export function useReadingActions(owner: () => Owner) {
       ]),
   })
 
-  return { add, setRead, setKept, update, remove, listOf }
+  /** Removes several at once (a bulk Remove). Each is tried even if an earlier one failed; the list is read again after. */
+  const removeMany = useMutation({
+    mutationFn: async (linkIds: string[]) => {
+      const { profileId, ideaId } = owner()
+      const results = await Promise.allSettled(
+        linkIds.map((linkId) =>
+          ideaId
+            ? api.removeIdeaLink(profileId, ideaId, linkId)
+            : api.removeProfileLink(profileId, linkId),
+        ),
+      )
+      if (results.some((r) => r.status === 'rejected'))
+        throw new Error('Some links could not be removed.')
+    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['idea'] }),
+        queryClient.invalidateQueries({ queryKey: ['reading'] }),
+      ]),
+  })
+
+  return { add, setRead, setKept, update, remove, removeMany, listOf }
 }
 
 /**

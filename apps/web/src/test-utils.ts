@@ -1,9 +1,9 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { render, within } from '@testing-library/vue'
+import { render, screen, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { createPinia, setActivePinia } from 'pinia'
-import type { Component } from 'vue'
+import { nextTick, type Component } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest'
 import { createAppRouter } from './router'
@@ -97,4 +97,14 @@ export function expectOrigin(element: HTMLElement, phrase: string, who: string) 
   expect(element).toHaveTextContent(phrase)
   expect(within(element).getByText(who, { exact: true })).toHaveClass('rounded-full')
   expect(element).not.toHaveTextContent(`by ${who}`)
+}
+
+/**
+ * Shows the up/down arrows of every row of a reorderable list (they appear when a row's grip is pressed), so a test
+ * can use them. Waits for the list to be drawn.
+ */
+export async function showArrows() {
+  const grips = await screen.findAllByRole('button', { name: /^Reorder / })
+  for (const grip of grips) if (grip.getAttribute('aria-expanded') === 'false') grip.click()
+  await nextTick()
 }

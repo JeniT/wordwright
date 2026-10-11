@@ -52,3 +52,11 @@ export async function goTo(page: Page, step: string) {
 }
 
 export { expect }
+
+/** Presses and holds a hold-to-confirm button (deleting or removing something) until it fires, with the mouse. */
+export async function holdToConfirm(page: Page, button: ReturnType<Page['locator']>) {
+  await button.hover()
+  await page.mouse.down()
+  await page.waitForTimeout(1100)
+  await page.mouse.up()
+}

@@ -19,9 +19,10 @@ const toLink = (l: Row): IdeaLink => ({
   origin: l.origin as ReadingOrigin,
   why: (l.why as string | null) ?? null,
   kept: l.kept === 1,
+  addedAt: l.created_at as string,
 })
 
-const COLUMNS = 'id, url, title, authors, read_at, origin, why, kept'
+const COLUMNS = 'id, url, title, authors, read_at, origin, why, kept, created_at'
 
 /**
  * Reading-list items, for an idea or for a profile as a whole (see `Owner`). Callers check that the person
@@ -112,10 +113,13 @@ export class ReadingStore {
     origin: ReadingOrigin = 'entered',
   ): IdeaLink {
     const id = randomUUID()
+    const createdAt = nowIso()
+    // A link the writer pasted into the profile's own list is theirs to keep: only what a feed brought drops off.
+    const kept = ideaId === null && origin === 'entered'
     this.db
       .prepare(
-        `INSERT INTO idea_links (id, profile_id, idea_id, url, title, authors, origin, why, read_at, source_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO idea_links (id, profile_id, idea_id, url, title, authors, origin, why, read_at, source_id, created_at, kept)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -128,7 +132,8 @@ export class ReadingStore {
         input.why ?? null,
         input.readAt ?? null,
         input.sourceId ?? null,
-        nowIso(),
+        createdAt,
+        kept ? 1 : 0,
       )
     return {
       id,
@@ -138,7 +143,8 @@ export class ReadingStore {
       readAt: input.readAt ?? null,
       origin,
       why: input.why ?? null,
-      kept: false,
+      kept,
+      addedAt: createdAt,
     }
   }
 

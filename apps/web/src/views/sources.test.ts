@@ -1,7 +1,15 @@
 import { createEvent, fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import {
+  llmSettings,
+  renderAt,
+  server,
+  showArrows,
+  signedInAs,
+  testUser,
+  useMockServer,
+} from '../test-utils'
 
 useMockServer()
 
@@ -196,7 +204,8 @@ describe('feeds on the Inspiration page', () => {
   it('moves a source up or down with the buttons, sending the complete new order', async () => {
     const fake = fakeSources()
     await openInspiration()
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move c.example/feed up' }))
+    await showArrows()
+    await fireEvent.click(screen.getByRole('button', { name: 'Move c.example/feed up' }))
     await waitFor(() => expect(fake.orders).toEqual([['s1', 's3', 's2']]))
     await fireEvent.click(screen.getByRole('button', { name: 'Move Alpha Notes down' }))
     await waitFor(() => expect(fake.orders[1]).toEqual(['s3', 's1', 's2']))
@@ -221,7 +230,8 @@ describe('feeds on the Inspiration page', () => {
       }),
     )
     await openInspiration()
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move c.example/feed up' }))
+    await showArrows()
+    await fireEvent.click(screen.getByRole('button', { name: 'Move c.example/feed up' }))
     expect(rows()[1]).toHaveTextContent('c.example/feed') // already there, nothing has been saved yet
     expect(fake.orders).toEqual([])
     release()
@@ -232,7 +242,8 @@ describe('feeds on the Inspiration page', () => {
   it('cannot move the first source up or the last one down', async () => {
     fakeSources()
     await openInspiration()
-    expect(await screen.findByRole('button', { name: 'Move Alpha Notes up' })).toBeDisabled()
+    await showArrows()
+    expect(screen.getByRole('button', { name: 'Move Alpha Notes up' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Move c.example/feed down' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Move Beta Weekly up' })).toBeEnabled()
   })
@@ -240,7 +251,8 @@ describe('feeds on the Inspiration page', () => {
   it('keeps keyboard focus on the moved source', async () => {
     fakeSources()
     await openInspiration()
-    const down = await screen.findByRole('button', { name: 'Move Alpha Notes down' })
+    await showArrows()
+    const down = screen.getByRole('button', { name: 'Move Alpha Notes down' })
     down.focus()
     await fireEvent.click(down)
     await waitFor(() =>
@@ -256,7 +268,9 @@ describe('feeds on the Inspiration page', () => {
       ),
     )
     await openInspiration()
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move Beta Weekly up' }))
+    await showArrows()
+    await showArrows()
+    await fireEvent.click(screen.getByRole('button', { name: 'Move Beta Weekly up' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('list has changed')
   })
 
@@ -334,6 +348,7 @@ describe('feeds on the Inspiration page', () => {
     await fireEvent.update(screen.getByLabelText('Add a feed'), 'new.example/feed')
     await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
     await screen.findByText('Feed of new.example/feed')
+    await showArrows()
     await fireEvent.click(screen.getByRole('button', { name: 'Move Beta Weekly up' }))
     await waitFor(() => expect(fake.orders).toHaveLength(1))
     await fireEvent.click(screen.getByRole('button', { name: 'Remove Alpha Notes' }))

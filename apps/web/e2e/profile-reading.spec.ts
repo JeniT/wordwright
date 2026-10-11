@@ -64,22 +64,24 @@ test('reads and takes notes before there is an idea: a profile reading list and 
 
   // The list has no limit, and unkept items go after a month: a tick keeps one.
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
-  await expect(page.getByText(/There is no limit to the list/)).toBeVisible()
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check() // taking notes marked it read
-  const keep = page.getByRole('checkbox', { name: /^Keep: Fake title for example\.org/ })
-  await expect(keep).not.toBeChecked()
-  await keep.check()
+  await expect(
+    page.getByText(/Links you add stay; links from your feeds go after a month/),
+  ).toBeVisible()
+  await page.getByRole('switch', { name: /^Show read items/ }).check() // taking notes marked it read
+  const keep = page.getByRole('switch', { name: /^Keep: Fake title for example\.org/ })
+  await expect(keep).toBeChecked() // a link the writer added is kept from the start
+  await keep.uncheck()
+  await expect(page.getByText(/Removed from this list on .* unless kept/)).toBeVisible()
   await page.reload()
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
-  await expect(keep).toBeChecked()
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await expect(keep).not.toBeChecked()
   await page.getByRole('link', { name: 'Take notes' }).click()
 
   // Taking a note marks it read.
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
-  await expect(page.getByText('1 read item is hidden.')).toBeVisible()
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
   await expect(
-    page.getByRole('checkbox', { name: /^Read: Fake title for example\.org/ }),
+    page.getByRole('switch', { name: /^Read: Fake title for example\.org/ }),
   ).toBeChecked()
 
   // The notes are the profile's own, naming where each came from, and are not on any idea.
@@ -98,6 +100,7 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   const own = page.getByRole('listitem').filter({ hasText: 'A thought of my own' })
   await expect(own).toBeVisible()
+  await own.getByRole('button', { name: /Reorder note “A thought of my own”/ }).click()
   await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
   await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
   await expect
@@ -210,12 +213,12 @@ test('moves reading items, with their notes, between the profile and an idea, an
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Rivers tire of straight lines.')).toBeVisible()
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
 
   // Move both to a new idea. The note goes with its item, and the message says what moved.
-  await page.getByRole('button', { name: 'Move items' }).click()
-  await page.getByRole('checkbox', { name: /^Select to move: Fake title for example\.org/ }).check()
-  await page.getByRole('checkbox', { name: /^Select to move: Fake title for example\.com/ }).check()
+  await page.getByRole('checkbox', { name: /^Select Fake title for example\.org/ }).check()
+  await page.getByRole('checkbox', { name: /^Select Fake title for example\.com/ }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'A new idea…' })
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await noViolations(page, 'choosing where to move reading items')
@@ -230,13 +233,13 @@ test('moves reading items, with their notes, between the profile and an idea, an
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
   await goTo(page, 'Research')
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Fake title for example\.com/ })).toBeVisible()
 
   // And one goes back to the profile's own list, then back again with Undo.
-  await page.getByRole('button', { name: 'Move items' }).click()
-  await page.getByRole('checkbox', { name: /^Select to move: Fake title for example\.com/ }).check()
+  await page.getByRole('checkbox', { name: /^Select Fake title for example\.com/ }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'The profile’s reading list' })
   await page.getByRole('button', { name: 'Move 1 item' }).click()
   await expect(
@@ -301,7 +304,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
     notes.getByText(/From reading “A post in Feed of read.example”/).first(),
   ).toBeVisible()
   await goTo(page, 'Research')
-  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
   await expect(page.getByRole('link', { name: new RegExp(title) })).toBeVisible()
   await goTo(page, 'Notes')
 

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { RECENT_DAYS_DEFAULT, type Source } from '@lfwa/core'
 import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import { PAGE_SIZE } from '../lib/paging'
 import PageNav from './PageNav.vue'
 import ProfileImage from './ProfileImage.vue'
 
@@ -51,7 +52,6 @@ const shown = posts.data
 // The server sends up to 100 posts; five at a time is easier to take in. A new period or a fresh
 // check starts again at the first page; deciding about a post doesn't: the post goes to the end, and the next one
 // waiting takes its place.
-const PAGE_SIZE = 5
 const page = ref(1)
 watch(days, () => (page.value = 1))
 const pageCount = computed(() =>

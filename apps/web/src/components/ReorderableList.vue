@@ -1,12 +1,14 @@
 <script setup lang="ts" generic="T extends { id: string }">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
+import Icon from './Icon.vue'
 
 /**
- * An ordered list that people can rearrange: drag a row by its grip (the mouse route), or use the
- * arrow buttons (the keyboard and touch route; native drag and drop doesn't work on most touch
- * screens). It only decides the new order; `save` stores it. Use it wherever order matters, so
- * those lists look and behave alike.
+ * An ordered list that people can rearrange. Each row has a left rail (the shared `list-rail` zone): drag the rail
+ * by its grip (the mouse route), or press the grip, which shows up/down arrow buttons for that row (the touch
+ * route; native drag and drop doesn't work on most touch screens). With the grip focused, the arrow keys move the
+ * row too. It only decides the new order; `save` stores it. Use it wherever order matters, so those lists look and
+ * behave alike. A list is either reorderable or paginated, never both: you can't drag across pages.
  *
  * A new order is shown at once and saved in the background, so a slow connection never makes a
  * move feel stuck. While that happens the list keeps its own *pending* order and ignores what
@@ -24,9 +26,9 @@ const props = defineProps<{
 }>()
 
 defineSlots<{
-  /** The row's content; give it `min-w-0 flex-1` so it takes the space between grip and buttons. */
+  /** The row's content; give it `min-w-0 flex-1` so it takes the space between the rail and the buttons. */
   default(props: { item: T; index: number }): unknown
-  /** Extra buttons after the arrows, e.g. Remove. */
+  /** Extra buttons at the end of the row, e.g. Remove. */
   actions?(props: { item: T; index: number }): unknown
 }>()
 
@@ -128,8 +130,31 @@ function arrange(ids: string[], moved: T) {
   void flush()
 }
 
-// ---- buttons
-async function moveBy(item: T, offset: -1 | 1) {
+// ---- the grip and the arrows it reveals
+/** The rows whose arrows are showing: pressing a row's grip toggles them. */
+const open = ref(new Set<string>())
+function toggleArrows(id: string) {
+  const next = new Set(open.value)
+  if (!next.delete(id)) next.add(id)
+  open.value = next
+}
+/** Tabbing or clicking away from a row's rail puts its arrows away again. */
+function closeUnlessInside(event: FocusEvent, id: string) {
+  const rail = event.currentTarget as HTMLElement
+  if (rail.contains(event.relatedTarget as Node | null) || !open.value.has(id)) return
+  toggleArrows(id)
+}
+function onGripKey(event: KeyboardEvent, item: T) {
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+    event.preventDefault()
+    void moveBy(item, event.key === 'ArrowUp' ? -1 : 1, true)
+  } else if (event.key === 'Escape' && open.value.has(item.id)) {
+    toggleArrows(item.id)
+  }
+}
+
+// ---- moving
+async function moveBy(item: T, offset: -1 | 1, fromGrip = false) {
   const ids = shownIds()
   const from = ids.indexOf(item.id)
   const to = from + offset
@@ -139,6 +164,10 @@ async function moveBy(item: T, offset: -1 | 1) {
   // The rows are re-rendered in their new places; keep keyboard focus on the same row. At the
   // end of the list the button just used is disabled, so focus the opposite one instead.
   await nextTick()
+  if (fromGrip) {
+    document.querySelector<HTMLButtonElement>(`[data-grip="${item.id}"]`)?.focus()
+    return
+  }
   const button = (dir: 'up' | 'down') =>
     document.querySelector<HTMLButtonElement>(`[data-move="${item.id}-${dir}"]`)
   const wanted = button(offset === -1 ? 'up' : 'down')
@@ -192,7 +221,7 @@ function endDrag() {
   removeDragLabel()
 }
 
-const buttonClass = 'btn btn-neutral btn-sm'
+const buttonClass = 'btn btn-sm btn-icon btn-quiet'
 </script>
 
 <template>
@@ -201,7 +230,7 @@ const buttonClass = 'btn btn-neutral btn-sm'
       <li
         v-for="(item, index) in shown"
         :key="item.id"
-        class="flex flex-wrap items-center gap-x-3 gap-y-2 border-y-2 border-transparent px-3 py-2"
+        class="flex items-stretch border-y-2 border-transparent"
         :class="{
           'opacity-50': draggingId === item.id,
           'border-t-accent': over?.id === item.id && !over.after && draggingId !== item.id,
@@ -210,41 +239,56 @@ const buttonClass = 'btn btn-neutral btn-sm'
         @dragover="onDragOver($event, item)"
         @drop="onDrop"
       >
-        <span
-          class="cursor-grab select-none text-ink-soft"
+        <div
+          class="list-rail cursor-grab select-none"
           draggable="true"
-          title="Drag to change the order"
-          aria-hidden="true"
-          data-testid="grip"
+          data-testid="rail"
           @dragstart="onDragStart($event, item)"
           @dragend="endDrag"
+          @focusout="closeUnlessInside($event, item.id)"
         >
-          ⠿
-        </span>
-        <slot :item="item" :index="index" />
-        <span class="flex shrink-0 gap-1">
           <button
             type="button"
-            :class="buttonClass"
-            :data-move="`${item.id}-up`"
-            :disabled="index === 0"
-            :aria-label="`Move ${itemLabel(item)} up`"
-            @click="moveBy(item, -1)"
+            class="btn btn-sm btn-icon btn-quiet cursor-grab"
+            data-testid="grip"
+            :data-grip="item.id"
+            title="Drag to change the order, or press for arrows"
+            :aria-label="`Reorder ${itemLabel(item)}`"
+            :aria-expanded="open.has(item.id)"
+            @click="toggleArrows(item.id)"
+            @keydown="onGripKey($event, item)"
           >
-            ↑
+            <Icon name="grip" />
           </button>
-          <button
-            type="button"
-            :class="buttonClass"
-            :data-move="`${item.id}-down`"
-            :disabled="index === shown.length - 1"
-            :aria-label="`Move ${itemLabel(item)} down`"
-            @click="moveBy(item, 1)"
-          >
-            ↓
-          </button>
-          <slot name="actions" :item="item" :index="index" />
-        </span>
+          <template v-if="open.has(item.id)">
+            <button
+              type="button"
+              :class="buttonClass"
+              :data-move="`${item.id}-up`"
+              :disabled="index === 0"
+              :aria-label="`Move ${itemLabel(item)} up`"
+              @click="moveBy(item, -1)"
+            >
+              <Icon name="up" />
+            </button>
+            <button
+              type="button"
+              :class="buttonClass"
+              :data-move="`${item.id}-down`"
+              :disabled="index === shown.length - 1"
+              :aria-label="`Move ${itemLabel(item)} down`"
+              @click="moveBy(item, 1)"
+            >
+              <Icon name="down" />
+            </button>
+          </template>
+        </div>
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
+          <slot :item="item" :index="index" />
+          <span class="flex shrink-0 gap-1">
+            <slot name="actions" :item="item" :index="index" />
+          </span>
+        </div>
       </li>
     </ol>
     <!-- Not role="status": a page should have only one of those, and several lists can share a page. -->
