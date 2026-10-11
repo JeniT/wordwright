@@ -93,6 +93,16 @@ describe('ReorderableList', () => {
     expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
   })
 
+  it('shows a row’s arrows when its dotted rail is clicked or tapped, anywhere but on its checkbox', async () => {
+    await mountList(['a', 'b'], { arrows: false })
+    const rails = document.querySelectorAll('[data-testid="rail"]')
+    await fireEvent.click(rails[1]!)
+    expect(screen.getByRole('button', { name: 'Move b up' })).toBeEnabled()
+    expect(rails[1]).toHaveClass('list-rail-grab')
+    await fireEvent.click(rails[1]!)
+    expect(screen.queryByRole('button', { name: /^Move / })).not.toBeInTheDocument()
+  })
+
   it('moves a row with the arrow keys on its grip, keeping focus on the grip', async () => {
     const { calls } = await mountList(['a', 'b', 'c'], { arrows: false })
     const grip = screen.getByRole('button', { name: 'Reorder b' })

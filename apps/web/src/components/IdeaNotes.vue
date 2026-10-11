@@ -315,8 +315,8 @@ const label = (note: IdeaNote) => {
       Notes
     </h2>
     <p class="mb-3 text-sm text-ink-soft">
-      One thought to a note, like index cards. Drag them by the grip, or press it for arrows, to put
-      them in order. To delete a note, press and hold its bin.
+      One thought to a note, like index cards. Drag them by the dotted strip, or click it for
+      arrows, to put them in order. To delete a note, press and hold its bin.
       <template v-if="!ideaId">
         These notes belong to the profile, not to any one idea yet.
       </template>

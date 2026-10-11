@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test } from './fixtures'
+import { expect, goTo, showArrowsFor, test } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -315,7 +315,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
   // Reordering works from the keyboard and keeps focus on the moved source.
   const up = sources.getByRole('button', { name: 'Move Feed of three.example up' })
   await expect(up).toHaveCount(0) // the arrows appear when a feed's grip is pressed
-  await sources.getByRole('button', { name: 'Reorder Feed of three.example' }).click()
+  await showArrowsFor(sources, 'Reorder Feed of three.example')
   await up.focus()
   await page.keyboard.press('Enter')
   await expect.poll(hosts).toEqual(['one.example', 'three.example', 'two.example'])
@@ -344,7 +344,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
   page.on('response', (res) => {
     if (res.url().includes('/sources/order') && res.request().method() === 'PUT') saved++
   })
-  await sources.getByRole('button', { name: 'Reorder Feed of one.example' }).click()
+  await showArrowsFor(sources, 'Reorder Feed of one.example')
   await sources.getByRole('button', { name: 'Move Feed of one.example up' }).click()
   await expect
     .poll(hosts, { timeout: 1000 })

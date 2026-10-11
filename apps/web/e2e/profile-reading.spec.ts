@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test } from './fixtures'
+import { expect, goTo, showArrowsFor, test } from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -100,7 +100,7 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   const own = page.getByRole('listitem').filter({ hasText: 'A thought of my own' })
   await expect(own).toBeVisible()
-  await own.getByRole('button', { name: /Reorder note “A thought of my own”/ }).click()
+  await showArrowsFor(own, /Reorder note “A thought of my own”/)
   await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
   await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
   await expect

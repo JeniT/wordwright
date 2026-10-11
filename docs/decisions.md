@@ -1130,3 +1130,7 @@ selected note is, in list order, not click order. "Also bring the other notes fr
 switch, since it sets an option rather than selecting an item. Notes are never paginated. Edit and Delete are icon
 buttons (Delete quiet until hovered, and held). Drafts only needed the rail (they have no Edit or Remove). A feed's
 Remove is an icon button and a plain click, not a hold, because the feed is easy to add again.
+
+**The grip button became a dotted rail (#104).** A small grip button in the rail looked wrong, so the rail itself is dotted
+(`list-rail-grab`) and is the drag area and the thing to click or tap for the arrows. A hidden "Reorder" button stays in
+it for the keyboard and screen readers. Clicking the rail's checkbox or the arrows does not toggle the arrows.

@@ -399,7 +399,7 @@
 }
 /*
  * The left rail of a list row: a fixed-width zone that holds the row's select checkbox and, where the list can be
- * reordered, its grip and arrows. It is top-aligned so it works for rows of any height.
+ * reordered, its arrows (see `list-rail-grab`). It is top-aligned so it works for rows of any height.
  */
 @utility list-rail {
   display: flex;
@@ -411,6 +411,20 @@
   padding-block: 0.75rem;
   border-inline-end: 1px solid var(--color-line);
   background: var(--color-sunken);
+}
+/*
+ * A rail you can grab: dotted, with a grab cursor, so a reorderable row looks draggable without a handle button. The
+ * dots are drawn with a radial gradient (the only way to tile a dot in plain CSS), not as a gradient fill.
+ */
+@utility list-rail-grab {
+  cursor: grab;
+  background-image: radial-gradient(circle, var(--color-line-strong) 1px, transparent 1.4px);
+  background-size: 10px 10px;
+  background-position: 5px 5px;
+  &:has([data-grip]:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: -3px;
+  }
 }
 /* Notices. Plain = information; with -danger or -ok for errors and success. Always put words in them. */
 @utility callout {

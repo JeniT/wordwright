@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, holdToConfirm, test } from './fixtures'
+import { expect, goTo, holdToConfirm, showArrowsFor, test } from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -130,7 +130,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   const moveUp = drafts.getByRole('button', { name: 'Move Part 2: the oxbow up' })
   // The arrows appear when a row's grip is pressed.
   await expect(moveUp).toHaveCount(0)
-  await drafts.getByRole('button', { name: 'Reorder Part 2: the oxbow' }).click()
+  await showArrowsFor(drafts, 'Reorder Part 2: the oxbow')
   await moveUp.focus()
   await page.keyboard.press('Enter')
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
@@ -160,7 +160,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await expect(notes.getByLabel('Add a note')).toHaveValue('')
   await noViolations(page, 'idea page with notes')
 
-  await notes.getByRole('button', { name: /^Reorder note “Oxbow lakes/ }).click()
+  await showArrowsFor(notes, /^Reorder note “Oxbow lakes/)
   await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*up/ }).click()
   await expect(notes.getByRole('listitem').nth(1)).toContainText('Oxbow lakes')
   await notes.getByRole('button', { name: /^Edit note “Erosion on the outside/ }).click()
@@ -417,7 +417,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
   await filter.getByRole('button', { name: 'part 1' }).click()
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
-  await notes.getByRole('button', { name: /^Reorder note “Deposition/ }).click()
+  await showArrowsFor(notes, /^Reorder note “Deposition/)
   await notes.getByRole('button', { name: /^Move note “Deposition.*up/ }).click()
   await filter.getByRole('button', { name: 'All' }).click()
   await expect(notes.getByRole('listitem').filter({ hasText: 'Deposition' }).first()).toBeVisible()

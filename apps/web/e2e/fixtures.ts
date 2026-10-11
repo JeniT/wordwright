@@ -48,7 +48,14 @@ export async function goTo(page: Page, step: string) {
   // show either the link or that button first, so a page that is still changing isn't clicked halfway.
   const menu = page.getByRole('button', { name: 'Menu', exact: true })
   await expect(link.or(menu).first()).toBeVisible()
-  if (!(await link.isVisible())) await menu.click()
+  // The menu closes itself when the route changes, so a click that lands just before the page settles is undone:
+  // try again until the link is there.
+  await expect(async () => {
+    if (!(await link.isVisible()) && (await menu.getAttribute('aria-expanded')) === 'false') {
+      await menu.click()
+    }
+    await expect(link).toBeVisible({ timeout: 1500 })
+  }).toPass()
   await link.click()
 }
 
@@ -60,4 +67,21 @@ export async function holdToConfirm(page: Page, button: ReturnType<Page['locator
   await page.mouse.down()
   await page.waitForTimeout(1100)
   await page.mouse.up()
+}
+
+/**
+ * Clicks the dotted left rail of a reorderable row, which shows its up/down arrows. `reorder` is the accessible name
+ * of the row's hidden Reorder button ("Reorder note “…”"), which finds the rail. The click is in the rail's corner,
+ * away from its checkbox.
+ */
+export async function showArrowsFor(
+  scope: Page | ReturnType<Page['locator']>,
+  reorder: string | RegExp,
+) {
+  const page = 'goto' in scope ? scope : scope.page()
+  // `has` is matched inside each rail, so it is built from the page, not from the scope.
+  await scope
+    .getByTestId('rail')
+    .filter({ has: page.getByRole('button', { name: reorder }) })
+    .click({ position: { x: 3, y: 3 } })
 }

@@ -110,25 +110,25 @@ Figures are tabular by default so counts and dates align. Don't add other typefa
 
 Use these instead of long utility strings. If you find yourself repeating a recipe, add a component here.
 
-| Class                                                             | Use                                                                                                                             |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `btn` + `btn-primary`                                             | The one main action on a screen                                                                                                 |
-| `btn btn-outline`                                                 | A secondary action that matters (e.g. Brainstorm, Open)                                                                         |
-| `btn btn-neutral`                                                 | Everything else: Cancel, Add link, Previous/Next                                                                                |
-| `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                  |
-| `btn btn-quiet`                                                   | Icon-only and low-emphasis actions (edit, remove, reorder grips). Keeps a faint outline                                         |
-| `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                     |
-| `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                         |
-| `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_            |
-| `list-rail`                                                       | The left zone of a list row: select checkbox, and for reorderable lists the grip. Top-aligned                                   |
-| `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones |
-| `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                             |
-| `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                   |
-| `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)            |
-| `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                     |
-| `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                        |
-| `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                     |
-| `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                             |
+| Class                                                             | Use                                                                                                                                  |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `btn` + `btn-primary`                                             | The one main action on a screen                                                                                                      |
+| `btn btn-outline`                                                 | A secondary action that matters (e.g. Brainstorm, Open)                                                                              |
+| `btn btn-neutral`                                                 | Everything else: Cancel, Add link, Previous/Next                                                                                     |
+| `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                       |
+| `btn btn-quiet`                                                   | Icon-only and low-emphasis actions (edit, remove, reorder grips). Keeps a faint outline                                              |
+| `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                          |
+| `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                              |
+| `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_                 |
+| `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is dotted (`list-rail-grab`) and clicking it shows the arrows |
+| `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones      |
+| `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                                  |
+| `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                        |
+| `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)                 |
+| `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                          |
+| `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                             |
+| `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                          |
+| `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                                  |
 
 ### Critique marks in the editor
 
@@ -189,12 +189,13 @@ and quiet buttons. A chip is a **fact**, not a control: use `chip-quiet` (flat) 
 strong outline, and give an item one link (the title), with its host as plain text.
 
 **The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
-select checkbox and, where order matters, its grip. The whole rail (not just the icon) is the drag area, so a tall
-row has a big handle. Reordering without dragging is always available: pressing the grip shows that row's up/down
-arrow buttons (and, with the grip focused, the arrow keys move the row too); they stay until the grip is pressed again,
-so rows never shift under a pointer. A list is **either reorderable or paginated, never both** (you can't drag across
-pages). Long items clamp their titles to two lines; the actions stay top-right and wrap below on a phone. Notes are the
-exception: show them in full.
+select checkbox. On a reorderable list the rail is **dotted** (`list-rail-grab`, with a grab cursor), so it looks
+draggable without a handle button, and the whole rail is the drag area, so a tall row has a big handle. Reordering
+without dragging is always available: clicking or tapping the rail shows that row's up/down arrow buttons. For the
+keyboard and screen readers the rail holds a hidden "Reorder" button (Enter shows the arrows; with it focused, the arrow
+keys move the row). The arrows stay until the rail is clicked again, so rows never shift under a pointer. A list is
+**either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
+lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
 **The toolbar (`ListToolbar`).** Filters on the **left** (after the select-all checkbox, which sits above the rail of
 row checkboxes); actions for the selected items on the **right**, with a "3 selected" count. The actions are always

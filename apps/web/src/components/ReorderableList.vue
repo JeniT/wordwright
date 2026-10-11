@@ -4,9 +4,10 @@ import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import Icon from './Icon.vue'
 
 /**
- * An ordered list that people can rearrange. Each row has a left rail (the shared `list-rail` zone): drag the rail
- * by its grip (the mouse route), or press the grip, which shows up/down arrow buttons for that row (the touch
- * route; native drag and drop doesn't work on most touch screens). With the grip focused, the arrow keys move the
+ * An ordered list that people can rearrange. Each row has a left rail (the shared `list-rail` zone, dotted so that it
+ * looks grabbable): drag the rail (the mouse route), or click or tap it, which shows up/down arrow buttons for that
+ * row (the touch route; native drag and drop doesn't work on most touch screens). For the keyboard and screen readers
+ * the rail holds a hidden "Reorder" button; with it focused, Enter shows the arrows and the arrow keys move the
  * row too. It only decides the new order; `save` stores it. Use it wherever order matters, so those lists look and
  * behave alike. A list is either reorderable or paginated, never both: you can't drag across pages.
  *
@@ -30,7 +31,7 @@ defineSlots<{
   default(props: { item: T; index: number }): unknown
   /** Above the rows, inside the same frame: a `ListToolbar` (select all, filters, bulk actions). */
   toolbar?(): unknown
-  /** In each row's left rail, above the grip: the select checkbox. */
+  /** In each row's left rail, above the arrows: the select checkbox. */
   rail?(props: { item: T; index: number }): unknown
   /** Extra buttons at the end of the row, e.g. Remove. */
   actions?(props: { item: T; index: number }): unknown
@@ -134,16 +135,21 @@ function arrange(ids: string[], moved: T) {
   void flush()
 }
 
-// ---- the grip and the arrows it reveals
+// ---- the rail and the arrows it reveals
 /**
- * The rows whose arrows are showing: pressing a row's grip toggles them. They stay until pressed again (or Escape on
- * the grip): putting them away when focus moves would shift the rows under a pointer that is about to click one.
+ * The rows whose arrows are showing: pressing a row's rail toggles them. They stay until pressed again (or Escape on
+ * the hidden button): putting them away when focus moves would shift the rows under a pointer that is about to click one.
  */
 const open = ref(new Set<string>())
 function toggleArrows(id: string) {
   const next = new Set(open.value)
   if (!next.delete(id)) next.add(id)
   open.value = next
+}
+/** A click or tap on the rail itself (not on its checkbox or the arrows) shows or hides that row's arrows. */
+function onRailClick(event: MouseEvent, item: T) {
+  if ((event.target as HTMLElement).closest('input, [data-move]')) return
+  toggleArrows(item.id)
 }
 function onGripKey(event: KeyboardEvent, item: T) {
   if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -222,7 +228,7 @@ function endDrag() {
   removeDragLabel()
 }
 
-const buttonClass = 'btn btn-sm btn-icon btn-quiet'
+const buttonClass = 'btn btn-sm btn-icon btn-quiet bg-surface'
 </script>
 
 <template>
@@ -243,26 +249,25 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet'
           @drop="onDrop"
         >
           <div
-            class="list-rail cursor-grab select-none"
+            class="list-rail list-rail-grab select-none"
             draggable="true"
             data-testid="rail"
+            title="Drag to change the order, or click for arrows"
+            @click="onRailClick($event, item)"
             @dragstart="onDragStart($event, item)"
             @dragend="endDrag"
           >
             <slot name="rail" :item="item" :index="index" />
+            <!-- For the keyboard and screen readers: the rail's own click (which this bubbles to) shows the arrows. -->
             <button
               type="button"
-              class="btn btn-sm btn-icon btn-quiet cursor-grab"
+              class="sr-only"
               data-testid="grip"
               :data-grip="item.id"
-              title="Drag to change the order, or press for arrows"
               :aria-label="`Reorder ${itemLabel(item)}`"
               :aria-expanded="open.has(item.id)"
-              @click="toggleArrows(item.id)"
               @keydown="onGripKey($event, item)"
-            >
-              <Icon name="grip" />
-            </button>
+            ></button>
             <template v-if="open.has(item.id)">
               <button
                 type="button"

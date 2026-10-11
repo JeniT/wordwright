@@ -3,7 +3,7 @@
  * The few icons the app uses, drawn inline so there is no dependency. They are decoration: the button that holds one
  * always has a name of its own (an aria-label), and an icon-only button says what it does in a tooltip too.
  */
-defineProps<{ name: 'edit' | 'remove' | 'up' | 'down' | 'grip'; size?: number }>()
+defineProps<{ name: 'edit' | 'remove' | 'up' | 'down'; size?: number }>()
 </script>
 
 <template>
@@ -30,16 +30,6 @@ defineProps<{ name: 'edit' | 'remove' | 'up' | 'down' | 'grip'; size?: number }>
       <path d="M10 11v6M14 11v6" />
     </template>
     <path v-else-if="name === 'up'" d="m18 15-6-6-6 6" />
-    <path v-else-if="name === 'down'" d="m6 9 6 6 6-6" />
-    <template v-else>
-      <g fill="currentColor" stroke="none">
-        <circle cx="9" cy="6" r="1.6" />
-        <circle cx="15" cy="6" r="1.6" />
-        <circle cx="9" cy="12" r="1.6" />
-        <circle cx="15" cy="12" r="1.6" />
-        <circle cx="9" cy="18" r="1.6" />
-        <circle cx="15" cy="18" r="1.6" />
-      </g>
-    </template>
+    <path v-else d="m6 9 6 6 6-6" />
   </svg>
 </template>
