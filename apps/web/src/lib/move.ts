@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { MoveResult } from '@lfwa/core'
-import { ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { api } from './api'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -58,5 +58,102 @@ export function useMove(profileId: () => string) {
     onSettled: refresh,
   })
 
-  return { outcome, moveReading, undoMove, dismiss: () => (outcome.value = null) }
+  const undoNotes = useMutation({
+    mutationFn: ({ ids, ideaId }: { ids: string[]; ideaId: string | null; note: string }) =>
+      api.moveNotes(profileId(), ids, ideaId),
+    onSuccess: (_, v) => {
+      outcome.value = { text: `Moved back.${v.note}`, undo: null }
+    },
+    onSettled: refresh,
+  })
+
+  /**
+   * Notes move to the end of where they go, each with its source copied there (the originals stay). Undo moves the
+   * notes back (to the end of where they were); the copied sources stay where they were put.
+   */
+  const moveNotes = useMutation({
+    mutationFn: (v: { ids: string[]; from: string | null; to: string | null; toName: string }) =>
+      api.moveNotes(profileId(), v.ids, v.to),
+    onSuccess: (result, v) => {
+      const note = result.copied
+        ? result.copied === 1
+          ? ` The page copied to ${v.toName} stays on its reading list.`
+          : ` The ${result.copied} pages copied to ${v.toName} stay on its reading list.`
+        : ''
+      outcome.value = {
+        text: moveSummary(result, v.toName),
+        undo: () => undoNotes.mutate({ ids: v.ids, ideaId: v.from, note }),
+      }
+    },
+    onSettled: refresh,
+  })
+
+  return {
+    outcome,
+    moveReading,
+    undoMove,
+    moveNotes,
+    undoNotes,
+    dismiss: () => (outcome.value = null),
+  }
+}
+
+export const NEW_IDEA = '__new'
+
+/**
+ * Where to move to: the profile's own list (when moving from an idea), one of the other ideas, or a new idea named
+ * in the writer's own words (nothing prefilled). `profileName` is how the profile's own list is called in the
+ * message ("the profile's reading list", "the profile's notes"). Returned reactive, so it can be handed to
+ * `MoveTo` and read in templates without `.value`.
+ */
+export function useMoveDestination(
+  profileId: () => string,
+  currentIdeaId: () => string | null,
+  profileName: string,
+) {
+  const ideas = useQuery({
+    queryKey: ['ideas', profileId],
+    queryFn: () => api.listIdeas(profileId()),
+  })
+  const destination = ref('') // 'profile', an idea's id, or NEW_IDEA
+  const newIdeaName = ref('')
+  const others = computed(() => (ideas.data.value ?? []).filter((i) => i.id !== currentIdeaId()))
+  const name = computed(() => {
+    if (destination.value === 'profile') return profileName
+    if (destination.value === NEW_IDEA) return `“${newIdeaName.value.trim()}”`
+    const idea = ideas.data.value?.find((i) => i.id === destination.value)
+    return idea ? `“${idea.name}”` : ''
+  })
+  // A new idea is made first; if the move then fails it stays, empty, as any idea.
+  const makeIdea = useMutation({
+    mutationFn: () => api.createIdea(profileId(), { name: newIdeaName.value.trim() }),
+  })
+  const chosen = computed(
+    () => !!destination.value && (destination.value !== NEW_IDEA || !!newIdeaName.value.trim()),
+  )
+  /** The idea to move to (null: the profile's own list), making the new idea first; null result if that failed. */
+  async function resolve(): Promise<{ to: string | null; name: string } | null> {
+    const label = name.value
+    if (destination.value === NEW_IDEA) {
+      const idea = await makeIdea.mutateAsync().catch(() => null)
+      return idea ? { to: idea.id, name: label } : null
+    }
+    return { to: destination.value === 'profile' ? null : destination.value, name: label }
+  }
+  function reset() {
+    destination.value = ''
+    newIdeaName.value = ''
+    makeIdea.reset()
+  }
+  return reactive({
+    ideas,
+    destination,
+    newIdeaName,
+    others,
+    name,
+    makeIdea,
+    chosen,
+    resolve,
+    reset,
+  })
 }

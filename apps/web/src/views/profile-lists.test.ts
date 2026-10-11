@@ -585,6 +585,218 @@ describe('reading an item of the profile’s own list', () => {
   })
 })
 
+describe('moving notes', () => {
+  const ideaRows = [
+    { id: 'i1', name: 'Rivers', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
+    { id: 'i2', name: 'Lakes', draftCount: 1, updatedAt: '2026-01-01T00:00:00Z' },
+  ]
+  function fake(
+    initial = [
+      note('n1', 'Typed thought'),
+      note('n2', 'From the paper', 'l1'),
+      note('n3', 'More from the paper', 'l1'),
+      note('n4', '“Exact words”', 'l2', { quote: true }),
+    ],
+  ) {
+    const state = fakeProfile({
+      links: [link('l1', 'A paper'), link('l2', 'Another')],
+      notes: initial,
+    })
+    const moves: { ids: string[]; to: { ideaId: string | null } }[] = []
+    let result = { batchId: 'b', readingItems: 0, merged: 0, copied: 1, notes: 2 }
+    server.use(
+      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
+      http.post('*/api/profiles/ada-substack/ideas', async ({ request }) => {
+        const body = (await request.json()) as { name: string }
+        return HttpResponse.json(
+          {
+            id: 'new1',
+            profileId: 'ada-substack',
+            name: body.name,
+            notes: '',
+            links: [],
+            drafts: [],
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+          { status: 201 },
+        )
+      }),
+      http.post('*/api/profiles/ada-substack/move/notes', async ({ request }) => {
+        const body = (await request.json()) as (typeof moves)[number]
+        moves.push(body)
+        state.notes = state.notes.filter((n) => !body.ids.includes(n.id))
+        return HttpResponse.json(result)
+      }),
+    )
+    return {
+      state,
+      moves,
+      setResult: (r: Partial<typeof result>) => (result = { ...result, ...r }),
+    }
+  }
+  const open = async () => {
+    await renderAt('/p/ada-substack/notes')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Move notes' }))
+  }
+  const tick = (text: string) =>
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: new RegExp(`^Select note “${text}.*to move`) }),
+    )
+  const says = () => document.querySelector('[data-move-says]')
+
+  it('offers a tick on every note, quotations too, and moves only once notes and a place are chosen', async () => {
+    fake()
+    await open()
+    expect(screen.getAllByRole('checkbox', { name: /to move$/ })).toHaveLength(4)
+    expect(screen.getByRole('button', { name: 'Move 0 notes' })).toBeDisabled()
+    await tick('Typed thought')
+    expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeDisabled() // no place yet
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeEnabled()
+  })
+
+  it('says plainly what will move, including that sources are copied and originals stay', async () => {
+    fake()
+    await open()
+    await tick('Typed thought')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    expect(says()).toHaveTextContent('1 note will move to “Rivers”.')
+    expect(says()).not.toHaveTextContent('copied') // it has no source
+    await tick('From the paper')
+    expect(says()).toHaveTextContent('2 notes will move to “Rivers”.')
+    expect(says()).toHaveTextContent(
+      'The page they were taken from will be copied to its reading list',
+    )
+    expect(says()).toHaveTextContent('the originals stay where they are')
+  })
+
+  it('moves the chosen notes, says what moved, and puts them back with Undo', async () => {
+    const f = fake()
+    await open()
+    await tick('From the paper')
+    await tick('Typed thought')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 2 notes' }))
+    const status = await screen.findByRole('status')
+    expect(status).toHaveTextContent(
+      'Moved 2 notes to “Rivers”. 1 source was copied so the notes keep it.',
+    )
+    expect(f.moves).toEqual([{ ids: ['n2', 'n1'], to: { ideaId: 'i1' } }])
+    await waitFor(() =>
+      expect(screen.queryByRole('checkbox', { name: /to move$/ })).not.toBeInTheDocument(),
+    )
+
+    await fireEvent.click(within(status).getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(f.moves).toHaveLength(2))
+    expect(f.moves[1]).toEqual({ ids: ['n2', 'n1'], to: { ideaId: null } })
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Moved back. The page copied to “Rivers” stays on its reading list.',
+    )
+  })
+
+  it('offers to bring the other notes from the same pages, and brings them if asked', async () => {
+    const f = fake()
+    await open()
+    await tick('From the paper')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i2')
+    const box = await screen.findByRole('checkbox', {
+      name: /Also bring the 1 other note taken from those pages/,
+    })
+    expect(box).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeEnabled()
+    await fireEvent.click(box)
+    expect(screen.getByRole('button', { name: 'Move 2 notes' })).toBeEnabled()
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 2 notes' }))
+    await waitFor(() => expect(f.moves).toEqual([{ ids: ['n2', 'n3'], to: { ideaId: 'i2' } }]))
+  })
+
+  it('makes a new idea from the notes, named in the writer’s own words', async () => {
+    const f = fake()
+    await open()
+    await tick('Typed thought')
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__new')
+    const button = screen.getByRole('button', { name: 'Move 1 note' })
+    expect(button).toBeDisabled() // it needs a name
+    await fireEvent.update(screen.getByLabelText("What's your core idea?"), 'Why rivers meander')
+    await fireEvent.click(button)
+    await waitFor(() => expect(f.moves).toEqual([{ ids: ['n1'], to: { ideaId: 'new1' } }]))
+    expect(await screen.findByRole('status')).toHaveTextContent('to “Why rivers meander”.')
+  })
+
+  it('selects all the notes shown, and clears them again', async () => {
+    fake()
+    await open()
+    await fireEvent.click(screen.getByRole('button', { name: 'Select all the notes shown' }))
+    for (const box of screen.getAllByRole('checkbox', { name: /to move$/ }))
+      expect(box).toBeChecked()
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear the notes shown' }))
+    for (const box of screen.getAllByRole('checkbox', { name: /to move$/ }))
+      expect(box).not.toBeChecked()
+  })
+
+  it('selects only the notes with the tag being shown', async () => {
+    fake([
+      note('n1', 'Tagged one', null, { tags: ['intro'] }),
+      note('n2', 'Tagged two', null, { tags: ['intro'] }),
+      note('n3', 'Untagged'),
+    ])
+    await renderAt('/p/ada-substack/notes')
+    await fireEvent.click(await screen.findByRole('button', { name: /^intro/ }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Move notes' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Select all the notes shown' }))
+    expect(screen.getByRole('button', { name: 'Move 2 notes' })).toBeDisabled() // chosen, but no place yet
+    expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
+  })
+
+  it('says why it could not move, and keeps the choice', async () => {
+    fake()
+    server.use(
+      http.post('*/api/profiles/ada-substack/move/notes', () =>
+        HttpResponse.json(
+          { error: 'An idea can have up to 200 notes. Merge or delete some to make room.' },
+          { status: 409 },
+        ),
+      ),
+    )
+    await open()
+    await tick('Typed thought')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('up to 200 notes')
+    expect(
+      screen.getByRole('checkbox', { name: /^Select note “Typed thought.*to move/ }),
+    ).toBeChecked()
+  })
+
+  it('is a mode apart from merging, and stopping it clears what was ticked', async () => {
+    fake()
+    await open()
+    await tick('Typed thought')
+    await fireEvent.click(screen.getByRole('button', { name: 'Merge notes' }))
+    expect(screen.queryByRole('checkbox', { name: /to move$/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Move notes' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Move notes' }))
+    expect(screen.queryByRole('checkbox', { name: /to merge$/ })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('checkbox', { name: /^Select note “Typed thought.*to move/ }),
+    ).not.toBeChecked()
+  })
+
+  it('says it is done even when every note has gone, rather than just showing nothing', async () => {
+    fake([note('n1', 'Only one')]).setResult({ notes: 1, copied: 0 })
+    await open()
+    await tick('Only one')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Moved 1 note to “Rivers”.')
+    expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
+  })
+})
+
 describe('the profile’s notes', () => {
   it('says there are none yet, and that they belong to the profile', async () => {
     fakeProfile()

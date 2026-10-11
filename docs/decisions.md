@@ -800,6 +800,18 @@ an idea or the profile.
   were joined to ones already there, the moved item no longer exists on its own, so no Undo is offered and the message
   says why. Undo onto the profile's list also starts the item's month again and unticks Keep (see above), as any move
   onto it does. Every list showing the moved things is refreshed afterwards.
+- **Gathering notes into an idea (#73).** The step where the writer decides what the idea is: the notes of the
+  profile (or of an idea) are ticked, a **new idea is made from them** with its core idea typed by the writer (nothing
+  suggested or prefilled; the AI is not involved), or they go to an existing idea or back to the profile. `MoveTo` and
+  `useMoveDestination` are the one picker for reading items and notes (the profile's own list as a choice only from
+  inside an idea; a new idea for notes from anywhere, for items only from the profile's list). Before confirming,
+  the page says in words how many notes will move and that **the pages they were taken from are copied** to the
+  destination's reading list (or the copy there is used) while the originals stay: copying rather than moving the
+  source is what lets other notes from the same page stay behind without losing theirs. A tick offers **"also bring
+  the other notes taken from those pages"**, off by default, so the choice is the writer's. "Select all the notes
+  shown" respects the tag being shown, so a tag works as a way to pick a group. **Undo** moves the same notes back
+  through the same operation: they return to the _end_ of where they were (not their old places), and the sources
+  copied to the destination stay there, which the message says. Moves are in the `moves` log either way.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
   with the profile.

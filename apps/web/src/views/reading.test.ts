@@ -127,6 +127,46 @@ describe('reading page', () => {
     expect(moved).toEqual([{ ids: ['l1'], to: { ideaId: null } }])
   })
 
+  it('moves notes from an idea to the profile, another idea or a new idea', async () => {
+    const moved: unknown[] = []
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get(ideaUrl, () => HttpResponse.json(idea)),
+      http.get(notesUrl, () => HttpResponse.json([note('n1', 'An idea note', null, 'entered')])),
+      http.get('*/api/profiles/ada-substack/ideas', () =>
+        HttpResponse.json([
+          {
+            id: 'i1',
+            name: 'Why rivers meander',
+            draftCount: 0,
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+          { id: 'i2', name: 'Lakes', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
+        ]),
+      ),
+      http.post('*/api/profiles/ada-substack/move/notes', async ({ request }) => {
+        moved.push(await request.json())
+        return HttpResponse.json({ batchId: 'b', readingItems: 0, merged: 0, copied: 0, notes: 1 })
+      }),
+    )
+    await renderAt('/p/ada-substack/ideas/i1')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Move notes' }))
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: /^Select note “An idea note.*to move/ }),
+    )
+    const picker = await screen.findByLabelText('Move to')
+    expect(
+      within(picker)
+        .getAllByRole('option')
+        .map((o) => o.textContent?.trim()),
+    ).toEqual(['Choose where…', 'The profile’s notes', 'Lakes', 'A new idea…'])
+    await fireEvent.update(picker, 'profile')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
+    expect(await screen.findByText(/Moved 1 note to the profile’s notes\./)).toBeInTheDocument()
+    expect(moved).toEqual([{ ids: ['n1'], to: { ideaId: null } }])
+  })
+
   it('is called by its address when the item has no title', async () => {
     await open('l2')
     expect(

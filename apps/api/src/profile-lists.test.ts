@@ -585,6 +585,17 @@ describe('moving notes', () => {
     expect((await s.noteList()).map((n) => n.id)).toContain(withSrc.id)
   })
 
+  it('refuses a selection that has gone stale (a note deleted meanwhile), changing nothing', async () => {
+    const idea = await s.newIdea()
+    const a = await note('Still here')
+    const gone = await note('Deleted meanwhile')
+    await s.ada.delete(`${s.notes()}/${gone.id}`)
+    const res = await move([a.id, gone.id], idea)
+    expect(res.status).toBe(404)
+    expect((await s.noteList()).map((n) => n.id)).toEqual([a.id])
+    expect(await s.noteList(idea)).toEqual([])
+  })
+
   it('says so when they are already there, records the move, and is for members only', async () => {
     const idea = await s.newIdea()
     const n = await note('A')

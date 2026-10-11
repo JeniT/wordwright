@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useMutation, useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
-import { api, errorMessage } from '../lib/api'
-import { useMove } from '../lib/move'
+import { errorMessage } from '../lib/api'
+import { useMove, useMoveDestination } from '../lib/move'
 import { useReadingList } from '../lib/reading'
 import IdeaLinkItem from './IdeaLinkItem.vue'
+import MoveTo from './MoveTo.vue'
 import TextField from './TextField.vue'
 
 /**
@@ -44,57 +44,34 @@ const shown = computed(() =>
 const hiddenCount = computed(() => (list.links.value?.length ?? 0) - shown.value.length)
 
 // ---- moving items between the profile's own list and its ideas
-const ideas = useQuery({
-  queryKey: ['ideas', () => props.profileId],
-  queryFn: () => api.listIdeas(props.profileId),
-})
 const mover = useMove(() => props.profileId)
+const dest = useMoveDestination(
+  () => props.profileId,
+  () => props.ideaId,
+  'the profile’s reading list',
+)
 const selecting = ref(false)
 const selected = ref<string[]>([])
-const destination = ref('') // 'profile', an idea's id, or NEW for an idea not yet made
-const newIdeaName = ref('')
-const NEW = '__new'
-const otherIdeas = computed(() => (ideas.data.value ?? []).filter((i) => i.id !== props.ideaId))
-const destinationName = computed(() => {
-  if (destination.value === 'profile') return 'the profile’s reading list'
-  if (destination.value === NEW) return `“${newIdeaName.value.trim()}”`
-  const idea = ideas.data.value?.find((i) => i.id === destination.value)
-  return idea ? `“${idea.name}”` : ''
-})
 function toggleSelecting() {
   selecting.value = !selecting.value
   selected.value = []
-  destination.value = ''
-  newIdeaName.value = ''
+  dest.reset()
   mover.moveReading.reset()
-  makeIdea.reset()
 }
 function toggleSelected(id: string, on: boolean) {
   selected.value = on ? [...selected.value, id] : selected.value.filter((s) => s !== id)
 }
-// A new idea is made first, named in the writer's own words; if the move then fails it stays, empty, as any idea.
-const makeIdea = useMutation({
-  mutationFn: () => api.createIdea(props.profileId, { name: newIdeaName.value.trim() }),
-})
 async function move() {
   const ids = selected.value
-  let to: string | null
-  if (destination.value === NEW) {
-    const idea = await makeIdea.mutateAsync().catch(() => null)
-    if (!idea) return
-    to = idea.id
-  } else {
-    to = destination.value === 'profile' ? null : destination.value
-  }
-  const toName = destinationName.value
+  const target = await dest.resolve()
+  if (!target) return
   mover.moveReading.mutate(
-    { ids, from: props.ideaId, to, toName },
+    { ids, from: props.ideaId, to: target.to, toName: target.name },
     {
       onSuccess: () => {
         selecting.value = false
         selected.value = []
-        destination.value = ''
-        newIdeaName.value = ''
+        dest.reset()
       },
     },
   )
@@ -102,10 +79,9 @@ async function move() {
 const canMove = computed(
   () =>
     selected.value.length > 0 &&
-    !!destination.value &&
-    (destination.value !== NEW || !!newIdeaName.value.trim()) &&
+    dest.chosen &&
     !mover.moveReading.isPending.value &&
-    !makeIdea.isPending.value,
+    !dest.makeIdea.isPending,
 )
 
 const linkUrl = ref('')
@@ -168,42 +144,24 @@ function add() {
           Tick the items to move. Each goes with the notes you took from it, and keeps whether you
           have read it.
         </p>
-        <p v-if="ideas.isPending.value" class="text-sm">Loading your ideas…</p>
-        <p v-else-if="ideas.isError.value" role="alert" class="text-sm text-danger">
-          We couldn't load your ideas, so there's nowhere to move to. Reload the page to try again.
-        </p>
-        <template v-else>
-          <label for="move-to" class="mb-1 block text-sm font-medium">Move to</label>
-          <select id="move-to" v-model="destination" class="field field-compact mb-3 max-w-full">
-            <option value="" disabled>Choose where…</option>
-            <option v-if="ideaId" value="profile">The profile’s reading list</option>
-            <option v-for="idea in otherIdeas" :key="idea.id" :value="idea.id">
-              {{ idea.name }}
-            </option>
-            <option v-if="!ideaId" :value="NEW">A new idea…</option>
-          </select>
-          <div v-if="destination === NEW" class="mb-1">
-            <TextField
-              v-model="newIdeaName"
-              label="What's your core idea?"
-              autocomplete="off"
-              required
-              hint="In your own words. The items you move become its reading list."
-            />
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button type="submit" class="btn btn-sm btn-primary" :disabled="!canMove">
-              {{
-                mover.moveReading.isPending.value || makeIdea.isPending.value
-                  ? 'Moving…'
-                  : `Move ${selected.length} ${selected.length === 1 ? 'item' : 'items'}`
-              }}
-            </button>
-          </div>
-        </template>
-        <p v-if="makeIdea.isError.value" role="alert" class="mt-2 text-sm text-danger">
-          {{ errorMessage(makeIdea.error.value) }}
-        </p>
+        <MoveTo
+          v-model:destination="dest.destination"
+          v-model:new-idea-name="dest.newIdeaName"
+          :dest="dest"
+          :from-idea="!!ideaId"
+          profile-label="The profile’s reading list"
+          :allow-new="!ideaId"
+          new-idea-hint="In your own words. The items you move become its reading list."
+        />
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="submit" class="btn btn-sm btn-primary" :disabled="!canMove">
+            {{
+              mover.moveReading.isPending.value || dest.makeIdea.isPending
+                ? 'Moving…'
+                : `Move ${selected.length} ${selected.length === 1 ? 'item' : 'items'}`
+            }}
+          </button>
+        </div>
         <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-sm text-danger">
           {{ errorMessage(mover.moveReading.error.value) }}
         </p>

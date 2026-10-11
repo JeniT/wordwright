@@ -110,6 +110,12 @@ tests inject fakes and nothing hits the network.
   reading list, another idea, or (from the profile's list) a new idea named in your own words. The items go with the
   notes taken from them and keep whether they are read; the page says what moved ("Moved 2 items and 5 notes to
   “Rivers”.") with an **Undo**, except when items were joined to ones already there, which can't be unpicked.
+  **Moving notes:** on the profile's Notes, or an idea's, **Move notes** lets you tick notes (quotations too; **Select all the
+  notes shown** follows the tag being shown) and choose **Move to** another idea, the profile's own notes (from an
+  idea), or **a new idea named in your own words**. Before you confirm, the page says how many notes will move and
+  that the pages they were taken from are copied to the destination's reading list (the originals stay); a tick
+  offers to bring the other notes taken from those pages too. Notes are moved, not copied, in the order you arranged
+  them, with their tags and quotation marks. **Undo** moves them back (to the end of where they were).
   **Read items are hidden by default** on every reading list (an idea's and the profile's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.
