@@ -1,5 +1,10 @@
 # Navigation concepts: leading people through the app
 
+> **Outcome: approach A (the menu follows you) was chosen and is implemented.** See
+> [../../design.md](../../design.md#navigation-the-menu-follows-you) for how it works and
+> [../../decisions.md](../../decisions.md#navigation-the-menu-follows-you) for why, including the owner's answers to the
+> questions below. This folder is the archive of the three mock-ups; the screenshots show the mock-ups, not the app.
+
 Three ways to lead a writer through Home → Profile → Idea, drawn with the real Ember theme (the pages use
 `apps/web/src/theme/`), so what you see is what the app would render. The page bodies are identical in all three; only
 the navigation differs, so they compare fairly. These are mock-ups: nothing here changes the app yet.

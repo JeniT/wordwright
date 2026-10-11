@@ -33,15 +33,17 @@ The running app (these are screenshots of the real thing, not mock-ups):
 
 ## Where it lives
 
-| File                                   | Job                                                                                                                                                                                               |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/theme/palette-ember.css` | **The only place a colour is chosen**: light, dark, and lettered-tile tints, each named by role.                                                                                                  |
-| `apps/web/src/theme/theme.css`         | The design built on a palette: fonts, the Tailwind token map, shared base rules (focus, selection, reduced motion), and every component utility (`btn`, `field`, `panel`, `chip`, `callout` ...). |
-| `apps/web/src/style.css`               | Imports the two above, plus the editor and Markdown typography.                                                                                                                                   |
-| `apps/web/src/theme/palette.test.ts`   | Fails if any colour pair on screen drops below WCAG 2.2 AA, in light or dark.                                                                                                                     |
-| `apps/web/src/lib/useTheme.ts`         | The light/dark choice (saved in `localStorage`, applied as `data-theme` on `<html>`, defaults to the system).                                                                                     |
-| `apps/web/src/assets/fonts/`           | Self-hosted IBM Plex Sans (OFL). No third-party font requests.                                                                                                                                    |
-| `apps/web/src/App.vue`                 | The shell: side menu (a Menu button on phones), skip link, landmarks.                                                                                                                             |
+| File                                                    | Job                                                                                                                                                                                               |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/theme/palette-ember.css`                  | **The only place a colour is chosen**: light, dark, and lettered-tile tints, each named by role.                                                                                                  |
+| `apps/web/src/theme/theme.css`                          | The design built on a palette: fonts, the Tailwind token map, shared base rules (focus, selection, reduced motion), and every component utility (`btn`, `field`, `panel`, `chip`, `callout` ...). |
+| `apps/web/src/style.css`                                | Imports the two above, plus the editor and Markdown typography.                                                                                                                                   |
+| `apps/web/src/theme/palette.test.ts`                    | Fails if any colour pair on screen drops below WCAG 2.2 AA, in light or dark.                                                                                                                     |
+| `apps/web/src/lib/useTheme.ts`                          | The light/dark choice (saved in `localStorage`, applied as `data-theme` on `<html>`, defaults to the system).                                                                                     |
+| `apps/web/src/assets/fonts/`                            | Self-hosted IBM Plex Sans (OFL). No third-party font requests.                                                                                                                                    |
+| `apps/web/src/App.vue`                                  | The shell: side menu (a Menu button on phones), skip link, landmarks.                                                                                                                             |
+| `apps/web/src/lib/nav.ts`, `components/SideMenu.vue`    | What the side menu lists for where you are (see _Navigation_).                                                                                                                                    |
+| `components/StepHeading.vue`, `components/NextStep.vue` | A numbered step's title, and its \"Next: …\" suggestion.                                                                                                                                          |
 
 Tailwind's default colour palette is **switched off** (`--color-*: initial` in `theme.css`). A class like `bg-red-50`
 or `text-stone-600` does nothing, so off-palette colour can't creep in unnoticed. Only the roles below exist.
@@ -146,10 +148,57 @@ Dark follows the person's system setting unless they choose (the Light/Dark butt
 text, washes are deep tints of the accent, and the highlighter becomes a deep blue-grey. All of it lives in the
 palette file, so components need no `dark:` variants. If you find yourself writing `dark:`, a role is missing.
 
+## Navigation: the menu follows you
+
+How people are led through the app. The side menu **follows you**: what it lists depends on where you are, with a way
+back up and the name of the thing you are in. (We drew three approaches, a steady menu with steps on the page and a
+menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#navigation-the-menu-follows-you).)
+
+| Level   | You are choosing…               | The menu lists                                                                                                                                  | Settings         |
+| ------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Home    | which **profile** to work on    | Profiles, Account settings                                                                                                                      | Account settings |
+| Profile | what to gather, then which idea | **01 Inspiration** (feeds, recent posts, the reading list), **02 Notes**, **03 Ideas**                                                          | Profile settings |
+| Idea    | how to develop it               | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**, **05 Publish** | Idea settings    |
+
+The principles (they are the point of the pattern; keep them when you add a page):
+
+1. **Numbers orient; they never gate.** Every step is a link, always enabled. Nothing is locked, greyed out or
+   "completed for you". The numbers are decoration (`aria-hidden`); an ordered list conveys the order.
+2. **State is a count, not progress**: "2 sources", "1 draft" under a step, where we already know it. No progress bars.
+3. **See where you are in two places**: the current step is marked in the menu (`aria-current`, a filled badge and an
+   edge) and in the page title, with the profile or idea name above it (`StepHeading`).
+4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 03 Refine →"), an outline button, never the
+   primary one. A step where the next move is a choice (Ideas), or the last (Publish), has none.
+5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Start brainstorming**,
+   Research's **Start research**); arriving by the menu must never cost the writer money.
+6. **Always a way up**: "← All profiles", "← {profile}".
+7. **Settings sit apart from the steps**, at their own level, with no step current.
+
+|                                                           |                                                          |
+| --------------------------------------------------------- | -------------------------------------------------------- |
+| ![Idea, Research step](screenshots/nav-idea-research.png) | ![Idea, Publish step](screenshots/nav-idea-publish.png)  |
+| ![Profile, Ideas step](screenshots/nav-profile-ideas.png) | ![Phone, menu open](screenshots/nav-phone-menu-open.png) |
+
+**How a page joins the menu.** Give its route `meta: { level: 'profile' | 'idea', step: '<key>' }` in `router.ts`
+(`step` is a key from `PROFILE_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
+(the research tool, reading one source) use their step's key, so it stays current. The title is
+`<StepHeading>Name</StepHeading>`; end the page with `<NextStep :to label>why this is next</NextStep>`. A page that is
+read beside another window (reading a source, taking notes) adds `compact: true`, which folds the menu behind the
+**Menu** button at every width so two windows fit side by side. The drafting page keeps the menu on a laptop and finds
+its idea from the draft (`ideaFromDraft: true`).
+
+Adding a step (rare): add it to the step list in `lib/nav.ts`, give its route the meta, and update the table above
+and in README. Renumbering is automatic.
+
+**Publish** is where a finished draft leaves: today **Copy Markdown** (title first, with a Show Markdown fallback if the
+clipboard is out of reach). Publishing straight to a newsletter, and help drafting social threads, would belong here
+later; neither is built.
+
 ## Layout
 
-- **Side menu** (16rem) on desktop; on phones a top bar with a **Menu** button (`aria-expanded`) that folds the
-  menu away and closes on navigation. Signed-out pages have a centred name only.
+- **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button
+  (`aria-expanded`) that folds the menu away, shows where you are while closed, and closes on navigation. Signed-out
+  pages have a centred name only.
 - **Content width:** `max-w-3xl` for reading and forms; routes with `meta.wide` get `max-w-6xl` (the drafting page
   with its notes column). Check every screen at 390px; nothing may scroll sideways.
 - **Landmarks:** the side menu is the page `header`; the page content is `main`; a skip link comes first. Don't add a
@@ -171,7 +220,8 @@ palette file, so components need no `dark:` variants. If you find yourself writi
 
 1. Find the nearest existing screen and copy its structure. Reuse components before writing utilities.
 2. Build with roles and component classes. No colour values, no `dark:`, no shadows, no bare `rounded`.
-3. Headings `h1` (once per page) / `h2` / `h3`; the primary action is the only `btn-primary` in its area.
+3. Headings `h1` (once per page, `StepHeading` on a step) / `h2` / `h3` (no skipped levels); the primary action is the only `btn-primary` in its area.
+   A new page in the app declares its level and step (see _Navigation_) and ends with `NextStep` where one fits.
 4. Add the highlighter only if the AI produced it. Add a text label next to it.
 5. External pictures go through `ProfileImage kind="source"`.
 6. Look at it in light **and dark** and at 390px. Run `pnpm check` (palette test), `pnpm test:e2e` (axe).
@@ -183,6 +233,6 @@ palette file, so components need no `dark:` variants. If you find yourself writi
   `style.css` at it, and run `pnpm --filter @lfwa/web test`. `palette.test.ts` reads `palette-ember.css`; change its
   path when you rename. The `docs/design-concepts/` folder shows teal and purple variants built the same way.
 - **Change the look** (corners, fonts, weights): edit `theme.css`. Components pick it up everywhere.
-- **Change the shell:** only `App.vue`.
+- **Change the shell or the menu's shape:** `App.vue` (the frame) and `components/SideMenu.vue` / `lib/nav.ts` (what it lists).
 - **Don't** fix a screen by adding colours or one-off classes to it. If a screen needs something the system lacks, the
   system is what changes.

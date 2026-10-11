@@ -87,6 +87,11 @@ Don't kill another session's processes.
   - Other websites' icons and logos go through `ProfileImage kind="source"` (a light plate, never bare).
   - Need a role, component or rule that doesn't exist? Add it to `theme/` (and the palette test) and update
     `docs/design.md`; don't style one screen differently.
+- **Navigation (see [docs/design.md](docs/design.md#navigation-the-menu-follows-you)):** the side menu follows you
+  (home → profile → idea). A new page declares `meta: { level, step }` on its route, titles itself with `StepHeading`,
+  and ends with `NextStep` where a next step makes sense. Numbered steps are always links, never locked; a step that
+  calls the AI waits for a button (visiting spends nothing); pages read beside another window set `compact: true`.
+  Don't add a second `aside` (the drafting notes own the `complementary` landmark).
 - **Reorderable lists:** use `ReorderableList` (drag grip, arrow buttons, focus and announcements) for any list
   whose order people can change, so they all look and behave alike.
 - Don't add dependencies casually; prefer the platform and what's already installed. Explain any new one in the commit.

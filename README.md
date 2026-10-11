@@ -37,6 +37,23 @@ the design is easy to edit or swap:
 Contrast is tested (`palette.test.ts`) and axe runs in the e2e suite; fonts are self-hosted (SIL OFL), so no
 request goes to a font service.
 
+## Navigation
+
+The side menu **follows you**: what it lists depends on where you are, with a link back up and the name of the thing you
+are in. Numbers on the steps orient; they never lock anything, so every step is always a link, and each page ends with a
+gentle "Next: …" suggestion. Home → profile → idea:
+
+| Level   | Menu lists                                                                                                                          | Front door                     |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Home    | Profiles, Account settings (`/`, `/account`)                                                                                        | `/`                            |
+| Profile | **01 Inspiration** (feeds, recent posts, reading list), **02 Notes**, **03 Ideas**; Profile settings                                | `/p/<id>` → Ideas              |
+| Idea    | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft**, **05 Publish** (copy the draft as Markdown); Idea settings | `/p/<id>/ideas/<idea>` → Notes |
+
+Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
+The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
+source). See [docs/design.md](docs/design.md#navigation-the-menu-follows-you) and the decision in
+[docs/decisions.md](docs/decisions.md#navigation-the-menu-follows-you).
+
 ## Getting started
 
 Requires Node 24+ and pnpm.
@@ -90,13 +107,13 @@ tests inject fakes and nothing hits the network.
   adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
-  `/profiles/new` creates one; `/p/<id>` is the profile's page; `/p/<id>/settings` edits it, shares it
-  and deletes it; `/p/<id>/inspiration` holds its feeds. Still to come: reader personas (see the GitHub issues).
-- **Ideas** (`/p/<id>/ideas/new`, `/p/<id>/ideas/<idea>`): something to write about, which doesn't need an
+  `/profiles/new` creates one; `/p/<id>` opens its **Ideas** step (see _Navigation_ below for its three steps);
+  `/p/<id>/settings` edits it, shares it and deletes it. Still to come: reader personas (see the GitHub issues).
+- **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were
   added) for a linked set of posts. Anyone a profile is shared with can work on its ideas. Deleting an idea
-  deletes its links and drafts. The **Brainstorm** button is a placeholder until the conversation is built. API:
+  deletes its links and drafts. API:
   `/api/profiles/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
   **Reading list (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
@@ -123,9 +140,9 @@ tests inject fakes and nothing hits the network.
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
   **Dragging notes into a draft:** the drafting side bar's notes can be dragged by their grip onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor).
-  **The profile's own reading list and notes** have pages: from the profile page, **Reading list**
-  (`/p/<id>/reading`; each item opens its own reading page at `/p/<id>/reading/<item>`) and **Notes**
-  (`/p/<id>/notes`). They are the idea's screens with a different owner (reading list, reading page, notes with
+  **The profile's own reading list and notes** have their own places: the reading list is part of the profile's
+  **Inspiration** step (`/p/<id>/inspiration`; the old `/p/<id>/reading` leads there; each item opens its own reading page at
+  `/p/<id>/reading/<item>`) and **Notes** is its second step (`/p/<id>/notes`). The idea's reading list is separate from the profile's. They are the idea's screens with a different owner (reading list, reading page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
   profile as a whole, to be gathered before there is an idea. `GET/POST /api/profiles/:id/reading`, `PATCH|DELETE
@@ -143,7 +160,7 @@ tests inject fakes and nothing hits the network.
   `PUT …/ideas/:idea/notes/:note/added` (`{added}`) puts a note back.
   **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
   are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
-  (`/p/<id>/drafts/<draft>` in the app), which links back to its idea.
+  (`/p/<id>/drafts/<draft>` in the app), which links back to its idea's Draft step.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
@@ -181,8 +198,7 @@ tests inject fakes and nothing hits the network.
   an ignored post stays in the list, marked, and **Reconsider** takes either back. A post that has been added or
   ignored moves to the **end** of the list (the latest decision last), so the posts still waiting stay together at
   the top, in date order. A post is "on a reading list" if it
-  is on any of the profile's lists, however it got there. The profile's **Reading list** page has an **Add to reading
-  list** button that goes there. **The profile's own reading list has no maximum** (an idea's keeps 50), but an item
+  is on any of the profile's lists, however it got there. The reading list is on the same page, below the posts. **The profile's own reading list has no maximum** (an idea's keeps 50), but an item
   that isn't ticked **Keep** is dropped, silently, a month after it was put on that list (`PUT
 /api/profiles/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
   item onto the profile starts its month again.
@@ -290,14 +306,14 @@ holds one thread per idea, shared by the profile's members. `GET` reads it; `POS
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
 AI's suggestions (a new title for the idea, a new idea, or a page for the idea's reading list that the writer gave it: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` starts
 again. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
-person accepts it, except the notes it records. The page is `/p/<profile>/ideas/<idea>/brainstorm` (the idea page's **Brainstorm** button): the editor's reply
+person accepts it, except the notes it records. The page is `/p/<profile>/ideas/<idea>/refine` (the idea's **Refine** step: visiting it spends nothing; **Start brainstorming** begins): the editor's reply
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
 never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
 "suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
 
-**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the idea page's **Research**
-button opens `/p/<profile>/ideas/<idea>/research`, a page apart from brainstorming that lists the idea's earlier research and takes
+**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step's **Start research**
+button opens `/p/<profile>/ideas/<idea>/research/find`, a page apart from brainstorming that lists the idea's earlier research and takes
 a new request, a description of the areas to look into. `GET`/`POST /api/profiles/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
 `/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the
