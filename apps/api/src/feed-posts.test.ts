@@ -230,13 +230,13 @@ describe('deciding about posts from the feeds', () => {
     expect((await recent())[0]!.status).toBe('added')
   })
 
-  it('limits the list, in words that name the profile', async () => {
-    for (let i = 0; i < MAX_IDEA_LINKS; i++) {
+  it('has no limit on the profile’s own reading list', async () => {
+    for (let i = 0; i < MAX_IDEA_LINKS + 10; i++) {
       ctx.store.reading.add(profile, null, { url: `https://fill${i}.example/`, title: 't' })
     }
     const res = await decide('add', [ref(A, 'a1')])
-    expect(res.status).toBe(409)
-    expect((await res.json()).error).toContain(`A profile can have up to ${MAX_IDEA_LINKS} links`)
+    expect(res.status).toBe(200)
+    expect(await profileList()).toHaveLength(MAX_IDEA_LINKS + 11)
   })
 
   it('says what is wrong with a post that is not there, and what is not the profile’s', async () => {

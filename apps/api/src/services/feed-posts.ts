@@ -1,7 +1,6 @@
 import { HTTPException } from 'hono/http-exception'
 import {
   linkKey,
-  MAX_IDEA_LINKS,
   type FeedItem,
   type PostDecision,
   type PostRefs,
@@ -49,7 +48,7 @@ export class FeedPostService {
 
   /**
    * Puts the posts on the profile's reading list, marked as from a feed. All or nothing: a post that is already
-   * on a reading list, or an address the list has no room for, refuses the lot, with the reason.
+   * on a reading list refuses the lot, with the reason. The profile's list has no maximum.
    */
   add(profileId: string, userId: string, refs: PostRefs['posts']): PostDecision {
     const { reading, feedDecisions } = this.store
@@ -63,12 +62,6 @@ export class FeedPostService {
           throw fail(409, `“${item.title}” is already on a reading list. Choose another.`)
         }
         seen.add(key)
-      }
-      if (reading.count({ profileId }) + posts.length > MAX_IDEA_LINKS) {
-        throw fail(
-          409,
-          `A profile can have up to ${MAX_IDEA_LINKS} links. Remove some you no longer need to make room.`,
-        )
       }
       for (const { item, sourceId } of posts) {
         reading.add(

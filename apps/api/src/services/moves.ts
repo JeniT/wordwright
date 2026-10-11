@@ -62,7 +62,10 @@ export class MoveService {
             .filter((id) => notes.get(ownerFor(profileId, p.ideaId), id)).length,
         0,
       )
-      if (reading.count(toOwner) + plan.filter((p) => !p.merges).length > MAX_IDEA_LINKS) {
+      if (
+        toIdeaId &&
+        reading.count(toOwner) + plan.filter((p) => !p.merges).length > MAX_IDEA_LINKS
+      ) {
         throw fail(
           409,
           `${subject(toIdeaId)} can have up to ${MAX_IDEA_LINKS} links. Remove some you no longer need to make room.`,
@@ -158,7 +161,7 @@ export class MoveService {
         const item = reading.get(ownerFor(profileId, from === 'null' ? null : from), itemId)
         return item && !there.has(linkKey(item.url))
       })
-      if (reading.count(toOwner) + missing.length > MAX_IDEA_LINKS) {
+      if (toIdeaId && reading.count(toOwner) + missing.length > MAX_IDEA_LINKS) {
         throw fail(
           409,
           `${subject(toIdeaId)} can have up to ${MAX_IDEA_LINKS} links, and the notes' sources would pass that. Remove some you no longer need to make room.`,

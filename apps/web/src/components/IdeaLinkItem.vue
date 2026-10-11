@@ -10,7 +10,7 @@ import TextField from './TextField.vue'
 const props = defineProps<{ profileId: string; ideaId: string | null; link: IdeaLink }>()
 const emit = defineEmits<{ remove: [] }>()
 const owner = () => ({ profileId: props.profileId, ideaId: props.ideaId })
-const { setRead, update: save } = useReadingActions(owner)
+const { setRead, setKept, update: save } = useReadingActions(owner)
 
 /** What the link is called: its title, or failing that the address itself. */
 const label = () => props.link.title || props.link.url
@@ -52,6 +52,17 @@ function toggleRead(read: boolean) {
     {
       onError: () => {
         if (readBox.value) readBox.value.checked = !!props.link.readAt
+      },
+    },
+  )
+}
+const keepBox = useTemplateRef<HTMLInputElement>('keepBox')
+function toggleKept(kept: boolean) {
+  setKept.mutate(
+    { linkId: props.link.id, kept },
+    {
+      onError: () => {
+        if (keepBox.value) keepBox.value.checked = !!props.link.kept
       },
     },
   )
@@ -162,7 +173,25 @@ function saveLink() {
       <p v-if="link.why" class="w-full text-sm text-ink-soft">
         <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
       </p>
-      <p v-if="setRead.isError.value" role="alert" class="w-full text-sm text-danger">
+      <!-- Only the profile's own list drops items after a month; a tick says this one is to stay. -->
+      <label v-if="!ideaId" class="flex w-full items-center gap-1.5 text-sm">
+        <input
+          ref="keepBox"
+          type="checkbox"
+          class="size-4 accent-accent"
+          :checked="!!link.kept"
+          :disabled="setKept.isPending.value"
+          :aria-label="`Keep: ${label()}`"
+          @change="toggleKept(($event.target as HTMLInputElement).checked)"
+        />
+        Keep
+        <span class="text-ink-soft">(otherwise it is removed a month after it was added)</span>
+      </label>
+      <p
+        v-if="setRead.isError.value || setKept.isError.value"
+        role="alert"
+        class="w-full text-sm text-danger"
+      >
         Couldn't save that. Please try again.
       </p>
     </div>

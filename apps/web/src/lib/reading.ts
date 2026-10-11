@@ -59,6 +59,12 @@ export function useReadingActions(owner: () => Owner) {
     },
     onSuccess: keep,
   })
+  /** Keeps an item of the profile's own list, or stops keeping it. */
+  const setKept = useMutation({
+    mutationFn: ({ linkId, kept }: { linkId: string; kept: boolean }) =>
+      api.setProfileLinkKept(owner().profileId, linkId, kept),
+    onSuccess: keep,
+  })
   const update = useMutation({
     mutationFn: ({
       linkId,
@@ -90,7 +96,7 @@ export function useReadingActions(owner: () => Owner) {
       ]),
   })
 
-  return { add, setRead, update, remove, listOf }
+  return { add, setRead, setKept, update, remove, listOf }
 }
 
 /**

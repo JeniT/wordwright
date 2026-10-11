@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite'
-import type { IdeaLink, ReadingOrigin } from '@lfwa/core'
+import { PROFILE_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
 import { owned, type Owner } from './owner'
@@ -18,9 +18,10 @@ const toLink = (l: Row): IdeaLink => ({
   readAt: l.read_at as string | null,
   origin: l.origin as ReadingOrigin,
   why: (l.why as string | null) ?? null,
+  kept: l.kept === 1,
 })
 
-const COLUMNS = 'id, url, title, authors, read_at, origin, why'
+const COLUMNS = 'id, url, title, authors, read_at, origin, why, kept'
 
 /**
  * Reading-list items, for an idea or for a profile as a whole (see `Owner`). Callers check that the person
@@ -29,8 +30,28 @@ const COLUMNS = 'id, url, title, authors, read_at, origin, why'
 export class ReadingStore {
   constructor(private readonly db: DatabaseSync) {}
 
+  /**
+   * Items on a profile's own list that are a month old (`PROFILE_READING_DAYS`) are dropped, silently, unless they are
+   * kept or notes were taken from them (dropping those would leave the notes with no source). The age is how long since
+   * the item was put on this list. An idea's list is never swept. Done whenever the profile's list is looked at, so
+   * there is no background job; returns how many were dropped.
+   */
+  dropOld(profileId: string): number {
+    const cutoff = new Date(Date.now() - PROFILE_READING_DAYS * 86_400_000).toISOString()
+    return Number(
+      this.db
+        .prepare(
+          `DELETE FROM idea_links
+           WHERE profile_id = ? AND idea_id IS NULL AND kept = 0 AND created_at < ?
+             AND id NOT IN (SELECT reading_item_id FROM idea_notes WHERE reading_item_id IS NOT NULL)`,
+        )
+        .run(profileId, cutoff).changes,
+    )
+  }
+
   /** Unread first, then in the order they were added. */
   list(owner: Owner): IdeaLink[] {
+    if (typeof owner !== 'string') this.dropOld(owner.profileId)
     const w = owned(owner)
     return this.db
       .prepare(
@@ -41,6 +62,7 @@ export class ReadingStore {
   }
 
   count(owner: Owner): number {
+    if (typeof owner !== 'string') this.dropOld(owner.profileId)
     const w = owned(owner)
     return (
       this.db.prepare(`SELECT count(*) AS n FROM idea_links WHERE ${w.sql}`).get(...w.args) as {
@@ -59,6 +81,7 @@ export class ReadingStore {
 
   /** Every item's address in the profile, wherever it is (the profile's own list or any idea's), and when it was put there. */
   addresses(profileId: string): { url: string; createdAt: string }[] {
+    this.dropOld(profileId)
     return this.db
       .prepare('SELECT url, created_at FROM idea_links WHERE profile_id = ?')
       .all(profileId)
@@ -115,6 +138,7 @@ export class ReadingStore {
       readAt: input.readAt ?? null,
       origin,
       why: input.why ?? null,
+      kept: false,
     }
   }
 
@@ -148,10 +172,27 @@ export class ReadingStore {
     )
   }
 
-  /** Hands an item to an idea, or to the profile (`null`). It keeps everything else about it. */
+  /**
+   * Hands an item to an idea, or to the profile (`null`). It keeps everything else about it, except that it starts
+   * afresh on the profile's list (its month begins again, and it is no longer kept) and an idea's list has no keeping.
+   */
   setOwner(profileId: string, id: string, ideaId: string | null) {
     this.db
-      .prepare('UPDATE idea_links SET idea_id = ? WHERE profile_id = ? AND id = ?')
-      .run(ideaId, profileId, id)
+      .prepare(
+        `UPDATE idea_links SET idea_id = ?, kept = 0, created_at = CASE WHEN ? IS NULL THEN ? ELSE created_at END
+         WHERE profile_id = ? AND id = ?`,
+      )
+      .run(ideaId, ideaId, nowIso(), profileId, id)
+  }
+
+  /** Asks for an item of the profile's own list to be kept (or not). */
+  setKept(profileId: string, id: string, kept: boolean): boolean {
+    return (
+      this.db
+        .prepare(
+          'UPDATE idea_links SET kept = ? WHERE profile_id = ? AND idea_id IS NULL AND id = ?',
+        )
+        .run(kept ? 1 : 0, profileId, id).changes > 0
+    )
   }
 }

@@ -94,7 +94,8 @@ export class IdeaLinkService {
   }
 
   private checkRoom(scope: ListScope, links: IdeaLink[]) {
-    if (links.length >= MAX_IDEA_LINKS) {
+    // The profile's own list has no maximum: what isn't kept drops off after a month instead.
+    if (scope.ideaId && links.length >= MAX_IDEA_LINKS) {
       throw fail(
         409,
         `${subjectOf(scope)} can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,

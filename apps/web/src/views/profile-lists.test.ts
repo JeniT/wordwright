@@ -21,6 +21,7 @@ type Link = {
   readAt: string | null
   origin: string
   why: string | null
+  kept?: boolean
 }
 const link = (id: string, title: string, extra: Partial<Link> = {}): Link => ({
   id,
@@ -73,6 +74,11 @@ function fakeProfile(initial: { links?: Link[]; notes?: ReturnType<typeof note>[
       state.links = state.links.map((l) =>
         l.id === params.linkId ? { ...l, readAt: read ? '2026-02-02T00:00:00Z' : null } : l,
       )
+      return HttpResponse.json(state.links)
+    }),
+    http.put(`${base}/reading/:linkId/kept`, async ({ params, request }) => {
+      const { kept } = (await request.json()) as { kept: boolean }
+      state.links = state.links.map((l) => (l.id === params.linkId ? { ...l, kept } : l))
       return HttpResponse.json(state.links)
     }),
     http.delete(`${base}/reading/:linkId`, ({ params }) => {
@@ -203,6 +209,45 @@ describe('the profile’s reading list', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Remove link to Another' }))
     await waitFor(() => expect(screen.queryByText('Another')).not.toBeInTheDocument())
     expect(state.links.map((l) => l.id)).toEqual(['l1'])
+  })
+
+  it('has no limit, and says what is removed after a month and what is not', async () => {
+    await renderAt('/p/ada-substack/reading')
+    expect(await screen.findByText(/There is no limit to the list/)).toBeInTheDocument()
+    expect(screen.getByText(/removed a month after it was added/)).toBeInTheDocument()
+    expect(screen.getByText(/never removed/)).toBeInTheDocument()
+  })
+
+  it('has a Keep tick on each item, saved when it is changed', async () => {
+    const state = fakeProfile({
+      links: [link('l1', 'A paper'), link('l2', 'Another', { kept: true })],
+    })
+    await renderAt('/p/ada-substack/reading')
+    const first = await screen.findByRole('checkbox', { name: 'Keep: A paper' })
+    expect(first).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Keep: Another' })).toBeChecked()
+    expect(screen.getAllByText(/otherwise it is removed a month after it was added/)).toHaveLength(
+      2,
+    )
+
+    await fireEvent.click(first)
+    await waitFor(() => expect(state.links[0]!.kept).toBe(true))
+    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Keep: Another' }))
+    await waitFor(() => expect(state.links[1]!.kept).toBe(false))
+  })
+
+  it('puts the tick back and says so when keeping could not be saved', async () => {
+    fakeProfile({ links: [link('l1', 'A paper')] })
+    server.use(
+      http.put('*/api/profiles/ada-substack/reading/l1/kept', () =>
+        HttpResponse.json({ error: 'nope' }, { status: 500 }),
+      ),
+    )
+    await renderAt('/p/ada-substack/reading')
+    const box = await screen.findByRole('checkbox', { name: 'Keep: A paper' })
+    await fireEvent.click(box)
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
+    await waitFor(() => expect(box).not.toBeChecked())
   })
 
   it('shows where an item came from: the AI’s with the highlighter, a feed’s without', async () => {

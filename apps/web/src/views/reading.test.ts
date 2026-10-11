@@ -77,6 +77,17 @@ describe('reading page', () => {
     )
   })
 
+  it('is reached from the idea’s reading list, which has no Keep tick (only the profile’s list drops items)', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get(ideaUrl, () => HttpResponse.json(idea)),
+    )
+    await renderAt('/p/ada-substack/ideas/i1')
+    expect(await screen.findAllByRole('link', { name: 'Take notes' })).toHaveLength(2)
+    expect(screen.queryByRole('checkbox', { name: /^Keep:/ })).not.toBeInTheDocument()
+  })
+
   it('is called by its address when the item has no title', async () => {
     await open('l2')
     expect(

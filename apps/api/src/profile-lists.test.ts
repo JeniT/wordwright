@@ -1,8 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_IDEA_LINKS, MAX_IDEA_NOTES } from '@lfwa/core'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { FakeFeedFetcher, MAX_IDEA_LINKS, MAX_IDEA_NOTES } from '@lfwa/core'
 import { register, setup, shareProfile, verifyAccounts } from './test-helpers'
 
-type Link = { id: string; url: string; title: string; readAt: string | null; authors: string[] }
+type Link = {
+  id: string
+  url: string
+  title: string
+  readAt: string | null
+  authors: string[]
+  kept?: boolean
+}
 type Note = {
   id: string
   text: string
@@ -12,8 +19,8 @@ type Note = {
 }
 
 /** A profile with an idea, as Ada; Bob can be added as a member. */
-async function start() {
-  const ctx = setup()
+async function start(feeds?: FakeFeedFetcher) {
+  const ctx = setup(feeds ? { feeds } : {})
   const ada = ctx.client()
   await register(ada, 'ada@example.com', 'Ada')
   const profile = (await (await ada.get('/api/profiles')).json())[0].id as string
@@ -76,13 +83,17 @@ describe('the profile’s own reading list', () => {
     )
   })
 
-  it('limits the list, in words that name the profile', async () => {
+  it('has no maximum on the profile’s own list, though an idea’s keeps its limit', async () => {
+    const idea = await s.newIdea()
     for (let i = 0; i < MAX_IDEA_LINKS; i++) {
       s.ctx.store.reading.add(s.profile, null, { url: `https://s${i}.example/`, title: 't' })
+      s.ctx.store.reading.add(s.profile, idea, { url: `https://i${i}.example/`, title: 't' })
     }
-    const res = await s.ada.post(s.reading(), { url: 'https://one-more.example/' })
-    expect(res.status).toBe(409)
-    expect((await res.json()).error).toContain(`A profile can have up to ${MAX_IDEA_LINKS} links`)
+    expect((await s.ada.post(s.reading(), { url: 'https://one-more.example/' })).status).toBe(201)
+    expect(await s.links()).toHaveLength(MAX_IDEA_LINKS + 1)
+    const full = await s.ada.post(s.ideaLinks(idea), { url: 'https://one-more.example/' })
+    expect(full.status).toBe(409)
+    expect((await full.json()).error).toContain(`An idea can have up to ${MAX_IDEA_LINKS} links`)
   })
 
   it('marks an item read and unread, edits it, and removes it', async () => {
@@ -593,5 +604,126 @@ describe('moving notes', () => {
     expect(
       (await bob.post(`${s.api}/move/notes`, { ids: [n.id], to: { ideaId: null } })).status,
     ).toBe(404)
+  })
+})
+
+describe('items dropping off the profile’s reading list after a month', () => {
+  let s: Awaited<ReturnType<typeof start>>
+  const DAY = 86_400_000
+  const start0 = new Date('2026-05-01T12:00:00Z').getTime()
+  /** Items are dated by the real clock when they are made, so the clock is set to when each should be made. */
+  const at = (days: number) => vi.setSystemTime(start0 + days * DAY)
+  const add = async (url: string, extra: object = {}): Promise<Link> =>
+    (await (await s.ada.post(s.reading(), { url, title: url, ...extra })).json()).find(
+      (l: Link) => l.url === url,
+    )
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    at(0)
+    s = await start()
+  })
+  afterEach(() => vi.useRealTimers())
+  const urls = async () => (await s.links()).map((l) => l.url)
+
+  it('drops items a month after they were put there, quietly, and not before', async () => {
+    await add('https://old.example/')
+    at(10)
+    await add('https://newer.example/')
+    at(29)
+    expect(await urls()).toEqual(['https://old.example/', 'https://newer.example/'])
+    at(31)
+    expect(await urls()).toEqual(['https://newer.example/'])
+    at(41)
+    expect(await urls()).toEqual([])
+  })
+
+  it('keeps an item that was marked to be kept, and drops it again once that is undone', async () => {
+    const item = await add('https://kept.example/')
+    const kept = await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: true })
+    expect(kept.status).toBe(200)
+    expect((await kept.json())[0].kept).toBe(true)
+    at(90)
+    expect(await urls()).toEqual(['https://kept.example/'])
+    await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: false })
+    expect(await urls()).toEqual([])
+  })
+
+  it('never drops an item that notes were taken from, kept or not', async () => {
+    const item = await add('https://noted.example/')
+    await add('https://plain.example/')
+    await s.ada.post(s.notes(), { text: 'Taken from it', readingItemId: item.id })
+    at(60)
+    expect(await urls()).toEqual(['https://noted.example/'])
+    expect((await s.noteList())[0]!.readingItemId).toBe(item.id)
+  })
+
+  it('does not touch an idea’s reading list or notes', async () => {
+    const idea = await s.newIdea()
+    await s.ada.post(s.ideaLinks(idea), { url: 'https://idea.example/' })
+    await s.ada.post(s.ideaNotes(idea), { text: 'An idea note' })
+    at(400)
+    expect((await s.links(idea)).map((l) => l.url)).toEqual(['https://idea.example/'])
+    expect(await s.noteList(idea)).toHaveLength(1)
+  })
+
+  it('starts the month again when an item is moved onto the profile’s list, unkept', async () => {
+    const idea = await s.newIdea()
+    const withItem = await (
+      await s.ada.post(s.ideaLinks(idea), { url: 'https://moved.example/' })
+    ).json()
+    const id = withItem.links[0].id as string
+    at(100) // long enough that anything made at the start would be gone
+    await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: null } })
+    at(120)
+    expect(await urls()).toEqual(['https://moved.example/']) // 20 days on the profile's list
+    await s.ada.put(`${s.reading()}/${id}/kept`, { kept: true })
+    await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: idea } })
+    await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: null } })
+    expect((await s.links())[0]!.kept).toBe(false) // keeping doesn't survive a round trip
+  })
+
+  it('refuses to keep an item of an idea, or one that is not there, and is for members only', async () => {
+    const idea = await s.newIdea()
+    const withItem = await (
+      await s.ada.post(s.ideaLinks(idea), { url: 'https://idea.example/' })
+    ).json()
+    expect(
+      (await s.ada.put(`${s.reading()}/${withItem.links[0].id}/kept`, { kept: true })).status,
+    ).toBe(404)
+    expect((await s.ada.put(`${s.reading()}/nope/kept`, { kept: true })).status).toBe(404)
+    const bob = s.ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    const item = await add('https://a.example/')
+    expect((await bob.put(`${s.reading()}/${item.id}/kept`, { kept: true })).status).toBe(404)
+  })
+
+  it('offers a post from a feed again when its item has been dropped', async () => {
+    const feeds = new FakeFeedFetcher({
+      'https://f.example/feed': {
+        title: 'F',
+        items: [
+          {
+            id: 'p1',
+            title: 'Post one',
+            url: 'https://f.example/p1',
+            summary: null,
+            authors: [],
+            publishedAt: new Date(start0 + 20 * DAY).toISOString(),
+          },
+        ],
+      },
+    })
+    s = await start(feeds)
+    const sourceId = (
+      await (await s.ada.post(`${s.api}/sources`, { url: 'https://f.example/feed' })).json()
+    ).id
+    const status = async () =>
+      (await (await s.ada.get(`${s.api}/sources/recent?days=60`)).json()).posts[0].status
+    expect(await status()).toBe('new')
+    await s.ada.post(`${s.api}/sources/recent/add`, { posts: [{ sourceId, postId: 'p1' }] })
+    expect(await status()).toBe('added')
+    at(35)
+    expect(await status()).toBe('new')
+    expect(await urls()).toEqual([])
   })
 })

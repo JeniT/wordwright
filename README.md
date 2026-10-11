@@ -169,7 +169,10 @@ tests inject fakes and nothing hits the network.
   ignored moves to the **end** of the list (the latest decision last), so the posts still waiting stay together at
   the top, in date order. A post is "on a reading list" if it
   is on any of the profile's lists, however it got there. The profile's **Reading list** page has an **Add to reading
-  list** button that goes there.
+  list** button that goes there. **The profile's own reading list has no maximum** (an idea's keeps 50), but an item
+  that isn't ticked **Keep** is dropped, silently, a month after it was put on that list (`PUT
+/api/profiles/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
+  item onto the profile starts its month again.
   Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
   hours, asks again with `ETag`/`If-Modified-Since` so an unchanged feed costs little, leaves a feed that failed

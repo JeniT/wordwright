@@ -41,7 +41,9 @@ function add() {
       <template v-else>
         Things to read for this profile, before any one idea. Read them, take notes from them, and
         later gather the notes into an idea. Tick each one off once you have read it, even if you
-        read it somewhere else.
+        read it somewhere else. There is no limit to the list, so it can keep up with your feeds:
+        what you haven't ticked <strong>Keep</strong> for is removed a month after it was added,
+        quietly. An item you have taken notes from is never removed.
       </template>
     </p>
 

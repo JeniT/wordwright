@@ -771,6 +771,17 @@ an idea or the profile.
   functions take `ideaId: string | null`. The idea pages behave as before (their tests are unchanged); the profile's are
   `/p/:id/reading`, `/p/:id/reading/:item` and `/p/:id/notes`. Items from a feed (origin `feed`) are labelled "From a
   feed" without the highlighter, which stays for what the AI suggested.
+- **The profile's own reading list has no maximum, and forgets (#84).** It is a stream filled from the feeds, so a
+  fixed limit would only make people clear space by hand. Instead an item **not marked Keep is dropped a month after it
+  was put on the profile's list** (`PROFILE_READING_DAYS`, in `ReadingStore.dropOld`): quietly, with no notice when it
+  happens, since a notice about the thing you didn't choose to keep is more noise. The age is since the item was put on
+  _this_ list, so an item moved back from an idea starts afresh and unkept (`setOwner`), and keeping is the writer's
+  tick and nothing else. Two guards: an item **notes were taken from is never dropped** (a note with no source is worse
+  than a stale list; the page says so, and it is one clause in `dropOld` to remove), and an idea's reading list and
+  notes are never swept (only the profile's own list, `idea_id` null). There is no background job: the sweep runs
+  whenever the profile's list is read, counted or checked for what is on it (so the Recent posts list is consistent
+  with it), using the real clock, like the time items are stamped with. A dropped item's feed post is offered again,
+  as any post not on a list is. The limit of 50 stays for an idea's list, which is part of the work on one idea.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
   with the profile.

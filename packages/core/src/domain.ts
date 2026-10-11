@@ -438,8 +438,16 @@ export const IdeaLinkSchema = z.object({
    * never the writer's words. Null for items the writer added.
    */
   why: z.string().nullish(),
+  /**
+   * Only on the profile's own reading list: the writer asked for it to be kept. Items that aren't are dropped a
+   * month after they were put there (`PROFILE_READING_DAYS`). Always false on an idea's list, which isn't swept.
+   */
+  kept: z.boolean().optional(),
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
+
+/** How long an item stays on the profile's own reading list unless it is kept. */
+export const PROFILE_READING_DAYS = 30
 
 /**
  * `title` may be left empty: the server then looks the page's title up. When editing, an empty
@@ -587,6 +595,7 @@ export type NoteAdded = z.infer<typeof NoteAddedSchema>
 
 /** Marks a reading-list item read, or unread again. */
 export const ReadingItemReadSchema = z.object({ read: z.boolean() })
+export const ReadingItemKeptSchema = z.object({ kept: z.boolean() })
 export type ReadingItemRead = z.infer<typeof ReadingItemReadSchema>
 export type IdeaNoteInput = z.infer<typeof IdeaNoteInputSchema>
 

@@ -61,6 +61,16 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await expect(page.getByText('Erosion outside, deposition inside.')).toBeVisible()
   await noViolations(page, 'profile reading page')
 
+  // The list has no limit, and unkept items go after a month: a tick keeps one.
+  await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
+  await expect(page.getByText(/There is no limit to the list/)).toBeVisible()
+  const keep = page.getByRole('checkbox', { name: /^Keep: Fake title for example\.org/ })
+  await expect(keep).not.toBeChecked()
+  await keep.check()
+  await page.reload()
+  await expect(keep).toBeChecked()
+  await page.getByRole('link', { name: 'Take notes' }).click()
+
   // Taking a note marks it read.
   await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
   await expect(

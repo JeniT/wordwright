@@ -210,6 +210,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     ) => get(IdeaLinkSchema.array(), 'PATCH', `/profiles/${profileId}/reading/${linkId}`, input),
     setProfileLinkRead: (profileId: string, linkId: string, read: boolean) =>
       get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/read`, { read }),
+    /** Asks for an item of the profile's own list to be kept (the others drop off after a month). */
+    setProfileLinkKept: (profileId: string, linkId: string, kept: boolean) =>
+      get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/kept`, { kept }),
     removeProfileLink: (profileId: string, linkId: string) =>
       act('DELETE', `/profiles/${profileId}/reading/${linkId}`),
     createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>

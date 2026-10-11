@@ -512,6 +512,9 @@ export const MIGRATIONS: Migration[] = [
     PRIMARY KEY (profile_id, post_key)
   );
   `,
+  // #84: an item on a profile's own reading list can be kept; the others drop off a month after they were put there.
+  // Only meaningful on a profile's own list (idea_id null), where it is the writer's choice.
+  `ALTER TABLE idea_links ADD COLUMN kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1))`,
 ]
 
 /**
