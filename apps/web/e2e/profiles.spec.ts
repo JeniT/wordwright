@@ -407,4 +407,9 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await expect(post).toHaveAttribute('href', 'https://read.example/post-1')
   await noViolations(page)
   expect(asked).toBe(1)
+
+  // The same post is in the combined list at the top, with its feed's name.
+  const recent = page.getByRole('region', { name: 'Recent posts' })
+  await expect(recent.getByRole('link', { name: /A post in Feed of read.example/ })).toBeVisible()
+  await expect(recent.getByRole('listitem')).toContainText('Feed of read.example')
 })

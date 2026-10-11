@@ -255,6 +255,32 @@ export const SourceChoicesSchema = z.object({
 })
 export type SourceChoices = z.infer<typeof SourceChoicesSchema>
 
+/** How far back the profile's recent posts reach, in days. */
+export const RECENT_DAYS_DEFAULT = 30
+export const RECENT_DAYS_MAX = 365
+/** The most posts one recent-posts answer carries. */
+export const MAX_RECENT_POSTS = 100
+
+/** One post from any of the profile's feeds, with the feed it came from. */
+export const RecentPostSchema = FeedItemSchema.extend({ sourceId: z.string() })
+export type RecentPost = z.infer<typeof RecentPostSchema>
+
+/**
+ * The newest posts across all the profile's feeds, newest first. `publishedAt` is always set here:
+ * a post whose date we can't read can't be placed in time, so it is counted in `undated` instead.
+ */
+export const RecentPostsSchema = z.object({
+  days: z.number(),
+  posts: z.array(RecentPostSchema),
+  /** Posts in the window that were left out because the list is capped. */
+  omitted: z.number(),
+  /** Posts from the feeds that carry no readable date, so are not in the list. */
+  undated: z.number(),
+  /** Feeds that couldn't be read just now (their older posts, if kept, are still counted). */
+  failed: z.array(z.object({ sourceId: z.string(), error: z.string() })),
+})
+export type RecentPosts = z.infer<typeof RecentPostsSchema>
+
 /** Every source id, in the new order. Must name exactly the sources the profile has. */
 export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })
 export type SourceOrder = z.infer<typeof SourceOrderSchema>

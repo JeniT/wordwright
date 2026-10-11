@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import RecentPosts from '../components/RecentPosts.vue'
 import ProfileSources from '../components/ProfileSources.vue'
 import { useProfile } from '../lib/useProfiles'
 
@@ -30,6 +31,7 @@ const { profiles, profile } = useProfile(() => props.profileId)
       Where ideas for {{ profile.name }} can come from. Choose the blogs, newsletters, news and
       journals you’d like to look through for things worth writing about.
     </p>
+    <RecentPosts :profile-id="profileId" />
     <ProfileSources :profile-id="profileId" />
   </div>
 </template>

@@ -1,5 +1,12 @@
 import { HTTPException } from 'hono/http-exception'
-import { FeedError, type FeedFetcher, type Source, type SourceItems } from '@lfwa/core'
+import {
+  FeedError,
+  MAX_RECENT_POSTS,
+  type FeedFetcher,
+  type RecentPosts,
+  type Source,
+  type SourceItems,
+} from '@lfwa/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { SourceFetch } from '../db/sources'
 import type { Store } from '../db/store'
@@ -13,6 +20,8 @@ export const ITEMS_RETRY_MS = 30 * MINUTE
 /** "Refresh" can't ask the same feed more often than this. */
 export const ITEMS_REFRESH_MIN_MS = 5 * MINUTE
 const READ_TIMEOUT_MS = 20_000
+/** Feeds read at the same moment when building the combined list. */
+const RECENT_READS_AT_ONCE = 5
 
 /**
  * A feed's recent posts, read politely: the last read is kept and used until it is a few hours old,
@@ -59,6 +68,62 @@ export class FeedItemService {
     const read = this.read(source, kept).finally(() => this.inFlight.delete(source.id))
     this.inFlight.set(source.id, read)
     return view(await read)
+  }
+
+  /**
+   * The newest posts across `sources` (in priority order), from the last `days` days. Each feed is
+   * read as for `items` (so mostly from the kept copy), a few at a time; a feed that can't be read
+   * is named, and its kept posts still count. The same post listed by two feeds appears once.
+   */
+  async recent(
+    userId: string,
+    sources: Source[],
+    days: number,
+    options: { refresh?: boolean } = {},
+  ): Promise<RecentPosts> {
+    const since = this.now().getTime() - days * 24 * 60 * MINUTE
+    const failed: RecentPosts['failed'] = []
+    const read: { source: Source; result: SourceItems | null }[] = []
+    for (let i = 0; i < sources.length; i += RECENT_READS_AT_ONCE) {
+      const batch = sources.slice(i, i + RECENT_READS_AT_ONCE)
+      read.push(
+        ...(await Promise.all(
+          batch.map(async (source) => ({
+            source,
+            result: await this.items(userId, source, options).catch(() => null),
+          })),
+        )),
+      )
+    }
+
+    const seen = new Set<string>()
+    const posts: RecentPosts['posts'] = []
+    let undated = 0
+    for (const { source, result } of read) {
+      if (!result) {
+        failed.push({ sourceId: source.id, error: 'We couldn’t read this feed just now.' })
+        continue
+      }
+      if (result.lastError) failed.push({ sourceId: source.id, error: result.lastError })
+      for (const item of result.items) {
+        if (seen.has(item.url)) continue
+        seen.add(item.url)
+        if (!item.publishedAt || Number.isNaN(Date.parse(item.publishedAt))) {
+          undated++
+        } else if (Date.parse(item.publishedAt) >= since) {
+          posts.push({ ...item, sourceId: source.id })
+        }
+      }
+    }
+    // Stable, so posts with the same time stay in feed-priority order.
+    posts.sort((a, b) => Date.parse(b.publishedAt!) - Date.parse(a.publishedAt!))
+    return {
+      days,
+      posts: posts.slice(0, MAX_RECENT_POSTS),
+      omitted: Math.max(0, posts.length - MAX_RECENT_POSTS),
+      undated,
+      failed,
+    }
   }
 
   private async read(source: Source, kept: SourceFetch | undefined): Promise<SourceFetch> {

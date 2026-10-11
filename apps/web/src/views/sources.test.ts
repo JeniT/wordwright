@@ -35,6 +35,9 @@ function fakeSources(initial = [A, B, C]) {
   const state = { list: [...initial], orders: [] as string[][], added: [] as string[] }
   server.use(
     http.get('*/api/profiles/:id/sources', () => HttpResponse.json(state.list)),
+    http.get('*/api/profiles/:id/sources/recent', () =>
+      HttpResponse.json({ days: 30, posts: [], omitted: 0, undated: 0, failed: [] }),
+    ),
     http.post('*/api/profiles/:id/sources', async ({ request }) => {
       const { url } = (await request.json()) as { url: string }
       state.added.push(url)
@@ -335,6 +338,146 @@ describe('feeds on the Inspiration page', () => {
     await waitFor(() => expect(fake.orders).toHaveLength(1))
     await fireEvent.click(screen.getByRole('button', { name: 'Remove Alpha Notes' }))
     await waitFor(() => expect(screen.queryByText('Alpha Notes')).not.toBeInTheDocument())
+  })
+})
+
+describe('recent posts from all the feeds', () => {
+  const post = (id: string, sourceId: string, title: string, publishedAt: string, extra = {}) => ({
+    id,
+    sourceId,
+    title,
+    url: `https://${sourceId}.example/${id}`,
+    summary: null,
+    authors: [],
+    publishedAt,
+    ...extra,
+  })
+  const answer = (extra = {}) => ({
+    days: 30,
+    posts: [
+      post('p1', 's2', 'Newest from Beta', '2026-10-10T10:00:00.000Z', { authors: ['Bo Writer'] }),
+      post('p2', 's1', 'Older from Alpha', '2026-10-01T10:00:00.000Z', {
+        summary: 'The start of it',
+      }),
+    ],
+    omitted: 0,
+    undated: 0,
+    failed: [],
+    ...extra,
+  })
+  /** Records the query string of each request for the combined list. */
+  function fakeRecent(
+    reply: (url: URL) => Response | Promise<Response> = () => HttpResponse.json(answer()),
+  ) {
+    const asked: string[] = []
+    server.use(
+      http.get('*/api/profiles/:id/sources/recent', ({ request }) => {
+        const url = new URL(request.url)
+        asked.push(url.search)
+        return reply(url)
+      }),
+    )
+    return asked
+  }
+  const section = () => screen.findByRole('region', { name: 'Recent posts' })
+
+  it('lists posts from every feed in one list, each with its feed’s name and a link', async () => {
+    fakeSources([A, B])
+    fakeRecent()
+    await openInspiration()
+    const recent = await section()
+    const items = await within(recent).findAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(within(items[0]!).getByRole('link', { name: /Newest from Beta/ })).toHaveAttribute(
+      'href',
+      'https://s2.example/p1',
+    )
+    expect(items[0]).toHaveTextContent('Beta Weekly')
+    expect(items[0]).toHaveTextContent('Bo Writer')
+    expect(items[1]).toHaveTextContent('Alpha Notes')
+    expect(items[1]).toHaveTextContent('The start of it')
+    // The feed’s logo stands for it (decorative: its name is written beside it).
+    expect(within(items[1]!).getByRole('img', { hidden: true })).toHaveAttribute(
+      'src',
+      expect.stringContaining('/sources/s1/icon'),
+    )
+  })
+
+  it('asks for the last month, and again for a different period when it is changed', async () => {
+    fakeSources([A, B])
+    const asked = fakeRecent()
+    await openInspiration()
+    await section()
+    await waitFor(() => expect(asked).toEqual(['?days=30']))
+    await fireEvent.update(screen.getByLabelText('Show posts from'), '7')
+    await waitFor(() => expect(asked).toEqual(['?days=30', '?days=7']))
+  })
+
+  it('says nothing was posted in the period, and suggests a longer one', async () => {
+    fakeSources([A])
+    fakeRecent(() => HttpResponse.json(answer({ posts: [] })))
+    await openInspiration()
+    expect(await screen.findByText(/Nothing has been posted in the last month/)).toBeInTheDocument()
+  })
+
+  it('invites adding a feed when there are none, without asking for posts', async () => {
+    fakeSources([])
+    const asked = fakeRecent()
+    await openInspiration()
+    expect(await screen.findByText(/Add a feed below and its newest posts/)).toBeInTheDocument()
+    expect(asked).toEqual([])
+    expect(screen.getByRole('button', { name: 'Check for new posts' })).toBeDisabled()
+  })
+
+  it('shows what went wrong, and tries again on request', async () => {
+    fakeSources([A])
+    let fail = true
+    fakeRecent(() =>
+      fail
+        ? HttpResponse.json({ error: 'Something went wrong. Try again.' }, { status: 500 })
+        : HttpResponse.json(answer()),
+    )
+    await openInspiration()
+    const recent = await section()
+    expect(await within(recent).findByRole('alert')).toHaveTextContent('Something went wrong')
+    fail = false
+    await fireEvent.click(within(recent).getByRole('button', { name: 'Try again' }))
+    expect(await within(recent).findByText('Newest from Beta')).toBeInTheDocument()
+  })
+
+  it('names feeds that could not be read, and says how many posts are hidden or undated', async () => {
+    fakeSources([A, B])
+    fakeRecent(() =>
+      HttpResponse.json(
+        answer({ failed: [{ sourceId: 's1', error: 'x' }], omitted: 3, undated: 1 }),
+      ),
+    )
+    await openInspiration()
+    const recent = await section()
+    expect(
+      await within(recent).findByText(/couldn’t read Alpha Notes just now/),
+    ).toBeInTheDocument()
+    expect(
+      within(recent).getByText(/3 older posts in this period aren’t shown/),
+    ).toBeInTheDocument()
+    expect(within(recent).getByText(/1 post has no date/)).toBeInTheDocument()
+  })
+
+  it('checks the feeds again on request, and shows the fresh list', async () => {
+    fakeSources([A, B])
+    const asked = fakeRecent((url) =>
+      HttpResponse.json(
+        url.searchParams.get('refresh')
+          ? answer({ posts: [post('p9', 's1', 'Brand new', '2026-10-11T10:00:00.000Z')] })
+          : answer(),
+      ),
+    )
+    await openInspiration()
+    const recent = await section()
+    await within(recent).findByText('Newest from Beta')
+    await fireEvent.click(within(recent).getByRole('button', { name: 'Check for new posts' }))
+    expect(await within(recent).findByText('Brand new')).toBeInTheDocument()
+    expect(asked.at(-1)).toBe('?days=30&refresh=true')
   })
 })
 

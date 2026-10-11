@@ -661,6 +661,18 @@ and not republishing, so we never store the body. Posts with no web address are 
 and similar are refused, and RSS "authors" that are email addresses are not kept. Not done: a background poller (reads
 happen when someone looks, so a feed nobody opens is never fetched), JSON Feed, and per-post "seen" state (T6c).
 
+The main list on the Inspiration page is **one list of recent posts across all the feeds, newest first, with a
+time window**, not a list per feed (`GET .../sources/recent?days=`, default 30, 1 to 365). The point is to respond to
+recent work, so a blog that posts twice a year must not put old posts in front of the writer; the window, not the
+number of posts, decides what is "recent". Per-feed lists remain as a preview under each feed. The combined list
+reuses each feed's kept copy (so it adds no reading beyond the rules above), reads at most five feeds at once, names
+feeds it couldn't read while still using their kept posts, shows a post that two feeds carry once (under the feed
+higher in the list), and stops at 100 posts, saying how many it left out. **Posts with no readable date are not
+listed** (guessing when they appeared would put old posts at the top); they are counted and can be seen in the
+feed's own preview. The order is by date only: nothing ranks posts by how interesting they are, which would be the
+AI or the service deciding what the writer should write about (docs/responsible-ai.md). Adding to the reading list
+(T6c) builds on this list.
+
 Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
 served from our own origin like profile pictures. Pointing browsers at the other site's image directly would tell

@@ -185,7 +185,7 @@ export class FakeFeedFetcher implements FeedFetcher {
         url: `${new URL(address).origin}/post-1`,
         summary: null,
         authors: [],
-        publishedAt: null,
+        publishedAt: new Date().toISOString(), // so it counts as recent
       },
     ]
     return { status: 'modified', items: items.slice(0, MAX_FEED_ITEMS), validators: { etag } }

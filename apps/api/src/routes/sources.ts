@@ -3,6 +3,8 @@ import { HTTPException } from 'hono/http-exception'
 import {
   FeedError,
   MAX_SOURCES_PER_PROFILE,
+  RECENT_DAYS_DEFAULT,
+  RECENT_DAYS_MAX,
   SourceInputSchema,
   SourceOrderSchema,
   type FeedFetcher,
@@ -90,6 +92,21 @@ export function sourceRoutes(
         const icon = sources.getIcon(c.req.param('profileId')!, c.req.param('id'))
         if (!icon) throw new HTTPException(404, { message: 'Not found' })
         return imageResponse(c, icon)
+      })
+
+      // The newest posts from all the feeds together. Registered before `/:id/...` routes.
+      .get('/recent', async (c) => {
+        const days = Number(c.req.query('days') ?? RECENT_DAYS_DEFAULT)
+        if (!Number.isInteger(days) || days < 1 || days > RECENT_DAYS_MAX) {
+          throw new HTTPException(400, {
+            message: `Choose between 1 and ${RECENT_DAYS_MAX} days.`,
+          })
+        }
+        return c.json(
+          await feedItems.recent(c.get('user').id, sources.list(c.req.param('profileId')!), days, {
+            refresh: c.req.query('refresh') === 'true',
+          }),
+        )
       })
 
       // The feed's recent posts: the kept copy if it is recent, else the feed is asked again.

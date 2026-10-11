@@ -134,14 +134,18 @@ tests inject fakes and nothing hits the network.
   its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
-  Each feed has a **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
+  At the top of the Inspiration page, **Recent posts** is one list of the newest posts from all the feeds, newest
+  first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
+  posts twice a year doesn't clutter it. It shows at most 100 posts, counts posts that carry no date (they can't be
+  placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
+  Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
   hours, asks again with `ETag`/`If-Modified-Since` so an unchanged feed costs little, leaves a feed that failed
   alone for 30 minutes, and shows when it last worked and why it stopped. Reads are capped at 120 an hour per person.
   Nothing yet turns these posts into ideas; that is the "Add to reading list" page (T6c).
   If a pasted website offers several feeds, the person is shown them (posts first, feeds of comments last and
   labelled, at most 10) and ticks which to add; `POST` then answers `200 {choices}` instead of `201`.
-  API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/:sourceId/items[?refresh=true]`, `PUT .../sources/order`
+  API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]`, `PUT .../sources/order`
   (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored

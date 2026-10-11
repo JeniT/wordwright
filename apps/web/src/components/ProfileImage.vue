@@ -6,7 +6,7 @@ const props = withDefaults(
     id: string
     name: string
     imageUrl?: string | null
-    size?: 'sm' | 'md' | 'lg'
+    size?: 'xs' | 'sm' | 'md' | 'lg'
   }>(),
   { imageUrl: null, size: 'md' },
 )
@@ -26,7 +26,12 @@ const tint = computed(() => {
   return TINTS[hash % TINTS.length]
 })
 const initial = computed(() => (Array.from(props.name.trim())[0] ?? '?').toUpperCase())
-const sizes = { sm: 'size-12 text-xl', md: 'size-16 text-2xl', lg: 'size-24 text-4xl' }
+const sizes = {
+  xs: 'size-8 rounded-md text-base',
+  sm: 'size-12 text-xl',
+  md: 'size-16 text-2xl',
+  lg: 'size-24 text-4xl',
+}
 </script>
 
 <template>

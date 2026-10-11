@@ -20,6 +20,7 @@ import {
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceChoicesSchema,
+  RecentPostsSchema,
   SourceItemsSchema,
   SourceListSchema,
   SourceSchema,
@@ -256,6 +257,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Adds the feed at `url`, or, if it is a website offering several feeds, answers with the choices. */
     addSource: (profileId: string, url: string) =>
       get(SourceSchema.or(SourceChoicesSchema), 'POST', `/profiles/${profileId}/sources`, { url }),
+    /** The newest posts across all the profile's feeds, from the last `days` days. */
+    recentPosts: (profileId: string, days: number, refresh = false) =>
+      get(
+        RecentPostsSchema,
+        'GET',
+        `/profiles/${profileId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
+      ),
     /** The feed's recent posts: the server's kept copy, or a fresh read if that is old. */
     sourceItems: (profileId: string, id: string) =>
       get(SourceItemsSchema, 'GET', `/profiles/${profileId}/sources/${id}/items`),

@@ -514,3 +514,146 @@ describe('recent posts of a source', () => {
     expect((await items()).status).toBe(404)
   })
 })
+
+describe('recent posts across all the feeds', () => {
+  const day = (n: number) =>
+    new Date(Date.parse('2026-01-01T00:00:00Z') - n * 86_400_000).toISOString()
+  const post = (id: string, daysAgo: number | null, extra = {}) => ({
+    id,
+    title: `Post ${id}`,
+    url: `https://x.example/${id}`,
+    summary: null,
+    authors: [],
+    publishedAt: daysAgo === null ? null : day(daysAgo),
+    ...extra,
+  })
+  let fetcher: FakeFeedFetcher
+  let ctx: ReturnType<typeof setup>
+  let ada: TestClient
+  let base: string
+  let ids: Record<string, string>
+
+  async function start(feeds: ConstructorParameters<typeof FakeFeedFetcher>[0]) {
+    fetcher = new FakeFeedFetcher(feeds)
+    ctx = setup({ feeds: fetcher })
+    ada = ctx.client()
+    await register(ada)
+    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
+    ids = {}
+    for (const url of Object.keys(feeds ?? {})) {
+      ids[url] = (await (await ada.post(base, { url })).json()).id
+    }
+  }
+  const recent = async (query = '') => (await ada.get(`${base}/recent${query}`)).json()
+
+  it('lists posts from every feed in one list, newest first, saying which feed each came from', async () => {
+    await start({
+      'https://a.example/feed': { title: 'A', items: [post('a1', 3), post('a2', 20)] },
+      'https://b.example/feed': { title: 'B', items: [post('b1', 1), post('b2', 10)] },
+    })
+    const res = await recent()
+    expect(res.days).toBe(30)
+    expect(res.posts.map((p: { id: string }) => p.id)).toEqual(['b1', 'a1', 'b2', 'a2'])
+    expect(res.posts.map((p: { sourceId: string }) => p.sourceId)).toEqual([
+      ids['https://b.example/feed'],
+      ids['https://a.example/feed'],
+      ids['https://b.example/feed'],
+      ids['https://a.example/feed'],
+    ])
+    expect(res).toMatchObject({ omitted: 0, undated: 0, failed: [] })
+  })
+
+  it('leaves out what is older than the window, so a rarely-posting blog doesn’t clutter it', async () => {
+    await start({
+      'https://slow.example/feed': { title: 'Slow', items: [post('old', 180)] },
+      'https://busy.example/feed': { title: 'Busy', items: [post('new', 2), post('mid', 40)] },
+    })
+    expect((await recent()).posts.map((p: { id: string }) => p.id)).toEqual(['new'])
+    expect((await recent('?days=7')).posts.map((p: { id: string }) => p.id)).toEqual(['new'])
+    expect((await recent('?days=90')).posts.map((p: { id: string }) => p.id)).toEqual([
+      'new',
+      'mid',
+    ])
+    expect((await recent('?days=365')).posts).toHaveLength(3)
+  })
+
+  it('counts posts with no readable date instead of guessing when they appeared', async () => {
+    await start({
+      'https://a.example/feed': { title: 'A', items: [post('d', 1), post('u', null)] },
+    })
+    const res = await recent()
+    expect(res.posts.map((p: { id: string }) => p.id)).toEqual(['d'])
+    expect(res.undated).toBe(1)
+  })
+
+  it('shows a post that two feeds both carry once', async () => {
+    const shared = post('s', 1, { url: 'https://same.example/story' })
+    await start({
+      'https://a.example/feed': { title: 'A', items: [shared] },
+      'https://b.example/feed': { title: 'B', items: [{ ...shared, id: 'other-id' }] },
+    })
+    const res = await recent()
+    expect(res.posts).toHaveLength(1)
+    expect(res.posts[0].sourceId).toBe(ids['https://a.example/feed']) // the higher-priority feed
+  })
+
+  it('names a feed that can’t be read and still lists the others', async () => {
+    await start({
+      'https://a.example/feed': { title: 'A', items: [post('a1', 1)] },
+      'https://b.example/feed': { title: 'B', items: [post('b1', 2)] },
+    })
+    delete (fetcher as unknown as { feeds: Record<string, unknown> }).feeds[
+      'https://b.example/feed'
+    ]
+    const res = await recent()
+    expect(res.posts.map((p: { id: string }) => p.id)).toEqual(['a1'])
+    expect(res.failed).toEqual([
+      { sourceId: ids['https://b.example/feed'], error: expect.stringContaining('RSS or Atom') },
+    ])
+  })
+
+  it('answers from the kept copies, asking each feed only once for a while', async () => {
+    await start({
+      'https://a.example/feed': { title: 'A', items: [post('a1', 1)] },
+      'https://b.example/feed': { title: 'B', items: [post('b1', 2)] },
+    })
+    await recent()
+    await recent('?days=7')
+    expect(fetcher.itemsRead).toHaveLength(2)
+  })
+
+  it('caps the list and says how many were left out', async () => {
+    await start({
+      'https://a.example/feed': {
+        title: 'A',
+        items: Array.from({ length: 50 }, (_, i) => post(`a${i}`, 1 + i / 100)),
+      },
+      'https://b.example/feed': {
+        title: 'B',
+        items: Array.from({ length: 50 }, (_, i) => post(`b${i}`, 1 + i / 100 + 0.001)),
+      },
+      'https://c.example/feed': {
+        title: 'C',
+        items: Array.from({ length: 5 }, (_, i) => post(`c${i}`, 2 + i / 100)),
+      },
+    })
+    const res = await recent()
+    expect(res.posts).toHaveLength(100)
+    expect(res.omitted).toBe(5)
+  })
+
+  it('refuses a window that makes no sense, and is for members only', async () => {
+    await start({ 'https://a.example/feed': { title: 'A', items: [post('a1', 1)] } })
+    for (const days of ['0', '-3', '400', 'x', '1.5']) {
+      expect((await ada.get(`${base}/recent?days=${days}`)).status, days).toBe(400)
+    }
+    const bob = ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    expect((await bob.get(`${base}/recent`)).status).toBe(404)
+  })
+
+  it('is empty, not an error, for a profile with no feeds', async () => {
+    await start({})
+    expect(await recent()).toEqual({ days: 30, posts: [], omitted: 0, undated: 0, failed: [] })
+  })
+})
