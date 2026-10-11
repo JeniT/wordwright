@@ -110,25 +110,26 @@ Figures are tabular by default so counts and dates align. Don't add other typefa
 
 Use these instead of long utility strings. If you find yourself repeating a recipe, add a component here.
 
-| Class                                                             | Use                                                                                                                                  |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `btn` + `btn-primary`                                             | The one main action on a screen                                                                                                      |
-| `btn btn-outline`                                                 | A secondary action that matters (e.g. Brainstorm, Open)                                                                              |
-| `btn btn-neutral`                                                 | Everything else: Cancel, Add link, Previous/Next                                                                                     |
-| `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                       |
-| `btn btn-quiet`                                                   | Icon-only and low-emphasis actions (edit, remove, reorder grips). Keeps a faint outline                                              |
-| `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                          |
-| `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                              |
-| `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_                 |
-| `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is dotted (`list-rail-grab`) and clicking it shows the arrows |
-| `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones      |
-| `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                                  |
-| `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                        |
-| `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)                 |
-| `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                          |
-| `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                             |
-| `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                          |
-| `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                                  |
+| Class                                                             | Use                                                                                                                                                                                      |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `btn` + `btn-primary`                                             | The one main action on a screen                                                                                                                                                          |
+| `btn btn-outline`                                                 | A secondary action that matters (e.g. Brainstorm, Open)                                                                                                                                  |
+| `btn btn-neutral`                                                 | Everything else: Cancel, Add link, Previous/Next                                                                                                                                         |
+| `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                                                                           |
+| `btn btn-quiet`                                                   | Icon-only and low-emphasis actions (edit, remove, reorder grips). Keeps a faint outline                                                                                                  |
+| `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                                                                              |
+| `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                                                                                  |
+| `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_                                                                     |
+| `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is dotted (`list-rail-grab`) and clicking it shows the arrows                                                     |
+| `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones                                                          |
+| `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                                                                                      |
+| `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                                                                            |
+| `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)                                                                     |
+| `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                                                                              |
+| `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                                                                                 |
+| `tab` (+ `TabPanels`)                                             | Tabs for areas that share one place (beside the draft: Notes, Reading list, Comments). Selected is bold with a heavy underline and `aria-selected`; arrow keys move; panels stay mounted |
+| `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                                                                              |
+| `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                                                                                      |
 
 ### Critique marks in the editor
 
@@ -136,8 +137,9 @@ A point of a critique that is about a paragraph is shown beside it, in the edito
 the paragraph gets a 3px edge in the highlighter colour (the text itself is not tinted, so it stays visibly theirs)
 and a small numbered button (`btn btn-sm btn-icon critique-mark`, named "Critique point 2") at the end of its last line.
 The number is the point's rank. The one being looked at has the accent edge and an outline, and `aria-current`.
-Pressing a mark takes you to its point in the Critique panel, and "Show in draft" in the panel takes you back to the
-paragraph. Marks are ProseMirror decorations (`lib/critique-marks.ts`): they are drawn, never saved, and never in
+Pressing a mark opens its comment in the **Comments** tab beside the draft (the drawer, on a phone), and pressing a
+comment shows its paragraph in the draft (a drawer gets out of the way first): there is no separate "show" button. The
+number is the point's rank. Marks are ProseMirror decorations (`lib/critique-marks.ts`): they are drawn, never saved, and never in
 `getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A point
 whose paragraph has been rewritten loses its mark and moves to "This passage has changed" in the panel.
 

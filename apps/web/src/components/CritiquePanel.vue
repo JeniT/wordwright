@@ -5,10 +5,10 @@ import type { CritiqueRound } from '@lfwa/core'
 import { ApiError, errorMessage } from '../lib/api'
 
 /**
- * The latest critique of the draft: a summary, then the points in order of importance. A point about a paragraph that
- * can still be found in the text has a mark beside that paragraph, and "Show in draft" goes there. One whose paragraph
- * has since been rewritten is listed apart, without a mark, rather than put on the wrong paragraph. The writer can set
- * a point aside (it is kept, and can be brought back): the call is theirs.
+ * The comments on the draft: the latest critique's summary, then its points in order of importance. Pressing a
+ * comment about a paragraph shows that paragraph in the draft. A point about a paragraph that has since been
+ * rewritten is listed apart, without a mark, rather than put on the wrong paragraph. The writer can set a point
+ * aside (it is kept, and can be brought back): the call is theirs.
  */
 const props = defineProps<{
   pending: boolean
@@ -19,8 +19,8 @@ const props = defineProps<{
   activeId: string | null
 }>()
 const emit = defineEmits<{
-  pick: [id: string]
-  showInDraft: [id: string]
+  /** A comment was pressed: show it in the draft. */
+  show: [id: string]
   setAside: [id: string, dismissed: boolean]
 }>()
 
@@ -37,7 +37,7 @@ const changed = computed(() =>
 )
 const setAside = computed(() => entries.value.filter((p) => p.dismissed))
 
-/** Moves the reader to a point in the list (a mark in the text was pressed). */
+/** Moves the reader to a comment in the list (a mark in the text was pressed). */
 async function focusPoint(id: string) {
   await nextTick()
   const el = document.getElementById(`critique-point-${id}`)
@@ -48,13 +48,9 @@ defineExpose({ focusPoint })
 </script>
 
 <template>
-  <section
-    v-if="pending || round || error"
-    class="mt-6 rounded-ctl border border-line bg-surface p-4"
-    aria-labelledby="critique-heading"
-  >
-    <h2 id="critique-heading" class="mb-2 font-semibold">Critique</h2>
-    <p v-if="pending">Reading your draft…</p>
+  <section aria-labelledby="critique-heading">
+    <h2 id="critique-heading" class="mb-1 font-display text-xl font-semibold">Comments</h2>
+    <p v-if="pending" role="status">Reading your draft…</p>
     <p v-else-if="error" role="alert" class="text-danger">
       {{ errorMessage(error) }}
       <RouterLink
@@ -64,7 +60,11 @@ defineExpose({ focusPoint })
         >Go to account settings</RouterLink
       >
     </p>
-    <template v-else-if="round">
+    <p v-else-if="!round" class="text-sm text-ink-soft">
+      No comments yet. Press Critique to have the draft read and its weakest points pointed out.
+      Each one is marked beside the paragraph it is about.
+    </p>
+    <template v-else>
       <p>{{ round.summary }}</p>
       <p v-if="round.ready" class="mt-2 text-ink-soft">
         Nothing important left to fix. What remains is a matter of taste, so it may be time to
@@ -72,36 +72,38 @@ defineExpose({ focusPoint })
       </p>
 
       <ol v-if="placed.length" class="mt-3 space-y-3">
-        <li
-          v-for="p in placed"
-          :id="`critique-point-${p.id}`"
-          :key="p.id"
-          tabindex="-1"
-          class="border-l-2 pl-3"
-          :class="p.id === activeId ? 'border-accent' : 'border-line-strong'"
-          :aria-current="p.id === activeId ? 'true' : undefined"
-          @click="emit('pick', p.id)"
-        >
-          <p class="text-sm text-ink-soft">
-            <span class="chip chip-ai mr-1">{{ p.number }}</span>
-            <template v-if="p.block === 'whole'">The whole piece</template>
-            <template v-else>“{{ p.excerpt }}”</template>
-          </p>
-          <p class="font-medium">{{ p.point }}</p>
-          <p class="text-ink-soft">{{ p.reason }}</p>
-          <p class="mt-1 flex gap-2">
-            <button
-              v-if="p.block !== 'whole'"
-              type="button"
-              class="btn btn-sm btn-outline"
-              @click.stop="emit('showInDraft', p.id)"
-            >
-              Show in draft<span class="sr-only"> (point {{ p.number }})</span>
-            </button>
+        <li v-for="p in placed" :key="p.id">
+          <!-- A comment about a paragraph is a button: pressing it shows the paragraph in the draft. -->
+          <button
+            v-if="p.block !== 'whole'"
+            :id="`critique-point-${p.id}`"
+            type="button"
+            class="block w-full rounded-ctl border-2 bg-surface p-3 text-left hover:bg-sunken"
+            :class="p.id === activeId ? 'border-accent' : 'border-line-strong'"
+            :aria-current="p.id === activeId ? 'true' : undefined"
+            @click="emit('show', p.id)"
+          >
+            <span class="block text-sm text-ink-soft">
+              <span class="chip chip-ai mr-1">{{ p.number }}</span
+              >“{{ p.excerpt }}”
+            </span>
+            <span class="block font-medium">{{ p.point }}</span>
+            <span class="block text-ink-soft">{{ p.reason }}</span>
+            <span class="sr-only">Press to show it in the draft.</span>
+          </button>
+          <div v-else class="rounded-ctl border-2 border-line-strong p-3">
+            <p class="text-sm text-ink-soft">
+              <span class="chip chip-ai mr-1">{{ p.number }}</span
+              >The whole piece
+            </p>
+            <p class="font-medium">{{ p.point }}</p>
+            <p class="text-ink-soft">{{ p.reason }}</p>
+          </div>
+          <p class="mt-1">
             <button
               type="button"
               class="btn btn-sm btn-quiet"
-              @click.stop="emit('setAside', p.id, true)"
+              @click="emit('setAside', p.id, true)"
             >
               Set aside<span class="sr-only"> point {{ p.number }}</span>
             </button>
@@ -116,19 +118,15 @@ defineExpose({ focusPoint })
           text.
         </p>
         <ol class="mt-2 space-y-3">
-          <li
-            v-for="p in changed"
-            :id="`critique-point-${p.id}`"
-            :key="p.id"
-            tabindex="-1"
-            class="border-l-2 border-line-strong pl-3"
-          >
-            <p class="text-sm text-ink-soft">
-              <span class="chip chip-ai mr-1">{{ p.number }}</span>
-              It was: “{{ p.excerpt }}”
-            </p>
-            <p class="font-medium">{{ p.point }}</p>
-            <p class="text-ink-soft">{{ p.reason }}</p>
+          <li v-for="p in changed" :key="p.id">
+            <div class="rounded-ctl border-2 border-line p-3">
+              <p class="text-sm text-ink-soft">
+                <span class="chip chip-ai mr-1">{{ p.number }}</span>
+                It was: “{{ p.excerpt }}”
+              </p>
+              <p class="font-medium">{{ p.point }}</p>
+              <p class="text-ink-soft">{{ p.reason }}</p>
+            </div>
             <p class="mt-1">
               <button
                 type="button"

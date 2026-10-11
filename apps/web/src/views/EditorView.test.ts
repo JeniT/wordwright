@@ -67,7 +67,10 @@ const pointOn = (id: string, over: object = {}) => ({
 })
 /** What the server answers about a draft's critiques. */
 const state = (r: object | null, used = 1, allowed = 3) => ({ round: r, used, allowed })
-const critiqueRegion = async () => screen.findByRole('region', { name: 'Critique' })
+/** Shows one of the tabs beside the draft (notes, reading list, comments). */
+const showTab = async (name: string) =>
+  fireEvent.click(await screen.findByRole('tab', { name: new RegExp(`^${name}`) }))
+const critiqueRegion = async () => screen.findByRole('region', { name: 'Comments' })
 
 describe('EditorView critique', () => {
   it('points users without an API key to their account settings', async () => {
@@ -116,13 +119,21 @@ describe('EditorView critique', () => {
     await screen.findByRole('button', { name: 'Critique point 1' })
   })
 
-  it('ties a mark in the text to its point in the list, and back', async () => {
+  it('opens the comment when its mark in the text is pressed', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
     await renderAt('/p/p1/drafts/d1')
+    // Comments is not the tab showing until something asks for it.
+    expect(await screen.findByRole('tab', { name: /^Notes/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
-    const item = within(await critiqueRegion()).getByRole('listitem')
-    await waitFor(() => expect(item).toHaveAttribute('aria-current', 'true'))
-    await waitFor(() => expect(item).toHaveFocus())
+    expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute('aria-selected', 'true')
+    const comment = await within(await critiqueRegion()).findByRole('button', {
+      name: /Tighten the opening/,
+    })
+    await waitFor(() => expect(comment).toHaveAttribute('aria-current', 'true'))
+    await waitFor(() => expect(comment).toHaveFocus())
     // The mark is drawn again to show it is the one being looked at.
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Critique point 1' })).toHaveAttribute(
@@ -132,19 +143,40 @@ describe('EditorView critique', () => {
     )
   })
 
-  it('keeps the marks out of the draft itself', async () => {
-    const saved: unknown[] = []
+  it('shows the paragraph in the draft when a comment is pressed, with no separate button for it', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
-    server.use(
-      http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
-        saved.push(await request.json())
-        return HttpResponse.json(draft)
-      }),
-    )
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByRole('button', { name: 'Critique point 1' })
-    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(saved).toEqual([{ title: 'T', body: 'Some text' }]))
+    await showTab('Comments')
+    expect(screen.queryByRole('button', { name: /Show in draft/ })).toBeNull()
+    await fireEvent.click(await screen.findByRole('button', { name: /Tighten the opening/ }))
+    await waitFor(() => expect(document.querySelector('.ProseMirror')).toHaveFocus())
+    expect(document.querySelector('.critique-block.is-active')).not.toBeNull()
+  })
+
+  it('counts the open comments on the tab, and the count follows what is set aside', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1'), pointOn('p2')]))
+    await renderAt('/p/p1/drafts/d1')
+    expect(await screen.findByRole('tab', { name: 'Comments, 2' })).toBeTruthy()
+  })
+
+  it('shows the Comments tab as soon as a critique is asked for, with the wait in it', async () => {
+    mockEditor(() => HttpResponse.json(state(round([pointOn('p1')]))), null, {
+      used: 0,
+      allowed: 3,
+    })
+    await renderAt('/p/p1/drafts/d1')
+    expect(await screen.findByRole('tab', { name: /^Notes/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Critique' }))
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
+    )
+    await screen.findByText('A decent start.')
   })
 
   it('lists a point whose paragraph has been rewritten apart, without a mark', async () => {
@@ -161,6 +193,7 @@ describe('EditorView critique', () => {
     )
     await renderAt('/p/p1/drafts/d1')
     await screen.findByRole('button', { name: 'Critique point 1' })
+    await showTab('Comments')
     const region = await critiqueRegion()
     await within(region).findByRole('heading', { name: 'This passage has changed' })
     expect(screen.queryByRole('button', { name: 'Critique point 2' })).toBeNull()
@@ -178,6 +211,7 @@ describe('EditorView critique', () => {
       }),
     )
     await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
     await fireEvent.click(await screen.findByRole('button', { name: /^Set aside/ }))
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Critique point 1' })).toBeNull(),
@@ -621,12 +655,14 @@ describe('the notes beside the draft', () => {
   })
 
   describe('citing something from the reading list', () => {
-    const insertLink = async () =>
-      fireEvent.click(
+    const insertLink = async () => {
+      await showTab('Reading list')
+      await fireEvent.click(
         await within(await screen.findByRole('complementary')).findByRole('button', {
           name: 'Insert a link to A paper',
         }),
       )
+    }
     const dialog = () => screen.findByRole('dialog', { name: "You haven't marked this as read" })
 
     afterEach(() => vi.restoreAllMocks())
@@ -634,6 +670,7 @@ describe('the notes beside the draft', () => {
     it('lists the items, saying which are read', async () => {
       mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
+      await showTab('Reading list')
       const list = within(await screen.findByRole('region', { name: 'Reading list' }))
       expect(await list.findByText('A paper')).toBeInTheDocument()
       expect(list.getByText('Read')).toBeInTheDocument()
@@ -861,16 +898,18 @@ describe('the notes beside the draft', () => {
   })
 
   describe('on a phone', () => {
-    it('slides in from a Notes button, and closes with its own button or Escape, returning focus', async () => {
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('slides in from a Notes and comments button, and closes with its own button or Escape, returning focus', async () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
-      const open = await screen.findByRole('button', { name: 'Notes' })
+      const open = await screen.findByRole('button', { name: 'Notes and comments' })
       expect(open).toHaveAttribute('aria-expanded', 'false')
       expect(open).toHaveAttribute('aria-controls', 'draft-notes')
 
       await fireEvent.click(open)
       expect(open).toHaveAttribute('aria-expanded', 'true')
-      const close = screen.getByRole('button', { name: 'Close notes' })
+      const close = screen.getByRole('button', { name: 'Close panel' })
       await waitFor(() => expect(close).toHaveFocus())
       expect(drawer()).not.toHaveClass('max-lg:invisible')
 
@@ -880,10 +919,77 @@ describe('the notes beside the draft', () => {
       await waitFor(() => expect(open).toHaveFocus())
 
       await fireEvent.click(open)
-      await fireEvent.keyDown(screen.getByRole('button', { name: 'Close notes' }), {
+      await fireEvent.keyDown(screen.getByRole('button', { name: 'Close panel' }), {
         key: 'Escape',
       })
       expect(open).toHaveAttribute('aria-expanded', 'false')
     })
+
+    it('opens on the comment when a mark in the text is pressed, and gets out of the way to show a comment', async () => {
+      vi.stubGlobal('matchMedia', () => ({ matches: false }))
+      mockDrafting()
+      mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+      await renderAt('/p/p1/drafts/d1')
+      const open = await screen.findByRole('button', { name: 'Notes and comments' })
+      await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
+      await waitFor(() => expect(open).toHaveAttribute('aria-expanded', 'true'))
+      expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      )
+      const comment = await screen.findByRole('button', { name: /Tighten the opening/ })
+      await waitFor(() => expect(comment).toHaveFocus())
+
+      await fireEvent.click(comment) // shows the paragraph, so the drawer is no longer over it
+      await waitFor(() => expect(open).toHaveAttribute('aria-expanded', 'false'))
+      await waitFor(() => expect(document.querySelector('.ProseMirror')).toHaveFocus())
+    })
+  })
+})
+
+describe('the tabs beside the draft', () => {
+  it('has Notes, Reading list and Comments, one in the tab order, with Notes first', async () => {
+    mockDrafting()
+    await renderAt('/p/p1/drafts/d1')
+    const tabs = await screen.findAllByRole('tab')
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Notes', 'Reading list', 'Comments'])
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false'])
+    expect(tabs.map((t) => t.getAttribute('tabindex'))).toEqual(['0', '-1', '-1'])
+    const panel = screen.getByRole('tabpanel', { name: 'Notes' })
+    expect(panel).not.toHaveAttribute('hidden')
+    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(3)
+  })
+
+  it('moves with the arrow keys, Home and End, showing the panel of the tab reached', async () => {
+    mockDrafting()
+    await renderAt('/p/p1/drafts/d1')
+    const notes = await screen.findByRole('tab', { name: 'Notes' })
+    notes.focus()
+    await fireEvent.keyDown(notes, { key: 'ArrowRight' })
+    const reading = screen.getByRole('tab', { name: 'Reading list' })
+    expect(reading).toHaveAttribute('aria-selected', 'true')
+    expect(reading).toHaveFocus()
+    expect(screen.getByRole('tabpanel', { name: 'Reading list' })).toBeVisible()
+    await fireEvent.keyDown(reading, { key: 'End' })
+    expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveFocus()
+    await fireEvent.keyDown(screen.getByRole('tab', { name: /^Comments/ }), { key: 'ArrowRight' })
+    expect(screen.getByRole('tab', { name: 'Notes' })).toHaveFocus() // wraps round
+    await fireEvent.keyDown(screen.getByRole('tab', { name: 'Notes' }), { key: 'ArrowLeft' })
+    expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveFocus()
+    await fireEvent.keyDown(screen.getByRole('tab', { name: /^Comments/ }), { key: 'Home' })
+    expect(screen.getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('keeps the hidden panels mounted, so a note half-written is not lost on switching tabs', async () => {
+    mockDrafting()
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('tab', { name: 'Notes' })
+    expect(screen.getAllByRole('tabpanel', { hidden: true })[0]).toBeInTheDocument()
+    await showTab('Comments')
+    const notesPanel = document.getElementById(
+      screen.getByRole('tab', { name: 'Notes' }).getAttribute('aria-controls')!,
+    )!
+    expect(notesPanel).toHaveAttribute('hidden')
+    expect(notesPanel.textContent).toContain('Notes') // still there, only out of sight
   })
 })

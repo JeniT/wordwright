@@ -239,7 +239,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   // On a wide screen the notes sit beside the draft.
   const side = page.getByRole('complementary')
   await expect(side.getByText('Erosion on the outside of each bend.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Notes', exact: true })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Notes and comments' })).toBeHidden()
   await noViolations(page, 'drafting page with notes beside it')
 
   // Adding a note puts its words after the paragraph you are in, saves the draft, and sets the note aside.
@@ -283,14 +283,14 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   await page.getByRole('button', { name: 'Save idea' }).click()
   await startDraft(page)
 
-  const open = page.getByRole('button', { name: 'Notes', exact: true })
+  const open = page.getByRole('button', { name: 'Notes and comments' })
   await expect(page.getByRole('complementary')).toBeHidden()
   await open.click()
   const side = page.getByRole('complementary')
   await expect(side.getByText('The moon pulls the sea.')).toBeVisible()
   await noViolations(page, 'notes drawer open on a phone')
   await side.getByRole('button', { name: /^Add note “The moon/ }).click()
-  await page.getByRole('button', { name: 'Close notes' }).click()
+  await page.getByRole('button', { name: 'Close panel' }).click()
   await expect(page.getByRole('complementary')).toBeHidden()
   await expect(page.getByRole('textbox', { name: 'Draft body' })).toContainText(
     'The moon pulls the sea.',
@@ -516,6 +516,7 @@ test('a link to something on the reading list goes in only once it has been read
   await body.click()
   await body.pressSequentially('Rivers never run straight, as ')
   const side = page.getByRole('complementary')
+  await side.getByRole('tab', { name: 'Reading list' }).click()
   const insert = side.getByRole('button', { name: title })
 
   // Unread: the writer is asked, and cancelling inserts nothing.

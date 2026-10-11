@@ -1113,6 +1113,13 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   costs no look. Editing a draft does not reset the count. The count belongs to the draft, but the limit is the
   **requester's own**: in a shared profile, rounds made by anyone count against the draft, and each person is held to
   the limit they chose for themselves. Whether a heavy rewrite should earn more looks is for the owner to decide (#103); until then a writer who starts over adds a new draft.
+- **Comments beside the draft (#106).** After trying critique in use, the owner moved the comments from under the
+  draft to the side area, which is now three tabs: **Notes, Reading list, Comments** (`TabPanels`, WAI-ARIA tabs;
+  still the one `complementary` landmark, and on a phone the same slide-in drawer). A comment about a paragraph is
+  itself the button that shows that paragraph in the draft; a mark in the text opens its comment. Asking for a
+  critique switches to Comments (and, on a phone, opens the drawer when the answer or the error arrives), so the
+  result is never hidden. All three panels stay mounted and only hidden, so a half-written note survives a tab
+  change. The tab shows how many comments are open. Streaming the critique was dropped: a spinner is enough.
 - **Rung 3, as before.** What leaves the system is the draft's title and body, to the writer's own provider with
   their own key. Rounds are capped per draft (below).
 - **Evals.** The two critique cases that targeted #45 ("short and ranked", "says when ready") are now `current`; all

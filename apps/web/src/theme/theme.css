@@ -317,6 +317,30 @@
   background: var(--color-mark);
   border-color: var(--color-mark);
 }
+/*
+ * A tab (see TabPanels). The selected one is bold with a heavy underline and `aria-selected`, so it is not shown by
+ * colour alone. 44px high, like a button.
+ */
+@utility tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 0.65rem;
+  margin-bottom: -1px;
+  border-bottom: 3px solid transparent;
+  color: var(--color-ink-soft);
+  font-weight: 500;
+  cursor: pointer;
+  &[aria-selected='true'] {
+    color: var(--color-ink);
+    font-weight: 700;
+    border-bottom-color: var(--color-accent);
+  }
+  &:hover {
+    color: var(--color-ink);
+  }
+}
 @utility chip-ok {
   background: var(--color-ok-wash);
   border-color: var(--color-ok);

@@ -7,6 +7,7 @@ import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
+import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
@@ -169,10 +170,19 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
   }
 }
 
-// On a phone the notes slide in over the page; beside the draft on a wide screen they are always there.
+// Beside the draft on a wide screen the side area (notes, reading list, comments) is always there; on a phone it
+// slides in over the page.
+const sideTabs = computed(() => [
+  { id: 'notes', label: 'Notes' },
+  { id: 'reading', label: 'Reading list' },
+  { id: 'comments', label: 'Comments', count: openComments.value },
+])
+const sideTab = ref('notes')
 const notesOpen = ref(false)
 const openButton = useTemplateRef<HTMLButtonElement>('openButton')
 const closeButton = useTemplateRef<HTMLButtonElement>('closeButton')
+/** True when the side area is beside the draft rather than a drawer over it (jsdom has no media queries). */
+const sideIsBeside = () => window.matchMedia?.('(min-width: 1024px)').matches ?? true
 async function openNotes() {
   notesOpen.value = true
   await nextTick()
@@ -196,6 +206,11 @@ const critique = useMutation({
     queryClient.setQueryData(['critique', props.profileId, props.id], state)
     activePointId.value = null
   },
+  // Whatever came back (comments, or why not) is shown, even on a phone where the comments are in the drawer.
+  onSettled: async () => {
+    sideTab.value = 'comments'
+    if (!sideIsBeside()) await openNotes()
+  },
 })
 const setAside = useMutation({
   mutationFn: (v: { pointId: string; dismissed: boolean }) =>
@@ -205,6 +220,7 @@ const setAside = useMutation({
 const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
+const openComments = computed(() => round.value?.points.filter((p) => !p.dismissed).length ?? 0)
 const critiquePanel = useTemplateRef<InstanceType<typeof CritiquePanel>>('critiquePanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
@@ -225,17 +241,23 @@ const markPoints = computed<CritiqueMarkPoint[]>(() =>
   ),
 )
 
-function pickPoint(id: string) {
+/** A mark in the text was pressed: show its comment, opening the side area if it is a drawer. */
+async function pickPoint(id: string) {
   activePointId.value = id
+  sideTab.value = 'comments'
+  if (!sideIsBeside() && !notesOpen.value) await openNotes()
   void critiquePanel.value?.focusPoint(id)
 }
-function showInDraft(id: string) {
+/** A comment was pressed: show its paragraph in the draft (a drawer gets out of the way first). */
+async function showInDraft(id: string) {
   activePointId.value = id
+  if (notesOpen.value) await closeNotes()
   editor.value?.focusPoint(id)
 }
 
 async function requestCritique() {
   await save.mutateAsync() // critique the latest text
+  sideTab.value = 'comments' // so the wait, and the answer, are in view
   critique.mutate()
 }
 </script>
@@ -305,7 +327,7 @@ async function requestCritique() {
           :aria-expanded="notesOpen"
           @click="openNotes"
         >
-          Notes
+          Notes and comments
         </button>
         <p role="status" class="text-sm text-ink-soft">
           <template v-if="save.isPending.value">Saving…</template>
@@ -331,18 +353,6 @@ async function requestCritique() {
         <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
       </p>
 
-      <CritiquePanel
-        ref="critiquePanel"
-        :pending="critique.isPending.value"
-        :error="critique.error.value ?? lastCritique.error.value"
-        :round="round"
-        :located="located"
-        :active-id="activePointId"
-        @pick="activePointId = $event"
-        @show-in-draft="showInDraft"
-        @set-aside="(pointId, dismissed) => setAside.mutate({ pointId, dismissed })"
-      />
-
       <DraftInsertions :profile-id="profileId" :draft-id="id" :body="body" />
     </article>
 
@@ -355,31 +365,53 @@ async function requestCritique() {
     <aside
       v-if="draft.data.value?.ideaId"
       id="draft-notes"
-      aria-labelledby="draft-notes-heading"
+      aria-labelledby="draft-side-heading"
       class="mt-8 lg:sticky lg:top-4 lg:mt-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:mt-0 max-lg:w-[min(22rem,90vw)] max-lg:overflow-y-auto max-lg:bg-sunken max-lg:p-4 max-lg:shadow-xl max-lg:transition-[transform,visibility] motion-reduce:transition-none"
       :class="notesOpen ? '' : 'max-lg:invisible max-lg:translate-x-full'"
       @keydown.esc="notesOpen && closeNotes()"
     >
+      <h2 id="draft-side-heading" class="sr-only">Notes, reading list and comments</h2>
       <button
         ref="closeButton"
         type="button"
         class="btn btn-neutral mb-3 lg:hidden"
         @click="closeNotes"
       >
-        Close notes
+        Close panel
       </button>
-      <DraftNotes
-        :profile-id="profileId"
-        :idea-id="draft.data.value.ideaId"
-        :reading-list="idea.data.value?.links ?? []"
-        :insert="insertNote"
-      />
-      <p v-if="dropProblem" role="alert" class="mt-3 text-danger">{{ dropProblem }}</p>
-      <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
-      <p v-if="citeNotice" class="mt-3 text-sm text-ink-soft" aria-live="polite">
-        {{ citeNotice }}
-      </p>
-      <DraftReadingList :reading-list="idea.data.value?.links ?? []" :insert-link="insertLink" />
+      <TabPanels v-model="sideTab" :tabs="sideTabs" label="Beside the draft">
+        <template #notes>
+          <DraftNotes
+            :profile-id="profileId"
+            :idea-id="draft.data.value.ideaId"
+            :reading-list="idea.data.value?.links ?? []"
+            :insert="insertNote"
+          />
+          <p v-if="dropProblem" role="alert" class="mt-3 text-danger">{{ dropProblem }}</p>
+          <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
+          <p v-if="citeNotice" class="mt-3 text-sm text-ink-soft" aria-live="polite">
+            {{ citeNotice }}
+          </p>
+        </template>
+        <template #reading>
+          <DraftReadingList
+            :reading-list="idea.data.value?.links ?? []"
+            :insert-link="insertLink"
+          />
+        </template>
+        <template #comments>
+          <CritiquePanel
+            ref="critiquePanel"
+            :pending="critique.isPending.value"
+            :error="critique.error.value ?? lastCritique.error.value"
+            :round="round"
+            :located="located"
+            :active-id="activePointId"
+            @show="showInDraft"
+            @set-aside="(pointId, dismissed) => setAside.mutate({ pointId, dismissed })"
+          />
+        </template>
+      </TabPanels>
     </aside>
 
     <ConfirmDialog

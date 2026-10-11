@@ -134,25 +134,46 @@ test('register, write, save and request a critique', async ({ page }) => {
   await goTo(page, 'Draft')
   await page.getByRole('link', { name: 'Why rivers meander' }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
-  await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
-  await expect(page.getByText('A fake critique: one thing to look at.')).toBeVisible()
-  await expect(
-    page.getByRole('listitem').filter({ hasText: 'Rivers rarely flow straight.' }),
-  ).toContainText('Fake critique: the opening could say what is at stake.')
+
+  // The comments come beside the draft, in the tab that opens for them.
+  const side = page.getByRole('complementary')
+  await expect(side.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(side.getByText('A fake critique: one thing to look at.')).toBeVisible()
+  const comment = side.getByRole('button', { name: /Fake critique: the opening could say/ })
+  await expect(comment).toContainText('Rivers rarely flow straight.')
 
   // The point is marked beside the paragraph it is about, and the page is still accessible with the marks in.
   const mark = page.getByRole('button', { name: 'Critique point 1' })
   await expect(mark).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  for (const tab of ['Notes', 'Reading list', 'Comments']) {
+    await side.getByRole('tab', { name: new RegExp(`^${tab}`) }).click()
+    expect((await new AxeBuilder({ page }).analyze()).violations, tab).toEqual([])
+  }
+
+  // Pressing the mark opens its comment; pressing a comment shows its paragraph, with no separate button.
+  await side.getByRole('tab', { name: 'Notes' }).click()
   await mark.click()
-  await expect(page.getByRole('listitem').filter({ hasText: 'Fake critique' })).toBeFocused()
-  await page.getByRole('button', { name: /^Show in draft/ }).click()
+  await expect(side.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(comment).toBeFocused()
+  await expect(side.getByRole('button', { name: /Show in draft/ })).toHaveCount(0)
+  await comment.click()
   await expect(page.getByRole('textbox', { name: 'Draft body' })).toBeFocused()
 
-  // It is kept with the draft: after a reload it is still there, and nothing was asked of the AI again.
+  // It is kept with the draft: after a reload it is still there (under Comments), and nothing was asked again.
   await page.reload()
-  await expect(page.getByText('A fake critique: one thing to look at.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Critique point 1' })).toBeVisible()
+  await page
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
+  await expect(page.getByText('A fake critique: one thing to look at.')).toBeVisible()
 
   // Rewriting the paragraph takes the mark away and moves the point to its own list.
   await page.getByRole('textbox', { name: 'Draft body' }).fill('Meanders come from erosion.')
@@ -186,6 +207,17 @@ test('register, write, save and request a critique', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )
+
+  // There the comments are in the drawer, and pressing one shows its paragraph and gets the drawer out of the way.
+  await page.getByRole('button', { name: 'Notes and comments' }).click()
+  const drawer = page.getByRole('complementary')
+  await drawer.getByRole('tab', { name: /^Comments/ }).click()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'comments in the drawer').toEqual(
+    [],
+  )
+  await drawer.getByRole('button', { name: /Fake critique: the opening could say/ }).click()
+  await expect(drawer).toBeHidden()
+  await expect(page.getByRole('textbox', { name: 'Draft body' })).toBeFocused()
 })
 
 test('sign out and back in, and the session survives a reload', async ({ page }) => {
