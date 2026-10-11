@@ -16,6 +16,7 @@ import {
   brainstormSystem,
   formatSnapshot,
 } from '../../apps/api/src/services/brainstorm'
+import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import { formatResearchBrief } from '../../apps/api/src/services/research'
 import { MAX_RESEARCH_RESULTS } from '@lfwa/core'
 import type { BrainstormCase, CritiqueCase, ResearchCase } from './cases'
@@ -42,11 +43,11 @@ export function brainstormRequest(c: BrainstormCase): LLMChatRequest {
   }
 }
 
-/** The critique route sends the draft as `# title` and the body, with the critique prompt as the system prompt. */
+/** The critique route sends the title and the draft as numbered blocks, with the critique prompt as the system prompt. */
 export function critiqueRequest(c: CritiqueCase): LLMRequest {
   return {
     system: CRITIQUE_PROMPT,
-    messages: [{ role: 'user', content: `# ${c.draft.title}\n\n${c.draft.body}` }],
+    messages: [{ role: 'user', content: formatDraftForCritique(c.draft).message }],
   }
 }
 

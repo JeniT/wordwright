@@ -54,10 +54,50 @@ describe('EditorView critique', () => {
   })
 
   it('shows the critique when it works', async () => {
-    mockEditor(() => HttpResponse.json({ text: 'Tighten the opening.' }))
+    mockEditor(() =>
+      HttpResponse.json({
+        summary: 'A decent start.',
+        ready: false,
+        points: [
+          {
+            block: 'b1',
+            excerpt: 'Hello there',
+            point: 'Tighten the opening.',
+            reason: 'Readers skim.',
+          },
+          {
+            block: 'whole',
+            excerpt: '',
+            point: 'The order is odd.',
+            reason: 'The ending comes first.',
+          },
+        ],
+      }),
+    )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
-    await screen.findByText('Tighten the opening.')
+    await screen.findByText('A decent start.')
+    const points = within(await screen.findByRole('region', { name: 'Critique' })).getAllByRole(
+      'listitem',
+    )
+    expect(points[0]).toHaveTextContent('Hello there')
+    expect(points[0]).toHaveTextContent('Tighten the opening.')
+    expect(points[0]).toHaveTextContent('Readers skim.')
+    expect(points[1]).toHaveTextContent('The whole piece')
+    expect(points[1]).toHaveTextContent('The order is odd.')
+  })
+
+  it('says so when a draft is ready, rather than finding something', async () => {
+    mockEditor(() =>
+      HttpResponse.json({ summary: 'This is ready to publish.', ready: true, points: [] }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
+    await screen.findByText('This is ready to publish.')
+    expect(
+      within(screen.getByRole('region', { name: 'Critique' })).queryByRole('listitem'),
+    ).toBeNull()
+    expect(screen.getByText(/nothing important left/i)).toBeTruthy()
   })
 })
 

@@ -274,7 +274,27 @@ async function requestCritique() {
             >Go to account settings</RouterLink
           >
         </p>
-        <p v-else class="whitespace-pre-wrap">{{ critique.data.value?.text }}</p>
+        <template v-else-if="critique.data.value">
+          <p>{{ critique.data.value.summary }}</p>
+          <p v-if="critique.data.value.ready" class="mt-2 text-ink-soft">
+            Nothing important left to fix. What remains is a matter of taste, so it may be time to
+            publish.
+          </p>
+          <ol v-if="critique.data.value.points.length" class="mt-3 space-y-3">
+            <li
+              v-for="p in critique.data.value.points"
+              :key="p.block + p.point"
+              class="border-l-2 border-line-strong pl-3"
+            >
+              <p class="text-sm text-ink-soft">
+                <template v-if="p.block === 'whole'">The whole piece</template>
+                <template v-else>“{{ p.excerpt }}”</template>
+              </p>
+              <p class="font-medium">{{ p.point }}</p>
+              <p class="text-ink-soft">{{ p.reason }}</p>
+            </li>
+          </ol>
+        </template>
       </section>
 
       <DraftInsertions :profile-id="profileId" :draft-id="id" :body="body" />

@@ -103,7 +103,17 @@ export function setup(options: TestOptions = {}) {
         llmCalls.push({ config, request })
         if (config.apiKey.startsWith('bad-')) throw new LLMAuthError() // rejected by the provider
         if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
-        return `Critique from ${config.model}: needs a stronger opening.`
+        return JSON.stringify({
+          summary: `Critique from ${config.model}.`,
+          ready: false,
+          points: [
+            {
+              block: 'b1',
+              point: 'Needs a stronger opening.',
+              reason: 'It is the first thing read.',
+            },
+          ],
+        })
       },
       // A new fake is built for every request, so count conversation turns here, across all of them.
       (request) => {

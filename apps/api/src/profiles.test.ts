@@ -397,9 +397,18 @@ describe('drafts and critique within a profile', () => {
 
     const critique = await c.post(`${base}/assist/critique`, { draftId: draft.id })
     expect(await critique.json()).toEqual({
-      text: 'Critique from claude-sonnet-5-5: needs a stronger opening.',
+      summary: 'Critique from claude-sonnet-5-5.',
+      ready: false,
+      points: [
+        {
+          block: 'b1',
+          excerpt: 'There',
+          point: 'Needs a stronger opening.',
+          reason: 'It is the first thing read.',
+        },
+      ],
     })
-    expect(ctx.llmCalls.at(-1)?.request.messages[0]?.content).toContain('There')
+    expect(ctx.llmCalls.at(-1)?.request.messages[0]?.content).toContain('[b1] There')
 
     expect((await c.delete(`${base}/drafts/${draft.id}`)).status).toBe(204)
     expect((await c.get(`${base}/drafts/${draft.id}`)).status).toBe(404)

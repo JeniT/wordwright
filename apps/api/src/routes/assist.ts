@@ -5,6 +5,7 @@ import { CRITIQUE_PROMPT } from '@lfwa/prompts'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { LlmKeyService } from '../services/llm'
+import { formatDraftForCritique, parseCritique } from '../services/critique'
 import { validateJson } from '../validate'
 import { toLlmHttpError } from './llm'
 
@@ -22,12 +23,19 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
     }
 
     try {
-      const text = await llm.complete({
+      const { message, blocks } = formatDraftForCritique(draft)
+      const reply = await llm.complete({
         system: CRITIQUE_PROMPT,
-        messages: [{ role: 'user', content: `# ${draft.title}\n\n${draft.body}` }],
+        messages: [{ role: 'user', content: message }],
         signal: c.req.raw.signal,
       })
-      return c.json({ text })
+      const critique = parseCritique(reply, blocks)
+      if (!critique) {
+        throw new HTTPException(502, {
+          message: 'The AI sent back something we could not read. Please try again.',
+        })
+      }
+      return c.json(critique)
     } catch (err) {
       if (err instanceof LLMAuthError) {
         throw new HTTPException(400, {

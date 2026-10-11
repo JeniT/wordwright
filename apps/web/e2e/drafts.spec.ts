@@ -135,7 +135,10 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('link', { name: 'Why rivers meander' }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
   await expect(page.getByRole('heading', { name: 'Critique' })).toBeVisible()
-  await expect(page.getByText('Fake response to:')).toBeVisible()
+  await expect(page.getByText('A fake critique: one thing to look at.')).toBeVisible()
+  await expect(
+    page.getByRole('listitem').filter({ hasText: 'Rivers rarely flow straight.' }),
+  ).toContainText('Fake critique: the opening could say what is at stake.')
 })
 
 test('sign out and back in, and the session survives a reload', async ({ page }) => {

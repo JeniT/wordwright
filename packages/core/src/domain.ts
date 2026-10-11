@@ -920,7 +920,39 @@ export const ResearchItemIdsSchema = z.object({
 export const CritiqueRequestSchema = z.object({ draftId: z.string() })
 export type CritiqueRequest = z.infer<typeof CritiqueRequestSchema>
 
-export const CritiqueSchema = z.object({ text: z.string() })
+/** How many points one critique may make (it ranks and stops: see docs/responsible-ai.md). */
+export const MAX_CRITIQUE_POINTS = 5
+
+/** What the model is asked to send back. `block` is an id from the draft it was shown (`b3`), or `whole`. */
+export const ModelCritiqueSchema = z.object({
+  summary: z.string().max(2000),
+  ready: z.boolean(),
+  points: z.array(
+    z.object({
+      block: z.string().max(20),
+      point: z.string().min(1).max(1500),
+      reason: z.string().min(1).max(1500),
+    }),
+  ),
+})
+
+/** One thing the editor would change, most important first. Never replacement text. */
+export const CritiquePointSchema = z.object({
+  /** `b3`: the paragraph (or heading, list item...) it is about; `whole`: the piece as a whole. */
+  block: z.string(),
+  /** The start of that block, to show which one it is; empty for `whole`. */
+  excerpt: z.string(),
+  point: z.string(),
+  reason: z.string(),
+})
+export type CritiquePoint = z.infer<typeof CritiquePointSchema>
+
+export const CritiqueSchema = z.object({
+  summary: z.string(),
+  /** True when nothing important is left to fix; what remains is taste. */
+  ready: z.boolean(),
+  points: z.array(CritiquePointSchema),
+})
 export type Critique = z.infer<typeof CritiqueSchema>
 
 // ---- Bring-your-own LLM credentials ------------------------------------

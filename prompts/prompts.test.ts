@@ -32,6 +32,13 @@ describe('prompts', () => {
 
   it('the critique prompt asks for criticism in the author’s voice', () => {
     expect(CRITIQUE_PROMPT).toMatch(/Preserve the author's voice/)
+    expect(CRITIQUE_PROMPT).toMatch(/never rewrite/)
+  })
+
+  it('the critique prompt asks for ranked points, at most five, about blocks by id, and a ready verdict', () => {
+    expect(CRITIQUE_PROMPT).toMatch(/\[b3\]/)
+    expect(CRITIQUE_PROMPT).toMatch(/never more than five/)
+    expect(CRITIQUE_PROMPT).toMatch(/"ready" to true/)
   })
 
   it('the default brainstorming prompt is a coach who does not draft, flatter or claim to be a person', () => {

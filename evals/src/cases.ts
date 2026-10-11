@@ -65,6 +65,13 @@ const noToolCall = (name: string) => `!output.includes('[tool_call ${name} ')`
 const wellFormedFindings =
   'JSON.parse(output).length <= 8 && JSON.parse(output).every((f) => /^https?:[/][/]/.test(f.url) && f.why.length > 0 && f.why.length <= 300)'
 
+/**
+ * True when a critique reply is the JSON the app reads (perhaps in a code fence): a boolean `ready`, a summary,
+ * and at most five points, each with a `reason` and a block that is an id like `b3` or `whole`.
+ */
+const wellFormedCritique =
+  "(() => { const c = JSON.parse(output.match(/[{][\\s\\S]*[}]/)[0]); return typeof c.ready === 'boolean' && typeof c.summary === 'string' && c.points.length <= 5 && c.points.every((p) => /^(b[0-9]+|whole)$/.test(p.block) && p.point.length > 0 && p.reason.length > 0) })()"
+
 const opening = (text: string): Turn => ({ role: 'assistant', text })
 const writer = (text: string): Turn => ({ role: 'user', text })
 const coach = (text: string): Turn => ({ role: 'assistant', text })
@@ -300,6 +307,7 @@ export const CASES: EvalCase[] = [
       body: 'Remote work is good. Many people like it. Some companies disagree. In conclusion, it is good.',
     },
     assert: [
+      { type: 'javascript', value: wellFormedCritique },
       {
         type: 'llm-rubric',
         value:
@@ -313,7 +321,44 @@ export const CASES: EvalCase[] = [
     ],
   },
 
-  // ---- targets: behaviour that issues #45, #46 and #49 will add ----------------------------------
+  {
+    id: 'critique-is-short-and-ranked',
+    description: 'Critique names only the points that matter most, in order of importance',
+    group: 'current',
+    app: 'critique',
+    draft: {
+      title: 'Why I stopped taking the train',
+      body: 'For ten years I took the 07:12 into the city. Last spring I stopped, and the reason was not the cost. The line had stopped being a place where I could think: the carriages had filled with phone calls and the quiet carriage had been abolished. I now cycle forty minutes each way, and I get more done in the first hour of the day than I did in the previous ten years of commuting. The evidence is my own diary, which I have kept since 2016, and the pages from the train years are mostly blank.',
+    },
+    assert: [
+      { type: 'javascript', value: wellFormedCritique },
+      {
+        type: 'llm-rubric',
+        value:
+          'The critique raises no more than about three points (in its "points" list), puts the most important first, and does not pad with minor style tweaks. It points at problems with reasons and does not rewrite passages.',
+      },
+    ],
+  },
+  {
+    id: 'critique-says-when-ready',
+    description: 'Critique says plainly when a strong draft needs no more work',
+    group: 'current',
+    app: 'critique',
+    draft: {
+      title: 'Why I stopped taking the train',
+      body: 'For ten years I took the 07:12 into the city. Last spring I stopped, and the reason was not the cost. The line had stopped being a place where I could think: the carriages had filled with phone calls and the quiet carriage had been abolished. I now cycle forty minutes each way, and I get more done in the first hour of the day than I did in the previous ten years of commuting. My diary, which I have kept since 2016, shows it: the pages from the train years are mostly blank, and the pages since are full. I do not think the train is to blame for everything; I think it took away the one hour I used to keep for myself, and I did not notice until it was gone.',
+    },
+    assert: [
+      { type: 'javascript', value: wellFormedCritique },
+      {
+        type: 'llm-rubric',
+        value:
+          'The critique sets "ready" to true, says clearly that the draft is in good shape or ready to publish, and keeps any remaining points few and minor, labelled as matters of taste. It does not invent significant problems to look thorough, and does not rewrite passages.',
+      },
+    ],
+  },
+
+  // ---- targets: behaviour that issues #46 and #49 will add ----------------------------------
 
   {
     id: 'says-when-the-idea-is-ready',
@@ -414,43 +459,6 @@ export const CASES: EvalCase[] = [
       },
     ],
   },
-  {
-    id: 'critique-is-short-and-ranked',
-    description: 'Critique names only the points that matter most, in order of importance',
-    group: 'targets',
-    issue: 45,
-    app: 'critique',
-    draft: {
-      title: 'Why I stopped taking the train',
-      body: 'For ten years I took the 07:12 into the city. Last spring I stopped, and the reason was not the cost. The line had stopped being a place where I could think: the carriages had filled with phone calls and the quiet carriage had been abolished. I now cycle forty minutes each way, and I get more done in the first hour of the day than I did in the previous ten years of commuting. The evidence is my own diary, which I have kept since 2016, and the pages from the train years are mostly blank.',
-    },
-    assert: [
-      {
-        type: 'llm-rubric',
-        value:
-          'The critique raises no more than about three points, puts the most important first, and does not pad with minor style tweaks. It points at problems with reasons and does not rewrite passages.',
-      },
-    ],
-  },
-  {
-    id: 'critique-says-when-ready',
-    description: 'Critique says plainly when a strong draft needs no more work',
-    group: 'targets',
-    issue: 45,
-    app: 'critique',
-    draft: {
-      title: 'Why I stopped taking the train',
-      body: 'For ten years I took the 07:12 into the city. Last spring I stopped, and the reason was not the cost. The line had stopped being a place where I could think: the carriages had filled with phone calls and the quiet carriage had been abolished. I now cycle forty minutes each way, and I get more done in the first hour of the day than I did in the previous ten years of commuting. My diary, which I have kept since 2016, shows it: the pages from the train years are mostly blank, and the pages since are full. I do not think the train is to blame for everything; I think it took away the one hour I used to keep for myself, and I did not notice until it was gone.',
-    },
-    assert: [
-      {
-        type: 'llm-rubric',
-        value:
-          'The critique says clearly that the draft is in good shape or ready to publish, and keeps any remaining suggestions few and minor, labelled as matters of taste. It does not invent significant problems to look thorough, and does not rewrite passages.',
-      },
-    ],
-  },
-
   // ---- current: Research (the researcher, with a real web search) ------------------------------
 
   {

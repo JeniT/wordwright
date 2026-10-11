@@ -93,8 +93,24 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
   }
 }
 
+/** The pretend editor of development and e2e runs: one point, about the first paragraph. */
+export function fakeCritiqueReply(): string {
+  return JSON.stringify({
+    summary: 'A fake critique: one thing to look at.',
+    ready: false,
+    points: [
+      {
+        block: 'b1',
+        point: 'Fake critique: the opening could say what is at stake.',
+        reason: 'Readers decide in the first lines whether to go on.',
+      },
+    ],
+  })
+}
+
 /** For local development and e2e tests: no network, accepts any key. */
-export const fakeLlmFactory: LLMFactory = () => new FakeLLMProvider(undefined, fakeBrainstormReply)
+export const fakeLlmFactory: LLMFactory = () =>
+  new FakeLLMProvider(fakeCritiqueReply, fakeBrainstormReply)
 
 /** For local development and e2e tests: three pages, one fine, one with no title, one that doesn't exist. */
 export const fakeResearchFactory: ResearchFactory = () => new FakeResearchProvider()

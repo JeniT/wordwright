@@ -333,4 +333,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
 - **UI components:** Tailwind plus our own component classes ([docs/design.md](docs/design.md)); add headless primitives
   (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
+- **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
+  (the design is in [docs/decisions.md](docs/decisions.md#critique-points-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
+  Showing them beside the paragraphs, and limiting the rounds per draft, are still to come (#91, #92).
 - **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.

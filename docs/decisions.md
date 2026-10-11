@@ -1063,3 +1063,31 @@ per row and a mode switch ("Move items") that changed what a row looked like. Th
   A list is reorderable or paginated, not both.
 - Not done yet (follow-ups): applying the same rail, toolbar and icon buttons to notes, drafts and feeds; tags on
   reading-list items with a bulk Tag… action (#87, needs a schema change).
+
+## Critique points are anchored to paragraphs by id, outside the prose (T9a, #90; part of #14)
+
+**Decision.** Critique used to come back as one block of text. It is now a ranked list of **points**, each about one
+block of the draft or about the piece as a whole, plus a one-line summary and a `ready` verdict. Tiptap's Comments
+extension is a paid cloud feature (and would limit how many documents we can have), and we do not need real-time
+collaboration on drafts, so comments are our own: the server numbers the draft's blocks and the model points at them.
+
+- **Blocks.** `splitBlocks` (`@lfwa/core`) splits the saved Markdown into headings, paragraphs, quotes, code fences
+  and top-level list items, numbered `b1`, `b2`, ... Each has a hash of its words (case, spacing and punctuation
+  ignored). The draft goes to the model as `[b3] text`.
+- **No anchors in the Markdown.** Putting ids in the writer's text would reach Copy Markdown and be published, the
+  same reason insertion provenance is kept outside the prose (see above). The ids are only positions in the split of
+  the text that was critiqued; they mean nothing for a later version of the draft. T9b stores the hash and a quoted
+  snippet with each point so it can be found again after edits, or shown as "this passage has changed".
+- **The model's reply is untrusted.** It asks for JSON (via `complete()`, no tool call, so it works with every
+  adapter). `parseCritique` reads it, drops points about blocks that were never sent, keeps at most five
+  (`MAX_CRITIQUE_POINTS`, in the order given: most important first), and refuses a reply that is not a critique
+  (the writer sees "something we could not read, try again"). Points carry no replacement text by design: there is no
+  field for it. The prompt also forbids it, and an eval checks that.
+- **Rung 3, as before.** What leaves the system is the draft's title and body, to the writer's own provider with
+  their own key. Rounds are not capped yet (T9c, #92).
+- **Evals.** The two critique cases that targeted #45 ("short and ranked", "says when ready") are now `current`; all
+  critique cases also check the reply is the JSON the app reads. They were written without running them against a
+  real model: run `pnpm eval` and say if a rubric needs tuning.
+
+**Revisit if** models often send JSON we cannot read (move to a forced tool call, which needs a tool choice on the
+`chat()` port), or points need to be about a sentence rather than a paragraph.

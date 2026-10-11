@@ -184,17 +184,17 @@ read the two pages above and quote what they say today.)
 
 ## Applying this to the roadmap
 
-| Item                                 | Rung | What to do                                                                                                                                                |
-| ------------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Brainstorm (shipped)                 | 1–2  | Stop pressing on: fewer questions, a way to end (principle 1). Add distress and persona rules (8, 9).                                                     |
-| T9 Critique (#14)                    | 3    | Cap rounds per draft; rank and stop; say when it is done; point at problems with reasons, not replacement text (1, 2).                                    |
-| #26 Suggestions/comments on drafts   | 3    | A comment mechanism is fine. A tracked "suggested change" with replacement text is rung 4–5: not for the AI.                                              |
-| T10 Titles, openings, etc. (#15)     | 4    | As principle 4: a set, drawn from the draft, pick-then-edit, no shortcut out, capped, origin kept.                                                        |
-| T6 Idea generation (#11)             | 3–4  | Surface items and ask the writer what they notice; do not write pitches. Reshape as T38 was: AI adds to a reading list, the writer makes the idea (2, 3). |
-| T7/T38 Research (#12, #38)           | —    | AI adds to the reading list only; its "why relevant" is labelled unverified (5, 10). Friction for unread sources (T34) stays.                             |
-| T16 Audiences (#2), #27 Profile gen. | 2–4  | An AI-drafted description needs an origin, visible evidence (the links used), and the writer's explicit confirmation before it becomes context (5, 6).    |
-| T33 Notes drawer (#33)               | —    | Inserted passages keep the note's origin (5).                                                                                                             |
-| #25 Writing to think                 | 1–2  | Profile-level mode; reflect and ask only; principle 9.                                                                                                    |
+| Item                                 | Rung | What to do                                                                                                                                                                                       |
+| ------------------------------------ | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Brainstorm (shipped)                 | 1–2  | Stop pressing on: fewer questions, a way to end (principle 1). Add distress and persona rules (8, 9).                                                                                            |
+| T9 Critique (#14)                    | 3    | Ranked, paragraph-anchored points with a ready verdict (#90, done); cap rounds per draft (#92); rank and stop; say when it is done; point at problems with reasons, not replacement text (1, 2). |
+| #26 Suggestions/comments on drafts   | 3    | A comment mechanism is fine. A tracked "suggested change" with replacement text is rung 4–5: not for the AI.                                                                                     |
+| T10 Titles, openings, etc. (#15)     | 4    | As principle 4: a set, drawn from the draft, pick-then-edit, no shortcut out, capped, origin kept.                                                                                               |
+| T6 Idea generation (#11)             | 3–4  | Surface items and ask the writer what they notice; do not write pitches. Reshape as T38 was: AI adds to a reading list, the writer makes the idea (2, 3).                                        |
+| T7/T38 Research (#12, #38)           | —    | AI adds to the reading list only; its "why relevant" is labelled unverified (5, 10). Friction for unread sources (T34) stays.                                                                    |
+| T16 Audiences (#2), #27 Profile gen. | 2–4  | An AI-drafted description needs an origin, visible evidence (the links used), and the writer's explicit confirmation before it becomes context (5, 6).                                           |
+| T33 Notes drawer (#33)               | —    | Inserted passages keep the note's origin (5).                                                                                                                                                    |
+| #25 Writing to think                 | 1–2  | Profile-level mode; reflect and ask only; principle 9.                                                                                                                                           |
 
 ## How this is checked
 

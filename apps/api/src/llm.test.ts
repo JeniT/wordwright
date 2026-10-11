@@ -198,7 +198,7 @@ describe('using the key', () => {
     const res = await client.post(`/api/profiles/${profileId}/assist/critique`, {
       draftId: draft.id,
     })
-    expect((await res.json()).text).toContain('claude-opus-5-5')
+    expect((await res.json()).summary).toContain('claude-opus-5-5')
     expect(ctx.llmCalls.at(-1)!.config).toMatchObject({
       apiKey: 'sk-ant-ada-key-1111111111',
       model: 'claude-opus-5-5',

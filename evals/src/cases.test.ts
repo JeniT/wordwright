@@ -8,6 +8,7 @@ import {
   RESEARCH_PROMPT,
 } from '@lfwa/prompts'
 import { BRAINSTORM_TOOLS } from '../../apps/api/src/services/brainstorm'
+import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import AdapterProvider from './adapter-provider'
 import { CASES, type BrainstormCase, type CritiqueCase, type ResearchCase } from './cases'
 import { promptfooConfig } from './config'
@@ -84,7 +85,7 @@ describe('the requests', () => {
     for (const c of critique) {
       expect(critiqueRequest(c)).toEqual({
         system: CRITIQUE_PROMPT,
-        messages: [{ role: 'user', content: `# ${c.draft.title}\n\n${c.draft.body}` }],
+        messages: [{ role: 'user', content: formatDraftForCritique(c.draft).message }],
       })
     }
   })
@@ -231,5 +232,35 @@ describe('the promptfoo config', () => {
       expect(config.tests.map((t) => t.vars.case)).toEqual(expected.map((c) => c.id))
       expect(config.tests.length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('the deterministic check on a critique', () => {
+  const run = (output: string) =>
+    new Function(
+      'output',
+      `return (${CASES.find((c) => c.id === 'critique-is-short-and-ranked')!.assert.find((a) => a.type === 'javascript')!.value})`,
+    )(output)
+  const point = (over: object = {}) => ({
+    block: 'b2',
+    point: 'Weak.',
+    reason: 'Because.',
+    ...over,
+  })
+  const reply = (points: object[], over: object = {}) =>
+    JSON.stringify({ summary: 'Fine.', ready: false, points, ...over })
+
+  it('accepts up to five points about blocks or the whole piece, in a code fence or not', () => {
+    expect(run(reply([point(), point({ block: 'whole' })]))).toBe(true)
+    expect(run(reply([], { ready: true }))).toBe(true)
+    expect(run('```json\n' + reply([point()]) + '\n```')).toBe(true)
+  })
+
+  it('refuses too many points, odd block ids, missing reasons and replies that are not the JSON', () => {
+    expect(run(reply(Array.from({ length: 6 }, () => point())))).toBe(false)
+    expect(run(reply([point({ block: 'paragraph 2' })]))).toBe(false)
+    expect(run(reply([point({ reason: '' })]))).toBe(false)
+    expect(run(reply([], { ready: 'yes' }))).toBe(false)
+    expect(() => run('Tighten the opening.')).toThrow()
   })
 })

@@ -13,7 +13,7 @@ describe('LLM factories', () => {
   it('has a fake for development that never needs a real key', async () => {
     const llm = fakeLlmFactory({ provider: 'anthropic', apiKey: 'anything', model: 'm' })
     expect(await llm.complete({ messages: [{ role: 'user', content: 'hi' }] })).toContain(
-      'Fake response',
+      'A fake critique',
     )
   })
 
