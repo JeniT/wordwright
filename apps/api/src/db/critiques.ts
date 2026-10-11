@@ -34,6 +34,14 @@ export class CritiqueStore {
     return row ? this.round(row.id as string) : undefined
   }
 
+  /** How many times the draft has been critiqued. */
+  count(draftId: string): number {
+    const row = this.db
+      .prepare('SELECT count(*) AS n FROM critique_rounds WHERE draft_id = ?')
+      .get(draftId) as { n: number }
+    return row.n
+  }
+
   /** Sets a point of this draft aside or brings it back; false if the draft has no such point. */
   setDismissed(draftId: string, pointId: string, dismissed: boolean): boolean {
     return (

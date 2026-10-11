@@ -18,7 +18,11 @@ const draft = {
 }
 
 /** The critique the server has kept for the draft (null: none yet), and what a new request answers. */
-function mockEditor(critique: () => Response, latest: object | null = null) {
+function mockEditor(
+  critique: () => Response,
+  latest: object | null = null,
+  looks: { used: number; allowed: number } = { used: latest ? 1 : 0, allowed: 3 },
+) {
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([])),
@@ -36,7 +40,9 @@ function mockEditor(critique: () => Response, latest: object | null = null) {
     ),
     http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.put('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
-    http.get('*/api/profiles/p1/drafts/d1/critique', () => HttpResponse.json(latest)),
+    http.get('*/api/profiles/p1/drafts/d1/critique', () =>
+      HttpResponse.json({ round: latest, ...looks }),
+    ),
     http.post('*/api/profiles/p1/assist/critique', critique),
   )
 }
@@ -59,6 +65,8 @@ const pointOn = (id: string, over: object = {}) => ({
   dismissed: false,
   ...over,
 })
+/** What the server answers about a draft's critiques. */
+const state = (r: object | null, used = 1, allowed = 3) => ({ round: r, used, allowed })
 const critiqueRegion = async () => screen.findByRole('region', { name: 'Critique' })
 
 describe('EditorView critique', () => {
@@ -79,10 +87,12 @@ describe('EditorView critique', () => {
   it('shows the critique when it works, and marks the paragraph a point is about', async () => {
     mockEditor(() =>
       HttpResponse.json(
-        round([
-          pointOn('p1'),
-          pointOn('p2', { block: 'whole', excerpt: '', hash: null, point: 'The order is odd.' }),
-        ]),
+        state(
+          round([
+            pointOn('p1'),
+            pointOn('p2', { block: 'whole', excerpt: '', hash: null, point: 'The order is odd.' }),
+          ]),
+        ),
       ),
     )
     await renderAt('/p/p1/drafts/d1')
@@ -164,7 +174,7 @@ describe('EditorView critique', () => {
       http.put('*/api/profiles/p1/drafts/d1/critique/points/p1', async ({ request }) => {
         const { dismissed: d } = (await request.json()) as { dismissed: boolean }
         dismissed.push(d)
-        return HttpResponse.json(round([pointOn('p1', { dismissed: d })]))
+        return HttpResponse.json(state(round([pointOn('p1', { dismissed: d })])))
       }),
     )
     await renderAt('/p/p1/drafts/d1')
@@ -178,9 +188,50 @@ describe('EditorView critique', () => {
     expect(dismissed).toEqual([true, false])
   })
 
+  it('says how many looks are used before the button is pressed, and updates it afterwards', async () => {
+    mockEditor(() => HttpResponse.json(state(round([pointOn('p1')]), 1, 3)), null, {
+      used: 0,
+      allowed: 3,
+    })
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByText('0 of 3 looks used')
+    expect(screen.getByRole('button', { name: 'Critique' })).toBeEnabled()
+    await fireEvent.click(screen.getByRole('button', { name: 'Critique' }))
+    await screen.findByText('1 of 3 looks used')
+  })
+
+  it('stops, kindly, when the looks are used up, and says what to do next', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]), {
+      used: 3,
+      allowed: 3,
+    })
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByText(/You have had your 3 looks at this draft/)
+    expect(screen.getByRole('button', { name: 'Critique' })).toBeDisabled()
+    expect(screen.getByRole('link', { name: 'publish it' })).toHaveAttribute(
+      'href',
+      '/p/p1/ideas/i1/publish',
+    )
+    expect(screen.getByRole('link', { name: 'account settings' })).toHaveAttribute(
+      'href',
+      '/account',
+    )
+    // The critique already made is still there to work from.
+    expect(await screen.findByText('A decent start.')).toBeTruthy()
+  })
+
+  it('says "look" when the limit is one', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]), {
+      used: 1,
+      allowed: 1,
+    })
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByText(/You have had your 1 look at this draft/)
+  })
+
   it('says so when a draft is ready, rather than finding something', async () => {
     mockEditor(() =>
-      HttpResponse.json(round([], { summary: 'This is ready to publish.', ready: true })),
+      HttpResponse.json(state(round([], { summary: 'This is ready to publish.', ready: true }))),
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))

@@ -3,6 +3,8 @@ import { deleteCookie, getCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import {
   BrainstormPromptInputSchema,
+  CRITIQUE_ROUNDS_DEFAULT,
+  CritiqueSettingsSchema,
   ChangeHandleInputSchema,
   ChangeNameInputSchema,
   ChangeEmailInputSchema,
@@ -14,6 +16,7 @@ import type { RateLimiter } from '../auth/rate-limit'
 import type { AccountService } from '../services/accounts'
 import type { EmailChangeService } from '../services/email-change'
 import type { BrainstormPromptService } from '../services/brainstorm-prompt'
+import type { UserSettingsStore } from '../db/user-settings'
 import { validateJson } from '../validate'
 import { toHttpError } from './auth'
 
@@ -23,6 +26,7 @@ export function accountRoutes(
   limiter: RateLimiter,
   brainstormPrompts: BrainstormPromptService,
   handleChangeLimiter: RateLimiter,
+  userSettings: UserSettingsStore,
 ) {
   return (
     new Hono<AppEnv>()
@@ -83,6 +87,16 @@ export function accountRoutes(
       .put('/brainstorm-prompt', validateJson(BrainstormPromptInputSchema), (c) =>
         c.json(brainstormPrompts.save(c.get('user').id, c.req.valid('json').prompt)),
       )
+      // How many critiques a draft may have (the default until the person chooses).
+      .get('/critique-settings', (c) =>
+        c.json({
+          rounds: userSettings.getCritiqueRounds(c.get('user').id) ?? CRITIQUE_ROUNDS_DEFAULT,
+        }),
+      )
+      .put('/critique-settings', validateJson(CritiqueSettingsSchema), (c) => {
+        userSettings.setCritiqueRounds(c.get('user').id, c.req.valid('json').rounds)
+        return c.json(c.req.valid('json'))
+      })
       .delete('/brainstorm-prompt', (c) => c.json(brainstormPrompts.reset(c.get('user').id)))
       .delete('/', validateJson(DeleteAccountInputSchema), async (c) => {
         const user = c.get('user')

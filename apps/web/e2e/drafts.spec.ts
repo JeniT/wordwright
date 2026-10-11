@@ -166,6 +166,21 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('button', { name: /^Bring back/ }).click()
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
+  // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.
+  await expect(page.getByText('1 of 3 looks used')).toBeVisible()
+  await page.goto('/account')
+  await page.getByLabel('Critiques each draft gets').selectOption('1')
+  await page
+    .getByRole('region', { name: 'Critiques of a draft' })
+    .getByRole('button', { name: 'Save' })
+    .click()
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByText(/You have had your 1 look at this draft/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Critique', exact: true })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'publish it' })).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+
   // On a phone nothing spills sideways.
   await page.setViewportSize({ width: 390, height: 800 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(

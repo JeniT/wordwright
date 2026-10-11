@@ -965,6 +965,30 @@ export const CritiqueRoundSchema = CritiqueSchema.omit({ points: true }).extend(
 })
 export type CritiqueRound = z.infer<typeof CritiqueRoundSchema>
 
+/**
+ * How many critiques a draft gets (docs/responsible-ai.md, principle 1: an LLM critic always finds something, so
+ * rounds are rationed). The default is the owner's to set; each writer may choose their own within these bounds.
+ */
+export const CRITIQUE_ROUNDS_DEFAULT = 3
+export const CRITIQUE_ROUNDS_MIN = 1
+export const CRITIQUE_ROUNDS_MAX = 5
+
+export const CritiqueSettingsSchema = z.object({
+  /** Critiques a draft gets, whoever asks. */
+  rounds: z.number().int().min(CRITIQUE_ROUNDS_MIN).max(CRITIQUE_ROUNDS_MAX),
+})
+export type CritiqueSettings = z.infer<typeof CritiqueSettingsSchema>
+
+/** The latest critique of a draft, and how many of the writer's looks it has used. */
+export const CritiqueStateSchema = z.object({
+  round: CritiqueRoundSchema.nullable(),
+  /** Critiques the draft has had so far. Editing it does not reset this. */
+  used: z.number().int().min(0),
+  /** How many the person asking is allowed (their setting). */
+  allowed: z.number().int().min(CRITIQUE_ROUNDS_MIN),
+})
+export type CritiqueState = z.infer<typeof CritiqueStateSchema>
+
 /** Sets a point aside (it stays on record and can be brought back), or brings it back. */
 export const CritiquePointDismissSchema = z.object({ dismissed: z.boolean() })
 

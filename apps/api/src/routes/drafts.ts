@@ -3,6 +3,7 @@ import { CritiquePointDismissSchema, DraftInputSchema, DraftInsertionInputSchema
 import { HTTPException } from 'hono/http-exception'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
+import { critiqueState } from '../services/critique'
 import { validateJson } from '../validate'
 
 /**
@@ -25,11 +26,11 @@ export function draftRoutes(store: Store) {
         )
         return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
       })
-      // The latest critique of the draft (null if it has none), and the writer setting one of its points aside.
+      // The latest critique of the draft with how many looks are used, and the writer setting one of its points aside.
       .get('/:id/critique', (c) => {
         const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
         return draft
-          ? c.json(critiques.latest(draft.id) ?? null)
+          ? c.json(critiqueState(store, draft.id, c.get('user').id))
           : c.json({ error: 'Not found' }, 404)
       })
       .put('/:id/critique/points/:pointId', validateJson(CritiquePointDismissSchema), (c) => {
@@ -40,7 +41,9 @@ export function draftRoutes(store: Store) {
           c.req.param('pointId'),
           c.req.valid('json').dismissed,
         )
-        return done ? c.json(critiques.latest(draft.id)) : c.json({ error: 'Not found' }, 404)
+        return done
+          ? c.json(critiqueState(store, draft.id, c.get('user').id))
+          : c.json({ error: 'Not found' }, 404)
       })
       // Words pulled into the draft from the idea's notes, and where they came from.
       .get('/:id/insertions', (c) => {

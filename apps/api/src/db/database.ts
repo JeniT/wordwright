@@ -542,6 +542,15 @@ export const MIGRATIONS: Migration[] = [
   );
   CREATE INDEX critique_points_round ON critique_points(round_id, rank);
   `,
+  // T9c: a person's own settings, one column per setting as they appear. No row (or a null) means "the default",
+  // so a change to the default reaches everyone who has not chosen.
+  `
+  CREATE TABLE user_settings (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    critique_rounds INTEGER CHECK (critique_rounds BETWEEN 1 AND 5),
+    updated_at TEXT NOT NULL
+  );
+  `,
 ]
 
 /**

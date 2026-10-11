@@ -4,7 +4,8 @@ import {
   BrainstormEventSchema,
   BrainstormPromptSchema,
   ConversationSchema,
-  CritiqueRoundSchema,
+  CritiqueSettingsSchema,
+  CritiqueStateSchema,
   DraftInsertionSchema,
   DraftSchema,
   HandleAvailabilitySchema,
@@ -140,6 +141,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     removeLlmKey: () => act('DELETE', '/llm'),
 
     // the person's own brainstorming prompt (the default until they change it)
+    getCritiqueSettings: () => get(CritiqueSettingsSchema, 'GET', '/account/critique-settings'),
+    saveCritiqueSettings: (rounds: number) =>
+      get(CritiqueSettingsSchema, 'PUT', '/account/critique-settings', { rounds }),
     getBrainstormPrompt: () => get(BrainstormPromptSchema, 'GET', '/account/brainstorm-prompt'),
     saveBrainstormPrompt: (prompt: string) =>
       get(BrainstormPromptSchema, 'PUT', '/account/brainstorm-prompt', { prompt }),
@@ -410,11 +414,11 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
     /** Asks for a critique of the saved draft; it is kept with the draft. */
     critique: (profileId: string, draftId: string) =>
-      get(CritiqueRoundSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
-    /** The latest critique of the draft, or null if it has had none. */
+      get(CritiqueStateSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
+    /** The latest critique of the draft (null if none), and how many of its looks are used. */
     latestCritique: (profileId: string, draftId: string) =>
-      get(CritiqueRoundSchema.nullable(), 'GET', `${drafts(profileId)}/${draftId}/critique`),
-    /** Sets a point aside (or, with `dismissed: false`, brings it back). Answers with the latest round. */
+      get(CritiqueStateSchema, 'GET', `${drafts(profileId)}/${draftId}/critique`),
+    /** Sets a point aside (or, with `dismissed: false`, brings it back). Answers with the critique as it now is. */
     setCritiquePointDismissed: (
       profileId: string,
       draftId: string,
@@ -422,7 +426,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       dismissed: boolean,
     ) =>
       get(
-        CritiqueRoundSchema.nullable(),
+        CritiqueStateSchema,
         'PUT',
         `${drafts(profileId)}/${draftId}/critique/points/${pointId}`,
         { dismissed },

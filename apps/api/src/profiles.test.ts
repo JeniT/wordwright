@@ -397,17 +397,21 @@ describe('drafts and critique within a profile', () => {
 
     const critique = await c.post(`${base}/assist/critique`, { draftId: draft.id })
     expect(await critique.json()).toMatchObject({
-      summary: 'Critique from claude-sonnet-5-5.',
-      ready: false,
-      points: [
-        {
-          block: 'b1',
-          excerpt: 'There',
-          point: 'Needs a stronger opening.',
-          reason: 'It is the first thing read.',
-          dismissed: false,
-        },
-      ],
+      used: 1,
+      allowed: 3,
+      round: {
+        summary: 'Critique from claude-sonnet-5-5.',
+        ready: false,
+        points: [
+          {
+            block: 'b1',
+            excerpt: 'There',
+            point: 'Needs a stronger opening.',
+            reason: 'It is the first thing read.',
+            dismissed: false,
+          },
+        ],
+      },
     })
     expect(ctx.llmCalls.at(-1)?.request.messages[0]?.content).toContain('[b1] There')
 

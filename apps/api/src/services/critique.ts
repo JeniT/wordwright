@@ -1,11 +1,14 @@
 import {
+  CRITIQUE_ROUNDS_DEFAULT,
   CritiqueSchema,
+  type CritiqueState,
   MAX_CRITIQUE_POINTS,
   ModelCritiqueSchema,
   splitBlocks,
   type Block,
   type Critique,
 } from '@lfwa/core'
+import type { Store } from '../db/store'
 
 /** What the model sees: the title, then the draft as blocks, each with the id it must use to point at it. */
 export function formatDraftForCritique(draft: { title: string; body: string }): {
@@ -53,4 +56,18 @@ export function parseCritique(reply: string, blocks: readonly Block[]): Critique
     }))
   if (parsed.data.points.length > 0 && points.length === 0) return null
   return CritiqueSchema.parse({ summary: parsed.data.summary, ready: parsed.data.ready, points })
+}
+
+/** How many critiques this person lets a draft have: their own setting, or the default. */
+export function critiqueAllowance(store: Store, userId: string): number {
+  return store.userSettings.getCritiqueRounds(userId) ?? CRITIQUE_ROUNDS_DEFAULT
+}
+
+/** The latest critique of a draft with how many looks are used and allowed, as the person asking sees them. */
+export function critiqueState(store: Store, draftId: string, userId: string): CritiqueState {
+  return {
+    round: store.critiques.latest(draftId) ?? null,
+    used: store.critiques.count(draftId),
+    allowed: critiqueAllowance(store, userId),
+  }
 }

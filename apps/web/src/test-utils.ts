@@ -27,6 +27,8 @@ export const server = setupServer(
   http.get('*/api/account/brainstorm-prompt', () =>
     HttpResponse.json({ prompt: 'The default brainstorming prompt.', isDefault: true }),
   ),
+  // The default number of critiques a draft gets (the account page shows the setting).
+  http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds: 3 })),
   // An empty reading list (the profile's, which the Read page shows).
   http.get('*/api/profiles/:profileId/reading', () => HttpResponse.json([])),
   // No notes yet, on any idea.

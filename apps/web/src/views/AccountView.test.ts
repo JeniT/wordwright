@@ -214,3 +214,54 @@ describe('AccountView: AI assistant key', () => {
     await screen.findByText('No API key yet.')
   })
 })
+
+describe('AccountView: critiques of a draft', () => {
+  const mock = (saved: number[] = [], rounds = 3) =>
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds })),
+      http.put('*/api/account/critique-settings', async ({ request }) => {
+        const body = (await request.json()) as { rounds: number }
+        saved.push(body.rounds)
+        return HttpResponse.json(body)
+      }),
+    )
+
+  it('shows the current number, suggests three, and saves a change', async () => {
+    const saved: number[] = []
+    mock(saved, 2)
+    await renderAt('/account')
+    const select = await screen.findByLabelText('Critiques each draft gets')
+    await waitFor(() => expect(select).toHaveValue('2'))
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((o) => o.textContent?.trim()),
+    ).toEqual(['1', '2', '3 (suggested)', '4', '5'])
+    await fireEvent.update(select, '5')
+    await fireEvent.click(
+      within(screen.getByRole('region', { name: 'Critiques of a draft' })).getByRole('button', {
+        name: 'Save',
+      }),
+    )
+    await screen.findByText('Saved')
+    expect(saved).toEqual([5])
+  })
+
+  it('says what went wrong when saving is refused', async () => {
+    mock()
+    server.use(
+      http.put('*/api/account/critique-settings', () =>
+        HttpResponse.json({ error: 'Choose a number from 1 to 5' }, { status: 400 }),
+      ),
+    )
+    await renderAt('/account')
+    const save = within(
+      await screen.findByRole('region', { name: 'Critiques of a draft' }),
+    ).getByRole('button', { name: 'Save' })
+    await waitFor(() => expect(save).toBeEnabled()) // not until the saved number has arrived
+    await fireEvent.click(save)
+    await screen.findByText('Choose a number from 1 to 5')
+  })
+})

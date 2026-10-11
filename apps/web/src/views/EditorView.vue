@@ -192,17 +192,19 @@ const lastCritique = useQuery({
 })
 const critique = useMutation({
   mutationFn: () => api.critique(props.profileId, props.id),
-  onSuccess: (round) => {
-    queryClient.setQueryData(['critique', props.profileId, props.id], round)
+  onSuccess: (state) => {
+    queryClient.setQueryData(['critique', props.profileId, props.id], state)
     activePointId.value = null
   },
 })
 const setAside = useMutation({
   mutationFn: (v: { pointId: string; dismissed: boolean }) =>
     api.setCritiquePointDismissed(props.profileId, props.id, v.pointId, v.dismissed),
-  onSuccess: (round) => queryClient.setQueryData(['critique', props.profileId, props.id], round),
+  onSuccess: (state) => queryClient.setQueryData(['critique', props.profileId, props.id], state),
 })
-const round = computed(() => lastCritique.data.value)
+const round = computed(() => lastCritique.data.value?.round)
+const looks = computed(() => lastCritique.data.value)
+const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
 const critiquePanel = useTemplateRef<InstanceType<typeof CritiquePanel>>('critiquePanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
@@ -288,7 +290,8 @@ async function requestCritique() {
         <button
           type="button"
           class="rounded-ctl border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-sunken disabled:opacity-60"
-          :disabled="critique.isPending.value"
+          :disabled="critique.isPending.value || outOfLooks"
+          :aria-describedby="looks ? 'critique-looks' : undefined"
           @click="requestCritique"
         >
           Critique
@@ -310,6 +313,23 @@ async function requestCritique() {
           <template v-else-if="save.isError.value">Couldn't save</template>
         </p>
       </div>
+      <p v-if="looks" id="critique-looks" class="mt-2 text-sm text-ink-soft">
+        <template v-if="outOfLooks">
+          You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at this
+          draft. The next step is to
+          <RouterLink
+            v-if="draft.data.value?.ideaId"
+            :to="{
+              name: 'idea-publish',
+              params: { profileId: props.profileId, id: draft.data.value.ideaId },
+            }"
+            class="underline"
+            >publish it</RouterLink
+          ><template v-else>publish it</template>. You can change how many looks a draft gets in
+          your <RouterLink to="/account" class="underline">account settings</RouterLink>.
+        </template>
+        <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
+      </p>
 
       <CritiquePanel
         ref="critiquePanel"

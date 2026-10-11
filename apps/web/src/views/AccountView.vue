@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
+import CritiqueSettingsSection from '../components/CritiqueSettingsSection.vue'
 import EmailSection from '../components/EmailSection.vue'
 import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
@@ -60,6 +61,8 @@ const deleteAccount = useMutation({
     <LlmSettingsSection />
 
     <BrainstormPromptSection />
+
+    <CritiqueSettingsSection />
 
     <section aria-labelledby="profiles-heading">
       <h2 id="profiles-heading" class="mb-1 font-display text-xl font-semibold">Profiles</h2>

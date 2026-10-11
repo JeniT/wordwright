@@ -1099,8 +1099,16 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   and a heavy rewrite are the known blind spots. Marks are decorations, so they never reach the saved text. A point
   can be **set aside** (kept, and brought back from a "Set aside" list): it is the writer's call whether a point
   matters, so it is not deleted.
+- **Rationed (T9c, #92).** A draft gets **3** critiques by default, which each writer can change from 1 to 5 in their
+  account settings (`user_settings`, one row per person; no row means the default, so changing the default reaches
+  everyone who has not chosen). The count is of the draft's saved rounds, shown before the button is pressed ("2 of
+  3 looks used"); when it is used up the button is disabled and the page says kindly that the next step is to
+  publish. The server enforces it (409, before anything is sent to the AI), and a failed critique is not saved, so it
+  costs no look. Editing a draft does not reset the count. The count belongs to the draft, but the limit is the
+  **requester's own**: in a shared profile, rounds made by anyone count against the draft, and each person is held to
+  the limit they chose for themselves. Whether a heavy rewrite should earn more looks is for the owner to decide (#103); until then a writer who starts over adds a new draft.
 - **Rung 3, as before.** What leaves the system is the draft's title and body, to the writer's own provider with
-  their own key. Rounds are not capped yet (T9c, #92).
+  their own key. Rounds are capped per draft (below).
 - **Evals.** The two critique cases that targeted #45 ("short and ranked", "says when ready") are now `current`; all
   critique cases also check the reply is the JSON the app reads. They were written without running them against a
   real model: run `pnpm eval` and say if a rubric needs tuning.

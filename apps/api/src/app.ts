@@ -116,7 +116,14 @@ export function createApp(deps: AppDeps) {
   const brainstormPrompts = new BrainstormPromptService(store)
   api.route(
     '/account',
-    accountRoutes(accounts, emailChanges, attempts(), brainstormPrompts, limiter(5, DAY)),
+    accountRoutes(
+      accounts,
+      emailChanges,
+      attempts(),
+      brainstormPrompts,
+      limiter(5, DAY),
+      store.userSettings,
+    ),
   )
   const signedIn = (routes: Hono<AppEnv>) =>
     new Hono<AppEnv>().use(requireUser(accounts)).route('/', routes)
