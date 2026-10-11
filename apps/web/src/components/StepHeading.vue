@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
 import { useNav } from '../lib/nav'
 
 /**
@@ -6,12 +7,15 @@ import { useNav } from '../lib/nav'
  * then the title. The number ties the page to the side menu and says "roughly here in the process" without
  * saying "do this first", so it is hidden from screen readers (the menu's list already says what order things are in).
  */
-const { eyebrow, stepNumber } = useNav()
+const { eyebrow, eyebrowTo, stepNumber } = useNav()
 </script>
 
 <template>
   <div class="mb-6">
-    <p v-if="eyebrow" class="meta mb-1 break-words">{{ eyebrow }}</p>
+    <p v-if="eyebrow" class="meta mb-1 break-words">
+      <RouterLink v-if="eyebrowTo" :to="eyebrowTo" class="link">{{ eyebrow }}</RouterLink>
+      <template v-else>{{ eyebrow }}</template>
+    </p>
     <h1 class="h1 flex items-center gap-3">
       <span v-if="stepNumber" class="step-num step-num-current step-num-lg" aria-hidden="true">{{
         stepNumber

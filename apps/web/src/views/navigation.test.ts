@@ -102,6 +102,21 @@ describe('the menu in a profile', () => {
     ).toBeInTheDocument()
   })
 
+  it('links the profile’s name, in the menu and above a step’s title, to its own page', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/notes')
+    const header = await menu()
+    expect(await header.findByRole('link', { name: 'Substack' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack',
+    )
+    const main = within(screen.getByRole('main'))
+    expect(await main.findByRole('link', { name: 'Substack' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack',
+    )
+  })
+
   it('opens at the profile’s own page, which is not one of the steps', async () => {
     mockApp()
     const { router } = await renderAt('/p/ada-substack')
@@ -130,7 +145,7 @@ describe('the menu in an idea', () => {
     const header = await menu()
     expect(header.getByRole('link', { name: '← Substack' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/ideas',
+      '/p/ada-substack',
     )
     expect((await header.findAllByText('Why rivers meander')).length).toBeGreaterThan(0)
   })

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
+import LandingSection from '../components/LandingSection.vue'
 import ProfileGate from '../components/ProfileGate.vue'
+import ProfileImage from '../components/ProfileImage.vue'
 import RecentNotes from '../components/RecentNotes.vue'
-import StepHeading from '../components/StepHeading.vue'
 import { api } from '../lib/api'
+import { displayHost } from '../lib/useProfiles'
 
 /**
  * A profile's landing page: a short summary of each of its steps, with the quick action for each. It is not a
@@ -18,28 +20,35 @@ const ideas = useQuery({
 </script>
 
 <template>
-  <ProfileGate :profile-id="profileId">
-    <StepHeading>Overview</StepHeading>
+  <ProfileGate v-slot="{ profile }" :profile-id="profileId">
+    <div class="mb-2 flex items-center gap-4">
+      <ProfileImage :id="profile.id" :name="profile.name" :image-url="profile.imageUrl" size="sm" />
+      <div class="min-w-0">
+        <h1 class="h1 break-words">{{ profile.name }}</h1>
+        <p v-if="profile.siteUrl" class="meta truncate">
+          <a :href="profile.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
+            {{ displayHost(profile.siteUrl) }}
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+        </p>
+      </div>
+    </div>
 
     <RecentNotes
-      heading-id="home-notes-heading"
       :profile-id="profileId"
       :idea-id="null"
       :to="{ name: 'profile-notes', params: { profileId } }"
     />
 
-    <section aria-labelledby="home-ideas-heading" class="mb-10">
-      <div class="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-        <h2 id="home-ideas-heading" class="font-display text-xl font-semibold">Ideas</h2>
-        <div class="flex items-baseline gap-4">
-          <RouterLink :to="{ name: 'profile-ideas', params: { profileId } }" class="link text-sm">
-            See all ideas
-          </RouterLink>
-          <RouterLink :to="{ name: 'new-idea', params: { profileId } }" class="btn btn-outline">
-            New idea
-          </RouterLink>
-        </div>
-      </div>
+    <LandingSection level="profile" step="ideas" title="Ideas">
+      <template #actions>
+        <RouterLink :to="{ name: 'profile-ideas', params: { profileId } }" class="link text-sm">
+          See all ideas
+        </RouterLink>
+        <RouterLink :to="{ name: 'new-idea', params: { profileId } }" class="btn btn-outline">
+          New idea
+        </RouterLink>
+      </template>
       <p v-if="ideas.isPending.value" class="text-ink-soft">Loading…</p>
       <p v-else-if="ideas.isError.value" role="alert" class="text-danger">
         Couldn't load ideas. Try reloading the page.
@@ -60,6 +69,6 @@ const ideas = useQuery({
           </RouterLink>
         </li>
       </ul>
-    </section>
+    </LandingSection>
   </ProfileGate>
 </template>

@@ -89,9 +89,11 @@ test('leads through a profile and an idea step by step, without ever locking one
   await expect(page.getByRole('heading', { level: 1, name: 'Idea settings' })).toBeVisible()
   await noViolations(page, 'Idea settings')
 
-  // Up a level: the profile's steps, opening on Ideas (the choice of what to work on next).
+  // Up a level: the profile's own page, then its steps, Ideas being the choice of what to work on next.
   await page.getByRole('link', { name: '← Garden notes' }).click()
   const profile = page.getByRole('navigation', { name: 'Profile' })
+  await expect(page.getByRole('heading', { level: 1, name: 'Garden notes' })).toBeVisible()
+  await goTo(page, 'Ideas')
   await expect(profile.getByRole('link', { name: /^Ideas/ })).toHaveAttribute(
     'aria-current',
     'page',
@@ -117,7 +119,7 @@ test('leads through a profile and an idea step by step, without ever locking one
 
   // Opening a profile lands on its own page, which is none of the steps.
   await page.getByRole('link', { name: /Garden notes/ }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Garden notes' })).toBeVisible()
   await expect(profile.locator('[aria-current="page"]')).toHaveCount(0)
   await noViolations(page, 'Profile landing page')
 

@@ -27,7 +27,13 @@ const itemClass =
     <div v-if="profile" class="mt-3 flex items-center gap-3">
       <ProfileImage :id="profile.id" :name="profile.name" :image-url="profile.imageUrl" size="xs" />
       <div class="min-w-0">
-        <p class="leading-tight font-semibold break-words">{{ profile.name }}</p>
+        <p class="leading-tight font-semibold break-words">
+          <RouterLink
+            :to="{ name: 'profile', params: { profileId: profile.id } }"
+            class="no-underline hover:underline aria-[current=page]:underline"
+            >{{ profile.name }}</RouterLink
+          >
+        </p>
         <p v-if="profile.siteUrl" class="meta truncate">
           <a :href="profile.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
             {{ displayHost(profile.siteUrl) }}
@@ -41,7 +47,7 @@ const itemClass =
   <div v-else-if="level === 'idea'" class="px-5 pb-4">
     <RouterLink
       v-if="profile"
-      :to="{ name: 'profile-ideas', params: { profileId: profile.id } }"
+      :to="{ name: 'profile', params: { profileId: profile.id } }"
       class="link text-sm break-words"
     >
       ← {{ profile.name }}

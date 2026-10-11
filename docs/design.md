@@ -263,7 +263,12 @@ The principles (they are the point of the pattern; keep them when you add a page
 7. **Settings sit apart from the steps**, at their own level, with no step current.
 8. **A level has a landing page** (a profile's, at `/p/:profileId`) that is none of the numbered steps: a summary of
    each step with its quick action (latest notes and a form to add one; the ideas). Nothing in the menu is current there.
-   Panels reuse the step pages' components, and, like the steps, visiting spends nothing.
+   Panels reuse the step pages' components, and, like the steps, visiting spends nothing. The page is titled with the
+   profile's name (`h1`) beside its picture and website link; each section is a `LandingSection`: the step's number
+   (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
+   actions on the right of the heading.
+9. **The name leads back up to the landing page**: the profile's name in the menu, and the small name above a step's
+   title, are links to it (and are not links on the landing page itself).
 
 |                                                           |                                                          |
 | --------------------------------------------------------- | -------------------------------------------------------- |

@@ -124,6 +124,13 @@ export function useNav() {
         : undefined,
   )
 
+  /** Where the name above a page's title leads: a profile's pages lead back to its landing page (not from it). */
+  const eyebrowTo = computed<RouteLocationRaw | undefined>(() =>
+    level.value === 'profile' && route.name !== 'profile' && profileId.value
+      ? { name: 'profile', params: { profileId: profileId.value } }
+      : undefined,
+  )
+
   return {
     level,
     profileId,
@@ -134,6 +141,7 @@ export function useNav() {
     stepKey,
     stepNumber: computed(() => stepNumber(level.value, stepKey.value)),
     eyebrow,
+    eyebrowTo,
     /** Waiting to learn which idea a draft belongs to. */
     loading: draftLoading,
     /** The side menu folds away at every width (pages read beside another window). */

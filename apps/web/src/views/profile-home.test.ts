@@ -8,7 +8,7 @@ useMockServer()
 const profile = {
   id: 'ada-substack',
   name: 'Substack',
-  siteUrl: null,
+  siteUrl: 'https://substack.example/ada',
   imageUrl: null,
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' }],
@@ -54,12 +54,25 @@ function fakeHome(notes: ReturnType<typeof note>[] = [], ideas: ReturnType<typeo
 }
 
 describe('a profile’s landing page', () => {
-  it('is titled as an overview of the profile and has no current step', async () => {
+  it('is titled with the profile’s name, beside its website, and does not link to itself', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument()
+    const title = await screen.findByRole('heading', { level: 1, name: 'Substack' })
+    expect(title).toBeInTheDocument()
+    const site = within(screen.getByRole('main')).getByRole('link', { name: /substack\.example/ })
+    expect(site).toHaveAttribute('href', 'https://substack.example/ada')
+    expect(within(screen.getByRole('main')).queryByRole('link', { name: 'Substack' })).toBeNull()
+  })
+
+  it('numbers its sections as the menu numbers the steps', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    const notes = await screen.findByRole('region', { name: 'Notes' })
+    const ideas = screen.getByRole('region', { name: 'Ideas' })
+    expect(notes.querySelector('h2')).toHaveTextContent(/^03\s*Notes$/)
+    expect(ideas.querySelector('h2')).toHaveTextContent(/^04\s*Ideas$/)
+    // The numbers are decoration: the headings are named without them.
     expect(screen.getByRole('heading', { level: 2, name: 'Notes' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Ideas' })).toBeInTheDocument()
   })
 
   describe('notes', () => {

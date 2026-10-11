@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import type { IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import LandingSection from './LandingSection.vue'
 import NoteText from './NoteText.vue'
 import TextAreaField from './TextAreaField.vue'
 
@@ -18,8 +19,6 @@ const props = defineProps<{
   ideaId: string | null
   /** The notes page this summarises. */
   to: RouteLocationRaw
-  /** The id of the section heading, so each page that shows this has a unique one. */
-  headingId: string
 }>()
 const SHOWN = 5
 
@@ -54,15 +53,14 @@ const add = useMutation({
 </script>
 
 <template>
-  <section :aria-labelledby="headingId" class="mb-10">
-    <div class="mb-3 flex flex-wrap items-baseline justify-between gap-x-4">
-      <h2 :id="headingId" class="font-display text-xl font-semibold">Notes</h2>
+  <LandingSection :level="ideaId ? 'idea' : 'profile'" step="notes" title="Notes">
+    <template #actions>
       <RouterLink :to="to" class="link text-sm">
         See all notes<span v-if="notes.data.value?.length" class="meta">
           ({{ notes.data.value.length }})</span
         >
       </RouterLink>
-    </div>
+    </template>
     <p v-if="notes.isPending.value" class="text-ink-soft">Loading…</p>
     <p v-else-if="notes.isError.value" role="alert" class="text-danger">
       Couldn't load the notes. Try reloading the page.
@@ -89,5 +87,5 @@ const add = useMutation({
         {{ add.isPending.value ? 'Adding…' : 'Add note' }}
       </button>
     </form>
-  </section>
+  </LandingSection>
 </template>

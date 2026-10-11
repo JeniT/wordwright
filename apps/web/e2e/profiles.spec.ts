@@ -49,7 +49,8 @@ test('creates a profile with a website and picture, and opens its page', async (
   await expect(
     page.getByRole('banner').getByText('My Substack').filter({ visible: true }).first(),
   ).toBeVisible()
-  const site = page.getByRole('link', { name: /pat\.substack\.com/ })
+  // In the menu, and beside the title on the profile's own page.
+  const site = page.getByRole('link', { name: /pat\.substack\.com/ }).first()
   await expect(site).toHaveAttribute('href', 'https://pat.substack.com')
   const image = page.getByRole('banner').locator('img')
   await expect(image).toBeVisible()

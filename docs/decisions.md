@@ -718,6 +718,8 @@ none of the numbered steps, so the menu marks nothing current, like the settings
 made, not the writer's own order on the Notes step. The Search and Read summaries follow (#100), and the idea level gets
 the same treatment (#99), under umbrella #95.
 
+**Landing page look (#111).** The title is the profile's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The profile's name in the menu, and above a step's title, links to the landing page; so does "← profile" in the idea menu.
+
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
 
 Links are added by address alone; the server fetches the page and keeps its `<title>` (or `og:title`) as the link's
