@@ -74,10 +74,6 @@ export const TINY_PNG = Uint8Array.from(
   (c) => c.charCodeAt(0),
 )
 
-/**
- * In-memory fake. Knows the feeds it is given; anything else is "not a feed" unless `fallback`
- * answers for it. Records every address it was asked about.
- */
 /** Puts feeds of comments last and applies the cap, as every adapter must. */
 export function tidyCandidates(candidates: FeedCandidate[]): FeedCandidate[] {
   const seen = new Set<string>()
@@ -94,6 +90,10 @@ type KnownFeed = Partial<FeedDetails> & {
   advertises?: (Pick<FeedCandidate, 'url'> & Partial<FeedCandidate>)[]
 }
 
+/**
+ * In-memory fake. Knows the feeds it is given; anything else is "not a feed" unless `fallback`
+ * answers for it. Records every address it was asked about.
+ */
 export class FakeFeedFetcher implements FeedFetcher {
   readonly inspected: string[] = []
   readonly discovered: string[] = []
