@@ -481,6 +481,81 @@ describe('recent posts from all the feeds', () => {
   })
 })
 
+describe('paging through the recent posts', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `m${i}`,
+      sourceId: 's1',
+      title: `Post number ${i + 1}`,
+      url: `https://s1.example/${i}`,
+      summary: null,
+      authors: [],
+      publishedAt: new Date(Date.UTC(2026, 9, 10) - i * 3_600_000).toISOString(),
+    }))
+  const reply = (n: number) =>
+    server.use(
+      http.get('*/api/profiles/:id/sources/recent', ({ request }) =>
+        HttpResponse.json({
+          days: Number(new URL(request.url).searchParams.get('days')),
+          posts: many(n),
+          omitted: 0,
+          undated: 0,
+          failed: [],
+        }),
+      ),
+    )
+  const titles = (recent: HTMLElement) =>
+    within(recent)
+      .getAllByRole('listitem')
+      .map((li) => li.textContent!.match(/Post number (\d+)/)![1])
+  const section = () => screen.findByRole('region', { name: 'Recent posts' })
+
+  it('shows ten at a time, with where you are, and moves forwards and back', async () => {
+    fakeSources([A])
+    reply(23)
+    await openInspiration()
+    const recent = await section()
+    await within(recent).findByText('Post number 1')
+    expect(titles(recent)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
+    expect(within(recent).getByText('Posts 1–10 of 23')).toBeInTheDocument()
+    expect(within(recent).getByRole('button', { name: /Previous/ })).toBeDisabled()
+
+    await fireEvent.click(within(recent).getByRole('button', { name: /Next/ }))
+    expect(titles(recent)[0]).toBe('11')
+    expect(within(recent).getByText('Posts 11–20 of 23')).toBeInTheDocument()
+
+    await fireEvent.click(within(recent).getByRole('button', { name: /Next/ }))
+    expect(titles(recent)).toEqual(['21', '22', '23'])
+    expect(within(recent).getByText('Posts 21–23 of 23')).toBeInTheDocument()
+    expect(within(recent).getByRole('button', { name: /Next/ })).toBeDisabled()
+
+    await fireEvent.click(within(recent).getByRole('button', { name: /Previous/ }))
+    expect(titles(recent)[0]).toBe('11')
+  })
+
+  it('has no paging when ten or fewer posts fit on one page', async () => {
+    fakeSources([A])
+    reply(10)
+    await openInspiration()
+    const recent = await section()
+    await within(recent).findByText('Post number 10')
+    expect(within(recent).queryByRole('navigation')).not.toBeInTheDocument()
+  })
+
+  it('goes back to the first page when the period changes', async () => {
+    fakeSources([A])
+    reply(25)
+    await openInspiration()
+    const recent = await section()
+    await within(recent).findByText('Post number 1')
+    await fireEvent.click(within(recent).getByRole('button', { name: /Next/ }))
+    expect(titles(recent)[0]).toBe('11')
+    await fireEvent.update(screen.getByLabelText('Show posts from'), '7')
+    await waitFor(() => expect(titles(recent)[0]).toBe('1'))
+    expect(within(recent).getByText('Posts 1–10 of 25')).toBeInTheDocument()
+  })
+})
+
 describe('recent posts of a feed', () => {
   const posts = (extra = {}) => ({
     items: [

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { RECENT_DAYS_DEFAULT, type Source } from '@lfwa/core'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import ProfileImage from './ProfileImage.vue'
 
@@ -45,6 +45,21 @@ const refresh = useMutation({
   },
 })
 const shown = posts.data
+
+// The server sends up to 100 posts; ten at a time is easier to take in. A new period or a fresh
+// check starts again at the first page.
+const PAGE_SIZE = 10
+const page = ref(1)
+watch([days, () => shown.value], () => (page.value = 1))
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil((shown.value?.posts.length ?? 0) / PAGE_SIZE)),
+)
+const pagePosts = computed(() =>
+  (shown.value?.posts ?? []).slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+)
+const total = computed(() => shown.value?.posts.length ?? 0)
+const first = computed(() => (page.value - 1) * PAGE_SIZE + 1)
+const last = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
 
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -110,7 +125,7 @@ const failedNames = computed(() =>
         </p>
         <ul v-else class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
           <li
-            v-for="post in shown.posts"
+            v-for="post in pagePosts"
             :key="`${post.sourceId}-${post.id}`"
             class="flex gap-3 px-3 py-2"
           >
@@ -141,6 +156,31 @@ const failedNames = computed(() =>
             </div>
           </li>
         </ul>
+        <nav
+          v-if="pageCount > 1"
+          aria-label="Pages of recent posts"
+          class="mt-3 flex items-center justify-between gap-3 text-sm"
+        >
+          <button
+            type="button"
+            class="rounded border border-stone-300 bg-white px-3 py-2 disabled:opacity-40"
+            :disabled="page <= 1"
+            @click="page--"
+          >
+            Previous<span class="sr-only"> ten posts</span>
+          </button>
+          <p aria-live="polite" aria-atomic="true" class="text-stone-700">
+            Posts {{ first }}–{{ last }} of {{ total }}
+          </p>
+          <button
+            type="button"
+            class="rounded border border-stone-300 bg-white px-3 py-2 disabled:opacity-40"
+            :disabled="page >= pageCount"
+            @click="page++"
+          >
+            Next<span class="sr-only"> ten posts</span>
+          </button>
+        </nav>
         <p v-if="shown.omitted" class="mt-2 text-sm text-stone-600">
           {{ shown.omitted }} older {{ shown.omitted === 1 ? 'post' : 'posts' }} in this period
           aren’t shown. Choose a shorter period to see them.

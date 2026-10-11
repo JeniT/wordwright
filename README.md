@@ -136,7 +136,7 @@ tests inject fakes and nothing hits the network.
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
   At the top of the Inspiration page, **Recent posts** is one list of the newest posts from all the feeds, newest
   first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
-  posts twice a year doesn't clutter it. It shows at most 100 posts, counts posts that carry no date (they can't be
+  posts twice a year doesn't clutter it. It shows ten posts at a time (Previous / Next, on the page) out of at most 100, counts posts that carry no date (they can't be
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
   Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
