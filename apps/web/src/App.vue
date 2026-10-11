@@ -41,7 +41,7 @@ function switchProfile(event: Event) {
         aria-label="Main"
       >
         <RouterLink to="/" class="font-serif text-lg font-semibold text-accent">
-          Long-form Writing Assistant
+          Wordwright
         </RouterLink>
 
         <div v-if="session.user" class="flex items-center gap-3 text-sm">

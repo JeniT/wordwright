@@ -31,8 +31,8 @@ const ConfigSchema = z.object({
    * development needs no email provider. `file` writes them to MAIL_OUTBOX_DIR. `smtp` really sends.
    */
   MAIL_TRANSPORT: z.enum(['console', 'file', 'smtp']).default('console'),
-  /** Sender address, e.g. `Long-form Writing Assistant <no-reply@example.com>`. Required for smtp. */
-  MAIL_FROM: z.string().default('Long-form Writing Assistant <no-reply@localhost>'),
+  /** Sender address, e.g. `Wordwright <no-reply@example.com>`. Required for smtp. */
+  MAIL_FROM: z.string().default('Wordwright <no-reply@localhost>'),
   /** e.g. smtps://user:pass@smtp.example.com:465. Required for smtp. Contains credentials: keep it secret. */
   SMTP_URL: z.string().default(''),
   MAIL_OUTBOX_DIR: z.string().default('./data/outbox'),

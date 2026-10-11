@@ -1,4 +1,4 @@
-# Long-form Writing Assistant
+# Wordwright
 
 A web app to support the writer's journey: idea generation, research, argument and outline refinement,
 critique that preserves your voice, and supplementary material (titles, openings, social posts).

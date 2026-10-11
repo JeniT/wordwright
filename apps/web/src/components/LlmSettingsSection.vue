@@ -49,9 +49,9 @@ const removeLlmKey = useMutation({
     </h2>
     <template v-if="props.guide">
       <p class="mb-3 text-sm text-stone-700">
-        The writing assistant uses your own Anthropic account to read and critique your drafts, so
-        the cost of using it is billed to you, not to this service. You'll need to do this once
-        before the assistant can help; it takes a few minutes.
+        Wordwright uses your own Anthropic account to read and critique your drafts, so the cost of
+        using it is billed to you, not to this service. You'll need to do this once before the
+        assistant can help; it takes a few minutes.
       </p>
       <ol class="mb-4 list-decimal space-y-2 pl-5 text-sm text-stone-700">
         <li>

@@ -12,7 +12,7 @@ type Content = Omit<Email, 'to'>
 function layout(bodyHtml: string): string {
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#fbfaf7;font-family:Georgia,'Times New Roman',serif;color:#1f2328;line-height:1.6">
 <div style="max-width:520px;margin:0 auto">${bodyHtml}
-<p style="color:#6b7280;font-size:13px;margin-top:32px">Long-form Writing Assistant</p></div></body></html>`
+<p style="color:#6b7280;font-size:13px;margin-top:32px">Wordwright</p></div></body></html>`
 }
 
 /** Names come from users, so they're escaped before going into HTML. */
@@ -30,13 +30,13 @@ export function passwordResetEmail(input: {
     subject: 'Reset your password',
     text: `Hi ${name},
 
-Someone (hopefully you) asked to reset your Long-form Writing Assistant password. Choose a new one here (the link works once and expires in ${valid}):
+Someone (hopefully you) asked to reset your Wordwright password. Choose a new one here (the link works once and expires in ${valid}):
 
 ${link}
 
 If you didn't ask for this, you can ignore this email; your password won't change.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>Someone (hopefully you) asked to reset your Long-form Writing Assistant password.</p>
+<p>Someone (hopefully you) asked to reset your Wordwright password.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Choose a new password</a></p>
 <p style="font-size:14px">The link works once and expires in ${valid}. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">If you didn't ask for this, you can ignore this email; your password won't change.</p>`),
@@ -58,13 +58,13 @@ export function verifyEmailEmail(input: {
     subject: 'Confirm your email address',
     text: `Hi ${name},
 
-Welcome to Long-form Writing Assistant. Please confirm this is your email address (the link expires in ${ttlHours} hours):
+Welcome to Wordwright. Please confirm this is your email address (the link expires in ${ttlHours} hours):
 
 ${link}
 
 Confirming lets you share profiles with co-writers and keeps your account safe.${cleanup} If you didn't sign up, you can ignore this email.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>Welcome to Long-form Writing Assistant. Please confirm this is your email address.</p>
+<p>Welcome to Wordwright. Please confirm this is your email address.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Confirm my email</a></p>
 <p style="font-size:14px">The link expires in ${ttlHours} hours. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">Confirming lets you share profiles with co-writers and keeps your account safe.${escapeHtml(cleanup)} If you didn't sign up, you can ignore this email.</p>`),
@@ -84,13 +84,13 @@ export function deletionReminderEmail(input: {
     subject: `Your account will be deleted ${when} unless you confirm it`,
     text: `Hi ${name},
 
-You signed up for Long-form Writing Assistant but haven't confirmed your email address or started using the account, so we'll delete it ${when}. To keep it, confirm your address (this link expires in ${ttlHours} hours):
+You signed up for Wordwright but haven't confirmed your email address or started using the account, so we'll delete it ${when}. To keep it, confirm your address (this link expires in ${ttlHours} hours):
 
 ${link}
 
 Or sign in at ${signInLink} and start using it: saving a draft, an idea or your API key also keeps it. If you don't want the account, there is nothing to do. This is the only reminder we'll send.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>You signed up for Long-form Writing Assistant but haven't confirmed your email address or started using the account, so we'll delete it <strong>${escapeHtml(when)}</strong>.</p>
+<p>You signed up for Wordwright but haven't confirmed your email address or started using the account, so we'll delete it <strong>${escapeHtml(when)}</strong>.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Keep my account</a></p>
 <p style="font-size:14px">The link expires in ${ttlHours} hours. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">Or <a href="${escapeHtml(signInLink)}">sign in</a> and start using it: saving a draft, an idea or your API key also keeps it. If you don't want the account, there is nothing to do. This is the only reminder we'll send.</p>`),
@@ -107,7 +107,7 @@ export function invitationEmail(input: {
   const { inviterName, profileName, link, declineLink, ttlDays } = input
   return {
     subject: `${inviterName} invited you to write together`,
-    text: `${inviterName} has invited you to join "${profileName}" on Long-form Writing Assistant, so you can work on pieces together.
+    text: `${inviterName} has invited you to join "${profileName}" on Wordwright, so you can work on pieces together.
 
 Accept the invitation here (you'll sign in or create an account with this email address; the link expires in ${ttlDays} days):
 
@@ -116,7 +116,7 @@ ${link}
 If you weren't expecting this, you can ignore this email and nothing will happen. To decline, or to stop invitations from ${inviterName} or from everyone, use this page:
 
 ${declineLink}`,
-    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(profileName)}</strong> on Long-form Writing Assistant, so you can work on pieces together.</p>
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(profileName)}</strong> on Wordwright, so you can work on pieces together.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Accept the invitation</a></p>
 <p style="font-size:14px">You'll sign in or create an account with this email address. The link expires in ${ttlDays} days. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">If you weren't expecting this, you can ignore this email and nothing will happen. You can also <a href="${escapeHtml(declineLink)}">decline, or stop invitations</a> from ${escapeHtml(inviterName)} or from everyone.</p>`),
@@ -130,11 +130,11 @@ export function passwordChangedEmail(input: { name: string; resetUrl: string }):
     subject: 'Your password was changed',
     text: `Hi ${name},
 
-The password for your Long-form Writing Assistant account was just changed, and any other devices were signed out.
+The password for your Wordwright account was just changed, and any other devices were signed out.
 
 If that was you, there's nothing to do. If it wasn't, reset your password straight away: ${resetUrl}`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>The password for your Long-form Writing Assistant account was just changed, and any other devices were signed out.</p>
+<p>The password for your Wordwright account was just changed, and any other devices were signed out.</p>
 <p>If that was you, there's nothing to do. If it wasn't, <a href="${escapeHtml(resetUrl)}">reset your password straight away</a>.</p>`),
   }
 }
@@ -154,13 +154,13 @@ export function passwordSetupEmail(input: {
     subject: 'Set a password for your account',
     text: `Hi ${name},
 
-You asked to add a password to your Long-form Writing Assistant account, so you can sign in with your email as well as Google. Choose one here (the link works once and expires in ${valid}; you'll be signed out of your devices afterwards):
+You asked to add a password to your Wordwright account, so you can sign in with your email as well as Google. Choose one here (the link works once and expires in ${valid}; you'll be signed out of your devices afterwards):
 
 ${link}
 
 If you didn't ask for this, you can ignore this email.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>You asked to add a password to your Long-form Writing Assistant account, so you can sign in with your email as well as Google.</p>
+<p>You asked to add a password to your Wordwright account, so you can sign in with your email as well as Google.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Choose a password</a></p>
 <p style="font-size:14px">The link works once and expires in ${valid}. You'll be signed out of your devices afterwards. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">If you didn't ask for this, you can ignore this email.</p>`),
@@ -174,13 +174,13 @@ export function changeEmailEmail(input: { name: string; link: string; ttlHours: 
     subject: 'Confirm your new email address',
     text: `Hi ${name},
 
-You asked to use this address for your Long-form Writing Assistant account. Confirm it here (the link expires in ${ttlHours} hours; until then your account keeps its current address):
+You asked to use this address for your Wordwright account. Confirm it here (the link expires in ${ttlHours} hours; until then your account keeps its current address):
 
 ${link}
 
 If you didn't ask for this, you can ignore this email and nothing will change.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>You asked to use this address for your Long-form Writing Assistant account.</p>
+<p>You asked to use this address for your Wordwright account.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Confirm this address</a></p>
 <p style="font-size:14px">The link expires in ${ttlHours} hours; until then your account keeps its current address. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">If you didn't ask for this, you can ignore this email and nothing will change.</p>`),
@@ -202,13 +202,13 @@ export function emailChangedEmail(input: {
     subject: 'Your email address was changed',
     text: `Hi ${name},
 
-The email address for your Long-form Writing Assistant account was just changed to ${newEmail}. You'll sign in with the new address from now on, and we'll send account emails there instead of here.
+The email address for your Wordwright account was just changed to ${newEmail}. You'll sign in with the new address from now on, and we'll send account emails there instead of here.
 
 If that was you, there's nothing to do. If it wasn't, someone knows your password. Within ${undoDays} days you can put this address back, sign everyone out and choose a new password here:
 
 ${undoLink}`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
-<p>The email address for your Long-form Writing Assistant account was just changed to <strong>${escapeHtml(newEmail)}</strong>. You'll sign in with the new address from now on, and we'll send account emails there instead of here.</p>
+<p>The email address for your Wordwright account was just changed to <strong>${escapeHtml(newEmail)}</strong>. You'll sign in with the new address from now on, and we'll send account emails there instead of here.</p>
 <p>If that was you, there's nothing to do. If it wasn't, someone knows your password. Within ${undoDays} days you can put this address back, sign everyone out and choose a new password.</p>
 <p><a href="${escapeHtml(undoLink)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">This wasn't me</a></p>
 <p style="font-size:14px">If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(undoLink)}</span></p>`),

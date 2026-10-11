@@ -100,7 +100,7 @@ describe('HttpPageInfoFetcher', () => {
     requests.length = 0
     await create().fetchInfo(at('/titled'))
     const headers = requests[0]!.headers
-    expect(headers['user-agent']).toMatch(/LongFormWritingAssistant/)
+    expect(headers['user-agent']).toMatch(/Wordwright/)
     expect(headers['accept-encoding']).toBe('identity')
     expect(headers.cookie).toBeUndefined()
     expect(headers.authorization).toBeUndefined()

@@ -36,7 +36,7 @@ interface Response {
 }
 type NotModified = { notModified: true }
 
-const USER_AGENT = 'LongFormWritingAssistant/1.0 (feed reader)'
+const USER_AGENT = 'Wordwright/1.0 (feed reader)'
 
 /**
  * Reads feeds over HTTP(S) with `node:http(s)`, so no dependency is needed for the one thing that

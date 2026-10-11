@@ -116,7 +116,7 @@ export class HttpPageInfoFetcher implements PageInfoFetcher {
           lookup: this.safeLookup,
           // No cookies or credentials are ever sent, and compression is off so the size cap is real.
           headers: {
-            'user-agent': 'LongFormWritingAssistant/1.0 (reads page titles for saved links)',
+            'user-agent': 'Wordwright/1.0 (reads page titles for saved links)',
             accept: 'text/html,application/xhtml+xml',
             'accept-encoding': 'identity',
           },

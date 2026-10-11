@@ -55,7 +55,7 @@ test('creates a profile with a website and picture, and opens its page', async (
   await noViolations(page)
 
   // And it appears on the list.
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
   const card = page.getByRole('main').getByRole('link', { name: /My Substack/ })
   await expect(card).toContainText('pat.substack.com')
   await expect(card.locator('img')).toBeVisible()
@@ -169,7 +169,7 @@ test('changes the display name, which is then used wherever it is shown', async 
   await expect(page.getByRole('link', { name: `${who} Reed`, exact: true })).toBeVisible()
   await page.reload()
   await expect(field).toHaveValue(`${who} Reed`)
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
   await page
     .getByRole('main')
     .getByRole('link', { name: /Remy venue/ })
@@ -206,7 +206,7 @@ test('changes the username: existing profiles keep their address, new ones use i
   await expect(section).toContainText(`Your username is now ${after}`)
 
   // The profile made earlier keeps its address; a new one starts with the new username.
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
   await expect(page.getByRole('main').getByRole('link', { name: /First venue/ })).toHaveAttribute(
     'href',
     `/p/${before}-first-venue`,

@@ -34,7 +34,7 @@ const justConnected = ref(false)
     <LlmSettingsSection guide @saved="justConnected = true" />
   </div>
   <p v-else-if="justConnected" role="status" class="mb-6 rounded bg-stone-100 p-3 text-sm">
-    Your Anthropic key is saved. The writing assistant is ready to use.
+    Your Anthropic key is saved. Wordwright is ready to use.
   </p>
 
   <section aria-labelledby="profiles-heading">

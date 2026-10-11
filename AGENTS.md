@@ -1,6 +1,6 @@
 # Start here
 
-**Long-form Writing Assistant**: a web app that supports a writer's whole journey: finding ideas, researching
+**Wordwright**: a web app that supports a writer's whole journey: finding ideas, researching
 sources, shaping an argument and outline, critiquing drafts _without losing the author's voice_, and generating
 titles/openings/social posts. Users bring their own LLM API key; the service has no server-wide LLM key.
 

@@ -26,7 +26,7 @@ async function createFirstProfile(page: Page, name: string) {
   await page.getByLabel('Name', { exact: true }).fill(`${name}'s writing`)
   await page.getByRole('button', { name: 'Create profile' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
   await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
 }
 
@@ -54,7 +54,7 @@ async function openFirstProfile(page: Page) {
 
 /** The first profile's settings page, where it is shared. */
 async function openSettings(page: Page) {
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstProfile(page)
   await page.getByRole('link', { name: 'Settings' }).click()
   await expect(page.getByRole('heading', { name: 'Profile settings' })).toBeVisible()
@@ -127,7 +127,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   ).toBeVisible()
   await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "Replace…"
 
-  await page.getByRole('link', { name: 'Long-form Writing Assistant' }).click()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstProfile(page)
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await page.getByRole('link', { name: 'Why rivers meander' }).click()
