@@ -138,7 +138,7 @@ the paragraph gets a 3px edge in the highlighter colour (the text itself is not 
 and a small numbered button (`btn btn-sm btn-icon critique-mark`, named "Critique point 2") at the end of its last line.
 The number is the point's rank. The one being looked at has the accent edge and an outline, and `aria-current`.
 Pressing a mark opens its comment in the **Comments** tab beside the draft (the drawer, on a phone), and pressing a
-comment shows its paragraph in the draft (a drawer gets out of the way first): there is no separate "show" button. The
+comment shows its paragraph in the draft (a drawer gets out of the way first): there is no separate "show" button. Showing one scrolls the draft so the paragraph is at the top of the window and the comments so the comment is at the top of their area, side by side (`lib/scroll.ts`; smooth unless the person prefers less motion). To make that possible for the last paragraph and comment, the page and the comments area get spare room below their end while comments are showing. The
 number is the point's rank. Marks are ProseMirror decorations (`lib/critique-marks.ts`): they are drawn, never saved, and never in
 `getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A point
 whose paragraph has been rewritten loses its mark and moves to "This passage has changed" in the panel.

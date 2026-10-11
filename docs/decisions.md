@@ -1127,7 +1127,11 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   itself the button that shows that paragraph in the draft; a mark in the text opens its comment. Asking for a
   critique switches to Comments (and, on a phone, opens the drawer when the answer or the error arrives), so the
   result is never hidden. All three panels stay mounted and only hidden, so a half-written note survives a tab
-  change. The tab shows how many comments are open. Streaming the critique was dropped: a spinner is enough.
+  change. The tab shows how many comments are open. Showing a comment (#109) scrolls explicitly rather than leaving it to the editor's own
+  cursor scrolling, which only brings the cursor into view (at the bottom, if it was below): the paragraph goes to the
+  top of the window and the comment to the top of the comments area. A page cannot scroll past its end, so while
+  comments are showing the draft gets spare room below it (60vh), and the comments area gets the same below its last
+  comment when there are several. Streaming the critique was dropped: a spinner is enough.
 - **Rung 3, as before.** What leaves the system is the draft's title and body, to the writer's own provider with
   their own key. Rounds are capped per draft (below).
 - **Evals.** The two critique cases that targeted #45 ("short and ranked", "says when ready") are now `current`; all

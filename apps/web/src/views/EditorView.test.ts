@@ -153,6 +153,33 @@ describe('EditorView critique', () => {
     expect(document.querySelector('.critique-block.is-active')).not.toBeNull()
   })
 
+  it('scrolls the paragraph to the top of the page and the comment to the top of its area when a comment is pressed', async () => {
+    const pageScroll = vi.fn()
+    vi.stubGlobal('scrollTo', pageScroll)
+    const areaScroll = vi.fn()
+    Element.prototype.scrollTo = areaScroll as never
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    await fireEvent.click(await screen.findByRole('button', { name: /Tighten the opening/ }))
+    await waitFor(() => expect(pageScroll).toHaveBeenCalled())
+    expect(areaScroll).toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('does the same when a mark in the text is pressed', async () => {
+    const pageScroll = vi.fn()
+    vi.stubGlobal('scrollTo', pageScroll)
+    const areaScroll = vi.fn()
+    Element.prototype.scrollTo = areaScroll as never
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
+    await waitFor(() => expect(pageScroll).toHaveBeenCalled())
+    await waitFor(() => expect(areaScroll).toHaveBeenCalled())
+    vi.unstubAllGlobals()
+  })
+
   it('counts the open comments on the tab, and the count follows what is set aside', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1'), pointOn('p2')]))
     await renderAt('/p/p1/drafts/d1')

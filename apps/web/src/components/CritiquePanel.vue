@@ -3,6 +3,7 @@ import { computed, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { CritiqueRound } from '@lfwa/core'
 import { ApiError, errorMessage } from '../lib/api'
+import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
 
 /**
  * The comments on the draft: the latest critique's summary, then its points in order of importance. Pressing a
@@ -37,18 +38,23 @@ const changed = computed(() =>
 )
 const setAside = computed(() => entries.value.filter((p) => p.dismissed))
 
-/** Moves the reader to a comment in the list (a mark in the text was pressed). */
-async function focusPoint(id: string) {
+/**
+ * Scrolls the comments so this one is at the top of their area, and (unless `focus` is false) moves focus to it,
+ * without letting the focus scroll the page: where the paragraph goes is up to the draft.
+ */
+async function focusPoint(id: string, { focus = true } = {}) {
   await nextTick()
   const el = document.getElementById(`critique-point-${id}`)
-  el?.scrollIntoView?.({ block: 'nearest' })
-  el?.focus()
+  if (!el) return
+  scrollAreaToTop(el, scrollAreaOf(el))
+  if (focus) el.focus({ preventScroll: true })
 }
 defineExpose({ focusPoint })
 </script>
 
 <template>
-  <section aria-labelledby="critique-heading">
+  <!-- With several comments, room below the last so that it too can scroll to the top of the area. -->
+  <section aria-labelledby="critique-heading" :class="open.length > 1 ? 'pb-[70vh]' : ''">
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="critique-heading" class="sr-only">Comments</h2>
     <p v-if="pending" role="status">Reading your draft…</p>

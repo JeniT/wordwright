@@ -246,11 +246,13 @@ async function pickPoint(id: string) {
   activePointId.value = id
   sideTab.value = 'comments'
   if (!sideIsBeside() && !notesOpen.value) await openNotes()
-  void critiquePanel.value?.focusPoint(id)
+  void critiquePanel.value?.focusPoint(id) // the comment to the top of its area...
+  editor.value?.scrollToPoint(id) // ...and its paragraph to the top of the page, side by side
 }
 /** A comment was pressed: show its paragraph in the draft (a drawer gets out of the way first). */
 async function showInDraft(id: string) {
   activePointId.value = id
+  void critiquePanel.value?.focusPoint(id, { focus: false })
   if (notesOpen.value) await closeNotes()
   editor.value?.focusPoint(id)
 }
@@ -266,7 +268,8 @@ async function requestCritique() {
   <p v-if="draft.isPending.value">Loading…</p>
   <p v-else-if="draft.isError.value" role="alert" class="text-danger">Couldn't load this draft.</p>
   <div v-else class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
-    <article class="min-w-0 max-w-2xl">
+    <!-- With comments marked in the text, room below the end so that even the last paragraph can scroll to the top. -->
+    <article class="min-w-0 max-w-2xl" :class="markPoints.length ? 'pb-[60vh]' : ''">
       <p v-if="draft.data.value?.ideaId" class="mb-4 text-sm">
         <RouterLink
           :to="{
@@ -365,6 +368,7 @@ async function requestCritique() {
     <aside
       v-if="draft.data.value?.ideaId"
       id="draft-notes"
+      data-side-scroll
       aria-labelledby="draft-side-heading"
       class="mt-8 lg:sticky lg:top-4 lg:mt-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:mt-0 max-lg:w-[min(22rem,90vw)] max-lg:overflow-y-auto max-lg:bg-sunken max-lg:p-4 max-lg:shadow-xl max-lg:transition-[transform,visibility] motion-reduce:transition-none"
       :class="notesOpen ? '' : 'max-lg:invisible max-lg:translate-x-full'"

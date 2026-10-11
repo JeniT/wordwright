@@ -56,3 +56,23 @@ describe('LLM factories', () => {
     })
   })
 })
+
+describe('the pretend editor', () => {
+  const ask = async (body: string) =>
+    JSON.parse(
+      await fakeLlmFactory({ provider: 'anthropic', apiKey: 'k', model: 'm' }).complete({
+        messages: [{ role: 'user', content: body }],
+      }),
+    )
+
+  it('points at the opening only, for a short draft', async () => {
+    const reply = await ask('# T\n\n[b1] One.\n\n[b2] Two.')
+    expect(reply.points.map((p: { block: string }) => p.block)).toEqual(['b1'])
+  })
+
+  it('also points at the last paragraph of a long one, so a comment far down the page can be tried', async () => {
+    const blocks = Array.from({ length: 8 }, (_, i) => `[b${i + 1}] Paragraph ${i + 1}.`)
+    const reply = await ask(`# T\n\n${blocks.join('\n\n')}`)
+    expect(reply.points.map((p: { block: string }) => p.block)).toEqual(['b1', 'b8'])
+  })
+})

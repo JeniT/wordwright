@@ -11,6 +11,7 @@ import {
   type CritiqueMarkStorage,
 } from '../lib/critique-marks'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
+import { scrollPageToTop } from '../lib/scroll'
 
 const model = defineModel<string>({ required: true })
 const props = defineProps<{
@@ -120,21 +121,34 @@ function insertInlineMarkdown(markdown: string): boolean {
   if (!inline) return false
   return e.chain().focus().insertContent(inline).run()
 }
-/** Puts the cursor at the paragraph a critique point is about, and scrolls to it. False if it is not in the text now. */
-function focusPoint(id: string): boolean {
+/** The paragraph (or heading...) a critique point is about, if it is in the text now. */
+function pointElement(id: string): HTMLElement | null {
   const e = editor.value
   const pos = (
     e?.storage as unknown as { critiqueMarks: CritiqueMarkStorage } | undefined
   )?.critiqueMarks.positions.get(id)
-  if (!e || pos === undefined) return false
-  return e
-    .chain()
-    .focus()
-    .setTextSelection(pos + 1)
-    .scrollIntoView()
-    .run()
+  if (!e || pos === undefined) return null
+  const dom = e.view.nodeDOM(pos)
+  return dom instanceof HTMLElement ? dom : null
 }
-defineExpose({ insertMarkdown, insertInlineMarkdown, focusPoint })
+/** Scrolls the page so the paragraph a critique point is about is at the top. False if it is not in the text now. */
+function scrollToPoint(id: string): boolean {
+  const el = pointElement(id)
+  if (el) scrollPageToTop(el)
+  return !!el
+}
+/** Puts the cursor at that paragraph and scrolls it to the top. False if it is not in the text now. */
+function focusPoint(id: string): boolean {
+  const e = editor.value
+  const el = pointElement(id)
+  if (!e || !el) return false
+  // The scrolling is ours (to the top), not the editor's own (which only brings the cursor into view).
+  const pos = e.view.posAtDOM(el, 0)
+  e.chain().focus(null, { scrollIntoView: false }).setTextSelection(pos).run()
+  scrollPageToTop(el)
+  return true
+}
+defineExpose({ insertMarkdown, insertInlineMarkdown, focusPoint, scrollToPoint })
 
 // The marks are redrawn when the points or the one being looked at change, not only when the text does.
 watch(

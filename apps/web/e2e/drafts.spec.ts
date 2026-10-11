@@ -100,6 +100,7 @@ test('redirects signed-out visitors to sign in', async ({ page }) => {
 })
 
 test('register, write, save and request a critique', async ({ page }) => {
+  test.setTimeout(90_000) // a long flow: a long draft, a critique, the limit, a phone
   await registerUser(page)
   await openFirstProfile(page)
 
@@ -111,7 +112,16 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
   await page.getByLabel('Title', { exact: true }).fill('Why rivers meander')
-  await page.getByRole('textbox', { name: 'Draft body' }).fill('Rivers rarely flow straight.')
+  // A long draft, so that a paragraph at its end is well off the bottom of the page.
+  const bodyBox = page.getByRole('textbox', { name: 'Draft body' })
+  await bodyBox.click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  for (let i = 2; i <= 14; i++) {
+    await page.keyboard.press('Enter')
+    await page.keyboard.type(`Paragraph ${i} of the draft, which says something about meanders.`)
+  }
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('The very last paragraph.')
 
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
@@ -154,6 +164,22 @@ test('register, write, save and request a critique', async ({ page }) => {
     expect((await new AxeBuilder({ page }).analyze()).violations, tab).toEqual([])
   }
 
+  // The comment about the last paragraph is far down the page. Pressing it puts that paragraph at the top of the
+  // window, and the comment at the top of its area, side by side.
+  const ending = side.getByRole('button', { name: /the ending could land harder/ })
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await ending.click()
+  const last = page
+    .getByRole('textbox', { name: 'Draft body' })
+    .getByText('The very last paragraph.')
+  await expect.poll(async () => (await last.boundingBox())?.y ?? 9999).toBeLessThan(120)
+  await expect.poll(async () => (await last.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(0)
+  await expect
+    .poll(async () =>
+      Math.abs(((await ending.boundingBox())?.y ?? 9999) - (await last.boundingBox())!.y),
+    )
+    .toBeLessThan(120)
+
   // Pressing the mark opens its comment; pressing a comment shows its paragraph, with no separate button.
   await side.getByRole('tab', { name: 'Notes' }).click()
   await mark.click()
@@ -181,7 +207,10 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
   // The writer can set a point aside, and bring it back.
-  await page.getByRole('button', { name: /^Set aside/ }).click()
+  await page
+    .getByRole('button', { name: /^Set aside/ })
+    .first()
+    .click()
   await expect(page.getByText('Set aside (1)')).toBeVisible()
   await page.getByText('Set aside (1)').click()
   await page.getByRole('button', { name: /^Bring back/ }).click()
@@ -195,9 +224,14 @@ test('register, write, save and request a critique', async ({ page }) => {
     .getByRole('region', { name: 'Critiques of a draft' })
     .getByRole('button', { name: 'Save' })
     .click()
-  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Critiques of a draft' }).getByText('Saved', { exact: true }),
+  ).toBeVisible()
   await page.goBack()
-  await expect(page.getByText(/You have had your 1 look at this draft/)).toBeVisible()
+  // The page reloads on the way back, which can be slow on a busy machine.
+  await expect(page.getByText(/You have had your 1 look at this draft/)).toBeVisible({
+    timeout: 20_000,
+  })
   await expect(page.getByRole('button', { name: 'Critique', exact: true })).toBeDisabled()
   await expect(page.getByRole('link', { name: 'publish it' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
