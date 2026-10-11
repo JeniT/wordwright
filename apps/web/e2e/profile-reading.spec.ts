@@ -63,7 +63,7 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await noViolations(page, 'profile reading page')
 
   // The list has no limit, and unkept items go after a month: a tick keeps one.
-  await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
+  await page.getByRole('link', { name: /Back to the reading list/ }).click()
   await expect(page.getByText(/There is no limit to the list/)).toBeVisible()
   await page.getByRole('checkbox', { name: /^Show read items/ }).check() // taking notes marked it read
   const keep = page.getByRole('checkbox', { name: /^Keep: Fake title for example\.org/ })
@@ -194,7 +194,7 @@ test('moves reading items, with their notes, between the profile and an idea, an
   page,
 }) => {
   await signUpWithProfile(page)
-  await page.getByRole('link', { name: 'Reading list' }).click()
+  await goTo(page, 'Inspiration')
   const address = page.getByLabel('Web address', { exact: true })
   for (const url of ['example.org/rivers', 'example.com/lakes']) {
     await address.fill(url)
@@ -209,7 +209,7 @@ test('moves reading items, with their notes, between the profile and an idea, an
   await page.getByLabel('Add a note from this page').fill('Rivers tire of straight lines.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Rivers tire of straight lines.')).toBeVisible()
-  await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
+  await page.getByRole('link', { name: /Back to the reading list/ }).click()
   await page.getByRole('checkbox', { name: /^Show read items/ }).check()
 
   // Move both to a new idea. The note goes with its item, and the message says what moved.
@@ -224,14 +224,15 @@ test('moves reading items, with their notes, between the profile and an idea, an
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
 
   // They are on the idea, with the note.
-  await page.getByRole('link', { name: /^← Gathering/ }).click()
+  await goTo(page, 'Ideas')
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await goTo(page, 'Notes')
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
+  await goTo(page, 'Research')
   await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Fake title for example\.com/ })).toBeVisible()
-  const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
 
   // And one goes back to the profile's own list, then back again with Undo.
   await page.getByRole('button', { name: 'Move items' }).click()

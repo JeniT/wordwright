@@ -482,7 +482,9 @@ describe('moving reading items', () => {
     await tick('A paper')
     await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('An idea can have up to 50 links')
+    expect(
+      await within(screen.getByRole('region', { name: 'Reading list' })).findByRole('alert'),
+    ).toHaveTextContent('An idea can have up to 50 links')
     expect(screen.getByRole('checkbox', { name: 'Select to move: A paper' })).toBeChecked()
     expect(screen.getByLabelText('Move to')).toHaveValue('i1')
   })

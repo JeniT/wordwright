@@ -83,7 +83,7 @@ describe('reading page', () => {
       http.get('*/api/profiles', () => HttpResponse.json([profile])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
-    await renderAt('/p/ada-substack/ideas/i1')
+    await renderAt('/p/ada-substack/ideas/i1/research')
     expect(await screen.findAllByRole('link', { name: 'Take notes' })).toHaveLength(2)
     expect(screen.queryByRole('checkbox', { name: /^Keep:/ })).not.toBeInTheDocument()
   })
@@ -110,7 +110,7 @@ describe('reading page', () => {
         return HttpResponse.json({ batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 })
       }),
     )
-    await renderAt('/p/ada-substack/ideas/i1')
+    await renderAt('/p/ada-substack/ideas/i1/research')
     await fireEvent.click(await screen.findByRole('button', { name: 'Move items' }))
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select to move: A paper' }))
     const picker = await screen.findByLabelText('Move to')
