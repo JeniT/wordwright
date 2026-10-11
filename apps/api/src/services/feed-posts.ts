@@ -16,12 +16,26 @@ const fail = (status: 400 | 404 | 409, message: string) => new HTTPException(sta
  * someone, or still new. Looked up by address, so the same post in two feeds is one thing.
  */
 export function postStatuses(store: Store, profileId: string): (url: string) => PostStatus {
+  const states = postStates(store, profileId)
+  return (url) => states(url).status
+}
+
+/** A post's status, and when it was decided (when ignored, or when the item went on a list; null while new). */
+export function postStates(
+  store: Store,
+  profileId: string,
+): (url: string) => { status: PostStatus; decidedAt: string | null } {
   const ignored = store.feedDecisions.ignored(profileId)
-  const listed = new Set(store.reading.urls(profileId).map(linkKey))
+  const listed = new Map<string, string>() // the latest time an item with this address was put on a list
+  for (const { url, createdAt } of store.reading.addresses(profileId)) {
+    const key = linkKey(url)
+    if (!listed.has(key) || createdAt > listed.get(key)!) listed.set(key, createdAt)
+  }
   return (url) => {
     const key = linkKey(url)
-    if (listed.has(key)) return 'added'
-    return ignored.has(key) ? 'ignored' : 'new'
+    if (listed.has(key)) return { status: 'added', decidedAt: listed.get(key)! }
+    if (ignored.has(key)) return { status: 'ignored', decidedAt: ignored.get(key)! }
+    return { status: 'new', decidedAt: null }
   }
 }
 

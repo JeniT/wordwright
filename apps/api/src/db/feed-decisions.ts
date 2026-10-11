@@ -5,12 +5,13 @@ import { nowIso } from './database'
 export class FeedDecisionStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  ignored(profileId: string): Set<string> {
-    return new Set(
+  /** The address key of each ignored post, with when it was ignored. */
+  ignored(profileId: string): Map<string, string> {
+    return new Map(
       this.db
-        .prepare('SELECT post_key FROM feed_post_ignores WHERE profile_id = ?')
+        .prepare('SELECT post_key, ignored_at FROM feed_post_ignores WHERE profile_id = ?')
         .all(profileId)
-        .map((r) => r.post_key as string),
+        .map((r) => [r.post_key as string, r.ignored_at as string] as const),
     )
   }
 

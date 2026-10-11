@@ -57,12 +57,12 @@ export class ReadingStore {
     return row && toLink(row)
   }
 
-  /** Every item's address in the profile, wherever it is (the profile's own list or any idea's). */
-  urls(profileId: string): string[] {
+  /** Every item's address in the profile, wherever it is (the profile's own list or any idea's), and when it was put there. */
+  addresses(profileId: string): { url: string; createdAt: string }[] {
     return this.db
-      .prepare('SELECT url FROM idea_links WHERE profile_id = ?')
+      .prepare('SELECT url, created_at FROM idea_links WHERE profile_id = ?')
       .all(profileId)
-      .map((r) => r.url as string)
+      .map((r) => ({ url: r.url as string, createdAt: r.created_at as string }))
   }
 
   /**

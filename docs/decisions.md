@@ -683,7 +683,10 @@ lists themselves, so a post added by hand, or since moved to an idea, shows as a
 hand is offered again. Reconsidering an add takes the profile-level item off (notes taken from it stay but lose their
 link to it, as when any item is removed); if the post is only on an idea's list, that has to be taken off there. Adding
 several at once is all or nothing, the profile's list has the same limit as an idea's, and a post already on a list
-refuses the add with the reason. Posts are shown in date order only, as before: nothing ranks them.
+refuses the add with the reason. Posts still waiting are shown in date order only, as before: nothing ranks them. A post that has been added or
+ignored goes to the **end** of the list (the server sorts, so the cap and the pages see the same order), after every
+post still waiting, and decided posts follow in the order they were decided (an ignore's time, or when the item went on a
+list), so the latest decision is last. Deciding keeps you on the same page, where the next waiting post takes its place.
 
 Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then

@@ -10,7 +10,7 @@ import {
 } from '@lfwa/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { SourceFetch } from '../db/sources'
-import { postStatuses } from './feed-posts'
+import { postStates } from './feed-posts'
 import type { Store } from '../db/store'
 
 const MINUTE = 60_000
@@ -99,9 +99,9 @@ export class FeedItemService {
       )
     }
 
-    const status = postStatuses(this.store, profileId)
+    const state = postStates(this.store, profileId)
     const seen = new Set<string>()
-    const posts: RecentPosts['posts'] = []
+    const posts: { post: RecentPosts['posts'][number]; decidedAt: string | null }[] = []
     let undated = 0
     for (const { source, result } of read) {
       if (!result) {
@@ -116,16 +116,22 @@ export class FeedItemService {
         if (!item.publishedAt || Number.isNaN(Date.parse(item.publishedAt))) {
           undated++
         } else if (Date.parse(item.publishedAt) >= since) {
-          posts.push({ ...item, sourceId: source.id, status: status(item.url) })
+          const { status, decidedAt } = state(item.url)
+          posts.push({ post: { ...item, sourceId: source.id, status }, decidedAt })
         }
       }
     }
-    // Stable, so posts with the same time stay in feed-priority order.
-    posts.sort((a, b) => Date.parse(b.publishedAt!) - Date.parse(a.publishedAt!))
+    // Posts still waiting come first, newest first (stable, so equal times stay in feed-priority order). Those that
+    // were added or ignored follow, in the order they were decided, so the latest decision is last.
+    const waiting = posts.filter((p) => p.decidedAt === null)
+    const decided = posts.filter((p) => p.decidedAt !== null)
+    waiting.sort((a, b) => Date.parse(b.post.publishedAt!) - Date.parse(a.post.publishedAt!))
+    decided.sort((a, b) => a.decidedAt!.localeCompare(b.decidedAt!))
+    const ordered = [...waiting, ...decided].map((p) => p.post)
     return {
       days,
-      posts: posts.slice(0, MAX_RECENT_POSTS),
-      omitted: Math.max(0, posts.length - MAX_RECENT_POSTS),
+      posts: ordered.slice(0, MAX_RECENT_POSTS),
+      omitted: Math.max(0, ordered.length - MAX_RECENT_POSTS),
       undated,
       failed,
     }

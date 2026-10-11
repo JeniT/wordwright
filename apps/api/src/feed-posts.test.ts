@@ -78,6 +78,49 @@ describe('deciding about posts from the feeds', () => {
     expect(await statuses()).toEqual({ a1: 'added', a2: 'new', b1: 'new' })
   })
 
+  describe('the order of the list', () => {
+    const order = async () => (await recent()).map((p) => p.id)
+    const later = () => new Promise((resolve) => setTimeout(resolve, 5)) // decisions are told apart by their time
+
+    it('has waiting posts newest first, then the decided ones', async () => {
+      expect(await order()).toEqual(['a1', 'a2', 'b1'])
+    })
+
+    it('moves a post to the end when it is added, and when it is ignored', async () => {
+      await decide('add', [ref(A, 'a1')])
+      expect(await order()).toEqual(['a2', 'b1', 'a1'])
+      await later()
+      await decide('ignore', [ref(A, 'a2')])
+      // b1 is the only one still waiting; the others follow in the order they were decided.
+      expect(await order()).toEqual(['b1', 'a1', 'a2'])
+    })
+
+    it('puts the latest decision last, and keeps the waiting posts in date order', async () => {
+      await decide('ignore', [ref(B, 'b1')])
+      await later()
+      await decide('add', [ref(A, 'a2')])
+      await later()
+      await decide('ignore', [ref(A, 'a1')])
+      expect(await order()).toEqual(['b1', 'a2', 'a1'])
+      expect((await recent()).map((p) => p.status)).toEqual(['ignored', 'added', 'ignored'])
+    })
+
+    it('counts a post put on a list by hand as decided then, and puts it at the end too', async () => {
+      await ada.post(`${api}/reading`, { url: 'https://x.example/a1', title: 'By hand' })
+      expect(await order()).toEqual(['a2', 'b1', 'a1'])
+    })
+
+    it('puts a post back where its date puts it when it is reconsidered', async () => {
+      await decide('add', [ref(A, 'a1')])
+      await later()
+      await decide('ignore', [ref(A, 'a2')])
+      expect(await order()).toEqual(['b1', 'a1', 'a2'])
+      await decide('reconsider', [ref(A, 'a1')])
+      await decide('reconsider', [ref(A, 'a2')])
+      expect(await order()).toEqual(['a1', 'a2', 'b1'])
+    })
+  })
+
   it('reads nothing from the internet to do so', async () => {
     const before = fetcher.itemsRead.length
     await decide('add', [ref(A, 'a1')])

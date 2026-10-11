@@ -42,18 +42,27 @@ const refresh = useMutation({
   mutationFn: () => api.recentPosts(props.profileId, days.value, true),
   onSuccess: (fresh) => {
     queryClient.setQueryData(['recent-posts', props.profileId, days.value, feedKey.value], fresh)
+    page.value = 1
     queryClient.invalidateQueries({ queryKey: ['sources'] }) // each feed's "last worked" may have changed
   },
 })
 const shown = posts.data
 
 // The server sends up to 100 posts; five at a time is easier to take in. A new period or a fresh
-// check starts again at the first page.
+// check starts again at the first page; deciding about a post doesn't: the post goes to the end, and the next one
+// waiting takes its place.
 const PAGE_SIZE = 5
 const page = ref(1)
-watch([days, () => shown.value], () => (page.value = 1))
+watch(days, () => (page.value = 1))
 const pageCount = computed(() =>
   Math.max(1, Math.ceil((shown.value?.posts.length ?? 0) / PAGE_SIZE)),
+)
+// If the list gets shorter (a post was reconsidered, or the feeds changed), don't be left past its end.
+watch(
+  () => pageCount.value,
+  (count) => {
+    if (page.value > count) page.value = count
+  },
 )
 const pagePosts = computed(() =>
   (shown.value?.posts ?? []).slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),

@@ -563,6 +563,43 @@ describe('deciding about the recent posts', () => {
     ).toBeInTheDocument()
   })
 
+  it('moves a post to the end of the list when it is decided, and stays on the same page', async () => {
+    fakeSources([A])
+    // The server puts decided posts last; the fake does the same.
+    const state = fake(
+      Array.from({ length: 8 }, (_, i) => post(`p${i + 1}`, `Post number ${i + 1}`)),
+    )
+    server.use(
+      http.get('*/api/profiles/:id/sources/recent', () => {
+        const waiting = state.posts.filter((p) => p.status === 'new')
+        const decided = state.posts.filter((p) => p.status !== 'new')
+        return HttpResponse.json({
+          days: 30,
+          posts: [...waiting, ...decided],
+          omitted: 0,
+          undated: 0,
+          failed: [],
+        })
+      }),
+    )
+    await openInspiration()
+    const recent = await section()
+    const titles = () =>
+      within(recent)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent!.match(/Post number (\d)/)![1])
+    await within(recent).findByText('Post number 1')
+    await fireEvent.click(within(recent).getAllByRole('button', { name: /Next/ })[0]!)
+    expect(titles()).toEqual(['6', '7', '8'])
+
+    await fireEvent.click(within(recent).getByRole('button', { name: 'Ignore: Post number 7' }))
+    // Post 7 went to the end, behind the one still waiting; we are still looking at the same page.
+    await waitFor(() => expect(titles()).toEqual(['6', '8', '7']))
+    expect(within(recent).getAllByText('Posts 6–8 of 8')).toHaveLength(2)
+    await fireEvent.click(within(recent).getAllByRole('button', { name: /Previous/ })[0]!)
+    expect(titles()).toEqual(['1', '2', '3', '4', '5'])
+  })
+
   it('takes an add back, with Reconsider, so the post is waiting again', async () => {
     fakeSources([A])
     fake([post('p1', 'First post', 'added')])

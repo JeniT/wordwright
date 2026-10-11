@@ -165,7 +165,9 @@ tests inject fakes and nothing hits the network.
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
   Each post has **Add** and **Ignore** (as in the research review): Add puts it on the profile's reading list
   (marked "From a feed"; `POST …/sources/recent/add`, `…/ignore`, `…/reconsider`, each `{posts: [{sourceId, postId}]}`);
-  an ignored post stays in the list, marked, and **Reconsider** takes either back. A post is "on a reading list" if it
+  an ignored post stays in the list, marked, and **Reconsider** takes either back. A post that has been added or
+  ignored moves to the **end** of the list (the latest decision last), so the posts still waiting stay together at
+  the top, in date order. A post is "on a reading list" if it
   is on any of the profile's lists, however it got there. The profile's **Reading list** page has an **Add to reading
   list** button that goes there.
   Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,

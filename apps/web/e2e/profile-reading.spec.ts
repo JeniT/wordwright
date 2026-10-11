@@ -137,3 +137,35 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
   await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
   await expect(recent.getByRole('button', { name: `Ignore: ${title}` })).toBeVisible()
 })
+
+test('a post that is added or ignored moves to the end of the recent posts', async ({ page }) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'Inspiration' }).click()
+  const feeds = page.getByRole('region', { name: 'Feeds' })
+  for (const feed of ['one.example/feed', 'two.example/feed', 'three.example/feed']) {
+    await feeds.getByLabel('Add a feed').fill(feed)
+    await feeds.getByRole('button', { name: 'Add source' }).click()
+    await expect(
+      feeds.getByRole('listitem').filter({ hasText: `Feed of ${feed.split('/')[0]}` }),
+    ).toBeVisible()
+  }
+  const recent = page.getByRole('region', { name: 'Recent posts' })
+  const rows = recent.getByRole('listitem')
+  await expect(rows).toHaveCount(3)
+
+  // Whichever is on top is dealt with, and goes to the bottom, with the others still waiting above it.
+  const first = (await rows.first().innerText()).match(/A post in Feed of (\w+)\.example/)![1]!
+  await recent
+    .getByRole('button', { name: new RegExp(`^Add to the reading list: .*${first}`) })
+    .click()
+  await expect(rows.last()).toContainText(`A post in Feed of ${first}.example`)
+  await expect(rows.last()).toContainText('on a reading list')
+  await expect(rows.first()).not.toContainText(first)
+
+  // The next one ignored goes to the very end, after the one added.
+  const next = (await rows.first().innerText()).match(/A post in Feed of (\w+)\.example/)![1]!
+  await recent.getByRole('button', { name: new RegExp(`^Ignore: .*${next}`) }).click()
+  await expect(rows.last()).toContainText(`A post in Feed of ${next}.example`)
+  await expect(rows.last()).toContainText('ignored')
+  await expect(rows.nth(1)).toContainText(first)
+})
