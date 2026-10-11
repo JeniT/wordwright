@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useMutation, useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
-import { errorMessage } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import { useMove } from '../lib/move'
 import { useReadingList } from '../lib/reading'
 import IdeaLinkItem from './IdeaLinkItem.vue'
 import TextField from './TextField.vue'
@@ -40,6 +42,71 @@ const shown = computed(() =>
 )
 /** Read items that are out of sight right now. */
 const hiddenCount = computed(() => (list.links.value?.length ?? 0) - shown.value.length)
+
+// ---- moving items between the profile's own list and its ideas
+const ideas = useQuery({
+  queryKey: ['ideas', () => props.profileId],
+  queryFn: () => api.listIdeas(props.profileId),
+})
+const mover = useMove(() => props.profileId)
+const selecting = ref(false)
+const selected = ref<string[]>([])
+const destination = ref('') // 'profile', an idea's id, or NEW for an idea not yet made
+const newIdeaName = ref('')
+const NEW = '__new'
+const otherIdeas = computed(() => (ideas.data.value ?? []).filter((i) => i.id !== props.ideaId))
+const destinationName = computed(() => {
+  if (destination.value === 'profile') return 'the profile’s reading list'
+  if (destination.value === NEW) return `“${newIdeaName.value.trim()}”`
+  const idea = ideas.data.value?.find((i) => i.id === destination.value)
+  return idea ? `“${idea.name}”` : ''
+})
+function toggleSelecting() {
+  selecting.value = !selecting.value
+  selected.value = []
+  destination.value = ''
+  newIdeaName.value = ''
+  mover.moveReading.reset()
+  makeIdea.reset()
+}
+function toggleSelected(id: string, on: boolean) {
+  selected.value = on ? [...selected.value, id] : selected.value.filter((s) => s !== id)
+}
+// A new idea is made first, named in the writer's own words; if the move then fails it stays, empty, as any idea.
+const makeIdea = useMutation({
+  mutationFn: () => api.createIdea(props.profileId, { name: newIdeaName.value.trim() }),
+})
+async function move() {
+  const ids = selected.value
+  let to: string | null
+  if (destination.value === NEW) {
+    const idea = await makeIdea.mutateAsync().catch(() => null)
+    if (!idea) return
+    to = idea.id
+  } else {
+    to = destination.value === 'profile' ? null : destination.value
+  }
+  const toName = destinationName.value
+  mover.moveReading.mutate(
+    { ids, from: props.ideaId, to, toName },
+    {
+      onSuccess: () => {
+        selecting.value = false
+        selected.value = []
+        destination.value = ''
+        newIdeaName.value = ''
+      },
+    },
+  )
+}
+const canMove = computed(
+  () =>
+    selected.value.length > 0 &&
+    !!destination.value &&
+    (destination.value !== NEW || !!newIdeaName.value.trim()) &&
+    !mover.moveReading.isPending.value &&
+    !makeIdea.isPending.value,
+)
 
 const linkUrl = ref('')
 // On failure what was typed stays in the field, with the reason shown under it.
@@ -81,6 +148,86 @@ function add() {
         <input v-model="showRead" type="checkbox" class="size-4 accent-accent" />
         Show read items ({{ readCount }})
       </label>
+      <div v-if="list.links.value?.length" class="mb-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-neutral"
+          :aria-pressed="selecting"
+          @click="toggleSelecting"
+        >
+          {{ selecting ? 'Stop moving' : 'Move items' }}
+        </button>
+      </div>
+      <form
+        v-if="selecting"
+        class="panel-sunken mb-3 p-3"
+        aria-label="Move the chosen items"
+        @submit.prevent="move"
+      >
+        <p class="mb-2 text-sm text-ink-soft">
+          Tick the items to move. Each goes with the notes you took from it, and keeps whether you
+          have read it.
+        </p>
+        <p v-if="ideas.isPending.value" class="text-sm">Loading your ideas…</p>
+        <p v-else-if="ideas.isError.value" role="alert" class="text-sm text-danger">
+          We couldn't load your ideas, so there's nowhere to move to. Reload the page to try again.
+        </p>
+        <template v-else>
+          <label for="move-to" class="mb-1 block text-sm font-medium">Move to</label>
+          <select id="move-to" v-model="destination" class="field field-compact mb-3 max-w-full">
+            <option value="" disabled>Choose where…</option>
+            <option v-if="ideaId" value="profile">The profile’s reading list</option>
+            <option v-for="idea in otherIdeas" :key="idea.id" :value="idea.id">
+              {{ idea.name }}
+            </option>
+            <option v-if="!ideaId" :value="NEW">A new idea…</option>
+          </select>
+          <div v-if="destination === NEW" class="mb-1">
+            <TextField
+              v-model="newIdeaName"
+              label="What's your core idea?"
+              autocomplete="off"
+              required
+              hint="In your own words. The items you move become its reading list."
+            />
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" class="btn btn-sm btn-primary" :disabled="!canMove">
+              {{
+                mover.moveReading.isPending.value || makeIdea.isPending.value
+                  ? 'Moving…'
+                  : `Move ${selected.length} ${selected.length === 1 ? 'item' : 'items'}`
+              }}
+            </button>
+          </div>
+        </template>
+        <p v-if="makeIdea.isError.value" role="alert" class="mt-2 text-sm text-danger">
+          {{ errorMessage(makeIdea.error.value) }}
+        </p>
+        <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-sm text-danger">
+          {{ errorMessage(mover.moveReading.error.value) }}
+        </p>
+      </form>
+      <div
+        v-if="mover.outcome.value"
+        role="status"
+        class="callout callout-ok mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+      >
+        <span>{{ mover.outcome.value.text }}</span>
+        <button
+          v-if="mover.outcome.value.undo"
+          type="button"
+          class="btn btn-sm btn-neutral"
+          :disabled="mover.undoMove.isPending.value"
+          @click="mover.outcome.value.undo()"
+        >
+          Undo
+        </button>
+        <button type="button" class="underline" @click="mover.dismiss()">Dismiss</button>
+      </div>
+      <p v-if="mover.undoMove.isError.value" role="alert" class="mb-3 text-sm text-danger">
+        {{ errorMessage(mover.undoMove.error.value) }}
+      </p>
       <ul
         v-if="shown.length"
         class="mb-4 divide-y divide-line rounded-ctl border border-line bg-surface"
@@ -91,6 +238,9 @@ function add() {
           :profile-id="profileId"
           :idea-id="ideaId"
           :link="link"
+          :selecting="selecting"
+          :selected="selected.includes(link.id)"
+          @select="toggleSelected(link.id, $event)"
           @remove="list.remove.mutate(link.id)"
         />
       </ul>

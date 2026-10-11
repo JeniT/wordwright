@@ -7,8 +7,15 @@ import { readingRoute, useReadingActions } from '../lib/reading'
 import TextField from './TextField.vue'
 
 /** An item of an idea's reading list, or (no `ideaId`) of the profile's own. */
-const props = defineProps<{ profileId: string; ideaId: string | null; link: IdeaLink }>()
-const emit = defineEmits<{ remove: [] }>()
+const props = defineProps<{
+  profileId: string
+  ideaId: string | null
+  link: IdeaLink
+  /** Choosing items to move: a tick for this one. */
+  selecting?: boolean
+  selected?: boolean
+}>()
+const emit = defineEmits<{ remove: []; select: [on: boolean] }>()
 const owner = () => ({ profileId: props.profileId, ideaId: props.ideaId })
 const { setRead, setKept, update: save } = useReadingActions(owner)
 
@@ -113,6 +120,16 @@ function saveLink() {
 
     <div v-else class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <div class="flex min-w-[14rem] flex-1 items-start gap-3">
+        <label v-if="selecting" class="mt-0.5 flex shrink-0 items-center gap-1.5 text-sm">
+          <input
+            type="checkbox"
+            class="size-4 accent-accent"
+            :checked="selected"
+            :aria-label="`Select to move: ${label()}`"
+            @change="emit('select', ($event.target as HTMLInputElement).checked)"
+          />
+          Move
+        </label>
         <label class="mt-0.5 flex shrink-0 items-center gap-1.5 text-sm">
           <input
             ref="readBox"

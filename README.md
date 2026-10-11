@@ -106,6 +106,10 @@ tests inject fakes and nothing hits the network.
   item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
   taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a direct quotation, which can't be edited and goes into a draft as a blockquote); each item has a **Take notes** page (`/p/:profile/ideas/:idea/reading/:item`) that opens the page in a new tab and keeps a notes box beside it. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
+  **Moving reading items:** on any reading list, **Move items** lets you tick items and choose **Move to** the profile's
+  reading list, another idea, or (from the profile's list) a new idea named in your own words. The items go with the
+  notes taken from them and keep whether they are read; the page says what moved ("Moved 2 items and 5 notes to
+  “Rivers”.") with an **Undo**, except when items were joined to ones already there, which can't be unpicked.
   **Read items are hidden by default** on every reading list (an idea's and the profile's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.

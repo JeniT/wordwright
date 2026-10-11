@@ -21,6 +21,7 @@ import {
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceChoicesSchema,
+  MoveResultSchema,
   PostDecisionSchema,
   RecentPostsSchema,
   SourceItemsSchema,
@@ -292,6 +293,18 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
         'GET',
         `/profiles/${profileId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
       ),
+    /**
+     * Moves reading items between the profile's own list (`ideaId` null) and its ideas, with the notes taken from
+     * them. All or nothing. Answers with what moved.
+     */
+    moveReadingItems: (profileId: string, ids: string[], ideaId: string | null) =>
+      get(MoveResultSchema, 'POST', `/profiles/${profileId}/move/reading`, {
+        ids,
+        to: { ideaId },
+      }),
+    /** Moves notes the same way (each keeps its source, copied to where it goes). */
+    moveNotes: (profileId: string, ids: string[], ideaId: string | null) =>
+      get(MoveResultSchema, 'POST', `/profiles/${profileId}/move/notes`, { ids, to: { ideaId } }),
     /**
      * Puts posts of the combined list on the profile's reading list (`add`), ignores them, or takes either back
      * (`reconsider`). Each post is named by its feed and its id in it. Answers with what each has become.

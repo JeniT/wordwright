@@ -332,6 +332,185 @@ describe('the profile’s reading list', () => {
   })
 })
 
+describe('moving reading items', () => {
+  const ideaRows = [
+    { id: 'i1', name: 'Rivers', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
+    { id: 'i2', name: 'Lakes', draftCount: 1, updatedAt: '2026-01-01T00:00:00Z' },
+  ]
+  /** The fake of the profile's lists plus the ideas and the move endpoint, remembering what it was sent. */
+  function fake(links: Link[] = [link('l1', 'A paper'), link('l2', 'Another')]) {
+    const state = fakeProfile({ links })
+    const moves: { ids: string[]; to: { ideaId: string | null } }[] = []
+    const created: string[] = []
+    let result = { batchId: 'b', readingItems: 2, merged: 0, copied: 0, notes: 5 }
+    server.use(
+      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
+      http.post('*/api/profiles/ada-substack/ideas', async ({ request }) => {
+        const body = (await request.json()) as { name: string }
+        created.push(body.name)
+        return HttpResponse.json(
+          {
+            id: 'new1',
+            profileId: 'ada-substack',
+            name: body.name,
+            notes: '',
+            links: [],
+            drafts: [],
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+          { status: 201 },
+        )
+      }),
+      http.post('*/api/profiles/ada-substack/move/reading', async ({ request }) => {
+        const body = (await request.json()) as (typeof moves)[number]
+        moves.push(body)
+        state.links = state.links.filter((l) => !body.ids.includes(l.id))
+        return HttpResponse.json(result)
+      }),
+    )
+    return {
+      state,
+      moves,
+      created,
+      setResult: (r: Partial<typeof result>) => (result = { ...result, ...r }),
+    }
+  }
+  const open = async () => {
+    await renderAt('/p/ada-substack/reading')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Move items' }))
+  }
+  const tick = (title: string) =>
+    fireEvent.click(screen.getByRole('checkbox', { name: `Select to move: ${title}` }))
+
+  it('offers ticks on each item and a place to move to, and moves only once both are chosen', async () => {
+    fake()
+    await open()
+    expect(screen.getByRole('button', { name: 'Stop moving' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    const button = screen.getByRole('button', { name: 'Move 0 items' })
+    expect(button).toBeDisabled()
+    await tick('A paper')
+    await tick('Another')
+    expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeDisabled() // no place chosen yet
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeEnabled()
+  })
+
+  it('moves the chosen items to an idea, and says what moved, with an Undo', async () => {
+    const f = fake()
+    await open()
+    await tick('A paper')
+    await tick('Another')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 2 items' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Moved 2 items and 5 notes to “Rivers”.',
+    )
+    expect(f.moves).toEqual([{ ids: ['l1', 'l2'], to: { ideaId: 'i1' } }])
+    await waitFor(() =>
+      expect(screen.queryByRole('checkbox', { name: /Select to move/ })).not.toBeInTheDocument(),
+    ) // done selecting
+    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+  })
+
+  it('puts them back with Undo', async () => {
+    const f = fake()
+    await open()
+    await tick('A paper')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i2')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(f.moves).toHaveLength(2))
+    expect(f.moves[1]).toEqual({ ids: ['l1'], to: { ideaId: null } }) // back to the profile's own list
+    expect(await screen.findByRole('status')).toHaveTextContent('Moved back.')
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+  })
+
+  it('says when items were joined to ones already there, and offers no Undo for that', async () => {
+    const f = fake()
+    f.setResult({ readingItems: 1, merged: 1, notes: 0 })
+    await open()
+    await tick('A paper')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    const status = await screen.findByRole('status')
+    expect(status).toHaveTextContent(
+      'Moved 1 item to “Rivers”. 1 item was already there, so it was joined with it.',
+    )
+    expect(within(status).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+    await fireEvent.click(within(status).getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('makes a new idea from the chosen items, named in the writer’s words', async () => {
+    const f = fake()
+    await open()
+    await tick('A paper')
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__new')
+    const button = screen.getByRole('button', { name: 'Move 1 item' })
+    expect(button).toBeDisabled() // it needs a name
+    await fireEvent.update(screen.getByLabelText("What's your core idea?"), '  Why rivers meander ')
+    expect(button).toBeEnabled()
+    await fireEvent.click(button)
+    await waitFor(() => expect(f.moves).toEqual([{ ids: ['l1'], to: { ideaId: 'new1' } }]))
+    expect(f.created).toEqual(['Why rivers meander'])
+    expect(await screen.findByRole('status')).toHaveTextContent('to “Why rivers meander”.')
+  })
+
+  it('says why it could not move, and keeps the choice', async () => {
+    fake()
+    server.use(
+      http.post('*/api/profiles/ada-substack/move/reading', () =>
+        HttpResponse.json(
+          {
+            error: 'An idea can have up to 50 links. Remove some you no longer need to make room.',
+          },
+          { status: 409 },
+        ),
+      ),
+    )
+    await open()
+    await tick('A paper')
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('An idea can have up to 50 links')
+    expect(screen.getByRole('checkbox', { name: 'Select to move: A paper' })).toBeChecked()
+    expect(screen.getByLabelText('Move to')).toHaveValue('i1')
+  })
+
+  it('says so, and offers nowhere to move to, when the ideas could not be loaded', async () => {
+    fake()
+    server.use(
+      http.get('*/api/profiles/ada-substack/ideas', () =>
+        HttpResponse.json({ error: 'x' }, { status: 500 }),
+      ),
+    )
+    await open()
+    expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load your ideas")
+    expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
+  })
+
+  it('stops moving, clearing what was ticked', async () => {
+    fake()
+    await open()
+    await tick('A paper')
+    await fireEvent.click(screen.getByRole('button', { name: 'Stop moving' }))
+    expect(screen.queryByRole('checkbox', { name: /Select to move/ })).not.toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: 'Move items' }))
+    expect(screen.getByRole('checkbox', { name: 'Select to move: A paper' })).not.toBeChecked()
+  })
+
+  it('has no Move button for an empty list', async () => {
+    fake([])
+    await renderAt('/p/ada-substack/reading')
+    await screen.findByText('Nothing on the reading list yet.')
+    expect(screen.queryByRole('button', { name: 'Move items' })).not.toBeInTheDocument()
+  })
+})
+
 describe('reading an item of the profile’s own list', () => {
   const open = (state = fakeProfile({ links: [link('l1', 'A paper')] })) => {
     return { state, shown: renderAt('/p/ada-substack/reading/l1') }

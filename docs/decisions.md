@@ -790,6 +790,16 @@ an idea or the profile.
   unticked. The choice isn't saved: each visit starts tidy. This is purely what is shown: read items are still on the
   list (and, on the profile's, still subject to the month and Keep). The drafting side bar's reading list is a
   different list, for linking while writing, and is unchanged.
+- **Moving reading items on the page (#72).** Each reading list has a **Move items** mode: ticks on the items and one
+  picker, **Move to** (the profile's list, another idea, and, from the profile's own list only, **A new idea…**, which
+  asks for the core idea in the writer's own words, nothing prefilled). It works with a keyboard and on a phone, and
+  needs no drag and drop. A new idea is made first and then moved to; if the move fails the idea stays, empty, like
+  any idea. The result is said in words ("Moved 2 items and 5 notes to “Rivers”.", plus how many items were joined to
+  ones already there) with **Undo** (`lib/move.ts`, which #73 will reuse for notes). **Undo moves the same items back
+  through the same operation**, which puts items and their notes back exactly when nothing was joined; when items
+  were joined to ones already there, the moved item no longer exists on its own, so no Undo is offered and the message
+  says why. Undo onto the profile's list also starts the item's month again and unticks Keep (see above), as any move
+  onto it does. Every list showing the moved things is refreshed afterwards.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
   with the profile.

@@ -88,6 +88,45 @@ describe('reading page', () => {
     expect(screen.queryByRole('checkbox', { name: /^Keep:/ })).not.toBeInTheDocument()
   })
 
+  it('moves items from an idea to the profile’s reading list or another idea, never to itself or a new idea', async () => {
+    const moved: unknown[] = []
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get(ideaUrl, () => HttpResponse.json(idea)),
+      http.get('*/api/profiles/ada-substack/ideas', () =>
+        HttpResponse.json([
+          {
+            id: 'i1',
+            name: 'Why rivers meander',
+            draftCount: 0,
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+          { id: 'i2', name: 'Lakes', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
+        ]),
+      ),
+      http.post('*/api/profiles/ada-substack/move/reading', async ({ request }) => {
+        moved.push(await request.json())
+        return HttpResponse.json({ batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 })
+      }),
+    )
+    await renderAt('/p/ada-substack/ideas/i1')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Move items' }))
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select to move: A paper' }))
+    const picker = await screen.findByLabelText('Move to')
+    expect(
+      within(picker)
+        .getAllByRole('option')
+        .map((o) => o.textContent?.trim()),
+    ).toEqual(['Choose where…', 'The profile’s reading list', 'Lakes'])
+    await fireEvent.update(picker, 'profile')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    expect(
+      await screen.findByText(/Moved 1 item to the profile’s reading list\./),
+    ).toBeInTheDocument()
+    expect(moved).toEqual([{ ids: ['l1'], to: { ideaId: null } }])
+  })
+
   it('is called by its address when the item has no title', async () => {
     await open('l2')
     expect(
