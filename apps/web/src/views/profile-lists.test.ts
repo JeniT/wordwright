@@ -211,6 +211,73 @@ describe('the profile’s reading list', () => {
     expect(state.links.map((l) => l.id)).toEqual(['l1'])
   })
 
+  describe('read items', () => {
+    const read = '2026-02-02T00:00:00Z'
+    const items = () => [
+      link('l1', 'Still to read'),
+      link('l2', 'Already read', { readAt: read }),
+      link('l3', 'Also read', { readAt: read }),
+    ]
+
+    it('are hidden by default, with how many, and shown with the tick', async () => {
+      fakeProfile({ links: items() })
+      await renderAt('/p/ada-substack/reading')
+      expect(await screen.findByText('Still to read')).toBeInTheDocument()
+      expect(screen.queryByText('Already read')).not.toBeInTheDocument()
+      expect(screen.getByText('2 read items are hidden.')).toBeInTheDocument()
+
+      const tick = screen.getByRole('checkbox', { name: 'Show read items (2)' })
+      await fireEvent.click(tick)
+      expect(await screen.findByText('Already read')).toBeInTheDocument()
+      expect(screen.getByText('Also read')).toBeInTheDocument()
+      expect(screen.queryByText(/read items are hidden/)).not.toBeInTheDocument()
+
+      await fireEvent.click(tick)
+      await waitFor(() => expect(screen.queryByText('Already read')).not.toBeInTheDocument())
+    })
+
+    it('say so, rather than "nothing yet", when everything has been read', async () => {
+      fakeProfile({ links: [link('l2', 'Already read', { readAt: read })] })
+      await renderAt('/p/ada-substack/reading')
+      expect(await screen.findByText('Everything on the list has been read.')).toBeInTheDocument()
+      expect(screen.getByText('1 read item is hidden.')).toBeInTheDocument()
+      expect(screen.queryByText('Nothing on the reading list yet.')).not.toBeInTheDocument()
+    })
+
+    it('offer no tick when none has been read, and a truly empty list says so', async () => {
+      fakeProfile({ links: [link('l1', 'Still to read')] })
+      await renderAt('/p/ada-substack/reading')
+      await screen.findByText('Still to read')
+      expect(screen.queryByRole('checkbox', { name: /Show read items/ })).not.toBeInTheDocument()
+    })
+
+    it('stay in view when ticked during this visit, so they can be unticked', async () => {
+      const state = fakeProfile({ links: items() })
+      await renderAt('/p/ada-substack/reading')
+      await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: Still to read' }))
+      await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+      // It was just ticked, so it is still there, ticked, and the others are still hidden.
+      expect(screen.getByRole('checkbox', { name: 'Read: Still to read' })).toBeChecked()
+      expect(screen.queryByText('Already read')).not.toBeInTheDocument()
+      expect(await screen.findByText('2 read items are hidden.')).toBeInTheDocument()
+      // Unticking it makes it an ordinary unread item again.
+      await fireEvent.click(screen.getByRole('checkbox', { name: 'Read: Still to read' }))
+      await waitFor(() => expect(state.links[0]!.readAt).toBeNull())
+      expect(screen.getByRole('checkbox', { name: 'Read: Still to read' })).not.toBeChecked()
+    })
+
+    it('go out of view once the tick is changed, if they were read this visit', async () => {
+      const state = fakeProfile({ links: items() })
+      await renderAt('/p/ada-substack/reading')
+      await fireEvent.click(await screen.findByRole('checkbox', { name: 'Read: Still to read' }))
+      await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+      const show = await screen.findByRole('checkbox', { name: 'Show read items (3)' })
+      await fireEvent.click(show) // show them all
+      await fireEvent.click(show) // and hide them again
+      await waitFor(() => expect(screen.queryByText('Still to read')).not.toBeInTheDocument())
+    })
+  })
+
   it('has no limit, and says what is removed after a month and what is not', async () => {
     await renderAt('/p/ada-substack/reading')
     expect(await screen.findByText(/There is no limit to the list/)).toBeInTheDocument()

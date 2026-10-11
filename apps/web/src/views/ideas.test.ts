@@ -303,8 +303,11 @@ describe('idea page', () => {
         ),
       )
       await renderAt('/p/ada-substack/ideas/i1')
+      // Read items are out of the way until asked for.
+      expect(await screen.findByRole('checkbox', { name: 'Read: Unread one' })).not.toBeChecked()
+      expect(screen.queryByRole('checkbox', { name: 'Read: Read one' })).not.toBeInTheDocument()
+      await fireEvent.click(screen.getByRole('checkbox', { name: 'Show read items (1)' }))
       expect(await screen.findByRole('checkbox', { name: 'Read: Read one' })).toBeChecked()
-      expect(screen.getByRole('checkbox', { name: 'Read: Unread one' })).not.toBeChecked()
       expect(screen.getByText('Suggested in brainstorming')).toBeInTheDocument()
       expect(screen.getByText('Found by research')).toBeInTheDocument()
       expect(

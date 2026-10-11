@@ -63,8 +63,12 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   const readBox = page.getByRole('checkbox', { name: /^Read: Fake title for example\.org/ })
   await expect(readBox).not.toBeChecked()
   await readBox.check()
-  await expect(readBox).toBeChecked()
+  await expect(readBox).toBeChecked() // still in view, so it can be unticked
   await page.reload()
+  // Read items are out of the way until asked for.
+  await expect(readBox).toHaveCount(0)
+  await expect(page.getByText('1 read item is hidden.')).toBeVisible()
+  await page.getByRole('checkbox', { name: 'Show read items (1)' }).check()
   await expect(readBox).toBeChecked()
 
   // The same page twice is refused, however it is written, and what was typed stays put.
@@ -187,6 +191,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
 
   // Removing a link and deleting the idea both work, and deleting asks first.
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await page.getByRole('checkbox', { name: /^Show read items/ }).check() // example.org was read
   await page.getByRole('button', { name: 'Remove link to Fake title for example.org' }).click()
   await page.getByRole('button', { name: 'Remove link to Fake title for example.net' }).click()
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
@@ -351,7 +356,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
     notes.getByText('From reading “Meanders, explained”, by Pat Writer and Quinn Scribe').first(),
   ).toBeVisible()
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
-  // (the first item; the second, added from the reading page, is unread)
+  // (the first item; the second, added from the reading page, is unread; read items are hidden until shown)
+  await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toHaveCount(0)
+  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(page.getByRole('checkbox', { name: 'Read: Meanders, explained' })).toBeChecked()
   await expect(page.getByRole('checkbox', { name: /^Read: / })).toHaveCount(2)
   // Read items go last: the unread page found while reading comes first, the one just read after it.
@@ -520,6 +527,7 @@ test('a link to something on the reading list goes in only once it has been read
   await expect(dialog).toHaveCount(0)
   await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
   await page.getByRole('link', { name: /Back to “Why rivers meander”/ }).click()
+  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(page.getByRole('checkbox', { name: /^Read: Fake title/ })).toBeChecked()
 })
 

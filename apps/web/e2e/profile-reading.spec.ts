@@ -64,15 +64,19 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   // The list has no limit, and unkept items go after a month: a tick keeps one.
   await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
   await expect(page.getByText(/There is no limit to the list/)).toBeVisible()
+  await page.getByRole('checkbox', { name: /^Show read items/ }).check() // taking notes marked it read
   const keep = page.getByRole('checkbox', { name: /^Keep: Fake title for example\.org/ })
   await expect(keep).not.toBeChecked()
   await keep.check()
   await page.reload()
+  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(keep).toBeChecked()
   await page.getByRole('link', { name: 'Take notes' }).click()
 
   // Taking a note marks it read.
   await page.getByRole('link', { name: /Back to the profile’s reading list/ }).click()
+  await expect(page.getByText('1 read item is hidden.')).toBeVisible()
+  await page.getByRole('checkbox', { name: /^Show read items/ }).check()
   await expect(
     page.getByRole('checkbox', { name: /^Read: Fake title for example\.org/ }),
   ).toBeChecked()

@@ -782,6 +782,14 @@ an idea or the profile.
   whenever the profile's list is read, counted or checked for what is on it (so the Recent posts list is consistent
   with it), using the real clock, like the time items are stamped with. A dropped item's feed post is offered again,
   as any post not on a list is. The limit of 50 stays for an idea's list, which is part of the work on one idea.
+- **Reading lists hide read items by default (#85).** An item that has been read is finished with, and the list is for
+  what is still to read. The page's `ReadingList` (idea's and profile's alike) shows only unread items, a **Show read
+  items (N)** tick when there are any, and "N read items are hidden" (or "Everything on the list has been read" when
+  nothing else is left, which is not the same as an empty list). An item ticked read _during this visit_ stays in
+  view until the list is shown again or the tick is changed, so it doesn't disappear under the finger and can be
+  unticked. The choice isn't saved: each visit starts tidy. This is purely what is shown: read items are still on the
+  list (and, on the profile's, still subject to the month and Keep). The drafting side bar's reading list is a
+  different list, for linking while writing, and is unchanged.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
   with the profile.

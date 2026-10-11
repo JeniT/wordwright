@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { errorMessage } from '../lib/api'
 import { useReadingList } from '../lib/reading'
 import IdeaLinkItem from './IdeaLinkItem.vue'
@@ -16,6 +16,30 @@ const props = defineProps<{
   quietHeading?: boolean
 }>()
 const list = useReadingList(() => ({ profileId: props.profileId, ideaId: props.ideaId }))
+
+// Read items are out of the way by default. One marked read during this visit stays in view (so it doesn't vanish
+// under the finger, and can be unticked), until the list is shown again or the tick below is changed.
+const showRead = ref(false)
+const justRead = ref(new Set<string>())
+let known: Map<string, boolean> | null = null
+watch(
+  () => list.links.value,
+  (links) => {
+    if (!links) return
+    if (known) {
+      for (const l of links) if (l.readAt && known.get(l.id) === false) justRead.value.add(l.id)
+    }
+    known = new Map(links.map((l) => [l.id, !!l.readAt]))
+  },
+  { immediate: true },
+)
+watch(showRead, () => (justRead.value = new Set()))
+const readCount = computed(() => (list.links.value ?? []).filter((l) => l.readAt).length)
+const shown = computed(() =>
+  (list.links.value ?? []).filter((l) => !l.readAt || showRead.value || justRead.value.has(l.id)),
+)
+/** Read items that are out of sight right now. */
+const hiddenCount = computed(() => (list.links.value?.length ?? 0) - shown.value.length)
 
 const linkUrl = ref('')
 // On failure what was typed stays in the field, with the reason shown under it.
@@ -53,12 +77,16 @@ function add() {
       <button type="button" class="btn btn-outline mt-2" @click="list.refetch()">Try again</button>
     </div>
     <template v-else>
+      <label v-if="readCount" class="mb-2 flex items-center gap-2 text-sm">
+        <input v-model="showRead" type="checkbox" class="size-4 accent-accent" />
+        Show read items ({{ readCount }})
+      </label>
       <ul
-        v-if="list.links.value?.length"
+        v-if="shown.length"
         class="mb-4 divide-y divide-line rounded-ctl border border-line bg-surface"
       >
         <IdeaLinkItem
-          v-for="link in list.links.value"
+          v-for="link in shown"
           :key="link.id"
           :profile-id="profileId"
           :idea-id="ideaId"
@@ -66,7 +94,13 @@ function add() {
           @remove="list.remove.mutate(link.id)"
         />
       </ul>
-      <p v-else class="mb-4 text-ink-soft">Nothing on the reading list yet.</p>
+      <p v-else-if="!list.links.value?.length" class="mb-4 text-ink-soft">
+        Nothing on the reading list yet.
+      </p>
+      <p v-else class="mb-4 text-ink-soft">Everything on the list has been read.</p>
+      <p v-if="hiddenCount" class="mb-4 text-sm text-ink-soft">
+        {{ hiddenCount }} read {{ hiddenCount === 1 ? 'item is' : 'items are' }} hidden.
+      </p>
       <p v-if="list.remove.isError.value" role="alert" class="mb-3 text-danger">
         Couldn't remove that link. Please try again.
       </p>
