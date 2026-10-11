@@ -134,14 +134,8 @@ tests inject fakes and nothing hits the network.
   its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
-  **Find a feed** (on the same page) helps people who don't know where a site keeps its feed: pick a service
-  (Guardian, BBC, NYT, Google News search, arXiv, bioRxiv/medRxiv, Nature, Science, Substack, Medium, WordPress,
-  Ghost, Bluesky, Hacker News search, Reddit), say what to follow, and the address is built, read and shown
-  (title, description) before it can be added. PubMed and the email-only scholarly sites get step-by-step
-  guides instead. The recipes are plain code in `packages/core/src/feed-recipes.ts`: add a service by adding an entry.
   Nothing scans the feeds for articles yet; that is idea generation (T6).
-  API: `GET/POST /api/profiles/:id/sources`, `POST .../sources/preview` (reads a feed without adding it; counts
-  towards the same hourly limit), `GET .../sources/:sourceId/icon`, `PUT .../sources/order`
+  API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `PUT .../sources/order`
   (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored

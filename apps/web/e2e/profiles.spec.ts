@@ -353,39 +353,3 @@ test('manages the ordered list of feeds on the Inspiration page', async ({ page 
   await page.reload()
   await expect.poll(hosts).toEqual(['two.example', 'one.example'])
 })
-
-test('finds a feed from a service and a topic, checks it, and adds it', async ({ page }) => {
-  await registerUser(page, uniqueName('Fern'))
-  await page.getByRole('link', { name: 'Create your first profile' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Finding feeds')
-  await page.getByRole('button', { name: 'Create profile' }).click()
-  await page.getByRole('link', { name: 'Inspiration' }).click()
-  await expect(page.getByRole('heading', { name: 'Inspiration' })).toBeVisible()
-
-  const feeds = page.getByRole('region', { name: 'Feeds' })
-  await feeds.getByText('Find a feed').click()
-  await feeds.getByLabel('Where from').selectOption({ label: 'A WordPress site' })
-  await feeds.getByLabel('Site address').fill('notes.example')
-  await feeds.getByLabel('Search words, or category name').fill('open data')
-
-  // The address is built and read before anything is added.
-  await feeds.getByRole('button', { name: 'Find feed' }).click()
-  await expect(feeds.getByText('Feed of notes.example')).toBeVisible()
-  await expect(feeds.getByText('https://notes.example/?s=open%20data&feed=rss2')).toBeVisible()
-  await expect(feeds.getByRole('listitem')).toHaveCount(0)
-  await noViolations(page)
-
-  await feeds.getByRole('button', { name: 'Add this feed' }).click()
-  await expect(
-    feeds.getByRole('listitem').filter({ hasText: 'Feed of notes.example' }),
-  ).toBeVisible()
-  await expect(feeds.getByRole('button', { name: 'Add this feed' })).toHaveCount(0)
-
-  // A feed the site doesn't have is said so in words, and the person can change their mind.
-  await feeds.getByLabel('Where from').selectOption({ label: 'The Guardian' })
-  await feeds.getByLabel('Section, topic or writer').fill('no-such-section')
-  await feeds.getByRole('button', { name: 'Find feed' }).click()
-  await expect(feeds.getByRole('alert')).toContainText('RSS or Atom')
-  await feeds.getByLabel('Where from').selectOption({ label: 'PubMed' })
-  await expect(feeds.getByText('Create RSS').first()).toBeVisible()
-})

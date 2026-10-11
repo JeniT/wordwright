@@ -45,21 +45,6 @@ export function sourceRoutes(
       .use(member)
       .get('/', (c) => c.json(sources.list(c.req.param('profileId')!)))
 
-      // Reads a feed without adding it, so the person can see what an address leads to first.
-      .post('/preview', validateJson(SourceInputSchema), async (c) => {
-        const profileId = c.req.param('profileId')!
-        const { url } = c.req.valid('json')
-        if (!addLimiter.allow(c.get('user').id)) throw tooManyAdds()
-        const feed = await readFeed(url)
-        return c.json({
-          url: feed.url,
-          title: feed.title,
-          description: feed.description,
-          siteUrl: feed.siteUrl,
-          alreadyAdded: sources.has(profileId, feed.url),
-        })
-      })
-
       .post('/', validateJson(SourceInputSchema), async (c) => {
         const profileId = c.req.param('profileId')!
         const { url } = c.req.valid('json')

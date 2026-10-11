@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Source } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
-import FindFeed from './FindFeed.vue'
 import ProfileImage from './ProfileImage.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
@@ -150,8 +149,6 @@ const removeClass =
       <p v-if="add.isError.value" role="alert" class="mt-2 text-red-700">
         {{ errorMessage(add.error.value) }}
       </p>
-      <FindFeed :profile-id="profileId" />
-
       <p v-if="remove.isError.value" role="alert" class="mt-2 text-red-700">
         {{ errorMessage(remove.error.value) }}
       </p>

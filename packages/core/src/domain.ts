@@ -203,17 +203,6 @@ export const SourceListSchema = z.array(SourceSchema)
 export const SourceInputSchema = z.object({ url: FeedUrlSchema })
 export type SourceInput = z.infer<typeof SourceInputSchema>
 
-/** What a feed says about itself, shown before it is added. `url` is the feed's own address. */
-export const SourcePreviewSchema = z.object({
-  url: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  siteUrl: z.string().nullable(),
-  /** Already in this profile's list, so adding it would be refused. */
-  alreadyAdded: z.boolean(),
-})
-export type SourcePreview = z.infer<typeof SourcePreviewSchema>
-
 /** Every source id, in the new order. Must name exactly the sources the profile has. */
 export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })
 export type SourceOrder = z.infer<typeof SourceOrderSchema>

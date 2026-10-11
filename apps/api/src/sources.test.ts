@@ -135,43 +135,6 @@ describe('idea sources', () => {
     expect(await list(bob, bobBase)).toEqual([])
   })
 
-  it('previews a feed without adding it, and says if it is already listed', async () => {
-    const fetcher = new FakeFeedFetcher({
-      'https://news.example/feed': {
-        title: 'News',
-        description: 'Daily news',
-        siteUrl: 'https://news.example',
-      },
-    })
-    const c = setup({ feeds: fetcher })
-    ada = c.client()
-    await register(ada)
-    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
-
-    const first = await ada.post(`${base}/preview`, { url: 'news.example/feed' })
-    expect(first.status).toBe(200)
-    expect(await first.json()).toEqual({
-      url: 'https://news.example/feed',
-      title: 'News',
-      description: 'Daily news',
-      siteUrl: 'https://news.example',
-      alreadyAdded: false,
-    })
-    expect(await list()).toEqual([]) // nothing was added
-
-    await add('https://news.example/feed')
-    const again = await ada.post(`${base}/preview`, { url: 'https://news.example/feed' })
-    expect((await again.json()).alreadyAdded).toBe(true)
-  })
-
-  it('explains why a previewed address is not a feed, and keeps previews to members', async () => {
-    const bad = await ada.post(`${base}/preview`, { url: 'https://x.example/notafeed' })
-    expect(bad.status).toBe(422)
-    expect((await bad.json()).error).toContain('RSS or Atom')
-    expect((await ada.post(`${base}/preview`, { url: 'not a url' })).status).toBe(400)
-    expect((await bob.post(`${base}/preview`, { url: 'https://a.example/f' })).status).toBe(404)
-  })
-
   it('reads each feed when it is added and keeps its title, description and website', async () => {
     const fetcher = new FakeFeedFetcher({
       'https://slow.example/feed': {
