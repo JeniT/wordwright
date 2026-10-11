@@ -667,7 +667,7 @@ recent work, so a blog that posts twice a year must not put old posts in front o
 number of posts, decides what is "recent". Per-feed lists remain as a preview under each feed. The combined list
 reuses each feed's kept copy (so it adds no reading beyond the rules above), reads at most five feeds at once, names
 feeds it couldn't read while still using their kept posts, shows a post that two feeds carry once (under the feed
-higher in the list), and stops at 100 posts, saying how many it left out. The page shows them ten at a time; paging is done in the browser over the one answer (100 small items, already cached on the server), so moving between pages costs no requests, and a new period or a check for new posts returns to the first page. **Posts with no readable date are not
+higher in the list), and stops at 100 posts, saying how many it left out. The page shows them five at a time, with Previous / Next above and below (the bottom ones return to the top of the list and move keyboard focus to its heading, since the new page starts far above them; only the upper one is announced to screen readers); paging is done in the browser over the one answer (100 small items, already cached on the server), so moving between pages costs no requests, and a new period or a check for new posts returns to the first page. **Posts with no readable date are not
 listed** (guessing when they appeared would put old posts at the top); they are counted and can be seen in the
 feed's own preview. The order is by date only: nothing ranks posts by how interesting they are, which would be the
 AI or the service deciding what the writer should write about (docs/responsible-ai.md). Adding to the reading list

@@ -1,6 +1,6 @@
 import { createEvent, fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -510,35 +510,78 @@ describe('paging through the recent posts', () => {
       .map((li) => li.textContent!.match(/Post number (\d+)/)![1])
   const section = () => screen.findByRole('region', { name: 'Recent posts' })
 
-  it('shows ten at a time, with where you are, and moves forwards and back', async () => {
+  const above = (recent: HTMLElement) =>
+    within(within(recent).getByRole('navigation', { name: /above the list/ }))
+  const below = (recent: HTMLElement) =>
+    within(within(recent).getByRole('navigation', { name: /below the list/ }))
+
+  it('shows five at a time, with where you are, and moves forwards and back', async () => {
     fakeSources([A])
     reply(23)
     await openInspiration()
     const recent = await section()
     await within(recent).findByText('Post number 1')
-    expect(titles(recent)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
-    expect(within(recent).getByText('Posts 1–10 of 23')).toBeInTheDocument()
-    expect(within(recent).getByRole('button', { name: /Previous/ })).toBeDisabled()
+    expect(titles(recent)).toEqual(['1', '2', '3', '4', '5'])
+    expect(above(recent).getByText('Posts 1–5 of 23')).toBeInTheDocument()
+    expect(above(recent).getByRole('button', { name: /Previous/ })).toBeDisabled()
 
-    await fireEvent.click(within(recent).getByRole('button', { name: /Next/ }))
-    expect(titles(recent)[0]).toBe('11')
-    expect(within(recent).getByText('Posts 11–20 of 23')).toBeInTheDocument()
+    await fireEvent.click(above(recent).getByRole('button', { name: /Next/ }))
+    expect(titles(recent)).toEqual(['6', '7', '8', '9', '10'])
+    expect(above(recent).getByText('Posts 6–10 of 23')).toBeInTheDocument()
 
-    await fireEvent.click(within(recent).getByRole('button', { name: /Next/ }))
+    for (let i = 0; i < 3; i++) {
+      await fireEvent.click(above(recent).getByRole('button', { name: /Next/ }))
+    }
     expect(titles(recent)).toEqual(['21', '22', '23'])
-    expect(within(recent).getByText('Posts 21–23 of 23')).toBeInTheDocument()
-    expect(within(recent).getByRole('button', { name: /Next/ })).toBeDisabled()
+    expect(above(recent).getByText('Posts 21–23 of 23')).toBeInTheDocument()
+    expect(above(recent).getByRole('button', { name: /Next/ })).toBeDisabled()
 
-    await fireEvent.click(within(recent).getByRole('button', { name: /Previous/ }))
-    expect(titles(recent)[0]).toBe('11')
+    await fireEvent.click(above(recent).getByRole('button', { name: /Previous/ }))
+    expect(titles(recent)[0]).toBe('16')
   })
 
-  it('has no paging when ten or fewer posts fit on one page', async () => {
+  it('has the same controls below the list, kept in step with those above', async () => {
     fakeSources([A])
-    reply(10)
+    reply(23)
     await openInspiration()
     const recent = await section()
-    await within(recent).findByText('Post number 10')
+    await within(recent).findByText('Post number 1')
+    expect(below(recent).getByText('Posts 1–5 of 23')).toBeInTheDocument()
+    await fireEvent.click(below(recent).getByRole('button', { name: /Next/ }))
+    expect(above(recent).getByText('Posts 6–10 of 23')).toBeInTheDocument()
+    expect(below(recent).getByText('Posts 6–10 of 23')).toBeInTheDocument()
+    // Only the upper range is announced, so a screen reader doesn't say it twice.
+    expect(above(recent).getByText('Posts 6–10 of 23')).toHaveAttribute('aria-live', 'polite')
+    expect(below(recent).getByText('Posts 6–10 of 23')).not.toHaveAttribute('aria-live')
+  })
+
+  it('takes you back to the top of the list from the bottom controls, but not from the top ones', async () => {
+    fakeSources([A])
+    reply(23)
+    const scrolled = vi.fn()
+    Element.prototype.scrollIntoView = scrolled
+    await openInspiration()
+    const recent = await section()
+    await within(recent).findByText('Post number 1')
+
+    await fireEvent.click(above(recent).getByRole('button', { name: /Next/ }))
+    expect(scrolled).not.toHaveBeenCalled()
+
+    await fireEvent.click(below(recent).getByRole('button', { name: /Next/ }))
+    expect(scrolled).toHaveBeenCalledTimes(1)
+    expect(scrolled.mock.contexts[0]).toBe(
+      within(recent).getByRole('heading', { name: 'Recent posts' }),
+    )
+    // Keyboard focus goes there too, so the next Tab continues from the top of the list.
+    expect(within(recent).getByRole('heading', { name: 'Recent posts' })).toHaveFocus()
+  })
+
+  it('has no paging when five or fewer posts fit on one page', async () => {
+    fakeSources([A])
+    reply(5)
+    await openInspiration()
+    const recent = await section()
+    await within(recent).findByText('Post number 5')
     expect(within(recent).queryByRole('navigation')).not.toBeInTheDocument()
   })
 
@@ -548,11 +591,11 @@ describe('paging through the recent posts', () => {
     await openInspiration()
     const recent = await section()
     await within(recent).findByText('Post number 1')
-    await fireEvent.click(within(recent).getByRole('button', { name: /Next/ }))
-    expect(titles(recent)[0]).toBe('11')
+    await fireEvent.click(above(recent).getByRole('button', { name: /Next/ }))
+    expect(titles(recent)[0]).toBe('6')
     await fireEvent.update(screen.getByLabelText('Show posts from'), '7')
     await waitFor(() => expect(titles(recent)[0]).toBe('1'))
-    expect(within(recent).getByText('Posts 1–10 of 25')).toBeInTheDocument()
+    expect(above(recent).getByText('Posts 1–5 of 25')).toBeInTheDocument()
   })
 })
 

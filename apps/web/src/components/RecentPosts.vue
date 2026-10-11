@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { RECENT_DAYS_DEFAULT, type Source } from '@lfwa/core'
 import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import PageNav from './PageNav.vue'
 import ProfileImage from './ProfileImage.vue'
 
 const props = defineProps<{ profileId: string }>()
@@ -46,9 +47,9 @@ const refresh = useMutation({
 })
 const shown = posts.data
 
-// The server sends up to 100 posts; ten at a time is easier to take in. A new period or a fresh
+// The server sends up to 100 posts; five at a time is easier to take in. A new period or a fresh
 // check starts again at the first page.
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 const page = ref(1)
 watch([days, () => shown.value], () => (page.value = 1))
 const pageCount = computed(() =>
@@ -60,6 +61,23 @@ const pagePosts = computed(() =>
 const total = computed(() => shown.value?.posts.length ?? 0)
 const first = computed(() => (page.value - 1) * PAGE_SIZE + 1)
 const last = computed(() => Math.min(page.value * PAGE_SIZE, total.value))
+const nav = computed(() => ({
+  page: page.value,
+  pageCount: pageCount.value,
+  first: first.value,
+  last: last.value,
+  total: total.value,
+  noun: 'posts',
+  size: PAGE_SIZE,
+}))
+const heading = ref<HTMLElement | null>(null)
+const go = (step: -1 | 1) => (page.value += step)
+/** From the bottom of the list the new page starts a long way up, so go back to the top of it. */
+function goFromBottom(step: -1 | 1) {
+  go(step)
+  heading.value?.scrollIntoView?.({ block: 'start' })
+  heading.value?.focus({ preventScroll: true }) // keyboard users continue from the top too
+}
 
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -71,7 +89,14 @@ const failedNames = computed(() =>
 <template>
   <section aria-labelledby="recent-heading" class="mb-10">
     <div class="mb-2 flex flex-wrap items-end justify-between gap-3">
-      <h2 id="recent-heading" class="font-serif text-xl font-semibold">Recent posts</h2>
+      <h2
+        id="recent-heading"
+        ref="heading"
+        tabindex="-1"
+        class="font-serif text-xl font-semibold focus:outline-none"
+      >
+        Recent posts
+      </h2>
       <div class="flex items-end gap-2">
         <div>
           <label for="recent-days" class="mb-1 block text-sm font-medium">Show posts from</label>
@@ -120,6 +145,14 @@ const failedNames = computed(() =>
           {{ shown.failed.length === 1 ? 'it' : 'them' }} may be missing.
         </p>
 
+        <PageNav
+          v-if="pageCount > 1"
+          v-bind="nav"
+          label="Pages of recent posts, above the list"
+          announce
+          class="mb-3"
+          @go="go"
+        />
         <p v-if="!shown.posts.length" class="text-stone-700">
           Nothing has been posted in {{ windowName }}. Try a longer period.
         </p>
@@ -156,31 +189,13 @@ const failedNames = computed(() =>
             </div>
           </li>
         </ul>
-        <nav
+        <PageNav
           v-if="pageCount > 1"
-          aria-label="Pages of recent posts"
-          class="mt-3 flex items-center justify-between gap-3 text-sm"
-        >
-          <button
-            type="button"
-            class="rounded border border-stone-300 bg-white px-3 py-2 disabled:opacity-40"
-            :disabled="page <= 1"
-            @click="page--"
-          >
-            Previous<span class="sr-only"> ten posts</span>
-          </button>
-          <p aria-live="polite" aria-atomic="true" class="text-stone-700">
-            Posts {{ first }}–{{ last }} of {{ total }}
-          </p>
-          <button
-            type="button"
-            class="rounded border border-stone-300 bg-white px-3 py-2 disabled:opacity-40"
-            :disabled="page >= pageCount"
-            @click="page++"
-          >
-            Next<span class="sr-only"> ten posts</span>
-          </button>
-        </nav>
+          v-bind="nav"
+          label="Pages of recent posts, below the list"
+          class="mt-3"
+          @go="goFromBottom"
+        />
         <p v-if="shown.omitted" class="mt-2 text-sm text-stone-600">
           {{ shown.omitted }} older {{ shown.omitted === 1 ? 'post' : 'posts' }} in this period
           aren’t shown. Choose a shorter period to see them.
