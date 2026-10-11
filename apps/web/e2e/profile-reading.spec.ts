@@ -236,6 +236,8 @@ test('moves reading items, with their notes, between the profile and an idea, an
 }) => {
   await signUpWithProfile(page)
   await goTo(page, 'Read')
+  // The profile's own page has an add-a-link box too: wait for the Read page, or what is typed goes into that one.
+  await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
   const address = page.getByLabel('Web address', { exact: true })
   for (const url of ['example.org/rivers', 'example.com/lakes']) {
     await address.fill(url)
@@ -267,6 +269,8 @@ test('moves reading items, with their notes, between the profile and an idea, an
   // They are on the idea, with the note.
   await goTo(page, 'Ideas')
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  // Wait for the idea itself: until then the menu is still the profile's, and its Notes link goes to the wrong place.
+  await expect(page).toHaveURL(/\/ideas\/[^/]+\/notes$/)
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
