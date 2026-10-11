@@ -1,6 +1,7 @@
 import { HTTPException } from 'hono/http-exception'
-import { MAX_IDEA_NOTES, MAX_NOTE_TAGS, NOTE_TEXT_MAX, type Idea, type IdeaNote } from '@lfwa/core'
+import { MAX_IDEA_NOTES, MAX_NOTE_TAGS, NOTE_TEXT_MAX, type IdeaNote } from '@lfwa/core'
 import type { Store } from '../db/store'
+import { ownerOf, subjectOf, touch, type ListScope } from './scope'
 
 const fail = (status: 400 | 404 | 409, message: string) => new HTTPException(status, { message })
 
@@ -12,12 +13,13 @@ const fail = (status: 400 | 404 | 409, message: string) => new HTTPException(sta
 export class NoteEditService {
   constructor(private readonly store: Store) {}
 
-  /** Merges the notes into the first of them (in the order they are arranged). Answers with all the idea's notes. */
-  merge(idea: Idea, userId: string, ids: string[]): IdeaNote[] {
+  /** Merges the notes into the first of them (in the order they are arranged). Answers with all the notes of the idea or profile. */
+  merge(scope: ListScope, userId: string, ids: string[]): IdeaNote[] {
     const { notes } = this.store
+    const owner = ownerOf(scope)
     return this.store.transaction(() => {
       const wanted = new Set(ids)
-      const all = notes.list(idea.id)
+      const all = notes.list(owner)
       const chosen = all.filter((n) => wanted.has(n.id)) // arranged order, not the order they were ticked
       if (chosen.length !== wanted.size) throw fail(404, 'Not found')
       if (chosen.length < 2) throw fail(400, 'Choose at least two notes to merge')
@@ -61,21 +63,22 @@ export class NoteEditService {
       // Whose words they are: the author if they all had one, otherwise whoever joined them.
       const sameAuthor = chosen.every((n) => n.authorId === first.authorId)
       notes.merge(
-        idea.id,
+        owner,
         first.id,
         chosen.slice(1).map((n) => n.id),
         { text, authorId: sameAuthor ? first.authorId : userId, tags },
       )
-      this.store.ideas.touch(idea.id)
-      return notes.list(idea.id)
+      touch(this.store, scope)
+      return notes.list(owner)
     })
   }
 
-  /** Cuts a note into two, the second just after the first. Answers with all the idea's notes. */
-  split(idea: Idea, noteId: string, before: string, after: string): IdeaNote[] {
+  /** Cuts a note into two, the second just after the first. Answers with all the notes of the idea or profile. */
+  split(scope: ListScope, noteId: string, before: string, after: string): IdeaNote[] {
     const { notes } = this.store
+    const owner = ownerOf(scope)
     return this.store.transaction(() => {
-      const note = notes.get(idea.id, noteId)
+      const note = notes.get(owner, noteId)
       if (!note) throw fail(404, 'Not found')
       if (note.quote) {
         throw fail(409, "A quotation can't be split: it has to stay exactly as it was on the page.")
@@ -86,15 +89,15 @@ export class NoteEditService {
           "A note that is already in a draft can't be split. Put it back first, then split it.",
         )
       }
-      if (notes.count(idea.id) >= MAX_IDEA_NOTES) {
+      if (notes.count(owner) >= MAX_IDEA_NOTES) {
         throw fail(
           409,
-          `An idea can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
+          `${subjectOf(scope)} can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
         )
       }
-      notes.split(idea.profileId, idea.id, note.id, before, after)
-      this.store.ideas.touch(idea.id)
-      return notes.list(idea.id)
+      notes.split(scope.profileId, owner, note.id, before, after)
+      touch(this.store, scope)
+      return notes.list(owner)
     })
   }
 }

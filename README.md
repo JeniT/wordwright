@@ -110,6 +110,12 @@ tests inject fakes and nothing hits the network.
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
   **Dragging notes into a draft:** the drafting side bar's notes can be dragged by their grip onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor).
+  **The profile's own reading list and notes** (API only so far; the pages are T37b): items and notes can belong to a
+  profile as a whole, to be gathered before there is an idea. `GET/POST /api/profiles/:id/reading`, `PATCH|DELETE
+…/reading/:item`, `PUT …/reading/:item/read` mirror an idea's links (answering with the list), and
+  `/api/profiles/:id/notes` (with `/order`, `/merge`, `/:note/split`, `/:note/tags`) mirrors an idea's notes, without
+  "added to a draft". **Moving:** `POST /api/profiles/:id/move/reading` and `…/move/notes`, each `{ids, to: {ideaId}}`
+  (`ideaId: null` is the profile itself), answer `{batchId, readingItems, merged, copied, notes}`; all or nothing.
   **Merging and splitting notes:** `POST /api/profiles/:id/ideas/:idea/notes/merge` (`{ids}`) joins notes of the same
   origin into the first; `POST …/notes/:note/split` (`{before, after}`) cuts one in two. Both answer with all the notes.
   **Tags on notes:** `PUT /api/profiles/:id/ideas/:idea/notes/:note/tags` (`{tags}`) replaces a note's flat tags; the notes

@@ -2,18 +2,19 @@ import { HTTPException } from 'hono/http-exception'
 import {
   linkKey,
   MAX_IDEA_LINKS,
-  type Idea,
+  type IdeaLink,
   type IdeaLinkInput,
   type PageInfoFetcher,
 } from '@lfwa/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
+import { hereOf, ownerOf, subjectOf, touch, type ListScope } from './scope'
 
 const fail = (status: 400 | 404 | 409 | 429, message: string) =>
   new HTTPException(status, { message })
 
 /**
- * Adding and editing an idea's related-work links. Looking a page up costs a request to someone
+ * Adding and editing the items of an idea's reading list, or of the profile's. Looking a page up costs a request to someone
  * else's server, so it's rate-limited per person, and a link is only saved once the lookup has
  * said the address is a real, public site. A page that merely can't be read (blocked, slow, no
  * title) is fine: the link is kept and shows its address.
@@ -23,22 +24,28 @@ export class IdeaLinkService {
     private readonly deps: { store: Store; pages: PageInfoFetcher; limiter: RateLimiter },
   ) {}
 
-  /** Adds a link and answers with the whole idea. */
-  async add(idea: Idea, userId: string, input: IdeaLinkInput, signal?: AbortSignal): Promise<Idea> {
+  /** Adds a link and answers with the whole reading list. */
+  async add(
+    scope: ListScope,
+    userId: string,
+    input: IdeaLinkInput,
+    signal?: AbortSignal,
+  ): Promise<IdeaLink[]> {
     const { store } = this.deps
-    this.checkRoom(idea)
-    this.checkNotDuplicate(idea, input.url)
+    this.checkRoom(scope, this.current(scope))
+    this.checkNotDuplicate(scope, this.current(scope), input.url)
     // Looking the page up gives its title and who wrote it, unless the writer already said what the title is.
     const found = input.title ? null : await this.lookUp(userId, input.url, signal)
     const title = input.title || found?.title || ''
     const authors = input.authors?.length ? input.authors : (found?.authors ?? [])
 
     // The lookup took time, so look again at what's there now before writing.
-    const fresh = this.current(idea)
-    this.checkRoom(fresh)
-    this.checkNotDuplicate(fresh, input.url)
-    store.ideas.addLink(idea.id, { url: input.url, title, authors })
-    return this.current(idea)
+    const fresh = this.current(scope)
+    this.checkRoom(scope, fresh)
+    this.checkNotDuplicate(scope, fresh, input.url)
+    store.reading.add(scope.profileId, scope.ideaId, { url: input.url, title, authors })
+    touch(store, scope)
+    return this.current(scope)
   }
 
   /**
@@ -48,16 +55,17 @@ export class IdeaLinkService {
    * address, takes what the page says (and a lookup that finds no one leaves them empty or as they were).
    */
   async update(
-    idea: Idea,
+    scope: ListScope,
     linkId: string,
     userId: string,
     input: IdeaLinkInput,
     signal?: AbortSignal,
-  ): Promise<Idea> {
+  ): Promise<IdeaLink[]> {
     const { store } = this.deps
-    const existing = idea.links.find((l) => l.id === linkId)
+    const links = this.current(scope)
+    const existing = links.find((l) => l.id === linkId)
     if (!existing) throw fail(404, 'Not found')
-    this.checkNotDuplicate(idea, input.url, linkId)
+    this.checkNotDuplicate(scope, links, input.url, linkId)
 
     const addressChanged = input.url !== existing.url
     const titleChanged = input.title !== existing.title
@@ -73,30 +81,31 @@ export class IdeaLinkService {
       await this.lookUp(userId, input.url, signal) // chosen title kept, but the address must be real
     }
 
-    const fresh = this.current(idea)
-    if (!fresh.links.some((l) => l.id === linkId)) throw fail(404, 'Not found')
-    this.checkNotDuplicate(fresh, input.url, linkId)
-    store.ideas.updateLink(idea.id, linkId, { url: input.url, title, authors })
-    return this.current(idea)
+    const fresh = this.current(scope)
+    if (!fresh.some((l) => l.id === linkId)) throw fail(404, 'Not found')
+    this.checkNotDuplicate(scope, fresh, input.url, linkId)
+    store.reading.update(ownerOf(scope), linkId, { url: input.url, title, authors })
+    touch(store, scope)
+    return this.current(scope)
   }
 
-  private current(idea: Idea): Idea {
-    return this.deps.store.ideas.get(idea.profileId, idea.id) ?? idea
+  private current(scope: ListScope): IdeaLink[] {
+    return this.deps.store.reading.list(ownerOf(scope))
   }
 
-  private checkRoom(idea: Idea) {
-    if (idea.links.length >= MAX_IDEA_LINKS) {
+  private checkRoom(scope: ListScope, links: IdeaLink[]) {
+    if (links.length >= MAX_IDEA_LINKS) {
       throw fail(
         409,
-        `An idea can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,
+        `${subjectOf(scope)} can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,
       )
     }
   }
 
-  private checkNotDuplicate(idea: Idea, url: string, ignoring?: string) {
+  private checkNotDuplicate(scope: ListScope, links: IdeaLink[], url: string, ignoring?: string) {
     const key = linkKey(url)
-    if (idea.links.some((l) => l.id !== ignoring && linkKey(l.url) === key)) {
-      throw fail(409, 'That link is already in this idea.')
+    if (links.some((l) => l.id !== ignoring && linkKey(l.url) === key)) {
+      throw fail(409, `That link is already in ${hereOf(scope)}.`)
     }
   }
 

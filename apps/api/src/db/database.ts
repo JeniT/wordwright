@@ -4,8 +4,14 @@ import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { firstAvailable, IDEA_NAME_MAX, profileIdFor, suggestHandle } from '@lfwa/core'
 
-/** SQL, or a function when the change needs logic SQL can't express. Either runs in one transaction. */
-type Migration = string | ((db: DatabaseSync) => void)
+/**
+ * SQL, or a function when the change needs logic SQL can't express. Either runs in one transaction.
+ * `foreignKeysOff` is for rebuilding a table that other tables refer to (SQLite can't loosen a column in
+ * place): dropping the old table with foreign keys on would fire their `ON DELETE` actions and clear every
+ * reference to it. Foreign keys are off only while it runs, and the whole database is checked before it commits.
+ */
+type Migration =
+  string | ((db: DatabaseSync) => void) | { foreignKeysOff: true; run: (db: DatabaseSync) => void }
 
 /** Ordered, append-only. The schema version is the number of migrations applied. */
 export const MIGRATIONS: Migration[] = [
@@ -444,6 +450,56 @@ export const MIGRATIONS: Migration[] = [
     last_error_at TEXT
   );
   `,
+  // #69: reading items can belong to the profile as a whole (idea_id null), as notes already could, so a reading
+  // list can be gathered before there is an idea. profile_id is now always set (as on idea_notes); a rebuild is
+  // needed because SQLite can't make idea_id nullable in place, and notes and research items refer to this table.
+  // A new origin 'feed' (with the feed it came from) is for posts added from the profile's feeds.
+  {
+    foreignKeysOff: true,
+    run: (db) => {
+      db.exec(`
+        CREATE TABLE idea_links_new (
+          id TEXT PRIMARY KEY,
+          profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+          idea_id TEXT REFERENCES ideas(id) ON DELETE CASCADE,
+          url TEXT NOT NULL,
+          title TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          read_at TEXT,
+          origin TEXT NOT NULL DEFAULT 'entered'
+            CHECK (origin IN ('entered', 'brainstorm', 'research', 'idea_generation', 'feed')),
+          authors TEXT NOT NULL DEFAULT '[]',
+          why TEXT,
+          source_id TEXT REFERENCES profile_sources(id) ON DELETE SET NULL
+        );
+        INSERT INTO idea_links_new (id, profile_id, idea_id, url, title, created_at, read_at, origin, authors, why)
+          SELECT l.id, i.profile_id, l.idea_id, l.url, l.title, l.created_at, l.read_at, l.origin, l.authors, l.why
+          FROM idea_links l JOIN ideas i ON i.id = l.idea_id ORDER BY l.rowid;
+        DROP TABLE idea_links;
+        ALTER TABLE idea_links_new RENAME TO idea_links;
+        CREATE INDEX idea_links_idea ON idea_links(idea_id);
+        CREATE INDEX idea_links_profile ON idea_links(profile_id);
+      `)
+    },
+  },
+  // #69: what was moved between a profile's reading list and notes and its ideas, by whom and when, one row per
+  // operation and thing moved. Kept so a move can be shown and undone later; the things themselves may be gone.
+  `
+  CREATE TABLE moves (
+    id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL,
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    moved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    moved_at TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('reading', 'note')),
+    item_id TEXT NOT NULL,
+    from_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+    to_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+    -- True when the item joined an item the destination already had (and was not carried over as it was).
+    merged INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX moves_profile ON moves(profile_id, moved_at);
+  `,
 ]
 
 /**
@@ -582,16 +638,28 @@ export function migrate(
   }
 
   for (let v = current; v < migrations.length; v++) {
+    const step = migrations[v]!
+    const rebuild = typeof step === 'object'
+    // Foreign keys can only be switched off outside a transaction.
+    if (rebuild) db.exec('PRAGMA foreign_keys = OFF')
     db.exec('BEGIN')
     try {
-      const step = migrations[v]!
       if (typeof step === 'string') db.exec(step)
-      else step(db)
+      else if (typeof step === 'function') step(db)
+      else step.run(db)
+      if (rebuild) {
+        const broken = db.prepare('PRAGMA foreign_key_check').all()
+        if (broken.length) {
+          throw new DatabaseError(`Migration ${v + 1} left ${broken.length} broken references`)
+        }
+      }
       db.exec(`PRAGMA user_version = ${v + 1}`)
       db.exec('COMMIT')
     } catch (err) {
       db.exec('ROLLBACK')
       throw err
+    } finally {
+      if (rebuild) db.exec('PRAGMA foreign_keys = ON')
     }
   }
 }

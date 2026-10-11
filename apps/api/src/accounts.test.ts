@@ -433,6 +433,17 @@ describe('account deletion', () => {
     expect(store.drafts.insertions(ideaDraft.id)).toHaveLength(1)
     await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
     expect(store.profiles.getImage(second.id)).toBeDefined()
+    // The profile's own reading list and notes, and the log of a move, go with it too.
+    const own = store.reading.add(second.id, null, { url: 'https://own.example/', title: 'Own' })
+    store.notes.append(second.id, null, null, 'A profile-level note', 'reading', own.id)
+    store.moves.record(second.id, user.id, 'batch', {
+      kind: 'reading',
+      itemId: own.id,
+      fromIdeaId: idea.id,
+      toIdeaId: null,
+      merged: false,
+    })
+    expect(store.reading.list({ profileId: second.id })).toHaveLength(1)
     const feed = store.sources.add(second.id, 'https://news.example/feed')
     store.sources.saveFetch(feed.id, {
       items: [],
@@ -451,6 +462,9 @@ describe('account deletion', () => {
     expect(res.status).toBe(204)
     expect(store.profiles.getImage(second.id)).toBeUndefined()
     expect(store.sources.getFetch(feed.id)).toBeUndefined()
+    expect(store.reading.list({ profileId: second.id })).toEqual([])
+    expect(store.notes.list({ profileId: second.id })).toEqual([])
+    expect(store.moves.list(second.id)).toEqual([])
 
     expect(store.users.findById(user.id)).toBeUndefined()
     expect(store.profiles.listIdsForUser(user.id)).toEqual([])

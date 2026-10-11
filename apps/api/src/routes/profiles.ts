@@ -17,6 +17,10 @@ import { draftRoutes } from './drafts'
 import { imageResponse } from './image-response'
 import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
+import { moveRoutes, profileReadingRoutes } from './reading'
+import { noteRoutes } from './notes'
+import { NoteEditService } from '../services/note-edits'
+import { MoveService } from '../services/moves'
 import type { BrainstormService } from '../services/brainstorm'
 import type { ResearchService } from '../services/research'
 import type { FeedItemService } from '../services/feed-items'
@@ -55,6 +59,8 @@ export function profileRoutes({
 }: ProfileRouteDeps) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
+  const noteEdits = new NoteEditService(store)
+  const moves = new MoveService(store)
 
   return (
     new Hono<AppEnv>()
@@ -157,6 +163,26 @@ export function profileRoutes({
           .route('/', ideaRoutes(store, ideaLinks, brainstorm, research)),
       )
       .route('/:profileId/sources', sourceRoutes(store, feeds, feedLimiter, member, feedItems))
+      // The profile's own reading list and notes, gathered before there is an idea.
+      .route(
+        '/:profileId/reading',
+        new Hono<AppEnv>().use(member).route('/', profileReadingRoutes(store, ideaLinks)),
+      )
+      .route(
+        '/:profileId/notes',
+        new Hono<AppEnv>().use(member).route(
+          '/',
+          noteRoutes(
+            store,
+            noteEdits,
+            (c) => ({ profileId: c.req.param('profileId')!, ideaId: null }),
+            {
+              drafts: false,
+            },
+          ),
+        ),
+      )
+      .route('/:profileId/move', new Hono<AppEnv>().use(member).route('/', moveRoutes(moves)))
       .route(
         '/:profileId/assist',
         new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),

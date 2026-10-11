@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite'
 import type { IdeaNote, NoteOrigin } from '@lfwa/core'
 import { nowIso } from './database'
+import { owned, type Owner } from './owner'
 
 type Row = Record<string, SQLOutputValue>
 
@@ -20,8 +21,8 @@ const toNote = (r: Row): IdeaNote => ({
 })
 
 /**
- * An idea's notes, in the order the person arranged them. Callers check that the person belongs to the
- * profile and that the idea is in it. `append`, `remove` and `reorder` make several writes, so routes call
+ * The notes of an idea, or of a profile as a whole (see `Owner`), in the order the person arranged them. Callers
+ * check that the person belongs to the profile and that the idea is in it. `append`, `remove` and `reorder` make several writes, so routes call
  * them inside `store.transaction`.
  */
 export class NoteStore {
@@ -47,31 +48,68 @@ export class NoteStore {
   }
 
   /** Gives a note exactly these tags (already tidied and free of repeats). Call inside a transaction. */
-  setTags(ideaId: string, id: string, tags: string[]): IdeaNote | undefined {
-    if (!this.get(ideaId, id)) return undefined
+  setTags(owner: Owner, id: string, tags: string[]): IdeaNote | undefined {
+    if (!this.get(owner, id)) return undefined
     this.db.prepare('DELETE FROM idea_note_tags WHERE note_id = ?').run(id)
     const insert = this.db.prepare('INSERT INTO idea_note_tags (note_id, tag) VALUES (?, ?)')
     for (const tag of tags) insert.run(id, tag)
     this.db.prepare('UPDATE idea_notes SET updated_at = ? WHERE id = ?').run(nowIso(), id)
-    return this.get(ideaId, id)
+    return this.get(owner, id)
   }
 
-  list(ideaId: string): IdeaNote[] {
-    return this.select('n.idea_id = ? ORDER BY n.position, n.rowid', ideaId)
+  list(owner: Owner): IdeaNote[] {
+    const w = owned(owner, 'n')
+    return this.select(`${w.sql} ORDER BY n.position, n.rowid`, ...w.args)
   }
 
-  count(ideaId: string): number {
+  count(owner: Owner): number {
+    const w = owned(owner)
     return (
-      this.db.prepare('SELECT count(*) AS n FROM idea_notes WHERE idea_id = ?').get(ideaId) as {
+      this.db.prepare(`SELECT count(*) AS n FROM idea_notes WHERE ${w.sql}`).get(...w.args) as {
         n: number
       }
     ).n
   }
 
+  /** The notes taken from a reading item, in their order. */
+  byReadingItem(profileId: string, readingItemId: string): string[] {
+    return this.db
+      .prepare(
+        'SELECT id FROM idea_notes WHERE profile_id = ? AND reading_item_id = ? ORDER BY position, rowid',
+      )
+      .all(profileId, readingItemId)
+      .map((r) => r.id as string)
+  }
+
+  /** Where each of these notes is in the profile: the idea it belongs to, or null for the profile itself. */
+  locate(profileId: string, ids: string[]): Map<string, string | null> {
+    if (!ids.length) return new Map()
+    const marks = ids.map(() => '?').join(', ')
+    const rows = this.db
+      .prepare(`SELECT id, idea_id FROM idea_notes WHERE profile_id = ? AND id IN (${marks})`)
+      .all(profileId, ...ids)
+    return new Map(rows.map((r) => [r.id as string, r.idea_id as string | null]))
+  }
+
+  /**
+   * Hands a note to an idea, or to the profile (`null`), at the end of that list, pointing at `readingItemId`
+   * there (or at no item). Clears "added", since it hasn't been put into any of the new owner's drafts.
+   */
+  moveTo(profileId: string, id: string, ideaId: string | null, readingItemId: string | null) {
+    const w = owned(ideaId ?? { profileId })
+    this.db
+      .prepare(
+        `UPDATE idea_notes SET idea_id = ?, reading_item_id = ?, added_at = NULL, updated_at = ?,
+           position = (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql})
+         WHERE profile_id = ? AND id = ?`,
+      )
+      .run(ideaId, readingItemId, nowIso(), ...w.args, profileId, id)
+  }
+
   /** Adds a note after the others. */
   append(
     profileId: string,
-    ideaId: string,
+    ideaId: string | null,
     authorId: string | null,
     text: string,
     origin: NoteOrigin = 'entered',
@@ -80,10 +118,11 @@ export class NoteStore {
   ): IdeaNote {
     const id = randomUUID()
     const now = nowIso()
+    const w = owned(ideaId ?? { profileId })
     this.db
       .prepare(
         `INSERT INTO idea_notes (id, profile_id, idea_id, created_by, text, origin, reading_item_id, is_quote, position, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE idea_id = ?), ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql}), ?, ?)`,
       )
       .run(
         id,
@@ -94,7 +133,7 @@ export class NoteStore {
         origin,
         readingItemId,
         quote ? 1 : 0,
-        ideaId,
+        ...w.args,
         now,
         now,
       )
@@ -102,39 +141,43 @@ export class NoteStore {
   }
 
   /** Sets a note aside as used in a draft (keeping the first date), or puts it back. */
-  setAdded(ideaId: string, id: string, added: boolean): IdeaNote | undefined {
+  setAdded(owner: Owner, id: string, added: boolean): IdeaNote | undefined {
     const now = nowIso()
+    const w = owned(owner)
     const changed =
       this.db
         .prepare(
           `UPDATE idea_notes SET added_at = CASE WHEN ? THEN coalesce(added_at, ?) ELSE NULL END
-           WHERE idea_id = ? AND id = ?`,
+           WHERE ${w.sql} AND id = ?`,
         )
-        .run(added ? 1 : 0, now, ideaId, id).changes > 0
+        .run(added ? 1 : 0, now, ...w.args, id).changes > 0
     return changed ? this.select('n.id = ?', id)[0] : undefined
   }
 
-  get(ideaId: string, id: string): IdeaNote | undefined {
-    return this.select('n.idea_id = ? AND n.id = ?', ideaId, id)[0]
+  get(owner: Owner, id: string): IdeaNote | undefined {
+    const w = owned(owner, 'n')
+    return this.select(`${w.sql} AND n.id = ?`, ...w.args, id)[0]
   }
 
-  updateText(ideaId: string, id: string, text: string): IdeaNote | undefined {
+  updateText(owner: Owner, id: string, text: string): IdeaNote | undefined {
+    const w = owned(owner)
     const changed =
       this.db
-        .prepare('UPDATE idea_notes SET text = ?, updated_at = ? WHERE idea_id = ? AND id = ?')
-        .run(text, nowIso(), ideaId, id).changes > 0
+        .prepare(`UPDATE idea_notes SET text = ?, updated_at = ? WHERE ${w.sql} AND id = ?`)
+        .run(text, nowIso(), ...w.args, id).changes > 0
     if (!changed) return undefined
     return this.select('n.id = ?', id)[0]
   }
 
-  remove(ideaId: string, id: string): boolean {
+  remove(owner: Owner, id: string): boolean {
+    const w = owned(owner)
     const removed =
-      this.db.prepare('DELETE FROM idea_notes WHERE idea_id = ? AND id = ?').run(ideaId, id)
+      this.db.prepare(`DELETE FROM idea_notes WHERE ${w.sql} AND id = ?`).run(...w.args, id)
         .changes > 0
     if (removed)
       this.renumber(
-        ideaId,
-        this.list(ideaId).map((n) => n.id),
+        owner,
+        this.list(owner).map((n) => n.id),
       )
     return removed
   }
@@ -143,12 +186,12 @@ export class NoteStore {
    * Puts the notes in the given order. Returns false, changing nothing, unless `ids` names exactly the
    * idea's current notes (so a stale screen can't silently drop or resurrect any).
    */
-  reorder(ideaId: string, ids: string[]): boolean {
-    const current = this.list(ideaId).map((n) => n.id)
+  reorder(owner: Owner, ids: string[]): boolean {
+    const current = this.list(owner).map((n) => n.id)
     if (ids.length !== current.length || new Set(ids).size !== ids.length) return false
     const known = new Set(current)
     if (!ids.every((id) => known.has(id))) return false
-    this.renumber(ideaId, ids)
+    this.renumber(owner, ids)
     return true
   }
 
@@ -170,22 +213,23 @@ export class NoteStore {
    * caller's.
    */
   merge(
-    ideaId: string,
+    owner: Owner,
     keepId: string,
     dropIds: string[],
     merged: { text: string; authorId: string | null; tags: string[] },
   ) {
+    const w = owned(owner)
     this.db
       .prepare(
-        'UPDATE idea_notes SET text = ?, created_by = ?, added_at = NULL, updated_at = ? WHERE idea_id = ? AND id = ?',
+        `UPDATE idea_notes SET text = ?, created_by = ?, added_at = NULL, updated_at = ? WHERE ${w.sql} AND id = ?`,
       )
-      .run(merged.text, merged.authorId, nowIso(), ideaId, keepId)
-    this.setTags(ideaId, keepId, merged.tags)
-    const drop = this.db.prepare('DELETE FROM idea_notes WHERE idea_id = ? AND id = ?')
-    for (const id of dropIds) drop.run(ideaId, id)
+      .run(merged.text, merged.authorId, nowIso(), ...w.args, keepId)
+    this.setTags(owner, keepId, merged.tags)
+    const drop = this.db.prepare(`DELETE FROM idea_notes WHERE ${w.sql} AND id = ?`)
+    for (const id of dropIds) drop.run(...w.args, id)
     this.renumber(
-      ideaId,
-      this.list(ideaId).map((n) => n.id),
+      owner,
+      this.list(owner).map((n) => n.id),
     )
   }
 
@@ -193,8 +237,9 @@ export class NoteStore {
    * Cuts a note in two: it keeps its place, identity and tags with the first part, and a copy (same origin,
    * author, source and tags) holding the second part follows it. Call inside a transaction.
    */
-  split(profileId: string, ideaId: string, id: string, before: string, after: string): string {
-    const note = this.get(ideaId, id)!
+  split(profileId: string, owner: Owner, id: string, before: string, after: string): string {
+    const ideaId = typeof owner === 'string' ? owner : null
+    const note = this.get(owner, id)!
     const second = this.append(
       profileId,
       ideaId,
@@ -203,20 +248,19 @@ export class NoteStore {
       note.origin,
       note.readingItemId,
     )
-    this.setTags(ideaId, second.id, note.tags)
-    this.updateText(ideaId, id, before)
-    const ids = this.list(ideaId)
+    this.setTags(owner, second.id, note.tags)
+    this.updateText(owner, id, before)
+    const ids = this.list(owner)
       .map((n) => n.id)
       .filter((n) => n !== second.id)
     ids.splice(ids.indexOf(id) + 1, 0, second.id)
-    this.renumber(ideaId, ids)
+    this.renumber(owner, ids)
     return second.id
   }
 
-  private renumber(ideaId: string, ids: string[]) {
-    const update = this.db.prepare(
-      'UPDATE idea_notes SET position = ? WHERE idea_id = ? AND id = ?',
-    )
-    ids.forEach((id, position) => update.run(position, ideaId, id))
+  private renumber(owner: Owner, ids: string[]) {
+    const w = owned(owner)
+    const update = this.db.prepare(`UPDATE idea_notes SET position = ? WHERE ${w.sql} AND id = ?`)
+    ids.forEach((id, position) => update.run(position, ...w.args, id))
   }
 }

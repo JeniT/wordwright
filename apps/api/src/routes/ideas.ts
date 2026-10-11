@@ -7,16 +7,8 @@ import {
   DraftOrderSchema,
   IdeaInputSchema,
   IdeaLinkInputSchema,
-  IdeaNoteEditSchema,
-  IdeaNoteInputSchema,
-  IdeaNoteOrderSchema,
-  MAX_IDEA_NOTES,
   IdeaUpdateSchema,
-  NoteAddedSchema,
-  NoteMergeInputSchema,
-  NoteSplitInputSchema,
   markdownToNotes,
-  NoteTagsInputSchema,
   ReadingItemReadSchema,
   ResearchInputSchema,
   ResearchItemIdsSchema,
@@ -28,6 +20,7 @@ import type { BrainstormService, Turn } from '../services/brainstorm'
 import type { IdeaLinkService } from '../services/idea-links'
 import type { ResearchService } from '../services/research'
 import { NoteEditService } from '../services/note-edits'
+import { noteRoutes } from './notes'
 import { toLlmHttpError } from './llm'
 import { validateJson } from '../validate'
 
@@ -87,23 +80,25 @@ export function ideaRoutes(
       })
 
       .post('/:id/links', validateJson(IdeaLinkInputSchema), async (c) => {
-        const saved = await links.add(
-          find(c),
+        const idea = find(c)
+        await links.add(
+          { profileId: idea.profileId, ideaId: idea.id },
           c.get('user').id,
           c.req.valid('json'),
           c.req.raw.signal,
         )
-        return c.json(saved, 201)
+        return c.json(find(c), 201)
       })
       .patch('/:id/links/:linkId', validateJson(IdeaLinkInputSchema), async (c) => {
-        const saved = await links.update(
-          find(c),
+        const idea = find(c)
+        await links.update(
+          { profileId: idea.profileId, ideaId: idea.id },
           c.req.param('linkId'),
           c.get('user').id,
           c.req.valid('json'),
           c.req.raw.signal,
         )
-        return c.json(saved)
+        return c.json(find(c))
       })
       .put('/:id/links/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
         const idea = find(c)
@@ -119,102 +114,12 @@ export function ideaRoutes(
       })
 
       // ---- notes: index cards, in the order the person arranged them ----
-      .get('/:id/notes', (c) => c.json(notes.list(find(c).id)))
-      .post('/:id/notes', validateJson(IdeaNoteInputSchema), (c) => {
-        const idea = find(c)
-        const saved = store.transaction(() => {
-          if (notes.count(idea.id) >= MAX_IDEA_NOTES) {
-            throw new HTTPException(409, {
-              message: `An idea can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
-            })
-          }
-          const { text, readingItemId, quote } = c.req.valid('json')
-          if (quote && !readingItemId) {
-            throw new HTTPException(400, {
-              message: 'A quotation needs the reading-list item it comes from.',
-            })
-          }
-          if (readingItemId && !idea.links.some((l) => l.id === readingItemId)) {
-            throw new HTTPException(400, {
-              message: "That item isn't on this idea's reading list.",
-            })
-          }
-          // A note taken from an item of the reading list is a note from reading.
-          const note = notes.append(
-            idea.profileId,
-            idea.id,
-            c.get('user').id,
-            text,
-            readingItemId ? 'reading' : 'entered',
-            readingItemId ?? null,
-            !!quote,
-          )
-          // Taking a note from an item means it has been read (the first read date is kept if it already was).
-          if (readingItemId) ideas.setLinkRead(idea.id, readingItemId, true)
-          ideas.touch(idea.id)
-          return note
-        })
-        return c.json(saved, 201)
-      })
-      // Registered before `/:id/notes/:noteId` so that "order" is not taken for an id.
-      .put('/:id/notes/order', validateJson(IdeaNoteOrderSchema), (c) => {
-        const idea = find(c)
-        const ok = store.transaction(() => notes.reorder(idea.id, c.req.valid('json').ids))
-        if (!ok) {
-          throw new HTTPException(409, {
-            message: 'The notes have changed since you opened them. Reload the page and try again.',
-          })
-        }
-        ideas.touch(idea.id)
-        return c.json(notes.list(idea.id))
-      })
-      .patch('/:id/notes/:noteId', validateJson(IdeaNoteEditSchema), (c) => {
-        const idea = find(c)
-        const current = notes.get(idea.id, c.req.param('noteId'))
-        if (!current) throw notFound()
-        if (current.quote) {
-          throw new HTTPException(409, {
-            message:
-              "A quotation can't be edited, so it stays exactly as it was on the page. Delete it and add it again if it needs correcting.",
-          })
-        }
-        const saved = notes.updateText(idea.id, current.id, c.req.valid('json').text)
-        if (!saved) throw notFound()
-        ideas.touch(idea.id)
-        return c.json(saved)
-      })
-      // Join notes into one (the first of them), or cut one in two. Both answer with all the idea's notes.
-      .post('/:id/notes/merge', validateJson(NoteMergeInputSchema), (c) =>
-        c.json(noteEdits.merge(find(c), c.get('user').id, c.req.valid('json').ids)),
+      .route(
+        '/:id/notes',
+        noteRoutes(store, noteEdits, (c) => ({ profileId: profileOf(c), ideaId: find(c).id }), {
+          drafts: true,
+        }),
       )
-      .post('/:id/notes/:noteId/split', validateJson(NoteSplitInputSchema), (c) => {
-        const { before, after } = c.req.valid('json')
-        return c.json(noteEdits.split(find(c), c.req.param('noteId'), before, after), 201)
-      })
-      // The note's tags, replaced as a whole (the same way notes are put in order).
-      .put('/:id/notes/:noteId/tags', validateJson(NoteTagsInputSchema), (c) => {
-        const idea = find(c)
-        const saved = store.transaction(() =>
-          notes.setTags(idea.id, c.req.param('noteId'), c.req.valid('json').tags),
-        )
-        if (!saved) throw notFound()
-        ideas.touch(idea.id)
-        return c.json(saved)
-      })
-      // Put a note back among those that can be pulled into a draft (it stays in any draft it was put in).
-      .put('/:id/notes/:noteId/added', validateJson(NoteAddedSchema), (c) => {
-        const idea = find(c)
-        const saved = notes.setAdded(idea.id, c.req.param('noteId'), c.req.valid('json').added)
-        if (!saved) throw notFound()
-        ideas.touch(idea.id)
-        return c.json(saved)
-      })
-      .delete('/:id/notes/:noteId', (c) => {
-        const idea = find(c)
-        if (!store.transaction(() => notes.remove(idea.id, c.req.param('noteId')))) throw notFound()
-        ideas.touch(idea.id)
-        return c.body(null, 204)
-      })
 
       // Starts a draft that develops this idea. Open the draft itself at `/drafts/:id`.
       .post('/:id/drafts', validateJson(DraftInputSchema), (c) => {

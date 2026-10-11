@@ -716,6 +716,45 @@ The profile's own website field (`SiteUrlSchema`) applies the same `WebAddressSc
 cap. It is checked only when saved, so a site stored earlier that wouldn't pass still displays, but must be
 corrected or cleared the next time the profile settings are saved.
 
+## Reading items and notes can belong to a profile; moving them
+
+The profile's feeds will fill a reading list that belongs to the profile as a whole (T37), worked through like an
+idea's, and notes made there can later be gathered into an idea. So both kinds of thing need an owner that is either
+an idea or the profile.
+
+- **Ownership.** `idea_notes` already had `profile_id` (always) and `idea_id` (null for the profile's own). Reading items
+  (`idea_links`) now have the same: `profile_id` is always set and `idea_id` is null for the profile's own. This differs
+  from "exactly one of the two" in the task text on purpose: always carrying the profile makes "everything in this
+  profile" one query, cascades the profile's deletion directly, and matches notes. The code names an owner with the
+  one `Owner` type (`db/owner.ts`: an idea id, or `{ profileId }`), and every store method that used to take an idea id
+  takes an `Owner`, so an idea's lists and the profile's are the same code with a different `WHERE`.
+- **A rebuild, with foreign keys off.** SQLite can't make `idea_id` nullable in place. Rebuilding a table other tables
+  refer to (notes and research pages point at reading items) would, with foreign keys on, clear those references when
+  the old table is dropped. The migration runner therefore takes `{ foreignKeysOff: true, run }` steps: foreign keys
+  are off only for that step, the database is checked with `PRAGMA foreign_key_check` before it commits (a failure
+  rolls back), and they are switched back on afterwards. Existing rows keep their ids, so nothing that refers to them
+  breaks, and `profile_id` is filled in from the idea they were in.
+- **Same rules, one set of routes.** The profile's notes use the idea notes' routes (`routes/notes.ts`, mounted twice;
+  the profile has no drafts, so no "added" state), and the reading list uses `IdeaLinkService` with a `ListScope`
+  (`{profileId, ideaId}`). Limits are the same numbers, worded for what is full ("A profile can have up to ..."). A
+  profile's order is its own list: reordering it never touches an idea's.
+- **What "move" keeps** (`MoveService`, all in one transaction, refusing anything outside the profile): _A reading item_
+  moves as it is (read date, authors, title, why, origin, feed) and **its notes go with it**, to the end of the
+  destination's notes. If the destination already has an item with the same address (compared as links are everywhere),
+  the two become one: the one already there stays, counts as read if the moved one was, and the moved item's notes now
+  point at it. _A note_ moves with its text, tags, author, origin and quotation mark, to the end of the destination's
+  notes, in the order it was arranged (not the order it was picked). It keeps its source by getting a **copy** of the
+  reading item at the destination (or using the item there with the same address), rather than taking the item away from
+  other notes that came from it; copying is the safe choice since a source can have several notes, and only some may
+  be moving. A note that had been put into a draft is no longer "added", because it hasn't been put into any of the
+  new owner's drafts. A move that would pass the limits (links or notes) is refused whole, and moving to where
+  something already is is refused ("already there") rather than silently doing nothing.
+- **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
+  by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
+  with the profile.
+- **A new origin, `feed`,** is allowed for reading items (with `source_id`, the feed it came from, set to null if
+  the feed is removed) for the "Add to reading list" page (T6c). Nothing creates one yet.
+
 ## Brainstorming proposes; it never edits, and it never drafts
 
 The brainstorm conversation (design in [brainstorming.md](brainstorming.md)) lets the person's LLM suggest a new

@@ -236,7 +236,7 @@ describe('migrations', () => {
       expect(() => item('found')).not.toThrow()
       expect(() => item('fine')).toThrow()
       db.prepare(
-        `INSERT INTO idea_links (id, idea_id, url, title, why, created_at) VALUES ('l1', 'i1', 'https://a.example.org', 't', 'Because.', 'x')`,
+        `INSERT INTO idea_links (id, profile_id, idea_id, url, title, why, created_at) VALUES ('l1', 'p1', 'i1', 'https://a.example.org', 't', 'Because.', 'x')`,
       ).run()
       expect(db.prepare("SELECT why FROM idea_links WHERE id = 'l1'").get()).toEqual({
         why: 'Because.',
@@ -272,5 +272,110 @@ describe('migrations', () => {
     db.exec('PRAGMA user_version = 999')
     db.close()
     expect(() => openDatabase(path)).toThrow(/newer version/)
+  })
+
+  describe('reading items that can belong to a profile (#69)', () => {
+    const rebuild = MIGRATIONS.findIndex((m) => typeof m === 'object' && 'foreignKeysOff' in m)
+
+    function before() {
+      const db = new DatabaseSync(':memory:')
+      db.exec('PRAGMA foreign_keys = ON')
+      migrate(db, 'test', MIGRATIONS.slice(0, rebuild))
+      db.exec(`
+        INSERT INTO users (id, name, email, created_at) VALUES ('u1', 'Ada', 'ada@example.com', 'x');
+        INSERT INTO profiles (id, name, created_at) VALUES ('p1', 'P', 'x');
+        INSERT INTO ideas (id, profile_id, created_by, name, notes, created_at, updated_at)
+          VALUES ('i1', 'p1', 'u1', 'Idea', '', 'x', 'x');
+        INSERT INTO idea_links (id, idea_id, url, title, origin, authors, why, read_at, created_at)
+          VALUES ('l1', 'i1', 'https://a.example.org', 'First', 'research', '["Ada"]', 'Because.', 'r', '1'),
+                 ('l2', 'i1', 'https://b.example.org', 'Second', 'entered', '[]', NULL, NULL, '2');
+        INSERT INTO idea_notes (id, profile_id, idea_id, text, origin, position, reading_item_id, created_at, updated_at)
+          VALUES ('n1', 'p1', 'i1', 'A note', 'reading', 0, 'l1', 'x', 'x');
+        INSERT INTO idea_research (id, idea_id, created_by, areas, provider, model, created_at)
+          VALUES ('r1', 'i1', 'u1', 'Areas', 'anthropic', 'm', 'x');
+        INSERT INTO idea_research_items (id, research_id, position, url, title, why, check_status, link_id)
+          VALUES ('ri1', 'r1', 0, 'https://a.example.org', 't', 'w', 'found', 'l1');
+      `)
+      return db
+    }
+
+    it('keeps every item, and everything that refers to one, when the table is rebuilt', () => {
+      const db = before()
+      migrate(db, 'test', MIGRATIONS)
+      expect(db.prepare('SELECT * FROM idea_links ORDER BY rowid').all()).toEqual([
+        expect.objectContaining({
+          id: 'l1',
+          profile_id: 'p1',
+          idea_id: 'i1',
+          title: 'First',
+          origin: 'research',
+          authors: '["Ada"]',
+          why: 'Because.',
+          read_at: 'r',
+          source_id: null,
+        }),
+        expect.objectContaining({ id: 'l2', profile_id: 'p1', idea_id: 'i1', title: 'Second' }),
+      ])
+      // The things that point at an item still do (a rebuild must not clear them).
+      expect(db.prepare('SELECT reading_item_id FROM idea_notes').get()).toEqual({
+        reading_item_id: 'l1',
+      })
+      expect(db.prepare('SELECT link_id FROM idea_research_items').get()).toEqual({ link_id: 'l1' })
+      expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+      expect(
+        (db.prepare('PRAGMA foreign_keys').get() as { foreign_keys: number }).foreign_keys,
+      ).toBe(1)
+    })
+
+    it('then lets an item belong to the profile alone, and refuses one with no profile', () => {
+      const db = before()
+      migrate(db, 'test', MIGRATIONS)
+      const add = (id: string, profile: string | null, idea: string | null, origin = 'feed') =>
+        db
+          .prepare(
+            'INSERT INTO idea_links (id, profile_id, idea_id, url, title, origin, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          )
+          .run(id, profile, idea, `https://${id}.example`, id, origin, 'x')
+      expect(() => add('p-level', 'p1', null)).not.toThrow()
+      expect(() => add('no-profile', null, null)).toThrow()
+      expect(() => add('bad-origin', 'p1', null, 'robot')).toThrow()
+    })
+
+    it('still deletes an idea’s items with the idea, and all of them with the profile', () => {
+      const db = before()
+      migrate(db, 'test', MIGRATIONS)
+      db.prepare(
+        "INSERT INTO idea_links (id, profile_id, idea_id, url, title, created_at) VALUES ('p-level', 'p1', NULL, 'https://x.example', 'x', 'x')",
+      ).run()
+      db.prepare("DELETE FROM ideas WHERE id = 'i1'").run()
+      expect(db.prepare('SELECT id FROM idea_links').all()).toEqual([{ id: 'p-level' }])
+      db.prepare("DELETE FROM profiles WHERE id = 'p1'").run()
+      expect(db.prepare('SELECT count(*) AS n FROM idea_links').get()).toEqual({ n: 0 })
+    })
+
+    it('rolls back, and leaves foreign keys on, when a rebuilding migration fails', () => {
+      const db = new DatabaseSync(':memory:')
+      db.exec('PRAGMA foreign_keys = ON')
+      expect(() =>
+        migrate(db, 'test', [
+          'CREATE TABLE a (id TEXT PRIMARY KEY)',
+          {
+            foreignKeysOff: true,
+            run: (d) => {
+              d.exec(
+                "CREATE TABLE b (a_id TEXT REFERENCES a(id)); INSERT INTO b VALUES ('missing')",
+              )
+            },
+          },
+        ]),
+      ).toThrow(/broken references/)
+      expect(db.prepare("SELECT name FROM sqlite_master WHERE name = 'b'").get()).toBeUndefined()
+      expect(
+        (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version,
+      ).toBe(1)
+      expect(
+        (db.prepare('PRAGMA foreign_keys').get() as { foreign_keys: number }).foreign_keys,
+      ).toBe(1)
+    })
   })
 })

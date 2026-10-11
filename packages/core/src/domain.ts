@@ -367,8 +367,14 @@ export const IdeaNotesSchema = z
     `Use ${IDEA_NOTES_MAX.toLocaleString('en')} characters or fewer in the notes`,
   )
 
-/** Who or what put an item on a reading list. Only `entered` is used so far; the others are for later features. */
-export const ReadingOriginSchema = z.enum(['entered', 'brainstorm', 'research', 'idea_generation'])
+/** Who or what put an item on a reading list: the writer, the AI (brainstorm, research), or a post from the profile's feeds. */
+export const ReadingOriginSchema = z.enum([
+  'entered',
+  'brainstorm',
+  'research',
+  'idea_generation',
+  'feed',
+])
 export type ReadingOrigin = z.infer<typeof ReadingOriginSchema>
 
 /** Who wrote a piece: names as the page or the writer gave them. */
@@ -468,6 +474,38 @@ export const IdeaNoteInputSchema = z.object({
   /** The text is a direct quotation from that item, kept word for word. It needs `readingItemId`. */
   quote: z.boolean().optional(),
 })
+
+/**
+ * Where to move reading items or notes: to an idea of the same profile, or (`null`) to the profile itself, where
+ * they are kept before there is an idea.
+ */
+export const MoveTargetSchema = z.object({ ideaId: z.string().nullable() })
+
+export const MoveReadingInputSchema = z.object({
+  ids: z.array(z.string()).min(1, 'Choose at least one item').max(MAX_IDEA_LINKS),
+  to: MoveTargetSchema,
+})
+export type MoveReadingInput = z.infer<typeof MoveReadingInputSchema>
+
+export const MoveNotesInputSchema = z.object({
+  ids: z.array(z.string()).min(1, 'Choose at least one note').max(MAX_IDEA_NOTES),
+  to: MoveTargetSchema,
+})
+export type MoveNotesInput = z.infer<typeof MoveNotesInputSchema>
+
+/** What a move did, so the page can say it ("Moved 2 items and 5 notes"). */
+export const MoveResultSchema = z.object({
+  /** Groups everything this one move did; kept in the log of moves. */
+  batchId: z.string(),
+  /** Reading items that were moved (they left where they were). */
+  readingItems: z.number(),
+  /** Of those, how many joined an item with the same address that was already there. */
+  merged: z.number(),
+  /** Reading items copied to where notes went, so that a note keeps the source it was taken from. */
+  copied: z.number(),
+  notes: z.number(),
+})
+export type MoveResult = z.infer<typeof MoveResultSchema>
 
 export const NOTE_TAG_MAX = 40
 export const MAX_NOTE_TAGS = 10

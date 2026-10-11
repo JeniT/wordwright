@@ -10,19 +10,20 @@ import type {
   NoteOrigin,
   ReadingOrigin,
 } from '@lfwa/core'
-import { parseNames } from './names'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
+import { ReadingStore, type LinkWrite } from './reading'
 
-/** What is written for a reading-list item: the address, the title (maybe empty) and who wrote it. */
-export type LinkWrite = { url: string; title: string; authors: string[] }
+export type { LinkWrite }
 
 /** Ideas are always accessed through their profile; callers check membership first. */
 export class IdeaStore {
   private readonly notes: NoteStore
+  private readonly reading: ReadingStore
 
   constructor(private readonly db: DatabaseSync) {
     this.notes = new NoteStore(db)
+    this.reading = new ReadingStore(db)
   }
 
   list(profileId: string): IdeaSummary[] {
@@ -46,20 +47,7 @@ export class IdeaStore {
       .prepare('SELECT * FROM ideas WHERE profile_id = ? AND id = ?')
       .get(profileId, id)
     if (!row) return undefined
-    const links = this.db
-      .prepare(
-        'SELECT id, url, title, authors, read_at, origin, why FROM idea_links WHERE idea_id = ? ORDER BY (read_at IS NOT NULL), created_at, rowid',
-      )
-      .all(id)
-      .map((l) => ({
-        id: l.id as string,
-        url: l.url as string,
-        title: l.title as string,
-        authors: parseNames(l.authors),
-        readAt: l.read_at as string | null,
-        origin: l.origin as ReadingOrigin,
-        why: (l.why as string | null) ?? null,
-      }))
+    const links = this.reading.list(id)
     const drafts = this.db
       .prepare(
         'SELECT id, title, updated_at FROM drafts WHERE idea_id = ? ORDER BY position, created_at, rowid',
@@ -127,11 +115,7 @@ export class IdeaStore {
   }
 
   countLinks(ideaId: string): number {
-    return (
-      this.db.prepare('SELECT count(*) AS n FROM idea_links WHERE idea_id = ?').get(ideaId) as {
-        n: number
-      }
-    ).n
+    return this.reading.count(ideaId)
   }
 
   /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
@@ -140,63 +124,31 @@ export class IdeaStore {
     input: Omit<LinkWrite, 'authors'> & { authors?: string[]; why?: string },
     origin: ReadingOrigin = 'entered',
   ): IdeaLink {
-    const id = randomUUID()
-    const now = nowIso()
-    this.db
-      .prepare(
-        'INSERT INTO idea_links (id, idea_id, url, title, authors, origin, why, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        id,
-        ideaId,
-        input.url,
-        input.title,
-        JSON.stringify(input.authors ?? []),
-        origin,
-        input.why ?? null,
-        now,
-      )
-    this.touch(ideaId, now)
-    return {
-      id,
-      url: input.url,
-      title: input.title,
-      authors: input.authors ?? [],
-      readAt: null,
-      origin,
-      why: input.why ?? null,
-    }
+    const profileId = (
+      this.db.prepare('SELECT profile_id FROM ideas WHERE id = ?').get(ideaId) as {
+        profile_id: string
+      }
+    ).profile_id
+    const link = this.reading.add(profileId, ideaId, input, origin)
+    this.touch(ideaId)
+    return link
   }
 
   /** Marks an item read (when the writer says so) or unread again. Marking read again keeps the first date. */
   setLinkRead(ideaId: string, linkId: string, read: boolean): boolean {
-    const now = nowIso()
-    const changed =
-      this.db
-        .prepare(
-          `UPDATE idea_links SET read_at = CASE WHEN ? THEN coalesce(read_at, ?) ELSE NULL END
-           WHERE idea_id = ? AND id = ?`,
-        )
-        .run(read ? 1 : 0, now, ideaId, linkId).changes > 0
-    if (changed) this.touch(ideaId, now)
+    const changed = this.reading.setRead(ideaId, linkId, read)
+    if (changed) this.touch(ideaId)
     return changed
   }
 
   updateLink(ideaId: string, linkId: string, input: LinkWrite): boolean {
-    const changed =
-      this.db
-        .prepare(
-          'UPDATE idea_links SET url = ?, title = ?, authors = ? WHERE idea_id = ? AND id = ?',
-        )
-        .run(input.url, input.title, JSON.stringify(input.authors), ideaId, linkId).changes > 0
+    const changed = this.reading.update(ideaId, linkId, input)
     if (changed) this.touch(ideaId)
     return changed
   }
 
   removeLink(ideaId: string, linkId: string): boolean {
-    const removed =
-      this.db.prepare('DELETE FROM idea_links WHERE idea_id = ? AND id = ?').run(ideaId, linkId)
-        .changes > 0
+    const removed = this.reading.remove(ideaId, linkId)
     if (removed) this.touch(ideaId)
     return removed
   }
