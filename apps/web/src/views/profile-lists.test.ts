@@ -770,22 +770,27 @@ describe('moving notes', () => {
   }
   const open = async () => {
     await renderAt('/p/ada-substack/notes')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move notes' }))
+    await screen.findAllByRole('checkbox', { name: /^Select note/ })
   }
   const tick = (text: string) =>
-    fireEvent.click(
-      screen.getByRole('checkbox', { name: new RegExp(`^Select note “${text}.*to move`) }),
-    )
+    fireEvent.click(screen.getByRole('checkbox', { name: new RegExp(`^Select note “${text}`) }))
+  /** Move to… is for what is selected, so choose first; it opens the form, then a place is picked. */
+  const moveTo = async (value: string) => {
+    const button = screen.getByRole('button', { name: 'Move to…' })
+    if (button.getAttribute('aria-expanded') !== 'true') await fireEvent.click(button)
+    await fireEvent.update(await screen.findByLabelText('Move to'), value)
+  }
   const says = () => document.querySelector('[data-move-says]')
 
   it('offers a tick on every note, quotations too, and moves only once notes and a place are chosen', async () => {
     fake()
     await open()
-    expect(screen.getAllByRole('checkbox', { name: /to move$/ })).toHaveLength(4)
-    expect(screen.getByRole('button', { name: 'Move 0 notes' })).toBeDisabled()
+    expect(screen.getAllByRole('checkbox', { name: /^Select note/ })).toHaveLength(4)
+    expect(screen.getByRole('button', { name: 'Move to…' })).toBeDisabled() // nothing selected yet
     await tick('Typed thought')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeDisabled() // no place yet
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await moveTo('i1')
     expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeEnabled()
   })
 
@@ -793,7 +798,7 @@ describe('moving notes', () => {
     fake()
     await open()
     await tick('Typed thought')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await moveTo('i1')
     expect(says()).toHaveTextContent('1 note will move to “Rivers”.')
     expect(says()).not.toHaveTextContent('copied') // it has no source
     await tick('From the paper')
@@ -809,20 +814,18 @@ describe('moving notes', () => {
     await open()
     await tick('From the paper')
     await tick('Typed thought')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await moveTo('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 2 notes' }))
     const status = await screen.findByRole('status')
     expect(status).toHaveTextContent(
       'Moved 2 notes to “Rivers”. 1 source was copied so the notes keep it.',
     )
-    expect(f.moves).toEqual([{ ids: ['n2', 'n1'], to: { ideaId: 'i1' } }])
-    await waitFor(() =>
-      expect(screen.queryByRole('checkbox', { name: /to move$/ })).not.toBeInTheDocument(),
-    )
+    expect(f.moves).toEqual([{ ids: ['n1', 'n2'], to: { ideaId: 'i1' } }])
+    await waitFor(() => expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()) // the form is done with
 
     await fireEvent.click(within(status).getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(f.moves).toHaveLength(2))
-    expect(f.moves[1]).toEqual({ ids: ['n2', 'n1'], to: { ideaId: null } })
+    expect(f.moves[1]).toEqual({ ids: ['n1', 'n2'], to: { ideaId: null } })
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Moved back. The page copied to “Rivers” stays on its reading list.',
     )
@@ -832,8 +835,8 @@ describe('moving notes', () => {
     const f = fake()
     await open()
     await tick('From the paper')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i2')
-    const box = await screen.findByRole('checkbox', {
+    await moveTo('i2')
+    const box = await screen.findByRole('switch', {
       name: /Also bring the 1 other note taken from those pages/,
     })
     expect(box).not.toBeChecked()
@@ -848,7 +851,7 @@ describe('moving notes', () => {
     const f = fake()
     await open()
     await tick('Typed thought')
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__new')
+    await moveTo('__new')
     const button = screen.getByRole('button', { name: 'Move 1 note' })
     expect(button).toBeDisabled() // it needs a name
     await fireEvent.update(screen.getByLabelText("What's your core idea?"), 'Why rivers meander')
@@ -857,14 +860,16 @@ describe('moving notes', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('to “Why rivers meander”.')
   })
 
-  it('selects all the notes shown, and clears them again', async () => {
+  it('selects all the notes shown with the box at the top, and clears them again', async () => {
     fake()
     await open()
-    await fireEvent.click(screen.getByRole('button', { name: 'Select all the notes shown' }))
-    for (const box of screen.getAllByRole('checkbox', { name: /to move$/ }))
+    const all = screen.getByRole('checkbox', { name: 'Select all notes on this page' })
+    await fireEvent.click(all)
+    for (const box of screen.getAllByRole('checkbox', { name: /^Select note/ }))
       expect(box).toBeChecked()
-    await fireEvent.click(screen.getByRole('button', { name: 'Clear the notes shown' }))
-    for (const box of screen.getAllByRole('checkbox', { name: /to move$/ }))
+    expect(screen.getByText('4 selected')).toBeInTheDocument()
+    await fireEvent.click(all)
+    for (const box of screen.getAllByRole('checkbox', { name: /^Select note/ }))
       expect(box).not.toBeChecked()
   })
 
@@ -876,8 +881,10 @@ describe('moving notes', () => {
     ])
     await renderAt('/p/ada-substack/notes')
     await fireEvent.click(await screen.findByRole('button', { name: /^intro/ }))
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move notes' }))
-    await fireEvent.click(screen.getByRole('button', { name: 'Select all the notes shown' }))
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select all notes on this page' }),
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     expect(screen.getByRole('button', { name: 'Move 2 notes' })).toBeDisabled() // chosen, but no place yet
     expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
   })
@@ -894,39 +901,72 @@ describe('moving notes', () => {
     )
     await open()
     await tick('Typed thought')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await moveTo('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('up to 200 notes')
-    expect(
-      screen.getByRole('checkbox', { name: /^Select note “Typed thought.*to move/ }),
-    ).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: /^Select note “Typed thought/ })).toBeChecked()
   })
 
-  it('is a mode apart from merging, and stopping it clears what was ticked', async () => {
+  it('closes the move form on Cancel, and keeps what was selected', async () => {
     fake()
     await open()
     await tick('Typed thought')
-    await fireEvent.click(screen.getByRole('button', { name: 'Merge notes' }))
-    expect(screen.queryByRole('checkbox', { name: /to move$/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Move notes' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
-    await fireEvent.click(screen.getByRole('button', { name: 'Move notes' }))
-    expect(screen.queryByRole('checkbox', { name: /to merge$/ })).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('checkbox', { name: /^Select note “Typed thought.*to move/ }),
-    ).not.toBeChecked()
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /^Select note “Typed thought/ })).toBeChecked()
+  })
+
+  it('forgets the selection when the tag being shown changes', async () => {
+    fake([note('n1', 'Tagged one', null, { tags: ['intro'] }), note('n2', 'Untagged')])
+    await renderAt('/p/ada-substack/notes')
+    await fireEvent.click(await screen.findByRole('checkbox', { name: /^Select note “Untagged/ }))
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: /^intro/ }))
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
   })
 
   it('says it is done even when every note has gone, rather than just showing nothing', async () => {
     fake([note('n1', 'Only one')]).setResult({ notes: 1, copied: 0 })
     await open()
     await tick('Only one')
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await moveTo('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Moved 1 note to “Rivers”.')
     expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
+  })
+})
+
+describe('deleting selected notes', () => {
+  it('deletes the selected notes only after a hold, and nothing until something is selected', async () => {
+    const state = fakeProfile({
+      notes: [note('n1', 'One'), note('n2', 'Two'), note('n3', 'Three')],
+    })
+    await renderAt('/p/ada-substack/notes')
+    await screen.findByText('One')
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    await fireEvent.click(screen.getByRole('checkbox', { name: /^Select note “One/ }))
+    await fireEvent.click(screen.getByRole('checkbox', { name: /^Select note “Three/ }))
+    const del = screen.getByRole('button', { name: 'Delete 2' })
+    await fireEvent.click(del) // a screen reader's first activation only arms it
+    expect(state.notes).toHaveLength(3)
+    await fireEvent.click(del)
+    await waitFor(() => expect(state.notes.map((n) => n.id)).toEqual(['n2']))
+    await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())
+    expect(screen.getByText('0 selected')).toBeInTheDocument()
+  })
+
+  it('shows a note’s own actions as icons, with Edit and a held Delete', async () => {
+    fakeProfile({ notes: [note('n1', 'One')] })
+    await renderAt('/p/ada-substack/notes')
+    await screen.findByText('One')
+    const edit = screen.getByRole('button', { name: /^Edit note “One/ })
+    expect(edit).toHaveClass('btn-icon')
+    expect(edit).toHaveTextContent('') // an icon, named by its label
+    expect(screen.getByRole('button', { name: /^Delete note “One/ })).toHaveAttribute(
+      'title',
+      'Press and hold to delete this note',
+    )
   })
 })
 

@@ -279,11 +279,9 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await expect(page.getByText('An unrelated thought')).toBeVisible()
 
   // Choose the two notes from the post, and say plainly what will happen before doing it.
-  await page.getByRole('button', { name: 'Move notes' }).click()
-  await page
-    .getByRole('checkbox', { name: /^Select note “The feed made me think.*to move/ })
-    .check()
-  await page.getByRole('checkbox', { name: /^Select note “Bends migrate.*to move/ }).check()
+  await page.getByRole('checkbox', { name: /^Select note “The feed made me think/ }).check()
+  await page.getByRole('checkbox', { name: /^Select note “Bends migrate/ }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'A new idea…' })
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await expect(page.getByText('2 notes will move to “Why rivers meander”.')).toBeVisible()
@@ -309,8 +307,8 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await goTo(page, 'Notes')
 
   // And a note can go on to another place: back to the profile, with Undo to put it where it was.
-  await page.getByRole('button', { name: 'Move notes' }).click()
-  await page.getByRole('checkbox', { name: /^Select note “Bends migrate.*to move/ }).check()
+  await page.getByRole('checkbox', { name: /^Select note “Bends migrate/ }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'The profile’s notes' })
   await page.getByRole('button', { name: 'Move 1 note' }).click()
   await expect(page.getByText(/^Moved 1 note to the profile’s notes\./)).toBeVisible()

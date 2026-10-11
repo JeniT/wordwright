@@ -151,10 +151,10 @@ describe('reading page', () => {
       }),
     )
     await renderAt('/p/ada-substack/ideas/i1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Move notes' }))
     await fireEvent.click(
-      await screen.findByRole('checkbox', { name: /^Select note “An idea note.*to move/ }),
+      await screen.findByRole('checkbox', { name: /^Select note “An idea note/ }),
     )
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     const picker = await screen.findByLabelText('Move to')
     expect(
       within(picker)

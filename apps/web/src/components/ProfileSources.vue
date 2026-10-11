@@ -4,6 +4,7 @@ import type { Source, SourceChoices } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import SourceItems from './SourceItems.vue'
+import Icon from './Icon.vue'
 import ProfileImage from './ProfileImage.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
@@ -110,8 +111,6 @@ function shortName(address: string) {
     return address
   }
 }
-
-const removeClass = 'btn btn-neutral btn-sm'
 </script>
 
 <template>
@@ -166,14 +165,16 @@ const removeClass = 'btn btn-neutral btn-sm'
           </div>
         </template>
         <template #actions="{ item: source }">
+          <!-- A click, not a hold: a feed is easy to add again, and nothing is lost with it. -->
           <button
             type="button"
-            :class="removeClass"
+            class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
             :disabled="remove.isPending.value"
+            title="Remove this feed"
             :aria-label="`Remove ${nameOf(source)}`"
             @click="remove.mutate(source)"
           >
-            Remove
+            <Icon name="remove" />
           </button>
         </template>
       </ReorderableList>
@@ -189,11 +190,7 @@ const removeClass = 'btn btn-neutral btn-sm'
           required
           hint="Paste an RSS or Atom link, or the address of a site that has one, for example https://example.com/feed. It goes at the end of the list."
         />
-        <button
-          type="submit"
-          class="rounded-ctl border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
-          :disabled="add.isPending.value"
-        >
+        <button type="submit" class="btn btn-outline" :disabled="add.isPending.value">
           {{ add.isPending.value ? 'Reading the feed…' : 'Add source' }}
         </button>
       </form>
@@ -229,7 +226,7 @@ const removeClass = 'btn btn-neutral btn-sm'
         <div class="mt-3 flex gap-2">
           <button
             type="submit"
-            class="rounded-ctl border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
+            class="btn btn-outline"
             :disabled="!chosen.length || addChosen.isPending.value"
           >
             {{

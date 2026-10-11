@@ -983,54 +983,51 @@ describe('idea page', () => {
 
     describe('merging and splitting', () => {
       const quote = () => ({ ...note('n9', 'Exact words.', 'reading'), quote: true })
-      const startMerging = async () =>
-        fireEvent.click(await screen.findByRole('button', { name: 'Merge notes' }))
       const tick = (start: string) =>
         screen.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) })
+      const merge = () => screen.getByRole('button', { name: 'Merge' })
 
-      it('offers merging only when there is more than one note', async () => {
-        fakeNotes([note('n1', 'Only one.')])
+      it('has Merge always in the toolbar, and only enabled for two or more notes', async () => {
+        fakeNotes([note('n1', 'Only one.'), note('n2', 'Another.')])
         await open()
         await screen.findByText('Only one.')
-        expect(screen.queryByRole('button', { name: 'Merge notes' })).toBeNull()
+        expect(merge()).toBeDisabled()
+        await fireEvent.click(tick('Only one'))
+        expect(merge()).toBeDisabled()
+        await fireEvent.click(tick('Another'))
+        expect(merge()).toBeEnabled()
       })
 
-      it('lets notes be ticked (never a quotation), and merges when two are, joining them into one', async () => {
+      it('merges the selected notes into one, and clears the selection', async () => {
         const api = fakeNotes([...three, quote()])
         await open()
-        await startMerging()
-        expect(screen.getByRole('button', { name: 'Stop merging' })).toHaveAttribute(
-          'aria-pressed',
-          'true',
-        )
-        expect(screen.getByText(/can't be merged/)).toBeInTheDocument()
-        expect(screen.getAllByRole('checkbox', { name: /to merge$/ })).toHaveLength(3) // not the quotation
-
-        const go = screen.getByRole('button', { name: 'Merge 0 notes' })
-        expect(go).toBeDisabled()
+        await screen.findAllByRole('checkbox', { name: /^Select note/ })
+        expect(screen.getAllByRole('checkbox', { name: /^Select note/ })).toHaveLength(4) // quotation too
         await fireEvent.click(tick('Deposition'))
-        expect(screen.getByRole('button', { name: 'Merge 1 notes' })).toBeDisabled()
         await fireEvent.click(tick('Erosion'))
-        await fireEvent.click(screen.getByRole('button', { name: 'Merge 2 notes' }))
+        expect(screen.getByText('2 selected')).toBeInTheDocument()
+        await fireEvent.click(merge())
 
-        await waitFor(() => expect(api.merged).toEqual([['n2', 'n1']]))
+        await waitFor(() => expect(api.merged).toEqual([['n1', 'n2']]))
         await waitFor(() => expect(texts()).toHaveLength(3))
         expect(texts()[0]).toContain('Erosion loops.')
-        expect(await screen.findByRole('button', { name: 'Merge notes' })).toBeInTheDocument() // back to normal
-        expect(screen.queryByRole('checkbox', { name: /to merge$/ })).toBeNull()
+        expect(await screen.findByText('0 selected')).toBeInTheDocument()
       })
 
-      it('forgets what was ticked when merging is stopped', async () => {
-        fakeNotes()
+      it('will not merge a quotation, which must stay as written, and says why', async () => {
+        fakeNotes([...three, quote()])
         await open()
-        await startMerging()
+        await screen.findAllByRole('checkbox', { name: /^Select note/ })
         await fireEvent.click(tick('Erosion'))
-        await fireEvent.click(screen.getByRole('button', { name: 'Stop merging' }))
-        await startMerging()
-        expect(tick('Erosion')).not.toBeChecked()
+        await fireEvent.click(tick('Exact'))
+        expect(merge()).toBeDisabled()
+        expect(merge()).toHaveAttribute(
+          'title',
+          expect.stringMatching(/Quotations must stay as written/),
+        )
       })
 
-      it("shows the server's reason when notes can't be merged, and stays open to change the choice", async () => {
+      it("shows the server's reason when notes can't be merged, and keeps the choice", async () => {
         fakeNotes()
         server.use(
           http.post(`${notesUrl}/merge`, () =>
@@ -1041,10 +1038,10 @@ describe('idea page', () => {
           ),
         )
         await open()
-        await startMerging()
+        await screen.findAllByRole('checkbox', { name: /^Select note/ })
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tick('Deposition'))
-        await fireEvent.click(screen.getByRole('button', { name: 'Merge 2 notes' }))
+        await fireEvent.click(merge())
         expect(await screen.findByRole('alert')).toHaveTextContent('different places')
         expect(tick('Erosion')).toBeChecked()
       })

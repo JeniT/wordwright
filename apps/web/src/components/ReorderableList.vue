@@ -28,6 +28,10 @@ const props = defineProps<{
 defineSlots<{
   /** The row's content; give it `min-w-0 flex-1` so it takes the space between the rail and the buttons. */
   default(props: { item: T; index: number }): unknown
+  /** Above the rows, inside the same frame: a `ListToolbar` (select all, filters, bulk actions). */
+  toolbar?(): unknown
+  /** In each row's left rail, above the grip: the select checkbox. */
+  rail?(props: { item: T; index: number }): unknown
   /** Extra buttons at the end of the row, e.g. Remove. */
   actions?(props: { item: T; index: number }): unknown
 }>()
@@ -223,70 +227,74 @@ const buttonClass = 'btn btn-sm btn-icon btn-quiet'
 
 <template>
   <div>
-    <ol class="divide-y divide-line rounded-ctl border border-line bg-surface">
-      <li
-        v-for="(item, index) in shown"
-        :key="item.id"
-        class="flex items-stretch border-y-2 border-transparent"
-        :class="{
-          'opacity-50': draggingId === item.id,
-          'border-t-accent': over?.id === item.id && !over.after && draggingId !== item.id,
-          'border-b-accent': over?.id === item.id && over.after && draggingId !== item.id,
-        }"
-        @dragover="onDragOver($event, item)"
-        @drop="onDrop"
-      >
-        <div
-          class="list-rail cursor-grab select-none"
-          draggable="true"
-          data-testid="rail"
-          @dragstart="onDragStart($event, item)"
-          @dragend="endDrag"
+    <div class="overflow-hidden rounded-ctl border border-line bg-surface">
+      <slot name="toolbar" />
+      <ol class="divide-y divide-line">
+        <li
+          v-for="(item, index) in shown"
+          :key="item.id"
+          class="flex items-stretch border-y-2 border-transparent"
+          :class="{
+            'opacity-50': draggingId === item.id,
+            'border-t-accent': over?.id === item.id && !over.after && draggingId !== item.id,
+            'border-b-accent': over?.id === item.id && over.after && draggingId !== item.id,
+          }"
+          @dragover="onDragOver($event, item)"
+          @drop="onDrop"
         >
-          <button
-            type="button"
-            class="btn btn-sm btn-icon btn-quiet cursor-grab"
-            data-testid="grip"
-            :data-grip="item.id"
-            title="Drag to change the order, or press for arrows"
-            :aria-label="`Reorder ${itemLabel(item)}`"
-            :aria-expanded="open.has(item.id)"
-            @click="toggleArrows(item.id)"
-            @keydown="onGripKey($event, item)"
+          <div
+            class="list-rail cursor-grab select-none"
+            draggable="true"
+            data-testid="rail"
+            @dragstart="onDragStart($event, item)"
+            @dragend="endDrag"
           >
-            <Icon name="grip" />
-          </button>
-          <template v-if="open.has(item.id)">
+            <slot name="rail" :item="item" :index="index" />
             <button
               type="button"
-              :class="buttonClass"
-              :data-move="`${item.id}-up`"
-              :disabled="index === 0"
-              :aria-label="`Move ${itemLabel(item)} up`"
-              @click="moveBy(item, -1)"
+              class="btn btn-sm btn-icon btn-quiet cursor-grab"
+              data-testid="grip"
+              :data-grip="item.id"
+              title="Drag to change the order, or press for arrows"
+              :aria-label="`Reorder ${itemLabel(item)}`"
+              :aria-expanded="open.has(item.id)"
+              @click="toggleArrows(item.id)"
+              @keydown="onGripKey($event, item)"
             >
-              <Icon name="up" />
+              <Icon name="grip" />
             </button>
-            <button
-              type="button"
-              :class="buttonClass"
-              :data-move="`${item.id}-down`"
-              :disabled="index === shown.length - 1"
-              :aria-label="`Move ${itemLabel(item)} down`"
-              @click="moveBy(item, 1)"
-            >
-              <Icon name="down" />
-            </button>
-          </template>
-        </div>
-        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
-          <slot :item="item" :index="index" />
-          <span class="flex shrink-0 gap-1">
-            <slot name="actions" :item="item" :index="index" />
-          </span>
-        </div>
-      </li>
-    </ol>
+            <template v-if="open.has(item.id)">
+              <button
+                type="button"
+                :class="buttonClass"
+                :data-move="`${item.id}-up`"
+                :disabled="index === 0"
+                :aria-label="`Move ${itemLabel(item)} up`"
+                @click="moveBy(item, -1)"
+              >
+                <Icon name="up" />
+              </button>
+              <button
+                type="button"
+                :class="buttonClass"
+                :data-move="`${item.id}-down`"
+                :disabled="index === shown.length - 1"
+                :aria-label="`Move ${itemLabel(item)} down`"
+                @click="moveBy(item, 1)"
+              >
+                <Icon name="down" />
+              </button>
+            </template>
+          </div>
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
+            <slot :item="item" :index="index" />
+            <span class="flex shrink-0 gap-1">
+              <slot name="actions" :item="item" :index="index" />
+            </span>
+          </div>
+        </li>
+      </ol>
+    </div>
     <!-- Not role="status": a page should have only one of those, and several lists can share a page. -->
     <p aria-live="polite" aria-atomic="true" class="sr-only">{{ notice }}</p>
   </div>

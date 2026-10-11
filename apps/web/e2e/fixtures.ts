@@ -41,14 +41,15 @@ export const test = base.extend<{ problems: string[] }>({
  * notes of whichever you are in).
  */
 export async function goTo(page: Page, step: string) {
-  // On a phone the menu is folded behind a button.
-  const menu = page.getByRole('button', { name: 'Menu', exact: true })
-  if ((await menu.isVisible()) && (await menu.getAttribute('aria-expanded')) === 'false')
-    await menu.click()
-  await page
+  const link = page
     .locator('nav[aria-label="Idea"], nav[aria-label="Profile"]')
     .getByRole('link', { name: step, exact: true })
-    .click()
+  // On a phone (and on pages read beside another window) the menu is folded behind a button. Wait for the page to
+  // show either the link or that button first, so a page that is still changing isn't clicked halfway.
+  const menu = page.getByRole('button', { name: 'Menu', exact: true })
+  await expect(link.or(menu).first()).toBeVisible()
+  if (!(await link.isVisible())) await menu.click()
+  await link.click()
 }
 
 export { expect }

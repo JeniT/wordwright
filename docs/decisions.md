@@ -1102,3 +1102,12 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
 
 **Revisit if** models often send JSON we cannot read (move to a forced tool call, which needs a tool choice on the
 `chat()` port), or points need to be about a sentence rather than a paragraph.
+
+**Applied to notes, drafts and feeds (#89).** The notes list (idea and profile) has the same toolbar: select-all and the
+tag filter on the left; Merge, Move to… and Delete on the right (Delete is a held bulk action). The "Merge notes" and
+"Move notes" modes are gone: every note has a select checkbox in its rail, above its grip. Merge is disabled, with a
+reason in its tooltip, while a quotation is selected (it must stay as written); the merged note goes where the first
+selected note is, in list order, not click order. "Also bring the other notes from those pages" in the move form is a
+switch, since it sets an option rather than selecting an item. Notes are never paginated. Edit and Delete are icon
+buttons (Delete quiet until hovered, and held). Drafts only needed the rail (they have no Edit or Remove). A feed's
+Remove is an icon button and a plain click, not a hold, because the feed is easy to add again.

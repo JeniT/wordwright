@@ -144,7 +144,8 @@ whose paragraph has been rewritten loses its mark and moves to "This passage has
 ## Actions and lists
 
 Which control for which job, so every list (reading lists, notes, feeds, drafts) looks and behaves alike. The reading
-list is the reference implementation: `ReadingList.vue`, `IdeaLinkItem.vue`, `ListToolbar.vue`.
+list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLinkItem.vue`, `IdeaNotes.vue`,
+`ListToolbar.vue`. Drafts and feeds use the same rail and icon buttons.
 
 **Checkbox, switch, button or link**
 
@@ -202,7 +203,9 @@ when there are more pages, "Select all N" offers the rest. Selection clears when
 what an action touches is always what is on screen.
 
 **Removing.** Not undoable, so it takes the same press-and-hold as deleting a profile, idea or draft (`HoldButton`),
-single or bulk. Its tooltip says where to find the item again ("It stays in the feed it came from").
+single or bulk (reading list: Remove; notes: Delete). Its tooltip says where to find the item again ("It stays in the
+feed it came from"). The exception is a feed in the feeds list: it is a plain click, because adding it again loses
+nothing.
 
 **Pagination.** Notes show everything. Every other list pages client-side with `PageNav` above and below (the top one
 announces the new range; the bottom one returns you to the top of the list), five at a time (`PAGE_SIZE` in

@@ -572,11 +572,10 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await expect(cards).toHaveCount(3)
 
   // Merge: tick two, press Merge; they become one, at the first one's place, as paragraphs.
-  await notes.getByRole('button', { name: 'Merge notes' }).click()
-  await noViolations(page, 'notes while choosing which to merge')
   await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
   await notes.getByRole('checkbox', { name: /^Select note “Oxbow/ }).check()
-  await notes.getByRole('button', { name: 'Merge 2 notes' }).click()
+  await noViolations(page, 'notes with two chosen to merge')
+  await notes.getByRole('button', { name: 'Merge', exact: true }).click()
   await expect(cards).toHaveCount(2)
   await expect(cards.first()).toContainText('Erosion on the outside of each bend.')
   await expect(cards.first()).toContainText('Oxbow lakes form when a loop is cut off.')
