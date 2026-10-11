@@ -49,7 +49,8 @@ defineExpose({ focusPoint })
 
 <template>
   <section aria-labelledby="critique-heading">
-    <h2 id="critique-heading" class="mb-1 font-display text-xl font-semibold">Comments</h2>
+    <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
+    <h2 id="critique-heading" class="sr-only">Comments</h2>
     <p v-if="pending" role="status">Reading your draft…</p>
     <p v-else-if="error" role="alert" class="text-danger">
       {{ errorMessage(error) }}

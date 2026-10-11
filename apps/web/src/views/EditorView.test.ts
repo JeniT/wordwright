@@ -992,4 +992,15 @@ describe('the tabs beside the draft', () => {
     expect(notesPanel).toHaveAttribute('hidden')
     expect(notesPanel.textContent).toContain('Notes') // still there, only out of sight
   })
+
+  it('does not repeat the tab names as visible headings in the panels, but keeps them for a screen reader', async () => {
+    mockDrafting()
+    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('tab', { name: 'Notes' })
+    for (const name of ['Notes', 'Reading list', 'Comments']) {
+      const heading = screen.getByRole('heading', { level: 2, name, hidden: true })
+      expect(heading, name).toHaveClass('sr-only')
+    }
+  })
 })

@@ -72,7 +72,8 @@ const label = (note: IdeaNote) => {
 
 <template>
   <div>
-    <h2 id="draft-notes-heading" class="mb-1 font-display text-xl font-semibold">Notes</h2>
+    <!-- The tab beside the draft already says "Notes"; the heading is for screen readers moving by headings. -->
+    <h2 id="draft-notes-heading" class="sr-only">Notes</h2>
     <p class="mb-3 text-sm text-ink-soft">
       Add a note to put its words into the draft, after the paragraph you are in, or drag it by its
       grip to where you want it. The draft is saved as you do.

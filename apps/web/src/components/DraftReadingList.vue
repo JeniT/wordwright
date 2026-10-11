@@ -14,8 +14,9 @@ const label = (item: IdeaLink) => item.title || item.url
 </script>
 
 <template>
-  <section aria-labelledby="draft-reading-heading" class="mt-6 border-t border-line pt-4">
-    <h2 id="draft-reading-heading" class="mb-1 font-display text-xl font-semibold">Reading list</h2>
+  <section aria-labelledby="draft-reading-heading">
+    <!-- The tab beside the draft already says "Reading list"; the heading is for screen readers moving by headings. -->
+    <h2 id="draft-reading-heading" class="sr-only">Reading list</h2>
     <p class="mb-3 text-sm text-ink-soft">
       Put a link to something you have read in the line you are writing. Anything you haven't marked
       as read, you'll be asked about first.
