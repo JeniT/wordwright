@@ -11,5 +11,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.test.ts'],
+    // Several agents run suites side by side on one machine, so each run takes a few cores, not all of them
+    // (CI has a runner to itself). The longer timeout is for a busy machine, not slow code.
+    maxWorkers: process.env.CI ? undefined : 4,
+    testTimeout: 10_000,
   },
 })

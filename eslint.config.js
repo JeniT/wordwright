@@ -5,7 +5,15 @@ import vue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '**/playwright-report/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '**/playwright-report/**',
+      '.worktrees/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs['flat/recommended'],

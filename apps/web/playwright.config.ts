@@ -29,6 +29,10 @@ export const e2eOutbox = fileURLToPath(new URL('./.e2e-data/outbox', import.meta
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // Sessions in several worktrees run e2e at once on one machine, so each takes three workers, not half the cores.
+  // CI has a runner to itself. A wait is allowed longer than the default 5s for when the machine is busy.
+  workers: process.env.CI ? undefined : 3,
+  expect: { timeout: 10_000 },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['html'], ['list']] : 'list',

@@ -39,7 +39,7 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 | `pnpm dev`      | web on :5173, API on :8787 (set `FAKE_LLM=true` to avoid real LLM calls)                       |
 | `pnpm check`    | format check + lint + typecheck + unit/component/API tests. **Must pass before every commit.** |
 | `pnpm test:e2e` | Playwright; fails on any uncaught exception, `console.error`, failed request or 5xx            |
-| `pnpm build`    | typecheck + production build                                                                   |
+| `pnpm build`    | production build (`pnpm check` has already typechecked)                                        |
 | `pnpm format`   | fix formatting                                                                                 |
 | `pnpm eval`     | rough smoke test of the AI's behaviour; asks for a key (hidden) and trials; costs money        |
 
@@ -48,6 +48,23 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 test each other's code. A second run in the _same_ worktree while one is going stops at once with "already used":
 wait for the first. If a port is taken by something unrelated, pick others with `E2E_WEB_PORT` and `E2E_API_PORT`.
 Don't kill another session's processes.
+
+### Test narrowly while you work; run everything once, at the end
+
+Several sessions share one machine, and the full suites take minutes. While developing, run only what you changed
+(from the worktree root):
+
+- **One unit/component test file:** `pnpm --filter @lfwa/web exec vitest run src/views/ideas.test.ts` (same with
+  `@lfwa/api` or `@lfwa/core`). Add `-t "part of the title"` for one test, or use `vitest related <changed files>`.
+- **One e2e file or test:** `pnpm --filter @lfwa/web exec playwright test e2e/ideas.spec.ts -g "part of the title"`.
+- **Format and lint only what you touched:** `pnpm exec prettier --write <files>` and `pnpm exec eslint <files>`.
+- **Types:** `pnpm typecheck` (about 30s) once the code compiles in your head, not after every edit.
+
+Then run `pnpm check`, `pnpm build` and `pnpm test:e2e` **once** when you are done. A failure in a full run means
+rerunning **only the files that failed** (as above), not the whole suite, and not every test one at a time. If a
+test passes alone but timed out in the full run, the machine was busy: note it, don't chase it. Look at the test
+only if it fails alone too. Locally the runners take only a few cores each (`maxWorkers` in
+`apps/web/vite.config.ts`, `workers` in `apps/web/playwright.config.ts`); don't raise them to go faster.
 
 ## Layout
 
@@ -182,7 +199,8 @@ Triage produces issues, not code. If the owner then says "go ahead", claim the t
   each result before the next:
   1. `git fetch origin`, then `git rebase origin/main` in your worktree (not `main`, which may be ahead with
      someone else's unpushed work). Resolve conflicts, keeping the other session's changes.
-  2. Rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased branch.
+  2. If the rebase pulled in other commits, rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased
+     branch. If it said the branch was already up to date, nothing has changed since your last green run: skip this.
   3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
      Then check CI as above (`gh run list --branch main --limit 3`): the latest finished run must not be red,
      unless your push is the fix.

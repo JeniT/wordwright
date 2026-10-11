@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --workspace-concurrency=1 test",
     "test:e2e": "pnpm --filter @lfwa/web test:e2e",
     "eval": "pnpm --filter @lfwa/evals eval",
     "eval:targets": "pnpm --filter @lfwa/evals eval:targets",
