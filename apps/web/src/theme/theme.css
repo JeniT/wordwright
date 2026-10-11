@@ -1,0 +1,401 @@
+/*
+ * THEME: how the design is built from a palette. Fonts, the Tailwind token map, base rules every screen shares
+ * (focus, selection, reduced motion), and the component utilities (btn, field, panel, card, chip, callout ...).
+ * Colours are never written here: they come from the palette file, by role. See docs/design.md.
+ */
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/ibm-plex-sans-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/ibm-plex-sans-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/ibm-plex-sans-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Only these colours exist. Tailwind's default palette (stone-200, red-700 ...) is switched off on purpose, so a
+ * class that names a raw colour does nothing instead of quietly leaving the design.
+ * `inline` makes each utility read the live variable, which is what lets dark mode and palettes swap.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
+  --color-accent-wash: var(--accent-wash);
+  --color-mark: var(--mark);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-ok: var(--ok);
+  --color-ok-wash: var(--ok-wash);
+  --color-focus: var(--focus);
+}
+@theme {
+  /* One family for everything, the editor and the AI's replies included. */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-sans);
+  --font-text: var(--font-sans);
+  --radius-ctl: 6px; /* buttons, fields */
+  --radius-panel: 10px; /* panels, cards, dialogs */
+  --color-scrim: rgb(0 0 0 / 0.5); /* behind a dialog */
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* A focused control must never end up hidden under something sticky (WCAG 2.4.11). */
+    scroll-padding-block: 5rem;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-mark);
+    color: var(--color-ink);
+  }
+  /* One focus style for everything, as an outline so it survives forced-colours mode. */
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    accent-color: var(--color-accent);
+  }
+  img,
+  svg {
+    display: block;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ——— type ——— */
+@utility h1 {
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.375rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+@utility h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+@utility h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility meta {
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
+}
+@utility link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  &:hover {
+    color: var(--color-accent-strong);
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* ——— controls: each one has a fill or a visible 1px border, never colour alone ——— */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-ctl);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+@utility btn-sm {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.8rem;
+  font-size: 0.875rem;
+}
+@utility btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+  &:hover:not(:disabled) {
+    background: var(--color-accent-strong);
+    border-color: var(--color-accent-strong);
+  }
+}
+@utility btn-outline {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  &:hover:not(:disabled) {
+    background: var(--color-accent-wash);
+  }
+}
+@utility btn-neutral {
+  background: var(--color-surface);
+  border-color: var(--color-line-strong);
+  &:hover:not(:disabled) {
+    background: var(--color-sunken);
+    border-color: var(--color-ink);
+  }
+}
+@utility btn-danger {
+  background: var(--color-surface);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  &:hover:not(:disabled) {
+    background: var(--color-danger-wash);
+  }
+}
+/* The final, irreversible step (the confirm button of a delete). */
+@utility btn-danger-solid {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-on-danger);
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+}
+/* Icon buttons and low-emphasis actions keep a faint outline so they still read as buttons. */
+@utility btn-quiet {
+  border-color: var(--color-line);
+  color: var(--color-accent);
+  &:hover:not(:disabled) {
+    background: var(--color-accent-wash);
+    border-color: var(--color-accent);
+  }
+}
+@utility field {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-ctl);
+  font-size: 1rem; /* 16px: stops iOS zooming into the field */
+  line-height: 1.4;
+  &::placeholder {
+    color: var(--color-ink-soft);
+  }
+  &:hover:not(:disabled) {
+    border-color: var(--color-ink);
+  }
+  &:focus {
+    border-color: var(--color-accent);
+  }
+  &:disabled {
+    background: var(--color-sunken);
+  }
+  &[aria-invalid='true'] {
+    border-color: var(--color-danger);
+    border-width: 2px;
+    background: var(--color-danger-wash);
+  }
+}
+@utility field-compact {
+  width: auto;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9375rem;
+}
+
+/* ——— surfaces ——— */
+@utility panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+}
+@utility panel-sunken {
+  background: var(--color-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+}
+@utility card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-panel);
+  text-decoration: none;
+  &:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-wash);
+  }
+}
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.05rem 0.55rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+/* A count or neutral status: tinted with the accent. */
+@utility chip-accent {
+  background: var(--color-accent-wash);
+  border-color: var(--color-accent);
+}
+/* The highlighter: ONLY for what the AI suggested. If it is everywhere it marks nothing. */
+@utility chip-ai {
+  background: var(--color-mark);
+  border-color: var(--color-mark);
+}
+@utility chip-ok {
+  background: var(--color-ok-wash);
+  border-color: var(--color-ok);
+  color: var(--color-ok);
+}
+/* Notices. Plain = information; with -danger or -ok for errors and success. Always put words in them. */
+@utility callout {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-ctl);
+  background: var(--color-accent-wash);
+  font-size: 0.9375rem;
+}
+@utility callout-danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger-wash);
+}
+@utility callout-ok {
+  border-color: var(--color-ok);
+  background: var(--color-ok-wash);
+}
+
+/*
+ * Pictures and logos from other websites are never shown bare. A source's icon sits on a fixed-size light plate
+ * (a square, hairline-framed, barely rounded): contained not cropped, with its own white background so dark marks
+ * stay legible in dark mode. The app's own corner radius never wraps another site's artwork.
+ * A letter on a tinted tile stands in when there is no usable picture. The tile size comes from --mark-size.
+ */
+@utility source-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--mark-size, 2.5rem);
+  height: var(--mark-size, 2.5rem);
+  overflow: hidden;
+  background: #fff; /* deliberately not a token: it must stay light in every mode */
+  border: 1px solid var(--color-line-strong);
+  border-radius: 4px;
+  & > img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: calc(var(--mark-size, 2.5rem) * 0.12);
+  }
+}
+@utility source-letter {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--mark-size, 2.5rem);
+  height: var(--mark-size, 2.5rem);
+  font-weight: 600;
+  font-size: calc(var(--mark-size, 2.5rem) * 0.45);
+  line-height: 1;
+  background: var(--tint-bg, var(--color-sunken));
+  color: var(--tint-fg, var(--color-ink));
+  border: 1px solid var(--color-line-strong);
+  border-radius: 4px;
+}
+@utility mark-sm {
+  --mark-size: 1.5rem;
+}
+@utility mark-md {
+  --mark-size: 3rem;
+}
+@utility mark-lg {
+  --mark-size: 4rem;
+}
+@utility mark-xl {
+  --mark-size: 6rem;
+}
+@utility tint-1 {
+  --tint-bg: var(--tint-1-bg);
+  --tint-fg: var(--tint-1-fg);
+}
+@utility tint-2 {
+  --tint-bg: var(--tint-2-bg);
+  --tint-fg: var(--tint-2-fg);
+}
+@utility tint-3 {
+  --tint-bg: var(--tint-3-bg);
+  --tint-fg: var(--tint-3-fg);
+}
+@utility tint-4 {
+  --tint-bg: var(--tint-4-bg);
+  --tint-fg: var(--tint-4-fg);
+}
+@utility tint-5 {
+  --tint-bg: var(--tint-5-bg);
+  --tint-fg: var(--tint-5-fg);
+}
+@utility tint-6 {
+  --tint-bg: var(--tint-6-bg);
+  --tint-fg: var(--tint-6-fg);
+}

@@ -27,15 +27,15 @@ const unblock = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="invite-blocks-heading">
-    <h2 id="invite-blocks-heading" class="mb-3 font-serif text-xl font-semibold">
+    <h2 id="invite-blocks-heading" class="mb-3 font-display text-xl font-semibold">
       Who can invite you
     </h2>
 
-    <p v-if="!session.user.emailVerified" class="text-sm text-stone-700">
+    <p v-if="!session.user.emailVerified" class="text-sm text-ink-soft">
       Confirm your email address to choose who can invite you to share a profile.
     </p>
     <p v-else-if="blocks.isPending.value">Loading…</p>
-    <p v-else-if="blocks.isError.value" role="alert" class="text-red-700">
+    <p v-else-if="blocks.isError.value" role="alert" class="text-danger">
       {{ errorMessage(blocks.error.value) }}
     </p>
 
@@ -50,14 +50,14 @@ const unblock = useMutation({
         />
         <span>
           Don't accept invitations from anyone
-          <span class="block text-stone-600"
+          <span class="block text-ink-soft"
             >Invitations to {{ session.user.email }} are dropped without telling the sender.</span
           >
         </span>
       </label>
 
       <h3 class="mb-1 text-sm font-medium">Blocked people</h3>
-      <p v-if="blocks.data.value.senders.length === 0" class="text-sm text-stone-600">
+      <p v-if="blocks.data.value.senders.length === 0" class="text-sm text-ink-soft">
         You haven't blocked anyone. You can block someone from the "Decline" link in their
         invitation email.
       </p>
@@ -70,7 +70,7 @@ const unblock = useMutation({
           <span>{{ sender.name }}</span>
           <button
             type="button"
-            class="rounded border border-accent px-3 py-1 text-accent disabled:opacity-60"
+            class="rounded-ctl border border-accent px-3 py-1 text-accent disabled:opacity-60"
             :disabled="unblock.isPending.value"
             :aria-label="`Unblock ${sender.name}`"
             @click="unblock.mutate(sender.id)"
@@ -79,10 +79,10 @@ const unblock = useMutation({
           </button>
         </li>
       </ul>
-      <p v-if="setAll.isError.value" role="alert" class="mt-2 text-sm text-red-700">
+      <p v-if="setAll.isError.value" role="alert" class="mt-2 text-sm text-danger">
         {{ errorMessage(setAll.error.value) }}
       </p>
-      <p v-if="unblock.isError.value" role="alert" class="mt-2 text-sm text-red-700">
+      <p v-if="unblock.isError.value" role="alert" class="mt-2 text-sm text-danger">
         {{ errorMessage(unblock.error.value) }}
       </p>
     </template>

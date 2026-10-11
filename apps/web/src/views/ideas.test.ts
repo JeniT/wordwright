@@ -402,7 +402,7 @@ describe('idea page', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
 
         const hint = await screen.findByText(message)
-        expect(hint).toHaveClass('text-red-700')
+        expect(hint).toHaveClass('text-danger')
         expect(field).toHaveAttribute('aria-invalid', 'true')
         expect(field).toHaveAccessibleDescription(message)
         expect(field).toHaveValue('example.org/paper')
@@ -488,7 +488,7 @@ describe('idea page', () => {
       await fireEvent.update(address, 'example.org/other')
       await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
       const hint = await screen.findByText('That link is already in this idea.')
-      expect(hint).toHaveClass('text-red-700')
+      expect(hint).toHaveClass('text-danger')
       expect(address).toHaveValue('example.org/other')
     })
 

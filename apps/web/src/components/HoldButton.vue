@@ -166,9 +166,9 @@ const ringStyle = computed(() => ({ left: `${ring.value.x}px`, top: `${ring.valu
           cx="22"
           cy="22"
           r="17"
-          fill="white"
-          fill-opacity="0.85"
-          stroke="#d6d3d1"
+          fill="var(--color-surface)"
+          fill-opacity="0.9"
+          stroke="var(--color-line-strong)"
           stroke-width="5"
         />
         <circle

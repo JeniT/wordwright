@@ -20,8 +20,8 @@ const id = useId()
       :rows="rows ?? 6"
       :maxlength="maxlength"
       :aria-describedby="hint ? `${id}-hint` : undefined"
-      class="w-full rounded border border-stone-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
+      class="field"
     />
-    <p v-if="hint" :id="`${id}-hint`" class="mt-1 text-sm text-stone-600">{{ hint }}</p>
+    <p v-if="hint" :id="`${id}-hint`" class="mt-1 text-sm text-ink-soft">{{ hint }}</p>
   </div>
 </template>

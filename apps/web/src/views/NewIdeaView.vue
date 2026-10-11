@@ -29,8 +29,8 @@ const create = useMutation({
         ← Back to the profile
       </RouterLink>
     </p>
-    <h1 id="new-idea-heading" class="mb-1 font-serif text-2xl font-semibold">New idea</h1>
-    <p class="mb-6 text-stone-700">
+    <h1 id="new-idea-heading" class="mb-1 font-display text-2xl font-semibold">New idea</h1>
+    <p class="mb-6 text-ink-soft">
       Capture it while it's fresh. You can add links, brainstorm and start drafts afterwards.
     </p>
 
@@ -38,7 +38,7 @@ const create = useMutation({
       <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
       <TextAreaField v-model="notes" label="Expand on your idea here" :rows="8" />
 
-      <p v-if="create.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="create.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(create.error.value) }}
       </p>
       <div class="flex items-center gap-3">

@@ -38,7 +38,7 @@ const revoke = useMutation({
 
 <template>
   <div class="mt-3">
-    <p v-if="!confirmed" class="text-sm text-stone-700">
+    <p v-if="!confirmed" class="text-sm text-ink-soft">
       Confirm your email address to invite people to this profile.
     </p>
     <template v-else>
@@ -53,7 +53,7 @@ const revoke = useMutation({
         </div>
         <button
           type="submit"
-          class="mb-4 rounded border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
+          class="mb-4 rounded-ctl border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
           :disabled="invite.isPending.value"
         >
           Send invitation
@@ -62,7 +62,7 @@ const revoke = useMutation({
       <p v-if="invite.isSuccess.value" role="status" class="text-sm">
         We've emailed an invitation to {{ lastInvited }}. They join once they accept it.
       </p>
-      <p v-if="invite.isError.value" role="alert" class="text-sm text-red-700">
+      <p v-if="invite.isError.value" role="alert" class="text-sm text-danger">
         {{ errorMessage(invite.error.value) }}
       </p>
 
@@ -76,7 +76,7 @@ const revoke = useMutation({
           >
             <span>
               {{ inv.email }}
-              <span class="text-stone-600">
+              <span class="text-ink-soft">
                 · expires {{ new Date(inv.expiresAt).toLocaleDateString() }}
               </span>
             </span>

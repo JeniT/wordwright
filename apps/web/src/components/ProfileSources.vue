@@ -111,26 +111,25 @@ function shortName(address: string) {
   }
 }
 
-const removeClass =
-  'rounded border border-stone-300 bg-white px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40'
+const removeClass = 'btn btn-neutral btn-sm'
 </script>
 
 <template>
   <section aria-labelledby="sources-heading">
-    <h2 id="sources-heading" class="mb-1 font-serif text-xl font-semibold">Feeds</h2>
-    <p class="mb-3 text-sm text-stone-600">
+    <h2 id="sources-heading" class="mb-1 font-display text-xl font-semibold">Feeds</h2>
+    <p class="mb-3 text-sm text-ink-soft">
       RSS feeds to look through for things that could spark ideas. Posts from feeds higher in the
       list will be shown first: drag a feed by its grip, or use the arrow buttons, to change the
       order.
     </p>
 
     <p v-if="sources.isPending.value">Loading sources…</p>
-    <div v-else-if="sources.isError.value" role="alert" class="text-red-700">
+    <div v-else-if="sources.isError.value" role="alert" class="text-danger">
       <p>We couldn't load the sources. Check your connection and try again.</p>
       <button type="button" class="underline" @click="sources.refetch()">Try again</button>
     </div>
     <template v-else>
-      <p v-if="!sources.data.value?.length" class="text-sm text-stone-700">
+      <p v-if="!sources.data.value?.length" class="text-sm text-ink-soft">
         No sources yet. Paste the address of a blog, newsletter or news feed below to start your
         list.
       </p>
@@ -147,18 +146,19 @@ const removeClass =
             :name="nameOf(source)"
             :image-url="source.iconUrl"
             size="sm"
+            kind="source"
           />
           <div class="min-w-0 flex-1">
             <p class="break-words font-medium">
               <span class="sr-only">{{ index + 1 }}. </span>{{ nameOf(source) }}
             </p>
-            <p v-if="source.description" class="line-clamp-2 break-words text-sm text-stone-700">
+            <p v-if="source.description" class="line-clamp-2 break-words text-sm text-ink-soft">
               {{ source.description }}
             </p>
-            <p class="break-all text-xs text-stone-500" :title="source.url">
+            <p class="break-all text-xs text-ink-soft" :title="source.url">
               {{ shortName(source.url) }}
             </p>
-            <p v-if="source.lastError" class="text-sm text-red-700">
+            <p v-if="source.lastError" class="text-sm text-danger">
               We couldn’t read this feed on the last try. Open its recent posts for details, or
               remove it.
             </p>
@@ -191,7 +191,7 @@ const removeClass =
         />
         <button
           type="submit"
-          class="rounded border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
+          class="rounded-ctl border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
           :disabled="add.isPending.value"
         >
           {{ add.isPending.value ? 'Reading the feed…' : 'Add source' }}
@@ -200,7 +200,7 @@ const removeClass =
 
       <form
         v-if="choices.length"
-        class="mt-4 rounded border border-stone-200 bg-white p-4"
+        class="mt-4 rounded-ctl border border-line bg-surface p-4"
         @submit.prevent="addChosen.mutate(chosen)"
       >
         <fieldset>
@@ -218,18 +218,18 @@ const removeClass =
             />
             <label :for="`choice-${c.url}`" class="min-w-0">
               <span class="break-words">{{ choiceName(c) }}</span>
-              <span v-if="c.comments" class="text-sm text-stone-600"> (comments)</span>
-              <span v-if="c.alreadyAdded" class="text-sm text-stone-600">
+              <span v-if="c.comments" class="text-sm text-ink-soft"> (comments)</span>
+              <span v-if="c.alreadyAdded" class="text-sm text-ink-soft">
                 (already in your list)</span
               >
-              <span class="block break-all text-xs text-stone-500">{{ shortName(c.url) }}</span>
+              <span class="block break-all text-xs text-ink-soft">{{ shortName(c.url) }}</span>
             </label>
           </div>
         </fieldset>
         <div class="mt-3 flex gap-2">
           <button
             type="submit"
-            class="rounded border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
+            class="rounded-ctl border border-accent px-3 py-2 text-sm text-accent disabled:opacity-60"
             :disabled="!chosen.length || addChosen.isPending.value"
           >
             {{
@@ -242,27 +242,27 @@ const removeClass =
           </button>
           <button
             type="button"
-            class="rounded border border-stone-300 px-3 py-2 text-sm"
+            class="btn btn-neutral btn-sm"
             :disabled="addChosen.isPending.value"
             @click="cancelChoice"
           >
             Cancel
           </button>
         </div>
-        <ul v-if="addChosen.data.value?.failed.length" role="alert" class="mt-2 text-red-700">
+        <ul v-if="addChosen.data.value?.failed.length" role="alert" class="mt-2 text-danger">
           <li v-for="f in addChosen.data.value.failed" :key="f.url">
             {{ shortName(f.url) }}: {{ f.reason }}
           </li>
         </ul>
       </form>
 
-      <p v-if="add.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="add.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(add.error.value) }}
       </p>
-      <p v-if="remove.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="remove.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(remove.error.value) }}
       </p>
-      <p v-if="move.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="move.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(move.error.value) }}
       </p>
     </template>

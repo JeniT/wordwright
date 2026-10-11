@@ -36,18 +36,18 @@ const oauthError =
 
 <template>
   <AuthCard title="Sign in">
-    <p v-if="oauthError" role="alert" class="mb-4 text-red-700">{{ oauthError }}</p>
+    <p v-if="oauthError" role="alert" class="mb-4 text-danger">{{ oauthError }}</p>
 
     <div v-if="config.data.value?.providers.length" class="mb-4 space-y-2">
       <a
         v-for="provider in config.data.value.providers"
         :key="provider.id"
         :href="`/api/auth/oauth/${provider.id}/start${next ? `?next=${encodeURIComponent(next)}` : ''}`"
-        class="block rounded border border-stone-300 px-4 py-2 text-center text-sm font-medium hover:bg-stone-50"
+        class="btn btn-neutral w-full"
       >
         Continue with {{ provider.label }}
       </a>
-      <p class="text-center text-sm text-stone-600">or use your email</p>
+      <p class="text-center text-sm text-ink-soft">or use your email</p>
     </div>
 
     <form @submit.prevent="login.mutate()">
@@ -59,14 +59,10 @@ const oauthError =
         autocomplete="current-password"
         required
       />
-      <p v-if="login.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="login.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(login.error.value) }}
       </p>
-      <button
-        type="submit"
-        class="w-full rounded bg-accent px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
-        :disabled="login.isPending.value"
-      >
+      <button type="submit" class="btn btn-primary w-full" :disabled="login.isPending.value">
         Sign in
       </button>
     </form>

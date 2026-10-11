@@ -211,8 +211,8 @@ const label = (note: IdeaNote) => {
 
 <template>
   <section aria-labelledby="notes-heading" class="mb-10">
-    <h2 id="notes-heading" class="mb-1 font-serif text-xl font-semibold">Notes</h2>
-    <p class="mb-3 text-sm text-stone-700">
+    <h2 id="notes-heading" class="mb-1 font-display text-xl font-semibold">Notes</h2>
+    <p class="mb-3 text-sm text-ink-soft">
       One thought to a note, like index cards. Drag them, or use the arrows, to put them in order.
       To delete a note, press and hold its Delete button.
     </p>
@@ -220,11 +220,11 @@ const label = (note: IdeaNote) => {
 
     <p v-if="notes.isPending.value">Loading notes…</p>
     <div v-else-if="notes.isError.value" role="alert" class="mb-4">
-      <p class="text-red-700">We couldn't load the notes.</p>
+      <p class="text-danger">We couldn't load the notes.</p>
       <button type="button" class="btn btn-outline mt-2" @click="notes.refetch()">Try again</button>
     </div>
     <template v-else>
-      <p v-if="!notes.data.value?.length" class="mb-4 text-stone-600">
+      <p v-if="!notes.data.value?.length" class="mb-4 text-ink-soft">
         No notes yet. Jot down your first thought below.
       </p>
       <div v-else ref="list" class="mb-4">
@@ -247,17 +247,17 @@ const label = (note: IdeaNote) => {
             >
               {{ merge.isPending.value ? 'Merging…' : `Merge ${selected.length} notes` }}
             </button>
-            <p class="w-full text-sm text-stone-700">
+            <p class="w-full text-sm text-ink-soft">
               Tick the notes to join into one; it goes where the first of them is. Notes from
               different places, and quotations (which must stay as written), can't be merged.
             </p>
           </template>
         </div>
-        <p v-if="merge.isError.value" role="alert" class="mb-3 text-red-700">
+        <p v-if="merge.isError.value" role="alert" class="mb-3 text-danger">
           {{ errorMessage(merge.error.value) }}
         </p>
         <TagFilter v-model="tagFilter" :tags="usedTags" />
-        <p v-if="!visibleNotes.length" class="text-stone-600">No notes have this tag.</p>
+        <p v-if="!visibleNotes.length" class="text-ink-soft">No notes have this tag.</p>
         <ReorderableList v-else :items="visibleNotes" :item-label="label" :save="saveOrder">
           <template #default="{ item: note }">
             <form
@@ -274,7 +274,7 @@ const label = (note: IdeaNote) => {
                 :maxlength="20000"
                 :hint="save.isError.value ? errorMessage(save.error.value) : undefined"
               />
-              <p class="mb-4 -mt-2 text-sm text-stone-700">
+              <p class="mb-4 -mt-2 text-sm text-ink-soft">
                 To cut this note in two, put the cursor where it should be cut and press
                 <button
                   type="button"
@@ -286,7 +286,7 @@ const label = (note: IdeaNote) => {
                   Split here</button
                 >.
               </p>
-              <p v-if="split.isError.value" role="alert" class="mb-3 text-red-700">
+              <p v-if="split.isError.value" role="alert" class="mb-3 text-danger">
                 {{ errorMessage(split.error.value) }}
               </p>
               <TextField
@@ -295,7 +295,7 @@ const label = (note: IdeaNote) => {
                 autocomplete="off"
                 hint="Separate tags with commas, for example: intro, part 2. Use the same word on other notes to group them."
               />
-              <p v-if="usedTags.length" class="mb-4 -mt-2 text-xs text-stone-700">
+              <p v-if="usedTags.length" class="mb-4 -mt-2 text-xs text-ink-soft">
                 Already used:
                 <button
                   v-for="tag in usedTags"
@@ -339,7 +339,7 @@ const label = (note: IdeaNote) => {
               </label>
               <NoteText :note="note" />
               <NoteTags :tags="note.tags" />
-              <p class="mt-1 text-xs text-stone-600">
+              <p class="mt-1 text-xs text-ink-soft">
                 <NoteOrigin
                   :phrase="noteOriginPhrase(note, readingList)"
                   :author-name="note.authorName"
@@ -369,10 +369,10 @@ const label = (note: IdeaNote) => {
             </HoldButton>
           </template>
         </ReorderableList>
-        <p v-if="move.isError.value" role="alert" class="mt-2 text-red-700">
+        <p v-if="move.isError.value" role="alert" class="mt-2 text-danger">
           {{ errorMessage(move.error.value) }}
         </p>
-        <p v-if="remove.isError.value" role="alert" class="mt-2 text-red-700">
+        <p v-if="remove.isError.value" role="alert" class="mt-2 text-danger">
           Couldn't delete that note. Please try again.
         </p>
       </div>

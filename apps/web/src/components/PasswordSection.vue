@@ -26,7 +26,7 @@ const setup = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="password-heading">
-    <h2 id="password-heading" class="mb-3 font-serif text-xl font-semibold">Password</h2>
+    <h2 id="password-heading" class="mb-3 font-display text-xl font-semibold">Password</h2>
 
     <!-- Has a password: change it -->
     <form v-if="session.user.hasPassword" @submit.prevent="change.mutate()">
@@ -45,7 +45,7 @@ const setup = useMutation({
         hint="At least 10 characters. Your other devices will be signed out."
         required
       />
-      <p v-if="change.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="change.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(change.error.value) }}
       </p>
       <p v-if="change.isSuccess.value" role="status" class="mb-3 text-sm">
@@ -58,7 +58,7 @@ const setup = useMutation({
 
     <!-- Signs in with Google only: add a password via an emailed link -->
     <div v-else>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         You sign in with {{ session.user.linkedProviders.join(' / ') || 'a linked account' }}. You
         can also add a password, to sign in with your email too. For your security we email a link
         to <strong>{{ session.user.email }}</strong> to choose it.
@@ -67,13 +67,13 @@ const setup = useMutation({
         We've emailed you a link. Opening it signs you out of your devices so you can choose a
         password.
       </p>
-      <p v-if="setup.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="setup.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(setup.error.value) }}
       </p>
       <button
         v-if="!setup.isSuccess.value"
         type="button"
-        class="rounded border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-60"
+        class="rounded-ctl border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-60"
         :disabled="setup.isPending.value"
         @click="setup.mutate()"
       >

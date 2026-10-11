@@ -3,6 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Apply a saved light/dark choice before first paint (see src/lib/useTheme.ts).
+      try {
+        var theme = localStorage.getItem('wordwright-theme')
+        if (theme === 'light' || theme === 'dark')
+          document.documentElement.setAttribute('data-theme', theme)
+      } catch (e) {}
+    </script>
     <title>Wordwright</title>
   </head>
   <body>

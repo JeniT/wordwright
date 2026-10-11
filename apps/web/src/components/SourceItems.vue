@@ -36,17 +36,17 @@ const when = (iso: string) =>
 
 <template>
   <details class="mt-1 text-sm" @toggle="opened ||= ($event.target as HTMLDetailsElement).open">
-    <summary class="cursor-pointer text-stone-700">
+    <summary class="cursor-pointer text-ink-soft">
       Recent posts<span class="sr-only"> from {{ name }}</span>
     </summary>
     <div class="mt-1">
       <p v-if="posts.isPending.value">Reading the feed…</p>
-      <div v-else-if="posts.isError.value" role="alert" class="text-red-700">
+      <div v-else-if="posts.isError.value" role="alert" class="text-danger">
         <p>{{ errorMessage(posts.error.value) }}</p>
         <button type="button" class="underline" @click="posts.refetch()">Try again</button>
       </div>
       <template v-else-if="posts.data.value">
-        <p v-if="posts.data.value.lastError" role="alert" class="mb-1 text-red-700">
+        <p v-if="posts.data.value.lastError" role="alert" class="mb-1 text-danger">
           We couldn’t read this feed just now: {{ posts.data.value.lastError }}
           <template v-if="posts.data.value.lastWorkedAt">
             It last worked on {{ when(posts.data.value.lastWorkedAt) }}.
@@ -60,7 +60,7 @@ const when = (iso: string) =>
             <a :href="item.url" target="_blank" rel="noopener noreferrer" class="underline">
               {{ item.title }}<span class="sr-only"> (opens in a new tab)</span>
             </a>
-            <span v-if="item.publishedAt || item.authors.length" class="text-stone-600">
+            <span v-if="item.publishedAt || item.authors.length" class="text-ink-soft">
               ·
               {{
                 [item.authors.join(', '), item.publishedAt ? when(item.publishedAt) : '']
@@ -70,7 +70,7 @@ const when = (iso: string) =>
             </span>
           </li>
         </ul>
-        <p v-if="posts.data.value.items.length > SHOWN" class="mt-1 text-stone-600">
+        <p v-if="posts.data.value.items.length > SHOWN" class="mt-1 text-ink-soft">
           and {{ posts.data.value.items.length - SHOWN }} more
         </p>
       </template>

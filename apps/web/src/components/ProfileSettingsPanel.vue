@@ -96,14 +96,14 @@ function confirmDelete() {
           ← {{ profile.name }}
         </RouterLink>
       </p>
-      <h1 class="font-serif text-2xl font-semibold">Profile settings</h1>
-      <p class="mt-1 text-sm text-stone-600">
-        Address: <code class="rounded bg-stone-100 px-1">/p/{{ profile.id }}</code>
+      <h1 class="font-display text-2xl font-semibold">Profile settings</h1>
+      <p class="mt-1 text-sm text-ink-soft">
+        Address: <code class="rounded-ctl bg-sunken px-1">/p/{{ profile.id }}</code>
       </p>
     </header>
 
     <section aria-labelledby="details-heading">
-      <h2 id="details-heading" class="mb-3 font-serif text-xl font-semibold">Details</h2>
+      <h2 id="details-heading" class="mb-3 font-display text-xl font-semibold">Details</h2>
       <form v-if="isOwner" @submit.prevent="saveDetails.mutate()">
         <TextField v-model="name" label="Name" required autocomplete="off" />
         <TextField
@@ -112,14 +112,14 @@ function confirmDelete() {
           autocomplete="off"
           hint="Where it gets published, for example https://yourname.substack.com. Leave empty for none."
         />
-        <p v-if="saveDetails.isError.value" role="alert" class="mb-3 text-red-700">
+        <p v-if="saveDetails.isError.value" role="alert" class="mb-3 text-danger">
           {{ errorMessage(saveDetails.error.value) }}
         </p>
         <div class="flex items-center gap-3">
           <button type="submit" class="btn btn-primary" :disabled="saveDetails.isPending.value">
             {{ saveDetails.isPending.value ? 'Saving…' : 'Save details' }}
           </button>
-          <p v-if="saveDetails.isSuccess.value" role="status" class="text-sm text-stone-700">
+          <p v-if="saveDetails.isSuccess.value" role="status" class="text-sm text-ink-soft">
             Saved
           </p>
         </div>
@@ -133,7 +133,7 @@ function confirmDelete() {
     </section>
 
     <section aria-labelledby="picture-heading">
-      <h2 id="picture-heading" class="mb-3 font-serif text-xl font-semibold">Picture</h2>
+      <h2 id="picture-heading" class="mb-3 font-display text-xl font-semibold">Picture</h2>
       <div class="flex items-center gap-4">
         <ProfileImage
           :id="profile.id"
@@ -155,16 +155,16 @@ function confirmDelete() {
         </div>
       </div>
       <p v-if="uploadImage.isPending.value" role="status" class="mt-2 text-sm">Uploading…</p>
-      <p v-if="uploadImage.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="uploadImage.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(uploadImage.error.value) }}
       </p>
-      <p v-if="removeImage.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="removeImage.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(removeImage.error.value) }}
       </p>
     </section>
 
     <section aria-labelledby="sharing-heading">
-      <h2 id="sharing-heading" class="mb-3 font-serif text-xl font-semibold">Sharing</h2>
+      <h2 id="sharing-heading" class="mb-3 font-display text-xl font-semibold">Sharing</h2>
       <ul class="text-sm">
         <li
           v-for="m in profile.members"
@@ -173,7 +173,7 @@ function confirmDelete() {
         >
           <span>
             {{ m.name }}
-            <span class="text-stone-600">({{ m.email }}, {{ m.role }})</span>
+            <span class="text-ink-soft">({{ m.email }}, {{ m.role }})</span>
           </span>
           <button
             v-if="canRemove(m.userId, m.role)"
@@ -191,30 +191,22 @@ function confirmDelete() {
         :profile-name="profile.name"
         :confirmed="session.user?.emailVerified ?? false"
       />
-      <p v-if="removeMember.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="removeMember.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(removeMember.error.value) }}
       </p>
     </section>
 
-    <section
-      v-if="isOwner"
-      aria-labelledby="delete-profile-heading"
-      class="rounded border border-red-200 bg-red-50 p-4"
-    >
-      <h2 id="delete-profile-heading" class="mb-2 font-serif text-xl font-semibold text-red-900">
+    <section v-if="isOwner" aria-labelledby="delete-profile-heading" class="callout callout-danger">
+      <h2 id="delete-profile-heading" class="mb-2 font-display text-xl font-semibold text-danger">
         Delete profile
       </h2>
       <p class="mb-3 text-sm">
         This permanently deletes the profile and all its drafts, for everyone it's shared with.
       </p>
-      <p v-if="deleteProfile.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="deleteProfile.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(deleteProfile.error.value) }}
       </p>
-      <button
-        type="button"
-        class="rounded bg-red-700 px-4 py-2 text-sm font-medium text-white"
-        @click="confirmDelete"
-      >
+      <button type="button" class="btn btn-danger-solid" @click="confirmDelete">
         Delete this profile
       </button>
     </section>

@@ -24,11 +24,11 @@ const change = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="email-heading">
-    <h2 id="email-heading" class="mb-3 font-serif text-xl font-semibold">Email address</h2>
+    <h2 id="email-heading" class="mb-3 font-display text-xl font-semibold">Email address</h2>
 
     <!-- Has a password: ask for it, then confirm the new address by email -->
     <form v-if="session.user.hasPassword" @submit.prevent="change.mutate()">
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         Your address is <strong>{{ session.user.email }}</strong
         >. We'll email a link to the new one, and your address only changes once you open it.
       </p>
@@ -46,7 +46,7 @@ const change = useMutation({
         autocomplete="current-password"
         required
       />
-      <p v-if="change.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="change.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(change.error.value) }}
       </p>
       <p v-if="change.isSuccess.value" role="status" class="mb-3 text-sm">
@@ -60,7 +60,7 @@ const change = useMutation({
     </form>
 
     <!-- Signs in with Google only: a session alone isn't enough proof, so a password comes first -->
-    <p v-else class="text-sm text-stone-700">
+    <p v-else class="text-sm text-ink-soft">
       Your address is <strong>{{ session.user.email }}</strong
       >. To change it, first add a password in the section below; that keeps anyone who borrows your
       signed-in device from redirecting your account's email.

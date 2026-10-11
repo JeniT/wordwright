@@ -72,26 +72,26 @@ const label = (note: IdeaNote) => {
 
 <template>
   <div>
-    <h2 id="draft-notes-heading" class="mb-1 font-serif text-xl font-semibold">Notes</h2>
-    <p class="mb-3 text-sm text-stone-700">
+    <h2 id="draft-notes-heading" class="mb-1 font-display text-xl font-semibold">Notes</h2>
+    <p class="mb-3 text-sm text-ink-soft">
       Add a note to put its words into the draft, after the paragraph you are in, or drag it by its
       grip to where you want it. The draft is saved as you do.
     </p>
 
     <p v-if="notes.isPending.value">Loading notes…</p>
     <div v-else-if="notes.isError.value" role="alert" class="mb-3">
-      <p class="text-red-700">We couldn't load the notes.</p>
+      <p class="text-danger">We couldn't load the notes.</p>
       <button type="button" class="btn btn-outline mt-2" @click="notes.refetch()">Try again</button>
     </div>
     <template v-else>
-      <p v-if="!notes.data.value?.length" class="text-stone-600">
+      <p v-if="!notes.data.value?.length" class="text-ink-soft">
         No notes yet.
         <RouterLink :to="{ name: 'idea', params: { profileId, id: ideaId } }" class="underline">
           Add some on the idea page.
         </RouterLink>
       </p>
       <TagFilter v-model="tagFilter" :tags="usedTags" />
-      <p v-if="notes.data.value?.length && !waiting.length" class="text-stone-600">
+      <p v-if="notes.data.value?.length && !waiting.length" class="text-ink-soft">
         {{ tagFilter ? 'No notes left with this tag.' : 'All your notes are in a draft.' }}
       </p>
 
@@ -99,12 +99,12 @@ const label = (note: IdeaNote) => {
         <li
           v-for="note in waiting"
           :key="note.id"
-          class="flex gap-2 rounded border border-stone-200 bg-white p-3"
+          class="flex gap-2 rounded-ctl border border-line bg-surface p-3"
         >
           <!-- Dragging needs a mouse, and the draft is behind the drawer on a phone, so the grip is for wide screens;
                everyone can use the button. -->
           <span
-            class="hidden cursor-grab select-none text-stone-500 lg:inline"
+            class="hidden cursor-grab select-none text-ink-soft lg:inline"
             draggable="true"
             title="Drag into the draft"
             aria-hidden="true"
@@ -117,7 +117,7 @@ const label = (note: IdeaNote) => {
           <div class="min-w-0 flex-1">
             <NoteText :note="note" />
             <NoteTags :tags="note.tags" />
-            <p class="mt-1 text-xs text-stone-600">
+            <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
                 :phrase="noteOriginPhrase(note, readingList)"
                 :author-name="note.authorName"
@@ -139,11 +139,11 @@ const label = (note: IdeaNote) => {
           </div>
         </li>
       </ul>
-      <p v-if="adding.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="adding.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(adding.error.value) }}
       </p>
 
-      <div v-if="added.length" class="border-t border-stone-200 pt-3">
+      <div v-if="added.length" class="border-t border-line pt-3">
         <label class="flex items-center gap-2 text-sm">
           <input v-model="showAdded" type="checkbox" class="size-4 accent-accent" />
           Show notes already added ({{ added.length }})
@@ -152,10 +152,10 @@ const label = (note: IdeaNote) => {
           <li
             v-for="note in added"
             :key="note.id"
-            class="rounded border border-stone-200 bg-stone-50 p-3 text-stone-700"
+            class="rounded-ctl border border-line bg-sunken p-3 text-ink-soft"
           >
             <NoteText :note="note" />
-            <p class="mt-1 text-xs text-stone-600">
+            <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
                 :phrase="noteOriginPhrase(note, readingList)"
                 :author-name="note.authorName"
@@ -172,7 +172,7 @@ const label = (note: IdeaNote) => {
             </button>
           </li>
         </ul>
-        <p v-if="putBack.isError.value" role="alert" class="mt-2 text-red-700">
+        <p v-if="putBack.isError.value" role="alert" class="mt-2 text-danger">
           Couldn't put that note back. Please try again.
         </p>
       </div>

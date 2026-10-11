@@ -25,7 +25,7 @@ onMounted(() => token && verify.mutate())
 
 <template>
   <AuthCard title="Confirm your email">
-    <p v-if="!token" role="alert" class="text-red-700">This confirmation link is incomplete.</p>
+    <p v-if="!token" role="alert" class="text-danger">This confirmation link is incomplete.</p>
     <p v-else-if="verify.isPending.value || verify.isIdle.value">Confirming…</p>
     <template v-else-if="verify.isSuccess.value">
       <p role="status">Thanks, your email address is confirmed.</p>
@@ -36,7 +36,7 @@ onMounted(() => token && verify.mutate())
       </p>
     </template>
     <template v-else>
-      <p role="alert" class="text-red-700">{{ errorMessage(verify.error.value) }}</p>
+      <p role="alert" class="text-danger">{{ errorMessage(verify.error.value) }}</p>
       <div v-if="session.user" class="mt-4">
         <button
           type="button"
@@ -49,7 +49,7 @@ onMounted(() => token && verify.mutate())
         <p v-if="resend.isSuccess.value" role="status" class="mt-2 text-sm">
           A new link is on its way.
         </p>
-        <p v-if="resend.isError.value" role="alert" class="mt-2 text-sm text-red-700">
+        <p v-if="resend.isError.value" role="alert" class="mt-2 text-sm text-danger">
           {{ errorMessage(resend.error.value) }}
         </p>
       </div>

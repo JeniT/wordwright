@@ -55,19 +55,19 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
 </script>
 
 <template>
-  <article :aria-labelledby="headingId" class="rounded border border-stone-300 bg-white p-4">
+  <article :aria-labelledby="headingId" class="panel p-4">
     <h3
       :id="headingId"
-      class="mb-1 whitespace-pre-wrap break-words font-serif text-lg font-semibold"
+      class="mb-1 whitespace-pre-wrap break-words font-display text-lg font-semibold"
     >
       {{ run.areas }}
     </h3>
-    <p class="mb-3 text-sm text-stone-600">
+    <p class="mb-3 text-sm text-ink-soft">
       Researched{{ run.createdByName ? ` by ${run.createdByName}` : '' }} on {{ when }} ·
       {{ run.model }}
     </p>
 
-    <p v-if="!run.items.length" class="mb-3 text-stone-700">
+    <p v-if="!run.items.length" class="mb-3 text-ink-soft">
       Nothing new turned up that looked worth reading. Try describing the areas differently.
     </p>
 
@@ -75,21 +75,21 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       <li
         v-for="item in run.items"
         :key="item.id"
-        class="border-t border-stone-200 pt-3 first:border-t-0 first:pt-0"
+        class="border-t border-line pt-3 first:border-t-0 first:pt-0"
       >
         <!-- Decided: just the title, how it went, and a way back. -->
         <div v-if="item.status !== 'suggested'" class="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span
             v-if="item.status === 'added'"
-            class="font-bold text-green-700"
+            class="font-bold text-ok"
             role="img"
             aria-label="Added to the reading list"
             >✓</span
           >
-          <span v-else class="font-bold text-red-700" role="img" aria-label="Ignored">✗</span>
+          <span v-else class="font-bold text-danger" role="img" aria-label="Ignored">✗</span>
           <span
             class="min-w-0 flex-1 break-words"
-            :class="item.status === 'dismissed' ? 'text-stone-500' : ''"
+            :class="item.status === 'dismissed' ? 'text-ink-soft' : ''"
             >{{ name(item) }}</span
           >
           <button
@@ -125,23 +125,20 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
           <p class="text-sm">
             <span class="font-medium">Why the AI suggests it (unchecked):</span> {{ item.why }}
           </p>
-          <p
-            v-if="item.check === 'no-title'"
-            class="mt-1 rounded bg-amber-50 p-2 text-sm text-amber-900"
-          >
+          <p v-if="item.check === 'no-title'" class="mt-1 callout !p-2 text-sm">
             We couldn't read a title from this page, so we can't confirm what it is. If you add it,
             it is listed as “{{ item.title || item.url }}”.
           </p>
           <p
             v-else-if="item.check === 'not-found'"
-            class="mt-1 rounded bg-red-50 p-2 text-sm text-red-900"
+            class="mt-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
           >
             Problem: we couldn't find a website at this address, so the page may not exist. It can't
             be added.
           </p>
           <p
             v-else-if="item.check === 'not-public'"
-            class="mt-1 rounded bg-red-50 p-2 text-sm text-red-900"
+            class="mt-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
           >
             Problem: this address isn't a public website, so it can't be added.
           </p>
@@ -169,17 +166,17 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       </li>
     </ul>
 
-    <div v-if="problem" role="alert" class="mb-2 text-sm text-red-700">
+    <div v-if="problem" role="alert" class="mb-2 text-sm text-danger">
       {{ errorMessage(problem) }}
       <button type="button" class="ml-2 underline" @click="clearProblem">Dismiss</button>
     </div>
 
-    <p class="mt-3 border-t border-stone-200 pt-2 text-sm">
-      <button type="button" class="text-red-700 underline" @click="confirmingDelete = true">
+    <p class="mt-3 border-t border-line pt-2 text-sm">
+      <button type="button" class="text-danger underline" @click="confirmingDelete = true">
         Delete this research<span class="sr-only">: {{ run.areas }}</span>
       </button>
     </p>
-    <p v-if="remove.isError.value" role="alert" class="mt-2 text-sm text-red-700">
+    <p v-if="remove.isError.value" role="alert" class="mt-2 text-sm text-danger">
       {{ errorMessage(remove.error.value) }}
     </p>
     <ConfirmDialog

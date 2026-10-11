@@ -107,13 +107,9 @@ const remove = useMutation({
 
 <template>
   <p v-if="idea.isPending.value">Loading…</p>
-  <div
-    v-else-if="idea.isError.value"
-    role="alert"
-    class="rounded border border-stone-200 bg-white p-6"
-  >
-    <h1 class="font-serif text-lg">We couldn't open that idea</h1>
-    <p class="mt-1 text-stone-700">
+  <div v-else-if="idea.isError.value" role="alert" class="panel p-6">
+    <h1 class="font-display text-lg">We couldn't open that idea</h1>
+    <p class="mt-1 text-ink-soft">
       It may have been deleted, or the connection may have dropped. Try reloading the page.
     </p>
     <RouterLink
@@ -130,7 +126,7 @@ const remove = useMutation({
         ← Back to the profile
       </RouterLink>
     </p>
-    <h1 id="idea-heading" class="mb-6 font-serif text-2xl font-semibold">
+    <h1 id="idea-heading" class="mb-6 font-display text-2xl font-semibold">
       {{ idea.data.value.name }}
     </h1>
 
@@ -138,12 +134,12 @@ const remove = useMutation({
       <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
       <div class="flex items-center gap-3">
         <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">Save</button>
-        <p role="status" class="text-sm text-stone-600">
+        <p role="status" class="text-sm text-ink-soft">
           <template v-if="save.isPending.value">Saving…</template>
           <template v-else-if="save.isSuccess.value">Saved</template>
         </p>
       </div>
-      <p v-if="save.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="save.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(save.error.value) }}
       </p>
     </form>
@@ -151,14 +147,14 @@ const remove = useMutation({
     <IdeaNotes :profile-id="profileId" :idea-id="id" :reading-list="idea.data.value.links" />
 
     <section aria-labelledby="links-heading" class="mb-10">
-      <h2 id="links-heading" class="mb-1 font-serif text-xl font-semibold">Reading list</h2>
-      <p class="mb-3 text-sm text-stone-700">
+      <h2 id="links-heading" class="mb-1 font-display text-xl font-semibold">Reading list</h2>
+      <p class="mb-3 text-sm text-ink-soft">
         Articles, papers or earlier posts that this idea builds on or responds to. Tick each one off
         once you have read it, even if you read it somewhere else.
       </p>
       <ul
         v-if="idea.data.value.links.length"
-        class="mb-4 divide-y divide-stone-200 rounded border border-stone-200 bg-white"
+        class="mb-4 divide-y divide-line rounded-ctl border border-line bg-surface"
       >
         <IdeaLinkItem
           v-for="link in idea.data.value.links"
@@ -169,8 +165,8 @@ const remove = useMutation({
           @remove="removeLink.mutate(link.id)"
         />
       </ul>
-      <p v-else class="mb-4 text-stone-600">Nothing on the reading list yet.</p>
-      <p v-if="removeLink.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-else class="mb-4 text-ink-soft">Nothing on the reading list yet.</p>
+      <p v-if="removeLink.isError.value" role="alert" class="mb-3 text-danger">
         Couldn't remove that link. Please try again.
       </p>
 
@@ -197,8 +193,8 @@ const remove = useMutation({
     </section>
 
     <section aria-labelledby="brainstorm-heading" class="mb-10">
-      <h2 id="brainstorm-heading" class="mb-1 font-serif text-xl font-semibold">Brainstorm</h2>
-      <p class="mb-3 text-sm text-stone-700">
+      <h2 id="brainstorm-heading" class="mb-1 font-display text-xl font-semibold">Brainstorm</h2>
+      <p class="mb-3 text-sm text-ink-soft">
         Talk the idea through with your AI assistant. It asks questions, adds the points you make to
         the notes above as you go, and can suggest a sharper title or a separate new idea, which
         change nothing unless you accept them.
@@ -216,8 +212,8 @@ const remove = useMutation({
     </section>
 
     <section aria-labelledby="research-heading" class="mb-10">
-      <h2 id="research-heading" class="mb-1 font-serif text-xl font-semibold">Research</h2>
-      <p class="mb-3 text-sm text-stone-700">
+      <h2 id="research-heading" class="mb-1 font-display text-xl font-semibold">Research</h2>
+      <p class="mb-3 text-sm text-ink-soft">
         Describe what you want to look into and your AI will search the web for pages worth reading,
         from more than one point of view. You review what it finds and choose what goes on the
         reading list above. You can research as many areas as you like.
@@ -232,7 +228,7 @@ const remove = useMutation({
 
     <section aria-labelledby="idea-drafts-heading" class="mb-10">
       <div class="mb-3 flex items-center justify-between gap-3">
-        <h2 id="idea-drafts-heading" class="font-serif text-xl font-semibold">Drafts</h2>
+        <h2 id="idea-drafts-heading" class="font-display text-xl font-semibold">Drafts</h2>
         <button
           type="button"
           class="btn btn-primary"
@@ -242,10 +238,10 @@ const remove = useMutation({
           Add a draft
         </button>
       </div>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         One draft for a single post, or several, in order, for a linked set of posts.
       </p>
-      <p v-if="!idea.data.value?.drafts.length" class="text-stone-600">
+      <p v-if="!idea.data.value?.drafts.length" class="text-ink-soft">
         No drafts yet. Add one when you're ready to start writing.
       </p>
       <ReorderableList
@@ -257,37 +253,37 @@ const remove = useMutation({
         <template #default="{ item: draft }">
           <RouterLink
             :to="{ name: 'draft', params: { profileId, id: draft.id } }"
-            class="flex min-w-0 flex-1 items-baseline justify-between gap-3 py-1 hover:bg-stone-50"
+            class="flex min-w-0 flex-1 items-baseline justify-between gap-3 py-1 hover:bg-sunken"
           >
-            <span class="min-w-0 break-words font-serif text-lg">{{
+            <span class="min-w-0 break-words font-display text-lg">{{
               draft.title || 'Untitled'
             }}</span>
-            <time class="shrink-0 text-sm text-stone-600" :datetime="draft.updatedAt">
+            <time class="shrink-0 text-sm text-ink-soft" :datetime="draft.updatedAt">
               {{ new Date(draft.updatedAt).toLocaleDateString() }}
             </time>
           </RouterLink>
         </template>
       </ReorderableList>
-      <p v-if="moveDrafts.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="moveDrafts.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(moveDrafts.error.value) }}
       </p>
-      <p v-if="addDraft.isError.value" role="alert" class="mt-2 text-red-700">
+      <p v-if="addDraft.isError.value" role="alert" class="mt-2 text-danger">
         Couldn't start a new draft. Please try again.
       </p>
     </section>
 
     <section
       aria-labelledby="delete-idea-heading"
-      class="rounded border border-red-200 bg-white p-4"
+      class="rounded-ctl border border-danger bg-surface p-4"
     >
-      <h2 id="delete-idea-heading" class="mb-1 font-serif text-lg font-semibold text-red-900">
+      <h2 id="delete-idea-heading" class="mb-1 font-display text-lg font-semibold text-danger">
         Delete this idea
       </h2>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         This permanently deletes the idea, its links and
         {{ idea.data.value?.drafts.length ? 'all its drafts' : 'any drafts' }}.
       </p>
-      <p v-if="remove.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="remove.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(remove.error.value) }}
       </p>
       <button type="button" class="btn btn-danger" @click="confirmingDelete = true">

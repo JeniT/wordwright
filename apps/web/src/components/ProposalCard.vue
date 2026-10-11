@@ -54,11 +54,8 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
 </script>
 
 <template>
-  <section
-    :aria-labelledby="headingId"
-    class="mt-3 rounded border border-stone-300 bg-stone-50 p-4"
-  >
-    <h2 :id="headingId" class="mb-2 font-serif text-lg font-semibold">
+  <section :aria-labelledby="headingId" class="mt-3 panel-sunken p-4">
+    <h2 :id="headingId" class="mb-2 font-display text-lg font-semibold">
       {{
         proposal.tool === 'suggest_reading'
           ? 'Suggested reading'
@@ -69,7 +66,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
     </h2>
 
     <template v-if="proposal.tool === 'suggest_reading' && reading">
-      <p class="mb-2 text-sm text-stone-600">
+      <p class="mb-2 text-sm text-ink-soft">
         The coach is passing on an address you gave it. It has not read the page.
       </p>
       <p class="break-words font-medium">
@@ -99,14 +96,11 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
           <dd class="inline">{{ proposal.input.why }}</dd>
         </div>
       </dl>
-      <p v-if="reading.check === 'found'" class="mb-3 text-sm text-stone-700">
+      <p v-if="reading.check === 'found'" class="mb-3 text-sm text-ink-soft">
         We looked at the address and the page exists. If you add it, it is listed under its own
         title.
       </p>
-      <p
-        v-else-if="reading.check === 'no-title'"
-        class="mb-3 rounded bg-amber-50 p-2 text-sm text-amber-900"
-      >
+      <p v-else-if="reading.check === 'no-title'" class="mb-3 callout !p-2 text-sm">
         We couldn't read a title from this page, so we can't confirm what it is.
         {{
           suggestedTitle
@@ -116,12 +110,12 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       </p>
       <p
         v-else-if="reading.check === 'not-found'"
-        class="mb-3 rounded bg-red-50 p-2 text-sm text-red-900"
+        class="mb-3 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
       >
         Problem: we couldn't find a website at this address, so the page may not exist. It can't be
         added.
       </p>
-      <p v-else class="mb-3 rounded bg-red-50 p-2 text-sm text-red-900">
+      <p v-else class="mb-3 rounded-ctl bg-danger-wash p-2 text-sm text-danger">
         Problem: this address isn't a public website, so it can't be added.
       </p>
     </template>
@@ -129,11 +123,11 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
     <template v-else-if="proposal.tool === 'update_idea'">
       <div class="mb-3">
         <p class="text-sm font-medium">Title</p>
-        <p v-if="pending && idea" class="text-sm text-stone-600">
-          Now: <span class="line-through decoration-stone-400">{{ idea.name }}</span>
+        <p v-if="pending && idea" class="text-sm text-ink-soft">
+          Now: <span class="line-through decoration-line-strong">{{ idea.name }}</span>
           <span class="sr-only">(would be replaced)</span>
         </p>
-        <p><span v-if="pending" class="text-sm text-stone-600">Suggested: </span>{{ name }}</p>
+        <p><span v-if="pending" class="text-sm text-ink-soft">Suggested: </span>{{ name }}</p>
       </div>
     </template>
     <template v-else>
@@ -141,15 +135,11 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       <p v-if="proposal.input.notes" class="mb-3 whitespace-pre-wrap text-sm">
         {{ proposal.input.notes }}
       </p>
-      <p v-else class="mb-3 text-sm text-stone-600">No notes yet.</p>
+      <p v-else class="mb-3 text-sm text-ink-soft">No notes yet.</p>
     </template>
 
     <template v-if="pending">
-      <p
-        v-if="proposal.stale"
-        role="status"
-        class="mb-3 rounded bg-amber-50 p-2 text-sm text-amber-900"
-      >
+      <p v-if="proposal.stale" role="status" class="mb-3 callout !p-2 text-sm">
         The title has changed since this was suggested. Accepting will replace it with the
         suggestion.
       </p>
@@ -184,12 +174,12 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       <p
         v-if="accept.isError.value || dismiss.isError.value"
         role="alert"
-        class="mt-2 text-sm text-red-700"
+        class="mt-2 text-sm text-danger"
       >
         {{ errorMessage(accept.error.value ?? dismiss.error.value) }}
       </p>
     </template>
-    <p v-else-if="proposal.status === 'accepted'" class="text-sm text-stone-700">
+    <p v-else-if="proposal.status === 'accepted'" class="text-sm text-ink-soft">
       {{ proposal.tool === 'suggest_reading' ? 'Added to the reading list' : 'Accepted'
       }}{{ proposal.decidedByName ? ` by ${proposal.decidedByName}` : '' }}.
       <RouterLink
@@ -200,7 +190,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
         Open the new idea
       </RouterLink>
     </p>
-    <p v-else class="text-sm text-stone-700">
+    <p v-else class="text-sm text-ink-soft">
       Dismissed{{ proposal.decidedByName ? ` by ${proposal.decidedByName}` : '' }}.
     </p>
   </section>

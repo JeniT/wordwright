@@ -22,22 +22,22 @@ const rows = computed(() =>
 </script>
 
 <template>
-  <details v-if="rows.length" class="mt-6 rounded border border-stone-200 bg-white p-3 text-sm">
+  <details v-if="rows.length" class="mt-6 rounded-ctl border border-line bg-surface p-3 text-sm">
     <summary class="cursor-pointer font-medium">
       Where some of the words came from ({{ rows.length }})
     </summary>
-    <p class="mt-2 text-stone-700">
+    <p class="mt-2 text-ink-soft">
       Words you pulled in from notes keep a record of where they came from, even after you change
       them.
     </p>
     <ul class="mt-2 space-y-2">
-      <li v-for="row in rows" :key="row.id" class="border-t border-stone-200 pt-2">
+      <li v-for="row in rows" :key="row.id" class="border-t border-line pt-2">
         <p class="break-words">
           “{{ row.text.length > 120 ? `${row.text.slice(0, 120)}…` : row.text }}”
         </p>
-        <p class="text-xs text-stone-600">
+        <p class="text-xs text-ink-soft">
           <NoteOrigin :phrase="row.words" :author-name="row.noteAuthorName" /> ·
-          <span :class="row.kept ? '' : 'font-medium text-amber-900'">{{
+          <span :class="row.kept ? '' : 'font-medium text-accent-strong'">{{
             row.kept ? 'Still as inserted' : 'Edited or removed since'
           }}</span>
         </p>

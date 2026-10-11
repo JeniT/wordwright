@@ -20,7 +20,7 @@ export function dragLabel(text: string): HTMLElement {
   mine.textContent = text
   mine.setAttribute('aria-hidden', 'true')
   mine.className =
-    'max-w-xs truncate rounded border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 shadow'
+    'max-w-xs truncate rounded-ctl border border-line-strong bg-surface px-3 py-2 text-sm text-ink shadow'
   mine.style.cssText = 'position:fixed;top:-1000px;left:0;pointer-events:none'
   document.body.appendChild(mine)
   setTimeout(() => {

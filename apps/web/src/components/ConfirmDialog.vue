@@ -68,7 +68,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
   <Teleport to="body">
     <div
       v-if="open"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       @click.self="!busy && emit('cancel')"
     >
       <div
@@ -76,15 +76,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
-        class="w-full max-w-md rounded bg-white p-6 shadow-lg"
+        class="panel w-full max-w-md p-6"
       >
-        <h2 :id="titleId" class="mb-2 font-serif text-xl font-semibold">{{ title }}</h2>
-        <div class="mb-5 text-sm text-stone-700"><slot /></div>
+        <h2 :id="titleId" class="mb-2 font-display text-xl font-semibold">{{ title }}</h2>
+        <div class="mb-5 text-sm text-ink-soft"><slot /></div>
         <div class="flex flex-wrap justify-end gap-3">
           <button
             ref="cancelButton"
             type="button"
-            class="rounded border border-stone-300 bg-white px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
+            class="btn btn-neutral"
             :disabled="busy"
             @click="emit('cancel')"
           >
@@ -93,7 +93,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
           <button
             v-if="alternateLabel"
             type="button"
-            class="rounded border border-accent bg-white px-4 py-2 text-sm font-medium text-accent focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
+            class="btn btn-outline"
             :disabled="busy"
             @click="emit('alternate')"
           >
@@ -101,8 +101,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
           </button>
           <button
             type="button"
-            class="rounded px-4 py-2 text-sm font-medium text-white focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
-            :class="confirmTone === 'primary' ? 'bg-accent' : 'bg-red-700'"
+            class="btn"
+            :class="confirmTone === 'primary' ? 'btn-primary' : 'btn-danger-solid'"
             :disabled="busy"
             @click="emit('confirm')"
           >

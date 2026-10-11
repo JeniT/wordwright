@@ -14,7 +14,7 @@ const reset = useMutation({ mutationFn: () => api.resetPassword(token, password.
 
 <template>
   <AuthCard title="Choose a new password">
-    <p v-if="!token" role="alert" class="text-red-700">This reset link is incomplete.</p>
+    <p v-if="!token" role="alert" class="text-danger">This reset link is incomplete.</p>
     <p v-else-if="reset.isSuccess.value" role="status">
       Your password has been changed.
       <RouterLink to="/login" class="text-accent underline">Sign in</RouterLink>
@@ -28,14 +28,10 @@ const reset = useMutation({ mutationFn: () => api.resetPassword(token, password.
         hint="At least 10 characters."
         required
       />
-      <p v-if="reset.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="reset.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(reset.error.value) }}
       </p>
-      <button
-        type="submit"
-        class="w-full rounded bg-accent px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
-        :disabled="reset.isPending.value"
-      >
+      <button type="submit" class="btn btn-primary w-full" :disabled="reset.isPending.value">
         Change password
       </button>
     </form>

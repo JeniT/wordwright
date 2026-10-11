@@ -64,10 +64,10 @@ const hint = computed(
 
 <template>
   <section aria-labelledby="brainstorm-prompt-heading">
-    <h2 id="brainstorm-prompt-heading" class="mb-1 font-serif text-xl font-semibold">
+    <h2 id="brainstorm-prompt-heading" class="mb-1 font-display text-xl font-semibold">
       Brainstorming prompt
     </h2>
-    <p class="mb-3 text-sm text-stone-700">
+    <p class="mb-3 text-sm text-ink-soft">
       When you brainstorm an idea, this tells the AI how to behave. By default it is a writing coach
       who helps you work out what you think and say it in your own voice, and who never writes your
       drafts. You can reword it to suit how you like to work. After it, the app always adds its own
@@ -76,11 +76,11 @@ const hint = computed(
     </p>
 
     <p v-if="settings.isPending.value">Loading…</p>
-    <p v-else-if="settings.isError.value" role="alert" class="text-red-700">
+    <p v-else-if="settings.isError.value" role="alert" class="text-danger">
       We couldn't load your brainstorming prompt. Try reloading the page.
     </p>
     <form v-else @submit.prevent="save.mutate()">
-      <p class="mb-2 text-sm text-stone-700">
+      <p class="mb-2 text-sm text-ink-soft">
         {{
           isDefault
             ? 'You are using the default prompt.'
@@ -94,7 +94,7 @@ const hint = computed(
         :maxlength="BRAINSTORM_PROMPT_MAX"
         :hint="hint"
       />
-      <p v-if="save.isError.value || reset.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="save.isError.value || reset.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(save.error.value ?? reset.error.value) }}
       </p>
       <div class="flex flex-wrap items-center gap-3">
@@ -103,13 +103,13 @@ const hint = computed(
         </button>
         <button
           type="button"
-          class="rounded border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-50 disabled:opacity-60"
+          class="btn btn-neutral"
           :disabled="save.isPending.value || (isDefault && !edited)"
           @click="startReset"
         >
           Reset to default
         </button>
-        <p role="status" class="text-sm text-stone-700">{{ status }}</p>
+        <p role="status" class="text-sm text-ink-soft">{{ status }}</p>
       </div>
     </form>
 

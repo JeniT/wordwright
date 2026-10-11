@@ -20,7 +20,7 @@ const undo = useMutation({
 
 <template>
   <AuthCard title="Undo email change">
-    <p v-if="!token" role="alert" class="text-red-700">This link is incomplete.</p>
+    <p v-if="!token" role="alert" class="text-danger">This link is incomplete.</p>
     <template v-else-if="undo.isSuccess.value">
       <p role="status">
         Your old email address is back, and every device has been signed out. We've emailed a link
@@ -36,7 +36,7 @@ const undo = useMutation({
         If you didn't change your email address, someone else knows your password. This puts your
         old address back, signs out every device and emails you a link to choose a new password.
       </p>
-      <p v-if="undo.isError.value" role="alert" class="mb-4 text-red-700">
+      <p v-if="undo.isError.value" role="alert" class="mb-4 text-danger">
         {{ errorMessage(undo.error.value) }}
       </p>
       <button
@@ -47,7 +47,7 @@ const undo = useMutation({
       >
         Yes, this wasn't me
       </button>
-      <p class="mt-4 text-sm text-stone-600">
+      <p class="mt-4 text-sm text-ink-soft">
         If you did make the change, you can just close this page.
       </p>
     </template>

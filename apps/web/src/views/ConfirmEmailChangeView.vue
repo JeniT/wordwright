@@ -24,7 +24,7 @@ onMounted(() => token && confirm.mutate())
 
 <template>
   <AuthCard title="Confirm your new email">
-    <p v-if="!token" role="alert" class="text-red-700">This link is incomplete.</p>
+    <p v-if="!token" role="alert" class="text-danger">This link is incomplete.</p>
     <p v-else-if="confirm.isPending.value || confirm.isIdle.value">Confirming…</p>
     <template v-else-if="confirm.isSuccess.value">
       <p role="status">
@@ -37,7 +37,7 @@ onMounted(() => token && confirm.mutate())
       </p>
     </template>
     <template v-else>
-      <p role="alert" class="text-red-700">{{ errorMessage(confirm.error.value) }}</p>
+      <p role="alert" class="text-danger">{{ errorMessage(confirm.error.value) }}</p>
       <p class="mt-4 text-sm">
         <RouterLink :to="session.user ? '/account' : '/login'" class="text-accent underline">
           {{ session.user ? 'Go to your account' : 'Sign in' }}

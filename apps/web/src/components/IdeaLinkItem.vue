@@ -91,11 +91,7 @@ const save = useMutation({
         hint="Leave this blank to look the title up again."
       />
       <div class="flex gap-2">
-        <button
-          type="submit"
-          class="btn btn-neutral border-accent bg-accent text-white hover:bg-accent hover:opacity-90"
-          :disabled="save.isPending.value"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
           {{ save.isPending.value ? 'Saving…' : 'Save link' }}
         </button>
         <button
@@ -131,9 +127,7 @@ const save = useMutation({
           class="min-w-0 underline"
         >
           <span class="block truncate">{{ label() }}</span>
-          <span v-if="link.title" class="block truncate text-sm text-stone-600">{{
-            link.url
-          }}</span>
+          <span v-if="link.title" class="block truncate text-sm text-ink-soft">{{ link.url }}</span>
           <span class="sr-only">(opens in a new tab)</span>
         </a>
       </div>
@@ -163,13 +157,14 @@ const save = useMutation({
           Remove
         </button>
       </div>
-      <p v-if="originLabel[link.origin]" class="w-full text-xs text-stone-600">
-        {{ originLabel[link.origin] }}
+      <p v-if="originLabel[link.origin]" class="w-full">
+        <!-- The highlighter marks anything the AI, not the writer, put here. -->
+        <span class="chip chip-ai">{{ originLabel[link.origin] }}</span>
       </p>
-      <p v-if="link.why" class="w-full text-sm text-stone-700">
+      <p v-if="link.why" class="w-full text-sm text-ink-soft">
         <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
       </p>
-      <p v-if="setRead.isError.value" role="alert" class="w-full text-sm text-red-700">
+      <p v-if="setRead.isError.value" role="alert" class="w-full text-sm text-danger">
         Couldn't save that. Please try again.
       </p>
     </div>

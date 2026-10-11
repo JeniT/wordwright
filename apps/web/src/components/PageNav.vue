@@ -17,20 +17,15 @@ defineEmits<{ go: [step: -1 | 1] }>()
 
 <template>
   <nav :aria-label="label" class="flex items-center justify-between gap-3 text-sm">
-    <button
-      type="button"
-      class="rounded border border-stone-300 bg-white px-3 py-2 disabled:opacity-40"
-      :disabled="page <= 1"
-      @click="$emit('go', -1)"
-    >
+    <button type="button" class="btn btn-neutral" :disabled="page <= 1" @click="$emit('go', -1)">
       Previous<span class="sr-only"> {{ size }} {{ noun }}</span>
     </button>
-    <p :aria-live="announce ? 'polite' : undefined" aria-atomic="true" class="text-stone-700">
+    <p :aria-live="announce ? 'polite' : undefined" aria-atomic="true" class="text-ink-soft">
       {{ noun.charAt(0).toUpperCase() + noun.slice(1) }} {{ first }}–{{ last }} of {{ total }}
     </p>
     <button
       type="button"
-      class="rounded border border-stone-300 bg-white px-3 py-2 disabled:opacity-40"
+      class="btn btn-neutral"
       :disabled="page >= pageCount"
       @click="$emit('go', 1)"
     >

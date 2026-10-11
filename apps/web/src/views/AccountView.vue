@@ -40,9 +40,9 @@ const deleteAccount = useMutation({
 <template>
   <div v-if="session.user" class="space-y-10">
     <section aria-labelledby="account-heading">
-      <h1 id="account-heading" class="font-serif text-2xl font-semibold">Your account</h1>
-      <p class="mt-2 text-stone-700">{{ session.user.name }} · {{ session.user.email }}</p>
-      <p v-if="session.user.linkedProviders.length" class="text-sm text-stone-600">
+      <h1 id="account-heading" class="font-display text-2xl font-semibold">Your account</h1>
+      <p class="mt-2 text-ink-soft">{{ session.user.name }} · {{ session.user.email }}</p>
+      <p v-if="session.user.linkedProviders.length" class="text-sm text-ink-soft">
         Linked sign-in: {{ session.user.linkedProviders.join(', ') }}
       </p>
     </section>
@@ -62,17 +62,17 @@ const deleteAccount = useMutation({
     <BrainstormPromptSection />
 
     <section aria-labelledby="profiles-heading">
-      <h2 id="profiles-heading" class="mb-1 font-serif text-xl font-semibold">Profiles</h2>
-      <p class="text-sm text-stone-700">
+      <h2 id="profiles-heading" class="mb-1 font-display text-xl font-semibold">Profiles</h2>
+      <p class="text-sm text-ink-soft">
         Create, share and manage profiles from
         <RouterLink to="/" class="underline">your profiles</RouterLink>. Profile addresses start
-        with your handle, <code class="rounded bg-stone-100 px-1">{{ session.user.handle }}</code
+        with your handle, <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}</code
         >.
       </p>
     </section>
 
-    <section aria-labelledby="delete-heading" class="rounded border border-red-200 bg-red-50 p-4">
-      <h2 id="delete-heading" class="mb-2 font-serif text-xl font-semibold text-red-900">
+    <section aria-labelledby="delete-heading" class="callout callout-danger">
+      <h2 id="delete-heading" class="mb-2 font-display text-xl font-semibold text-danger">
         Delete account
       </h2>
       <p class="mb-4 text-sm">
@@ -94,12 +94,10 @@ const deleteAccount = useMutation({
           autocomplete="current-password"
           required
         />
-        <p v-if="deleteAccount.isError.value" role="alert" class="mb-3 text-red-700">
+        <p v-if="deleteAccount.isError.value" role="alert" class="mb-3 text-danger">
           {{ errorMessage(deleteAccount.error.value) }}
         </p>
-        <button type="submit" class="rounded bg-red-700 px-4 py-2 text-sm font-medium text-white">
-          Delete my account
-        </button>
+        <button type="submit" class="btn btn-danger-solid">Delete my account</button>
       </form>
       <ConfirmDialog
         :open="confirmingDelete"

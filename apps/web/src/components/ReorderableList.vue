@@ -192,13 +192,12 @@ function endDrag() {
   removeDragLabel()
 }
 
-const buttonClass =
-  'rounded border border-stone-300 bg-white px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40'
+const buttonClass = 'btn btn-neutral btn-sm'
 </script>
 
 <template>
   <div>
-    <ol class="divide-y divide-stone-200 rounded border border-stone-200 bg-white">
+    <ol class="divide-y divide-line rounded-ctl border border-line bg-surface">
       <li
         v-for="(item, index) in shown"
         :key="item.id"
@@ -212,7 +211,7 @@ const buttonClass =
         @drop="onDrop"
       >
         <span
-          class="cursor-grab select-none text-stone-500"
+          class="cursor-grab select-none text-ink-soft"
           draggable="true"
           title="Drag to change the order"
           aria-hidden="true"

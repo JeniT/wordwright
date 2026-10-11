@@ -10,7 +10,7 @@ const resend = useMutation({ mutationFn: () => api.resendVerification() })
 <template>
   <div
     v-if="session.user && !session.user.emailVerified"
-    class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-950"
+    class="border-b border-accent bg-accent-wash px-4 py-2 text-sm"
     role="region"
     aria-label="Email confirmation"
   >
@@ -30,7 +30,7 @@ const resend = useMutation({ mutationFn: () => api.resendVerification() })
         Resend
       </button>
       <p v-else role="status">Sent. Check your inbox.</p>
-      <p v-if="resend.isError.value" role="alert" class="text-red-800">
+      <p v-if="resend.isError.value" role="alert" class="text-danger">
         {{ errorMessage(resend.error.value) }}
       </p>
     </div>

@@ -44,16 +44,16 @@ const removeLlmKey = useMutation({
 
 <template>
   <section aria-labelledby="llm-heading">
-    <h2 id="llm-heading" class="mb-1 font-serif text-xl font-semibold">
+    <h2 id="llm-heading" class="mb-1 font-display text-xl font-semibold">
       {{ props.guide ? 'First, connect your AI assistant' : 'AI assistant' }}
     </h2>
     <template v-if="props.guide">
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         Wordwright uses your own Anthropic account to read and critique your drafts, so the cost of
         using it is billed to you, not to this service. You'll need to do this once before the
         assistant can help; it takes a few minutes.
       </p>
-      <ol class="mb-4 list-decimal space-y-2 pl-5 text-sm text-stone-700">
+      <ol class="mb-4 list-decimal space-y-2 pl-5 text-sm text-ink-soft">
         <li>
           Go to the
           <a href="https://console.anthropic.com/" target="_blank" rel="noopener" class="underline"
@@ -79,16 +79,16 @@ const removeLlmKey = useMutation({
         </li>
         <li>
           Copy the key straight away. The Console only shows it once, and it starts with
-          <code class="rounded bg-stone-100 px-1">sk-ant-</code>.
+          <code class="rounded-ctl bg-sunken px-1">sk-ant-</code>.
         </li>
         <li>Paste it below and press Save. We check that it works before keeping it.</li>
       </ol>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         Your key is stored encrypted, used only for your requests, and never shown again. You can
         replace or remove it any time from your account page.
       </p>
     </template>
-    <p v-else class="mb-3 text-sm text-stone-700">
+    <p v-else class="mb-3 text-sm text-ink-soft">
       AI features use your own Anthropic account, so usage is billed to you, not to this service.
       Create a key in the
       <a
@@ -109,11 +109,7 @@ const removeLlmKey = useMutation({
     <form @submit.prevent="saveLlm.mutate()">
       <div v-if="!props.guide" class="mb-4">
         <label for="llm-model" class="mb-1 block text-sm font-medium">Model</label>
-        <select
-          id="llm-model"
-          v-model="model"
-          class="w-full rounded border border-stone-300 bg-white px-3 py-2"
-        >
+        <select id="llm-model" v-model="model" class="field">
           <option v-for="m in LLM_MODELS.anthropic" :key="m.id" :value="m.id">
             {{ m.label }}
           </option>
@@ -130,7 +126,7 @@ const removeLlmKey = useMutation({
         autocomplete="off"
         :required="!llm.data.value?.hasKey"
       />
-      <p v-if="saveLlm.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="saveLlm.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(saveLlm.error.value) }}
       </p>
       <div class="flex items-center gap-3">
@@ -144,12 +140,12 @@ const removeLlmKey = useMutation({
         <button
           v-if="llm.data.value?.hasKey"
           type="button"
-          class="text-sm text-red-700 underline"
+          class="text-sm text-danger underline"
           @click="removeLlmKey.mutate()"
         >
           Remove key
         </button>
-        <p v-if="saveLlm.isSuccess.value" role="status" class="text-sm text-stone-700">Saved</p>
+        <p v-if="saveLlm.isSuccess.value" role="status" class="text-sm text-ink-soft">Saved</p>
       </div>
     </form>
   </section>

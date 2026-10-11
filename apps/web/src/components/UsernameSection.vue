@@ -27,10 +27,10 @@ const save = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="username-heading">
-    <h2 id="username-heading" class="mb-3 font-serif text-xl font-semibold">
+    <h2 id="username-heading" class="mb-3 font-display text-xl font-semibold">
       {{ prompt ? 'Choose your username' : 'Username' }}
     </h2>
-    <p class="mb-3 text-sm text-stone-700">
+    <p class="mb-3 text-sm text-ink-soft">
       <template v-if="prompt">
         We gave you <strong>{{ session.user.handle }}</strong
         >. </template
@@ -38,7 +38,7 @@ const save = useMutation({
         Your username is <strong>{{ session.user.handle }}</strong
         >. </template
       >It starts the address of each profile you create, for example
-      <code class="rounded bg-stone-100 px-1">{{ session.user.handle }}-substack</code>.
+      <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}-substack</code>.
       <template v-if="prompt">Pick your own, or keep this one.</template>
       <template v-else>
         Profiles you already have keep their addresses; new ones use your new username. A username
@@ -56,7 +56,7 @@ const save = useMutation({
         :hint="hint"
         :invalid="invalid"
       />
-      <p v-if="save.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="save.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(save.error.value) }}
       </p>
       <p v-if="save.isSuccess.value && !prompt" role="status" class="mb-3 text-sm">

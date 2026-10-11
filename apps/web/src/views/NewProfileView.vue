@@ -58,8 +58,8 @@ const create = useMutation({
     <p class="mb-2 text-sm">
       <RouterLink to="/" class="underline">← Your profiles</RouterLink>
     </p>
-    <h1 id="new-profile-heading" class="mb-1 font-serif text-2xl font-semibold">New profile</h1>
-    <p class="mb-6 text-stone-700">
+    <h1 id="new-profile-heading" class="mb-1 font-display text-2xl font-semibold">New profile</h1>
+    <p class="mb-6 text-ink-soft">
       A profile is a place you publish, like a Substack or a blog. Its ideas, readers and drafts
       live together.
     </p>
@@ -72,8 +72,8 @@ const create = useMutation({
         autocomplete="off"
         hint="For example, “Weekly letters” or “My blog”."
       />
-      <p v-if="address" class="-mt-2 mb-4 text-sm text-stone-600">
-        Its address will be <code class="rounded bg-stone-100 px-1">{{ address }}</code>
+      <p v-if="address" class="-mt-2 mb-4 text-sm text-ink-soft">
+        Its address will be <code class="rounded-ctl bg-sunken px-1">{{ address }}</code>
       </p>
       <TextField
         v-model="siteUrl"
@@ -89,7 +89,7 @@ const create = useMutation({
         </div>
       </div>
 
-      <p v-if="create.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="create.isError.value" role="alert" class="mb-3 text-danger">
         <template v-if="createdId">
           Your profile was created, but its picture couldn't be uploaded:
           {{ errorMessage(create.error.value) }}

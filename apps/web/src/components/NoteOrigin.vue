@@ -12,10 +12,10 @@ defineProps<{ phrase: string; authorName: string | null }>()
     <span class="sr-only">, recorded by</span>
     <span
       v-if="authorName"
-      class="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900"
+      class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink"
       >{{ authorName }}</span
     >
-    <span v-else class="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-700 italic"
+    <span v-else class="rounded-full bg-sunken px-2 py-0.5 text-xs text-ink-soft italic"
       >A former member</span
     >
   </span>

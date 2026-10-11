@@ -13,11 +13,11 @@ function say(note: RecordedNote) {
 
 <template>
   <ul v-if="notes.length" aria-label="Notes recorded in this reply" class="mt-3 space-y-1 text-sm">
-    <li v-for="note in notes" :key="note.id" class="flex gap-2 text-stone-800">
+    <li v-for="note in notes" :key="note.id" class="flex gap-2 text-ink">
       <span aria-hidden="true">📝</span>
       <span class="min-w-0 break-words">
         <span class="font-medium">{{ say(note) }}:</span>
-        <span :class="{ 'text-stone-600': note.outcome !== 'added' || note.removed }">
+        <span :class="{ 'text-ink-soft': note.outcome !== 'added' || note.removed }">
           “{{ note.text }}”
         </span>
       </span>

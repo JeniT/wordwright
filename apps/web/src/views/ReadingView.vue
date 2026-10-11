@@ -149,13 +149,9 @@ const add = useMutation({
 
 <template>
   <p v-if="idea.isPending.value">Loading…</p>
-  <div
-    v-else-if="idea.isError.value || !item"
-    role="alert"
-    class="rounded border border-stone-200 bg-white p-6"
-  >
-    <h1 class="font-serif text-lg">We couldn't open that reading-list item</h1>
-    <p class="mt-1 text-stone-700">
+  <div v-else-if="idea.isError.value || !item" role="alert" class="panel p-6">
+    <h1 class="font-display text-lg">We couldn't open that reading-list item</h1>
+    <p class="mt-1 text-ink-soft">
       It may have been removed from the reading list, or the connection may have dropped. Try
       reloading the page.
     </p>
@@ -176,7 +172,7 @@ const add = useMutation({
     <div class="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
       <h1
         id="reading-heading"
-        class="min-w-[12rem] flex-1 font-serif text-2xl font-semibold break-words"
+        class="min-w-[12rem] flex-1 font-display text-2xl font-semibold break-words"
       >
         {{ label }}
       </h1>
@@ -190,10 +186,10 @@ const add = useMutation({
         Edit title and authors
       </button>
     </div>
-    <p v-if="item.authors.length" class="mb-2 text-stone-800">By {{ nameList(item.authors) }}</p>
+    <p v-if="item.authors.length" class="mb-2 text-ink">By {{ nameList(item.authors) }}</p>
     <p
       v-if="(!item.title || !item.authors.length) && !editingTitle"
-      class="mb-3 text-sm text-stone-700"
+      class="mb-3 text-sm text-ink-soft"
     >
       <template v-if="!item.title">
         We couldn't find this page's title, so it is shown by its address.
@@ -228,11 +224,7 @@ const add = useMutation({
         hint="Who wrote it. Separate names with commas."
       />
       <div class="flex gap-2">
-        <button
-          type="submit"
-          class="btn btn-neutral border-accent bg-accent text-white hover:bg-accent hover:opacity-90"
-          :disabled="saveTitle.isPending.value"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="saveTitle.isPending.value">
           {{ saveTitle.isPending.value ? 'Saving…' : 'Save details' }}
         </button>
         <button
@@ -252,9 +244,9 @@ const add = useMutation({
         <a :href="item.url" target="_blank" rel="noopener noreferrer" class="underline">
           Open the page<span class="sr-only"> (opens in a new tab)</span>
         </a>
-        <span class="block truncate text-sm text-stone-600">{{ item.url }}</span>
+        <span class="block truncate text-sm text-ink-soft">{{ item.url }}</span>
       </p>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         Most websites can't be shown inside another page, so it opens in its own tab. Put the two
         tabs side by side if you can, and keep this one open to write down what you find.
       </p>
@@ -269,16 +261,16 @@ const add = useMutation({
         />
         I have read this
       </label>
-      <p v-if="setRead.isError.value" role="alert" class="mt-1 text-sm text-red-700">
+      <p v-if="setRead.isError.value" role="alert" class="mt-1 text-sm text-danger">
         Couldn't save that. Please try again.
       </p>
     </section>
 
     <section aria-labelledby="more-links-heading" class="mb-8">
-      <h2 id="more-links-heading" class="mb-1 font-serif text-xl font-semibold">
+      <h2 id="more-links-heading" class="mb-1 font-display text-xl font-semibold">
         Other pages worth reading
       </h2>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         Does this page link to something else you should read? Paste its web address to put it on
         the reading list, and carry on here.
       </p>
@@ -316,10 +308,10 @@ const add = useMutation({
     </section>
 
     <section aria-labelledby="reading-notes-heading">
-      <h2 id="reading-notes-heading" class="mb-1 font-serif text-xl font-semibold">
+      <h2 id="reading-notes-heading" class="mb-1 font-display text-xl font-semibold">
         Notes from this page
       </h2>
-      <p class="mb-3 text-sm text-stone-700">
+      <p class="mb-3 text-sm text-ink-soft">
         Paste a quote, or put it in your own words. Each note keeps a link back to this page, and
         joins the rest of the idea's notes. The newest is listed first. Say when something is a
         direct quote, so it can't be mistaken for your own words later.
@@ -327,7 +319,7 @@ const add = useMutation({
 
       <p v-if="notes.isPending.value">Loading notes…</p>
       <div v-else-if="notes.isError.value" role="alert" class="mb-4">
-        <p class="text-red-700">We couldn't load the notes.</p>
+        <p class="text-danger">We couldn't load the notes.</p>
         <button type="button" class="btn btn-outline mt-2" @click="notes.refetch()">
           Try again
         </button>
@@ -352,13 +344,13 @@ const add = useMutation({
             />
             <span>
               This is a direct quote.
-              <span class="block text-stone-600">
+              <span class="block text-ink-soft">
                 It is kept word for word: it can't be edited afterwards, and goes into a draft as a
                 quotation, with a link to this page.
               </span>
             </span>
           </label>
-          <p aria-live="polite" class="mb-3 ml-6 text-sm text-stone-700" data-paste-note>
+          <p aria-live="polite" class="mb-3 ml-6 text-sm text-ink-soft" data-paste-note>
             <template v-if="tickedByPaste && isQuote">
               Ticked because you pasted this. Untick it if these are your own words.
             </template>
@@ -372,13 +364,13 @@ const add = useMutation({
           </button>
         </form>
 
-        <p v-if="!itemNotes.length" class="mb-4 text-stone-600">
+        <p v-if="!itemNotes.length" class="mb-4 text-ink-soft">
           No notes from this page yet. Add the first above.
         </p>
-        <ul v-else class="mb-4 divide-y divide-stone-200 rounded border border-stone-200 bg-white">
+        <ul v-else class="mb-4 divide-y divide-line rounded-ctl border border-line bg-surface">
           <li v-for="note in itemNotes" :key="note.id" class="px-4 py-3">
             <NoteText :note="note" />
-            <p class="mt-1 text-xs text-stone-600">
+            <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
                 :phrase="noteOriginPhrase(note, idea.data.value?.links ?? [])"
                 :author-name="note.authorName"

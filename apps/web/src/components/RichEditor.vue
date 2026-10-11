@@ -22,7 +22,7 @@ const editor = useEditor({
     // A plain click puts the cursor in the link to edit it; Ctrl or Cmd with the click opens it (see handleClick).
     StarterKit.configure({
       link: { openOnClick: false },
-      dropcursor: { color: '#2f5d62', width: 2 }, // shows where a dragged note will land
+      dropcursor: { color: 'var(--color-accent)', width: 2 }, // shows where a dragged note will land
     }),
     Markdown,
     Placeholder.configure({ placeholder: 'Start writing…' }),

@@ -68,12 +68,12 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
         hint="At least 10 characters."
         required
       />
-      <p v-if="register.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="register.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(register.error.value) }}
       </p>
       <button
         type="submit"
-        class="w-full rounded bg-accent px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
+        class="btn btn-primary w-full"
         :disabled="register.isPending.value || usernameInvalid"
       >
         Create account

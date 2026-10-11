@@ -34,14 +34,14 @@ function submit() {
 
 <template>
   <AuthCard title="Decline an invitation">
-    <p v-if="invalid && !decline.isSuccess.value" role="alert" class="text-red-700">
+    <p v-if="invalid && !decline.isSuccess.value" role="alert" class="text-danger">
       This invitation is no longer open: it may already be declined, accepted or expired. Nothing
       more is needed.
     </p>
     <p
       v-else-if="preview.isError.value && !decline.isSuccess.value"
       role="alert"
-      class="text-red-700"
+      class="text-danger"
     >
       We couldn't check this invitation. Please try again.
     </p>
@@ -89,13 +89,13 @@ function submit() {
           <span>Stop invitations from everyone, to {{ preview.data.value.email }}</span>
         </label>
       </fieldset>
-      <p v-if="decline.isError.value" role="alert" class="mt-3 text-sm text-red-700">
+      <p v-if="decline.isError.value" role="alert" class="mt-3 text-sm text-danger">
         {{ errorMessage(decline.error.value) }}
       </p>
       <button type="submit" class="mt-4 btn btn-primary" :disabled="decline.isPending.value">
         Decline
       </button>
-      <p class="mt-4 text-sm text-stone-600">
+      <p class="mt-4 text-sm text-ink-soft">
         Changed your mind?
         <RouterLink :to="{ name: 'accept-invite', query: { token } }" class="text-accent underline">
           Back to the invitation

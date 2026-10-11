@@ -17,14 +17,10 @@ const request = useMutation({ mutationFn: () => api.forgotPassword(email.value) 
     </p>
     <form v-else @submit.prevent="request.mutate()">
       <TextField v-model="email" label="Email" type="email" autocomplete="email" required />
-      <p v-if="request.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="request.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(request.error.value) }}
       </p>
-      <button
-        type="submit"
-        class="w-full rounded bg-accent px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
-        :disabled="request.isPending.value"
-      >
+      <button type="submit" class="btn btn-primary w-full" :disabled="request.isPending.value">
         Send reset link
       </button>
     </form>

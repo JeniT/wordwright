@@ -14,21 +14,21 @@ const label = (item: IdeaLink) => item.title || item.url
 </script>
 
 <template>
-  <section aria-labelledby="draft-reading-heading" class="mt-6 border-t border-stone-200 pt-4">
-    <h2 id="draft-reading-heading" class="mb-1 font-serif text-xl font-semibold">Reading list</h2>
-    <p class="mb-3 text-sm text-stone-700">
+  <section aria-labelledby="draft-reading-heading" class="mt-6 border-t border-line pt-4">
+    <h2 id="draft-reading-heading" class="mb-1 font-display text-xl font-semibold">Reading list</h2>
+    <p class="mb-3 text-sm text-ink-soft">
       Put a link to something you have read in the line you are writing. Anything you haven't marked
       as read, you'll be asked about first.
     </p>
-    <p v-if="!readingList.length" class="text-stone-600">Nothing on the reading list yet.</p>
+    <p v-if="!readingList.length" class="text-ink-soft">Nothing on the reading list yet.</p>
     <ul v-else class="space-y-2">
       <li
         v-for="item in readingList"
         :key="item.id"
-        class="rounded border border-stone-200 bg-white p-3"
+        class="rounded-ctl border border-line bg-surface p-3"
       >
         <p class="break-words">{{ label(item) }}</p>
-        <p class="text-xs text-stone-600">{{ item.readAt ? 'Read' : 'Not marked as read' }}</p>
+        <p class="text-xs text-ink-soft">{{ item.readAt ? 'Read' : 'Not marked as read' }}</p>
         <button
           type="button"
           class="btn btn-sm btn-outline mt-2"
@@ -40,7 +40,7 @@ const label = (item: IdeaLink) => item.title || item.url
         </button>
       </li>
     </ul>
-    <p v-if="inserting.isError.value" role="alert" class="mt-2 text-red-700">
+    <p v-if="inserting.isError.value" role="alert" class="mt-2 text-danger">
       {{ errorMessage(inserting.error.value) }}
     </p>
   </section>

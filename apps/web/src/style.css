@@ -1,20 +1,11 @@
 @import 'tailwindcss';
+/* To change the look: swap the palette file, or edit theme.css. docs/design.md explains the rules. */
+@import './theme/palette-ember.css';
+@import './theme/theme.css';
 
-@theme {
-  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
-  --color-ink: #1f2328;
-  --color-paper: #fbfaf7;
-  --color-accent: #2f5d62;
-}
-
-body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-}
-
-/* Editor typography: a calm, book-like reading and writing surface. */
+/* Editor typography: the same sans as the rest of the app, set larger and looser for sustained writing. */
 .prose-editor .ProseMirror {
-  font-family: var(--font-serif);
+  font-family: var(--font-text);
   font-size: 1.125rem;
   line-height: 1.75;
   min-height: 24rem;
@@ -28,7 +19,7 @@ body {
 .prose-editor .ProseMirror h3 {
   font-weight: 600;
   margin: 1.5em 0 0.5em;
-  line-height: 1.25;
+  line-height: 1.3;
 }
 .prose-editor .ProseMirror h2 {
   font-size: 1.5rem;
@@ -43,17 +34,17 @@ body {
 .prose-editor .ProseMirror blockquote {
   border-left: 3px solid var(--color-accent);
   padding-left: 1em;
-  color: #555;
+  color: var(--color-ink-soft);
 }
 .prose-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: #6b7280;
+  color: var(--color-ink-soft);
   float: left;
   height: 0;
   pointer-events: none;
 }
 
-/* The AI's replies (Markdown, rendered safely): the same calm reading style as the editor. */
+/* The AI's replies (Markdown, rendered safely): the same reading style as the editor. */
 .markdown {
   line-height: 1.65;
   overflow-wrap: anywhere;
@@ -86,7 +77,6 @@ body {
 .markdown h2,
 .markdown h3,
 .markdown h4 {
-  font-family: var(--font-serif);
   font-weight: 600;
   margin: 1.1em 0 0.4em;
   line-height: 1.3;
@@ -94,17 +84,17 @@ body {
 .markdown blockquote {
   border-left: 3px solid var(--color-accent);
   padding-left: 1em;
-  color: #44403c;
+  color: var(--color-ink-soft);
 }
 .markdown code {
-  background: #f5f5f4;
+  background: var(--color-sunken);
   border-radius: 0.25rem;
   padding: 0.05em 0.3em;
   font-size: 0.9em;
 }
 .markdown pre {
-  background: #f5f5f4;
-  border-radius: 0.25rem;
+  background: var(--color-sunken);
+  border-radius: var(--radius-ctl);
   padding: 0.75em 1em;
   overflow-x: auto;
 }
@@ -113,28 +103,6 @@ body {
   padding: 0;
 }
 .markdown a {
+  color: var(--color-accent);
   text-decoration: underline;
-}
-
-/*
- * Buttons (and links that look like buttons). `btn` carries what every one needs, including the focus
- * ring, so no screen can forget it; pair it with one colour variant, e.g. `class="btn btn-primary"`.
- */
-@utility btn {
-  @apply rounded px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60;
-}
-@utility btn-sm {
-  @apply px-3 py-1.5;
-}
-@utility btn-primary {
-  @apply bg-accent text-white hover:opacity-90;
-}
-@utility btn-outline {
-  @apply border border-accent text-accent hover:bg-stone-100;
-}
-@utility btn-neutral {
-  @apply border border-stone-300 hover:bg-stone-50;
-}
-@utility btn-danger {
-  @apply border border-red-700 text-red-800 hover:bg-red-50;
 }

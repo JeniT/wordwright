@@ -192,7 +192,7 @@ async function requestCritique() {
 
 <template>
   <p v-if="draft.isPending.value">Loading…</p>
-  <p v-else-if="draft.isError.value" role="alert" class="text-red-700">Couldn't load this draft.</p>
+  <p v-else-if="draft.isError.value" role="alert" class="text-danger">Couldn't load this draft.</p>
   <div v-else class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
     <article class="min-w-0 max-w-2xl">
       <p v-if="draft.data.value?.ideaId" class="mb-4 text-sm">
@@ -211,16 +211,16 @@ async function requestCritique() {
       <input
         id="title"
         v-model="title"
-        class="mb-6 w-full bg-transparent font-serif text-3xl font-semibold outline-none placeholder:text-stone-500"
+        class="mb-6 w-full bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-ink-soft"
         placeholder="Title"
       />
 
       <RichEditor ref="editor" v-model="body" @note-drop="onNoteDrop" />
-      <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-stone-600">
+      <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-ink-soft">
         Ctrl or ⌘ and click a link to open it.
       </p>
 
-      <div class="mt-6 flex items-center gap-3 border-t border-stone-200 pt-4">
+      <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
         <button
           type="button"
           class="btn btn-primary"
@@ -231,7 +231,7 @@ async function requestCritique() {
         </button>
         <button
           type="button"
-          class="rounded border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-stone-100 disabled:opacity-60"
+          class="rounded-ctl border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-sunken disabled:opacity-60"
           :disabled="critique.isPending.value"
           @click="requestCritique"
         >
@@ -248,7 +248,7 @@ async function requestCritique() {
         >
           Notes
         </button>
-        <p role="status" class="text-sm text-stone-600">
+        <p role="status" class="text-sm text-ink-soft">
           <template v-if="save.isPending.value">Saving…</template>
           <template v-else-if="save.isSuccess.value">Saved</template>
           <template v-else-if="save.isError.value">Couldn't save</template>
@@ -257,12 +257,12 @@ async function requestCritique() {
 
       <section
         v-if="critique.isPending.value || critique.data.value || critique.isError.value"
-        class="mt-6 rounded border border-stone-200 bg-white p-4"
+        class="mt-6 rounded-ctl border border-line bg-surface p-4"
         aria-labelledby="critique-heading"
       >
         <h2 id="critique-heading" class="mb-2 font-semibold">Critique</h2>
         <p v-if="critique.isPending.value">Reading your draft…</p>
-        <p v-else-if="critique.isError.value" role="alert" class="text-red-700">
+        <p v-else-if="critique.isError.value" role="alert" class="text-danger">
           {{ errorMessage(critique.error.value) }}
           <RouterLink
             v-if="
@@ -282,7 +282,7 @@ async function requestCritique() {
 
     <div
       v-if="notesOpen"
-      class="fixed inset-0 z-30 bg-black/30 lg:hidden"
+      class="fixed inset-0 z-30 bg-scrim lg:hidden"
       aria-hidden="true"
       @click="closeNotes"
     ></div>
@@ -290,7 +290,7 @@ async function requestCritique() {
       v-if="draft.data.value?.ideaId"
       id="draft-notes"
       aria-labelledby="draft-notes-heading"
-      class="mt-8 lg:sticky lg:top-4 lg:mt-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:mt-0 max-lg:w-[min(22rem,90vw)] max-lg:overflow-y-auto max-lg:bg-stone-50 max-lg:p-4 max-lg:shadow-xl max-lg:transition-[transform,visibility] motion-reduce:transition-none"
+      class="mt-8 lg:sticky lg:top-4 lg:mt-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:mt-0 max-lg:w-[min(22rem,90vw)] max-lg:overflow-y-auto max-lg:bg-sunken max-lg:p-4 max-lg:shadow-xl max-lg:transition-[transform,visibility] motion-reduce:transition-none"
       :class="notesOpen ? '' : 'max-lg:invisible max-lg:translate-x-full'"
       @keydown.esc="notesOpen && closeNotes()"
     >
@@ -308,9 +308,9 @@ async function requestCritique() {
         :reading-list="idea.data.value?.links ?? []"
         :insert="insertNote"
       />
-      <p v-if="dropProblem" role="alert" class="mt-3 text-red-700">{{ dropProblem }}</p>
+      <p v-if="dropProblem" role="alert" class="mt-3 text-danger">{{ dropProblem }}</p>
       <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
-      <p v-if="citeNotice" class="mt-3 text-sm text-stone-700" aria-live="polite">
+      <p v-if="citeNotice" class="mt-3 text-sm text-ink-soft" aria-live="polite">
         {{ citeNotice }}
       </p>
       <DraftReadingList :reading-list="idea.data.value?.links ?? []" :insert-link="insertLink" />

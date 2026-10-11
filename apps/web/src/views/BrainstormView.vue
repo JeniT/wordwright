@@ -177,13 +177,9 @@ const busyNote = computed(() =>
 
 <template>
   <p v-if="idea.isPending.value">Loading…</p>
-  <div
-    v-else-if="idea.isError.value"
-    role="alert"
-    class="rounded border border-stone-200 bg-white p-6"
-  >
-    <h1 class="font-serif text-lg">We couldn't open that idea</h1>
-    <p class="mt-1 text-stone-700">
+  <div v-else-if="idea.isError.value" role="alert" class="panel p-6">
+    <h1 class="font-display text-lg">We couldn't open that idea</h1>
+    <p class="mt-1 text-ink-soft">
       It may have been deleted, or the connection may have dropped. Try reloading the page.
     </p>
     <RouterLink
@@ -200,9 +196,9 @@ const busyNote = computed(() =>
         ← Back to the idea
       </RouterLink>
     </p>
-    <h1 id="brainstorm-title" class="font-serif text-2xl font-semibold">Brainstorm</h1>
-    <p class="mb-2 font-serif text-lg text-stone-700">{{ idea.data.value.name }}</p>
-    <p class="mb-4 text-sm text-stone-600">
+    <h1 id="brainstorm-title" class="font-display text-2xl font-semibold">Brainstorm</h1>
+    <p class="mb-2 font-display text-lg text-ink-soft">{{ idea.data.value.name }}</p>
+    <p class="mb-4 text-sm text-ink-soft">
       Your AI (with your own key) will talk this idea through with you, and add the points you make
       to its notes as you go. Your idea, its notes and links, and this publication's details are
       sent to your AI provider so it can discuss them; the text of your drafts never is. Everyone in
@@ -210,13 +206,13 @@ const busyNote = computed(() =>
       someone accepts it.
     </p>
 
-    <details class="mb-6 rounded border border-stone-200 bg-white p-3 text-sm">
+    <details class="mb-6 rounded-ctl border border-line bg-surface p-3 text-sm">
       <summary class="cursor-pointer font-medium">The idea being discussed</summary>
       <p class="mt-2 font-medium">{{ idea.data.value.name }}</p>
       <p v-if="idea.data.value.notes" class="mt-1 whitespace-pre-wrap">
         {{ idea.data.value.notes }}
       </p>
-      <p v-else class="mt-1 text-stone-600">No notes yet.</p>
+      <p v-else class="mt-1 text-ink-soft">No notes yet.</p>
       <ul v-if="idea.data.value.links.length" class="mt-2 list-disc pl-5">
         <li v-for="link in idea.data.value.links" :key="link.id" class="break-words">
           {{ link.title || link.url }}
@@ -230,7 +226,7 @@ const busyNote = computed(() =>
     </details>
 
     <p v-if="conversation.isPending.value">Loading the conversation…</p>
-    <p v-else-if="conversation.isError.value" role="alert" class="text-red-700">
+    <p v-else-if="conversation.isError.value" role="alert" class="text-danger">
       We couldn't load the conversation. Check your connection and reload the page.
     </p>
 
@@ -238,10 +234,10 @@ const busyNote = computed(() =>
       <section
         v-if="empty"
         aria-labelledby="start-heading"
-        class="mb-6 rounded border border-stone-200 bg-white p-5"
+        class="mb-6 rounded-ctl border border-line bg-surface p-5"
       >
-        <h2 id="start-heading" class="mb-1 font-serif text-xl font-semibold">Talk it through</h2>
-        <p class="mb-3 text-stone-700">
+        <h2 id="start-heading" class="mb-1 font-display text-xl font-semibold">Talk it through</h2>
+        <p class="mb-3 text-ink-soft">
           Your AI will open by asking the questions that matter most for this idea, and you answer.
           It adds the points you make to the idea's notes as you go, and can suggest a sharper title
           or a separate new idea, but only you decide on those.
@@ -254,32 +250,32 @@ const busyNote = computed(() =>
       <div v-else role="log" aria-label="Conversation" aria-relevant="additions" class="mb-4">
         <ol class="space-y-4">
           <li v-for="message in messages" :key="message.id">
-            <p v-if="message.kind === 'kickoff'" class="text-center text-sm text-stone-600">
+            <p v-if="message.kind === 'kickoff'" class="text-center text-sm text-ink-soft">
               Brainstorm started{{ message.authorName ? ` by ${message.authorName}` : '' }}
             </p>
             <div
               v-else-if="message.role === 'user'"
-              class="ml-8 rounded border border-stone-200 bg-white p-3"
+              class="ml-8 rounded-ctl border border-line bg-surface p-3"
             >
-              <p class="mb-1 text-sm font-medium text-stone-700">
+              <p class="mb-1 text-sm font-medium text-ink-soft">
                 {{ message.authorName ?? 'Someone' }}
               </p>
               <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
             </div>
-            <div v-else class="mr-8 rounded border border-stone-300 bg-stone-50 p-3">
-              <p class="mb-1 text-sm font-medium text-stone-700">
-                Coach<span v-if="message.model" class="font-normal text-stone-600">
+            <div v-else class="mr-8 panel-sunken p-3">
+              <p class="mb-1 text-sm font-medium text-ink-soft">
+                Coach<span v-if="message.model" class="font-normal text-ink-soft">
                   · {{ message.model }}</span
                 >
               </p>
               <Markdown v-if="message.text" :text="message.text" />
-              <p v-if="message.stopReason === 'refusal'" class="text-sm text-stone-700">
+              <p v-if="message.stopReason === 'refusal'" class="text-sm text-ink-soft">
                 The AI declined to answer that. Try putting it differently.
               </p>
-              <p v-if="message.stopReason === 'max_tokens'" class="mt-2 text-sm text-stone-700">
+              <p v-if="message.stopReason === 'max_tokens'" class="mt-2 text-sm text-ink-soft">
                 This reply was cut short. Ask the coach to carry on.
               </p>
-              <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-stone-700">
+              <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-ink-soft">
                 The reply was stopped here.
               </p>
               <RecordedNotes :notes="message.notes" />
@@ -294,14 +290,10 @@ const busyNote = computed(() =>
             </div>
           </li>
 
-          <li
-            v-if="streaming && liveReplyShown"
-            aria-live="off"
-            class="mr-8 rounded border border-stone-300 bg-stone-50 p-3"
-          >
-            <p class="mb-1 text-sm font-medium text-stone-700">Coach</p>
+          <li v-if="streaming && liveReplyShown" aria-live="off" class="mr-8 panel-sunken p-3">
+            <p class="mb-1 text-sm font-medium text-ink-soft">Coach</p>
             <Markdown v-if="streaming.text" :text="streaming.text" />
-            <p v-else class="text-stone-600">Thinking…</p>
+            <p v-else class="text-ink-soft">Thinking…</p>
             <RecordedNotes :notes="streaming.notes" />
           </li>
         </ol>
@@ -313,7 +305,7 @@ const busyNote = computed(() =>
       <div
         v-if="replyProblem"
         role="alert"
-        class="mb-4 rounded border border-red-200 bg-red-50 p-3 text-red-900"
+        class="mb-4 rounded-ctl border border-danger bg-danger-wash p-3 text-danger"
       >
         <p>{{ replyProblem.message }}</p>
         <p v-if="replyProblem.needsKey" class="mt-1">
@@ -321,14 +313,14 @@ const busyNote = computed(() =>
         </p>
       </div>
 
-      <div v-if="unanswered" class="mb-4 rounded border border-stone-300 bg-white p-3">
-        <p class="mb-2 text-stone-700">Your coach hasn't replied to the last message.</p>
+      <div v-if="unanswered" class="mb-4 panel p-3">
+        <p class="mb-2 text-ink-soft">Your coach hasn't replied to the last message.</p>
         <button type="button" class="btn btn-outline" @click="send({ retry: true })">
           Try again
         </button>
       </div>
 
-      <p v-if="busyNote" role="status" class="mb-4 text-stone-700">{{ busyNote }}</p>
+      <p v-if="busyNote" role="status" class="mb-4 text-ink-soft">{{ busyNote }}</p>
 
       <form v-if="!empty" class="mb-6" @submit.prevent="submit">
         <label for="message" class="mb-1 block text-sm font-medium">Your message</label>
@@ -337,12 +329,12 @@ const busyNote = computed(() =>
           v-model="draft"
           rows="4"
           :disabled="!!streaming || !!replyingNow"
-          class="mb-2 w-full rounded border border-stone-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent disabled:bg-stone-100"
+          class="field mb-2"
           aria-describedby="message-hint"
           @keydown.enter.ctrl.exact.prevent="submit"
           @keydown.enter.meta.exact.prevent="submit"
         ></textarea>
-        <p id="message-hint" class="mb-2 text-sm text-stone-600">
+        <p id="message-hint" class="mb-2 text-sm text-ink-soft">
           Press Ctrl+Enter (⌘+Enter on a Mac) to send.
         </p>
         <div class="flex items-center gap-3">
@@ -358,15 +350,15 @@ const busyNote = computed(() =>
         </div>
       </form>
 
-      <div v-if="!empty && !streaming" class="border-t border-stone-200 pt-4">
+      <div v-if="!empty && !streaming" class="border-t border-line pt-4">
         <button
           type="button"
-          class="text-sm text-red-700 underline"
+          class="text-sm text-danger underline"
           @click="confirmingRestart = true"
         >
           Start again
         </button>
-        <p v-if="restart.isError.value" role="alert" class="mt-2 text-red-700">
+        <p v-if="restart.isError.value" role="alert" class="mt-2 text-danger">
           {{ errorMessage(restart.error.value) }}
         </p>
       </div>

@@ -40,10 +40,10 @@ const invalid = computed(
 
 <template>
   <AuthCard title="You're invited">
-    <p v-if="invalid" role="alert" class="text-red-700">
+    <p v-if="invalid" role="alert" class="text-danger">
       This invitation is invalid or has expired. Ask the person who invited you to send a new one.
     </p>
-    <p v-else-if="preview.isError.value" role="alert" class="text-red-700">
+    <p v-else-if="preview.isError.value" role="alert" class="text-danger">
       We couldn't check this invitation. Please try again.
     </p>
     <p v-else-if="preview.isPending.value">Checking your invitation…</p>
@@ -70,7 +70,7 @@ const invalid = computed(
           </RouterLink>
           <RouterLink
             :to="{ name: 'login', query: { email: invitedEmail, next: here } }"
-            class="rounded border border-accent px-4 py-2 text-sm font-medium text-accent"
+            class="rounded-ctl border border-accent px-4 py-2 text-sm font-medium text-accent"
           >
             I already have one
           </RouterLink>
@@ -78,7 +78,7 @@ const invalid = computed(
       </template>
 
       <!-- Signed in as someone else -->
-      <p v-else-if="wrongAccount" role="alert" class="mt-3 text-sm text-red-700">
+      <p v-else-if="wrongAccount" role="alert" class="mt-3 text-sm text-danger">
         This invitation was sent to <strong>{{ invitedEmail }}</strong
         >, but you're signed in as {{ session.user.email }}. Sign out, then sign in or sign up with
         the invited address.
@@ -94,11 +94,11 @@ const invalid = computed(
         >
           Join {{ preview.data.value.profileName }}
         </button>
-        <p v-if="accept.isError.value" role="alert" class="mt-3 text-sm text-red-700">
+        <p v-if="accept.isError.value" role="alert" class="mt-3 text-sm text-danger">
           {{ errorMessage(accept.error.value) }}
         </p>
       </template>
-      <p class="mt-6 text-sm text-stone-600">
+      <p class="mt-6 text-sm text-ink-soft">
         Not for you?
         <RouterLink
           :to="{ name: 'decline-invite', query: { token } }"

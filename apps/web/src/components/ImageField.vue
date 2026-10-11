@@ -37,12 +37,12 @@ function onChange() {
       type="file"
       :accept="IMAGE_TYPES.join(',')"
       :aria-describedby="`${id}-hint`"
-      class="block w-full text-sm file:mr-3 file:rounded file:border file:border-stone-300 file:bg-white file:px-3 file:py-2 file:text-sm hover:file:bg-stone-50"
+      class="block w-full text-sm file:mr-3 file:rounded-ctl file:border file:border-line-strong file:bg-surface file:px-3 file:py-2 file:text-sm hover:file:bg-sunken"
       @change="onChange"
     />
-    <p :id="`${id}-hint`" class="mt-1 text-sm text-stone-600">
+    <p :id="`${id}-hint`" class="mt-1 text-sm text-ink-soft">
       {{ hint ?? 'PNG, JPEG, WebP or GIF, up to 1 MB.' }}
     </p>
-    <p v-if="problem" role="alert" class="mt-1 text-sm text-red-700">{{ problem }}</p>
+    <p v-if="problem" role="alert" class="mt-1 text-sm text-danger">{{ problem }}</p>
   </div>
 </template>

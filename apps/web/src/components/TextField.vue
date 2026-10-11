@@ -31,7 +31,7 @@ const id = useId()
       :maxlength="maxlength"
       :aria-invalid="invalid || undefined"
       :aria-describedby="hint ? `${id}-hint` : undefined"
-      class="w-full rounded border border-stone-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-accent"
+      class="field"
     />
     <!-- Live, so a changing hint (e.g. "That username is taken") is read out as the person types. -->
     <p
@@ -39,7 +39,7 @@ const id = useId()
       :id="`${id}-hint`"
       aria-live="polite"
       class="mt-1 text-sm"
-      :class="invalid ? 'text-red-700' : 'text-stone-600'"
+      :class="invalid ? 'text-danger' : 'text-ink-soft'"
     >
       {{ hint }}
     </p>

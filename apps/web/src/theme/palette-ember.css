@@ -1,0 +1,111 @@
+/*
+ * PALETTE: Ember (burnt orange on warm stone), light and dark. This file is the only place a colour is chosen.
+ * Names say what a colour is FOR, never what it looks like, so a palette can be swapped by replacing this file
+ * (see docs/design.md). Every foreground/background pair listed in palette.test.ts must keep passing WCAG AA.
+ *
+ * Dark mode applies when the person chose it (data-theme="dark") or, if they haven't chosen, when their system does.
+ */
+:root {
+  --paper: #f8f5f1; /* page background */
+  --surface: #ffffff; /* raised areas: inputs, panels, cards */
+  --sunken: #eee8e0; /* recessed areas: code, quotes, disabled fields */
+  --ink: #2a2420; /* body text */
+  --ink-soft: #594f47; /* secondary text, hints */
+  --line: #e0d8ce; /* decorative dividers */
+  --line-strong: #85786b; /* borders of controls (3:1 against paper and surface) */
+  --accent: #b0440c; /* primary buttons, links, selection */
+  --accent-strong: #8a3207; /* hover and pressed */
+  --on-accent: #ffffff; /* text on the accent colour */
+  --accent-wash: #fbe6d6; /* tinted background: chips, selected rows, notices */
+  --mark: #cfe6f2; /* highlighter: marks what the AI suggested. Use sparingly. */
+  --danger: #a8123f; /* errors and destructive actions: raspberry, to stay distinct from the orange accent */
+  --on-danger: #ffffff;
+  --danger-wash: #fbe6ec;
+  --ok: #1f6b3d;
+  --ok-wash: #e1f3e7;
+  --focus: #b0440c; /* keyboard focus ring (3:1) */
+  /* Lettered tiles (a profile with no picture, a site with no icon): background / letter, each 4.5:1 */
+  --tint-1-bg: #fbe0cd;
+  --tint-1-fg: #6a2a05;
+  --tint-2-bg: #d9ebe6;
+  --tint-2-fg: #17473f;
+  --tint-3-bg: #e0e6f5;
+  --tint-3-fg: #27346b;
+  --tint-4-bg: #efe2ee;
+  --tint-4-fg: #5a2455;
+  --tint-5-bg: #e4efe0;
+  --tint-5-fg: #254a1c;
+  --tint-6-bg: #f3e8c4;
+  --tint-6-fg: #594305;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --paper: #1a1512;
+  --surface: #241d19;
+  --sunken: #120e0c;
+  --ink: #f1e9e1;
+  --ink-soft: #b8aa9d;
+  --line: #382e27;
+  --line-strong: #85766a;
+  --accent: #f08a4b;
+  --accent-strong: #ffa56e;
+  --on-accent: #2a1204;
+  --accent-wash: #43271a;
+  --mark: #2f4a5c;
+  --danger: #ff8fae;
+  --on-danger: #2a0510;
+  --danger-wash: #3e1a26;
+  --ok: #8fd19e;
+  --ok-wash: #1c3324;
+  --focus: #ffa56e;
+  --tint-1-bg: #4a2b1b;
+  --tint-1-fg: #ffd4b8;
+  --tint-2-bg: #1d4540;
+  --tint-2-fg: #bfeadf;
+  --tint-3-bg: #2b3558;
+  --tint-3-fg: #cdd6f7;
+  --tint-4-bg: #4a2b48;
+  --tint-4-fg: #f3d3ee;
+  --tint-5-bg: #2f4527;
+  --tint-5-fg: #d3ebc8;
+  --tint-6-bg: #4a3f17;
+  --tint-6-fg: #f1e0a0;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #1a1512;
+    --surface: #241d19;
+    --sunken: #120e0c;
+    --ink: #f1e9e1;
+    --ink-soft: #b8aa9d;
+    --line: #382e27;
+    --line-strong: #85766a;
+    --accent: #f08a4b;
+    --accent-strong: #ffa56e;
+    --on-accent: #2a1204;
+    --accent-wash: #43271a;
+    --mark: #2f4a5c;
+    --danger: #ff8fae;
+    --on-danger: #2a0510;
+    --danger-wash: #3e1a26;
+    --ok: #8fd19e;
+    --ok-wash: #1c3324;
+    --focus: #ffa56e;
+    --tint-1-bg: #4a2b1b;
+    --tint-1-fg: #ffd4b8;
+    --tint-2-bg: #1d4540;
+    --tint-2-fg: #bfeadf;
+    --tint-3-bg: #2b3558;
+    --tint-3-fg: #cdd6f7;
+    --tint-4-bg: #4a2b48;
+    --tint-4-fg: #f3d3ee;
+    --tint-5-bg: #2f4527;
+    --tint-5-fg: #d3ebc8;
+    --tint-6-bg: #4a3f17;
+    --tint-6-fg: #f1e0a0;
+    color-scheme: dark;
+  }
+}

@@ -23,8 +23,8 @@ const save = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="name-heading">
-    <h2 id="name-heading" class="mb-3 font-serif text-xl font-semibold">Your name</h2>
-    <p class="mb-3 text-sm text-stone-700">
+    <h2 id="name-heading" class="mb-3 font-display text-xl font-semibold">Your name</h2>
+    <p class="mb-3 text-sm text-ink-soft">
       This is the name other people see: on the notes and brainstorm messages you write, in the
       lists of people in a profile, and in invitations you send. Changing it updates it everywhere
       it is shown. Emails already sent keep the old one.
@@ -37,7 +37,7 @@ const save = useMutation({
         :maxlength="100"
         required
       />
-      <p v-if="save.isError.value" role="alert" class="mb-3 text-red-700">
+      <p v-if="save.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(save.error.value) }}
       </p>
       <p v-if="save.isSuccess.value" role="status" class="mb-3 text-sm">
