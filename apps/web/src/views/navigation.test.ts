@@ -69,7 +69,7 @@ describe('the menu at home', () => {
 })
 
 describe('the menu in a profile', () => {
-  it('lists its three steps in order, marks the current one, and says how to get back up', async () => {
+  it('lists its four steps in order, marks the current one, and says how to get back up', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
     const nav = await screen.findByRole('navigation', { name: 'Profile' })
@@ -77,13 +77,12 @@ describe('the menu in a profile', () => {
     // An ordered list conveys the order; the numbers are decoration, so the names are just the names.
     expect(within(nav).getAllByRole('list')[0]!.tagName).toBe('OL')
     const text = (li: HTMLElement) => li.textContent?.replace(/\s+/g, '')
-    expect(text(steps[0]!)).toBe('01Inspiration')
-    expect(text(steps[1]!)).toBe('02Notes')
-    expect(text(steps[2]!)).toMatch(/^03Ideas/)
+    expect(text(steps[0]!)).toBe('01Search')
+    expect(text(steps[1]!)).toBe('02Read')
+    expect(text(steps[2]!)).toBe('03Notes')
+    expect(text(steps[3]!)).toMatch(/^04Ideas/)
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
-    expect(within(nav).getByRole('link', { name: 'Inspiration' })).not.toHaveAttribute(
-      'aria-current',
-    )
+    expect(within(nav).getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current')
     expect(await within(nav).findByRole('link', { name: 'Profile settings' })).toHaveAttribute(
       'href',
       '/p/ada-substack/settings',

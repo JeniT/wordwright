@@ -22,7 +22,7 @@ export const readingRoute = (owner: Owner, linkId: string) =>
 export const readingBackRoute = (owner: Owner) =>
   owner.ideaId
     ? { name: 'idea-research', params: { profileId: owner.profileId, id: owner.ideaId } }
-    : { name: 'inspiration', params: { profileId: owner.profileId }, hash: '#reading-list' }
+    : { name: 'read', params: { profileId: owner.profileId } }
 
 /**
  * Changes to a reading list: add, mark read, edit, remove. Each keeps what the server answered, so every screen

@@ -24,14 +24,11 @@ const reading = useReadingList(() => ({ profileId: props.profileId, ideaId: null
     />
     <p class="text-sm text-ink-soft">
       Take notes from something you are reading on the
-      <RouterLink
-        :to="{ name: 'inspiration', params: { profileId }, hash: '#reading-list' }"
-        class="link"
-      >
+      <RouterLink :to="{ name: 'read', params: { profileId } }" class="link">
         profile’s reading list</RouterLink
       >.
     </p>
-    <NextStep :to="{ name: 'profile-ideas', params: { profileId } }" label="Next: 03 Ideas">
+    <NextStep :to="{ name: 'profile-ideas', params: { profileId } }" label="Next: 04 Ideas">
       When a group of notes feels like something you’d write about, start an idea.
     </NextStep>
   </ProfileGate>

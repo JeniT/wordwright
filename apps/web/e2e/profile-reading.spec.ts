@@ -24,9 +24,9 @@ test('reads and takes notes before there is an idea: a profile reading list and 
 }) => {
   await signUpWithProfile(page)
 
-  // The profile's own reading list is part of Inspiration (step 01).
-  await goTo(page, 'Inspiration')
-  await expect(page.getByRole('heading', { level: 1, name: 'Inspiration' })).toBeVisible()
+  // The profile's own reading list is step 02, Read.
+  await goTo(page, 'Read')
+  await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
   await expect(page.getByRole('heading', { level: 2, name: 'Reading list' })).toBeVisible()
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
   await noViolations(page, 'empty profile reading list')
@@ -121,7 +121,7 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
   page,
 }) => {
   await signUpWithProfile(page)
-  await goTo(page, 'Inspiration')
+  await goTo(page, 'Search')
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
   await feeds.getByRole('button', { name: 'Add source' }).click()
@@ -139,12 +139,14 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
   await expect(recent.getByRole('button', { name: /^Add to the reading list/ })).toHaveCount(0)
   await noViolations(page, 'recent posts after adding')
 
-  // It is on the profile's reading list, on the same page, marked as from a feed.
+  // It is on the profile's reading list (on Read), marked as from a feed.
+  await goTo(page, 'Read')
   const item = page
     .getByRole('region', { name: 'Reading list' })
     .getByRole('listitem')
     .filter({ hasText: title })
   await expect(item).toContainText('From a feed')
+  await goTo(page, 'Search')
 
   // Reconsidering takes it off again.
   await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
@@ -163,7 +165,7 @@ test('adds recent posts from the feeds to the profile’s reading list, or ignor
 
 test('a post that is added or ignored moves to the end of the recent posts', async ({ page }) => {
   await signUpWithProfile(page)
-  await page.getByRole('link', { name: 'Inspiration' }).click()
+  await goTo(page, 'Search')
   const feeds = page.getByRole('region', { name: 'Feeds' })
   for (const feed of ['one.example/feed', 'two.example/feed', 'three.example/feed']) {
     await feeds.getByLabel('Add a feed').fill(feed)
@@ -197,7 +199,7 @@ test('moves reading items, with their notes, between the profile and an idea, an
   page,
 }) => {
   await signUpWithProfile(page)
-  await goTo(page, 'Inspiration')
+  await goTo(page, 'Read')
   const address = page.getByLabel('Web address', { exact: true })
   for (const url of ['example.org/rivers', 'example.com/lakes']) {
     await address.fill(url)
@@ -256,7 +258,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
 }) => {
   await signUpWithProfile(page)
   // A feed, and its newest post added to the reading list.
-  await goTo(page, 'Inspiration')
+  await goTo(page, 'Search')
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
   await feeds.getByRole('button', { name: 'Add source' }).click()
@@ -264,6 +266,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   const title = 'A post in Feed of read.example'
   await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
   await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
+  await goTo(page, 'Read')
 
   // Read it, taking two notes, and jot one down of the writer's own.
   await page.getByRole('link', { name: 'Take notes' }).click()

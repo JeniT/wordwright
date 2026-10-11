@@ -8,7 +8,7 @@ import { useProfile } from './useProfiles'
 /**
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
  *   home    -> Profiles, Account settings
- *   profile -> 01 Inspiration, 02 Notes, 03 Ideas, and the profile's settings
+ *   profile -> 01 Search, 02 Read, 03 Notes, 04 Ideas, and the profile's settings
  *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, 05 Publish, and the idea's settings
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
@@ -21,7 +21,8 @@ export interface Step {
 }
 
 export const PROFILE_STEPS: Step[] = [
-  { key: 'inspiration', label: 'Inspiration', route: 'inspiration' },
+  { key: 'search', label: 'Search', route: 'search' },
+  { key: 'read', label: 'Read', route: 'read' },
   { key: 'notes', label: 'Notes', route: 'profile-notes' },
   { key: 'ideas', label: 'Ideas', route: 'profile-ideas' },
 ]

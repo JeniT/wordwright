@@ -82,31 +82,46 @@ export const routes: RouteRecordRaw[] = [
     name: 'new-profile',
     component: () => import('./views/NewProfileView.vue'),
   },
-  // ——— A profile: its three steps (01 Inspiration, 02 Notes, 03 Ideas) and its settings ———
+  // ——— A profile: its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
   {
     path: '/p/:profileId',
     name: 'profile',
     redirect: (to) => ({ name: 'profile-ideas', params: to.params }),
   },
   {
+    path: '/p/:profileId/search',
+    name: 'search',
+    component: () => import('./views/SearchView.vue'),
+    props: true,
+    meta: { level: 'profile', step: 'search' },
+  },
+  {
+    path: '/p/:profileId/read',
+    name: 'read',
+    component: () => import('./views/ReadView.vue'),
+    props: true,
+    meta: { level: 'profile', step: 'read' },
+  },
+  // Inspiration was split into Search and Read; the old addresses still land on the right one.
+  {
     path: '/p/:profileId/inspiration',
     name: 'inspiration',
-    component: () => import('./views/InspirationView.vue'),
-    props: true,
-    meta: { level: 'profile', step: 'inspiration' },
+    redirect: (to) => ({
+      name: to.hash === '#reading-list' ? 'read' : 'search',
+      params: to.params,
+    }),
   },
-  // The profile's reading list is part of Inspiration now; the old address still lands there.
   {
     path: '/p/:profileId/reading',
     name: 'profile-reading',
-    redirect: (to) => ({ name: 'inspiration', params: to.params, hash: '#reading-list' }),
+    redirect: (to) => ({ name: 'read', params: to.params }),
   },
   {
     path: '/p/:profileId/reading/:linkId',
     name: 'profile-reading-item',
     component: () => import('./views/ReadingView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'inspiration', compact: true },
+    meta: { level: 'profile', step: 'read', compact: true },
   },
   {
     path: '/p/:profileId/notes',

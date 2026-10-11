@@ -46,7 +46,7 @@ gentle "Next: …" suggestion. Home → profile → idea:
 | Level   | Menu lists                                                                                                                          | Front door                     |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | Home    | Profiles, Account settings (`/`, `/account`)                                                                                        | `/`                            |
-| Profile | **01 Inspiration** (feeds, recent posts, reading list), **02 Notes**, **03 Ideas**; Profile settings                                | `/p/<id>` → Ideas              |
+| Profile | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; Profile settings                       | `/p/<id>` → Ideas              |
 | Idea    | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft**, **05 Publish** (copy the draft as Markdown); Idea settings | `/p/<id>/ideas/<idea>` → Notes |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
@@ -140,9 +140,9 @@ tests inject fakes and nothing hits the network.
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
   **Dragging notes into a draft:** the drafting side bar's notes can be dragged by their grip onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor).
-  **The profile's own reading list and notes** have their own places: the reading list is part of the profile's
-  **Inspiration** step (`/p/<id>/inspiration`; the old `/p/<id>/reading` leads there; each item opens its own reading page at
-  `/p/<id>/reading/<item>`) and **Notes** is its second step (`/p/<id>/notes`). The idea's reading list is separate from the profile's. They are the idea's screens with a different owner (reading list, reading page, notes with
+  **The profile's own reading list and notes** have their own places: the reading list is the profile's
+  **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each item opens its own reading page at
+  `/p/<id>/reading/<item>`) and **Notes** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the profile's. They are the idea's screens with a different owner (reading list, reading page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
   profile as a whole, to be gathered before there is an idea. `GET/POST /api/profiles/:id/reading`, `PATCH|DELETE
@@ -183,13 +183,13 @@ tests inject fakes and nothing hits the network.
 - **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.
-- **Inspiration: the profile's feeds**: each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile's
-  **Inspiration** page (`/p/<id>/inspiration`, linked from the profile page) by any member: paste a feed link, or the address of a site that has one, and the server reads
+- **Search: the profile's feeds**: each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile's
+  **Search** page (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
   its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
-  At the top of the Inspiration page, **Recent posts** is one list of the newest posts from all the feeds, newest
+  At the top of the Search page, **Recent posts** is one list of the newest posts from all the feeds, newest
   first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
   posts twice a year doesn't clutter it. It shows five posts at a time (Previous / Next above and below the list; the bottom ones scroll back to the top) out of at most 100, counts posts that carry no date (they can't be
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.

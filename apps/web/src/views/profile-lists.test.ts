@@ -124,14 +124,15 @@ function fakeProfile(initial: { links?: Link[]; notes?: ReturnType<typeof note>[
 }
 
 describe('the profile’s menu', () => {
-  it('leads to its three steps, which include the reading list and the notes', async () => {
+  it('leads to its four steps, which include the reading list and the notes', async () => {
     fakeProfile()
     await renderAt('/p/ada-substack')
     const menu = within(await screen.findByRole('navigation', { name: 'Profile' }))
-    expect(await menu.findByRole('link', { name: 'Inspiration' })).toHaveAttribute(
+    expect(await menu.findByRole('link', { name: 'Search' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/inspiration',
+      '/p/ada-substack/search',
     )
+    expect(menu.getByRole('link', { name: 'Read' })).toHaveAttribute('href', '/p/ada-substack/read')
     expect(menu.getByRole('link', { name: 'Notes' })).toHaveAttribute(
       'href',
       '/p/ada-substack/notes',
@@ -146,13 +147,19 @@ describe('the profile’s menu', () => {
 describe('the profile’s reading list', () => {
   beforeEach(() => fakeProfile())
 
-  it('is part of the Inspiration page, and the old address leads there', async () => {
+  it('is the Read page, and the old addresses lead there', async () => {
     const { router } = await renderAt('/p/ada-substack/reading')
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Inspiration' }),
-    ).toBeInTheDocument()
-    expect(router.currentRoute.value.path).toBe('/p/ada-substack/inspiration')
-    expect(router.currentRoute.value.hash).toBe('#reading-list')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Read' })).toBeInTheDocument()
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/read')
+    await router.push('/p/ada-substack/inspiration#reading-list')
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/read')
+  })
+
+  it('leaves the feeds and recent posts to the Search page, which the old Inspiration address shows', async () => {
+    const { router } = await renderAt('/p/ada-substack/inspiration')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument()
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/search')
+    expect(screen.queryByRole('region', { name: 'Reading list' })).not.toBeInTheDocument()
   })
 
   it('says it is empty, and what the list is for', async () => {
@@ -215,7 +222,7 @@ describe('the profile’s reading list', () => {
 
   it('marks an item read and unread, and removes it', async () => {
     const state = fakeProfile({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
-    await renderAt('/p/ada-substack/inspiration')
+    await renderAt('/p/ada-substack/read')
     const box = await screen.findByRole('switch', { name: 'Read: A paper' })
     await fireEvent.click(box)
     await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
@@ -340,7 +347,7 @@ describe('the profile’s reading list', () => {
         link('l2', 'From a feed', { origin: 'feed' }),
       ],
     })
-    await renderAt('/p/ada-substack/inspiration')
+    await renderAt('/p/ada-substack/read')
     const research = (await screen.findByText('Found by research')).closest('span')!
     expect(research).toHaveClass('chip-ai')
     const feed = screen.getByText('From a feed', { selector: '.chip' })
@@ -655,7 +662,7 @@ describe('reading an item of the profile’s own list', () => {
     )
     expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
       'href',
-      '/p/ada-substack/inspiration#reading-list',
+      '/p/ada-substack/read',
     )
   })
 

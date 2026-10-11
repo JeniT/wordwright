@@ -242,7 +242,7 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Level   | You are choosing…               | The menu lists                                                                                                                                  | Settings         |
 | ------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | Home    | which **profile** to work on    | Profiles, Account settings                                                                                                                      | Account settings |
-| Profile | what to gather, then which idea | **01 Inspiration** (feeds, recent posts, the reading list), **02 Notes**, **03 Ideas**                                                          | Profile settings |
+| Profile | what to gather, then which idea | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                                 | Profile settings |
 | Idea    | how to develop it               | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**, **05 Publish** | Idea settings    |
 
 The principles (they are the point of the pattern; keep them when you add a page):

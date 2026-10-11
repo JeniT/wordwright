@@ -100,9 +100,12 @@ test('leads through a profile and an idea step by step, without ever locking one
   await expect(page.getByRole('navigation', { name: 'Next step' })).toHaveCount(0) // a choice, not a next
   await expect(profile.getByText('1 idea')).toBeVisible()
   await noViolations(page, 'Ideas step')
-  await goTo(page, 'Inspiration')
-  await noViolations(page, 'Inspiration step')
-  await next(page, /Next: 02 Notes/).click()
+  await goTo(page, 'Search')
+  await noViolations(page, 'Search step')
+  await next(page, /Next: 02 Read/).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
+  await noViolations(page, 'Read step')
+  await next(page, /Next: 03 Notes/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   await noViolations(page, 'Profile notes step')
 

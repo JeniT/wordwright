@@ -27,7 +27,7 @@ export const server = setupServer(
   http.get('*/api/account/brainstorm-prompt', () =>
     HttpResponse.json({ prompt: 'The default brainstorming prompt.', isDefault: true }),
   ),
-  // An empty reading list (the profile's, which the Inspiration page shows).
+  // An empty reading list (the profile's, which the Read page shows).
   http.get('*/api/profiles/:profileId/reading', () => HttpResponse.json([])),
   // No notes yet, on any idea.
   http.get('*/api/profiles/:profileId/ideas/:ideaId/notes', () => HttpResponse.json([])),

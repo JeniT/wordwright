@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, test } from './fixtures'
+import { expect, goTo, test } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -271,12 +271,12 @@ test('profile pages for a signed-in user have no detectable accessibility violat
   await noViolations(page) // the profile page
 })
 
-test('manages the ordered list of feeds on the Inspiration page', async ({ page }) => {
+test('manages the ordered list of feeds on the Search page', async ({ page }) => {
   await registerUser(page, uniqueName('Tess'))
   await page.getByRole('link', { name: 'Create your first profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Reading list')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await page.getByRole('link', { name: 'Inspiration' }).click()
+  await goTo(page, 'Search')
 
   const sources = page.getByRole('region', { name: 'Feeds' })
   await expect(sources.getByText('No sources yet')).toBeVisible()
@@ -374,7 +374,7 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
   await page.getByRole('link', { name: 'Create your first profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Choosing feeds')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await page.getByRole('link', { name: 'Inspiration' }).click()
+  await goTo(page, 'Search')
 
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('several.site.example')
@@ -403,7 +403,7 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await page.getByRole('link', { name: 'Create your first profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Posts to read')
   await page.getByRole('button', { name: 'Create profile' }).click()
-  await page.getByRole('link', { name: 'Inspiration' }).click()
+  await goTo(page, 'Search')
 
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')

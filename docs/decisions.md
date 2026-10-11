@@ -661,7 +661,7 @@ and not republishing, so we never store the body. Posts with no web address are 
 and similar are refused, and RSS "authors" that are email addresses are not kept. Not done: a background poller (reads
 happen when someone looks, so a feed nobody opens is never fetched), JSON Feed, and per-post "seen" state (T6c).
 
-The main list on the Inspiration page is **one list of recent posts across all the feeds, newest first, with a
+The main list on the Search page (once called Inspiration) is **one list of recent posts across all the feeds, newest first, with a
 time window**, not a list per feed (`GET .../sources/recent?days=`, default 30, 1 to 365). The point is to respond to
 recent work, so a blog that posts twice a year must not put old posts in front of the writer; the window, not the
 number of posts, decides what is "recent". Per-feed lists remain as a preview under each feed. The combined list
@@ -695,7 +695,7 @@ that site who is looking at the list and when. Failure to get a picture never bl
 stands in. Feed details are read only at the time of adding, so they can go stale and sources added before this
 existed have none (they show their address); refreshing is a follow-up (T19c).
 
-## Inspiration is its own page
+## Inspiration is its own page (now Search and Read)
 
 The profile's feeds moved out of Settings onto an **Inspiration** page (`/p/:profileId/inspiration`, linked from the
 profile page): they are where ideas start, not a setting, and the posts they bring (T6c) and the reading list will
@@ -706,6 +706,11 @@ Substack and so on) was built and then **removed** the next day: in use it wasn'
 upkeep, since the address patterns change without warning and each one needs checking against the live site. It is
 in the history (commit 393ca10) if the idea comes back, and `docs/research/idea-source-feeds.md` still records the
 patterns. Pasting a site's address, which finds the feed it advertises, remains the way to add one.
+
+**Split (#96).** Inspiration mixed two jobs, so it became two steps: **Search** (`/p/:profileId/search`: the recent
+posts and the feeds) and **Read** (`/p/:profileId/read`: the profile's reading list, and its reading pages). The old
+`/inspiration` address leads to Search (to Read when it has `#reading-list`), and `/reading` to Read. Notes and Ideas
+moved to 03 and 04.
 
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
 
@@ -994,7 +999,7 @@ distinct heading typeface.
 ## Navigation: the menu follows you
 
 **Decision.** The side menu **follows you** through three levels: Home (Profiles, Account settings), a profile (**01
-Inspiration**, **02 Notes**, **03 Ideas**, Profile settings) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
+Search**, **02 Read**, **03 Notes**, **04 Ideas**, Profile settings) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
 **04 Draft**, **05 Publish**, Idea settings). The long Idea page was split into those steps, each its own page. How it
 works and how to extend it is in [design.md](design.md#navigation-the-menu-follows-you); the mock-ups we compared, with
 screenshots, are in [design-concepts/navigation/](design-concepts/navigation/README.md).
@@ -1015,7 +1020,7 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
 - **Notes** at profile level are gathered and, when a group becomes an idea, they **appear in** the idea (moved, not
   copied). That arrived with T37d (**Move notes** on the profile's Notes step); the menu needed no change for it.
 - **The idea's reading list is separate from the profile's** (as the data already was). The profile's reading list lives
-  in Inspiration (step 01); the idea's in Research (step 01).
+  in Read (step 02); the idea's in Research (step 01).
 - **Publish** is for getting a finished draft out: now **Copy Markdown**; later, publishing straight to Substack and help
   drafting social threads, which are on the back burner and not built.
 - **The menu stays on the editor** on a laptop or desktop, but **folds away on the reading and note-taking page**, where
