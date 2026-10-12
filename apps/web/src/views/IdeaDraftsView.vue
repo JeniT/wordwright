@@ -5,6 +5,7 @@ import IdeaGate from '../components/IdeaGate.vue'
 import NextStep from '../components/NextStep.vue'
 import ReorderableList from '../components/ReorderableList.vue'
 import StepHeading from '../components/StepHeading.vue'
+import { invalidateRoots, queryKeys } from '../lib/queries'
 import { api, errorMessage } from '../lib/api'
 
 /** Step 04 of an idea: its drafts. One for a single post, or several, in order, for a linked set of posts. */
@@ -12,16 +13,16 @@ const props = defineProps<{ profileId: string; id: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
-const refreshLists = () => queryClient.invalidateQueries({ queryKey: ['ideas'] })
+const refreshLists = () => invalidateRoots(queryClient, 'ideas')
 
 const moveDrafts = useMutation({
   mutationFn: (ids: string[]) => api.reorderIdeaDrafts(props.profileId, props.id, ids),
   onSuccess: (saved) => {
-    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
+    queryClient.setQueryData(queryKeys.idea(props.profileId, props.id), saved)
     void refreshLists() // the lists refresh in the background: nothing about the order waits on them
   },
   // The list on screen may be out of date (the 409 says so); show the server's.
-  onError: () => queryClient.invalidateQueries({ queryKey: ['idea'] }),
+  onError: () => invalidateRoots(queryClient, 'idea'),
 })
 
 /** Saves a new draft order; true if it was saved (the error is shown under the list). */
@@ -37,7 +38,7 @@ async function saveDraftOrder(ids: string[]) {
 const addDraft = useMutation({
   mutationFn: () => api.createIdeaDraft(props.profileId, props.id, { title: 'Untitled' }),
   onSuccess: async (draft) => {
-    await Promise.all([queryClient.invalidateQueries({ queryKey: ['idea'] }), refreshLists()])
+    await Promise.all([invalidateRoots(queryClient, 'idea'), refreshLists()])
     await router.push({ name: 'draft', params: { profileId: props.profileId, id: draft.id } })
   },
 })

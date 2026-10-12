@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { RECENT_DAYS_DEFAULT, type Source } from '@lfwa/core'
 import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
 import { PAGE_SIZE } from '../lib/paging'
 import PageNav from './PageNav.vue'
 import ProfileImage from './ProfileImage.vue'
@@ -22,10 +23,7 @@ const windowName = computed(
 )
 
 // The same list the feeds section shows; it supplies each post's feed name and logo.
-const sources = useQuery({
-  queryKey: ['sources', () => props.profileId],
-  queryFn: () => api.listSources(props.profileId),
-})
+const sources = useSources(() => props.profileId)
 const byId = computed(() => new Map((sources.data.value ?? []).map((s) => [s.id, s])))
 const nameOf = (s: Source | undefined) => s?.title ?? s?.url.replace(/^https?:\/\//, '') ?? 'a feed'
 
@@ -33,7 +31,7 @@ const nameOf = (s: Source | undefined) => s?.title ?? s?.url.replace(/^https?:\/
 // answers from what it has kept).
 const feedKey = computed(() => (sources.data.value ?? []).map((s) => s.id).join(','))
 const posts = useQuery({
-  queryKey: ['recent-posts', () => props.profileId, days, feedKey],
+  queryKey: computed(() => queryKeys.recentPosts(props.profileId, days.value, feedKey.value)),
   queryFn: () => api.recentPosts(props.profileId, days.value),
   enabled: computed(() => sources.isSuccess.value && (sources.data.value?.length ?? 0) > 0),
   staleTime: 5 * 60_000,
@@ -42,9 +40,12 @@ const posts = useQuery({
 const refresh = useMutation({
   mutationFn: () => api.recentPosts(props.profileId, days.value, true),
   onSuccess: (fresh) => {
-    queryClient.setQueryData(['recent-posts', props.profileId, days.value, feedKey.value], fresh)
+    queryClient.setQueryData(
+      queryKeys.recentPosts(props.profileId, days.value, feedKey.value),
+      fresh,
+    )
     page.value = 1
-    queryClient.invalidateQueries({ queryKey: ['sources'] }) // each feed's "last worked" may have changed
+    invalidateRoots(queryClient, 'sources') // each feed's "last worked" may have changed
   },
 })
 const shown = posts.data
@@ -103,12 +104,7 @@ const decide = useMutation({
           : `“${post.title}” is back in the list.`
   },
   // Whatever happened, someone else may have decided first: show how things are now.
-  onSettled: () =>
-    Promise.all(
-      ['recent-posts', 'reading', 'ideas'].map((key) =>
-        queryClient.invalidateQueries({ queryKey: [key] }),
-      ),
-    ),
+  onSettled: () => invalidateRoots(queryClient, 'recent-posts', 'reading', 'ideas'),
 })
 const busy = computed(() => decide.isPending.value)
 

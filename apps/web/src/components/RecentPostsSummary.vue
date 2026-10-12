@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
+import { queryKeys, useSources } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import ProfileImage from './ProfileImage.vue'
 
@@ -17,14 +18,13 @@ import ProfileImage from './ProfileImage.vue'
 const props = defineProps<{ profileId: string; to: RouteLocationRaw }>()
 const SHOWN = 5
 
-const sources = useQuery({
-  queryKey: ['sources', () => props.profileId],
-  queryFn: () => api.listSources(props.profileId),
-})
+const sources = useSources(() => props.profileId)
 const byId = computed(() => new Map((sources.data.value ?? []).map((s) => [s.id, s])))
 const feedKey = computed(() => (sources.data.value ?? []).map((s) => s.id).join(','))
 const posts = useQuery({
-  queryKey: ['recent-posts', () => props.profileId, RECENT_DAYS_DEFAULT, feedKey],
+  queryKey: computed(() =>
+    queryKeys.recentPosts(props.profileId, RECENT_DAYS_DEFAULT, feedKey.value),
+  ),
   queryFn: () => api.recentPosts(props.profileId, RECENT_DAYS_DEFAULT),
   enabled: computed(() => sources.isSuccess.value && (sources.data.value?.length ?? 0) > 0),
   staleTime: 5 * 60_000,

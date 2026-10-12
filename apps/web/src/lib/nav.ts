@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute } from 'vue-router'
-import { api } from './api'
+import { useDraft, useIdea, useIdeas } from './queries'
 import { useProfile } from './useProfiles'
 
 /**
@@ -61,11 +60,11 @@ export function useNav() {
   const { profile } = useProfile(() => profileId.value)
 
   // The drafting page's address names a draft, not its idea: find the idea from the draft.
-  const draft = useQuery({
-    queryKey: ['draft', profileId, routeId],
-    queryFn: () => api.getDraft(profileId.value, routeId.value),
-    enabled: computed(() => !!route.meta.ideaFromDraft && !!profileId.value && !!routeId.value),
-  })
+  const draft = useDraft(
+    () => profileId.value,
+    () => routeId.value,
+    () => !!route.meta.ideaFromDraft && !!profileId.value && !!routeId.value,
+  )
   const draftLoading = computed(() => !!route.meta.ideaFromDraft && draft.isPending.value)
 
   const ideaId = computed(() => {
@@ -83,16 +82,14 @@ export function useNav() {
     route.meta.level === 'idea' && level.value === 'profile' ? 'ideas' : route.meta.step,
   )
 
-  const idea = useQuery({
-    queryKey: ['idea', profileId, ideaId],
-    queryFn: () => api.getIdea(profileId.value, ideaId.value),
-    enabled: computed(() => !!ideaId.value),
-  })
-  const ideas = useQuery({
-    queryKey: ['ideas', profileId],
-    queryFn: () => api.listIdeas(profileId.value),
-    enabled: computed(() => level.value === 'profile'),
-  })
+  const idea = useIdea(
+    () => profileId.value,
+    () => ideaId.value,
+  )
+  const ideas = useIdeas(
+    () => profileId.value,
+    () => level.value === 'profile',
+  )
 
   /** The quiet line under a step: a count, where we already know one. */
   function metaFor(step: Step) {

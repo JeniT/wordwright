@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Idea, IdeaLink } from '@lfwa/core'
 import { computed } from 'vue'
 import { api } from './api'
+import { invalidateRoots, queryKeys, useIdea } from './queries'
 
 /**
  * Whose reading list or notes a page is working on: an idea's, or (`ideaId` null) the profile's own, gathered
@@ -34,9 +35,9 @@ export function useReadingActions(owner: () => Owner) {
   function keep(saved: Idea | IdeaLink[]) {
     const { profileId, ideaId } = owner()
     if (Array.isArray(saved)) queryClient.setQueryData(['reading', profileId], saved)
-    else queryClient.setQueryData(['idea', profileId, ideaId], saved)
+    else queryClient.setQueryData(queryKeys.idea(profileId, ideaId ?? undefined), saved)
     // The ideas' lists show when each last changed; nothing here waits for them.
-    void queryClient.invalidateQueries({ queryKey: ['ideas'] })
+    void invalidateRoots(queryClient, 'ideas')
   }
   const listOf = (saved: Idea | IdeaLink[]) => (Array.isArray(saved) ? saved : saved.links)
 
@@ -89,11 +90,7 @@ export function useReadingActions(owner: () => Owner) {
         ? api.removeIdeaLink(profileId, ideaId, linkId)
         : api.removeProfileLink(profileId, linkId)
     },
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['idea'] }),
-        queryClient.invalidateQueries({ queryKey: ['reading'] }),
-      ]),
+    onSuccess: () => invalidateRoots(queryClient, 'idea', 'reading'),
   })
 
   /** Removes several at once (a bulk Remove). Each is tried even if an earlier one failed; the list is read again after. */
@@ -110,11 +107,7 @@ export function useReadingActions(owner: () => Owner) {
       if (results.some((r) => r.status === 'rejected'))
         throw new Error('Some links could not be removed.')
     },
-    onSettled: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['idea'] }),
-        queryClient.invalidateQueries({ queryKey: ['reading'] }),
-      ]),
+    onSettled: () => invalidateRoots(queryClient, 'idea', 'reading'),
   })
 
   return { add, setRead, setKept, update, remove, removeMany, listOf }
@@ -126,11 +119,10 @@ export function useReadingActions(owner: () => Owner) {
  */
 export function useReadingList(owner: () => Owner) {
   const forIdea = computed(() => !!owner().ideaId)
-  const idea = useQuery({
-    queryKey: ['idea', () => owner().profileId, () => owner().ideaId],
-    queryFn: () => api.getIdea(owner().profileId, owner().ideaId!),
-    enabled: forIdea,
-  })
+  const idea = useIdea(
+    () => owner().profileId,
+    () => owner().ideaId ?? undefined,
+  )
   const own = useQuery({
     queryKey: ['reading', () => owner().profileId],
     queryFn: () => api.listProfileReading(owner().profileId),

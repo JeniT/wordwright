@@ -10,16 +10,17 @@ import ProposalCard from '../components/ProposalCard.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 
 const props = defineProps<{ profileId: string; id: string }>()
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 
-const idea = useQuery({
-  queryKey: ['idea', () => props.profileId, () => props.id],
-  queryFn: () => api.getIdea(props.profileId, props.id),
-})
+const idea = useIdea(
+  () => props.profileId,
+  () => props.id,
+)
 
 /** The reply being written right now by this person (kept apart from the saved thread until it finishes). */
 const streaming = ref<{
@@ -32,7 +33,7 @@ const streaming = ref<{
 } | null>(null)
 // While someone else's reply is being written, look again every few seconds to see it arrive.
 const conversation = useQuery({
-  queryKey: ['conversation', () => props.profileId, () => props.id],
+  queryKey: computed(() => queryKeys.conversation(props.profileId, props.id)),
   queryFn: () => api.getConversation(props.profileId, props.id),
   refetchInterval: (query) => (query.state.data?.replyingNow && !streaming.value ? 3000 : false),
 })
@@ -117,11 +118,7 @@ async function send(body: SendMessageInput, restore?: string) {
     controller = undefined
     // The saved thread is the truth: fetch it, and only then drop the live copy, so nothing flickers.
     // Notes the AI recorded are now part of the idea, so the idea and its notes may have changed too.
-    await Promise.all(
-      ['conversation', 'idea', 'notes', 'ideas'].map((key) =>
-        queryClient.invalidateQueries({ queryKey: [key] }),
-      ),
-    )
+    await invalidateRoots(queryClient, 'conversation', 'idea', 'notes', 'ideas')
     streaming.value = null
   }
 }
@@ -154,7 +151,7 @@ const restart = useMutation({
   mutationFn: () => api.restartConversation(props.profileId, props.id),
   onSuccess: async () => {
     replyProblem.value = null
-    await queryClient.invalidateQueries({ queryKey: ['conversation'] })
+    await invalidateRoots(queryClient, 'conversation')
   },
   onSettled: () => (confirmingRestart.value = false),
 })

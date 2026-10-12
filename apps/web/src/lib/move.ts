@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import type { MoveResult } from '@lfwa/core'
 import { computed, reactive, ref } from 'vue'
 import { api } from './api'
+import { invalidateRoots, useIdeas } from './queries'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -29,12 +30,7 @@ export function useMove(profileId: () => string) {
   /** What the last move did, and whether it can be undone (not when items were joined: that can't be unpicked). */
   const outcome = ref<{ text: string; undo: (() => void) | null } | null>(null)
 
-  const refresh = () =>
-    Promise.all(
-      ['idea', 'ideas', 'reading', 'notes'].map((key) =>
-        queryClient.invalidateQueries({ queryKey: [key] }),
-      ),
-    )
+  const refresh = () => invalidateRoots(queryClient, 'idea', 'ideas', 'reading', 'notes')
 
   const undoMove = useMutation({
     mutationFn: ({ ids, ideaId }: { ids: string[]; ideaId: string | null }) =>
@@ -111,10 +107,7 @@ export function useMoveDestination(
   currentIdeaId: () => string | null,
   profileName: string,
 ) {
-  const ideas = useQuery({
-    queryKey: ['ideas', profileId],
-    queryFn: () => api.listIdeas(profileId()),
-  })
+  const ideas = useIdeas(profileId)
   const destination = ref('') // 'profile', an idea's id, or NEW_IDEA
   const newIdeaName = ref('')
   const others = computed(() => (ideas.data.value ?? []).filter((i) => i.id !== currentIdeaId()))

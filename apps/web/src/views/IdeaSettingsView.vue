@@ -8,17 +8,17 @@ import IdeaGate from '../components/IdeaGate.vue'
 import StepHeading from '../components/StepHeading.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
-import { useQuery } from '@tanstack/vue-query'
+import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 
 /** An idea's settings: its name, and deleting it. */
 const props = defineProps<{ profileId: string; id: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
-const idea = useQuery({
-  queryKey: ['idea', () => props.profileId, () => props.id],
-  queryFn: () => api.getIdea(props.profileId, props.id),
-})
+const idea = useIdea(
+  () => props.profileId,
+  () => props.id,
+)
 
 // Fill the form once per idea. Later refreshes must not wipe unsaved typing.
 const name = ref('')
@@ -34,12 +34,12 @@ watch(
   { immediate: true },
 )
 
-const refreshLists = () => queryClient.invalidateQueries({ queryKey: ['ideas'] })
+const refreshLists = () => invalidateRoots(queryClient, 'ideas')
 
 const save = useMutation({
   mutationFn: () => api.updateIdea(props.profileId, props.id, { name: name.value }),
   onSuccess: (saved) => {
-    queryClient.setQueryData(['idea', props.profileId, props.id], saved)
+    queryClient.setQueryData(queryKeys.idea(props.profileId, props.id), saved)
     return refreshLists()
   },
 })
@@ -48,7 +48,7 @@ const confirmingDelete = ref(false)
 const remove = useMutation({
   mutationFn: () => api.deleteIdea(props.profileId, props.id),
   onSuccess: async () => {
-    queryClient.removeQueries({ queryKey: ['idea', props.profileId, props.id] })
+    queryClient.removeQueries({ queryKey: queryKeys.idea(props.profileId, props.id) })
     await refreshLists()
     await router.push({ name: 'profile-ideas', params: { profileId: props.profileId } })
   },

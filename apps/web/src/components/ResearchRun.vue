@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, useId } from 'vue'
 import type { ResearchItem, ResearchRun } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 
@@ -16,10 +17,7 @@ const unusable = (item: ResearchItem) => item.check === 'not-found' || item.chec
 const name = (item: ResearchItem) => item.fetchedTitle || item.title || item.url
 
 // Whatever happens, the run and the reading list may have changed (someone else may have decided first).
-const refresh = () =>
-  Promise.all(
-    ['research', 'idea', 'ideas'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
-  )
+const refresh = () => invalidateRoots(queryClient, 'research', 'idea', 'ideas')
 const add = useMutation({
   mutationFn: (id: string) => api.addResearchItem(props.profileId, props.ideaId, props.run.id, id),
   onSettled: refresh,

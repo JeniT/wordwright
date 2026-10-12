@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Source } from '@lfwa/core'
 import { ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 
 const props = defineProps<{ profileId: string; source: Source; name: string }>()
 const SHOWN = 5
@@ -25,7 +26,7 @@ watch(
       data &&
       (data.lastError !== props.source.lastError || data.lastWorkedAt !== props.source.lastWorkedAt)
     ) {
-      queryClient.invalidateQueries({ queryKey: ['sources'] })
+      invalidateRoots(queryClient, 'sources')
     }
   },
 )

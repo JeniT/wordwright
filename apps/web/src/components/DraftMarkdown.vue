@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
-import { api } from '../lib/api'
+import { useDraft } from '../lib/queries'
 
 /**
  * One draft, ready to be taken elsewhere: its Markdown, to copy in one press. The title leads as a heading, so
@@ -11,10 +10,10 @@ import { api } from '../lib/api'
 const props = defineProps<{ profileId: string; draftId: string }>()
 
 // Shares its cache with the drafting page, so a draft just written is what is offered here.
-const draft = useQuery({
-  queryKey: ['draft', () => props.profileId, () => props.draftId],
-  queryFn: () => api.getDraft(props.profileId, props.draftId),
-})
+const draft = useDraft(
+  () => props.profileId,
+  () => props.draftId,
+)
 
 const markdown = computed(() => {
   const d = draft.data.value

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
 import LandingSection from '../components/LandingSection.vue'
 import ProfileGate from '../components/ProfileGate.vue'
@@ -7,7 +6,7 @@ import ProfileImage from '../components/ProfileImage.vue'
 import RecentNotes from '../components/RecentNotes.vue'
 import RecentPostsSummary from '../components/RecentPostsSummary.vue'
 import RecentReading from '../components/RecentReading.vue'
-import { api } from '../lib/api'
+import { useIdeas } from '../lib/queries'
 import { displayHost } from '../lib/useProfiles'
 
 /**
@@ -15,10 +14,7 @@ import { displayHost } from '../lib/useProfiles'
  * numbered step, so nothing in the menu is current here. Visiting spends nothing.
  */
 const props = defineProps<{ profileId: string }>()
-const ideas = useQuery({
-  queryKey: ['ideas', () => props.profileId],
-  queryFn: () => api.listIdeas(props.profileId),
-})
+const ideas = useIdeas(() => props.profileId)
 </script>
 
 <template>

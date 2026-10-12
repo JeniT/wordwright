@@ -6,16 +6,17 @@ import StepHeading from '../components/StepHeading.vue'
 import { RESEARCH_AREAS_MAX } from '@lfwa/core'
 import ResearchRun from '../components/ResearchRun.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 
 const props = defineProps<{ profileId: string; id: string }>()
 const queryClient = useQueryClient()
 
-const idea = useQuery({
-  queryKey: ['idea', () => props.profileId, () => props.id],
-  queryFn: () => api.getIdea(props.profileId, props.id),
-})
+const idea = useIdea(
+  () => props.profileId,
+  () => props.id,
+)
 const runs = useQuery({
-  queryKey: ['research', () => props.profileId, () => props.id],
+  queryKey: computed(() => queryKeys.research(props.profileId, props.id)),
   queryFn: () => api.getResearch(props.profileId, props.id),
 })
 
@@ -24,7 +25,7 @@ const search = useMutation({
   mutationFn: (text: string) => api.runResearch(props.profileId, props.id, text),
   onSuccess: () => (areas.value = ''),
   // Another member may have researched too, so read the whole list again.
-  onSettled: () => queryClient.invalidateQueries({ queryKey: ['research'] }),
+  onSettled: () => invalidateRoots(queryClient, 'research'),
 })
 const needsKey = computed(() => {
   const err = search.error.value

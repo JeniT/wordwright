@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { noteOriginPhrase } from '../lib/note-label'
@@ -22,10 +23,10 @@ const props = defineProps<{
 }>()
 const queryClient = useQueryClient()
 
-const notes = useQuery({
-  queryKey: ['notes', () => props.profileId, () => props.ideaId],
-  queryFn: () => api.listIdeaNotes(props.profileId, props.ideaId),
-})
+const { notes } = useIdeaNotes(
+  () => props.profileId,
+  () => props.ideaId,
+)
 const tagFilter = ref<string | null>(null)
 const usedTags = computed(() => tagsUsedOn((notes.data.value ?? []).filter((n) => !n.addedAt)))
 watch(usedTags, (tags) => {
@@ -39,12 +40,7 @@ const waiting = computed(() =>
 const added = computed(() => (notes.data.value ?? []).filter((n) => n.addedAt))
 const showAdded = ref(false)
 
-const refresh = () =>
-  Promise.all(
-    ['notes', 'idea', 'ideas', 'draft-insertions'].map((key) =>
-      queryClient.invalidateQueries({ queryKey: [key] }),
-    ),
-  )
+const refresh = () => refreshNotesEverywhere(queryClient)
 
 const adding = useMutation({
   mutationFn: (note: IdeaNote) => props.insert(note),

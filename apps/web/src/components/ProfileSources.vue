@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import type { Source, SourceChoices } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
 import SourceItems from './SourceItems.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
@@ -13,9 +14,9 @@ import TextField from './TextField.vue'
 const props = defineProps<{ profileId: string }>()
 
 const queryClient = useQueryClient()
-const queryKey = ['sources', () => props.profileId] as const
-const sources = useQuery({ queryKey, queryFn: () => api.listSources(props.profileId) })
-const setList = (list: Source[]) => queryClient.setQueryData(['sources', props.profileId], list)
+const sources = useSources(() => props.profileId)
+const setList = (list: Source[]) =>
+  queryClient.setQueryData(queryKeys.sources(props.profileId), list)
 
 const url = ref('')
 const notice = ref('') // announced politely to screen readers after each change
@@ -40,7 +41,7 @@ const add = useMutation({
     url.value = ''
     choices.value = []
     notice.value = `Added ${nameOf(result)}`
-    await queryClient.invalidateQueries({ queryKey: ['sources'] })
+    await invalidateRoots(queryClient, 'sources')
   },
 })
 
@@ -65,7 +66,7 @@ const addChosen = useMutation({
     choices.value = choices.value.filter((c) => failed.some((f) => f.url === c.url))
     chosen.value = chosen.value.filter((u) => failed.some((f) => f.url === u))
     if (!failed.length) url.value = ''
-    await queryClient.invalidateQueries({ queryKey: ['sources'] })
+    await invalidateRoots(queryClient, 'sources')
   },
 })
 function submitAddress() {
@@ -82,7 +83,7 @@ const remove = useMutation({
   mutationFn: (source: Source) => api.removeSource(props.profileId, source.id),
   onSuccess: async (_data, source) => {
     notice.value = `Removed ${nameOf(source)}`
-    await queryClient.invalidateQueries({ queryKey: ['sources'] })
+    await invalidateRoots(queryClient, 'sources')
   },
 })
 
@@ -90,7 +91,7 @@ const move = useMutation({
   mutationFn: (ids: string[]) => api.reorderSources(props.profileId, ids),
   onSuccess: setList,
   // The list on screen may be out of date (the 409 says so); show the server's.
-  onError: () => queryClient.invalidateQueries({ queryKey: ['sources'] }),
+  onError: () => invalidateRoots(queryClient, 'sources'),
 })
 
 /** Saves a new order; true if it was saved. */

@@ -4,6 +4,7 @@ import { computed, useId } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Idea, Proposal } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 
 const props = defineProps<{
   profileId: string
@@ -35,12 +36,7 @@ const what = computed(() => {
 })
 
 // Whatever happens, the thread and the idea may have changed (someone else may have decided it first).
-const refresh = () =>
-  Promise.all(
-    ['conversation', 'idea', 'ideas'].map((key) =>
-      queryClient.invalidateQueries({ queryKey: [key] }),
-    ),
-  )
+const refresh = () => invalidateRoots(queryClient, 'conversation', 'idea', 'ideas')
 const accept = useMutation({
   mutationFn: () =>
     api.acceptProposal(props.profileId, props.ideaId, props.proposal.id, props.proposal.stale),

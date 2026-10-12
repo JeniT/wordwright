@@ -11,6 +11,13 @@ import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import {
+  invalidateRoots,
+  queryKeys,
+  refreshNotesEverywhere,
+  useDraft,
+  useIdea,
+} from '../lib/queries'
 import type { CritiqueMarkPoint } from '../lib/critique-marks'
 import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 
@@ -18,16 +25,15 @@ const props = defineProps<{ profileId: string; id: string }>()
 const queryClient = useQueryClient()
 const router = useRouter()
 
-const draft = useQuery({
-  queryKey: ['draft', () => props.profileId, () => props.id],
-  queryFn: () => api.getDraft(props.profileId, props.id),
-})
+const draft = useDraft(
+  () => props.profileId,
+  () => props.id,
+)
 // Every draft develops an idea, which it links back to.
-const idea = useQuery({
-  queryKey: ['idea', () => props.profileId, () => draft.data.value?.ideaId],
-  queryFn: () => api.getIdea(props.profileId, draft.data.value!.ideaId!),
-  enabled: () => !!draft.data.value?.ideaId,
-})
+const idea = useIdea(
+  () => props.profileId,
+  () => draft.data.value?.ideaId,
+)
 const title = ref('')
 const body = ref('')
 watch(
@@ -44,7 +50,7 @@ watch(
 const save = useMutation({
   mutationFn: () =>
     api.updateDraft(props.profileId, props.id, { title: title.value, body: body.value }),
-  onSuccess: (saved) => queryClient.setQueryData(['draft', props.profileId, props.id], saved),
+  onSuccess: (saved) => queryClient.setQueryData(queryKeys.draft(props.profileId, props.id), saved),
 })
 
 // ---- pulling notes into the draft
@@ -91,8 +97,8 @@ async function mayCite(item: IdeaLink): Promise<boolean> {
       item.id,
       true,
     )
-    queryClient.setQueryData(['idea', props.profileId, updated.id], updated)
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
+    queryClient.setQueryData(queryKeys.idea(props.profileId, updated.id), updated)
+    await invalidateRoots(queryClient, 'ideas')
   } catch {
     throw new Error("We couldn't mark it as read. Please try again.")
   }
@@ -144,7 +150,7 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
   if (dropping) return
   const ideaId = draft.data.value?.ideaId
   const note = queryClient
-    .getQueryData<IdeaNote[]>(['notes', props.profileId, ideaId])
+    .getQueryData<IdeaNote[]>(queryKeys.notes(props.profileId, ideaId))
     ?.find((n) => n.id === noteId)
   dropNotice.value = ''
   dropProblem.value = ''
@@ -162,11 +168,7 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
     dropProblem.value = errorMessage(err)
   } finally {
     dropping = false
-    await Promise.all(
-      ['notes', 'idea', 'ideas', 'draft-insertions'].map((key) =>
-        queryClient.invalidateQueries({ queryKey: [key] }),
-      ),
-    )
+    await refreshNotesEverywhere(queryClient)
   }
 }
 

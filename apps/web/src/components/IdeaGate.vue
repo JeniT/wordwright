@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
 import type { Idea } from '@lfwa/core'
-import { api } from '../lib/api'
+import { useIdea } from '../lib/queries'
 
 /** Loading and error states for any page about one idea; the page itself is the slot. */
 const props = defineProps<{ profileId: string; id: string }>()
 defineSlots<{ default(props: { idea: Idea }): unknown }>()
 
-const idea = useQuery({
-  queryKey: ['idea', () => props.profileId, () => props.id],
-  queryFn: () => api.getIdea(props.profileId, props.id),
-})
+const idea = useIdea(
+  () => props.profileId,
+  () => props.id,
+)
 </script>
 
 <template>

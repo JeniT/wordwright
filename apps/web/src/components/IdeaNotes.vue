@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { useIdeaNotes } from '../lib/queries'
 import { noteOriginPhrase } from '../lib/note-label'
 import {
   hasTag,
@@ -36,25 +37,16 @@ const props = defineProps<{
   /** The page's own title already says "Notes": keep this heading for screen readers only. */
   quietHeading?: boolean
 }>()
-const queryClient = useQueryClient()
 
-const notesKey = () => ['notes', props.profileId, props.ideaId ?? 'profile']
-const notes = useQuery({
-  queryKey: ['notes', () => props.profileId, () => props.ideaId ?? 'profile'],
-  queryFn: () => api.listIdeaNotes(props.profileId, props.ideaId),
-})
-
-/**
- * A change to an idea's notes also changes the idea's "last changed" time, and its text as brainstorming sees it.
- * The profile's own notes belong to no idea, so nothing else shows them.
- */
-const refreshAround = () =>
-  props.ideaId
-    ? Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['idea', props.profileId, props.ideaId] }),
-        queryClient.invalidateQueries({ queryKey: ['ideas'] }),
-      ])
-    : Promise.resolve()
+const {
+  notes,
+  set: setNotes,
+  append: appendNote,
+  refreshIdea: refreshAround,
+} = useIdeaNotes(
+  () => props.profileId,
+  () => props.ideaId,
+)
 
 // ---- tags: a flat label on a note, and showing only the notes with one
 const usedTags = computed(() => tagsUsedOn(notes.data.value ?? []))
@@ -76,7 +68,7 @@ const add = useMutation({
   mutationFn: () => api.addIdeaNote(props.profileId, props.ideaId, draft.value),
   onSuccess: async (note) => {
     draft.value = ''
-    queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) => [...(old ?? []), note])
+    appendNote(note)
     await refreshAround()
     addBox.value?.querySelector('textarea')?.focus()
   },
@@ -116,9 +108,7 @@ const save = useMutation({
     return saved
   },
   onSuccess: async (note) => {
-    queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) =>
-      old?.map((n) => (n.id === note.id ? note : n)),
-    )
+    setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === note.id ? note : n)))
     await stopEditing()
     await refreshAround()
   },
@@ -153,7 +143,7 @@ const merge = useMutation({
   mutationFn: () => api.mergeIdeaNotes(props.profileId, props.ideaId, chosenIds.value),
   onSuccess: async (all) => {
     announcement.value = `Merged ${chosen.value.length} notes into one.`
-    queryClient.setQueryData(notesKey(), all)
+    setNotes(all)
     clearSelection()
     await refreshAround()
   },
@@ -228,7 +218,7 @@ const split = useMutation({
     ),
   onSuccess: async (all) => {
     announcement.value = 'Split the note in two.'
-    queryClient.setQueryData(notesKey(), all)
+    setNotes(all)
     editingId.value = null
     await refreshAround()
   },
@@ -246,9 +236,7 @@ function splitHere(note: IdeaNote) {
 const remove = useMutation({
   mutationFn: (id: string) => api.removeIdeaNote(props.profileId, props.ideaId, id),
   onSuccess: async (_, id) => {
-    queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) =>
-      old?.filter((n) => n.id !== id),
-    )
+    setNotes((old: IdeaNote[] | undefined) => old?.filter((n) => n.id !== id))
     if (editingId.value === id) editingId.value = null
     await refreshAround()
   },
@@ -278,7 +266,7 @@ const removeChosen = useMutation({
 const move = useMutation({
   mutationFn: (ids: string[]) => api.reorderIdeaNotes(props.profileId, props.ideaId, ids),
   onSuccess: (saved) => {
-    queryClient.setQueryData(notesKey(), saved)
+    setNotes(saved)
     void refreshAround() // in the background: nothing about the order waits on it
   },
   // The 409 says the list on screen is out of date; show the server's.

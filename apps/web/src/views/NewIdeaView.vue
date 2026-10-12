@@ -5,6 +5,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 
 const props = defineProps<{ profileId: string }>()
 const router = useRouter()
@@ -16,7 +17,7 @@ const notes = ref('')
 const create = useMutation({
   mutationFn: () => api.createIdea(props.profileId, { name: name.value, notes: notes.value }),
   onSuccess: async (idea) => {
-    await queryClient.invalidateQueries({ queryKey: ['ideas'] })
+    await invalidateRoots(queryClient, 'ideas')
     await router.push({ name: 'idea-notes', params: { profileId: props.profileId, id: idea.id } })
   },
 })

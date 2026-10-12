@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
 import ProfileGate from '../components/ProfileGate.vue'
 import StepHeading from '../components/StepHeading.vue'
-import { api } from '../lib/api'
+import { useIdeas } from '../lib/queries'
 
 /** Step 03 of a profile: choose which idea to work on next. */
 const props = defineProps<{ profileId: string }>()
-const ideas = useQuery({
-  queryKey: ['ideas', () => props.profileId],
-  queryFn: () => api.listIdeas(props.profileId),
-})
+const ideas = useIdeas(() => props.profileId)
 </script>
 
 <template>

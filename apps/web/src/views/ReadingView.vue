@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { IdeaNote } from '@lfwa/core'
 import NoteOrigin from '../components/NoteOrigin.vue'
 import NoteText from '../components/NoteText.vue'
 import SwitchField from '../components/SwitchField.vue'
 import TextAreaField from '../components/TextAreaField.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots, useIdeaNotes } from '../lib/queries'
 import { nameList, noteOriginPhrase } from '../lib/note-label'
 import { readingBackRoute, readingRoute, useReadingList } from '../lib/reading'
 
@@ -22,11 +22,14 @@ const item = computed(() => list.links.value?.find((l) => l.id === props.linkId)
 const backTo = computed(() => readingBackRoute(owner.value))
 const backLabel = '← Back to the reading list'
 
-const notesKey = () => ['notes', props.profileId, props.id ?? 'profile']
-const notes = useQuery({
-  queryKey: ['notes', () => props.profileId, () => props.id ?? 'profile'],
-  queryFn: () => api.listIdeaNotes(props.profileId, props.id ?? null),
-})
+const {
+  notes,
+  append: appendNote,
+  refreshIdea,
+} = useIdeaNotes(
+  () => props.profileId,
+  () => props.id,
+)
 /**
  * Only what was taken from this item (the idea page has all of the idea's notes), newest first: the box for a new
  * note is above them, so a note added now has to appear right under it, in sight, rather than at the bottom.
@@ -134,14 +137,9 @@ const add = useMutation({
     text.value = ''
     isQuote.value = false
     tickedByPaste.value = false
-    queryClient.setQueryData(notesKey(), (old: IdeaNote[] | undefined) => [...(old ?? []), note])
-    // A note also changes the idea's "last changed" time, and its text as brainstorming sees it. Taking one
-    // marks the item read, which the list shows too.
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['idea', props.profileId, props.id] }),
-      queryClient.invalidateQueries({ queryKey: ['reading', props.profileId] }),
-      queryClient.invalidateQueries({ queryKey: ['ideas'] }),
-    ])
+    appendNote(note)
+    // Taking a note marks the item read, which the list shows too.
+    await Promise.all([refreshIdea(), invalidateRoots(queryClient, 'reading')])
     addBox.value?.querySelector('textarea')?.focus()
   },
 })

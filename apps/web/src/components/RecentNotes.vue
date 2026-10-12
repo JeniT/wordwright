@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
-import type { IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
+import { useIdeaNotes } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import NoteText from './NoteText.vue'
 import TextAreaField from './TextAreaField.vue'
@@ -22,12 +22,14 @@ const props = defineProps<{
 }>()
 const SHOWN = 5
 
-const queryClient = useQueryClient()
-const key = () => ['notes', props.profileId, props.ideaId ?? 'profile']
-const notes = useQuery({
-  queryKey: ['notes', () => props.profileId, () => props.ideaId ?? 'profile'],
-  queryFn: () => api.listIdeaNotes(props.profileId, props.ideaId),
-})
+const {
+  notes,
+  append: appendNote,
+  refreshIdea,
+} = useIdeaNotes(
+  () => props.profileId,
+  () => props.ideaId,
+)
 // "Recent" is when a note was made; the notes page's own order is the writer's.
 const recent = computed(() =>
   [...(notes.data.value ?? [])]
@@ -40,14 +42,8 @@ const add = useMutation({
   mutationFn: () => api.addIdeaNote(props.profileId, props.ideaId, draft.value),
   onSuccess: async (note) => {
     draft.value = ''
-    queryClient.setQueryData(key(), (old: IdeaNote[] | undefined) => [...(old ?? []), note])
-    // An idea's notes also change when it was last changed, and what brainstorming sees.
-    if (props.ideaId) {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['idea', props.profileId, props.ideaId] }),
-        queryClient.invalidateQueries({ queryKey: ['ideas'] }),
-      ])
-    }
+    appendNote(note)
+    await refreshIdea()
   },
 })
 </script>
