@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import DangerZone from '../components/DangerZone.vue'
@@ -9,6 +9,8 @@ import StepHeading from '../components/StepHeading.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
+import SaveStatus from '../components/SaveStatus.vue'
+import { useSavedValue } from '../lib/forms'
 
 /** An idea's settings: its name, and deleting it. */
 const props = defineProps<{ profileId: string; id: string }>()
@@ -21,17 +23,10 @@ const idea = useIdea(
 )
 
 // Fill the form once per idea. Later refreshes must not wipe unsaved typing.
-const name = ref('')
-let filledFor = ''
-watch(
-  () => idea.data.value,
-  (loaded) => {
-    if (loaded && filledFor !== loaded.id) {
-      filledFor = loaded.id
-      name.value = loaded.name
-    }
-  },
-  { immediate: true },
+const name = useSavedValue(
+  () => idea.data.value?.name,
+  '',
+  () => idea.data.value?.id,
 )
 
 const refreshLists = () => invalidateRoots(queryClient, 'ideas')
@@ -64,14 +59,8 @@ const remove = useMutation({
       <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
       <div class="flex items-center gap-3">
         <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">Save</button>
-        <p role="status" class="meta">
-          <template v-if="save.isPending.value">Saving…</template>
-          <template v-else-if="save.isSuccess.value">Saved</template>
-        </p>
+        <SaveStatus :mutation="save" saving="Saving…" />
       </div>
-      <p v-if="save.isError.value" role="alert" class="mt-2 text-danger">
-        {{ errorMessage(save.error.value) }}
-      </p>
     </form>
 
     <DangerZone

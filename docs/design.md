@@ -331,6 +331,11 @@ later; neither is built.
 - **Not by colour alone:** errors have words and (where it fits) an icon; AI-suggested things have a label, not just
   the highlighter; the current menu item has `aria-current` and an edge, not only a tint.
 - Every async action keeps its loading, empty and error states; error text says what to do next.
+- **Saving a form:** show what happened with `SaveStatus` (`:mutation`, or an array of every mutation the form can
+  run). It says nothing while idle, "Saved" once it worked (or the words you give it, or its slot for a message that
+  says more), and the reason in a `role="alert"` if it failed. Put it beside the button (`class="basis-full"` in a
+  wrapping row puts it underneath), or above the button for a longer message. A field that starts from a saved
+  value uses `useSavedValue`, so a refresh never wipes what the person is typing.
 - **Loading a list or section:** wrap it in `QueryState` (`:query`, `what="the notes"`). It shows a quiet "Loading…",
   or "We couldn't load the notes." with a **Try again** button, and the content only once it has arrived; the empty
   state ("No notes yet.") belongs inside it. Pass `loading` to say what is loading ("Reading your feeds…") and

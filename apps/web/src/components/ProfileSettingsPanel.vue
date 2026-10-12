@@ -14,6 +14,7 @@ import ImageField from './ImageField.vue'
 import ProfileImage from './ProfileImage.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
 import TextField from './TextField.vue'
+import SaveStatus from './SaveStatus.vue'
 
 /** Mount with a key per profile: the form starts from the profile as it is on arrival. */
 const props = defineProps<{ profile: Profile }>()
@@ -109,16 +110,11 @@ const deleteProfile = useMutation({
           autocomplete="off"
           hint="Where it gets published, for example https://yourname.substack.com. Leave empty for none."
         />
-        <p v-if="saveDetails.isError.value" role="alert" class="mb-3 text-danger">
-          {{ errorMessage(saveDetails.error.value) }}
-        </p>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <button type="submit" class="btn btn-primary" :disabled="saveDetails.isPending.value">
             {{ saveDetails.isPending.value ? 'Saving…' : 'Save details' }}
           </button>
-          <p v-if="saveDetails.isSuccess.value" role="status" class="text-sm text-ink-soft">
-            Saved
-          </p>
+          <SaveStatus :mutation="saveDetails" class="basis-full" />
         </div>
       </form>
       <dl v-else class="text-sm">

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
 import { ref } from 'vue'
-import { api, errorMessage } from '../lib/api'
+import { api } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import TextField from './TextField.vue'
+import SaveStatus from './SaveStatus.vue'
 
 const session = useSessionStore()
 
@@ -46,14 +47,11 @@ const change = useMutation({
         autocomplete="current-password"
         required
       />
-      <p v-if="change.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(change.error.value) }}
-      </p>
-      <p v-if="change.isSuccess.value" role="status" class="mb-3 text-sm">
+      <SaveStatus :mutation="change" class="mb-3">
         We've emailed a link to <strong>{{ sentTo }}</strong
         >. Open it within 24 hours to finish. Until then you still sign in with
         {{ session.user.email }}.
-      </p>
+      </SaveStatus>
       <button type="submit" class="btn btn-primary" :disabled="change.isPending.value">
         Email me a link to confirm
       </button>

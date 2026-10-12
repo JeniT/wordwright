@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { BRAINSTORM_PROMPT_MAX } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
-import { api, errorMessage } from '../lib/api'
+import { computed, ref } from 'vue'
+import { api } from '../lib/api'
 import ConfirmDialog from './ConfirmDialog.vue'
 import TextAreaField from './TextAreaField.vue'
 import QueryState from './QueryState.vue'
+import SaveStatus from './SaveStatus.vue'
+import { useSavedValue } from '../lib/forms'
 
 const queryClient = useQueryClient()
 const settings = useQuery({
@@ -14,14 +16,7 @@ const settings = useQuery({
 })
 
 // What's in the box. It follows the saved prompt until the person starts typing.
-const text = ref('')
-watch(
-  () => settings.data.value,
-  (saved) => {
-    if (saved) text.value = saved.prompt
-  },
-  { immediate: true },
-)
+const text = useSavedValue(() => settings.data.value?.prompt, '')
 const edited = computed(() => !!settings.data.value && text.value !== settings.data.value.prompt)
 const isDefault = computed(() => settings.data.value?.isDefault ?? true)
 const status = ref('')
@@ -92,9 +87,6 @@ const hint = computed(
           :maxlength="BRAINSTORM_PROMPT_MAX"
           :hint="hint"
         />
-        <p v-if="save.isError.value || reset.isError.value" role="alert" class="mb-3 text-danger">
-          {{ errorMessage(save.error.value ?? reset.error.value) }}
-        </p>
         <div class="flex flex-wrap items-center gap-3">
           <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || !edited">
             {{ save.isPending.value ? 'Saving…' : 'Save' }}
@@ -107,7 +99,7 @@ const hint = computed(
           >
             Reset to default
           </button>
-          <p role="status" class="text-sm text-ink-soft">{{ status }}</p>
+          <SaveStatus :mutation="[save, reset]" :text="status" class="basis-full" />
         </div>
       </form>
     </QueryState>

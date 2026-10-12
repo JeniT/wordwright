@@ -1,19 +1,14 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
-import { api, errorMessage } from '../lib/api'
+import { api } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import TextField from './TextField.vue'
+import SaveStatus from './SaveStatus.vue'
+import { useSavedValue } from '../lib/forms'
 
 const session = useSessionStore()
-const name = ref(session.user?.name ?? '')
 // Follows the account if it is loaded after this section appears, or changed elsewhere.
-watch(
-  () => session.user?.name,
-  (current) => {
-    if (current !== undefined) name.value = current
-  },
-)
+const name = useSavedValue(() => session.user?.name, '')
 
 const save = useMutation({
   mutationFn: () => api.changeName(name.value),
@@ -37,13 +32,10 @@ const save = useMutation({
         :maxlength="100"
         required
       />
-      <p v-if="save.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(save.error.value) }}
-      </p>
-      <p v-if="save.isSuccess.value" role="status" class="mb-3 text-sm">
+      <SaveStatus :mutation="save" class="mb-3">
         Saved. People now see <strong>{{ session.user.name }}</strong
         >.
-      </p>
+      </SaveStatus>
       <button
         type="submit"
         class="btn btn-primary"

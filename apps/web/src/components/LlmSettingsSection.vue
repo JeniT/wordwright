@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
-import { api, errorMessage } from '../lib/api'
+import { ref } from 'vue'
+import { api } from '../lib/api'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import TextField from './TextField.vue'
+import SaveStatus from './SaveStatus.vue'
+import { useSavedValue } from '../lib/forms'
 
 const props = defineProps<{
   /** First-time setup: step-by-step instructions, and just the key field (the default model is used). */
@@ -16,15 +18,8 @@ const emit = defineEmits<{ saved: [] }>()
 const queryClient = useQueryClient()
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
 // A valid default, so the form can never submit an empty model before settings arrive.
-const model = ref<string>(DEFAULT_LLM_MODEL.anthropic)
+const model = useSavedValue<string>(() => llm.data.value?.model, DEFAULT_LLM_MODEL.anthropic)
 const apiKey = ref('')
-watch(
-  () => llm.data.value,
-  (settings) => {
-    if (settings) model.value = settings.model
-  },
-  { immediate: true },
-)
 const saveLlm = useMutation({
   mutationFn: () =>
     api.saveLlmSettings({
@@ -128,10 +123,7 @@ const removeLlmKey = useMutation({
         autocomplete="off"
         :required="!llm.data.value?.hasKey"
       />
-      <p v-if="saveLlm.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(saveLlm.error.value) }}
-      </p>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"
           class="btn btn-primary"
@@ -149,7 +141,7 @@ const removeLlmKey = useMutation({
         >
           <Icon name="remove" />
         </HoldButton>
-        <p v-if="saveLlm.isSuccess.value" role="status" class="text-sm text-ink-soft">Saved</p>
+        <SaveStatus :mutation="[saveLlm, removeLlmKey]" saved="Saved" class="basis-full" />
       </div>
     </form>
   </section>

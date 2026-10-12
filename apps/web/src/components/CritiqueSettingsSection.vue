@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { CRITIQUE_ROUNDS_DEFAULT, CRITIQUE_ROUNDS_MAX, CRITIQUE_ROUNDS_MIN } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import SaveStatus from './SaveStatus.vue'
+import { useSavedValue } from '../lib/forms'
 
 const queryClient = useQueryClient()
 const settings = useQuery({
@@ -10,14 +11,7 @@ const settings = useQuery({
   queryFn: () => api.getCritiqueSettings(),
 })
 // A valid default, so the form can never submit nothing before the setting arrives.
-const rounds = ref(CRITIQUE_ROUNDS_DEFAULT)
-watch(
-  () => settings.data.value,
-  (saved) => {
-    if (saved) rounds.value = saved.rounds
-  },
-  { immediate: true },
-)
+const rounds = useSavedValue(() => settings.data.value?.rounds, CRITIQUE_ROUNDS_DEFAULT)
 const choices = Array.from(
   { length: CRITIQUE_ROUNDS_MAX - CRITIQUE_ROUNDS_MIN + 1 },
   (_, i) => CRITIQUE_ROUNDS_MIN + i,
@@ -53,10 +47,7 @@ const save = useMutation({
           </option>
         </select>
       </div>
-      <p v-if="save.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(save.error.value) }}
-      </p>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"
           class="btn btn-primary"
@@ -64,7 +55,7 @@ const save = useMutation({
         >
           Save
         </button>
-        <p v-if="save.isSuccess.value" role="status" class="text-sm text-ink-soft">Saved</p>
+        <SaveStatus :mutation="save" class="basis-full" />
       </div>
     </form>
   </section>

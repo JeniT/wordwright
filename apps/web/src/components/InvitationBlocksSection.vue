@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { api, errorMessage } from '../lib/api'
+import { api } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
+import SaveStatus from './SaveStatus.vue'
 
 const session = useSessionStore()
 const queryClient = useQueryClient()
@@ -67,7 +68,7 @@ const unblock = useMutation({
             <span>{{ sender.name }}</span>
             <button
               type="button"
-              class="rounded-ctl border border-accent px-3 py-1 text-accent disabled:opacity-60"
+              class="btn btn-outline btn-sm"
               :disabled="unblock.isPending.value"
               :aria-label="`Unblock ${sender.name}`"
               @click="unblock.mutate(sender.id)"
@@ -76,12 +77,7 @@ const unblock = useMutation({
             </button>
           </li>
         </ul>
-        <p v-if="setAll.isError.value" role="alert" class="mt-2 text-sm text-danger">
-          {{ errorMessage(setAll.error.value) }}
-        </p>
-        <p v-if="unblock.isError.value" role="alert" class="mt-2 text-sm text-danger">
-          {{ errorMessage(unblock.error.value) }}
-        </p>
+        <SaveStatus :mutation="[setAll, unblock]" saved="" class="mt-2" />
       </template>
     </QueryState>
   </section>

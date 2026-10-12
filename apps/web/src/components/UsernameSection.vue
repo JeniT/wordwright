@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
-import { api, errorMessage } from '../lib/api'
+import { api } from '../lib/api'
 import { useUsernameCheck } from '../lib/useUsernameCheck'
 import { useSessionStore } from '../stores/session'
 import TextField from './TextField.vue'
+import SaveStatus from './SaveStatus.vue'
 
 /** `prompt`: shown once on the landing page to someone given a generated username, who may keep it. */
 defineProps<{ prompt?: boolean }>()
@@ -56,13 +57,12 @@ const save = useMutation({
         :hint="hint"
         :invalid="invalid"
       />
-      <p v-if="save.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(save.error.value) }}
-      </p>
-      <p v-if="save.isSuccess.value && !prompt" role="status" class="mb-3 text-sm">
-        Your username is now <strong>{{ savedAs }}</strong
-        >.
-      </p>
+      <SaveStatus :mutation="save" :saved="prompt ? '' : 'Saved'" class="mb-3">
+        <template v-if="!prompt">
+          Your username is now <strong>{{ savedAs }}</strong
+          >.
+        </template>
+      </SaveStatus>
       <div class="flex flex-wrap gap-2">
         <button
           type="submit"
