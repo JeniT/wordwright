@@ -313,6 +313,19 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
     (await sources.getByRole('listitem').allInnerTexts()).map((t) => t.match(/\w+\.example/)![0])
   expect(await hosts()).toEqual(['one.example', 'two.example', 'three.example'])
 
+  // Each move is saved; the next step waits for the saves to be answered, because the list draws again when one is,
+  // and that must not happen in the middle of a drag, or while the slow-server route below is being set up.
+  let saving = 0
+  const isSave = (r: { method(): string; url(): string }) =>
+    r.method() === 'PUT' && r.url().includes('/sources/order')
+  page.on('request', (r) => isSave(r) && saving++)
+  page.on('requestfinished', (r) => isSave(r) && saving--)
+  page.on('requestfailed', (r) => isSave(r) && saving--)
+  const savesAnswered = async () => {
+    await expect.poll(() => saving).toBe(0)
+    await page.waitForLoadState('networkidle')
+  }
+
   // Reordering works from the keyboard and keeps focus on the moved source.
   const up = sources.getByRole('button', { name: 'Move Feed of three.example up' })
   await expect(up).toHaveCount(0) // the arrows appear when a feed's grip is pressed
@@ -323,6 +336,8 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
   await expect(up).toBeFocused() // still on the source that moved, so Enter can move it again
   await page.keyboard.press('Enter')
   await expect.poll(hosts).toEqual(['three.example', 'one.example', 'two.example'])
+
+  await savesAnswered()
 
   // ...and by dragging a source by its grip (with the list in view: the page above it is long, and a drag
   // that has to scroll partway through is not what is being tested).
@@ -336,32 +351,37 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
       targetPosition: { x: 40, y: 3 },
     })
   await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
+  await savesAnswered()
 
-  // A move shows at once, even when the server is slow to save it.
+  // A move shows at once, even when the server is slow to save it. The server is held (`release` lets it answer)
+  // rather than slowed by a timer, and only the saves that pass through the route are counted: an earlier save
+  // (the drag above) may still be answering, and must not be mistaken for one of these.
   let asked = 0
   let saved = 0
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
   await page.route('**/sources/order', async (route) => {
     asked++
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    await route.continue()
-  })
-  page.on('response', (res) => {
-    if (res.url().includes('/sources/order') && res.request().method() === 'PUT') saved++
+    await held
+    const response = await route.fetch()
+    await route.fulfill({ response })
+    saved++
   })
   await showArrowsFor(sources, 'Reorder Feed of one.example')
   await sources.getByRole('button', { name: 'Move Feed of one.example up' }).click()
-  await expect
-    .poll(hosts, { timeout: 1000 })
-    .toEqual(['two.example', 'one.example', 'three.example'])
+  await expect(async () =>
+    expect(await hosts()).toEqual(['two.example', 'one.example', 'three.example']),
+  ).toPass()
+  await expect.poll(() => asked).toBe(1)
   // Quick moves in a row show at once too, and the server is asked one at a time: the second
   // save is only sent after the first has been answered, with the order as it is by then.
   await sources.getByRole('button', { name: 'Move Feed of three.example up' }).click()
   await sources.getByRole('button', { name: 'Move Feed of three.example up' }).click()
-  await expect
-    .poll(hosts, { timeout: 1000 })
-    .toEqual(['three.example', 'two.example', 'one.example'])
+  await expect.poll(hosts).toEqual(['three.example', 'two.example', 'one.example'])
+  await page.waitForTimeout(300) // time enough for a second request to be sent, if one were going to be
   expect(asked).toBe(1)
-  await expect.poll(() => saved, { timeout: 10_000 }).toBe(2)
+  release()
+  await expect.poll(() => saved).toBe(2)
   expect(asked).toBe(2)
   expect(await hosts()).toEqual(['three.example', 'two.example', 'one.example'])
   await page.unroute('**/sources/order')
