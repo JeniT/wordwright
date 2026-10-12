@@ -164,9 +164,10 @@ function shortName(address: string) {
         </template>
         <template #actions="{ item: source }">
           <HoldButton
+            verb="Remove"
             class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
             :disabled="remove.isPending.value"
-            title="Press and hold to remove this feed"
+            title="Press and hold, or tap twice, to remove this feed"
             :aria-label="`Remove ${nameOf(source)}`"
             @confirm="remove.mutate(source)"
           >

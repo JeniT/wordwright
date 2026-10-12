@@ -82,10 +82,10 @@ const dropsOn = () => {
 /** What removing does to the writer's way back, said where they press and hold. */
 const removeHint = () =>
   props.link.origin === 'feed'
-    ? 'Press and hold to remove. It stays in the feed it came from.'
+    ? 'Press and hold, or tap twice, to remove. It stays in the feed it came from.'
     : props.link.origin === 'entered'
-      ? 'Press and hold to remove. Nothing else keeps a copy of it.'
-      : 'Press and hold to remove. You can find it again where it came from.'
+      ? 'Press and hold, or tap twice, to remove. Nothing else keeps a copy of it.'
+      : 'Press and hold, or tap twice, to remove. You can find it again where it came from.'
 function saveLink() {
   save.mutate(
     { linkId: props.link.id, url: url.value, title: title.value },
@@ -188,6 +188,7 @@ function saveLink() {
               <Icon name="edit" />
             </button>
             <HoldButton
+              verb="Remove"
               class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
               :title="removeHint()"
               :aria-label="`Remove link to ${label()}`"

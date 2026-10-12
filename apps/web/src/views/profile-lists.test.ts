@@ -981,7 +981,7 @@ describe('deleting selected notes', () => {
     expect(edit).toHaveTextContent('') // an icon, named by its label
     expect(screen.getByRole('button', { name: /^Delete note “One/ })).toHaveAttribute(
       'title',
-      'Press and hold to delete this note',
+      'Press and hold, or tap twice, to delete this note',
     )
   })
 })

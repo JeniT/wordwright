@@ -347,7 +347,7 @@ describe('reviewing what research found', () => {
     const button = article.getByRole('button', { name: /^Delete this research/ })
     expect(button).toHaveAttribute('title', expect.stringContaining('stay there'))
     await fireEvent.click(button) // no hold: it only asks to be pressed again
-    expect(await screen.findByText('Press again to confirm')).toBeInTheDocument()
+    expect(await screen.findByText('Delete?')).toBeInTheDocument()
     expect(screen.getByText('How fast bends migrate')).toBeInTheDocument()
     await fireEvent.click(button)
     await waitFor(() => expect(screen.queryByText('How fast bends migrate')).toBeNull())

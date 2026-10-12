@@ -212,8 +212,8 @@ what an action touches is always what is on screen.
 
 **Removing and deleting.** Two kinds, two controls (see [Confirming destructive actions](#confirming-destructive-actions)).
 Removing one thing that has no consequences beyond itself (a note, a reading-list item, a feed, an invitation) takes a
-press-and-hold (`HoldButton`), single or bulk (reading list: Remove; notes: Delete). Its tooltip says where to find the
-item again ("It stays in the feed it came from").
+press-and-hold (`HoldButton`). Removing several at once (the toolbar's Remove N or Delete N) asks in a dialog. A
+hold-to-confirm button's tooltip says where to find the item again ("It stays in the feed it came from").
 
 ### Confirming destructive actions
 
@@ -229,7 +229,12 @@ One rule decides which control confirms, so the same kind of act always feels th
   an API key, a research run) takes a **press-and-hold** (`HoldButton`), with no dialog.
 - **How they look:** a delete with a dialog is a **text button that says "Delete …"**; a hold-to-confirm is a **trash
   icon button** (`btn btn-sm btn-icon btn-quiet` + `Icon name="remove"`) with an `aria-label` and a tooltip that starts
-  "Press and hold to …". The two are never mixed.
+  "Press and hold, or tap twice, to …". The two are never mixed.
+- **Holding and tapping:** a `HoldButton` is confirmed either by **holding** it for 1.5 seconds (a ring fills; one
+  setting, `HOLD_MS` in `lib/hold-settings.ts`, so every button and the e2e tests agree) or by **tapping twice**: the
+  first tap turns it into its verb with a question mark ("Delete?", `verb` prop), the second goes ahead. It goes back
+  after a few seconds, when focus leaves it, or on Escape. An icon button grows to fit the word while armed. The same
+  tap is what a screen reader's activation does.
 
 **Pagination.** Notes show everything. Every other list pages client-side with `PageNav` above and below (the top one
 announces the new range; the bottom one returns you to the top of the list), five at a time (`PAGE_SIZE` in

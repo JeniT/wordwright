@@ -1,24 +1,30 @@
 <script lang="ts">
-/** How long the button must be held. One place to tune it. */
-export const HOLD_MS = 900
-/** How long after a screen reader's activation the button waits for the second one. */
+/** How long after a tap the button waits for the second one before it goes back. */
 export const ARMED_MS = 5000
 </script>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useId } from 'vue'
+import { holdDuration } from '../lib/hold-settings'
 
 /**
- * A button that asks for a deliberate act instead of a dialog: press and hold it until the ring fills.
- * Releasing early (or moving off it, or tabbing away) cancels. It works with the mouse, a finger and the
- * keyboard (hold Enter or Space). Assistive technology that "clicks" the button without holding it can't
- * hold, so for that the first click arms the button ("Press again to confirm") and a second one, within a few
- * seconds, confirms. Use it for deleting things that can't be got back.
+ * A button that asks for a deliberate act instead of a dialog, in either of two ways. Press and hold it until the
+ * ring fills (the mouse, a finger, or Enter or Space held down). Or tap it: it changes to "Delete?" (the `verb`), and
+ * a second tap, within a few seconds, goes ahead. The tap is also what assistive technology that "clicks" without
+ * holding gets. Moving off it mid-hold, tabbing away or pressing Escape cancels. Use it for removing one thing that
+ * can't be got back.
  */
-const props = withDefaults(defineProps<{ holdMs?: number; disabled?: boolean }>(), {
-  holdMs: HOLD_MS,
-  disabled: false,
-})
+const props = withDefaults(
+  defineProps<{
+    /** Overrides the app-wide hold time (`lib/hold-settings`); for tests. */
+    holdMs?: number
+    disabled?: boolean
+    /** The action in one word, for the armed button: "Delete" shows "Delete?". */
+    verb?: string
+  }>(),
+  { holdMs: undefined, disabled: false, verb: 'Confirm' },
+)
+const duration = computed(() => props.holdMs ?? holdDuration())
 const emit = defineEmits<{ confirm: [] }>()
 defineOptions({ inheritAttrs: false })
 
@@ -42,25 +48,49 @@ const motionReduced = ref(reducedMotion())
 
 function start(x: number, y: number) {
   if (props.disabled || holding.value) return
-  disarm()
   ring.value = { x, y }
   holding.value = true
   announcement.value = 'Keep holding to confirm.'
   timer = setTimeout(() => {
     finish()
+    disarm()
     announcement.value = 'Confirmed.'
     emit('confirm')
-  }, props.holdMs)
+  }, duration.value)
 }
 function finish() {
   clearTimeout(timer)
   holding.value = false
   lastHoldEvent = Date.now()
 }
+/** Gives up a hold that has not finished (moved off the button, or focus left). */
 function cancel() {
   if (!holding.value) return
   finish()
   announcement.value = 'Cancelled. Nothing was changed.'
+}
+/** A press that ended before the ring filled, or an activation with no hold at all: the first arms, the second confirms. */
+function tap() {
+  if (props.disabled) return
+  if (armed.value) {
+    disarm()
+    announcement.value = 'Confirmed.'
+    emit('confirm')
+    return
+  }
+  armed.value = true
+  announcement.value = 'Press again to confirm.'
+  armedTimer = setTimeout(() => {
+    armed.value = false
+    announcement.value = 'Cancelled. Nothing was changed.'
+  }, ARMED_MS)
+}
+/** The press or key ended: a hold that was still running was a tap. */
+function release() {
+  lastHoldEvent = Date.now() // the click that follows belongs to this press
+  if (!holding.value) return
+  finish()
+  tap()
 }
 function disarm() {
   clearTimeout(armedTimer)
@@ -80,9 +110,11 @@ function onPointerDown(event: PointerEvent) {
   button.value?.setPointerCapture?.(event.pointerId)
   start(event.clientX, event.clientY - lift(event))
 }
-function onPointerEnd() {
-  lastHoldEvent = Date.now() // the click that follows belongs to this press, even after a long hold
-  cancel()
+function onPointerEnd(event: PointerEvent) {
+  if (event.type === 'pointercancel') {
+    lastHoldEvent = Date.now()
+    cancel()
+  } else release()
 }
 function onPointerMove(event: PointerEvent) {
   if (!holding.value) return
@@ -100,6 +132,11 @@ function onPointerMove(event: PointerEvent) {
 
 // ---- keyboard: hold Enter or Space
 function onKeyDown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && armed.value) {
+    disarm()
+    announcement.value = 'Cancelled. Nothing was changed.'
+    return
+  }
   if (event.key !== 'Enter' && event.key !== ' ') return
   event.preventDefault() // no click on keyup: only a full hold counts
   if (event.repeat) return
@@ -108,28 +145,20 @@ function onKeyDown(event: KeyboardEvent) {
 }
 function onKeyUp(event: KeyboardEvent) {
   if (event.key !== 'Enter' && event.key !== ' ') return
-  lastHoldEvent = Date.now()
+  release()
+}
+function onBlur() {
   cancel()
+  disarm()
 }
 
-// ---- a click that no hold led to (assistive technology): ask twice instead
+// ---- a click that no press or key led to (assistive technology): the same as a tap
 function onClick() {
-  if (props.disabled || wasJustHeld()) return
-  if (armed.value) {
-    disarm()
-    announcement.value = 'Confirmed.'
-    emit('confirm')
-    return
-  }
-  armed.value = true
-  announcement.value = 'Press again to confirm.'
-  armedTimer = setTimeout(() => {
-    armed.value = false
-    announcement.value = 'Cancelled. Nothing was changed.'
-  }, ARMED_MS)
+  if (wasJustHeld()) return
+  tap()
 }
 
-const durationStyle = computed(() => ({ animationDuration: `${props.holdMs}ms` }))
+const durationStyle = computed(() => ({ animationDuration: `${duration.value}ms` }))
 const ringStyle = computed(() => ({ left: `${ring.value.x}px`, top: `${ring.value.y}px` }))
 </script>
 
@@ -141,6 +170,7 @@ const ringStyle = computed(() => ({ left: `${ring.value.x}px`, top: `${ring.valu
     :disabled="disabled"
     :aria-describedby="hintId"
     class="touch-none select-none [-webkit-touch-callout:none]"
+    :data-armed="armed || undefined"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerEnd"
@@ -148,10 +178,10 @@ const ringStyle = computed(() => ({ left: `${ring.value.x}px`, top: `${ring.valu
     @contextmenu.prevent
     @keydown="onKeyDown"
     @keyup="onKeyUp"
-    @blur="cancel"
+    @blur="onBlur"
     @click="onClick"
   >
-    <template v-if="armed">Press again to confirm</template>
+    <template v-if="armed">{{ verb }}?</template>
     <template v-else-if="holding && motionReduced">Keep holding…</template>
     <slot v-else />
     <span
@@ -187,8 +217,8 @@ const ringStyle = computed(() => ({ left: `${ring.value.x}px`, top: `${ring.valu
     </span>
   </button>
   <span :id="hintId" class="sr-only">
-    Press and hold to confirm. Letting go early cancels. If you can't hold, activate it once to arm
-    it and again to confirm.
+    Press and hold to confirm, or tap it once and then again within a few seconds. Moving off it
+    while holding cancels.
   </span>
   <span class="sr-only" aria-live="polite">{{ announcement }}</span>
 </template>

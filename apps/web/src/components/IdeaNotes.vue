@@ -536,9 +536,10 @@ const label = (note: IdeaNote) => {
               <Icon name="edit" />
             </button>
             <HoldButton
+              verb="Delete"
               class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
               :disabled="remove.isPending.value"
-              title="Press and hold to delete this note"
+              title="Press and hold, or tap twice, to delete this note"
               :aria-label="`Delete ${label(note)}`"
               @confirm="remove.mutate(note.id)"
             >

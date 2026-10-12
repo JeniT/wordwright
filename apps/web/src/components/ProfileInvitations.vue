@@ -91,8 +91,9 @@ const revoke = useMutation({
                 Resend
               </button>
               <HoldButton
+                verb="Revoke"
                 class="underline"
-                title="Press and hold to revoke this invitation"
+                title="Press and hold, or tap twice, to revoke this invitation"
                 :aria-label="`Revoke invitation to ${inv.email}`"
                 @confirm="revoke.mutate(inv.id)"
               >

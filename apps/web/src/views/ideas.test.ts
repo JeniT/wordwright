@@ -839,7 +839,7 @@ describe('idea page', () => {
       const button = await screen.findByRole('button', { name: /^Delete note “Erosion loops\.”/ })
       expect(button).toHaveAccessibleDescription(/Press and hold to confirm/)
       await fireEvent.click(button) // no hold: it only asks to be pressed again
-      expect(await screen.findByText('Press again to confirm')).toBeInTheDocument()
+      expect(await screen.findByText('Delete?')).toBeInTheDocument()
       expect(screen.getByText('Erosion loops.')).toBeInTheDocument()
       await fireEvent.click(button)
       await waitFor(() => expect(screen.queryByText('Erosion loops.')).toBeNull())

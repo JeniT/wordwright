@@ -1,4 +1,5 @@
 import { expect, test as base, type Page } from '@playwright/test'
+import { HOLD_MS } from '../src/lib/hold-settings'
 
 /**
  * Watches a page for problems a user would hit but a plain assertion might not notice:
@@ -65,7 +66,7 @@ export { expect }
 export async function holdToConfirm(page: Page, button: ReturnType<Page['locator']>) {
   await button.hover()
   await page.mouse.down()
-  await page.waitForTimeout(1100)
+  await page.waitForTimeout(HOLD_MS + 200)
   await page.mouse.up()
 }
 

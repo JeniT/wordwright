@@ -232,6 +232,11 @@
   min-width: 2.25rem;
   padding: 0;
 }
+/* A hold-to-confirm icon button that has been tapped shows its verb ("Delete?"), so it grows to fit. */
+.btn-icon[data-armed] {
+  width: auto;
+  padding-inline: 0.625rem;
+}
 @utility field {
   display: block;
   width: 100%;

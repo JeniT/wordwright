@@ -138,8 +138,9 @@ const deleteProfile = useMutation({
           <ImageField label="Choose a picture" @select="uploadImage.mutate($event)" />
           <HoldButton
             v-if="profile.imageUrl"
+            verb="Remove"
             class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
-            title="Press and hold to remove the picture"
+            title="Press and hold, or tap twice, to remove the picture"
             aria-label="Remove picture"
             :disabled="removeImage.isPending.value"
             @confirm="removeImage.mutate()"

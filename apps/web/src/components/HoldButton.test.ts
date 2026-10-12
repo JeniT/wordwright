@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import HoldButton, { ARMED_MS, HOLD_MS } from './HoldButton.vue'
+import { HOLD_MS } from '../lib/hold-settings'
+import HoldButton, { ARMED_MS } from './HoldButton.vue'
 
 // jsdom has no PointerEvent, so give it one that carries coordinates like a real one.
 class TestPointerEvent extends MouseEvent {
@@ -17,7 +18,7 @@ window.PointerEvent ??= TestPointerEvent as unknown as typeof PointerEvent
 const setup = (props: Record<string, unknown> = {}) => {
   const onConfirm = vi.fn()
   render(HoldButton, {
-    props: { ...props, onConfirm },
+    props: { verb: 'Delete', ...props, onConfirm },
     attrs: { 'aria-label': 'Delete note “Erosion”' },
     slots: { default: 'Delete' },
   })
@@ -56,9 +57,14 @@ describe('holding with the pointer', () => {
     await release(button)
     expect(onConfirm).toHaveBeenCalledTimes(1)
     expect(button).toHaveTextContent('Delete')
+    expect(button).not.toHaveTextContent('Delete?')
   })
 
-  it('does nothing when let go early, and says so', async () => {
+  it('takes a hold of 1.5 seconds, the app-wide setting', () => {
+    expect(HOLD_MS).toBe(1500)
+  })
+
+  it('does not confirm when let go early: it arms instead, and says so', async () => {
     const { button, onConfirm } = setup()
     await press(button)
     await vi.advanceTimersByTimeAsync(HOLD_MS / 2)
@@ -66,8 +72,8 @@ describe('holding with the pointer', () => {
     await vi.advanceTimersByTimeAsync(HOLD_MS * 2)
     expect(onConfirm).not.toHaveBeenCalled()
     expect(screen.queryByTestId('hold-ring')).toBeNull()
-    expect(announced()).toBe('Cancelled. Nothing was changed.')
-    expect(button).toHaveTextContent('Delete') // and the click that followed did not arm it
+    expect(announced()).toBe('Press again to confirm.')
+    expect(button).toHaveTextContent('Delete?') // and the click that followed did not also confirm
   })
 
   it('cancels when the pointer moves off the button, and follows it while on it', async () => {
@@ -137,17 +143,22 @@ describe('holding with the keyboard', () => {
     },
   )
 
-  it('does nothing for a quick press, or when focus moves away mid-hold', async () => {
+  it('arms on a quick press, confirms on the next, and does nothing when focus moves away mid-hold', async () => {
     const { button, onConfirm } = setup()
     await fireEvent.keyDown(button, { key: 'Enter' })
     await fireEvent.keyUp(button, { key: 'Enter' })
     await fireEvent.click(button) // browsers click on Enter/Space; the hold's own handling prevents it
-    expect(button).toHaveTextContent('Delete')
+    expect(button).toHaveTextContent('Delete?')
+    expect(onConfirm).not.toHaveBeenCalled()
+    await fireEvent.keyDown(button, { key: ' ' })
+    await fireEvent.keyUp(button, { key: ' ' })
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+    expect(button).not.toHaveTextContent('Delete?')
 
     await fireEvent.keyDown(button, { key: ' ' })
     await fireEvent.blur(button)
     await vi.advanceTimersByTimeAsync(HOLD_MS * 2)
-    expect(onConfirm).not.toHaveBeenCalled()
+    expect(onConfirm).toHaveBeenCalledTimes(1)
     expect(announced()).toBe('Cancelled. Nothing was changed.')
   })
 
@@ -158,31 +169,69 @@ describe('holding with the keyboard', () => {
   })
 })
 
-describe('for people who cannot hold (assistive technology activating the button)', () => {
-  it('asks twice: a first activation arms it, a second one confirms', async () => {
+describe('tapping twice, instead of holding', () => {
+  it('a tap arms the button, saying the verb; a second tap confirms', async () => {
     const { button, onConfirm } = setup()
-    await fireEvent.click(button)
+    await press(button)
+    await release(button)
     expect(onConfirm).not.toHaveBeenCalled()
-    expect(button).toHaveTextContent('Press again to confirm')
+    expect(button).toHaveTextContent('Delete?')
+    expect(button).toHaveAttribute('data-armed')
     expect(announced()).toBe('Press again to confirm.')
-    await fireEvent.click(button)
+    await press(button)
+    await release(button)
     expect(onConfirm).toHaveBeenCalledTimes(1)
-    expect(button).toHaveTextContent('Delete')
+    expect(button).not.toHaveTextContent('Delete?')
+    expect(button).not.toHaveAttribute('data-armed')
   })
 
-  it('disarms itself if the second activation does not come', async () => {
+  it('says the verb it was given', async () => {
+    const { button } = setup({ verb: 'Revoke' })
+    await fireEvent.click(button)
+    expect(button).toHaveTextContent('Revoke?')
+  })
+
+  it('goes back if the second tap does not come, if focus moves away, or on Escape', async () => {
     const { button, onConfirm } = setup()
     await fireEvent.click(button)
     await vi.advanceTimersByTimeAsync(ARMED_MS)
     expect(button).toHaveTextContent('Delete')
+    expect(button).not.toHaveTextContent('Delete?')
     expect(announced()).toBe('Cancelled. Nothing was changed.')
+
+    await fireEvent.click(button)
+    await fireEvent.blur(button)
+    expect(button).not.toHaveTextContent('Delete?')
+
+    await fireEvent.click(button)
+    await fireEvent.keyDown(button, { key: 'Escape' })
+    expect(button).not.toHaveTextContent('Delete?')
     await fireEvent.click(button) // arms again rather than confirming
     expect(onConfirm).not.toHaveBeenCalled()
+  })
+
+  it('does not arm when the pointer moved off the button before letting go', async () => {
+    const { button } = setup()
+    button.getBoundingClientRect = () =>
+      ({ left: 0, right: 100, top: 0, bottom: 30, width: 100, height: 30 }) as DOMRect
+    await press(button)
+    await fireEvent.pointerMove(button, { clientX: 140, clientY: 10 })
+    await release(button)
+    expect(button).not.toHaveTextContent('Delete?')
+  })
+
+  it('does nothing when disabled', async () => {
+    const { button, onConfirm } = setup({ disabled: true })
+    await fireEvent.click(button)
+    await fireEvent.click(button)
+    expect(onConfirm).not.toHaveBeenCalled()
+    expect(button).not.toHaveTextContent('Delete?')
   })
 
   it('says how to use it, to whoever focuses it', () => {
     const { button } = setup()
     expect(button).toHaveAccessibleDescription(/Press and hold to confirm/)
+    expect(button).toHaveAccessibleDescription(/tap it once and then again/)
   })
 })
 
