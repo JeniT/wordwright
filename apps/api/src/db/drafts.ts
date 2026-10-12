@@ -3,6 +3,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import type { Draft, DraftInput, DraftInsertion, NoteOrigin } from '@lfwa/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
+import { reorder } from './ordering'
 
 /** Drafts are always accessed through their profile; callers check membership first. Each develops an idea. */
 export class DraftStore {
@@ -114,12 +115,7 @@ export class DraftStore {
     const current = (
       this.db.prepare('SELECT id FROM drafts WHERE idea_id = ?').all(ideaId) as { id: string }[]
     ).map((row) => row.id)
-    if (ids.length !== current.length || new Set(ids).size !== ids.length) return false
-    const known = new Set(current)
-    if (!ids.every((id) => known.has(id))) return false
-    const update = this.db.prepare('UPDATE drafts SET position = ? WHERE idea_id = ? AND id = ?')
-    ids.forEach((id, position) => update.run(position, ideaId, id))
-    return true
+    return reorder(this.db, 'drafts', { sql: 'idea_id = ?', args: [ideaId] }, current, ids)
   }
 
   delete(profileId: string, id: string): boolean {

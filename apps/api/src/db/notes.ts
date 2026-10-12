@@ -3,6 +3,7 @@ import type { DatabaseSync, SQLOutputValue } from 'node:sqlite'
 import type { IdeaNote, NoteOrigin } from '@lfwa/core'
 import { nowIso } from './database'
 import { owned, type Owner } from './owner'
+import { renumber, reorder } from './ordering'
 
 type Row = Record<string, SQLOutputValue>
 
@@ -188,11 +189,7 @@ export class NoteStore {
    */
   reorder(owner: Owner, ids: string[]): boolean {
     const current = this.list(owner).map((n) => n.id)
-    if (ids.length !== current.length || new Set(ids).size !== ids.length) return false
-    const known = new Set(current)
-    if (!ids.every((id) => known.has(id))) return false
-    this.renumber(owner, ids)
-    return true
+    return reorder(this.db, 'idea_notes', owned(owner), current, ids)
   }
 
   /** Replaces every note with notes holding `texts`, in order (`entered` unless said otherwise). Transitional: see `Idea.notes`. */
@@ -259,8 +256,6 @@ export class NoteStore {
   }
 
   private renumber(owner: Owner, ids: string[]) {
-    const w = owned(owner)
-    const update = this.db.prepare(`UPDATE idea_notes SET position = ? WHERE ${w.sql} AND id = ?`)
-    ids.forEach((id, position) => update.run(position, ...w.args, id))
+    renumber(this.db, 'idea_notes', owned(owner), ids)
   }
 }

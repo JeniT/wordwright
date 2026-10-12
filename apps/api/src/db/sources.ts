@@ -9,6 +9,7 @@ import type {
   Source,
 } from '@lfwa/core'
 import { nowIso } from './database'
+import { renumber, reorder } from './ordering'
 
 export interface SourceIcon {
   contentType: IconType
@@ -191,20 +192,16 @@ export class SourceStore {
    */
   reorder(profileId: string, ids: string[]): boolean {
     const current = this.list(profileId).map((s) => s.id)
-    if (ids.length !== current.length || new Set(ids).size !== ids.length) return false
-    const known = new Set(current)
-    if (!ids.every((id) => known.has(id))) return false
-    this.renumber(profileId, ids)
-    return true
+    return reorder(this.db, TABLE, scopeOf(profileId), current, ids)
   }
 
   private renumber(profileId: string, ids: string[]) {
-    const update = this.db.prepare(
-      'UPDATE profile_sources SET position = ? WHERE profile_id = ? AND id = ?',
-    )
-    ids.forEach((id, position) => update.run(position, profileId, id))
+    renumber(this.db, TABLE, scopeOf(profileId), ids)
   }
 }
+
+const TABLE = 'profile_sources'
+const scopeOf = (profileId: string) => ({ sql: 'profile_id = ?', args: [profileId] })
 
 function toSource(profileId: string, r: Row): Source {
   return {

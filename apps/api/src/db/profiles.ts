@@ -47,7 +47,8 @@ export class ProfileStore {
   /**
    * Changes only the fields that are present; `siteUrl: null` clears the link. Renaming also
    * renames the profile's id (see `profileIdFor`), leaving the old id as an alias. Returns the
-   * profile's id afterwards, which callers must use from then on.
+   * profile's id afterwards, which callers must use from then on. Call inside a transaction: it makes several
+   * writes, and the id changes in every table that points at the profile or in none.
    */
   update(id: string, changes: { name?: string; siteUrl?: string | null }): string {
     if (changes.siteUrl !== undefined) {
@@ -80,32 +81,21 @@ export class ProfileStore {
 
     // Every table that points at a profile, so the id changes everywhere at once or not at all.
     // A new table with a `profile_id` must be added to this list (a rename test covers each one).
-    this.db.exec('BEGIN')
-    try {
-      this.db.exec('PRAGMA defer_foreign_keys = ON')
-      this.db.prepare('DELETE FROM profile_aliases WHERE old_id = ?').run(next)
-      this.db
-        .prepare('UPDATE profile_aliases SET profile_id = ? WHERE profile_id = ?')
-        .run(next, id)
-      this.db
-        .prepare('INSERT INTO profile_aliases (old_id, profile_id) VALUES (?, ?)')
-        .run(id, next)
-      for (const [table, column] of [
-        ['profiles', 'id'],
-        ['profile_members', 'profile_id'],
-        ['profile_images', 'profile_id'],
-        ['drafts', 'profile_id'],
-        ['ideas', 'profile_id'],
-        ['idea_notes', 'profile_id'],
-        ['invitations', 'profile_id'],
-        ['profile_sources', 'profile_id'],
-      ]) {
-        this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(next, id)
-      }
-      this.db.exec('COMMIT')
-    } catch (err) {
-      this.db.exec('ROLLBACK')
-      throw err
+    this.db.exec('PRAGMA defer_foreign_keys = ON') // until the transaction ends, when every reference must hold
+    this.db.prepare('DELETE FROM profile_aliases WHERE old_id = ?').run(next)
+    this.db.prepare('UPDATE profile_aliases SET profile_id = ? WHERE profile_id = ?').run(next, id)
+    this.db.prepare('INSERT INTO profile_aliases (old_id, profile_id) VALUES (?, ?)').run(id, next)
+    for (const [table, column] of [
+      ['profiles', 'id'],
+      ['profile_members', 'profile_id'],
+      ['profile_images', 'profile_id'],
+      ['drafts', 'profile_id'],
+      ['ideas', 'profile_id'],
+      ['idea_notes', 'profile_id'],
+      ['invitations', 'profile_id'],
+      ['profile_sources', 'profile_id'],
+    ]) {
+      this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(next, id)
     }
     return next
   }

@@ -87,7 +87,10 @@ export function profileRoutes({
       )
 
       .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), (c) => {
-        const id = store.profiles.update(param(c, 'profileId'), c.req.valid('json'))
+        // One transaction: the name, the website and the new address change together or not at all.
+        const id = store.transaction(() =>
+          store.profiles.update(param(c, 'profileId'), c.req.valid('json')),
+        )
         return c.json(store.profiles.get(id, c.get('user').id))
       })
 
