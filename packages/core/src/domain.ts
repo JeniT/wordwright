@@ -158,6 +158,8 @@ export const ProfileSchema = z.object({
   descriptionConfirmed: z.boolean(),
   /** The posts an inferred description was drawn from, as evidence. Empty for one a person wrote. */
   descriptionSources: z.array(z.string()),
+  /** True once a person has changed an AI draft's words: it is still marked as drafted by AI, "and edited". */
+  descriptionEdited: z.boolean().default(false),
   /** The current user's role in this profile. */
   role: ProfileRoleSchema,
   members: z.array(ProfileMemberSchema),

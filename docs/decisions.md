@@ -117,7 +117,7 @@ Everyone who works in the profile can edit it, so it has its own route (`PUT /ap
 instead of the owner-only `PATCH`. The row also stores `description_origin` (`entered` or `inferred`),
 `description_confirmed` and `description_sources` (a JSON list of links), unused until an AI-drafted description exists
 (#135, #136): a draft will show its evidence and stay out of prompts until a person accepts it (docs/responsible-ai.md,
-origin follows the text). A hand-written save always sets `entered`, confirmed, no sources.
+origin follows the text). A save of a person's own words is `entered`, confirmed, no sources; saving over an AI draft keeps its origin (see #136 below).
 
 ## The venue description is context for brainstorm, critique and research (#133, part of #27)
 
@@ -152,7 +152,7 @@ taglines, bios, advice and writing for the venue). Nothing is spent until the bu
 - **Saved as a draft**: origin `inferred`, `description_confirmed = 0`, the addresses as sources. Until confirmed
   (`POST …/description/confirm`) it is shown to the writer but never sent to any model (#133: a test proves the
   brainstorm snapshot omits it, then includes it after confirming). Confirming keeps `inferred` and the sources, so the
-  AI origin stays visible; writing over it by hand (`PUT …/description`) makes it the writer's own, unmarked.
+  AI origin stays visible. (Changed in #136: a person's changes to a draft no longer make it "theirs"; see below.)
 - **Not overwriting** someone's own words: a venue whose description was written by a person answers 409 unless
   `replace: true`. A draft over an earlier draft needs no confirmation.
 - **Capped**: 5 drafts an hour per profile, on top of the shared per-person allowance for fetching posts, so the way
@@ -161,6 +161,28 @@ taglines, bios, advice and writing for the venue). Nothing is spent until the bu
 - **What leaves the system**: the fetched text of the chosen posts (up to 8000 characters each), to the writer's own
   provider. **Boundary evals** (`evals/`): describes only what the posts show; says when evidence is thin; no
   demographic guesses about readers; says when posts differ; ignores instructions planted in a post.
+
+## Describing a venue: an optional page, and the origin follows the words (#136, part of #27)
+
+The flow is its own page, `/p/:profileId/describe` ("Describe this venue"), in two steps that are both skippable:
+**choose posts** (the picker from #134: the venue's recent posts and/or pasted links, from this venue or similar ones)
+and **Draft a description**, or **Write it myself**; then **read, change and use it**. It is reached from the new-profile form
+(**Create and describe it**), from the profile page's invitation, and from the profile settings, so it can be done later.
+
+- **Opt-in beside "Create profile", not a step in the way.** The first plan put it between creating and arriving. It
+  is a second button instead: describing is optional, and a forced extra screen would have been the default for every
+  profile (and for 25 existing tests). Making it the default later is a one-line change.
+- **Plain words about what is sent** sit above the picker: the text of the chosen posts goes to the writer's own
+  provider, with their own key, only when **Draft a description** is pressed. Visiting costs nothing.
+- **Marked as the AI's, with evidence, until accepted.** `DescriptionOrigin` shows the "AI draft" mark (the highlighter,
+  which is for exactly this), the posts it was drawn from, and what has happened to it: not accepted yet (the assistant
+  does not see it), accepted as it was, or edited. It appears on the draft review, the profile page and the settings.
+  **Use this description** on an untouched draft calls `…/description/confirm`; with changes it saves them.
+- **Origin follows the text, so edits keep the mark.** A person's changes to an AI draft no longer turn it into "their
+  own words" (the #131/#135 behaviour): the origin stays `inferred`, the sources stay, and `description_edited` becomes
+  true. Saving counts as accepting it. Clearing the description starts again from nothing (entered, no sources, not
+  edited), and a new draft resets "edited". A description written from scratch is never marked.
+- **Leaving without accepting** keeps the draft, unused. The profile page invites the writer to read it and decide.
 
 ## Sample posts for describing a venue: found and read without AI, kept nowhere (#134, part of #27)
 

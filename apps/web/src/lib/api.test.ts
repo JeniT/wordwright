@@ -47,6 +47,7 @@ describe('api client', () => {
       descriptionOrigin: 'entered',
       descriptionConfirmed: true,
       descriptionSources: [],
+      descriptionEdited: false,
       role: 'owner',
       members: [],
     }

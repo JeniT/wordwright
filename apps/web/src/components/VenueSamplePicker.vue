@@ -15,7 +15,18 @@ type ReadSample = Extract<VenueSample, { ok: true }>
  * for buttons, and nothing is stored. When the posts have been read, **Use these posts** hands the ones that could
  * be read to whatever is drafting the description.
  */
-const props = defineProps<{ profileId: string; siteUrl: string | null }>()
+const props = withDefaults(
+  defineProps<{
+    profileId: string
+    siteUrl: string | null
+    /** What the final button says; where it leads on (drafting, say) the page names it. */
+    useLabel?: string
+    /** True while whatever `use` started is working: the final button waits, saying `busyLabel`. */
+    busy?: boolean
+    busyLabel?: string
+  }>(),
+  { useLabel: 'Use these posts', busy: false, busyLabel: 'Working…' },
+)
 const emit = defineEmits<{ use: [samples: ReadSample[]] }>()
 
 const chosen = ref<string[]>([])
@@ -111,7 +122,7 @@ const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length
         v-model="pasted"
         label="Post links"
         :rows="4"
-        hint="One link on each line, to posts that show what the venue is like."
+        hint="One link on each line. They can be from this venue or from similar ones: handy when yours is new and has few posts."
       />
     </section>
 
@@ -163,10 +174,10 @@ const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length
         <button
           type="button"
           class="btn btn-primary mt-3"
-          :disabled="!readable.length"
+          :disabled="!readable.length || busy"
           @click="emit('use', readable)"
         >
-          Use these posts
+          {{ busy ? busyLabel : useLabel }}
         </button>
         <p v-if="!readable.length" class="mt-2 text-sm text-ink-soft">
           None of those could be read. Change the links above and read them again.

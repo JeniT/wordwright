@@ -19,6 +19,8 @@ const image = ref<File>()
 const preview = ref<string>()
 /** Set once the profile exists, so a failed picture upload doesn't lead to a duplicate profile. */
 const createdId = ref<string>()
+/** Where to go once it exists: its page, or on to describing it (an optional step, so it is a choice). */
+const next = ref<'profile' | 'describe'>('profile')
 
 function pick(file: File) {
   if (preview.value) URL.revokeObjectURL(preview.value)
@@ -46,7 +48,10 @@ const create = useMutation({
   },
   onSuccess: async (id) => {
     await queryClient.invalidateQueries({ queryKey: ['profiles'] })
-    await router.push({ name: 'profile', params: { profileId: id } })
+    await router.push({
+      name: next.value === 'describe' ? 'describe-venue' : 'profile',
+      params: { profileId: id },
+    })
   },
   // Even if the picture failed, the profile now exists and should appear in lists.
   onError: () => queryClient.invalidateQueries({ queryKey: ['profiles'] }),
@@ -61,7 +66,7 @@ const create = useMutation({
     <h1 id="new-profile-heading" class="mb-1 font-display text-2xl font-semibold">New profile</h1>
     <p class="mb-6 text-ink-soft">
       A profile is a place you publish, like a Substack or a blog. Its ideas, readers and drafts
-      live together.
+      live together. You can describe it as you create it, or later.
     </p>
 
     <form @submit.prevent="create.mutate()">
@@ -101,8 +106,23 @@ const create = useMutation({
         <template v-else>{{ errorMessage(create.error.value) }}</template>
       </p>
       <div class="flex items-center gap-3">
-        <button type="submit" class="btn btn-primary" :disabled="create.isPending.value">
-          {{ create.isPending.value ? 'Creating…' : 'Create profile' }}
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="create.isPending.value"
+          @click="next = 'profile'"
+        >
+          {{ create.isPending.value && next === 'profile' ? 'Creating…' : 'Create profile' }}
+        </button>
+        <button
+          type="submit"
+          class="btn btn-outline"
+          :disabled="create.isPending.value"
+          @click="next = 'describe'"
+        >
+          {{
+            create.isPending.value && next === 'describe' ? 'Creating…' : 'Create and describe it'
+          }}
         </button>
         <RouterLink to="/" class="text-sm underline">Cancel</RouterLink>
       </div>

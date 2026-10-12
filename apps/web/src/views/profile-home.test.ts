@@ -97,11 +97,11 @@ describe('a profile’s landing page', () => {
     }
     afterEach(() => vi.restoreAllMocks())
 
-    it('invites a description when there is none, linking to the settings', async () => {
+    it('invites a description when there is none, linking to where it is drafted or written', async () => {
       describedAs(null)
       await renderAt('/p/ada-substack')
       const link = await screen.findByRole('link', { name: 'Add a description' })
-      expect(link).toHaveAttribute('href', '/p/ada-substack/settings')
+      expect(link).toHaveAttribute('href', '/p/ada-substack/describe')
       expect(screen.queryByRole('button', { name: /Show/ })).toBeNull()
     })
 

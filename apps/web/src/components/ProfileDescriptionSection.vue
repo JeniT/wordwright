@@ -2,8 +2,10 @@
 import { PROFILE_DESCRIPTION_MAX, type Profile } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
+import DescriptionOrigin from './DescriptionOrigin.vue'
 import Markdown from './Markdown.vue'
 import SaveStatus from './SaveStatus.vue'
 import TextAreaField from './TextAreaField.vue'
@@ -13,7 +15,16 @@ const props = defineProps<{ profile: Profile }>()
 const queryClient = useQueryClient()
 
 const text = useSavedValue(() => props.profile.description ?? '', '')
-const changed = computed(() => text.value.trim() !== (props.profile.description ?? ''))
+/** An AI draft nobody has accepted: saving it, even unchanged, is how it is accepted. */
+const unaccepted = computed(
+  () =>
+    !!props.profile.description &&
+    props.profile.descriptionOrigin === 'inferred' &&
+    !props.profile.descriptionConfirmed,
+)
+const changed = computed(
+  () => unaccepted.value || text.value.trim() !== (props.profile.description ?? ''),
+)
 
 const save = useMutation({
   mutationFn: () => api.setProfileDescription(props.profile.id, { description: text.value }),
@@ -29,6 +40,7 @@ const save = useMutation({
       “Personal weeknotes, mostly for me”. Everyone who shares this profile can change it, and it's
       the first thing people see on the profile page.
     </p>
+    <DescriptionOrigin :profile="profile" class="mb-3" />
     <form @submit.prevent="save.mutate()">
       <TextAreaField
         v-model="text"
@@ -43,8 +55,20 @@ const save = useMutation({
       </details>
       <div class="flex flex-wrap items-center gap-3">
         <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || !changed">
-          {{ save.isPending.value ? 'Saving…' : 'Save description' }}
+          {{
+            save.isPending.value
+              ? 'Saving…'
+              : unaccepted
+                ? 'Use this description'
+                : 'Save description'
+          }}
         </button>
+        <RouterLink
+          :to="{ name: 'describe-venue', params: { profileId: profile.id } }"
+          class="link text-sm"
+        >
+          Draft it from sample posts
+        </RouterLink>
         <SaveStatus :mutation="save" class="basis-full" />
       </div>
     </form>

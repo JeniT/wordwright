@@ -34,7 +34,7 @@ const ideas = useIdeas(() => props.profileId)
       </div>
     </div>
 
-    <ProfileDescription :profile-id="profileId" :description="profile.description" />
+    <ProfileDescription :profile="profile" />
 
     <RecentPostsSummary :profile-id="profileId" :to="{ name: 'search', params: { profileId } }" />
 

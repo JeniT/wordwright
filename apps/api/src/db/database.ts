@@ -560,6 +560,10 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE profiles ADD COLUMN description_confirmed INTEGER NOT NULL DEFAULT 1;
   ALTER TABLE profiles ADD COLUMN description_sources TEXT NOT NULL DEFAULT '[]';
   `,
+  // #136: an AI draft that a person has changed keeps its origin (the words began as the AI's) and says it was edited.
+  `
+  ALTER TABLE profiles ADD COLUMN description_edited INTEGER NOT NULL DEFAULT 0;
+  `,
 ]
 
 /**

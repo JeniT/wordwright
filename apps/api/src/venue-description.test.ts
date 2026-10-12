@@ -249,14 +249,58 @@ describe('confirming a draft', () => {
     expect(sentToCoach()).toContain(`<venue_description>\\n${DRAFT}`) // as JSON, so the newline is escaped
   })
 
-  it('goes back to the writer’s own words, unmarked, when they write over the draft', async () => {
+  it('keeps the AI origin, and says it was edited, when the writer changes a draft’s words', async () => {
+    await draft()
+    const same = await (
+      await ada.put(`/api/profiles/${id}/description`, { description: DRAFT })
+    ).json()
+    // Saving the draft as it stands is accepting it: confirmed, not edited.
+    expect(same).toMatchObject({
+      descriptionOrigin: 'inferred',
+      descriptionConfirmed: true,
+      descriptionEdited: false,
+    })
+    const edited = await (
+      await ada.put(`/api/profiles/${id}/description`, { description: 'My version.' })
+    ).json()
+    expect(edited).toMatchObject({
+      description: 'My version.',
+      descriptionOrigin: 'inferred', // the words began as the AI's
+      descriptionConfirmed: true,
+      descriptionEdited: true,
+      descriptionSources: POSTS, // and the evidence stays
+    })
+    // Edited once stays edited, even if the words go back.
+    const back = await (
+      await ada.put(`/api/profiles/${id}/description`, { description: DRAFT })
+    ).json()
+    expect(back.descriptionEdited).toBe(true)
+  })
+
+  it('starts again from nothing when the description is cleared, and a new draft is unedited', async () => {
     await draft()
     await ada.put(`/api/profiles/${id}/description`, { description: 'My version.' })
-    expect(await (await ada.get(`/api/profiles/${id}`)).json()).toMatchObject({
-      description: 'My version.',
+    const cleared = await (
+      await ada.put(`/api/profiles/${id}/description`, { description: null })
+    ).json()
+    expect(cleared).toMatchObject({
+      description: null,
       descriptionOrigin: 'entered',
-      descriptionConfirmed: true,
+      descriptionEdited: false,
       descriptionSources: [],
+    })
+    await ada.put(`/api/profiles/${id}/description`, { description: 'Typed by hand.' })
+    expect(await (await ada.get(`/api/profiles/${id}`)).json()).toMatchObject({
+      descriptionOrigin: 'entered',
+      descriptionEdited: false,
+    })
+    await ada.post(`/api/profiles/${id}/venue/description`, { urls: POSTS, replace: true })
+    await ada.put(`/api/profiles/${id}/description`, { description: 'Edited.' })
+    await ada.post(`/api/profiles/${id}/venue/description`, { urls: POSTS })
+    expect(await (await ada.get(`/api/profiles/${id}`)).json()).toMatchObject({
+      description: DRAFT,
+      descriptionConfirmed: false,
+      descriptionEdited: false,
     })
   })
 

@@ -465,12 +465,13 @@ test('shows the description at the top of the profile page, clamped with Show mo
   const about = page.getByRole('region', { name: 'About this profile' })
   await expect(about.getByRole('link', { name: 'Add a description' })).toBeVisible()
 
+  // Writing it yourself is the other way round the describe page; saving goes back to the profile.
   await about.getByRole('link', { name: 'Add a description' }).click()
+  await page.getByRole('button', { name: 'Write it myself' }).click()
   const paragraphs = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} about the venue.`)
   await page.getByLabel('About this venue').fill(paragraphs.join('\n\n'))
   await page.getByRole('button', { name: 'Save description' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Saved' }).last()).toBeVisible()
-  await page.getByRole('link', { name: '← Weeknotes' }).click()
+  await expect(page).toHaveURL(/\/p\/[^/]+$/)
 
   await expect(about.getByText('Paragraph 1 about')).toBeVisible()
   await expect(about.getByText('Paragraph 12 about')).not.toBeInViewport()
@@ -487,5 +488,69 @@ test('shows the description at the top of the profile page, clamped with Show mo
     true,
   )
   await page.emulateMedia({ colorScheme: 'dark' })
+  await noViolations(page)
+})
+
+test('drafts a description from sample posts with the AI, which is used only once it is accepted', async ({
+  page,
+}) => {
+  await registerUser(page, uniqueName('Sam'))
+  // The AI is the writer's own (any key works with the fake AI), and the draft is made only when asked for.
+  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-describe-key-1234567')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
+
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Garden notes')
+  await page.getByLabel(/Website/).fill('garden.example')
+  await page.getByRole('button', { name: 'Create and describe it' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
+  await expect(page.getByText('Nothing is sent before that.')).toBeVisible()
+  await noViolations(page)
+
+  // Choose a post from the venue's feed, and add one from a similar venue.
+  await page.getByRole('button', { name: 'Find recent posts' }).click()
+  await page.getByRole('checkbox').first().check()
+  await page
+    .getByLabel('Post links')
+    .fill('https://good.example/essay\nhttps://unreadable.example/gone')
+  await page.getByRole('button', { name: 'Read these posts' }).click()
+  const read = page.getByRole('list', { name: 'Posts read' })
+  await expect(read.getByText('couldn’t read that page')).toBeVisible()
+  await noViolations(page)
+  await page.getByRole('button', { name: 'Draft a description' }).click()
+
+  // The draft is marked as the AI's, shows where it came from and is not in use yet.
+  await expect(page.getByRole('heading', { name: 'Read it, change it, then use it' })).toBeVisible()
+  await expect(page.getByLabel('About this venue')).toHaveValue(
+    /A fake description drawn from 2 posts/,
+  )
+  await expect(page.getByText('AI draft', { exact: true })).toBeVisible()
+  await expect(page.getByText(/You have not accepted it yet/)).toBeVisible()
+  await page.getByText('The posts it was drawn from').click()
+  await expect(page.getByRole('link', { name: /good\.example\/essay/ })).toBeVisible()
+  await noViolations(page)
+
+  // Using it as it stands goes to the profile, which says what it is.
+  await page.getByRole('button', { name: 'Use this description' }).click()
+  const about = page.getByRole('region', { name: 'About this profile' })
+  await expect(about.getByText(/A fake description drawn from 2 posts/)).toBeVisible()
+  await expect(about.getByText(/Accepted by you as it was/)).toBeVisible()
+  await noViolations(page)
+
+  // Changing the words keeps the mark, and says it was edited.
+  await page.getByRole('link', { name: 'Profile settings' }).click()
+  await page.getByLabel('About this venue').fill('Garden essays, by me.')
+  await page.getByRole('button', { name: 'Save description' }).click()
+  await expect(page.getByText(/Then edited by you/)).toBeVisible()
+
+  // The same page on a phone, in dark mode.
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.getByRole('link', { name: 'Draft it from sample posts' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
   await noViolations(page)
 })

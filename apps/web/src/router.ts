@@ -147,6 +147,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'profile', step: 'ideas' },
   },
   {
+    path: '/p/:profileId/describe',
+    name: 'describe-venue',
+    component: () => import('./views/VenueDescribeView.vue'),
+    props: true,
+    meta: { level: 'profile' },
+  },
+  {
     path: '/p/:profileId/settings',
     name: 'profile-settings',
     component: () => import('./views/ProfileSettingsView.vue'),

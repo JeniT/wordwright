@@ -8,6 +8,7 @@ import {
   type LLMRequest,
   type ResearchFactory,
 } from '@lfwa/core'
+import { VENUE_DESCRIPTION_PROMPT } from '@lfwa/prompts'
 
 /** Builds a real client from a user's own credentials. */
 export const realLlmFactory: LLMFactory = ({ provider, apiKey, model }) => {
@@ -118,9 +119,21 @@ export function fakeCritiqueReply(request: LLMRequest): string {
   return JSON.stringify({ summary: 'A fake critique: one thing to look at.', ready: false, points })
 }
 
+/** The pretend describer of development and e2e runs: a short description that says which posts it was given. */
+export function fakeVenueDescription(request: LLMRequest): string {
+  const count = (request.messages.at(-1)?.content ?? '').match(/<post number=/g)?.length ?? 0
+  return `A fake description drawn from ${count} ${count === 1 ? 'post' : 'posts'}: personal essays about gardens (post 1). The posts do not say who reads them.`
+}
+
 /** For local development and e2e tests: no network, accepts any key. */
 export const fakeLlmFactory: LLMFactory = () =>
-  new FakeLLMProvider(fakeCritiqueReply, fakeBrainstormReply)
+  new FakeLLMProvider(
+    (request) =>
+      request.system === VENUE_DESCRIPTION_PROMPT
+        ? fakeVenueDescription(request)
+        : fakeCritiqueReply(request),
+    fakeBrainstormReply,
+  )
 
 /** For local development and e2e tests: three pages, one fine, one with no title, one that doesn't exist. */
 export const fakeResearchFactory: ResearchFactory = () => new FakeResearchProvider()
