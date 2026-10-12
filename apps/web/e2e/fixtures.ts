@@ -25,11 +25,46 @@ export function watchForProblems(page: Page): string[] {
   return problems
 }
 
+const settlers = new WeakMap<Page, () => Promise<void>>()
+
+/**
+ * Makes leaving a page safe after a change. The app shows a change at once and saves it in the background, so a test
+ * that sees the change and then reloads can reload before the save was answered, and find the old state. This counts
+ * the requests that change data (anything but GET) and makes `reload`, `goBack` and `goto` wait until they have been
+ * answered. It waits at most a few seconds, so a request that never ends (a streamed reply) can't hang a test.
+ */
+function trackSaves(page: Page) {
+  let saving = 0
+  const isSave = (r: { method(): string }) => !['GET', 'HEAD', 'OPTIONS'].includes(r.method())
+  page.on('request', (r) => isSave(r) && saving++)
+  page.on('requestfinished', (r) => isSave(r) && saving--)
+  page.on('requestfailed', (r) => isSave(r) && saving--)
+  const settled = async () => {
+    await expect
+      .poll(() => saving, { timeout: 5000 })
+      .toBe(0)
+      .catch(() => undefined)
+    await page.waitForLoadState('networkidle').catch(() => undefined)
+  }
+  settlers.set(page, settled)
+  for (const method of ['reload', 'goBack', 'goto'] as const) {
+    const original = page[method].bind(page) as (...args: unknown[]) => Promise<unknown>
+    ;(page as unknown as Record<string, unknown>)[method] = async (...args: unknown[]) => {
+      await settled()
+      return original(...args)
+    }
+  }
+}
+
+/** Waits until the changes the page has made have been saved (see `trackSaves`), for a step that isn't a navigation. */
+export const savesAnswered = (page: Page) => settlers.get(page)?.() ?? Promise.resolve()
+
 export const test = base.extend<{ problems: string[] }>({
   // Applies to every test automatically; the test fails if the page misbehaved.
   problems: [
     async ({ page }, use) => {
       const problems = watchForProblems(page)
+      trackSaves(page)
       await use(problems)
       expect(problems, 'browser problems').toEqual([])
     },

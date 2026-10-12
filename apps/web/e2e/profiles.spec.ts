@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, holdToConfirm, showArrowsFor, test } from './fixtures'
+import { expect, goTo, holdToConfirm, savesAnswered, showArrowsFor, test } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -313,19 +313,6 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
     (await sources.getByRole('listitem').allInnerTexts()).map((t) => t.match(/\w+\.example/)![0])
   expect(await hosts()).toEqual(['one.example', 'two.example', 'three.example'])
 
-  // Each move is saved; the next step waits for the saves to be answered, because the list draws again when one is,
-  // and that must not happen in the middle of a drag, or while the slow-server route below is being set up.
-  let saving = 0
-  const isSave = (r: { method(): string; url(): string }) =>
-    r.method() === 'PUT' && r.url().includes('/sources/order')
-  page.on('request', (r) => isSave(r) && saving++)
-  page.on('requestfinished', (r) => isSave(r) && saving--)
-  page.on('requestfailed', (r) => isSave(r) && saving--)
-  const savesAnswered = async () => {
-    await expect.poll(() => saving).toBe(0)
-    await page.waitForLoadState('networkidle')
-  }
-
   // Reordering works from the keyboard and keeps focus on the moved source.
   const up = sources.getByRole('button', { name: 'Move Feed of three.example up' })
   await expect(up).toHaveCount(0) // the arrows appear when a feed's grip is pressed
@@ -337,7 +324,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
   await page.keyboard.press('Enter')
   await expect.poll(hosts).toEqual(['three.example', 'one.example', 'two.example'])
 
-  await savesAnswered()
+  await savesAnswered(page)
 
   // ...and by dragging a source by its grip (with the list in view: the page above it is long, and a drag
   // that has to scroll partway through is not what is being tested).
@@ -351,7 +338,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
       targetPosition: { x: 40, y: 3 },
     })
   await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
-  await savesAnswered()
+  await savesAnswered(page)
 
   // A move shows at once, even when the server is slow to save it. The server is held (`release` lets it answer)
   // rather than slowed by a timer, and only the saves that pass through the route are counted: an earlier save
