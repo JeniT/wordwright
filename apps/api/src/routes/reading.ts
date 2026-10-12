@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import {
+  BulkTagInputSchema,
   IdeaLinkInputSchema,
   MoveNotesInputSchema,
   MoveReadingInputSchema,
@@ -63,6 +64,11 @@ export function profileReadingRoutes(store: Store, links: IdeaLinkService) {
           throw notFound()
         }
         return c.json(reading.list(owner(profileId)))
+      })
+      // Tags added to or taken from several items at once (all or nothing). Answers with the whole list.
+      .post('/tags', validateJson(BulkTagInputSchema), (c) => {
+        const { ids, add, remove } = c.req.valid('json')
+        return c.json(links.tagMany(scope(param(c, 'profileId')), ids, add, remove))
       })
       // The item's tags, replaced as a whole (like a note's).
       .put('/:linkId/tags', validateJson(NoteTagsInputSchema), (c) => {

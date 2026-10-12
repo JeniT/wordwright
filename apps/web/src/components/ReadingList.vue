@@ -6,6 +6,7 @@ import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
+import BulkTagPanel from './BulkTagPanel.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
 import ListToolbar from './ListToolbar.vue'
@@ -94,6 +95,38 @@ const selectPage = (on: boolean) =>
   (selected.value = on ? paging.pageItems.value.map((l) => l.id) : [])
 const selectEverything = () => (selected.value = shown.value.map((l) => l.id))
 
+// ---- tagging the selected items together
+const tagging = ref(false)
+/** The tags the selected items carry (each spelled as first met), and on how many. */
+const carried = computed(() => {
+  const counts = new Map<string, { tag: string; count: number }>()
+  for (const link of shown.value.filter((l) => selected.value.includes(l.id)))
+    for (const tag of link.tags) {
+      const entry = counts.get(tag.toLowerCase())
+      if (entry) entry.count++
+      else counts.set(tag.toLowerCase(), { tag, count: 1 })
+    }
+  return [...counts.values()]
+})
+const announcement = ref('')
+function applyTags(change: { add: string[]; remove: string[] }) {
+  const ids = chosen.value
+  list.tagMany.mutate(
+    { ids, ...change },
+    {
+      onSuccess: () => {
+        announcement.value = `Tagged ${ids.length} ${ids.length === 1 ? 'link' : 'links'}.`
+        tagging.value = false
+      },
+    },
+  )
+}
+function toggleTagging() {
+  moving.value = false
+  tagging.value = !tagging.value
+  list.tagMany.reset()
+}
+
 // ---- moving the selected items between the profile's own list and its ideas
 const mover = useMove(() => props.profileId)
 const dest = useMoveDestination(
@@ -103,6 +136,7 @@ const dest = useMoveDestination(
 )
 const moving = ref(false)
 function toggleMoving() {
+  tagging.value = false
   moving.value = !moving.value
   dest.reset()
   mover.moveReading.reset()
@@ -164,6 +198,7 @@ function removeChosen() {
     </p>
 
     <QueryState :query="list" what="the reading list" loading="Loading the reading list…">
+      <p class="sr-only" aria-live="polite">{{ announcement }}</p>
       <div
         v-if="mover.outcome.value"
         role="status"
@@ -219,6 +254,15 @@ function removeChosen() {
               <button
                 type="button"
                 class="btn btn-sm btn-neutral"
+                :aria-expanded="tagging"
+                :disabled="!chosen.length && !tagging"
+                @click="toggleTagging"
+              >
+                Tag…
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-neutral"
                 :aria-expanded="moving"
                 :disabled="!chosen.length && !moving"
                 @click="toggleMoving"
@@ -236,6 +280,17 @@ function removeChosen() {
               </button>
             </template>
           </ListToolbar>
+          <BulkTagPanel
+            v-if="tagging"
+            noun="link"
+            :count="chosen.length"
+            :carried="carried"
+            :suggestions="usedTags"
+            :pending="list.tagMany.isPending.value"
+            :error="list.tagMany.isError.value ? errorMessage(list.tagMany.error.value) : undefined"
+            @apply="applyTags"
+            @cancel="toggleTagging"
+          />
           <form
             v-if="moving"
             class="border-b border-line bg-sunken p-3"

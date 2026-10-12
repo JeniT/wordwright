@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import {
+  BulkTagInputSchema,
   AcceptProposalInputSchema,
   DraftInputSchema,
   DraftOrderSchema,
@@ -101,6 +102,13 @@ export function ideaRoutes(
         if (!ideas.setLinkRead(idea.id, param(c, 'linkId'), c.req.valid('json').read)) {
           throw notFound()
         }
+        return c.json(find(c))
+      })
+      // Tags added to or taken from several items at once (all or nothing).
+      .post('/:id/links/tags', validateJson(BulkTagInputSchema), (c) => {
+        const idea = find(c)
+        const { ids, add, remove } = c.req.valid('json')
+        links.tagMany({ profileId: idea.profileId, ideaId: idea.id }, ids, add, remove)
         return c.json(find(c))
       })
       // The item's tags, replaced as a whole (like a note's).

@@ -519,6 +519,132 @@ describe('idea page', () => {
     })
   })
 
+  describe('tagging several links at once', () => {
+    const two = {
+      ...idea,
+      links: [
+        { ...idea.links[0]!, tags: ['background'] },
+        {
+          id: 'l2',
+          url: 'https://example.org/other',
+          title: 'Other',
+          readAt: null,
+          origin: 'entered',
+          tags: [],
+        },
+        {
+          id: 'l3',
+          url: 'https://example.org/third',
+          title: 'Third',
+          readAt: null,
+          origin: 'entered',
+          tags: [],
+        },
+      ],
+    }
+    /** The idea page with these links; `extra` handlers come first. */
+    const openWith = (data: typeof two, extra: Parameters<typeof server.use> = []) => {
+      server.use(
+        ...extra,
+        signedInAs(testUser),
+        listProfiles,
+        http.get(ideaUrl, () => HttpResponse.json(data)),
+        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+      )
+      return renderAt('/p/ada-substack/ideas/i1/research')
+    }
+    const tick = (title: string) => screen.getByRole('checkbox', { name: `Select ${title}` })
+    const tagButton = () => screen.getByRole('button', { name: 'Tag…' })
+
+    it('has Tag… in the toolbar, enabled once links are selected', async () => {
+      await openWith(two)
+      await screen.findByRole('link', { name: /A paper/ })
+      expect(tagButton()).toBeDisabled()
+      await fireEvent.click(tick('A paper'))
+      expect(tagButton()).toBeEnabled()
+    })
+
+    it('adds and removes tags on all the selected links in one request, and shows them', async () => {
+      const sent: unknown[] = []
+      await openWith(two, [
+        http.post(`${ideaUrl}/links/tags`, async ({ request }) => {
+          const change = (await request.json()) as {
+            ids: string[]
+            add: string[]
+            remove: string[]
+          }
+          sent.push(change)
+          return HttpResponse.json({
+            ...two,
+            links: two.links.map((l) =>
+              change.ids.includes(l.id)
+                ? {
+                    ...l,
+                    tags: [...l.tags.filter((t) => !change.remove.includes(t)), ...change.add],
+                  }
+                : l,
+            ),
+          })
+        }),
+      ])
+      await screen.findByRole('link', { name: /A paper/ })
+      await fireEvent.click(tick('A paper'))
+      await fireEvent.click(tick('Other'))
+      await fireEvent.click(tagButton())
+      const panel = screen.getByRole('form', { name: /Tag the 2 links/ })
+      expect(within(panel).getByText('On 1 of the 2 selected.')).toBeInTheDocument()
+      await fireEvent.click(within(panel).getByRole('switch', { name: 'Remove “background”' }))
+      await fireEvent.update(screen.getByLabelText('Add tags'), 'part 2')
+      await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 links' }))
+      await waitFor(() =>
+        expect(sent).toEqual([{ ids: ['l1', 'l2'], add: ['part 2'], remove: ['background'] }]),
+      )
+      await waitFor(() => expect(screen.queryByLabelText('Add tags')).toBeNull())
+      expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
+      expect(screen.getByText('Tagged 2 links.')).toBeInTheDocument()
+      expect(screen.getByText('2 selected')).toBeInTheDocument()
+    })
+
+    it("shows the server's reason, and keeps the panel and the words", async () => {
+      await openWith(two, [
+        http.post(`${ideaUrl}/links/tags`, () =>
+          HttpResponse.json({ error: 'A link can have up to 10 tags' }, { status: 409 }),
+        ),
+      ])
+      await screen.findByRole('link', { name: /A paper/ })
+      await fireEvent.click(tick('A paper'))
+      await fireEvent.click(tagButton())
+      await fireEvent.update(screen.getByLabelText('Add tags'), 'x')
+      await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
+      expect(await screen.findByText('A link can have up to 10 tags')).toBeInTheDocument()
+      expect(screen.getByLabelText('Add tags')).toHaveValue('x')
+    })
+
+    it('works for the profile’s own list too, and closes when Move to… opens', async () => {
+      const sent: unknown[] = []
+      server.use(
+        signedInAs(testUser),
+        listProfiles,
+        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+        http.get('*/api/profiles/ada-substack/reading', () => HttpResponse.json(two.links)),
+        http.post('*/api/profiles/ada-substack/reading/tags', async ({ request }) => {
+          sent.push(await request.json())
+          return HttpResponse.json(two.links)
+        }),
+      )
+      await renderAt('/p/ada-substack/read')
+      await screen.findByRole('link', { name: /A paper/ })
+      await fireEvent.click(tick('Other'))
+      await fireEvent.click(tagButton())
+      await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+      expect(screen.queryByLabelText('Add tags')).toBeNull()
+      await fireEvent.click(tagButton())
+      await fireEvent.update(screen.getByLabelText('Add tags'), 'later')
+      await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
+      await waitFor(() => expect(sent).toEqual([{ ids: ['l2'], add: ['later'], remove: [] }]))
+    })
+  })
+
   describe('editing a link', () => {
     const edit = async () => {
       await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))

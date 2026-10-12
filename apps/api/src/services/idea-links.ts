@@ -9,6 +9,7 @@ import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { hereOf, ownerOf, subjectOf, touch, type ListScope } from './scope'
 import { fail } from '../errors'
+import { changeTags, sameTagList } from './tag-change'
 
 /**
  * Adding and editing the items of an idea's reading list, or of the profile's. Looking a page up costs a request to someone
@@ -20,6 +21,30 @@ export class IdeaLinkService {
   constructor(
     private readonly deps: { store: Store; pages: PageInfoFetcher; limiter: RateLimiter },
   ) {}
+
+  /**
+   * Adds and removes tags on the chosen items in one go, all or nothing (an item that would end with too many tags
+   * refuses the whole change). Answers with the whole reading list.
+   */
+  tagMany(scope: ListScope, ids: string[], add: string[], remove: string[]): IdeaLink[] {
+    const { store } = this.deps
+    const owner = ownerOf(scope)
+    return store.transaction(() => {
+      const wanted = new Set(ids)
+      const chosen = store.reading.list(owner).filter((l) => wanted.has(l.id))
+      if (chosen.length !== wanted.size) throw fail(404, 'Not found')
+      const changes = chosen.flatMap((link) => {
+        const next = changeTags(link.tags, add, remove, {
+          kind: 'link',
+          label: link.title || link.url,
+        })
+        return sameTagList(next, link.tags) ? [] : [{ id: link.id, tags: next }]
+      })
+      for (const change of changes) store.reading.setTags(owner, change.id, change.tags)
+      if (changes.length) touch(store, scope)
+      return store.reading.list(owner)
+    })
+  }
 
   /** Adds a link and answers with the whole reading list. */
   async add(

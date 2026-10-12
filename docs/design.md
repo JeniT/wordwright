@@ -205,7 +205,7 @@ row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
-**Bulk tagging (`BulkTagPanel`).** **Tag…** in the toolbar's bulk actions (enabled when something is selected) opens a
+**Bulk tagging (`BulkTagPanel`), on notes and on reading lists.** **Tag…** in the toolbar's bulk actions (enabled when something is selected) opens a
 panel under the toolbar, like Move to…, and only one of the two is open at a time. It has an "Add tags" field (comma
 separated, with the tags already used offered as buttons) and, for each tag the selection already carries, a switch to
 take it off all of them (with "On 2 of the 3 selected"). The button says what it will do ("Tag 3 notes"), the result is

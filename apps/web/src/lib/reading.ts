@@ -76,6 +76,16 @@ export function useReadingActions(owner: () => Owner) {
     },
     onSuccess: keep,
   })
+  /** Adds and removes tags on several items at once (a bulk Tag…). */
+  const tagMany = useMutation({
+    mutationFn: (change: { ids: string[]; add: string[]; remove: string[] }) => {
+      const { profileId, ideaId } = owner()
+      return ideaId
+        ? api.tagIdeaLinks(profileId, ideaId, change)
+        : api.tagProfileLinks(profileId, change)
+    },
+    onSuccess: keep,
+  })
   const update = useMutation({
     mutationFn: ({
       linkId,
@@ -120,7 +130,7 @@ export function useReadingActions(owner: () => Owner) {
     onSettled: () => invalidateRoots(queryClient, 'idea', 'reading'),
   })
 
-  return { add, setRead, setKept, setTags, update, remove, removeMany, listOf }
+  return { add, setRead, setKept, setTags, tagMany, update, remove, removeMany, listOf }
 }
 
 /**

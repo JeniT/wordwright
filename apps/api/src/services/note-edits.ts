@@ -2,6 +2,7 @@ import { MAX_IDEA_NOTES, MAX_NOTE_TAGS, NOTE_TEXT_MAX, type IdeaNote } from '@lf
 import type { Store } from '../db/store'
 import { ownerOf, subjectOf, touch, type ListScope } from './scope'
 import { fail } from '../errors'
+import { changeTags, sameTagList } from './tag-change'
 
 /**
  * Joining notes and cutting one in two. Notes say where they came from (typed, brainstormed, taken from a
@@ -22,22 +23,9 @@ export class NoteEditService {
       const wanted = new Set(ids)
       const chosen = notes.list(owner).filter((n) => wanted.has(n.id))
       if (chosen.length !== wanted.size) throw fail(404, 'Not found')
-      const gone = new Set(remove.map((t) => t.toLowerCase()))
       const changes = chosen.flatMap((note) => {
-        const next = note.tags.filter((t) => !gone.has(t.toLowerCase()))
-        const have = new Set(next.map((t) => t.toLowerCase()))
-        for (const tag of add)
-          if (!have.has(tag.toLowerCase()) && have.add(tag.toLowerCase())) next.push(tag)
-        if (next.length > MAX_NOTE_TAGS) {
-          const words = note.text.length > 40 ? `${note.text.slice(0, 40)}…` : note.text
-          throw fail(
-            409,
-            `A note can have up to ${MAX_NOTE_TAGS} tags, and “${words}” would have ${next.length}. Take some tags off it, or add fewer.`,
-          )
-        }
-        return next.length === note.tags.length && next.every((t, i) => t === note.tags[i])
-          ? []
-          : [{ id: note.id, tags: next }]
+        const next = changeTags(note.tags, add, remove, { kind: 'note', label: note.text })
+        return sameTagList(next, note.tags) ? [] : [{ id: note.id, tags: next }]
       })
       for (const change of changes) notes.setTags(owner, change.id, change.tags)
       if (changes.length) touch(this.store, scope)

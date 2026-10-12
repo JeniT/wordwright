@@ -399,7 +399,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
 })
 
-test('tags reading-list items, and filters the list by a tag', async ({ page }) => {
+test('tags reading-list items, one or several at once, and filters the list by a tag', async ({
+  page,
+}) => {
   await signUpWithProfile(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
@@ -433,6 +435,21 @@ test('tags reading-list items, and filters the list by a tag', async ({ page }) 
   await page.reload()
   await expect(page.getByRole('list', { name: 'Tags' }).getByText('background')).toBeVisible()
   await noViolations(page, 'reading list with tags')
+
+  // Several at once: tick both, add a tag to them together, then take the first tag off both.
+  await page.getByRole('checkbox', { name: 'Select Fake title for example.org' }).check()
+  await page.getByRole('checkbox', { name: 'Select Fake title for example.net' }).check()
+  await page.getByRole('button', { name: 'Tag…' }).click()
+  await page.getByLabel('Add tags').fill('shared')
+  await noViolations(page, 'reading list with the tag panel open')
+  await page.getByRole('button', { name: 'Tag 2 links' }).click()
+  await expect(page.getByLabel('Add tags')).toHaveCount(0)
+  await page
+    .getByRole('group', { name: 'Show links with a tag' })
+    .getByRole('button', { name: 'shared' })
+    .click()
+  await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
 })
 
 test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {

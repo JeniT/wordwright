@@ -99,6 +99,105 @@ describe('tags on an idea’s reading list', () => {
   })
 })
 
+describe('tagging several reading items at once', () => {
+  let s: Awaited<ReturnType<typeof start>>
+  const add = async (path: string, url: string): Promise<Link> => {
+    const res = await (await s.ada.post(path, { url, title: url.replace('https://', '') })).json()
+    return (Array.isArray(res) ? res : res.links).find((l: Link) => l.url === url)
+  }
+  beforeEach(async () => {
+    s = await start()
+  })
+
+  for (const kind of ['profile', 'idea'] as const) {
+    describe(`on the ${kind}'s list`, () => {
+      const base = () =>
+        kind === 'profile' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}/links`
+      const bulk = (body: object) => s.ada.post(`${base()}/tags`, body)
+      const tagsOf = async (): Promise<string[][]> => {
+        const res = await (
+          await s.ada.get(kind === 'profile' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}`)
+        ).json()
+        return (Array.isArray(res) ? res : res.links).map((l: Link) => l.tags)
+      }
+
+      it('adds tags to every chosen item, keeping what they have and ignoring repeats', async () => {
+        const [a, b, c] = [
+          await add(base(), 'https://a.example/p'),
+          await add(base(), 'https://b.example/p'),
+          await add(base(), 'https://c.example/p'),
+        ]
+        await s.ada.put(`${base()}/${a.id}/tags`, { tags: ['Intro'] })
+        const res = await bulk({ ids: [a.id, b.id], add: ['intro', ' part  2 ', 'Part 2'] })
+        expect(res.status).toBe(200)
+        expect(await tagsOf()).toEqual([['Intro', 'part 2'], ['intro', 'part 2'], []])
+        expect(c.id).toBeTruthy()
+      })
+
+      it('takes tags away, ignoring case, adding and removing in one request', async () => {
+        const [a, b] = [
+          await add(base(), 'https://a.example/p'),
+          await add(base(), 'https://b.example/p'),
+        ]
+        await s.ada.put(`${base()}/${a.id}/tags`, { tags: ['One', 'Two'] })
+        await s.ada.put(`${base()}/${b.id}/tags`, { tags: ['two', 'three'] })
+        await bulk({ ids: [a.id, b.id], remove: ['TWO'], add: ['four'] })
+        expect(await tagsOf()).toEqual([
+          ['One', 'four'],
+          ['three', 'four'],
+        ])
+      })
+
+      it('asks for something to do and for items to do it to', async () => {
+        const a = await add(base(), 'https://a.example/p')
+        const nothing = await bulk({ ids: [a.id], add: [], remove: [] })
+        expect(nothing.status).toBe(400)
+        expect((await nothing.json()).error).toBe('Give a tag to add or to remove')
+        expect((await bulk({ ids: [], add: ['x'] })).status).toBe(400)
+        expect((await bulk({ ids: [a.id], add: ['x'.repeat(41)] })).status).toBe(400)
+      })
+
+      it('changes nothing at all if one item would have too many tags, and names it', async () => {
+        const [a, b] = [
+          await add(base(), 'https://a.example/p'),
+          await add(base(), 'https://b.example/p'),
+        ]
+        await s.ada.put(`${base()}/${b.id}/tags`, {
+          tags: Array.from({ length: 10 }, (_, i) => `t${i}`),
+        })
+        const res = await bulk({ ids: [a.id, b.id], add: ['one more'] })
+        expect(res.status).toBe(409)
+        expect((await res.json()).error).toMatch(
+          /A link can have up to 10 tags, and “b\.example\/p” would have 11/,
+        )
+        expect((await tagsOf())[0]).toEqual([]) // the first was not tagged either
+      })
+
+      it('says 404 for items that are not on this list, and refuses strangers', async () => {
+        const a = await add(base(), 'https://a.example/p')
+        expect((await bulk({ ids: [a.id, 'nope'], add: ['x'] })).status).toBe(404)
+        const eve = s.ctx.client()
+        await register(eve, 'eve@example.com', 'Eve')
+        expect((await eve.post(`${base()}/tags`, { ids: [a.id], add: ['x'] })).status).toBe(404)
+        // The other list's item is not this list's.
+        const elsewhere = await add(
+          kind === 'profile' ? `${s.api}/ideas/${s.idea}/links` : `${s.api}/reading`,
+          'https://z.example/p',
+        )
+        expect((await bulk({ ids: [elsewhere.id], add: ['x'] })).status).toBe(404)
+      })
+    })
+  }
+
+  it('counts as a change to the idea', async () => {
+    const base = `${s.api}/ideas/${s.idea}/links`
+    const a = await add(base, 'https://a.example/p')
+    s.ctx.store.ideas.touch(s.idea, 'long ago')
+    await s.ada.post(`${base}/tags`, { ids: [a.id], add: ['y'] })
+    expect(s.ctx.store.ideas.get(s.profile, s.idea)!.updatedAt).not.toBe('long ago')
+  })
+})
+
 describe('tags when reading items move', () => {
   let s: Awaited<ReturnType<typeof start>>
   const move = (ids: string[], ideaId: string | null) =>
