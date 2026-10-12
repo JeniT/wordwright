@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, nextTick, ref, useTemplateRef } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import NoteOrigin from '../components/NoteOrigin.vue'
 import NoteText from '../components/NoteText.vue'
@@ -12,6 +12,7 @@ import { invalidateRoots, useIdeaNotes } from '../lib/queries'
 import { nameList, noteOriginPhrase } from '../lib/note-label'
 import { readingBackRoute, readingRoute, useReadingList } from '../lib/reading'
 import QueryState from '../components/QueryState.vue'
+import { useInlineEdit } from '../lib/inline-edit'
 
 /** Reading one item of an idea's reading list, or (no `id`) of the profile's own, and taking notes from it. */
 const props = defineProps<{ profileId: string; id?: string; linkId: string }>()
@@ -45,23 +46,24 @@ const itemNotes = computed(() =>
 const label = computed(() => item.value?.title || item.value?.url || '')
 
 // ---- the title: often missing, when it couldn't be looked up from the page
-const editingTitle = ref(false)
 const title = ref('')
 const authors = ref('')
 const titleForm = useTemplateRef<HTMLFormElement>('titleForm')
 const titleButton = useTemplateRef<HTMLButtonElement>('titleButton')
-async function startEditingTitle() {
+const {
+  editing: editingTitleKey,
+  start,
+  stop: stopEditingTitle,
+} = useInlineEdit<'title'>({
+  field: () => titleForm.value?.querySelector('input'),
+  trigger: () => titleButton.value,
+})
+const editingTitle = computed(() => editingTitleKey.value !== null)
+function startEditingTitle() {
   title.value = item.value?.title ?? ''
   authors.value = item.value?.authors.join(', ') ?? ''
   saveTitle.reset()
-  editingTitle.value = true
-  await nextTick()
-  titleForm.value?.querySelector('input')?.focus()
-}
-async function stopEditingTitle() {
-  editingTitle.value = false
-  await nextTick()
-  titleButton.value?.focus()
+  return start('title')
 }
 // Only the title changes; a blank one asks the server to look it up again, as on the idea page.
 const saveTitle = list.update

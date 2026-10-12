@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, useTemplateRef } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PROFILE_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
 import { errorMessage } from '../lib/api'
@@ -8,6 +8,7 @@ import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import SwitchField from './SwitchField.vue'
 import TextField from './TextField.vue'
+import { useInlineEdit } from '../lib/inline-edit'
 
 /** An item of an idea's reading list, or (no `ideaId`) of the profile's own. */
 const props = defineProps<{
@@ -24,24 +25,25 @@ const { setRead, setKept, update: save } = useReadingActions(owner)
 /** What the link is called: its title, or failing that the address itself. */
 const label = () => props.link.title || props.link.url
 
-const editing = ref(false)
 const url = ref('')
 const title = ref('')
 const form = useTemplateRef<HTMLFormElement>('form')
 const editButton = useTemplateRef<HTMLButtonElement>('editButton')
+const {
+  editing: editingKey,
+  start,
+  stop: stopEditing,
+} = useInlineEdit<'link'>({
+  field: () => form.value?.querySelector('input'),
+  trigger: () => editButton.value,
+})
+const editing = computed(() => editingKey.value !== null)
 
-async function startEditing() {
+function startEditing() {
   url.value = props.link.url
   title.value = props.link.title
   save.reset()
-  editing.value = true
-  await nextTick()
-  form.value?.querySelector('input')?.focus()
-}
-async function stopEditing() {
-  editing.value = false
-  await nextTick()
-  editButton.value?.focus()
+  return start('link')
 }
 
 /** Where an item came from, when it wasn't the writer. The AI's are marked with the highlighter; a feed's are not. */

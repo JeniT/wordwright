@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
@@ -28,6 +28,7 @@ import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
 import TextField from './TextField.vue'
 import QueryState from './QueryState.vue'
+import { useInlineEdit } from '../lib/inline-edit'
 
 /** An idea's notes, or (no `ideaId`) the profile's own, gathered before there is an idea. */
 const props = defineProps<{
@@ -76,24 +77,23 @@ const add = useMutation({
 })
 
 // ---- editing one note at a time
-const editingId = ref<string | null>(null)
 const editText = ref('')
 const editTags = ref('')
 const list = ref<HTMLElement>()
+const {
+  editing: editingId,
+  start,
+  stop: stopEditing,
+} = useInlineEdit<string>({
+  field: (id) => list.value?.querySelector(`[data-edit-note="${id}"] textarea`),
+  trigger: (id) => list.value?.querySelector(`[data-edit-button="${id}"]`),
+})
 
-async function startEditing(note: IdeaNote) {
+function startEditing(note: IdeaNote) {
   save.reset()
   editText.value = note.text
   editTags.value = tagsToText(note.tags)
-  editingId.value = note.id
-  await nextTick()
-  list.value?.querySelector<HTMLTextAreaElement>(`[data-edit-note="${note.id}"] textarea`)?.focus()
-}
-async function stopEditing() {
-  const id = editingId.value
-  editingId.value = null
-  await nextTick()
-  list.value?.querySelector<HTMLButtonElement>(`[data-edit-button="${id}"]`)?.focus()
+  return start(note.id)
 }
 const save = useMutation({
   // Only what changed is sent: the text, and the tags as a whole set.

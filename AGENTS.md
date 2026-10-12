@@ -90,6 +90,7 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
 - **Web queries:** query keys and the queries screens share (`useIdea`, `useIdeas`, `useIdeaNotes`, `useSources`, `useDraft`) live in `apps/web/src/lib/queries.ts`. Don't write a key literal in a component; refresh with `invalidateRoots` / `refreshNotesEverywhere`.
 - **Loading and errors in the web app:** wrap anything fetched with `useQuery` in `QueryState` (or `IdeaGate` / `ProfileGate` for a whole page) rather than writing your own "Loading…" and error text.
 - **Saving in the web app:** show a form's result with `SaveStatus`, and fill fields from saved values with `useSavedValue` (`lib/forms.ts`), rather than writing your own "Saved" and error paragraphs.
+- **Editing in place:** use `useInlineEdit` (`lib/inline-edit.ts`) so focus goes into the field when the form opens and back to the button that opened it when it closes.
 - **Security defaults:** cookies `HttpOnly` + `SameSite=Lax`; tokens stored hashed; no account enumeration
   (except where the product must, e.g. registration); throttle anything that can be guessed or costs money;
   never log request bodies, keys, tokens or reset links in production code paths.
