@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { HTTPException } from 'hono/http-exception'
 import {
   IdeaLinkInputSchema,
   MoveNotesInputSchema,
@@ -12,8 +11,8 @@ import type { Store } from '../db/store'
 import type { IdeaLinkService } from '../services/idea-links'
 import type { MoveService } from '../services/moves'
 import { validateJson } from '../validate'
-
-const notFound = () => new HTTPException(404, { message: 'Not found' })
+import { notFound } from '../errors'
+import { param } from './params'
 
 /**
  * The profile's own reading list: items gathered before there is an idea (see `Owner`). Mirrors an idea's
@@ -26,11 +25,11 @@ export function profileReadingRoutes(store: Store, links: IdeaLinkService) {
 
   return (
     new Hono<AppEnv>()
-      .get('/', (c) => c.json(reading.list(owner(c.req.param('profileId')!))))
+      .get('/', (c) => c.json(reading.list(owner(param(c, 'profileId')))))
       .post('/', validateJson(IdeaLinkInputSchema), async (c) =>
         c.json(
           await links.add(
-            scope(c.req.param('profileId')!),
+            scope(param(c, 'profileId')),
             c.get('user').id,
             c.req.valid('json'),
             c.req.raw.signal,
@@ -41,8 +40,8 @@ export function profileReadingRoutes(store: Store, links: IdeaLinkService) {
       .patch('/:linkId', validateJson(IdeaLinkInputSchema), async (c) =>
         c.json(
           await links.update(
-            scope(c.req.param('profileId')!),
-            c.req.param('linkId')!,
+            scope(param(c, 'profileId')),
+            param(c, 'linkId'),
             c.get('user').id,
             c.req.valid('json'),
             c.req.raw.signal,
@@ -50,22 +49,22 @@ export function profileReadingRoutes(store: Store, links: IdeaLinkService) {
         ),
       )
       .put('/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
-        const profileId = c.req.param('profileId')!
-        if (!reading.setRead(owner(profileId), c.req.param('linkId')!, c.req.valid('json').read)) {
+        const profileId = param(c, 'profileId')
+        if (!reading.setRead(owner(profileId), param(c, 'linkId'), c.req.valid('json').read)) {
           throw notFound()
         }
         return c.json(reading.list(owner(profileId)))
       })
       // Asks for an item to be kept: the others drop off the list a month after they were put on it.
       .put('/:linkId/kept', validateJson(ReadingItemKeptSchema), (c) => {
-        const profileId = c.req.param('profileId')!
-        if (!reading.setKept(profileId, c.req.param('linkId')!, c.req.valid('json').kept)) {
+        const profileId = param(c, 'profileId')
+        if (!reading.setKept(profileId, param(c, 'linkId'), c.req.valid('json').kept)) {
           throw notFound()
         }
         return c.json(reading.list(owner(profileId)))
       })
       .delete('/:linkId', (c) => {
-        if (!reading.remove(owner(c.req.param('profileId')!), c.req.param('linkId')!)) {
+        if (!reading.remove(owner(param(c, 'profileId')), param(c, 'linkId'))) {
           throw notFound()
         }
         return c.body(null, 204)
@@ -78,10 +77,10 @@ export function moveRoutes(moves: MoveService) {
   return new Hono<AppEnv>()
     .post('/reading', validateJson(MoveReadingInputSchema), (c) => {
       const { ids, to } = c.req.valid('json')
-      return c.json(moves.moveReading(c.req.param('profileId')!, c.get('user').id, ids, to.ideaId))
+      return c.json(moves.moveReading(param(c, 'profileId'), c.get('user').id, ids, to.ideaId))
     })
     .post('/notes', validateJson(MoveNotesInputSchema), (c) => {
       const { ids, to } = c.req.valid('json')
-      return c.json(moves.moveNotes(c.req.param('profileId')!, c.get('user').id, ids, to.ideaId))
+      return c.json(moves.moveNotes(param(c, 'profileId'), c.get('user').id, ids, to.ideaId))
     })
 }

@@ -1,10 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { HTTPException } from 'hono/http-exception'
 import { linkKey, MAX_IDEA_LINKS, MAX_IDEA_NOTES, type MoveResult } from '@lfwa/core'
 import type { Owner } from '../db/owner'
 import type { Store } from '../db/store'
-
-const fail = (status: 400 | 404 | 409, message: string) => new HTTPException(status, { message })
+import { fail } from '../errors'
 
 /**
  * Moving reading items and notes between a profile's own lists and its ideas (and between ideas). Each move is

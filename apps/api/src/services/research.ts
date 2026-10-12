@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import {
   linkKey,
   LLMAuthError,
@@ -16,12 +15,10 @@ import { RESEARCH_PROMPT } from '@lfwa/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { ReadingChecker } from './reading-suggestions'
+import { fail } from '../errors'
 
 /** A search that takes longer than this is abandoned. */
 export const RESEARCH_TIMEOUT_MS = 180_000
-
-const fail = (status: 400 | 404 | 409 | 429 | 502 | 504, message: string) =>
-  new HTTPException(status, { message })
 
 /** Keeps text we insert from closing or imitating the brief's own tags. */
 const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')

@@ -1,10 +1,10 @@
 import type { MiddlewareHandler } from 'hono'
 import { getCookie } from 'hono/cookie'
-import { HTTPException } from 'hono/http-exception'
 import type { ProfileRole } from '@lfwa/core'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import type { AccountService } from '../services/accounts'
+import { fail } from '../errors'
 
 export const SESSION_COOKIE = 'lfwa_session'
 
@@ -19,7 +19,7 @@ export const requireUser =
   (accounts: AccountService): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
     const user = accounts.authenticate(getCookie(c, SESSION_COOKIE))
-    if (!user) throw new HTTPException(401, { message: 'Not signed in' })
+    if (!user) throw fail(401, 'Not signed in')
     c.set('user', user)
     await next()
   }
@@ -45,8 +45,8 @@ export const requireMember =
       }
     }
     // 404 rather than 403, so profile ids can't be probed.
-    if (!role) throw new HTTPException(404, { message: 'Not found' })
-    if (ownerOnly && role !== 'owner') throw new HTTPException(403, { message: 'Owner only' })
+    if (!role) throw fail(404, 'Not found')
+    if (ownerOnly && role !== 'owner') throw fail(403, 'Owner only')
     c.set('role', role)
     await next()
   }
@@ -62,7 +62,7 @@ export const sameOriginOnly =
     const safe = ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)
     const origin = c.req.header('origin')
     if (!safe && origin && origin !== allowedOrigin) {
-      throw new HTTPException(403, { message: 'Cross-origin request blocked' })
+      throw fail(403, 'Cross-origin request blocked')
     }
     await next()
   }

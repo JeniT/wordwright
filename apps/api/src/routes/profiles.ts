@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
-import { HTTPException } from 'hono/http-exception'
 import {
   detectImageType,
   type FeedFetcher,
@@ -30,6 +29,8 @@ import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
+import { fail } from '../errors'
+import { param } from './params'
 
 export interface ProfileRouteDeps {
   store: Store
@@ -71,9 +72,10 @@ export function profileRoutes({
       .post('/', validateJson(ProfileInputSchema), (c) => {
         const user = c.get('user')
         if (store.profiles.countOwnedBy(user.id) >= MAX_OWNED_PROFILES) {
-          throw new HTTPException(409, {
-            message: `You can have up to ${MAX_OWNED_PROFILES} profiles. Delete one you no longer use to make room.`,
-          })
+          throw fail(
+            409,
+            `You can have up to ${MAX_OWNED_PROFILES} profiles. Delete one you no longer use to make room.`,
+          )
         }
         const { name, siteUrl } = c.req.valid('json')
         const id = store.profiles.create(name, user.id, siteUrl ?? null)
@@ -81,24 +83,24 @@ export function profileRoutes({
       })
 
       .get('/:profileId', member, (c) =>
-        c.json(store.profiles.get(c.req.param('profileId'), c.get('user').id)),
+        c.json(store.profiles.get(param(c, 'profileId'), c.get('user').id)),
       )
 
       .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), (c) => {
-        const id = store.profiles.update(c.req.param('profileId'), c.req.valid('json'))
+        const id = store.profiles.update(param(c, 'profileId'), c.req.valid('json'))
         return c.json(store.profiles.get(id, c.get('user').id))
       })
 
       .delete('/:profileId', owner, (c) => {
-        store.profiles.delete(c.req.param('profileId'))
+        store.profiles.delete(param(c, 'profileId'))
         return c.body(null, 204)
       })
 
       // The picture is raw bytes in the request body. What it is gets decided by looking at the
       // bytes, never by the Content-Type the client claims.
       .get('/:profileId/image', member, (c) => {
-        const image = store.profiles.getImage(c.req.param('profileId'))
-        if (!image) throw new HTTPException(404, { message: 'Not found' })
+        const image = store.profiles.getImage(param(c, 'profileId'))
+        if (!image) throw fail(404, 'Not found')
         return imageResponse(c, image)
       })
 
@@ -108,19 +110,21 @@ export function profileRoutes({
         bodyLimit({
           maxSize: MAX_IMAGE_BYTES,
           onError: () => {
-            throw new HTTPException(413, {
-              message: `That image is too large. Choose one under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
-            })
+            throw fail(
+              413,
+              `That image is too large. Choose one under ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+            )
           },
         }),
         async (c) => {
-          const id = c.req.param('profileId')
+          const id = param(c, 'profileId')
           const data = new Uint8Array(await c.req.arrayBuffer())
           const contentType = detectImageType(data)
           if (!contentType) {
-            throw new HTTPException(415, {
-              message: 'That file is not a PNG, JPEG, WebP or GIF image. Choose a different one.',
-            })
+            throw fail(
+              415,
+              'That file is not a PNG, JPEG, WebP or GIF image. Choose a different one.',
+            )
           }
           store.profiles.setImage(id, { contentType, data })
           return c.json(store.profiles.get(id, c.get('user').id))
@@ -128,25 +132,22 @@ export function profileRoutes({
       )
 
       .delete('/:profileId/image', owner, (c) => {
-        store.profiles.deleteImage(c.req.param('profileId'))
+        store.profiles.deleteImage(param(c, 'profileId'))
         return c.body(null, 204)
       })
 
       // Owners remove others; anyone can remove themselves, except the owner (who must delete
       // the profile or hand it over first).
       .delete('/:profileId/members/:userId', member, (c) => {
-        const id = c.req.param('profileId')
+        const id = param(c, 'profileId')
         const me = c.get('user').id
-        const targetId = c.req.param('userId')
+        const targetId = param(c, 'userId')
         const isOwner = c.get('role') === 'owner'
-        if (targetId !== me && !isOwner) throw new HTTPException(403, { message: 'Owner only' })
+        if (targetId !== me && !isOwner) throw fail(403, 'Owner only')
         if (targetId === me && isOwner) {
-          throw new HTTPException(400, {
-            message: 'Owners cannot leave; delete the profile instead',
-          })
+          throw fail(400, 'Owners cannot leave; delete the profile instead')
         }
-        if (!store.profiles.roleOf(id, targetId))
-          throw new HTTPException(404, { message: 'Not found' })
+        if (!store.profiles.roleOf(id, targetId)) throw fail(404, 'Not found')
         store.profiles.removeMember(id, targetId)
         return c.body(null, 204)
       })
@@ -180,7 +181,7 @@ export function profileRoutes({
           noteRoutes(
             store,
             noteEdits,
-            (c) => ({ profileId: c.req.param('profileId')!, ideaId: null }),
+            (c) => ({ profileId: param(c, 'profileId'), ideaId: null }),
             {
               drafts: false,
             },

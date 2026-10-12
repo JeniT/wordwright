@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie } from 'hono/cookie'
-import { HTTPException } from 'hono/http-exception'
 import {
   BrainstormPromptInputSchema,
   CRITIQUE_ROUNDS_DEFAULT,
@@ -19,6 +18,7 @@ import type { BrainstormPromptService } from '../services/brainstorm-prompt'
 import type { UserSettingsStore } from '../db/user-settings'
 import { validateJson } from '../validate'
 import { toHttpError } from './auth'
+import { fail } from '../errors'
 
 export function accountRoutes(
   accounts: AccountService,
@@ -34,7 +34,7 @@ export function accountRoutes(
       // Guessing the current password is the attack here, so attempts are throttled per person.
       .post('/password', validateJson(ChangePasswordInputSchema), async (c) => {
         const user = c.get('user')
-        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')
         const { currentPassword, newPassword } = c.req.valid('json')
         const sessionToken = getCookie(c, SESSION_COOKIE)!
         await accounts
@@ -45,7 +45,7 @@ export function accountRoutes(
       // Guessing the password is the attack here too; and each request emails a stranger.
       .post('/email', validateJson(ChangeEmailInputSchema), async (c) => {
         const user = c.get('user')
-        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')
         const { newEmail, password } = c.req.valid('json')
         await emailChanges.request(user, newEmail, password).catch(toHttpError)
         return c.json({ ok: true })
@@ -53,7 +53,7 @@ export function accountRoutes(
       // Costs nothing and guesses nothing, so it only gets the light per-person throttle.
       .put('/name', validateJson(ChangeNameInputSchema), (c) => {
         const user = c.get('user')
-        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')
         return c.json(accounts.toPublic(accounts.changeName(user, c.req.valid('json').name)))
       })
       // Each change retires a username for good, so changes are capped per person.
@@ -62,9 +62,7 @@ export function accountRoutes(
         const { handle } = c.req.valid('json')
         // Saying "keep this one" isn't a change, so it doesn't use up the allowance.
         if (handle !== user.handle && !handleChangeLimiter.allow(user.id)) {
-          throw new HTTPException(429, {
-            message: 'You have changed your username several times today. Try again tomorrow.',
-          })
+          throw fail(429, 'You have changed your username several times today. Try again tomorrow.')
         }
         try {
           return c.json(accounts.toPublic(accounts.changeHandle(user, handle)))
@@ -74,7 +72,7 @@ export function accountRoutes(
       })
       .post('/password/setup-email', (c) => {
         const user = c.get('user')
-        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')
         try {
           accounts.requestPasswordSetup(user)
         } catch (err) {
@@ -100,7 +98,7 @@ export function accountRoutes(
       .delete('/brainstorm-prompt', (c) => c.json(brainstormPrompts.reset(c.get('user').id)))
       .delete('/', validateJson(DeleteAccountInputSchema), async (c) => {
         const user = c.get('user')
-        if (!limiter.allow(user.id)) throw new HTTPException(429, { message: 'Too many attempts' })
+        if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')
         const { confirmEmail, password } = c.req.valid('json')
         await accounts.deleteAccount(user, confirmEmail, password).catch(toHttpError)
         deleteCookie(c, SESSION_COOKIE, { path: '/' })

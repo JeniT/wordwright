@@ -1,9 +1,7 @@
-import { HTTPException } from 'hono/http-exception'
 import { MAX_IDEA_NOTES, MAX_NOTE_TAGS, NOTE_TEXT_MAX, type IdeaNote } from '@lfwa/core'
 import type { Store } from '../db/store'
 import { ownerOf, subjectOf, touch, type ListScope } from './scope'
-
-const fail = (status: 400 | 404 | 409, message: string) => new HTTPException(status, { message })
+import { fail } from '../errors'
 
 /**
  * Joining notes and cutting one in two. Notes say where they came from (typed, brainstormed, taken from a

@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { HTTPException } from 'hono/http-exception'
 import {
   DeclineInvitationInputSchema,
   InviteInputSchema,
@@ -11,6 +10,8 @@ import type { RateLimiter } from '../auth/rate-limit'
 import { InvitationError, type InvitationService } from '../services/invitations'
 import type { AccountService } from '../services/accounts'
 import { validateJson } from '../validate'
+import { fail } from '../errors'
+import { param } from './params'
 
 const STATUS = {
   owner_unverified: 403,
@@ -21,8 +22,7 @@ const STATUS = {
 } as const
 
 function toHttpError(err: unknown): never {
-  if (err instanceof InvitationError)
-    throw new HTTPException(STATUS[err.code], { message: err.message })
+  if (err instanceof InvitationError) throw fail(STATUS[err.code], err.message)
   throw err
 }
 
@@ -32,18 +32,16 @@ function toHttpError(err: unknown): never {
  */
 export function profileInvitationRoutes(invitations: InvitationService, limiter: RateLimiter) {
   return new Hono<AppEnv>()
-    .get('/', (c) => c.json(invitations.listPending(c.req.param('profileId')!)))
+    .get('/', (c) => c.json(invitations.listPending(param(c, 'profileId'))))
 
     .post('/', validateJson(InviteInputSchema), (c) => {
       const owner = c.get('user')
       // Every invitation sends an email to a stranger from our server, so cap how many one person can send.
       if (!limiter.allow(owner.id)) {
-        throw new HTTPException(429, {
-          message: 'You have sent a lot of invitations. Try again later.',
-        })
+        throw fail(429, 'You have sent a lot of invitations. Try again later.')
       }
       try {
-        invitations.invite(owner, c.req.param('profileId')!, c.req.valid('json').email)
+        invitations.invite(owner, param(c, 'profileId'), c.req.valid('json').email)
       } catch (err) {
         toHttpError(err)
       }
@@ -53,7 +51,7 @@ export function profileInvitationRoutes(invitations: InvitationService, limiter:
 
     .delete('/:invitationId', (c) => {
       try {
-        invitations.revoke(c.req.param('profileId')!, c.req.param('invitationId'))
+        invitations.revoke(param(c, 'profileId'), param(c, 'invitationId'))
       } catch (err) {
         toHttpError(err)
       }
@@ -99,7 +97,7 @@ export function invitationRoutes(invitations: InvitationService, accounts: Accou
       })
       .delete('/blocks/senders/:senderId', requireUser(accounts), (c) => {
         try {
-          invitations.unblockSender(c.get('user'), c.req.param('senderId'))
+          invitations.unblockSender(c.get('user'), param(c, 'senderId'))
         } catch (err) {
           return toHttpError(err)
         }

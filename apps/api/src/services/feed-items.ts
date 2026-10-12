@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import {
   FeedError,
   linkKey,
@@ -12,6 +11,7 @@ import type { RateLimiter } from '../auth/rate-limit'
 import type { SourceFetch } from '../db/sources'
 import { postStates } from './feed-posts'
 import type { Store } from '../db/store'
+import { fail } from '../errors'
 
 const MINUTE = 60_000
 
@@ -63,9 +63,7 @@ export class FeedItemService {
 
     if (!this.limiter.allow(userId)) {
       if (kept) return view(kept) // what we have is better than nothing
-      throw new HTTPException(429, {
-        message: 'You have asked for a lot of feeds just now. Try again in a little while.',
-      })
+      throw fail(429, 'You have asked for a lot of feeds just now. Try again in a little while.')
     }
     const read = this.read(source, kept).finally(() => this.inFlight.delete(source.id))
     this.inFlight.set(source.id, read)

@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import {
   AddNoteToolInputSchema,
   CreateIdeaToolInputSchema,
@@ -40,6 +39,7 @@ import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/co
 import type { Store } from '../db/store'
 import type { BrainstormPromptService } from './brainstorm-prompt'
 import { ReadingChecker, type CheckedReading } from './reading-suggestions'
+import { fail } from '../errors'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
 export const REPLY_TIMEOUT_MS = 180_000
@@ -112,9 +112,6 @@ export interface Turn {
 /** What is sent as the system prompt: the person's prompt, then the rules they can't edit. The evals use this too. */
 export const brainstormSystem = (personsPrompt: string) =>
   `${personsPrompt}\n\n${BRAINSTORM_RULES_PROMPT}`
-
-const fail = (status: 400 | 404 | 409 | 429, message: string) =>
-  new HTTPException(status, { message })
 
 /** Keeps text we insert from closing or imitating the snapshot's own tags. */
 const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -189,7 +186,7 @@ export class BrainstormService {
 
   /**
    * Checks that this reply can go ahead, takes the idea's one reply slot, and stores the person's
-   * message. Throws an `HTTPException` (or `LlmError`, if they have no key) while an error can still be
+   * message. Throws a `DomainError` (or `LlmError`, if they have no key) while an error can still be
    * a normal response. After this returns, the caller must iterate `run` so the slot is released.
    */
   begin(idea: Idea, user: BrainstormUser, input: SendMessageInput): Turn {

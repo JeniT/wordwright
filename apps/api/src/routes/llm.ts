@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { HTTPException } from 'hono/http-exception'
 import { LlmSettingsInputSchema } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { LlmError, type LlmKeyService } from '../services/llm'
 import { validateJson } from '../validate'
+import { fail } from '../errors'
 
 const STATUS = {
   not_configured: 409,
@@ -15,7 +15,7 @@ const STATUS = {
 } as const
 
 export function toLlmHttpError(err: unknown): never {
-  if (err instanceof LlmError) throw new HTTPException(STATUS[err.code], { message: err.message })
+  if (err instanceof LlmError) throw fail(STATUS[err.code], err.message)
   throw err
 }
 
@@ -26,8 +26,7 @@ export function llmRoutes(llm: LlmKeyService, limiter: RateLimiter) {
     .put('/', validateJson(LlmSettingsInputSchema), async (c) => {
       const userId = c.get('user').id
       // Saving a key makes a paid call to the provider; don't let this be used as a key-checking oracle.
-      if (!limiter.allow(userId))
-        throw new HTTPException(429, { message: 'Too many attempts. Try again later.' })
+      if (!limiter.allow(userId)) throw fail(429, 'Too many attempts. Try again later.')
       return c.json(await llm.save(userId, c.req.valid('json')).catch(toLlmHttpError))
     })
     .delete('/', (c) => {

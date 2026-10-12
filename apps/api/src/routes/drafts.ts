@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
 import { CritiquePointDismissSchema, DraftInputSchema, DraftInsertionInputSchema } from '@lfwa/core'
-import { HTTPException } from 'hono/http-exception'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import { critiqueState } from '../services/critique'
 import { validateJson } from '../validate'
+import { fail } from '../errors'
+import { param } from './params'
 
 /**
  * Mounted under `/profiles/:profileId`, after membership has been checked. Drafts are created and
@@ -15,30 +16,26 @@ export function draftRoutes(store: Store) {
   return (
     new Hono<AppEnv>()
       .get('/:id', (c) => {
-        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
       })
       .put('/:id', validateJson(DraftInputSchema), (c) => {
-        const draft = drafts.update(
-          c.req.param('profileId')!,
-          c.req.param('id'),
-          c.req.valid('json'),
-        )
+        const draft = drafts.update(param(c, 'profileId'), param(c, 'id'), c.req.valid('json'))
         return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
       })
       // The latest critique of the draft with how many looks are used, and the writer setting one of its points aside.
       .get('/:id/critique', (c) => {
-        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         return draft
           ? c.json(critiqueState(store, draft.id, c.get('user').id))
           : c.json({ error: 'Not found' }, 404)
       })
       .put('/:id/critique/points/:pointId', validateJson(CritiquePointDismissSchema), (c) => {
-        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
         const done = critiques.setDismissed(
           draft.id,
-          c.req.param('pointId'),
+          param(c, 'pointId'),
           c.req.valid('json').dismissed,
         )
         return done
@@ -47,24 +44,24 @@ export function draftRoutes(store: Store) {
       })
       // Words pulled into the draft from the idea's notes, and where they came from.
       .get('/:id/insertions', (c) => {
-        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         return draft ? c.json(drafts.insertions(draft.id)) : c.json({ error: 'Not found' }, 404)
       })
       .post('/:id/insertions', validateJson(DraftInsertionInputSchema), (c) => {
-        const draft = drafts.get(c.req.param('profileId')!, c.req.param('id'))
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
         const { noteId, text } = c.req.valid('json')
         // The origin and source come from the note, never from the request, so they can't be claimed falsely.
         const note = draft.ideaId ? notes.get(draft.ideaId, noteId) : undefined
         if (!note) {
-          throw new HTTPException(400, { message: "That note isn't on this draft's idea." })
+          throw fail(400, "That note isn't on this draft's idea.")
         }
         // A quotation goes into a draft only as a blockquote, so it can't pass for the writer's own words.
         if (note.quote && text.split('\n').some((line) => line.trim() && !line.startsWith('>'))) {
-          throw new HTTPException(400, {
-            message:
-              'A quotation has to go into the draft as a quotation (every line starting with >).',
-          })
+          throw fail(
+            400,
+            'A quotation has to go into the draft as a quotation (every line starting with >).',
+          )
         }
         const idea = ideas.get(draft.profileId, draft.ideaId!)
         const item = idea?.links.find((l) => l.id === note.readingItemId)
@@ -89,7 +86,7 @@ export function draftRoutes(store: Store) {
         )
       })
       .delete('/:id', (c) =>
-        drafts.delete(c.req.param('profileId')!, c.req.param('id'))
+        drafts.delete(param(c, 'profileId'), param(c, 'id'))
           ? c.body(null, 204)
           : c.json({ error: 'Not found' }, 404),
       )

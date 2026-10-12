@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import {
   linkKey,
   MAX_IDEA_LINKS,
@@ -9,9 +8,7 @@ import {
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { hereOf, ownerOf, subjectOf, touch, type ListScope } from './scope'
-
-const fail = (status: 400 | 404 | 409 | 429, message: string) =>
-  new HTTPException(status, { message })
+import { fail } from '../errors'
 
 /**
  * Adding and editing the items of an idea's reading list, or of the profile's. Looking a page up costs a request to someone

@@ -1,5 +1,4 @@
 import { Hono, type MiddlewareHandler } from 'hono'
-import { HTTPException } from 'hono/http-exception'
 import {
   FeedError,
   MAX_SOURCES_PER_PROFILE,
@@ -17,6 +16,8 @@ import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { validateJson } from '../validate'
 import { imageResponse } from './image-response'
+import { fail } from '../errors'
+import { param } from './params'
 
 /** Reading a feed can take a while; longer than this and the person is better told to try again. */
 const ADD_TIMEOUT_MS = 20_000
@@ -35,30 +36,30 @@ export function sourceRoutes(
 ) {
   const { sources } = store
   const tooMany = () =>
-    new HTTPException(409, {
-      message: `A profile can have up to ${MAX_SOURCES_PER_PROFILE} sources. Remove one you no longer read to make room.`,
-    })
-  const tooManyAdds = () =>
-    new HTTPException(429, { message: 'You have added a lot of sources. Try again later.' })
+    fail(
+      409,
+      `A profile can have up to ${MAX_SOURCES_PER_PROFILE} sources. Remove one you no longer read to make room.`,
+    )
+  const tooManyAdds = () => fail(429, 'You have added a lot of sources. Try again later.')
   const readFeed = (url: string, signal = AbortSignal.timeout(ADD_TIMEOUT_MS)) =>
     feeds.inspect(url, { signal }).catch((err: unknown) => {
-      if (err instanceof FeedError) throw new HTTPException(422, { message: err.message })
+      if (err instanceof FeedError) throw fail(422, err.message)
       throw err
     })
   const discover = (url: string, signal: AbortSignal) =>
     feeds.discover(url, { signal }).catch((err: unknown) => {
-      if (err instanceof FeedError) throw new HTTPException(422, { message: err.message })
+      if (err instanceof FeedError) throw fail(422, err.message)
       throw err
     })
-  const duplicate = () => new HTTPException(409, { message: 'That feed is already in your list.' })
+  const duplicate = () => fail(409, 'That feed is already in your list.')
 
   return (
     new Hono<AppEnv>()
       .use(member)
-      .get('/', (c) => c.json(sources.list(c.req.param('profileId')!)))
+      .get('/', (c) => c.json(sources.list(param(c, 'profileId'))))
 
       .post('/', validateJson(SourceInputSchema), async (c) => {
-        const profileId = c.req.param('profileId')!
+        const profileId = param(c, 'profileId')
         const { url } = c.req.valid('json')
         if (sources.has(profileId, url)) throw duplicate()
         if (sources.count(profileId) >= MAX_SOURCES_PER_PROFILE) throw tooMany()
@@ -92,8 +93,8 @@ export function sourceRoutes(
       })
 
       .get('/:id/icon', (c) => {
-        const icon = sources.getIcon(c.req.param('profileId')!, c.req.param('id'))
-        if (!icon) throw new HTTPException(404, { message: 'Not found' })
+        const icon = sources.getIcon(param(c, 'profileId'), param(c, 'id'))
+        if (!icon) throw fail(404, 'Not found')
         return imageResponse(c, icon)
       })
 
@@ -101,15 +102,13 @@ export function sourceRoutes(
       .get('/recent', async (c) => {
         const days = Number(c.req.query('days') ?? RECENT_DAYS_DEFAULT)
         if (!Number.isInteger(days) || days < 1 || days > RECENT_DAYS_MAX) {
-          throw new HTTPException(400, {
-            message: `Choose between 1 and ${RECENT_DAYS_MAX} days.`,
-          })
+          throw fail(400, `Choose between 1 and ${RECENT_DAYS_MAX} days.`)
         }
         return c.json(
           await feedItems.recent(
             c.get('user').id,
-            c.req.param('profileId')!,
-            sources.list(c.req.param('profileId')!),
+            param(c, 'profileId'),
+            sources.list(param(c, 'profileId')),
             days,
             { refresh: c.req.query('refresh') === 'true' },
           ),
@@ -118,23 +117,21 @@ export function sourceRoutes(
 
       // Deciding about posts of the combined list: put on the profile's reading list, ignore, or take back.
       .post('/recent/add', validateJson(PostRefsSchema), (c) =>
-        c.json(
-          feedPosts.add(c.req.param('profileId')!, c.get('user').id, c.req.valid('json').posts),
-        ),
+        c.json(feedPosts.add(param(c, 'profileId'), c.get('user').id, c.req.valid('json').posts)),
       )
       .post('/recent/ignore', validateJson(PostRefsSchema), (c) =>
         c.json(
-          feedPosts.ignore(c.req.param('profileId')!, c.get('user').id, c.req.valid('json').posts),
+          feedPosts.ignore(param(c, 'profileId'), c.get('user').id, c.req.valid('json').posts),
         ),
       )
       .post('/recent/reconsider', validateJson(PostRefsSchema), (c) =>
-        c.json(feedPosts.reconsider(c.req.param('profileId')!, c.req.valid('json').posts)),
+        c.json(feedPosts.reconsider(param(c, 'profileId'), c.req.valid('json').posts)),
       )
 
       // The feed's recent posts: the kept copy if it is recent, else the feed is asked again.
       .get('/:id/items', async (c) => {
-        const source = sources.find(c.req.param('profileId')!, c.req.param('id'))
-        if (!source) throw new HTTPException(404, { message: 'Not found' })
+        const source = sources.find(param(c, 'profileId'), param(c, 'id'))
+        if (!source) throw fail(404, 'Not found')
         return c.json(
           await feedItems.items(c.get('user').id, source, {
             refresh: c.req.query('refresh') === 'true',
@@ -144,21 +141,22 @@ export function sourceRoutes(
 
       // Registered before `/:id` so that "order" is not taken for an id.
       .put('/order', validateJson(SourceOrderSchema), (c) => {
-        const profileId = c.req.param('profileId')!
+        const profileId = param(c, 'profileId')
         const ok = store.transaction(() => sources.reorder(profileId, c.req.valid('json').ids))
         if (!ok) {
-          throw new HTTPException(409, {
-            message: 'The list has changed since you opened it. Reload the page and try again.',
-          })
+          throw fail(
+            409,
+            'The list has changed since you opened it. Reload the page and try again.',
+          )
         }
         return c.json(sources.list(profileId))
       })
 
       .delete('/:id', (c) => {
         const removed = store.transaction(() =>
-          sources.remove(c.req.param('profileId')!, c.req.param('id')),
+          sources.remove(param(c, 'profileId'), param(c, 'id')),
         )
-        if (!removed) throw new HTTPException(404, { message: 'Not found' })
+        if (!removed) throw fail(404, 'Not found')
         return c.body(null, 204)
       })
   )

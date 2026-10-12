@@ -86,6 +86,7 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
 - **Database:** append a new entry to `MIGRATIONS` in `apps/api/src/db/database.ts`; never edit an applied one.
   Deleting a user must still remove everything that belongs only to them (use `ON DELETE CASCADE`, and extend the
   account-deletion tests).
+- **API errors:** services and routes throw `fail(status, message)` (or `notFound()`) from `apps/api/src/errors.ts`; `app.ts` turns it into `{ error }`. Services never import Hono. Read path parameters with `param(c, 'id')` (`routes/params.ts`), never `c.req.param('id')!`.
 - **Security defaults:** cookies `HttpOnly` + `SameSite=Lax`; tokens stored hashed; no account enumeration
   (except where the product must, e.g. registration); throttle anything that can be guessed or costs money;
   never log request bodies, keys, tokens or reset links in production code paths.

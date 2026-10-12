@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, getSignedCookie, setCookie, setSignedCookie } from 'hono/cookie'
-import { HTTPException } from 'hono/http-exception'
 import {
   ForgotPasswordInputSchema,
   LoginInputSchema,
@@ -20,6 +19,8 @@ import { generateToken } from '../auth/secrets'
 import { validateJson } from '../validate'
 import { AccountError, type AccountService, type Session } from '../services/accounts'
 import type { EmailChangeService } from '../services/email-change'
+import { fail } from '../errors'
+import { param } from './params'
 
 const OAUTH_COOKIE = 'lfwa_oauth'
 const OAUTH_TTL_SECONDS = 600
@@ -59,7 +60,7 @@ const STATUS = {
 
 export function toHttpError(err: unknown): never {
   if (err instanceof AccountError) {
-    throw new HTTPException(STATUS[err.code], { message: err.message })
+    throw fail(STATUS[err.code], err.message)
   }
   throw err
 }
@@ -79,7 +80,7 @@ export function authRoutes(d: AuthRouteDeps) {
 
   const throttle = (limiter: RateLimiter, email: string) => {
     if (!limiter.allow(email)) {
-      throw new HTTPException(429, { message: 'Too many attempts. Try again later.' })
+      throw fail(429, 'Too many attempts. Try again later.')
     }
   }
 
@@ -99,7 +100,7 @@ export function authRoutes(d: AuthRouteDeps) {
         throttle(d.handleCheckLimiter, 'handle-check')
         const parsed = UsernameInputSchema.safeParse(c.req.query('handle') ?? '')
         if (!parsed.success) {
-          throw new HTTPException(400, { message: parsed.error.issues[0]?.message })
+          throw fail(400, parsed.error.issues[0]?.message ?? 'Check the username and try again')
         }
         return c.json({
           available: !d.accounts.handleTaken(parsed.data),
@@ -177,8 +178,8 @@ export function authRoutes(d: AuthRouteDeps) {
 
       // ---- OAuth / OpenID Connect login -------------------------------------
       .get('/oauth/:provider/start', async (c) => {
-        const provider = d.identityProviders.find((p) => p.id === c.req.param('provider'))
-        if (!provider) throw new HTTPException(404, { message: 'Unknown provider' })
+        const provider = d.identityProviders.find((p) => p.id === param(c, 'provider'))
+        if (!provider) throw fail(404, 'Unknown provider')
 
         const state = generateToken()
         const nonce = generateToken()
@@ -209,21 +210,21 @@ export function authRoutes(d: AuthRouteDeps) {
       })
 
       .get('/oauth/:provider/callback', async (c) => {
-        const provider = d.identityProviders.find((p) => p.id === c.req.param('provider'))
-        if (!provider) throw new HTTPException(404, { message: 'Unknown provider' })
-        const fail = (reason: string) => c.redirect(`${d.publicUrl}/login?error=${reason}`)
+        const provider = d.identityProviders.find((p) => p.id === param(c, 'provider'))
+        if (!provider) throw fail(404, 'Unknown provider')
+        const loginFailed = (reason: string) => c.redirect(`${d.publicUrl}/login?error=${reason}`)
 
         const raw = await getSignedCookie(c, d.sessionSecret, OAUTH_COOKIE)
         deleteCookie(c, OAUTH_COOKIE, { path: '/api/auth/oauth' })
         const code = c.req.query('code')
-        if (!raw || !code) return fail('oauth_failed')
+        if (!raw || !code) return loginFailed('oauth_failed')
         const tx = JSON.parse(raw) as {
           state: string
           nonce: string
           verifier: string
           next?: string
         }
-        if (c.req.query('state') !== tx.state) return fail('oauth_failed')
+        if (c.req.query('state') !== tx.state) return loginFailed('oauth_failed')
 
         try {
           const claims = await provider.exchangeCode({
@@ -235,7 +236,7 @@ export function authRoutes(d: AuthRouteDeps) {
           setSession(c, await d.accounts.loginWithIdentity(provider.id, claims))
           return c.redirect(`${d.publicUrl}${tx.next ?? ''}`)
         } catch (err) {
-          return fail(err instanceof AccountError ? err.code : 'oauth_failed')
+          return loginFailed(err instanceof AccountError ? err.code : 'oauth_failed')
         }
       })
   )

@@ -1,4 +1,3 @@
-import { HTTPException } from 'hono/http-exception'
 import {
   linkKey,
   type FeedItem,
@@ -7,8 +6,7 @@ import {
   type PostStatus,
 } from '@lfwa/core'
 import type { Store } from '../db/store'
-
-const fail = (status: 400 | 404 | 409, message: string) => new HTTPException(status, { message })
+import { fail } from '../errors'
 
 /**
  * What has become of each post of a profile's feeds: on a reading list (added here, or by hand), ignored by

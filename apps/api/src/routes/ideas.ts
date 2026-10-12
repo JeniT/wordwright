@@ -1,5 +1,4 @@
 import { Hono, type Context } from 'hono'
-import { HTTPException } from 'hono/http-exception'
 import { streamSSE } from 'hono/streaming'
 import {
   AcceptProposalInputSchema,
@@ -23,11 +22,9 @@ import { NoteEditService } from '../services/note-edits'
 import { noteRoutes } from './notes'
 import { toLlmHttpError } from './llm'
 import { validateJson } from '../validate'
+import { fail, notFound } from '../errors'
+import { param } from './params'
 
-const notFound = () => new HTTPException(404, { message: 'Not found' })
-const notFoundError = (): never => {
-  throw notFound()
-}
 type Ctx = Context<AppEnv>
 
 /** Mounted under `/profiles/:profileId`, after membership has been checked. */
@@ -39,8 +36,6 @@ export function ideaRoutes(
 ) {
   const { ideas, drafts, notes } = store
   const noteEdits = new NoteEditService(store)
-  /** A path parameter every route here has; a missing one can only mean the URL didn't match. */
-  const param = (c: Ctx, name: string) => c.req.param(name) ?? notFoundError()
   const profileOf = (c: Ctx) => param(c, 'profileId')
   /** The idea named in the URL, or a 404 (also when it belongs to a different profile). */
   const find = (c: Ctx) => {
@@ -66,10 +61,10 @@ export function ideaRoutes(
           JSON.stringify(markdownToNotes(changes.notes)) !==
             JSON.stringify(markdownToNotes(idea.notes))
         ) {
-          throw new HTTPException(409, {
-            message:
-              "This idea has quotations, which can't be edited. Change the other notes one at a time in the Notes list.",
-          })
+          throw fail(
+            409,
+            "This idea has quotations, which can't be edited. Change the other notes one at a time in the Notes list.",
+          )
         }
         return c.json(ideas.update(idea.profileId, idea.id, changes))
       })
@@ -93,7 +88,7 @@ export function ideaRoutes(
         const idea = find(c)
         await links.update(
           { profileId: idea.profileId, ideaId: idea.id },
-          c.req.param('linkId'),
+          param(c, 'linkId'),
           c.get('user').id,
           c.req.valid('json'),
           c.req.raw.signal,
@@ -102,14 +97,14 @@ export function ideaRoutes(
       })
       .put('/:id/links/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
         const idea = find(c)
-        if (!ideas.setLinkRead(idea.id, c.req.param('linkId'), c.req.valid('json').read)) {
+        if (!ideas.setLinkRead(idea.id, param(c, 'linkId'), c.req.valid('json').read)) {
           throw notFound()
         }
         return c.json(find(c))
       })
       .delete('/:id/links/:linkId', (c) => {
         const idea = find(c)
-        if (!ideas.removeLink(idea.id, c.req.param('linkId'))) throw notFound()
+        if (!ideas.removeLink(idea.id, param(c, 'linkId'))) throw notFound()
         return c.body(null, 204)
       })
 
@@ -132,9 +127,10 @@ export function ideaRoutes(
         const idea = find(c)
         const ok = store.transaction(() => drafts.reorder(idea.id, c.req.valid('json').ids))
         if (!ok) {
-          throw new HTTPException(409, {
-            message: 'The drafts have changed since you opened this page. Reload and try again.',
-          })
+          throw fail(
+            409,
+            'The drafts have changed since you opened this page. Reload and try again.',
+          )
         }
         ideas.touch(idea.id)
         return c.json(find(c))
@@ -164,16 +160,15 @@ export function ideaRoutes(
       .post('/:id/conversation/proposals/:proposalId/accept', async (c) => {
         const idea = find(c)
         const input = AcceptProposalInputSchema.safeParse(await c.req.json().catch(() => ({})))
-        if (!input.success)
-          throw new HTTPException(400, { message: 'Check the details and try again' })
+        if (!input.success) throw fail(400, 'Check the details and try again')
         const { id, name } = c.get('user')
         return c.json(
-          brainstorm.accept(idea, c.req.param('proposalId'), { id, name }, input.data.overwrite),
+          brainstorm.accept(idea, param(c, 'proposalId'), { id, name }, input.data.overwrite),
         )
       })
       .post('/:id/conversation/proposals/:proposalId/dismiss', (c) => {
         const { id, name } = c.get('user')
-        return c.json(brainstorm.dismiss(find(c), c.req.param('proposalId'), { id, name }))
+        return c.json(brainstorm.dismiss(find(c), param(c, 'proposalId'), { id, name }))
       })
       .delete('/:id/conversation', (c) => {
         brainstorm.restart(find(c))
@@ -196,16 +191,16 @@ export function ideaRoutes(
         }
       })
       .post('/:id/research/:runId/add', validateJson(ResearchItemIdsSchema), (c) =>
-        c.json(research.add(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
+        c.json(research.add(find(c), param(c, 'runId'), c.req.valid('json').itemIds)),
       )
       .post('/:id/research/:runId/dismiss', validateJson(ResearchItemIdsSchema), (c) =>
-        c.json(research.dismiss(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
+        c.json(research.dismiss(find(c), param(c, 'runId'), c.req.valid('json').itemIds)),
       )
       .post('/:id/research/:runId/reconsider', validateJson(ResearchItemIdsSchema), (c) =>
-        c.json(research.reconsider(find(c), c.req.param('runId'), c.req.valid('json').itemIds)),
+        c.json(research.reconsider(find(c), param(c, 'runId'), c.req.valid('json').itemIds)),
       )
       .delete('/:id/research/:runId', (c) => {
-        research.delete(find(c), c.req.param('runId'))
+        research.delete(find(c), param(c, 'runId'))
         return c.body(null, 204)
       })
   )
