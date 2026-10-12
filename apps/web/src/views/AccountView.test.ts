@@ -251,6 +251,33 @@ describe('AccountView: critiques of a draft', () => {
     expect(saved).toEqual([5])
   })
 
+  it('cannot be changed until the saved number has arrived, so it cannot be overwritten by it', async () => {
+    let arrive!: () => void
+    const held = new Promise<void>((resolve) => (arrive = resolve))
+    const saved: number[] = []
+    mock(saved, 3)
+    server.use(
+      http.get('*/api/account/critique-settings', async () => {
+        await held
+        return HttpResponse.json({ rounds: 3 })
+      }),
+    )
+    await renderAt('/account')
+    const select = await screen.findByLabelText('Critiques each draft gets')
+    expect(select).toBeDisabled()
+    arrive()
+    await waitFor(() => expect(select).toBeEnabled())
+    expect(select).toHaveValue('3')
+    await fireEvent.update(select, '1')
+    await fireEvent.click(
+      within(screen.getByRole('region', { name: 'Critiques of a draft' })).getByRole('button', {
+        name: 'Save',
+      }),
+    )
+    await screen.findByText('Saved')
+    expect(saved).toEqual([1])
+  })
+
   it('says what went wrong when saving is refused', async () => {
     mock()
     server.use(

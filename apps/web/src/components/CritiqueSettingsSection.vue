@@ -41,7 +41,12 @@ const save = useMutation({
         <label for="critique-rounds" class="mb-1 block text-sm font-medium"
           >Critiques each draft gets</label
         >
-        <select id="critique-rounds" v-model.number="rounds" class="field">
+        <select
+          id="critique-rounds"
+          v-model.number="rounds"
+          class="field"
+          :disabled="!settings.data.value"
+        >
           <option v-for="n in choices" :key="n" :value="n">
             {{ n }}{{ n === CRITIQUE_ROUNDS_DEFAULT ? ' (suggested)' : '' }}
           </option>
