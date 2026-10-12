@@ -17,8 +17,10 @@ import { draftRoutes } from './drafts'
 import { imageResponse } from './image-response'
 import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
+import { venueRoutes } from './venue'
 import { moveRoutes, profileReadingRoutes } from './reading'
 import { noteRoutes } from './notes'
+import type { VenueSampleService } from '../services/venue-samples'
 import { NoteEditService } from '../services/note-edits'
 import { MoveService } from '../services/moves'
 import { FeedPostService } from '../services/feed-posts'
@@ -43,6 +45,9 @@ export interface ProfileRouteDeps {
   /** Per person: each new source makes the server fetch pages. */
   feedLimiter: RateLimiter
   feedItems: FeedItemService
+  venueSamples: VenueSampleService
+  /** Per person: each look at a venue's posts makes the server fetch pages. */
+  venueLimiter: RateLimiter
   ideaLinks: IdeaLinkService
   brainstorm: BrainstormService
   research: ResearchService
@@ -56,6 +61,8 @@ export function profileRoutes({
   feeds,
   feedLimiter,
   feedItems,
+  venueSamples,
+  venueLimiter,
   ideaLinks,
   brainstorm,
   research,
@@ -180,6 +187,8 @@ export function profileRoutes({
         '/:profileId/sources',
         sourceRoutes(store, feeds, feedLimiter, member, feedItems, feedPosts),
       )
+      // Choosing and reading a venue's sample posts, to describe it from (#27).
+      .route('/:profileId/venue', venueRoutes(store, venueSamples, venueLimiter, member))
       // The profile's own reading list and notes, gathered before there is an idea.
       .route(
         '/:profileId/reading',

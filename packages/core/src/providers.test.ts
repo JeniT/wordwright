@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { FakeFeedFetcher } from './providers/feeds'
 import { FakeLLMProvider } from './providers/fake-llm'
 import { LLMRateLimitError } from './providers/llm'
-import { FakePageInfoFetcher } from './providers/pages'
+import { FakePageInfoFetcher, FakePageTextFetcher } from './providers/pages'
 import { FakeResearchProvider } from './providers/research'
 import { FakeSearchProvider } from './providers/search'
 import {
   feedFetcherContract,
   llmProviderContract,
   pageInfoFetcherContract,
+  pageTextFetcherContract,
   researchProviderContract,
   searchProviderContract,
 } from './testing'
@@ -48,6 +49,13 @@ pageInfoFetcherContract('fake', () => new FakePageInfoFetcher(), {
   untitled: 'https://example.org/untitled',
   missing: 'https://nonexistent.example.org/',
   authored: { url: 'https://example.org/authored', authors: ['Ada Author', 'Bo Writer'] },
+})
+
+pageTextFetcherContract('fake', () => new FakePageTextFetcher(), {
+  readable: 'https://example.org/post',
+  untitled: 'https://example.org/untitled',
+  long: 'https://example.org/long',
+  missing: 'https://nonexistent.example.org/',
 })
 
 // The fake finds only what it is told the search turned up, as a real adapter must.

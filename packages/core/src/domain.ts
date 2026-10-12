@@ -343,6 +343,47 @@ export type PostDecision = z.infer<typeof PostDecisionSchema>
 export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })
 export type SourceOrder = z.infer<typeof SourceOrderSchema>
 
+// ---- Sample posts for describing a venue (#27, #134) ---------------------
+
+/** How many posts of the venue's site are offered to choose from. */
+export const MAX_VENUE_POSTS = 10
+/** How many sample posts can be read at once: enough to show what the venue is like, few enough to be read. */
+export const MAX_VENUE_SAMPLES = 5
+
+/** Omitted or null: the profile's own website. */
+export const VenuePostsInputSchema = z.object({ siteUrl: SiteUrlSchema.nullish() })
+export type VenuePostsInput = z.infer<typeof VenuePostsInputSchema>
+
+/** The newest posts of a venue's site, or, when there are none to offer, a plain sentence saying what to do. */
+export const VenuePostsSchema = z.object({
+  posts: z.array(FeedItemSchema),
+  notice: z.string().nullable(),
+})
+export type VenuePosts = z.infer<typeof VenuePostsSchema>
+
+export const VenueSamplesInputSchema = z.object({
+  urls: z
+    .array(WebAddressSchema)
+    .min(1, 'Choose at least one post')
+    .max(MAX_VENUE_SAMPLES, `Choose up to ${MAX_VENUE_SAMPLES} posts`),
+})
+export type VenueSamplesInput = z.input<typeof VenueSamplesInputSchema>
+
+/** One sample post as read, or why it couldn't be: `message` says what the person can do next. */
+export const VenueSampleSchema = z.discriminatedUnion('ok', [
+  z.object({
+    ok: z.literal(true),
+    url: z.string(),
+    title: z.string().nullable(),
+    text: z.string(),
+    truncated: z.boolean(),
+  }),
+  z.object({ ok: z.literal(false), url: z.string(), message: z.string() }),
+])
+export type VenueSample = z.infer<typeof VenueSampleSchema>
+export const VenueSamplesSchema = z.object({ samples: z.array(VenueSampleSchema) })
+export type VenueSamples = z.infer<typeof VenueSamplesSchema>
+
 // ---- Invitations (how people join a shared profile) ---------------------
 
 export const InviteInputSchema = z.object({ email: EmailSchema })

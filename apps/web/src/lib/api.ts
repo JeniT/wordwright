@@ -18,6 +18,8 @@ import {
   InvitationSchema,
   LlmSettingsSchema,
   ProfileSchema,
+  VenuePostsSchema,
+  VenueSamplesSchema,
   ProposalSchema,
   ResearchRunSchema,
   ResearchRunsSchema,
@@ -38,6 +40,8 @@ import {
   type LoginInput,
   type ProfileInput,
   type ProfileDescriptionInput,
+  type VenuePostsInput,
+  type VenueSamplesInput,
   type ProfileUpdate,
   type RegisterInput,
   type SendMessageInput,
@@ -160,6 +164,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(ProfileSchema, 'PATCH', `/profiles/${id}`, changes),
     setProfileDescription: (id: string, input: ProfileDescriptionInput) =>
       get(ProfileSchema, 'PUT', `/profiles/${id}/description`, input),
+    /** The newest posts of the venue's site. Nothing is saved; `siteUrl` defaults to the profile's website. */
+    venuePosts: (id: string, input: VenuePostsInput = {}) =>
+      get(VenuePostsSchema, 'POST', `/profiles/${id}/venue/posts`, input),
+    /** Reads the words of up to five posts. Nothing is saved; no AI is involved. */
+    venueSamples: (id: string, input: VenueSamplesInput) =>
+      get(VenueSamplesSchema, 'POST', `/profiles/${id}/venue/samples`, input),
     setProfileImage: async (id: string, file: File) =>
       ProfileSchema.parse(await (await sendFile('PUT', `/profiles/${id}/image`, file)).json()),
     removeProfileImage: (id: string) => act('DELETE', `/profiles/${id}/image`),

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LLMChatEvent, LLMChatRequest, LLMProvider } from '../providers/llm'
 import { MAX_FEED_ITEMS } from '../domain'
 import { FeedError, MAX_FEED_CANDIDATES, type FeedFetcher } from '../providers/feeds'
-import type { PageInfoFetcher } from '../providers/pages'
+import { PAGE_TEXT_MAX_CHARS, type PageInfoFetcher, type PageTextFetcher } from '../providers/pages'
 import type { ResearchProvider } from '../providers/research'
 import type { SearchProvider } from '../providers/search'
 
@@ -332,6 +332,56 @@ export function pageInfoFetcherContract(
       controller.abort()
       expect(await create().fetchInfo(scenarios.titled.url, controller.signal)).toEqual({
         title: null,
+      })
+    })
+  })
+}
+
+/**
+ * Behaviour every PageTextFetcher must satisfy. `readable` is a page with a title and words; `untitled` one with
+ * words but no title; `long` one with far more than the cap; `missing` an address whose site doesn't exist.
+ */
+export function pageTextFetcherContract(
+  name: string,
+  create: () => PageTextFetcher,
+  scenarios: { readable: string; untitled: string; long: string; missing: string },
+) {
+  describe(`PageTextFetcher contract: ${name}`, () => {
+    it('returns the title and words of a page', async () => {
+      const page = await create().fetchText(scenarios.readable)
+      expect(page.ok).toBe(true)
+      if (!page.ok) return
+      expect(page.title).toEqual(expect.any(String))
+      expect(page.text.length).toBeGreaterThan(0)
+      expect(page.text).not.toMatch(/<[a-z]/i) // words, never markup
+      expect(page.truncated).toBe(false)
+    })
+
+    it('returns no title for a page without one, but still its words', async () => {
+      const page = await create().fetchText(scenarios.untitled)
+      expect(page).toMatchObject({ ok: true, title: null })
+    })
+
+    it('keeps at most the cap, and says when it cut', async () => {
+      const page = await create().fetchText(scenarios.long)
+      expect(page.ok).toBe(true)
+      if (!page.ok) return
+      expect(page.truncated).toBe(true)
+      expect(page.text.length).toBeLessThanOrEqual(PAGE_TEXT_MAX_CHARS + 1) // the cut may add "…"
+    })
+
+    it('says so when the site does not exist', async () => {
+      expect(await create().fetchText(scenarios.missing)).toEqual({
+        ok: false,
+        problem: 'not-found',
+      })
+    })
+
+    it('resolves with a problem, rather than throwing, when already aborted', async () => {
+      const controller = new AbortController()
+      controller.abort()
+      expect(await create().fetchText(scenarios.readable, controller.signal)).toMatchObject({
+        ok: false,
       })
     })
   })
