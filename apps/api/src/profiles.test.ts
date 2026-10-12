@@ -293,6 +293,71 @@ describe('profile site link', () => {
   })
 })
 
+describe('profile description', () => {
+  let ctx: ReturnType<typeof setup>
+  let ada: TestClient
+  let bob: TestClient
+  let id: string
+  const url = () => `/api/profiles/${id}/description`
+
+  beforeEach(async () => {
+    ctx = setup()
+    ada = ctx.client()
+    bob = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com')
+    id = (await (await ada.get('/api/profiles')).json())[0].id
+  })
+
+  it('starts empty and entered, then keeps what is written, trimmed', async () => {
+    const before = await (await ada.get(`/api/profiles/${id}`)).json()
+    expect(before).toMatchObject({
+      description: null,
+      descriptionOrigin: 'entered',
+      descriptionConfirmed: true,
+      descriptionSources: [],
+    })
+    const markdown = 'Weeknotes, mostly *for me*. See [the site](https://example.com).'
+    const res = await ada.put(url(), { description: `  ${markdown}\n` })
+    expect(res.status).toBe(200)
+    expect((await res.json()).description).toBe(markdown)
+    expect((await (await ada.get('/api/profiles')).json())[0].description).toBe(markdown)
+  })
+
+  it('clears with blank text or null, and refuses text that is too long', async () => {
+    await ada.put(url(), { description: 'Something' })
+    expect((await (await ada.put(url(), { description: '  \n ' })).json()).description).toBeNull()
+    await ada.put(url(), { description: 'Again' })
+    expect((await (await ada.put(url(), { description: null })).json()).description).toBeNull()
+    const tooLong = await ada.put(url(), { description: 'x'.repeat(5001) })
+    expect(tooLong.status).toBe(400)
+    expect((await tooLong.json()).error).toContain('5000')
+    expect((await ada.put(url(), { description: 'x'.repeat(5000) })).status).toBe(200)
+  })
+
+  it('can be written by any member, and is hidden from everyone else', async () => {
+    expect((await bob.put(url(), { description: 'Sneaky' })).status).toBe(404)
+    expect((await setup().client().put(url(), { description: 'x' })).status).toBe(401)
+    await shareProfile(ctx, ada, id, bob, 'bob@example.com')
+    const res = await bob.put(url(), { description: 'Written by an editor' })
+    expect(res.status).toBe(200)
+    expect((await (await ada.get(`/api/profiles/${id}`)).json()).description).toBe(
+      'Written by an editor',
+    )
+    // The name and website stay the owner's.
+    expect((await bob.patch(`/api/profiles/${id}`, { name: 'Mine' })).status).toBe(403)
+  })
+
+  it('is kept when the profile is renamed, and goes with the profile', async () => {
+    await ada.put(url(), { description: 'Stays put' })
+    const renamed = await (await ada.patch(`/api/profiles/${id}`, { name: 'Renamed' })).json()
+    expect(renamed.description).toBe('Stays put')
+    expect((await ada.delete(`/api/profiles/${renamed.id}`)).status).toBe(204)
+    expect((await ada.get(`/api/profiles/${renamed.id}`)).status).toBe(404)
+  })
+})
+
 describe('profile image', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient

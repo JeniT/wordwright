@@ -105,6 +105,20 @@ route with `nosniff`. The type comes from the file's leading bytes, not the decl
 accepted (script, same origin). No object-storage port yet: nothing else needs one, and moving it behind a port is
 easy when it does (hosting is D3). The per-user cap on owned profiles (25) bounds storage.
 
+## One profile description, not audience personas (#131, part of #27)
+
+A profile has one Markdown description of the venue: what it is, who reads it and what kinds of writing go there. The
+earlier plan (T16, #2) was a table of reader personas, but some writing has no audience (weeknotes to think in public,
+#25), and a free-text description covers that case without a special state. It is Markdown so it can carry links;
+it is rendered by the same safe renderer as the AI's messages (no raw HTML, only web and email links). It is up to
+5000 characters, because it will go into prompts.
+
+Everyone who works in the profile can edit it, so it has its own route (`PUT /api/profiles/:id/description`, members)
+instead of the owner-only `PATCH`. The row also stores `description_origin` (`entered` or `inferred`),
+`description_confirmed` and `description_sources` (a JSON list of links), unused until an AI-drafted description exists
+(#135, #136): a draft will show its evidence and stay out of prompts until a person accepts it (docs/responsible-ai.md,
+origin follows the text). A hand-written save always sets `entered`, confirmed, no sources.
+
 ## Validation errors answer `{ error: "message" }`
 
 The `zValidator` default returns a raw zod object, which the UI showed as "[object Object]" (found by an e2e test;

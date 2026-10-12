@@ -551,6 +551,15 @@ export const MIGRATIONS: Migration[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  // #131: a venue description in Markdown. Where it came from is kept so an AI draft (#27) can show its evidence
+  // and stay out of the prompts until someone accepts it; sources is a JSON array of links.
+  `
+  ALTER TABLE profiles ADD COLUMN description TEXT;
+  ALTER TABLE profiles ADD COLUMN description_origin TEXT NOT NULL DEFAULT 'entered'
+    CHECK (description_origin IN ('entered', 'inferred'));
+  ALTER TABLE profiles ADD COLUMN description_confirmed INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE profiles ADD COLUMN description_sources TEXT NOT NULL DEFAULT '[]';
+  `,
 ]
 
 /**

@@ -87,6 +87,21 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await expect(page.getByRole('status')).toHaveText('Saved')
   await expect(page.getByLabel('Website')).toHaveValue('https://final.example.com')
 
+  // The description is Markdown, with a preview, and survives a reload.
+  await page
+    .getByLabel('About this venue')
+    .fill('Personal weeknotes, *mostly for me*. See [my site](https://example.com).')
+  await page.getByText('Preview', { exact: true }).click()
+  await expect(page.getByRole('link', { name: 'my site' })).toHaveAttribute(
+    'href',
+    'https://example.com',
+  )
+  await page.getByRole('button', { name: 'Save description' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' }).last()).toBeVisible()
+  await page.reload()
+  await expect(page.getByLabel('About this venue')).toHaveValue(/Personal weeknotes/)
+  await noViolations(page)
+
   // A non-image is refused with a reason; a real one is accepted.
   await page.getByLabel('Choose a picture').setInputFiles({
     name: 'notes.txt',

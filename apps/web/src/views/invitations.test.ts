@@ -20,6 +20,10 @@ const profile = {
   name: 'Joint piece',
   siteUrl: null,
   imageUrl: null,
+  description: null,
+  descriptionOrigin: 'entered',
+  descriptionConfirmed: true,
+  descriptionSources: [],
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }],
 }

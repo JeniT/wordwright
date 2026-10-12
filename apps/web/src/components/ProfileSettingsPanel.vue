@@ -11,6 +11,7 @@ import DangerZone from './DangerZone.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ImageField from './ImageField.vue'
+import ProfileDescriptionSection from './ProfileDescriptionSection.vue'
 import ProfileImage from './ProfileImage.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
 import TextField from './TextField.vue'
@@ -124,6 +125,8 @@ const deleteProfile = useMutation({
         <dd>{{ profile.siteUrl ? displayHost(profile.siteUrl) : 'None' }}</dd>
       </dl>
     </section>
+
+    <ProfileDescriptionSection :profile="profile" />
 
     <section aria-labelledby="picture-heading">
       <h2 id="picture-heading" class="mb-3 font-display text-xl font-semibold">Picture</h2>

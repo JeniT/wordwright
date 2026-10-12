@@ -5,6 +5,7 @@ import {
   type FeedFetcher,
   MAX_IMAGE_BYTES,
   MAX_OWNED_PROFILES,
+  ProfileDescriptionInputSchema,
   ProfileInputSchema,
   ProfileUpdateSchema,
 } from '@lfwa/core'
@@ -91,6 +92,13 @@ export function profileRoutes({
         const id = store.transaction(() =>
           store.profiles.update(param(c, 'profileId'), c.req.valid('json')),
         )
+        return c.json(store.profiles.get(id, c.get('user').id))
+      })
+
+      // Anyone who works in the profile can describe it, unlike its name and website, which are the owner's.
+      .put('/:profileId/description', member, validateJson(ProfileDescriptionInputSchema), (c) => {
+        const id = param(c, 'profileId')
+        store.profiles.setDescription(id, c.req.valid('json').description)
         return c.json(store.profiles.get(id, c.get('user').id))
       })
 

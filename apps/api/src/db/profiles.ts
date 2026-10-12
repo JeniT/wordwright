@@ -4,6 +4,7 @@ import {
   profileIdFor,
   type ImageType,
   type Profile,
+  type ProfileDescriptionOrigin,
   type ProfileMember,
   type ProfileRole,
 } from '@lfwa/core'
@@ -98,6 +99,16 @@ export class ProfileStore {
       this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(next, id)
     }
     return next
+  }
+
+  /** A person's own words about the venue (or null to clear): confirmed, with no evidence to show. */
+  setDescription(id: string, description: string | null) {
+    this.db
+      .prepare(
+        `UPDATE profiles SET description = ?, description_origin = 'entered',
+           description_confirmed = 1, description_sources = '[]' WHERE id = ?`,
+      )
+      .run(description, id)
   }
 
   /** The current id of the profile that used to be called `oldId`, if any. */
@@ -199,11 +210,21 @@ export class ProfileStore {
     if (!role) return undefined
     const row = this.db
       .prepare(
-        `SELECT p.name, p.site_url, i.updated_at AS image_updated_at FROM profiles p
+        `SELECT p.name, p.site_url, p.description, p.description_origin, p.description_confirmed,
+           p.description_sources, i.updated_at AS image_updated_at FROM profiles p
          LEFT JOIN profile_images i ON i.profile_id = p.id WHERE p.id = ?`,
       )
       .get(profileId) as
-      { name: string; site_url: string | null; image_updated_at: string | null } | undefined
+      | {
+          name: string
+          site_url: string | null
+          description: string | null
+          description_origin: ProfileDescriptionOrigin
+          description_confirmed: number
+          description_sources: string
+          image_updated_at: string | null
+        }
+      | undefined
     return (
       row && {
         id: profileId,
@@ -214,6 +235,10 @@ export class ProfileStore {
         imageUrl: row.image_updated_at
           ? `/api/profiles/${profileId}/image?v=${Date.parse(row.image_updated_at)}`
           : null,
+        description: row.description,
+        descriptionOrigin: row.description_origin,
+        descriptionConfirmed: row.description_confirmed === 1,
+        descriptionSources: JSON.parse(row.description_sources) as string[],
         role,
         members: this.members(profileId),
       }

@@ -12,6 +12,10 @@ const profile = {
   name: 'Substack',
   siteUrl: null,
   imageUrl: null,
+  description: null,
+  descriptionOrigin: 'entered',
+  descriptionConfirmed: true,
+  descriptionSources: [],
   role: 'owner',
   members: [
     { userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' },

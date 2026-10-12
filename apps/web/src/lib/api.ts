@@ -37,6 +37,7 @@ import {
   type LlmSettingsInput,
   type LoginInput,
   type ProfileInput,
+  type ProfileDescriptionInput,
   type ProfileUpdate,
   type RegisterInput,
   type SendMessageInput,
@@ -157,6 +158,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     createProfile: (input: ProfileInput) => get(ProfileSchema, 'POST', '/profiles', input),
     updateProfile: (id: string, changes: ProfileUpdate) =>
       get(ProfileSchema, 'PATCH', `/profiles/${id}`, changes),
+    setProfileDescription: (id: string, input: ProfileDescriptionInput) =>
+      get(ProfileSchema, 'PUT', `/profiles/${id}/description`, input),
     setProfileImage: async (id: string, file: File) =>
       ProfileSchema.parse(await (await sendFile('PUT', `/profiles/${id}/image`, file)).json()),
     removeProfileImage: (id: string) => act('DELETE', `/profiles/${id}/image`),

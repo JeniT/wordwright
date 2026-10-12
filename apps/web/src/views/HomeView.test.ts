@@ -102,6 +102,10 @@ describe('landing page: connecting an AI key', () => {
       name: 'Blog',
       siteUrl: null,
       imageUrl: null,
+      description: null,
+      descriptionOrigin: 'entered',
+      descriptionConfirmed: true,
+      descriptionSources: [],
       role: 'owner',
       members: [],
     }

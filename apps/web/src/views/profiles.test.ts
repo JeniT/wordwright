@@ -23,6 +23,10 @@ const substack = {
   name: 'Substack',
   siteUrl: 'https://ada.substack.com/about',
   imageUrl: '/api/profiles/adalovelace-substack/image?v=1',
+  description: null,
+  descriptionOrigin: 'entered',
+  descriptionConfirmed: true,
+  descriptionSources: [],
   role: 'owner',
   members: [owner],
 }
@@ -31,6 +35,10 @@ const blog = {
   name: 'Blog',
   siteUrl: null,
   imageUrl: null,
+  description: null,
+  descriptionOrigin: 'entered',
+  descriptionConfirmed: true,
+  descriptionSources: [],
   role: 'owner',
   members: [owner, editor],
 }
@@ -258,6 +266,61 @@ describe('profile page', () => {
     await renderAt('/p/someone-else')
     expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that profile")
     expect(screen.getByRole('link', { name: 'Back to your profiles' })).toHaveAttribute('href', '/')
+  })
+})
+
+describe('profile description', () => {
+  it('lets the owner write it in Markdown, previews it, and shows it saved', async () => {
+    const bodies: unknown[] = []
+    server.use(
+      signedInAs(testUser),
+      listProfiles([substack]),
+      http.put('*/api/profiles/adalovelace-substack/description', async ({ request }) => {
+        const body = (await request.json()) as { description: string }
+        bodies.push(body)
+        return HttpResponse.json({ ...substack, description: body.description })
+      }),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    const field = await screen.findByLabelText('About this venue')
+    expect(screen.getByRole('button', { name: 'Save description' })).toBeDisabled()
+    await fireEvent.update(field, 'Weeknotes, *mostly for me*. See [home](https://example.com).')
+    await fireEvent.click(screen.getByText('Preview'))
+    expect(screen.getByRole('link', { name: 'home' })).toHaveAttribute(
+      'href',
+      'https://example.com',
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
+    await screen.findByText('Saved')
+    expect(bodies).toEqual([
+      { description: 'Weeknotes, *mostly for me*. See [home](https://example.com).' },
+    ])
+  })
+
+  it('lets an editor write it too, and says why when saving fails', async () => {
+    const shared = { ...substack, role: 'editor', members: [owner, { ...editor, userId: 'u1' }] }
+    server.use(
+      signedInAs(testUser),
+      listProfiles([shared]),
+      http.put('*/api/profiles/adalovelace-substack/description', () =>
+        HttpResponse.json({ error: 'Keep the description under 5000 characters' }, { status: 400 }),
+      ),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    await fireEvent.update(await screen.findByLabelText('About this venue'), 'Hello')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Keep the description under 5000')
+  })
+
+  it('starts from the saved description', async () => {
+    server.use(
+      signedInAs(testUser),
+      listProfiles([{ ...substack, description: 'A newsletter for gardeners' }]),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    expect(await screen.findByLabelText('About this venue')).toHaveValue(
+      'A newsletter for gardeners',
+    )
   })
 })
 

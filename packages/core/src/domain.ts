@@ -133,6 +133,12 @@ export const ProfileMemberSchema = z.object({
 })
 export type ProfileMember = z.infer<typeof ProfileMemberSchema>
 
+/** Long enough for a few paragraphs about the venue; short enough to put in every prompt. */
+export const PROFILE_DESCRIPTION_MAX = 5000
+
+export const ProfileDescriptionOriginSchema = z.enum(['entered', 'inferred'])
+export type ProfileDescriptionOrigin = z.infer<typeof ProfileDescriptionOriginSchema>
+
 export const ProfileSchema = z.object({
   /** Human-readable and shareable, e.g. `jenit-substack`. Follows the name; old ids redirect to the current one. */
   id: z.string(),
@@ -141,6 +147,17 @@ export const ProfileSchema = z.object({
   siteUrl: z.string().nullable(),
   /** Same-origin URL of the uploaded image, or null (the UI then draws a placeholder). */
   imageUrl: z.string().nullable(),
+  /**
+   * What the venue is, who reads it and what kinds of writing go there, in Markdown. It is context for the AI
+   * (once confirmed) and shown on the profile page. Null when nobody has written one.
+   */
+  description: z.string().nullable(),
+  /** Who the words came from: `entered` by a person, or `inferred` by the AI from sample posts (see #27). */
+  descriptionOrigin: ProfileDescriptionOriginSchema,
+  /** False for an AI draft nobody has accepted yet: it is shown, but not used as context. */
+  descriptionConfirmed: z.boolean(),
+  /** The posts an inferred description was drawn from, as evidence. Empty for one a person wrote. */
+  descriptionSources: z.array(z.string()),
   /** The current user's role in this profile. */
   role: ProfileRoleSchema,
   members: z.array(ProfileMemberSchema),
@@ -158,6 +175,19 @@ export const ProfileUpdateSchema = z.object({
   siteUrl: SiteUrlSchema.nullable().optional(),
 })
 export type ProfileUpdate = z.infer<typeof ProfileUpdateSchema>
+
+/** Blank text clears the description. Only a person's own words come through here; drafts have their own route. */
+export const ProfileDescriptionInputSchema = z.object({
+  description: z
+    .string()
+    .max(
+      PROFILE_DESCRIPTION_MAX,
+      `Keep the description under ${PROFILE_DESCRIPTION_MAX} characters, or shorten it`,
+    )
+    .nullable()
+    .transform((text) => (text?.trim() ? text.trim() : null)),
+})
+export type ProfileDescriptionInput = z.input<typeof ProfileDescriptionInputSchema>
 
 // ---- Idea sources (feeds scanned for articles that could spark ideas) ---
 
