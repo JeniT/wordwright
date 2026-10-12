@@ -6,7 +6,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick, type Component } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest'
-import { createAppRouter } from './router'
+import { createAppRouter, routes } from './router'
+import type { RouteRecordRaw } from 'vue-router'
 
 export const testUser = {
   id: 'u1',
@@ -44,9 +45,17 @@ export const server = setupServer(
   ),
 )
 
-/** Call once at the top of a test file. */
-export function useMockServer() {
-  beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+/**
+ * Call once at the top of a test file. Pages are loaded the first time they are visited, so the first test of a file
+ * would pay for importing the app and its page (the editor is large) inside its own timeout, which a busy machine
+ * can run past. This loads them first, in a hook with its own, longer, timeout. `warm` names the routes the file
+ * visits.
+ */
+export function useMockServer({ warm = [] }: { warm?: string[] } = {}) {
+  beforeAll(async () => {
+    server.listen({ onUnhandledRequest: 'error' })
+    await Promise.all([import('./App.vue'), ...warm.map(loadRoute)])
+  })
   // Every account page loads this section, so tests about something else needn't mock it.
   // A test's own `server.use(...)` goes in front of this and wins.
   beforeEach(() =>
@@ -56,6 +65,19 @@ export function useMockServer() {
   )
   afterEach(() => server.resetHandlers())
   afterAll(() => server.close())
+}
+
+/** Imports the page of the named route (a no-op for a name that is not a lazy page). */
+async function loadRoute(name: string) {
+  const find = (list: RouteRecordRaw[]): RouteRecordRaw | undefined => {
+    for (const r of list) {
+      if (r.name === name) return r
+      const inside = r.children && find(r.children)
+      if (inside) return inside
+    }
+  }
+  const component = find(routes)?.component
+  if (typeof component === 'function') await (component as () => Promise<unknown>)()
 }
 
 export const signedInAs = (user: typeof testUser | null) =>

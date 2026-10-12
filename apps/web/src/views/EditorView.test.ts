@@ -5,7 +5,7 @@ import { blockHash } from '@lfwa/core'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
-useMockServer()
+useMockServer({ warm: ['draft'] })
 
 const draft = {
   id: 'd1',

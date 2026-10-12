@@ -11,7 +11,7 @@ import {
   useMockServer,
 } from '../test-utils'
 
-useMockServer()
+useMockServer({ warm: ['search'] })
 
 const profile = (role: 'owner' | 'editor') => ({
   id: 'adalovelace-blog',

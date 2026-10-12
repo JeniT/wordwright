@@ -11,7 +11,7 @@ import {
   expectOrigin,
 } from '../test-utils'
 
-useMockServer()
+useMockServer({ warm: ['profile-ideas'] })
 
 const profile = {
   id: 'ada-substack',

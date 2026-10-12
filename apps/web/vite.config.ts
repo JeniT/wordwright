@@ -15,5 +15,7 @@ export default defineConfig({
     // (CI has a runner to itself). The longer timeout is for a busy machine, not slow code.
     maxWorkers: process.env.CI ? undefined : 4,
     testTimeout: 10_000,
+    // Loading the app and its pages before a file's first test (see `useMockServer`) can take a while when busy.
+    hookTimeout: 30_000,
   },
 })
