@@ -428,7 +428,7 @@
 }
 /*
  * The left rail of a list row: a fixed-width zone that holds the row's select checkbox and, where the list can be
- * reordered, its arrows (see `list-rail-grab`). It is top-aligned so it works for rows of any height.
+ * reordered, its grip and arrows (see `list-rail-grab`). It is top-aligned so it works for rows of any height.
  */
 @utility list-rail {
   display: flex;
@@ -442,30 +442,33 @@
   background: var(--color-sunken);
 }
 /*
- * A rail you can grab: dotted, with a grab cursor, so a reorderable row looks draggable without a handle button. The
- * dots sit on an inset layer and repeat with `space`, which only ever places whole dots (never one cut by an edge).
- * They are a tiled radial gradient, the only way to repeat a dot in plain CSS, not a gradient fill. Whatever is on
- * the rail (the checkbox, the arrows) has a solid background, so no dot shows through it.
+ * A rail you can grab. The whole rail is the handle (grab cursor, and it tints on hover to show how far it reaches),
+ * and a six-dot grip says so. The grip is a plain glyph with no outline or fill, so it doesn't read as a button of its
+ * own; it is faint at rest (3:1) and darker when the pointer is on the rail. Whatever else is on the rail (the
+ * checkbox, the arrows that take the grip's place) has a solid background.
  */
 @utility list-rail-grab {
-  position: relative;
   cursor: grab;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0.4rem;
-    background-image: radial-gradient(circle, var(--color-line-strong) 1px, transparent 1.4px);
-    background-size: 10px 10px;
-    background-repeat: space;
-    pointer-events: none;
+  transition: background-color 0.12s;
+  &:hover {
+    background: var(--color-accent-wash);
   }
-  & > :not(.sr-only) {
-    position: relative; /* above the dots */
+  &:active {
+    cursor: grabbing;
+  }
+  &:hover .list-rail-grip,
+  &:focus-within .list-rail-grip {
+    color: var(--color-ink-soft);
   }
   &:has([data-grip]:focus-visible) {
     outline: 3px solid var(--color-focus);
     outline-offset: -3px;
   }
+}
+/* The grip glyph in a reorderable rail. */
+@utility list-rail-grip {
+  color: var(--color-line-strong);
+  pointer-events: none;
 }
 /* The small up/down arrows in a reorderable rail: solid whether enabled or not (a disabled one is not see-through). */
 @utility btn-rail {

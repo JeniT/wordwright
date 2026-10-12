@@ -120,7 +120,7 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                                                                                                                                                                     |
 | `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                                                                                                                                                                         |
 | `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_                                                                                                                                                            |
-| `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is dotted (`list-rail-grab`) and holds the arrows                                                                                                                                                        |
+| `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is the drag handle (`list-rail-grab`, with a `list-rail-grip` glyph) and holds the arrows                                                                                                                |
 | `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones                                                                                                                                                 |
 | `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                                                                                                                                                                             |
 | `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                                                                                                                                                                   |
@@ -191,16 +191,17 @@ and quiet buttons. A chip is a **fact**, not a control: use `chip-quiet` (flat) 
 strong outline, and give an item one link (the title), with its host as plain text.
 
 **The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
-select checkbox. On a reorderable list the rail is **dotted** (`list-rail-grab`, with a grab cursor), so it looks
-draggable without a handle button, and the whole rail is the drag area, so a tall row has a big handle. The dots sit on
-an inset layer and repeat with `background-repeat: space`, so only whole dots are ever drawn; anything on the rail (the
-checkbox, the arrows) has a solid background, so no dot shows through it, a disabled arrow included (`btn-rail`).
-Reordering without dragging is always available: small up/down arrows are laid out in every row's rail (vertically
-centred under the checkbox) but **invisible** until the pointer is over the list or focus is in it, and then they show
-for **all rows or none**. They hide while a row is being dragged, so the two never compete, and showing them moves
-nothing. Tapping a rail focuses its hidden "Reorder" button, which is how touch gets them; for the keyboard and screen
-readers that button is there too (with it focused, the arrow keys move the row). The arrows are 28px (above the 24px
-WCAG 2.2 minimum), an exception to the 36px rule for small buttons because there are two to a row. A list is
+select checkbox. On a reorderable list the rail is **the handle**: the whole rail is the drag area (a `grab` cursor, so a
+tall row has a big handle) and it **tints to `accent-wash` under the pointer**, which shows how far it reaches. A **six-dot
+grip** (`list-rail-grip`) says so. It is a plain glyph, with no outline or fill, so it does not read as a button of its
+own, and it is faint at rest (`line-strong`, 3:1) and darker on hover. It sits under the checkbox in its own space;
+nothing is drawn behind a control. Reordering without dragging is always available: **clicking or tapping a rail** (or
+focusing its hidden "Reorder" button) swaps the grip for small up/down arrows, on **all rows or none**, in the same slot
+so nothing moves. Hover alone never shows them, so the grip is there when the pointer arrives. They go again when the
+person clicks elsewhere, leaves the list, presses Escape or starts dragging, so the two never compete. For the
+keyboard and screen readers the hidden button is there too (with it focused, the arrow keys move the row). The arrows
+are 28px (above the 24px WCAG 2.2 minimum), an exception to the 36px rule for small buttons because there are two to a
+row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 

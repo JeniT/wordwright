@@ -146,6 +146,8 @@ test('captures an idea, adds related work, and develops it into a linked set of 
       targetPosition: { x: 40, y: 80 },
     })
   await expect.poll(draftTitles).toEqual(['Part 1', 'Part 2'])
+  // Dragging puts the grips back; a click on a rail asks for the arrows again.
+  await showArrowsFor(drafts, /^Reorder Part 1/)
   await page.getByRole('button', { name: 'Move Part 2: the oxbow up' }).click()
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
   await page.reload()

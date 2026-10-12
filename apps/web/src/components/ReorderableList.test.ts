@@ -84,25 +84,56 @@ describe('ReorderableList', () => {
   const listRoot = () =>
     document.querySelector('[data-testid="rail"]')!.closest('ol')!.parentElement!.parentElement!
 
-  it('shows the arrows for every row, or for none: while the pointer is over the list or focus is in it', async () => {
+  it('does not show the arrows on hover: the grip stays visible for dragging', async () => {
     await mountList(['a', 'b'], { arrows: false })
-    expect(moves()).toHaveLength(0)
     await fireEvent.mouseEnter(listRoot())
-    expect(moves()).toHaveLength(4) // up and down, on both rows
-    expect(screen.getByRole('button', { name: 'Move a up' })).toBeDisabled()
-    await fireEvent.mouseLeave(listRoot())
+    expect(moves()).toHaveLength(0)
+    // Each rail draws a grip: a plain glyph, not a button of its own.
+    const rails = document.querySelectorAll('[data-testid="rail"]')
+    for (const rail of rails) {
+      const grip = rail.querySelector('svg.list-rail-grip')!
+      expect(grip).toHaveAttribute('aria-hidden', 'true')
+      expect(grip.closest('button')).toBeNull()
+      expect(grip).toBeVisible()
+    }
+  })
+
+  it('shows the arrows for every row, or for none: after a rail is asked for them, until the person moves on', async () => {
+    await mountList(['a', 'b'], { arrows: false })
     expect(moves()).toHaveLength(0)
     screen.getByRole('button', { name: 'Reorder b' }).focus()
     await nextTick()
+    expect(moves()).toHaveLength(4) // up and down, on both rows
+    expect(screen.getByRole('button', { name: 'Move a up' })).toBeDisabled()
+    // The grip gives way to them in the same place.
+    expect(document.querySelector('svg.list-rail-grip')).toHaveClass('invisible')
+    await fireEvent.keyDown(document, { key: 'Escape' })
+    expect(moves()).toHaveLength(0)
+    // Pressing the still-focused button (Enter) asks for them again.
+    await fireEvent.click(screen.getByRole('button', { name: 'Reorder b' }))
     expect(moves()).toHaveLength(4)
-    screen.getByRole('button', { name: 'Reorder b' }).blur()
+    await fireEvent.pointerDown(document.body)
+    expect(moves()).toHaveLength(0)
+  })
+
+  it('keeps the arrows when focus moves to one of them, or somewhere unknown', async () => {
+    await mountList(['a', 'b'], { arrows: false })
+    screen.getByRole('button', { name: 'Reorder a' }).focus()
     await nextTick()
+    await fireEvent.focusOut(screen.getByRole('button', { name: 'Reorder a' }), {
+      relatedTarget: null, // what Safari reports after a click on a button
+    })
+    expect(moves()).toHaveLength(4)
+    await fireEvent.focusOut(screen.getByRole('button', { name: 'Reorder a' }), {
+      relatedTarget: document.body,
+    })
     expect(moves()).toHaveLength(0)
   })
 
   it('hides the arrows while a row is dragged, so the two do not compete', async () => {
     await mountList(['a', 'b'], { arrows: false })
-    await fireEvent.mouseEnter(listRoot())
+    screen.getByRole('button', { name: 'Reorder a' }).focus()
+    await nextTick()
     expect(moves()).toHaveLength(4)
     const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
     await fireEvent.dragStart(document.querySelectorAll('[data-testid="rail"]')[0]!, {
@@ -110,7 +141,7 @@ describe('ReorderableList', () => {
     })
     expect(moves()).toHaveLength(0)
     await fireEvent.dragEnd(document.querySelectorAll('[data-testid="rail"]')[0]!)
-    expect(moves()).toHaveLength(4)
+    expect(moves()).toHaveLength(0) // the grip is back; the arrows are asked for again
   })
 
   it('shows the arrows when a rail is tapped, by putting focus on its hidden button', async () => {

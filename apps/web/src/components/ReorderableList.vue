@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends { id: string }">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import Icon from './Icon.vue'
 
@@ -137,21 +137,38 @@ function arrange(ids: string[], moved: T) {
 
 // ---- the rail and the arrows it reveals
 /**
- * The arrows show for the whole list or for none of it: while the pointer is over the list or focus is inside it, and
- * never while a row is being dragged (arrows and dragging together are confusing). They are always laid out, only
- * invisible, so showing them never moves a row. On a touch screen a tap on a rail puts focus on its hidden button,
- * which shows them.
+ * The rail is a grip (six dots) that you drag. The arrows are the other way to move a row, and take the grip's place
+ * on every row once the person asks for them: by clicking or tapping a rail, or by focusing its hidden button. Hover
+ * alone never shows them, so the grip is there to be seen exactly when the pointer arrives. They stay until the
+ * person clicks elsewhere, leaves the list, presses Escape or starts dragging; the two never compete. The grip and the
+ * arrows share one slot, so swapping them moves nothing.
  */
-const hovered = ref(false)
-const focused = ref(false)
-const showArrows = computed(() => (hovered.value || focused.value) && !draggingId.value)
+const armed = ref(false)
+const showArrows = computed(() => armed.value && !draggingId.value)
+const root = ref<HTMLElement>()
 function onFocusOut(event: FocusEvent) {
-  const root = event.currentTarget as HTMLElement
-  if (!root.contains(event.relatedTarget as Node | null)) focused.value = false
+  // Safari gives no relatedTarget when a button is clicked, so only a known destination outside the list disarms.
+  const to = event.relatedTarget as Node | null
+  if (to && !root.value?.contains(to)) armed.value = false
 }
+function onPointerDownOutside(event: PointerEvent) {
+  if (!root.value?.contains(event.target as Node)) armed.value = false
+}
+function onEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') armed.value = false
+}
+onMounted(() => {
+  document.addEventListener('pointerdown', onPointerDownOutside)
+  document.addEventListener('keydown', onEscape)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onPointerDownOutside)
+  document.removeEventListener('keydown', onEscape)
+})
 /** A click or tap on the rail itself (not on its checkbox or the arrows) shows the arrows, by focusing its button. */
 function onRailClick(event: MouseEvent, item: T) {
   if ((event.target as HTMLElement).closest('input, [data-move]')) return
+  armed.value = true
   document.querySelector<HTMLButtonElement>(`[data-grip="${item.id}"]`)?.focus()
 }
 function onGripKey(event: KeyboardEvent, item: T) {
@@ -191,6 +208,7 @@ onBeforeUnmount(removeDragLabel)
 
 function onDragStart(event: DragEvent, item: T) {
   draggingId.value = item.id
+  armed.value = false
   if (!event.dataTransfer) return
   event.dataTransfer.effectAllowed = 'move'
   const name = props.itemLabel(item)
@@ -233,12 +251,7 @@ const buttonClass = 'btn btn-quiet btn-rail'
 </script>
 
 <template>
-  <div
-    @mouseenter="hovered = true"
-    @mouseleave="hovered = false"
-    @focusin="focused = true"
-    @focusout="onFocusOut"
-  >
+  <div ref="root" @focusout="onFocusOut">
     <div class="overflow-hidden rounded-ctl border border-line bg-surface">
       <slot name="toolbar" />
       <ol class="divide-y divide-line">
@@ -258,7 +271,7 @@ const buttonClass = 'btn btn-quiet btn-rail'
             class="list-rail list-rail-grab select-none"
             draggable="true"
             data-testid="rail"
-            title="Drag to change the order"
+            title="Drag to change the order, or click to show arrows"
             @click="onRailClick($event, item)"
             @dragstart="onDragStart($event, item)"
             @dragend="endDrag"
@@ -272,35 +285,51 @@ const buttonClass = 'btn btn-quiet btn-rail'
               :data-grip="item.id"
               :aria-label="`Reorder ${itemLabel(item)}`"
               :aria-expanded="showArrows"
+              @focus="armed = true"
               @keydown="onGripKey($event, item)"
             ></button>
-            <!-- Always laid out, so showing them moves nothing; centred in the row (the checkbox stays on top). -->
-            <div
-              class="my-auto flex flex-col gap-1"
-              :class="{ invisible: !showArrows }"
-              :aria-hidden="!showArrows"
-              :inert="!showArrows"
-            >
-              <button
-                type="button"
-                :class="buttonClass"
-                :data-move="`${item.id}-up`"
-                :disabled="index === 0"
-                :aria-label="`Move ${itemLabel(item)} up`"
-                @click="moveBy(item, -1)"
+            <!-- The grip and the arrows share one slot (centred in the row, under the checkbox), so swapping moves nothing. -->
+            <div class="my-auto grid place-items-center">
+              <svg
+                class="list-rail-grip col-start-1 row-start-1"
+                :class="{ invisible: showArrows }"
+                width="10"
+                height="16"
+                viewBox="0 0 10 16"
+                fill="currentColor"
+                aria-hidden="true"
+                focusable="false"
               >
-                <Icon name="up" :size="16" />
-              </button>
-              <button
-                type="button"
-                :class="buttonClass"
-                :data-move="`${item.id}-down`"
-                :disabled="index === shown.length - 1"
-                :aria-label="`Move ${itemLabel(item)} down`"
-                @click="moveBy(item, 1)"
+                <circle v-for="y in [2, 8, 14]" :key="`l${y}`" cx="2" :cy="y" r="1.5" />
+                <circle v-for="y in [2, 8, 14]" :key="`r${y}`" cx="8" :cy="y" r="1.5" />
+              </svg>
+              <div
+                class="col-start-1 row-start-1 flex flex-col gap-1"
+                :class="{ invisible: !showArrows }"
+                :aria-hidden="!showArrows"
+                :inert="!showArrows"
               >
-                <Icon name="down" :size="16" />
-              </button>
+                <button
+                  type="button"
+                  :class="buttonClass"
+                  :data-move="`${item.id}-up`"
+                  :disabled="index === 0"
+                  :aria-label="`Move ${itemLabel(item)} up`"
+                  @click="moveBy(item, -1)"
+                >
+                  <Icon name="up" :size="16" />
+                </button>
+                <button
+                  type="button"
+                  :class="buttonClass"
+                  :data-move="`${item.id}-down`"
+                  :disabled="index === shown.length - 1"
+                  :aria-label="`Move ${itemLabel(item)} down`"
+                  @click="moveBy(item, 1)"
+                >
+                  <Icon name="down" :size="16" />
+                </button>
+              </div>
             </div>
           </div>
           <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">

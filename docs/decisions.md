@@ -1192,3 +1192,5 @@ it for the keyboard and screen readers. Clicking the rail's checkbox or the arro
 and invisible until the pointer is over the list or focus is in it, then shown for every row (or none), and hidden while
 dragging; laying them out always means rows are taller than their content (about 90px at least), a deliberate trade for
 nothing jumping when the pointer arrives. They are 28px, solid when disabled, and centred in the row under the checkbox.
+
+**Reorderable rail: a grip, not dots (#114).** The dotted texture behind the checkbox and arrows looked odd, and a texture is not a convention. The rail is now plain, with a six-dot grip (the usual sign of "draggable") under the checkbox. The grip is a bare glyph so it doesn't look like a button; the _whole rail_ tints on hover and has the grab cursor, which says the handle is the rail, not the glyph. The arrows no longer show on hover (that hid the grip just when the pointer arrived): a click or tap on a rail swaps grip for arrows on every row, in the same slot, until the person clicks elsewhere, presses Escape or drags.
