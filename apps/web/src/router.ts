@@ -154,11 +154,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'profile' },
   },
 
-  // ——— An idea: 01 Research, 02 Notes, 03 Refine, 04 Draft, 05 Publish, and its settings ———
+  // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, 05 Publish, and its settings ———
   {
     path: '/p/:profileId/ideas/:id',
     name: 'idea',
-    redirect: (to) => ({ name: 'idea-notes', params: to.params }),
+    component: () => import('./views/IdeaHomeView.vue'),
+    props: true,
+    meta: { level: 'idea' },
   },
   {
     path: '/p/:profileId/ideas/:id/research',

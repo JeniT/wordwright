@@ -150,7 +150,7 @@ describe('reading page', () => {
         return HttpResponse.json({ batchId: 'b', readingItems: 0, merged: 0, copied: 0, notes: 1 })
       }),
     )
-    await renderAt('/p/ada-substack/ideas/i1')
+    await renderAt('/p/ada-substack/ideas/i1/notes')
     await fireEvent.click(
       await screen.findByRole('checkbox', { name: /^Select note “An idea note/ }),
     )

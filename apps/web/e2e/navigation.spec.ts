@@ -136,12 +136,36 @@ test('leads through a profile and an idea step by step, without ever locking one
   // Its ideas are listed, and lead on.
   await page.goBack()
   await page.getByRole('link', { name: /What pruning teaches/ }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+
+  // An idea opens on its own page too, which is none of the steps either.
+  await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: 'Idea' }).locator('[aria-current="page"]'),
+  ).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled() // visiting spends nothing
+  await noViolations(page, 'Idea landing page')
+
+  // A note can be jotted down there, then a draft started and opened.
+  await page.getByLabel('Add a note').fill('Cut above a bud.')
+  await page.getByRole('button', { name: 'Add note' }).click()
+  await expect(
+    page.getByRole('list', { name: 'Recent notes' }).getByText('Cut above a bud.'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Start a draft' }).click()
+  await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
+  await page.goBack()
+  await expect(
+    page.getByRole('list', { name: 'Drafts' }).getByRole('link', { name: /Untitled/ }),
+  ).toBeVisible()
 })
 
 test('looks right, and has no accessibility violations, in dark mode', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
   await signUpWithIdea(page)
+  await page.getByRole('link', { name: '← Garden notes' }).click()
+  await page.getByRole('link', { name: /What pruning teaches/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
+  await noViolations(page, 'Idea landing page in dark mode')
   for (const step of ['Research', 'Notes', 'Refine', 'Draft', 'Publish']) {
     await goTo(page, step)
     await expect(page.getByRole('heading', { level: 1, name: step })).toBeVisible()
@@ -170,10 +194,15 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   await page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Draft' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false') // closed by moving on
-  // Nothing scrolls sideways.
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  )
+  // Nothing scrolls sideways, on a step or on the idea's landing page.
+  const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+  expect(await fits()).toBe(true)
+  await menuButton.click()
+  await page.getByRole('link', { name: '← Garden notes' }).click()
+  await page.getByRole('link', { name: /What pruning teaches/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
+  expect(await fits()).toBe(true)
+  await noViolations(page, 'idea landing page on a phone')
 })
 
 test('the menu folds away at every width while reading a source, so two windows fit side by side', async ({

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import IdeaGate from '../components/IdeaGate.vue'
 import NextStep from '../components/NextStep.vue'
 import ReorderableList from '../components/ReorderableList.vue'
+import StartDraftButton from '../components/StartDraftButton.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { invalidateRoots, queryKeys } from '../lib/queries'
 import { api, errorMessage } from '../lib/api'
 
 /** Step 04 of an idea: its drafts. One for a single post, or several, in order, for a linked set of posts. */
 const props = defineProps<{ profileId: string; id: string }>()
-const router = useRouter()
 const queryClient = useQueryClient()
 
 const refreshLists = () => invalidateRoots(queryClient, 'ideas')
@@ -34,14 +34,6 @@ async function saveDraftOrder(ids: string[]) {
   }
   return true
 }
-
-const addDraft = useMutation({
-  mutationFn: () => api.createIdeaDraft(props.profileId, props.id, { title: 'Untitled' }),
-  onSuccess: async (draft) => {
-    await Promise.all([invalidateRoots(queryClient, 'idea'), refreshLists()])
-    await router.push({ name: 'draft', params: { profileId: props.profileId, id: draft.id } })
-  },
-})
 </script>
 
 <template>
@@ -52,14 +44,7 @@ const addDraft = useMutation({
         One draft for a single post, or several, in order, for a linked set of posts. Open one to
         write; your notes sit beside it.
       </p>
-      <button
-        type="button"
-        class="btn btn-primary"
-        :disabled="addDraft.isPending.value"
-        @click="addDraft.mutate()"
-      >
-        Add a draft
-      </button>
+      <StartDraftButton :profile-id="profileId" :idea-id="id" />
     </div>
     <section aria-label="Drafts">
       <p v-if="!idea.drafts.length" class="text-ink-soft">
@@ -87,9 +72,6 @@ const addDraft = useMutation({
       </ReorderableList>
       <p v-if="moveDrafts.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(moveDrafts.error.value) }}
-      </p>
-      <p v-if="addDraft.isError.value" role="alert" class="mt-2 text-danger">
-        Couldn't start a new draft. Please try again.
       </p>
     </section>
     <NextStep

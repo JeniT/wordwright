@@ -166,13 +166,6 @@ describe('idea page', () => {
     )
   })
 
-  it('is the front door to the Notes step', async () => {
-    const { router } = await openAt('')
-    await waitFor(() =>
-      expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/notes'),
-    )
-  })
-
   it('explains when the idea cannot be opened', async () => {
     server.use(
       signedInAs(testUser),

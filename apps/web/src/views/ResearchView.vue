@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import StepHeading from '../components/StepHeading.vue'
-import { RESEARCH_AREAS_MAX } from '@lfwa/core'
+import ResearchForm from '../components/ResearchForm.vue'
 import ResearchRun from '../components/ResearchRun.vue'
-import { ApiError, api, errorMessage } from '../lib/api'
-import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
+import { api } from '../lib/api'
+import { queryKeys, useIdea } from '../lib/queries'
 import QueryState from '../components/QueryState.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 
 const props = defineProps<{ profileId: string; id: string }>()
-const queryClient = useQueryClient()
 
 const idea = useIdea(
   () => props.profileId,
@@ -21,23 +20,6 @@ const runs = useQuery({
   queryKey: computed(() => queryKeys.research(props.profileId, props.id)),
   queryFn: () => api.getResearch(props.profileId, props.id),
 })
-
-const areas = ref('')
-const search = useMutation({
-  mutationFn: (text: string) => api.runResearch(props.profileId, props.id, text),
-  onSuccess: () => (areas.value = ''),
-  // Another member may have researched too, so read the whole list again.
-  onSettled: () => invalidateRoots(queryClient, 'research'),
-})
-const needsKey = computed(() => {
-  const err = search.error.value
-  return err instanceof ApiError && err.status === 409 && /API key/i.test(err.message)
-})
-function submit() {
-  const text = areas.value.trim()
-  if (!text || search.isPending.value) return
-  search.mutate(text)
-}
 </script>
 
 <template>
@@ -58,46 +40,7 @@ function submit() {
         the research.
       </p>
 
-      <form class="mb-8" @submit.prevent="submit">
-        <label for="research-areas" class="mb-1 block text-sm font-medium">
-          What areas do you want to research?
-        </label>
-        <textarea
-          id="research-areas"
-          v-model="areas"
-          rows="4"
-          :maxlength="RESEARCH_AREAS_MAX"
-          :disabled="search.isPending.value"
-          aria-describedby="research-hint"
-          class="field mb-2"
-          @keydown.enter.ctrl.exact.prevent="submit"
-          @keydown.enter.meta.exact.prevent="submit"
-        ></textarea>
-        <p id="research-hint" class="mb-2 text-sm text-ink-soft">
-          For example: how fast river bends move, and what engineers have learned from straightening
-          rivers. You can research other areas afterwards. Searching can take up to a minute.
-        </p>
-        <button
-          type="submit"
-          class="btn btn-primary"
-          :disabled="!areas.trim() || search.isPending.value"
-        >
-          {{ search.isPending.value ? 'Searching…' : 'Research' }}
-        </button>
-        <p v-if="search.isPending.value" role="status" class="mt-2 text-sm text-ink-soft">
-          Searching the web. This can take up to a minute.
-        </p>
-        <div
-          v-if="search.isError.value"
-          role="alert"
-          class="mt-3 rounded-ctl border border-danger bg-danger-wash p-3 text-danger"
-        >
-          <p>{{ errorMessage(search.error.value) }}</p>
-          <p v-if="needsKey" class="mt-1">
-            <RouterLink to="/account" class="underline">Go to account settings</RouterLink>
-          </p>
-        </div>
-      </form>
+      <ResearchForm class="mb-8" :profile-id="profileId" :idea-id="id" />
 
       <section aria-labelledby="previous-heading">
         <h2 id="previous-heading" class="mb-3 font-display text-xl font-semibold">

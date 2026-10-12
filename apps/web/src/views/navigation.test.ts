@@ -176,12 +176,6 @@ describe('the menu in an idea', () => {
       'page',
     )
   })
-
-  it('opens at the Notes step', async () => {
-    mockApp()
-    const { router } = await renderAt('/p/ada-substack/ideas/i1')
-    expect(router.currentRoute.value.name).toBe('idea-notes')
-  })
 })
 
 describe('step pages', () => {

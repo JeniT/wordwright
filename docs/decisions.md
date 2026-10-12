@@ -724,6 +724,13 @@ asks for the same lists under the same keys as the Search page, at its default p
 fetched; opening the page never asks the feeds to check again. It has no Add or Ignore buttons: deciding is on Search.
 The add-a-link form is shared with the Read page (`AddLinkForm`).
 
+**Idea landing page (#99).** `/p/:profileId/ideas/:id` used to redirect to Notes; it is now the idea's landing page,
+none of the numbered steps. Research: the number of sources with a link to the reading list, and the same research box
+as the Research page (`ResearchForm`). Pressing **Research** is what spends, as ever; it stays on the page while
+searching (up to a minute), then opens the results. The box sits beside a plain statement of what is sent to the
+provider. Notes: the shared `RecentNotes` panel. Draft: the idea's drafts in their order (reordering stays on the Draft
+step) and **Start a draft** (`StartDraftButton`, shared with the Draft step). A place is left for Refine (#101).
+
 **Landing page look (#111).** The title is the profile's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The profile's name in the menu, and above a step's title, links to the landing page; so does "← profile" in the idea menu.
 
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down

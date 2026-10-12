@@ -270,7 +270,7 @@ test('moves reading items, with their notes, between the profile and an idea, an
   await goTo(page, 'Ideas')
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   // Wait for the idea itself: until then the menu is still the profile's, and its Notes link goes to the wrong place.
-  await expect(page).toHaveURL(/\/ideas\/[^/]+\/notes$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
@@ -338,6 +338,8 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   // The idea has the notes, and the post they came from on its reading list (the original is still on the profile's).
   await goTo(page, 'Ideas')
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Bends migrate downstream.')).toBeVisible()
