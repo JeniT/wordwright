@@ -14,14 +14,14 @@ tool: it never writes or edits drafts.
 
 ## Decisions (owner)
 
-| Question                             | Decision                                                                                                                                                                                                                 |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.   |
-| What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same profile. It cannot edit or remove notes. **Never** edit or create drafts.                   |
-| Who sees the conversation?           | **One thread per idea, visible to every member of the profile.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                      |
-| How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                       |
-| What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **venue** (name, website and, once T16 exists, the **audience descriptions**). See _Context_ for what is deliberately left out. |
-| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a writing coach. In a shared profile, the person sending the message supplies the prompt, key and model.                                 |
+| Question                             | Decision                                                                                                                                                                                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.                      |
+| What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same profile. It cannot edit or remove notes. **Never** edit or create drafts.                                      |
+| Who sees the conversation?           | **One thread per idea, visible to every member of the profile.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                                         |
+| How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                                          |
+| What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **venue** (name, website and the writer's own **description** of it, when they have written one). See _Context_ for what is deliberately left out. |
+| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a writing coach. In a shared profile, the person sending the message supplies the prompt, key and model.                                                    |
 
 ## How it works
 
@@ -78,8 +78,9 @@ Built by the server on every turn, never by the client.
   facts about the venue it wasn't given), and how to treat the context (below). Keeping them apart means editing
   your prompt can't break the tool protocol.
 - **Idea snapshot**, sent as the start of a user turn: the idea's title and notes, the related links (address and
-  title), the venue's name, website and audience descriptions (or a line saying none have been described yet, so the
-  model asks), and the _titles_ of existing drafts so it knows what's already been written.
+  title), the venue's name, website and the writer's description of it, in a `<venue_description>` block (or a line saying
+  it has not been described yet, so the model asks who the readers are, unless the description says the writing is
+  personal; an AI-drafted description nobody has confirmed is left out, #27), and the _titles_ of existing drafts so it knows what's already been written.
   - A fresh snapshot is attached to a user turn **only when it differs from the last one sent**, since the person
     edits as they chat. Snapshots are stored with the message, not recomputed, so replays are identical.
   - Why not in the system prompt: it would change every turn and defeat prompt caching of the history.
@@ -246,7 +247,7 @@ available and not wanted.
 - **Evals** (`evals/src/cases.ts`, `pnpm eval`, run with a real key; see
   [decisions.md](decisions.md#behaviour-evals-a-smoke-test-that-sends-what-the-app-sends)): the default prompt, given an idea snapshot, should
   open with probing questions and not a lecture; push back on a vague idea; not draft text; not invent facts about
-  the venue; use the audience description when given and ask for it when absent; not propose after every turn.
+  the venue; use the venue description when given, ask for the readers when it is absent, and not ask for an audience when it says the writing is for the writer's own thinking; not propose after every turn.
 
 ## Build order
 
@@ -256,9 +257,9 @@ available and not wanted.
 4. **T20b4**: the brainstorm page (chat, proposals, Markdown rendering) and the idea-page link.
 5. **T20b5**: evals and tuning the default prompt.
 
-**T16 (audiences)** is not a hard dependency, but brainstorming is much better with it: the model is told the
-venue's readers instead of asking for them every time. Build T16 first if possible; the context builder simply
-omits the audience section until it exists.
+**The venue description** (#131, used as context in #133; it replaced the planned audience personas, T16) is not a
+hard dependency, but brainstorming is better with it: the model is told what the venue is and who reads it instead of
+asking every time. The critique and the researcher get the same block (see `docs/decisions.md`).
 
 ## Open questions (not blocking)
 

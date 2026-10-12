@@ -39,6 +39,7 @@ import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/co
 import type { Store } from '../db/store'
 import type { BrainstormPromptService } from './brainstorm-prompt'
 import { ReadingChecker, type CheckedReading } from './reading-suggestions'
+import { usableVenueDescription, venueDescriptionBlock } from './venue-context'
 import { fail } from '../errors'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
@@ -119,10 +120,8 @@ const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;'
 interface Venue {
   name: string
   siteUrl: string | null
-}
-interface Reader {
-  name: string
-  description: string
+  /** The writer's own description of the venue; null when there is none the AI may be told (see `usableVenueDescription`). */
+  description: string | null
 }
 
 /**
@@ -130,8 +129,9 @@ interface Reader {
  * websites, i.e. untrusted: it is escaped, and `prompts/brainstorm-rules.md` tells the AI to treat it as
  * material to discuss, never as instructions. Only the titles of drafts are included, never their text.
  */
-export function formatSnapshot(input: { idea: Idea; venue: Venue; readers: Reader[] }): string {
-  const { idea, venue, readers } = input
+export function formatSnapshot(input: { idea: Idea; venue: Venue }): string {
+  const { idea, venue } = input
+  const description = venueDescriptionBlock(venue.description)
   const list = (items: string[]) => (items.length ? items : ['(none yet)'])
   return [
     '<idea_snapshot>',
@@ -143,10 +143,8 @@ export function formatSnapshot(input: { idea: Idea; venue: Venue; readers: Reade
     ...list(idea.links.map((l) => `- ${l.title ? `${escape(l.title)}: ` : ''}${escape(l.url)}`)),
     '',
     `Publication: ${escape(venue.name)}${venue.siteUrl ? ` (${escape(venue.siteUrl)})` : ''}`,
-    'Readers of the publication:',
-    ...(readers.length
-      ? readers.map((r) => `- ${escape(r.name)}: ${escape(r.description)}`)
-      : ['(not described yet)']),
+    'The writer’s own description of the publication (what it is, who reads it, what kinds of writing go there):',
+    description ?? '(not described yet)',
     '',
     'Drafts that already exist (titles only):',
     ...list(idea.drafts.map((d) => `- ${escape(d.title || 'Untitled')}`)),
@@ -286,9 +284,11 @@ export class BrainstormService {
     const profile = this.d.store.profiles.get(idea.profileId, userId)
     return formatSnapshot({
       idea,
-      venue: { name: profile?.name ?? 'this publication', siteUrl: profile?.siteUrl ?? null },
-      // Audience descriptions arrive with T16; until then the AI is told there are none and asks.
-      readers: [],
+      venue: {
+        name: profile?.name ?? 'this publication',
+        siteUrl: profile?.siteUrl ?? null,
+        description: usableVenueDescription(profile),
+      },
     })
   }
 

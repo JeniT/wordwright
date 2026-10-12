@@ -15,6 +15,7 @@ import { RESEARCH_PROMPT } from '@lfwa/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { ReadingChecker } from './reading-suggestions'
+import { usableVenueDescription, venueDescriptionBlock } from './venue-context'
 import { fail } from '../errors'
 
 /** A search that takes longer than this is abandoned. */
@@ -25,10 +26,15 @@ const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;'
 
 /**
  * What the researcher is given: what the writer wants to look into (the main thing), the idea's title and notes for
- * context, and the addresses already on the reading list. All of it is the writer's own words, so it is escaped,
+ * context, the writer's description of the venue if they have written one, and the addresses already on the reading
+ * list. All of it is the writer's own words, so it is escaped,
  * and `prompts/research.md` tells the researcher to treat it as material. Never the text of a draft.
  */
-export function formatResearchBrief(idea: Idea, areas: string): string {
+export function formatResearchBrief(
+  idea: Idea,
+  areas: string,
+  venueDescription: string | null = null,
+): string {
   return [
     '<areas_to_research>',
     escape(areas),
@@ -38,6 +44,7 @@ export function formatResearchBrief(idea: Idea, areas: string): string {
     'Notes:',
     idea.notes.trim() ? escape(idea.notes) : '(none yet)',
     '</idea>',
+    ...[venueDescriptionBlock(venueDescription)].filter((block) => block !== null),
     '<already_on_the_reading_list>',
     ...(idea.links.length ? idea.links.map((l) => `- ${escape(l.url)}`) : ['(nothing yet)']),
     '</already_on_the_reading_list>',
@@ -93,7 +100,11 @@ export class ResearchService {
     try {
       found = await research.find({
         system: RESEARCH_PROMPT,
-        brief: formatResearchBrief(idea, input.areas),
+        brief: formatResearchBrief(
+          idea,
+          input.areas,
+          usableVenueDescription(store.profiles.get(idea.profileId, user.id)),
+        ),
         maxResults: MAX_RESEARCH_RESULTS,
         signal: stop,
       })

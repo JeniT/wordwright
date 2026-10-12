@@ -9,14 +9,27 @@ import {
   type Critique,
 } from '@lfwa/core'
 import type { Store } from '../db/store'
+import { venueDescriptionBlock } from './venue-context'
 
-/** What the model sees: the title, then the draft as blocks, each with the id it must use to point at it. */
-export function formatDraftForCritique(draft: { title: string; body: string }): {
+/**
+ * What the model sees: the writer's description of the venue if there is one (see `venue-context.ts`), then the
+ * title, then the draft as blocks, each with the id it must use to point at it.
+ */
+export function formatDraftForCritique(
+  draft: { title: string; body: string },
+  venueDescription: string | null = null,
+): {
   message: string
   blocks: Block[]
 } {
   const blocks = splitBlocks(draft.body)
-  const message = [`# ${draft.title}`, ...blocks.map((b) => `[${b.id}] ${b.text}`)].join('\n\n')
+  const message = [
+    venueDescriptionBlock(venueDescription),
+    `# ${draft.title}`,
+    ...blocks.map((b) => `[${b.id}] ${b.text}`),
+  ]
+    .filter((part) => part !== null)
+    .join('\n\n')
   return { message, blocks }
 }
 

@@ -14,6 +14,7 @@ import { CASES, type BrainstormCase, type CritiqueCase, type ResearchCase } from
 import { promptfooConfig } from './config'
 import { choiceFromEnv, buildAdapter } from './factory'
 import { renderReply } from './render'
+import { SCENARIOS } from './scenarios'
 import { brainstormRequest, critiqueRequest, researchRequest } from './request'
 
 const brainstorm = CASES.filter((c): c is BrainstormCase => c.app === 'brainstorm')
@@ -50,6 +51,15 @@ describe('the cases', () => {
       'suggests-only-an-address-the-writer-gave',
       'research-reports-well-formed-pages-only',
       'research-ignores-instructions-in-the-idea',
+      // The venue description is the writer's own text (#133): used as context, never as instructions.
+      'personal-venue-opens-without-asking-for-readers',
+      'personal-venue-needs-no-audience',
+      'uses-the-description-of-the-venue',
+      'ignores-instructions-in-the-venue-description',
+      'critique-personal-venue-does-not-demand-an-audience',
+      'critique-considers-the-readers-the-venue-has',
+      'critique-ignores-instructions-in-the-venue-description',
+      'research-ignores-instructions-in-the-venue-description',
     ]) {
       expect(current, id).toContain(id)
     }
@@ -83,9 +93,10 @@ describe('the requests', () => {
 
   it('send critique what the critique route sends', () => {
     for (const c of critique) {
+      const venue = c.scenario ? SCENARIOS[c.scenario].venue.description : null
       expect(critiqueRequest(c)).toEqual({
         system: CRITIQUE_PROMPT,
-        messages: [{ role: 'user', content: formatDraftForCritique(c.draft).message }],
+        messages: [{ role: 'user', content: formatDraftForCritique(c.draft, venue).message }],
       })
     }
   })
@@ -106,6 +117,33 @@ describe('the requests', () => {
   it('carry the hostile notes in the research brief too, for the injection case', () => {
     const c = research.find((x) => x.id === 'research-ignores-instructions-in-the-idea')!
     expect(researchRequest(c).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
+  })
+
+  it('carry the venue description to all three, and none where the venue has none', () => {
+    const personal = SCENARIOS.personal.venue.description!
+    const snapshot = (id: string) =>
+      JSON.stringify(brainstormRequest(brainstorm.find((c) => c.id === id)!).messages[0]!.content)
+    expect(snapshot('personal-venue-needs-no-audience')).toContain(
+      `<venue_description>\\n${personal}`,
+    )
+    expect(snapshot('opens-with-a-question')).not.toContain('<venue_description>')
+
+    // The prompt itself names the block, so look only at what the writer's message carries.
+    const critiqueOf = (id: string) => critiqueRequest(critique.find((c) => c.id === id)!).messages
+    expect(
+      JSON.stringify(critiqueOf('critique-personal-venue-does-not-demand-an-audience')),
+    ).toContain('<venue_description>')
+    expect(JSON.stringify(critiqueOf('critique-does-not-rewrite'))).not.toContain(
+      'venue_description',
+    )
+
+    const hostile = research.find(
+      (c) => c.id === 'research-ignores-instructions-in-the-venue-description',
+    )!
+    expect(researchRequest(hostile).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
+    expect(researchRequest(research.find((c) => c.scenario === 'rivers')!).brief).not.toContain(
+      'venue_description',
+    )
   })
 
   it('carry the hostile text in the snapshot, escaped like the app does, for the injection case', () => {

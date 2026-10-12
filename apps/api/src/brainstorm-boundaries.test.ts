@@ -73,7 +73,10 @@ describe('what the brainstorm AI is shown', () => {
       createdAt: 'x',
       updatedAt: 'x',
     } as unknown as Idea
-    const snapshot = formatSnapshot({ idea, venue: { name: 'V', siteUrl: null }, readers: [] })
+    const snapshot = formatSnapshot({
+      idea,
+      venue: { name: 'V', siteUrl: null, description: null },
+    })
     expect(snapshot).toContain('- Part 1')
     expect(snapshot).not.toContain('SECRET DRAFT BODY')
   })

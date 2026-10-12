@@ -11,6 +11,7 @@ import {
   parseCritique,
 } from '../services/critique'
 import { validateJson } from '../validate'
+import { usableVenueDescription } from '../services/venue-context'
 import { toLlmHttpError } from './llm'
 import { fail } from '../errors'
 import { param } from './params'
@@ -39,7 +40,8 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
     }
 
     try {
-      const { message, blocks } = formatDraftForCritique(draft)
+      const venue = usableVenueDescription(store.profiles.get(param(c, 'profileId'), userId))
+      const { message, blocks } = formatDraftForCritique(draft, venue)
       const reply = await llm.complete({
         system: CRITIQUE_PROMPT,
         messages: [{ role: 'user', content: message }],
