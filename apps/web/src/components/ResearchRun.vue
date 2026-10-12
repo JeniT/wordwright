@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, useId } from 'vue'
+import { computed, useId } from 'vue'
 import type { ResearchItem, ResearchRun } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
-import ConfirmDialog from './ConfirmDialog.vue'
+import HoldButton from './HoldButton.vue'
+import Icon from './Icon.vue'
 
 const props = defineProps<{ profileId: string; ideaId: string; run: ResearchRun }>()
 
@@ -43,11 +44,9 @@ function clearProblem() {
   reconsider.reset()
 }
 
-const confirmingDelete = ref(false)
 const remove = useMutation({
   mutationFn: () => api.deleteResearch(props.profileId, props.ideaId, props.run.id),
   onSettled: async () => {
-    confirmingDelete.value = false
     await refresh()
   },
 })
@@ -171,25 +170,19 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       <button type="button" class="ml-2 underline" @click="clearProblem">Dismiss</button>
     </div>
 
-    <p class="mt-3 border-t border-line pt-2 text-sm">
-      <button type="button" class="text-danger underline" @click="confirmingDelete = true">
-        Delete this research<span class="sr-only">: {{ run.areas }}</span>
-      </button>
+    <p class="mt-3 border-t border-line pt-2">
+      <HoldButton
+        class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+        title="Press and hold to delete this research. Pages you added to the reading list stay there."
+        :aria-label="`Delete this research: ${run.areas}`"
+        :disabled="remove.isPending.value"
+        @confirm="remove.mutate()"
+      >
+        <Icon name="remove" />
+      </HoldButton>
     </p>
     <p v-if="remove.isError.value" role="alert" class="mt-2 text-sm text-danger">
       {{ errorMessage(remove.error.value) }}
     </p>
-    <ConfirmDialog
-      :open="confirmingDelete"
-      title="Delete this research?"
-      confirm-label="Yes, delete it"
-      busy-label="Deleting…"
-      :busy="remove.isPending.value"
-      @confirm="remove.mutate()"
-      @cancel="confirmingDelete = false"
-    >
-      This removes the list of pages it found. Pages you already added to the reading list stay
-      there.
-    </ConfirmDialog>
   </article>
 </template>

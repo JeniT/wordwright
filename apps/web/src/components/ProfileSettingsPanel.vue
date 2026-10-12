@@ -8,6 +8,8 @@ import { displayHost } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
 import DangerZone from './DangerZone.vue'
+import HoldButton from './HoldButton.vue'
+import Icon from './Icon.vue'
 import ImageField from './ImageField.vue'
 import ProfileImage from './ProfileImage.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
@@ -138,15 +140,16 @@ const deleteProfile = useMutation({
         />
         <div v-if="isOwner" class="flex-1">
           <ImageField label="Choose a picture" @select="uploadImage.mutate($event)" />
-          <button
+          <HoldButton
             v-if="profile.imageUrl"
-            type="button"
-            class="text-sm underline"
+            class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+            title="Press and hold to remove the picture"
+            aria-label="Remove picture"
             :disabled="removeImage.isPending.value"
-            @click="removeImage.mutate()"
+            @confirm="removeImage.mutate()"
           >
-            Remove picture
-          </button>
+            <Icon name="remove" />
+          </HoldButton>
         </div>
       </div>
       <p v-if="uploadImage.isPending.value" role="status" class="mt-2 text-sm">Uploading…</p>

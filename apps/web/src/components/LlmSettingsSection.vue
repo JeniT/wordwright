@@ -3,6 +3,8 @@ import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import HoldButton from './HoldButton.vue'
+import Icon from './Icon.vue'
 import TextField from './TextField.vue'
 
 const props = defineProps<{
@@ -137,14 +139,16 @@ const removeLlmKey = useMutation({
         >
           {{ saveLlm.isPending.value ? 'Checking key…' : 'Save' }}
         </button>
-        <button
+        <HoldButton
           v-if="llm.data.value?.hasKey"
-          type="button"
-          class="text-sm text-danger underline"
-          @click="removeLlmKey.mutate()"
+          class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+          title="Press and hold to remove your key"
+          aria-label="Remove key"
+          :disabled="removeLlmKey.isPending.value"
+          @confirm="removeLlmKey.mutate()"
         >
-          Remove key
-        </button>
+          <Icon name="remove" />
+        </HoldButton>
         <p v-if="saveLlm.isSuccess.value" role="status" class="text-sm text-ink-soft">Saved</p>
       </div>
     </form>

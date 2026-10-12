@@ -333,7 +333,9 @@ describe('profile settings', () => {
       target: { files: [file] },
     })
     await waitFor(() => expect(uploads).toBe(1))
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove picture' }))
+    const removePicture = screen.getByRole('button', { name: 'Remove picture' })
+    await fireEvent.click(removePicture) // no hold: it only asks to be pressed again
+    await fireEvent.click(removePicture)
     await waitFor(() => expect(removed).toBe(true))
   })
 

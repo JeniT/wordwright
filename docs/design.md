@@ -223,8 +223,11 @@ One rule decides which control confirms, so the same kind of act always feels th
   draft; also clearing a whole conversation) asks in a **modal dialog** (`ConfirmDialog`). The dialog names what will
   go with it. Focus starts on Cancel. A whole-thing delete lives in a `DangerZone` at the bottom of its settings page,
   and its button opens the dialog. Never use the browser's `confirm()`.
-- **Removing one thing with no consequences beyond it** (a note, a reading-list item, a feed, an invitation) takes a
-  **press-and-hold** (`HoldButton`) on the row, with no dialog.
+- **Removing one thing with no consequences beyond it** (a note, a reading-list item, a feed, an invitation, a picture,
+  an API key, a research run) takes a **press-and-hold** (`HoldButton`), with no dialog.
+- **How they look:** a delete with a dialog is a **text button that says "Delete …"**; a hold-to-confirm is a **trash
+  icon button** (`btn btn-sm btn-icon btn-quiet` + `Icon name="remove"`) with an `aria-label` and a tooltip that starts
+  "Press and hold to …". The two are never mixed.
 
 **Pagination.** Notes show everything. Every other list pages client-side with `PageNav` above and below (the top one
 announces the new range; the bottom one returns you to the top of the list), five at a time (`PAGE_SIZE` in

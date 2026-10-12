@@ -210,7 +210,9 @@ describe('AccountView: AI assistant key', () => {
     await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
     await waitFor(() => expect(sent).toEqual({ provider: 'anthropic', model: 'claude-opus-5-5' }))
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))
+    const removeKey = screen.getByRole('button', { name: 'Remove key' })
+    await fireEvent.click(removeKey) // no hold: it only asks to be pressed again
+    await fireEvent.click(removeKey)
     await screen.findByText('No API key yet.')
   })
 })

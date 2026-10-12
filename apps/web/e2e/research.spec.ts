@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test } from './fixtures'
+import { expect, goTo, holdToConfirm, test } from './fixtures'
 
 /** Signs up, optionally connects an AI key (any key works with the fake AI), and creates an idea to talk about. */
 async function setUp(page: Page, { withKey = true } = {}) {
@@ -125,10 +125,7 @@ test('several areas can be researched around one idea, and the research is kept'
   await expect(page.getByRole('link', { name: /Notes on channel migration/ })).toHaveCount(0)
   await page.getByRole('link', { name: 'Start research' }).click()
 
-  await first.getByRole('button', { name: /^Delete this research/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Delete this research?' })
-  await noViolations(page, 'delete research dialog')
-  await dialog.getByRole('button', { name: 'Yes, delete it' }).click()
+  await holdToConfirm(page, first.getByRole('button', { name: /^Delete this research/ }))
   await expect(page.getByRole('article', { name: 'First area' })).toHaveCount(0)
   await expect(page.getByRole('article', { name: 'Second area' })).toBeVisible()
 })

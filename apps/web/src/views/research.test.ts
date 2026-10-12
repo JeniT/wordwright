@@ -342,18 +342,14 @@ describe('reviewing what research found', () => {
     expect(await screen.findByText(/Nothing new turned up/)).toBeInTheDocument()
   })
 
-  it('deletes a run only after asking, and says pages already added stay', async () => {
+  it('deletes a run only once it is confirmed, and says pages already added stay', async () => {
     const { article } = await open()
-    await fireEvent.click(article.getByRole('button', { name: /^Delete this research/ }))
-    const dialog = await screen.findByRole('dialog', { name: 'Delete this research?' })
-    expect(dialog).toHaveTextContent('Pages you already added to the reading list stay there.')
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    const button = article.getByRole('button', { name: /^Delete this research/ })
+    expect(button).toHaveAttribute('title', expect.stringContaining('stay there'))
+    await fireEvent.click(button) // no hold: it only asks to be pressed again
+    expect(await screen.findByText('Press again to confirm')).toBeInTheDocument()
     expect(screen.getByText('How fast bends migrate')).toBeInTheDocument()
-
-    await fireEvent.click(article.getByRole('button', { name: /^Delete this research/ }))
-    await fireEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Yes, delete it' }),
-    )
+    await fireEvent.click(button)
     await waitFor(() => expect(screen.queryByText('How fast bends migrate')).toBeNull())
   })
 })

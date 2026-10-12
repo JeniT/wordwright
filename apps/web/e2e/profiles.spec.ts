@@ -98,7 +98,7 @@ test('edits details, changes and removes the picture, and deletes the profile', 
     .getByLabel('Choose a picture')
     .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: PNG })
   await expect(page.getByRole('main').locator('img')).toBeVisible()
-  await page.getByRole('button', { name: 'Remove picture' }).click()
+  await holdToConfirm(page, page.getByRole('button', { name: 'Remove picture' }))
   await expect(page.getByRole('main').locator('img')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Delete this profile' }).click()
