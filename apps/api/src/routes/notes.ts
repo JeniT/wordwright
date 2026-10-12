@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono'
 import {
+  BulkTagInputSchema,
   IdeaNoteEditSchema,
   IdeaNoteInputSchema,
   IdeaNoteOrderSchema,
@@ -107,6 +108,11 @@ export function noteRoutes(
     .post('/:noteId/split', validateJson(NoteSplitInputSchema), (c) => {
       const { before, after } = c.req.valid('json')
       return c.json(noteEdits.split(resolve(c), param(c, 'noteId'), before, after), 201)
+    })
+    // Tags added to or taken from several notes at once (all or nothing). Answers with all the notes.
+    .post('/tags', validateJson(BulkTagInputSchema), (c) => {
+      const { ids, add, remove } = c.req.valid('json')
+      return c.json(noteEdits.tag(resolve(c), ids, add, remove))
     })
     // The note's tags, replaced as a whole (the same way notes are put in order).
     .put('/:noteId/tags', validateJson(NoteTagsInputSchema), (c) => {

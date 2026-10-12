@@ -399,6 +399,55 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
 })
 
+test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  const notes = page.getByRole('region', { name: 'Notes' })
+  for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
+    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByRole('button', { name: 'Add note' }).click()
+    await expect(notes.getByText(text)).toBeVisible()
+  }
+
+  // Tag… waits for a selection.
+  await expect(notes.getByRole('button', { name: 'Tag…' })).toBeDisabled()
+  await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
+  await notes.getByRole('checkbox', { name: /^Select note “Deposition/ }).check()
+  await notes.getByRole('button', { name: 'Tag…' }).click()
+  await notes.getByLabel('Add tags').fill('section one, intro')
+  await noViolations(page, 'notes with the tag panel open')
+  await notes.getByRole('button', { name: 'Tag 2 notes' }).click()
+  await expect(notes.getByLabel('Add tags')).toHaveCount(0)
+
+  // Both notes carry the tags, the third does not, and the tag now filters.
+  const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
+  await filter.getByRole('button', { name: 'section one' }).click()
+  await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
+  await expect(notes.getByText('Deposition on the inside.')).toBeVisible()
+  await filter.getByRole('button', { name: 'All' }).click()
+
+  // The tag can be taken off both in one go (a new filter clears the selection, so choose them again).
+  await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
+  await notes.getByRole('checkbox', { name: /^Select note “Deposition/ }).check()
+  await notes.getByRole('button', { name: 'Tag…' }).click()
+  await notes.getByRole('switch', { name: 'Remove “intro”' }).check()
+  await notes.getByRole('button', { name: 'Tag 2 notes' }).click()
+  await expect(filter.getByRole('button', { name: 'intro' })).toHaveCount(0)
+  await expect(filter.getByRole('button', { name: 'section one' })).toBeVisible()
+  await page.reload()
+  await expect(
+    page
+      .getByRole('region', { name: 'Notes' })
+      .getByRole('group', { name: 'Show notes with a tag' }),
+  ).toBeVisible()
+})
+
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({
   page,
 }) => {

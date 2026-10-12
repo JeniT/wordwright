@@ -315,6 +315,91 @@ describe('idea notes', () => {
     })
   })
 
+  describe('tagging several at once', () => {
+    const bulk = (body: object, path = notes()) => ada.post(`${path}/tags`, body)
+    const tagsOf = async () => (await list()).map((n) => n.tags)
+
+    it('adds tags to every chosen note, keeping what they have and ignoring repeats', async () => {
+      const [a, b, c] = [await add('a'), await add('b'), await add('c')]
+      await ada.put(`${notes()}/${a.id}/tags`, { tags: ['Intro'] })
+      const res = await bulk({ ids: [a.id, b.id], add: ['intro', ' part  2 ', 'Part 2'] })
+      expect(res.status).toBe(200)
+      expect((await res.json()).map((n: Note) => n.tags)).toEqual([
+        ['Intro', 'part 2'], // "intro" is already there, whatever its case
+        ['intro', 'part 2'],
+        [],
+      ])
+      expect(await tagsOf()).toEqual([['Intro', 'part 2'], ['intro', 'part 2'], []])
+      expect(c.id).toBeTruthy()
+    })
+
+    it('takes tags away, ignoring case, and adds and removes in one request', async () => {
+      const [a, b] = [await add('a'), await add('b')]
+      await ada.put(`${notes()}/${a.id}/tags`, { tags: ['One', 'Two'] })
+      await ada.put(`${notes()}/${b.id}/tags`, { tags: ['two', 'three'] })
+      await bulk({ ids: [a.id, b.id], remove: ['TWO'], add: ['four'] })
+      expect(await tagsOf()).toEqual([
+        ['One', 'four'],
+        ['three', 'four'],
+      ])
+    })
+
+    it('asks for something to do, and for notes to do it to', async () => {
+      const a = await add('a')
+      const nothing = await bulk({ ids: [a.id], add: [], remove: [] })
+      expect(nothing.status).toBe(400)
+      expect((await nothing.json()).error).toBe('Give a tag to add or to remove')
+      expect((await bulk({ ids: [], add: ['x'] })).status).toBe(400)
+      expect((await bulk({ ids: [a.id], add: [''] })).status).toBe(400)
+      expect((await bulk({ ids: [a.id], add: ['x'.repeat(41)] })).status).toBe(400)
+    })
+
+    it('changes nothing at all if one note would have too many tags', async () => {
+      const [a, b] = [
+        await add('a'),
+        await add('A note that is rather longer than forty characters in all'),
+      ]
+      await ada.put(`${notes()}/${b.id}/tags`, {
+        tags: Array.from({ length: 10 }, (_, i) => `t${i}`),
+      })
+      const res = await bulk({ ids: [a.id, b.id], add: ['one more'] })
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toMatch(
+        /up to 10 tags, and “A note that is rather longer than forty.*…” would have 11/,
+      )
+      expect((await list())[0]!.tags).toEqual([]) // the first was not tagged either
+    })
+
+    it('can tag a quotation (its words are not changed), and says 404 for notes that are not here', async () => {
+      const item = (
+        await (await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/p' })).json()
+      ).links[0]
+      const quote = await addNote('Exactly so.', { readingItemId: item.id, quote: true })
+      expect((await bulk({ ids: [quote.id], add: ['cited'] })).status).toBe(200)
+      expect((await list())[0]).toMatchObject({ text: 'Exactly so.', quote: true, tags: ['cited'] })
+      expect((await bulk({ ids: [quote.id, 'nope'], add: ['x'] })).status).toBe(404)
+      const other = (await (await ada.post(ideas(), { name: 'Other' })).json()).id
+      expect(
+        (await bulk({ ids: [quote.id], add: ['x'] }, `${ideas()}/${other}/notes`)).status,
+      ).toBe(404)
+    })
+
+    it('works for the profile’s own notes, for members only, and counts as a change to the idea', async () => {
+      const own = `/api/profiles/${profile}/notes`
+      const note = (await (await ada.post(own, { text: 'mine' })).json()) as Note
+      expect((await bulk({ ids: [note.id], add: ['loose'] }, own)).status).toBe(200)
+      expect(((await (await ada.get(own)).json()) as Note[])[0]!.tags).toEqual(['loose'])
+      const eve = ctx.client()
+      await register(eve, 'eve@example.com', 'Eve')
+      expect((await eve.post(`${own}/tags`, { ids: [note.id], add: ['x'] })).status).toBe(404)
+
+      const a = await add('a')
+      ctx.store.ideas.touch(idea, 'long ago')
+      await bulk({ ids: [a.id], add: ['y'] })
+      expect(ctx.store.ideas.get(profile, idea)!.updatedAt).not.toBe('long ago')
+    })
+  })
+
   describe('merging', () => {
     const merge = (ids: string[]) => ada.post(`${notes()}/merge`, { ids })
 

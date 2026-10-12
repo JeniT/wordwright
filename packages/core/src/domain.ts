@@ -658,6 +658,26 @@ export const NoteTagsInputSchema = z.object({
 })
 export type NoteTagsInput = z.infer<typeof NoteTagsInputSchema>
 
+/**
+ * A bulk change of tags on several notes (or reading items) at once: add some, take some away. Tags are tidied and
+ * compared ignoring case, as on one note. At least one of `add` and `remove` must name something.
+ */
+const TagListSchema = z.array(NoteTagSchema).transform((tags) => {
+  const seen = new Set<string>()
+  return tags.filter((t) => !seen.has(t.toLowerCase()) && !!seen.add(t.toLowerCase()))
+})
+export const BulkTagInputSchema = z
+  .object({
+    ids: z
+      .array(z.string())
+      .min(1, 'Choose at least one to tag')
+      .max(MAX_IDEA_NOTES, `Choose up to ${MAX_IDEA_NOTES} at a time`),
+    add: TagListSchema.default([]),
+    remove: TagListSchema.default([]),
+  })
+  .refine((v) => v.add.length + v.remove.length > 0, 'Give a tag to add or to remove')
+export type BulkTagInput = z.infer<typeof BulkTagInputSchema>
+
 /** Which notes to join into one. They need not be next to each other; the result takes the first one's place. */
 export const NoteMergeInputSchema = z.object({
   ids: z

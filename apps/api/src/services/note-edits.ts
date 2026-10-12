@@ -11,6 +11,40 @@ import { fail } from '../errors'
 export class NoteEditService {
   constructor(private readonly store: Store) {}
 
+  /**
+   * Adds and removes tags on the chosen notes in one go. All or nothing: if any note would end with more tags than a
+   * note can hold, none is changed. Answers with all the notes of the idea or profile.
+   */
+  tag(scope: ListScope, ids: string[], add: string[], remove: string[]): IdeaNote[] {
+    const { notes } = this.store
+    const owner = ownerOf(scope)
+    return this.store.transaction(() => {
+      const wanted = new Set(ids)
+      const chosen = notes.list(owner).filter((n) => wanted.has(n.id))
+      if (chosen.length !== wanted.size) throw fail(404, 'Not found')
+      const gone = new Set(remove.map((t) => t.toLowerCase()))
+      const changes = chosen.flatMap((note) => {
+        const next = note.tags.filter((t) => !gone.has(t.toLowerCase()))
+        const have = new Set(next.map((t) => t.toLowerCase()))
+        for (const tag of add)
+          if (!have.has(tag.toLowerCase()) && have.add(tag.toLowerCase())) next.push(tag)
+        if (next.length > MAX_NOTE_TAGS) {
+          const words = note.text.length > 40 ? `${note.text.slice(0, 40)}…` : note.text
+          throw fail(
+            409,
+            `A note can have up to ${MAX_NOTE_TAGS} tags, and “${words}” would have ${next.length}. Take some tags off it, or add fewer.`,
+          )
+        }
+        return next.length === note.tags.length && next.every((t, i) => t === note.tags[i])
+          ? []
+          : [{ id: note.id, tags: next }]
+      })
+      for (const change of changes) notes.setTags(owner, change.id, change.tags)
+      if (changes.length) touch(this.store, scope)
+      return notes.list(owner)
+    })
+  }
+
   /** Merges the notes into the first of them (in the order they are arranged). Answers with all the notes of the idea or profile. */
   merge(scope: ListScope, userId: string, ids: string[]): IdeaNote[] {
     const { notes } = this.store

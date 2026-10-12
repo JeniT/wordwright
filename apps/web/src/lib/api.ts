@@ -261,6 +261,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Gives a note exactly these tags. Answers with the note as saved. */
     setIdeaNoteTags: (profileId: string, id: string | null, noteId: string, tags: string[]) =>
       get(IdeaNoteSchema, 'PUT', `${notesPath(profileId, id)}/${noteId}/tags`, { tags }),
+    /** Adds and removes tags on several notes at once. Answers with all the notes. */
+    tagIdeaNotes: (
+      profileId: string,
+      id: string | null,
+      change: { ids: string[]; add: string[]; remove: string[] },
+    ) => get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/tags`, change),
     /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
     setReadingItemRead: (profileId: string, id: string, linkId: string, read: boolean) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/read`, { read }),

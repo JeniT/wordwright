@@ -184,7 +184,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 | Section action | `btn-outline` (accent)                           | The thing the list is for: Add link                           |
 | Row's verb     | `btn-neutral btn-sm`                             | Take notes                                                    |
 | Row utilities  | `btn-quiet btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
-| Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Move to…, Remove N (opens a dialog)                           |
+| Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Tag…, Move to…, Remove N (opens a dialog)                     |
 
 Accent means "act here", so it appears at most once per visible group, never once per row. Repeated rows use neutral
 and quiet buttons. A chip is a **fact**, not a control: use `chip-quiet` (flat) so that only what you can press has a
@@ -204,6 +204,13 @@ are 28px (above the 24px WCAG 2.2 minimum), an exception to the 36px rule for sm
 row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
+
+**Bulk tagging (`BulkTagPanel`).** **Tag…** in the toolbar's bulk actions (enabled when something is selected) opens a
+panel under the toolbar, like Move to…, and only one of the two is open at a time. It has an "Add tags" field (comma
+separated, with the tags already used offered as buttons) and, for each tag the selection already carries, a switch to
+take it off all of them (with "On 2 of the 3 selected"). The button says what it will do ("Tag 3 notes"), the result is
+announced, and the selection is kept. The change is one request and all or nothing, so a note that would exceed the
+limit refuses the whole thing and says which.
 
 **The toolbar (`ListToolbar`).** Filters on the **left** (after the select-all checkbox, which sits above the rail of
 row checkboxes); actions for the selected items on the **right**, with a "3 selected" count. The actions are always

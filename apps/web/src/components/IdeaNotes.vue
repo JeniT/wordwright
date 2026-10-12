@@ -13,6 +13,7 @@ import {
   tagsUsedOn,
 } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
+import BulkTagPanel from './BulkTagPanel.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
@@ -149,6 +150,35 @@ const merge = useMutation({
   onError: () => notes.refetch(),
 })
 
+// ---- tagging: add tags to, or take tags off, all the selected notes at once
+const tagging = ref(false)
+/** The tags the selected notes carry (each spelled as first met), and on how many. */
+const carried = computed(() => {
+  const counts = new Map<string, { tag: string; count: number }>()
+  for (const note of chosen.value)
+    for (const tag of note.tags) {
+      const entry = counts.get(tag.toLowerCase())
+      if (entry) entry.count++
+      else counts.set(tag.toLowerCase(), { tag, count: 1 })
+    }
+  return [...counts.values()]
+})
+const tagChosen = useMutation({
+  mutationFn: (change: { add: string[]; remove: string[] }) =>
+    api.tagIdeaNotes(props.profileId, props.ideaId, { ids: chosenIds.value, ...change }),
+  onSuccess: async (all) => {
+    announcement.value = `Tagged ${chosen.value.length} ${chosen.value.length === 1 ? 'note' : 'notes'}.`
+    setNotes(all)
+    tagging.value = false
+    await refreshAround()
+  },
+})
+function toggleTagging() {
+  moving.value = false
+  tagging.value = !tagging.value
+  tagChosen.reset()
+}
+
 // ---- moving: the selected notes go to another idea, a new one, or the profile
 const mover = useMove(() => props.profileId)
 const dest = useMoveDestination(
@@ -159,6 +189,7 @@ const dest = useMoveDestination(
 const moving = ref(false)
 const bringAll = ref(false)
 function toggleMoving() {
+  tagging.value = false
   moving.value = !moving.value
   bringAll.value = false
   dest.reset()
@@ -364,6 +395,15 @@ const label = (note: IdeaNote) => {
                 <button
                   type="button"
                   class="btn btn-sm btn-neutral"
+                  :aria-expanded="tagging"
+                  :disabled="!chosen.length && !tagging"
+                  @click="toggleTagging"
+                >
+                  Tag…
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-neutral"
                   :aria-expanded="moving"
                   :disabled="!chosen.length && !moving"
                   @click="toggleMoving"
@@ -381,6 +421,17 @@ const label = (note: IdeaNote) => {
                 </button>
               </template>
             </ListToolbar>
+            <BulkTagPanel
+              v-if="tagging"
+              noun="note"
+              :count="chosen.length"
+              :carried="carried"
+              :suggestions="usedTags"
+              :pending="tagChosen.isPending.value"
+              :error="tagChosen.isError.value ? errorMessage(tagChosen.error.value) : undefined"
+              @apply="tagChosen.mutate($event)"
+              @cancel="toggleTagging"
+            />
             <form
               v-if="moving"
               class="border-b border-line bg-sunken p-3"

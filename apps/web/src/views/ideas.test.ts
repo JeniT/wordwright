@@ -589,6 +589,7 @@ describe('idea page', () => {
         orders: [] as string[][],
         sent: [] as unknown[],
         tagged: [] as { id: string; tags: string[] }[],
+        bulkTagged: [] as { ids: string[]; add: string[]; remove: string[] }[],
         merged: [] as string[][],
         split: [] as { id: string; before: string; after: string }[],
       }
@@ -636,6 +637,28 @@ describe('idea page', () => {
             ...state.notes.slice(at + 1),
           ]
           return HttpResponse.json(state.notes, { status: 201 })
+        }),
+        http.post(`${notesUrl}/tags`, async ({ request }) => {
+          const { ids, add, remove } = (await request.json()) as {
+            ids: string[]
+            add: string[]
+            remove: string[]
+          }
+          state.bulkTagged.push({ ids, add, remove })
+          state.notes = state.notes.map((n) =>
+            ids.includes(n.id)
+              ? {
+                  ...n,
+                  tags: [
+                    ...n.tags.filter(
+                      (t) => !remove.some((r) => r.toLowerCase() === t.toLowerCase()),
+                    ),
+                    ...add.filter((a) => !n.tags.some((t) => t.toLowerCase() === a.toLowerCase())),
+                  ],
+                }
+              : n,
+          )
+          return HttpResponse.json(state.notes)
         }),
         http.put(`${notesUrl}/:noteId/tags`, async ({ request, params }) => {
           const { tags } = (await request.json()) as { tags: string[] }
@@ -973,6 +996,112 @@ describe('idea page', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
         expect(await screen.findByText('Use 10 tags or fewer on a note')).toBeInTheDocument()
         expect(screen.getByLabelText(/^Tags for note/)).toHaveValue('a, b')
+      })
+    })
+
+    describe('tagging several at once', () => {
+      const tick = (start: string) =>
+        screen.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) })
+      const tagButton = () => screen.getByRole('button', { name: 'Tag…' })
+      const tagged = (tags: string[]) => ({ ...note('n1', 'Erosion loops.'), tags })
+
+      it('has Tag… in the toolbar, only enabled once notes are selected', async () => {
+        fakeNotes()
+        await open()
+        await screen.findByText('Erosion loops.')
+        expect(tagButton()).toBeDisabled()
+        await fireEvent.click(tick('Erosion'))
+        expect(tagButton()).toBeEnabled()
+      })
+
+      it('adds tags to every selected note and keeps the selection', async () => {
+        const api = fakeNotes([tagged(['intro']), ...three.slice(1)])
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(tick('Deposition'))
+        await fireEvent.click(tagButton())
+        const send = () => screen.getByRole('button', { name: 'Tag 2 notes' })
+        expect(send()).toBeDisabled() // nothing to do yet
+        await fireEvent.update(screen.getByLabelText('Add tags'), 'Part 2, intro')
+        await fireEvent.click(send())
+        await waitFor(() =>
+          expect(api.bulkTagged).toEqual([
+            { ids: ['n1', 'n2'], add: ['Part 2', 'intro'], remove: [] },
+          ]),
+        )
+        // Shown on the notes, the panel closes, and the two are still selected.
+        expect(await screen.findAllByText('Part 2')).not.toHaveLength(0)
+        await waitFor(() => expect(screen.queryByLabelText('Add tags')).toBeNull())
+        expect(screen.getByText('2 selected')).toBeInTheDocument()
+        expect(screen.getByText('Tagged 2 notes.')).toBeInTheDocument()
+      })
+
+      it('offers the tags already used, and a switch for each tag the selection carries', async () => {
+        const api = fakeNotes([
+          tagged(['intro', 'draft']),
+          { ...note('n2', 'Deposition inside the bend.'), tags: ['intro'] },
+          note('n3', 'A quote from the paper.'),
+        ])
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(tick('Deposition'))
+        await fireEvent.click(tagButton())
+        await fireEvent.click(screen.getByRole('button', { name: 'Add the tag draft' }))
+        expect(screen.getByLabelText('Add tags')).toHaveValue('draft')
+        const panel = screen.getByRole('form', { name: /Tag the 2 notes/ })
+        expect(within(panel).getByText('On 2 of the 2 selected.')).toBeInTheDocument()
+        expect(within(panel).getByText('On 1 of the 2 selected.')).toBeInTheDocument()
+        await fireEvent.click(within(panel).getByRole('switch', { name: 'Remove “intro”' }))
+        await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 notes' }))
+        await waitFor(() =>
+          expect(api.bulkTagged).toEqual([
+            { ids: ['n1', 'n2'], add: ['draft'], remove: ['intro'] },
+          ]),
+        )
+      })
+
+      it('cancels without changing anything', async () => {
+        const api = fakeNotes()
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(tagButton())
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        expect(screen.queryByLabelText('Add tags')).toBeNull()
+        expect(api.bulkTagged).toEqual([])
+      })
+
+      it("shows the server's reason when it can't, and keeps the panel and the words", async () => {
+        fakeNotes()
+        server.use(
+          http.post(`${notesUrl}/tags`, () =>
+            HttpResponse.json({ error: 'A note can have up to 10 tags' }, { status: 409 }),
+          ),
+        )
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(tagButton())
+        await fireEvent.update(screen.getByLabelText('Add tags'), 'x')
+        await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 note' }))
+        expect(await screen.findByText('A note can have up to 10 tags')).toBeInTheDocument()
+        expect(screen.getByLabelText('Add tags')).toHaveValue('x')
+        expect(screen.getByText('1 selected')).toBeInTheDocument()
+      })
+
+      it('closes when Move to… opens, and the other way round: one panel at a time', async () => {
+        fakeNotes()
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(tick('Erosion'))
+        await fireEvent.click(tagButton())
+        expect(screen.getByLabelText('Add tags')).toBeInTheDocument()
+        await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+        expect(screen.queryByLabelText('Add tags')).toBeNull()
+        await fireEvent.click(tagButton())
+        expect(screen.queryByLabelText('Move to')).toBeNull()
       })
     })
 
