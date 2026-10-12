@@ -731,6 +731,16 @@ searching (up to a minute), then opens the results. The box sits beside a plain 
 provider. Notes: the shared `RecentNotes` panel. Draft: the idea's drafts in their order (reordering stays on the Draft
 step) and **Start a draft** (`StartDraftButton`, shared with the Draft step). A place is left for Refine (#101).
 
+**Idea landing page, second round (#130, #101, #102).** Creating an idea opens its landing page. Research shows the
+unread reading list (the profile's `RecentReading`, filed under Research) while there is anything unread, and the
+research box only when there is not, so the page offers the next likely move. Notes use `NoteCard`, shared with the Notes
+step, so tags and origin show in both. Refine shows the latest AI message (cut at a paragraph after about 600
+characters, with "Read in full") and a reply box. Sending from there is the same path as the Refine page: the text is
+held in memory (`lib/pending-message.ts`, never in the address) and the Refine page sends it once its thread has
+loaded, so the reply streams there and the missing-key message appears there. With no conversation the panel shows the
+"Talk it through" invitation and **Start brainstorming** opens Refine, which starts it (`?start=1`). Visiting sends
+nothing. The idea's name in the menu and above each step's title links to the landing page.
+
 **Landing page look (#111).** The title is the profile's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The profile's name in the menu, and above a step's title, links to the landing page; so does "← profile" in the idea menu.
 
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down

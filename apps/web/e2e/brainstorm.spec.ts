@@ -23,6 +23,8 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion loops.\nSecond line.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
 }
 
@@ -211,4 +213,39 @@ test('without an AI key, says where to add one and keeps the way open to try aga
   await expect(page.getByRole('link', { name: 'Go to account settings' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start brainstorming' })).toBeVisible()
   await noViolations(page, 'brainstorm page asking for a key')
+})
+
+test('the idea’s page starts the conversation, and carries a reply into it', async ({ page }) => {
+  await setUp(page)
+  await page.getByRole('banner').getByRole('link', { name: 'Why rivers meander' }).click()
+  const refine = page.getByRole('region', { name: 'Refine' })
+  await expect(refine.getByRole('button', { name: 'Start brainstorming' })).toBeVisible() // nothing started by looking
+  await refine.getByRole('button', { name: 'Start brainstorming' }).click()
+  await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
+
+  // Back on the idea's page the coach's last message is there, with a box to answer it.
+  await page.getByRole('banner').getByRole('link', { name: 'Why rivers meander' }).click()
+  await expect(refine.getByText(/What is the one claim this piece makes/)).toBeVisible()
+  await noViolations(page, 'idea page with a conversation')
+  await refine.getByLabel('Your reply').fill('Rivers are lazy')
+  await refine.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Refine' })).toBeVisible()
+  // In the thread, sent from there (the live and saved copies can both show for a moment).
+  await expect(
+    page.getByRole('log', { name: 'Conversation' }).getByText('Rivers are lazy').first(),
+  ).toBeVisible()
+  await expect(page).not.toHaveURL(/lazy/)
+})
+
+test('without an AI key, a reply from the idea’s page lands where the key is asked for', async ({
+  page,
+}) => {
+  await setUp(page, { withKey: false })
+  await page.getByRole('banner').getByRole('link', { name: 'Why rivers meander' }).click()
+  await page
+    .getByRole('region', { name: 'Refine' })
+    .getByRole('button', { name: 'Start brainstorming' })
+    .click()
+  await expect(page.getByRole('alert')).toContainText(/API key/)
+  await expect(page.getByRole('link', { name: 'Go to account settings' })).toBeVisible()
 })

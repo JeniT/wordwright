@@ -4,7 +4,6 @@ import { computed, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
-import { noteOriginPhrase } from '../lib/note-label'
 import {
   hasTag,
   orderWithHidden,
@@ -19,9 +18,7 @@ import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
-import NoteOrigin from './NoteOrigin.vue'
-import NoteText from './NoteText.vue'
-import NoteTags from './NoteTags.vue'
+import NoteCard from './NoteCard.vue'
 import ReorderableList from './ReorderableList.vue'
 import SwitchField from './SwitchField.vue'
 import TagFilter from './TagFilter.vue'
@@ -511,16 +508,7 @@ const label = (note: IdeaNote) => {
                 </button>
               </div>
             </form>
-            <div v-else class="min-w-[12rem] flex-1">
-              <NoteText :note="note" />
-              <NoteTags :tags="note.tags" />
-              <p class="mt-1 text-xs text-ink-soft">
-                <NoteOrigin
-                  :phrase="noteOriginPhrase(note, readingList)"
-                  :author-name="note.authorName"
-                />
-              </p>
-            </div>
+            <NoteCard v-else :note="note" :reading-list="readingList" />
           </template>
           <template #actions="{ item: note }">
             <button

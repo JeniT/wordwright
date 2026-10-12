@@ -115,9 +115,7 @@ describe('new idea page', () => {
     await fireEvent.update(screen.getByLabelText('Expand on your idea here'), 'Erosion loops.')
     await fireEvent.click(screen.getByRole('button', { name: 'Save idea' }))
 
-    await waitFor(() =>
-      expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/notes'),
-    )
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1'))
     expect(sent).toEqual({ name: 'Why rivers meander', notes: 'Erosion loops.' })
   })
 

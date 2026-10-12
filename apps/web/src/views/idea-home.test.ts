@@ -49,11 +49,29 @@ const note = (n: number, text = `Note ${n}`) => ({
   updatedAt: `2026-01-0${n}T00:00:00Z`,
 })
 
+const message = (n: number, role: 'user' | 'assistant', text: string) => ({
+  id: `m${n}`,
+  role,
+  kind: 'message' as const,
+  text,
+  authorName: role === 'user' ? 'Ada' : null,
+  model: role === 'assistant' ? 'fake-model' : null,
+  status: 'complete' as const,
+  stopReason: null,
+  proposals: [] as unknown[],
+  notes: [] as unknown[],
+  createdAt: `2026-01-0${n}T00:00:00Z`,
+})
+
 const ideaUrl = '*/api/profiles/ada-substack/ideas/i1'
 
 /** A pretend API for the idea; `calls` records anything that would cost money or change something. */
 function fakeIdea(
-  options: { idea?: ReturnType<typeof idea>; notes?: ReturnType<typeof note>[] } = {},
+  options: {
+    idea?: ReturnType<typeof idea>
+    notes?: ReturnType<typeof note>[]
+    messages?: ReturnType<typeof message>[]
+  } = {},
 ) {
   const state = {
     notes: [...(options.notes ?? [])],
@@ -74,6 +92,9 @@ function fakeIdea(
       return HttpResponse.json(made, { status: 201 })
     }),
     http.get(`${ideaUrl}/research`, () => HttpResponse.json([])),
+    http.get(`${ideaUrl}/conversation`, () =>
+      HttpResponse.json({ messages: options.messages ?? [], replyingNow: null }),
+    ),
     http.post(`${ideaUrl}/research`, async ({ request }) => {
       const { areas } = (await request.json()) as { areas: string }
       state.researched.push(areas)
@@ -160,24 +181,59 @@ describe('an idea’s landing page', () => {
   })
 
   describe('research', () => {
-    it('links to the reading list, with the number of sources', async () => {
+    it('shows the unread reading, and not the AI box, while there is any', async () => {
       fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Research' })
-      const link = within(region).getByRole('link', { name: /See the reading list/ })
-      expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1/research')
-      expect(link).toHaveTextContent('(2 sources)')
+      const list = await within(region).findByRole('list', { name: 'To read' })
+      expect(within(list).getAllByRole('link')).toHaveLength(2)
+      expect(within(region).getByRole('link', { name: /See the reading list/ })).toHaveAttribute(
+        'href',
+        '/p/ada-substack/ideas/i1/research',
+      )
+      expect(within(region).queryByLabelText('What areas do you want to research?')).toBeNull()
+      expect(region.querySelector('h2')).toHaveTextContent(/^01\s*Research$/)
+    })
+
+    it('shows the AI box when there is nothing unread, even if the list is empty', async () => {
+      fakeIdea({ idea: idea([], []) })
+      await renderAt('/p/ada-substack/ideas/i1')
+      expect(await screen.findByLabelText('What areas do you want to research?')).toBeVisible()
+    })
+
+    it('links to the reading list, with the number of sources', async () => {
+      fakeIdea({
+        idea: idea(
+          [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
+          [draft(1)],
+        ),
+      })
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Research' })
+      const seeAll = within(region).getByRole('link', { name: /See the reading list/ })
+      expect(seeAll).toHaveAttribute('href', '/p/ada-substack/ideas/i1/research')
+      expect(seeAll).toHaveTextContent('(1 source)')
     })
 
     it('says what is sent to the AI provider, next to the button', async () => {
-      fakeIdea()
+      fakeIdea({
+        idea: idea(
+          [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
+          [draft(1)],
+        ),
+      })
       await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Research' })
       expect(within(region).getByText(/sent to your AI provider/)).toBeInTheDocument()
     })
 
     it('starts the research only when the button is pressed, then shows the results', async () => {
-      const state = fakeIdea()
+      const state = fakeIdea({
+        idea: idea(
+          [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
+          [draft(1)],
+        ),
+      })
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
       const button = await screen.findByRole('button', { name: 'Research' })
       expect(button).toBeDisabled()
@@ -194,7 +250,12 @@ describe('an idea’s landing page', () => {
     })
 
     it('says what went wrong, and keeps the words, when the research fails', async () => {
-      fakeIdea()
+      fakeIdea({
+        idea: idea(
+          [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
+          [draft(1)],
+        ),
+      })
       server.use(
         http.post(`${ideaUrl}/research`, () =>
           HttpResponse.json({ error: 'The search service is busy' }, { status: 502 }),
@@ -227,7 +288,7 @@ describe('an idea’s landing page', () => {
       expect(
         within(list)
           .getAllByRole('listitem')
-          .map((li) => li.textContent?.trim()),
+          .map((li) => li.querySelector('p')?.textContent?.trim()),
       ).toEqual(['Note 7', 'Note 6', 'Note 5', 'Note 4', 'Note 3'])
       expect(screen.getByRole('link', { name: /See all notes/ })).toHaveAttribute(
         'href',
@@ -300,5 +361,89 @@ describe('an idea’s landing page', () => {
       await fireEvent.click(await screen.findByRole('button', { name: 'Start a draft' }))
       expect(await screen.findByText(/Couldn't start a new draft/)).toBeInTheDocument()
     })
+  })
+
+  describe('refine', () => {
+    it('invites you to start when there is no conversation, and goes to Refine to start it', async () => {
+      const state = fakeIdea()
+      const { router } = await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Refine' })
+      expect(region.querySelector('h2')).toHaveTextContent(/^03\s*Refine$/)
+      expect(await within(region).findByText('Talk it through')).toBeInTheDocument()
+      expect(state.requests).toEqual([]) // nothing started by looking
+      await fireEvent.click(within(region).getByRole('button', { name: 'Start brainstorming' }))
+      await waitFor(() => expect(router.currentRoute.value.name).toBe('brainstorm'))
+    })
+
+    it('shows the latest message from the AI, not the writer’s own', async () => {
+      fakeIdea({
+        messages: [
+          message(1, 'assistant', 'First question?'),
+          message(2, 'user', 'My answer'),
+          message(3, 'assistant', 'A **sharper** question?'),
+          message(4, 'user', 'Another answer'),
+        ],
+      })
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Refine' })
+      expect(await within(region).findByText('sharper')).toBeInTheDocument()
+      expect(within(region).queryByText('First question?')).toBeNull()
+      expect(within(region).queryByText('Read in full')).toBeNull()
+    })
+
+    it('cuts a long reply at a paragraph and links to the rest', async () => {
+      const long = `${'First paragraph. '.repeat(20)}\n\n${'Second paragraph. '.repeat(40)}`
+      fakeIdea({ messages: [message(1, 'assistant', long)] })
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Refine' })
+      expect(await within(region).findByText(/First paragraph/)).toBeInTheDocument()
+      expect(within(region).queryByText(/Second paragraph/)).toBeNull()
+      expect(within(region).getByRole('link', { name: 'Read in full' })).toHaveAttribute(
+        'href',
+        '/p/ada-substack/ideas/i1/refine',
+      )
+    })
+
+    it('sends a reply through the Refine page, where it joins the thread', async () => {
+      const sent: unknown[] = []
+      fakeIdea({ messages: [message(1, 'assistant', 'What is the point?')] })
+      server.use(
+        http.post(`${ideaUrl}/conversation/messages`, async ({ request }) => {
+          sent.push(await request.json())
+          return new HttpResponse('', {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream' },
+          })
+        }),
+      )
+      const { router } = await renderAt('/p/ada-substack/ideas/i1')
+      const reply = await screen.findByLabelText('Your reply')
+      await fireEvent.update(reply, 'Rivers are lazy')
+      expect(sent).toEqual([])
+      await fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+      await waitFor(() => expect(router.currentRoute.value.name).toBe('brainstorm'))
+      // The text is not in the address.
+      expect(router.currentRoute.value.fullPath).not.toContain('lazy')
+      await waitFor(() => expect(sent).toEqual([{ text: 'Rivers are lazy' }]))
+    })
+
+    it('says when the conversation can’t be loaded', async () => {
+      fakeIdea()
+      server.use(
+        http.get(`${ideaUrl}/conversation`, () =>
+          HttpResponse.json({ error: 'Nope' }, { status: 500 }),
+        ),
+      )
+      await renderAt('/p/ada-substack/ideas/i1')
+      expect(await screen.findByText(/couldn't load the conversation/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows notes as the Notes step does: with their tags and where they came from', async () => {
+    fakeIdea({ notes: [{ ...note(1), tags: ['intro'] }] })
+    await renderAt('/p/ada-substack/ideas/i1')
+    const list = await screen.findByRole('list', { name: 'Recent notes' })
+    expect(within(list).getByText('intro')).toBeInTheDocument()
+    expect(within(list).getByText(/recorded by/)).toBeInTheDocument()
   })
 })

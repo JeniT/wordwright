@@ -23,6 +23,8 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion loops.\nSecond line.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
 }
 

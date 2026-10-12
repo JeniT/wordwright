@@ -210,6 +210,32 @@ describe('step pages', () => {
   })
 })
 
+describe('the idea’s name', () => {
+  it('leads to its landing page from a step, and marks that page as current there', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1/notes')
+    const banner = await menu()
+    const link = await banner.findByRole('link', { name: 'Why rivers meander' })
+    expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1')
+    expect(link).not.toHaveAttribute('aria-current')
+    const title = within(screen.getByRole('main')).getByRole('link', { name: 'Why rivers meander' })
+    expect(title).toHaveAttribute('href', '/p/ada-substack/ideas/i1')
+  })
+
+  it('is current on the landing page itself, and not a link in the page title there', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1')
+    const banner = await menu()
+    expect(await banner.findByRole('link', { name: 'Why rivers meander' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      within(screen.getByRole('main')).queryByRole('link', { name: 'Why rivers meander' }),
+    ).toBeNull()
+  })
+})
+
 describe('the menu folds away on pages read beside another window', () => {
   it('everywhere else, only on a phone', async () => {
     mockApp()

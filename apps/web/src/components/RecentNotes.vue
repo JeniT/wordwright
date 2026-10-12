@@ -4,9 +4,10 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
+import { useReadingList } from '../lib/reading'
 import { useIdeaNotes } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
-import NoteText from './NoteText.vue'
+import NoteCard from './NoteCard.vue'
 import TextAreaField from './TextAreaField.vue'
 import QueryState from './QueryState.vue'
 
@@ -31,6 +32,7 @@ const {
   () => props.profileId,
   () => props.ideaId,
 )
+const reading = useReadingList(() => ({ profileId: props.profileId, ideaId: props.ideaId }))
 // "Recent" is when a note was made; the notes page's own order is the writer's.
 const recent = computed(() =>
   [...(notes.data.value ?? [])]
@@ -61,8 +63,8 @@ const add = useMutation({
     <QueryState :query="notes" what="the notes">
       <p v-if="!recent.length" class="mb-4 text-ink-soft">No notes yet.</p>
       <ul v-else class="panel mb-4 divide-y divide-line" aria-label="Recent notes">
-        <li v-for="note in recent" :key="note.id" class="px-4 py-3">
-          <NoteText :note="note" />
+        <li v-for="note in recent" :key="note.id" class="flex px-4 py-3">
+          <NoteCard :note="note" :reading-list="reading.links.value ?? []" />
         </li>
       </ul>
     </QueryState>

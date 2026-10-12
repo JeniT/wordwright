@@ -54,7 +54,14 @@ const itemClass =
     </RouterLink>
     <p class="meta mt-3">Idea</p>
     <p v-if="idea.data.value" class="leading-snug font-semibold break-words">
-      {{ idea.data.value.name }}
+      <RouterLink
+        :to="{
+          name: 'idea',
+          params: { profileId: idea.data.value.profileId, id: idea.data.value.id },
+        }"
+        class="no-underline hover:underline aria-[current=page]:underline"
+        >{{ idea.data.value.name }}</RouterLink
+      >
     </p>
     <p v-else-if="loading || idea.isPending.value" class="meta">Loading…</p>
   </div>

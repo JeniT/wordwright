@@ -10,6 +10,7 @@ import ProposalCard from '../components/ProposalCard.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { takeHeldMessage } from '../lib/pending-message'
 import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 import QueryState from '../components/QueryState.vue'
 import IdeaGate from '../components/IdeaGate.vue'
@@ -143,6 +144,19 @@ watch(
     autoStarted = true
     void router.replace({ query: {} })
     if (data.messages.length === 0) void send({ start: true })
+  },
+  { immediate: true },
+)
+
+// A message typed on the idea's landing page is sent once the thread is here to add it to.
+let heldSent = false
+watch(
+  () => conversation.data.value,
+  (data) => {
+    if (heldSent || !data) return
+    heldSent = true
+    const text = takeHeldMessage(props.profileId, props.id)
+    if (text && data.messages.length) void send({ text }, text)
   },
   { immediate: true },
 )

@@ -121,12 +121,15 @@ export function useNav() {
         : undefined,
   )
 
-  /** Where the name above a page's title leads: a profile's pages lead back to its landing page (not from it). */
-  const eyebrowTo = computed<RouteLocationRaw | undefined>(() =>
-    level.value === 'profile' && route.name !== 'profile' && profileId.value
-      ? { name: 'profile', params: { profileId: profileId.value } }
-      : undefined,
-  )
+  /** Where the name above a page's title leads: a level's pages lead back to its landing page (not from it). */
+  const eyebrowTo = computed<RouteLocationRaw | undefined>(() => {
+    if (route.name === 'profile' || route.name === 'idea' || !profileId.value) return undefined
+    if (level.value === 'profile')
+      return { name: 'profile', params: { profileId: profileId.value } }
+    if (level.value === 'idea' && ideaId.value)
+      return { name: 'idea', params: { profileId: profileId.value, id: ideaId.value } }
+    return undefined
+  })
 
   return {
     level,

@@ -293,10 +293,11 @@ The principles (they are the point of the pattern; keep them when you add a page
    profile's name (`h1`) beside its picture and website link; each section is a `LandingSection`: the step's number
    (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
    actions on the right of the heading. An idea's page is titled with the idea's name (the profile above it, as a way
-   up) and summarises Research (the number of sources, and the box to ask the AI, which waits for its button),
-   Notes and Draft (its drafts, and **Start a draft**).
-9. **The name leads back up to the landing page**: the profile's name in the menu, and the small name above a step's
-   title, are links to it (and are not links on the landing page itself).
+   up) and summarises Research (the unread reading list while there is any; otherwise the box to ask the AI, which waits for
+   its button), Notes (shown by the same `NoteCard` as the Notes step), Refine (the AI's latest message and a box to
+   reply, or the invitation to start) and Draft (its drafts, and **Start a draft**).
+9. **The name leads back up to the landing page**: the profile's or idea's name in the menu, and the small name above
+   a step's title, are links to it (current on the landing page itself, where the title is not a link).
 
 |                                                           |                                                          |
 | --------------------------------------------------------- | -------------------------------------------------------- |

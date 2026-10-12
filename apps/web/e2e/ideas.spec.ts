@@ -38,6 +38,8 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
 
   await goTo(page, 'Research')
@@ -198,7 +200,9 @@ test('captures an idea, adds related work, and develops it into a linked set of 
 
   // The profile lists it.
   await page.getByRole('link', { name: '← Weekly letters' }).click()
-  await expect(page.getByRole('link', { name: /Why rivers meander/ })).toContainText('2 drafts')
+  await expect(
+    page.getByRole('main').getByRole('link', { name: /Why rivers meander.*drafts/ }),
+  ).toContainText('2 drafts')
 
   // Removing a link and deleting the idea both work, and deleting asks first.
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
@@ -229,6 +233,9 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   await notes.getByLabel('Add a note').fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
@@ -307,6 +314,8 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
@@ -396,6 +405,9 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
     await notes.getByLabel('Add a note').fill(text)
@@ -448,6 +460,8 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
@@ -566,6 +580,9 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
     await notes.getByLabel('Add a note').fill(text)
@@ -649,6 +666,9 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Notes')
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   await notes.getByLabel('Add a note').fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()

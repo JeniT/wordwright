@@ -96,7 +96,7 @@ describe('a profile’s landing page', () => {
       const list = await screen.findByRole('list', { name: 'Recent notes' })
       const shown = within(list)
         .getAllByRole('listitem')
-        .map((li) => li.textContent?.trim())
+        .map((li) => li.querySelector('p')?.textContent?.trim())
       expect(shown).toEqual(['Note 7', 'Note 6', 'Note 5', 'Note 4', 'Note 3'])
       expect(screen.getByRole('link', { name: /See all notes/ })).toHaveAttribute(
         'href',

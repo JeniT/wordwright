@@ -3,6 +3,8 @@ import { RouterLink, useRouter } from 'vue-router'
 import IdeaGate from '../components/IdeaGate.vue'
 import LandingSection from '../components/LandingSection.vue'
 import RecentNotes from '../components/RecentNotes.vue'
+import RecentReading from '../components/RecentReading.vue'
+import RecentRefine from '../components/RecentRefine.vue'
 import ResearchForm from '../components/ResearchForm.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
 import { useProfile } from '../lib/useProfiles'
@@ -32,7 +34,16 @@ const showResearch = () =>
       <h1 class="h1 break-words">{{ idea.name }}</h1>
     </div>
 
-    <LandingSection level="idea" step="research" title="Research">
+    <!-- Unread reading comes first; the AI box is for when there is nothing left to read. -->
+    <RecentReading
+      v-if="idea.links.some((link) => !link.readAt)"
+      :profile-id="profileId"
+      :idea-id="id"
+      step="research"
+      title="Research"
+      :to="{ name: 'idea-research', params: { profileId, id } }"
+    />
+    <LandingSection v-else level="idea" step="research" title="Research">
       <template #actions>
         <RouterLink :to="{ name: 'idea-research', params: { profileId, id } }" class="link text-sm">
           See the reading list<span class="meta">
@@ -55,7 +66,7 @@ const showResearch = () =>
       :to="{ name: 'idea-notes', params: { profileId, id } }"
     />
 
-    <!-- 03 Refine goes here (#101). -->
+    <RecentRefine :profile-id="profileId" :idea-id="id" />
 
     <LandingSection level="idea" step="draft" title="Draft">
       <template #actions>

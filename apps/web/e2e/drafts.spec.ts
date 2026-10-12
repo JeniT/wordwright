@@ -142,7 +142,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await openFirstProfile(page)
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await goTo(page, 'Draft')
-  await page.getByRole('link', { name: 'Why rivers meander' }).click()
+  await page.getByRole('link', { name: /^Why rivers meander \d/ }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
 
   // The comments come beside the draft, in the tab that opens for them.

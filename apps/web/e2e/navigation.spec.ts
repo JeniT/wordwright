@@ -19,6 +19,8 @@ async function signUpWithIdea(page: Page) {
   await page.getByLabel("What's your core idea?").fill('What pruning teaches')
   await page.getByLabel('Expand on your idea here').fill('A cut is a question.')
   await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
+  await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
 }
 
@@ -144,6 +146,22 @@ test('leads through a profile and an idea step by step, without ever locking one
   ).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled() // visiting spends nothing
   await noViolations(page, 'Idea landing page')
+  // With nothing to read the AI box is offered, and with no conversation the Refine panel invites one; neither starts by itself.
+  await expect(page.getByLabel('What areas do you want to research?')).toBeVisible()
+  await expect(
+    page
+      .getByRole('region', { name: 'Refine' })
+      .getByRole('button', { name: 'Start brainstorming' }),
+  ).toBeVisible()
+  // A reading item brings the reading list in place of the AI box.
+  await page.getByRole('link', { name: 'See the reading list' }).click()
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  await expect(page.getByRole('link', { name: 'Take notes' })).toBeVisible()
+  await page.getByRole('banner').getByRole('link', { name: 'What pruning teaches' }).click()
+  await expect(page.getByRole('list', { name: 'To read' })).toBeVisible()
+  await expect(page.getByLabel('What areas do you want to research?')).toHaveCount(0)
+  await noViolations(page, 'Idea landing page with reading')
 
   // A note can be jotted down there, then a draft started and opened.
   await page.getByLabel('Add a note').fill('Cut above a bud.')

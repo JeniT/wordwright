@@ -18,7 +18,7 @@ const create = useMutation({
   mutationFn: () => api.createIdea(props.profileId, { name: name.value, notes: notes.value }),
   onSuccess: async (idea) => {
     await invalidateRoots(queryClient, 'ideas')
-    await router.push({ name: 'idea-notes', params: { profileId: props.profileId, id: idea.id } })
+    await router.push({ name: 'idea', params: { profileId: props.profileId, id: idea.id } })
   },
 })
 </script>

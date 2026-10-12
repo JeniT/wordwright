@@ -17,6 +17,9 @@ const props = defineProps<{
   ideaId: string | null
   /** The page this summarises. */
   to: RouteLocationRaw
+  /** An idea keeps its reading list under Research. */
+  step?: 'read' | 'research'
+  title?: string
 }>()
 const SHOWN = 5
 
@@ -34,7 +37,11 @@ const host = (url: string) => {
 </script>
 
 <template>
-  <LandingSection :level="ideaId ? 'idea' : 'profile'" step="read" title="Read">
+  <LandingSection
+    :level="ideaId ? 'idea' : 'profile'"
+    :step="step ?? 'read'"
+    :title="title ?? 'Read'"
+  >
     <template #actions>
       <RouterLink :to="to" class="link text-sm">
         See the reading list<span v-if="unread.length" class="meta"> ({{ unread.length }})</span>
