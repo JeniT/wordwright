@@ -66,6 +66,16 @@ export function useReadingActions(owner: () => Owner) {
       api.setProfileLinkKept(owner().profileId, linkId, kept),
     onSuccess: keep,
   })
+  /** Gives an item exactly these tags. */
+  const setTags = useMutation({
+    mutationFn: ({ linkId, tags }: { linkId: string; tags: string[] }) => {
+      const { profileId, ideaId } = owner()
+      return ideaId
+        ? api.setReadingItemTags(profileId, ideaId, linkId, tags)
+        : api.setProfileLinkTags(profileId, linkId, tags)
+    },
+    onSuccess: keep,
+  })
   const update = useMutation({
     mutationFn: ({
       linkId,
@@ -110,7 +120,7 @@ export function useReadingActions(owner: () => Owner) {
     onSettled: () => invalidateRoots(queryClient, 'idea', 'reading'),
   })
 
-  return { add, setRead, setKept, update, remove, removeMany, listOf }
+  return { add, setRead, setKept, setTags, update, remove, removeMany, listOf }
 }
 
 /**

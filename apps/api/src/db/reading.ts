@@ -18,6 +18,7 @@ const toLink = (l: Row): IdeaLink => ({
   readAt: l.read_at as string | null,
   origin: l.origin as ReadingOrigin,
   why: (l.why as string | null) ?? null,
+  tags: [],
   kept: l.kept === 1,
   addedAt: l.created_at as string,
 })
@@ -54,12 +55,35 @@ export class ReadingStore {
   list(owner: Owner): IdeaLink[] {
     if (typeof owner !== 'string') this.dropOld(owner.profileId)
     const w = owned(owner)
-    return this.db
-      .prepare(
-        `SELECT ${COLUMNS} FROM idea_links WHERE ${w.sql} ORDER BY (read_at IS NOT NULL), created_at, rowid`,
-      )
-      .all(...w.args)
-      .map(toLink)
+    return this.withTags(
+      this.db
+        .prepare(
+          `SELECT ${COLUMNS} FROM idea_links WHERE ${w.sql} ORDER BY (read_at IS NOT NULL), created_at, rowid`,
+        )
+        .all(...w.args)
+        .map(toLink),
+    )
+  }
+
+  /** Fills in each item's tags (in the order they were given) with one read for all of them. */
+  private withTags(links: IdeaLink[]): IdeaLink[] {
+    if (!links.length) return links
+    const byLink = new Map(links.map((l) => [l.id, l]))
+    const marks = links.map(() => '?').join(', ')
+    const rows = this.db
+      .prepare(`SELECT link_id, tag FROM idea_link_tags WHERE link_id IN (${marks}) ORDER BY rowid`)
+      .all(...links.map((l) => l.id))
+    for (const r of rows) byLink.get(r.link_id as string)?.tags.push(r.tag as string)
+    return links
+  }
+
+  /** Gives an item exactly these tags (already tidied and free of repeats). Call inside a transaction. */
+  setTags(owner: Owner, id: string, tags: string[]): IdeaLink | undefined {
+    if (!this.get(owner, id)) return undefined
+    this.db.prepare('DELETE FROM idea_link_tags WHERE link_id = ?').run(id)
+    const insert = this.db.prepare('INSERT INTO idea_link_tags (link_id, tag) VALUES (?, ?)')
+    for (const tag of tags) insert.run(id, tag)
+    return this.get(owner, id)
   }
 
   count(owner: Owner): number {
@@ -77,7 +101,7 @@ export class ReadingStore {
     const row = this.db
       .prepare(`SELECT ${COLUMNS} FROM idea_links WHERE ${w.sql} AND id = ?`)
       .get(...w.args, id)
-    return row && toLink(row)
+    return row && this.withTags([toLink(row)])[0]
   }
 
   /** Every item's address in the profile, wherever it is (the profile's own list or any idea's), and when it was put there. */
@@ -96,7 +120,7 @@ export class ReadingStore {
     const row = this.db
       .prepare(`SELECT ${COLUMNS}, idea_id FROM idea_links WHERE profile_id = ? AND id = ?`)
       .get(profileId, id)
-    return row && { link: toLink(row), ideaId: row.idea_id as string | null }
+    return row && { link: this.withTags([toLink(row)])[0]!, ideaId: row.idea_id as string | null }
   }
 
   /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
@@ -143,6 +167,7 @@ export class ReadingStore {
       readAt: input.readAt ?? null,
       origin,
       why: input.why ?? null,
+      tags: [],
       kept,
       addedAt: createdAt,
     }

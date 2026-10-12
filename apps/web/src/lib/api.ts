@@ -236,6 +236,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     ) => get(IdeaLinkSchema.array(), 'PATCH', `/profiles/${profileId}/reading/${linkId}`, input),
     setProfileLinkRead: (profileId: string, linkId: string, read: boolean) =>
       get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/read`, { read }),
+    /** Gives an item of the profile's own list exactly these tags. Answers with the whole list. */
+    setProfileLinkTags: (profileId: string, linkId: string, tags: string[]) =>
+      get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/tags`, { tags }),
     /** Asks for an item of the profile's own list to be kept (the others drop off after a month). */
     setProfileLinkKept: (profileId: string, linkId: string, kept: boolean) =>
       get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/kept`, { kept }),
@@ -267,6 +270,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       id: string | null,
       change: { ids: string[]; add: string[]; remove: string[] },
     ) => get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/tags`, change),
+    /** Gives a reading-list item exactly these tags. Answers with the whole idea. */
+    setReadingItemTags: (profileId: string, id: string, linkId: string, tags: string[]) =>
+      get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/tags`, { tags }),
     /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
     setReadingItemRead: (profileId: string, id: string, linkId: string, read: boolean) =>
       get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/read`, { read }),

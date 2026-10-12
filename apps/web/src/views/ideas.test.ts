@@ -403,6 +403,122 @@ describe('idea page', () => {
     })
   })
 
+  describe('tags on links', () => {
+    const tagged = {
+      ...idea,
+      links: [
+        { ...idea.links[0]!, tags: ['background', 'part 2'] },
+        {
+          id: 'l2',
+          url: 'https://example.org/other',
+          title: 'Other',
+          readAt: null,
+          origin: 'entered',
+          tags: [],
+        },
+        {
+          id: 'l3',
+          url: 'https://example.org/third',
+          title: 'Third',
+          readAt: null,
+          origin: 'entered',
+          tags: ['Background'],
+        },
+      ],
+    }
+
+    /** The usual idea page, but with the tagged links (a test's own handlers come first). */
+    const openTagged = (extra: Parameters<typeof server.use> = []) => {
+      server.use(
+        ...extra,
+        signedInAs(testUser),
+        listProfiles,
+        http.get(ideaUrl, () => HttpResponse.json(tagged)),
+        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+      )
+      return renderAt('/p/ada-substack/ideas/i1/research')
+    }
+
+    it('shows each link’s tags, and a filter once any link has one', async () => {
+      await openTagged()
+      await screen.findByRole('link', { name: /A paper/ })
+      expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
+      const filter = screen.getByRole('group', { name: 'Show links with a tag' })
+      expect(
+        within(filter)
+          .getAllByRole('button')
+          .map((b) => b.textContent?.trim()),
+      ).toEqual([
+        'All',
+        'background', // "Background" and "background" are one tag
+        'part 2',
+      ])
+      await fireEvent.click(within(filter).getByRole('button', { name: 'part 2' }))
+      expect(screen.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /Other/ })).toBeNull()
+      await fireEvent.click(within(filter).getByRole('button', { name: 'background' }))
+      expect(screen.getByRole('link', { name: /Third/ })).toBeInTheDocument()
+      await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
+      expect(screen.getByRole('link', { name: /Other/ })).toBeInTheDocument()
+    })
+
+    it('has no filter while nothing is tagged', async () => {
+      await open()
+      await screen.findByRole('link', { name: /A paper/ })
+      expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+    })
+
+    it('edits a link’s tags with its address and title, sending only what changed', async () => {
+      const calls: string[] = []
+      let tags: unknown
+      await openTagged([
+        http.patch(`${ideaUrl}/links/l1`, () => {
+          calls.push('link')
+          return HttpResponse.json(tagged)
+        }),
+        http.put(`${ideaUrl}/links/l1/tags`, async ({ request }) => {
+          calls.push('tags')
+          tags = ((await request.json()) as { tags: string[] }).tags
+          return HttpResponse.json({
+            ...tagged,
+            links: [{ ...tagged.links[0]!, tags: tags as string[] }, ...tagged.links.slice(1)],
+          })
+        }),
+      ])
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
+      const field = screen.getByLabelText('Tags for this link (optional)')
+      expect(field).toHaveValue('background, part 2')
+      await fireEvent.update(field, '')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add the tag part 2' })) // already used elsewhere
+      expect(field).toHaveValue('part 2')
+      await fireEvent.update(field, 'part 2, new one')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
+      await waitFor(() => expect(tags).toEqual(['part 2', 'new one']))
+      expect(calls).toEqual(['link', 'tags'])
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Tags for this link (optional)')).toBeNull(),
+      )
+      expect(
+        within(screen.getAllByRole('list', { name: 'Tags' })[0]!).getByText('new one'),
+      ).toBeInTheDocument()
+    })
+
+    it('says why tags could not be saved, and stays open with the words', async () => {
+      await openTagged([
+        http.patch(`${ideaUrl}/links/l1`, () => HttpResponse.json(tagged)),
+        http.put(`${ideaUrl}/links/l1/tags`, () =>
+          HttpResponse.json({ error: 'Use 10 tags or fewer on a note' }, { status: 400 }),
+        ),
+      ])
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
+      const field = screen.getByLabelText('Tags for this link (optional)')
+      await fireEvent.update(field, 'a, b')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
+      expect(await screen.findByText('Use 10 tags or fewer on a note')).toHaveClass('text-danger')
+      expect(field).toHaveValue('a, b')
+    })
+  })
+
   describe('editing a link', () => {
     const edit = async () => {
       await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))

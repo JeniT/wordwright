@@ -3,6 +3,7 @@ import {
   IdeaLinkInputSchema,
   MoveNotesInputSchema,
   MoveReadingInputSchema,
+  NoteTagsInputSchema,
   ReadingItemKeptSchema,
   ReadingItemReadSchema,
 } from '@lfwa/core'
@@ -61,6 +62,16 @@ export function profileReadingRoutes(store: Store, links: IdeaLinkService) {
         if (!reading.setKept(profileId, param(c, 'linkId'), c.req.valid('json').kept)) {
           throw notFound()
         }
+        return c.json(reading.list(owner(profileId)))
+      })
+      // The item's tags, replaced as a whole (like a note's).
+      .put('/:linkId/tags', validateJson(NoteTagsInputSchema), (c) => {
+        const profileId = param(c, 'profileId')
+        const tags = c.req.valid('json').tags
+        const saved = store.transaction(() =>
+          reading.setTags(owner(profileId), param(c, 'linkId'), tags),
+        )
+        if (!saved) throw notFound()
         return c.json(reading.list(owner(profileId)))
       })
       .delete('/:linkId', (c) => {

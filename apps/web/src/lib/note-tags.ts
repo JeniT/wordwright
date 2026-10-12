@@ -1,4 +1,5 @@
-import type { IdeaNote } from '@lfwa/core'
+/** Anything that carries tags: a note, a reading-list item. */
+type Tagged = { tags: readonly string[] }
 
 /** "intro, Part 2 , " → ["intro", "Part 2"]: tidied, empty ones dropped, repeats (ignoring case) dropped. */
 export function parseTags(text: string): string[] {
@@ -19,16 +20,16 @@ export const tagsToText = (tags: readonly string[]) => tags.join(', ')
 export const sameTags = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((t, i) => t.toLowerCase() === b[i]!.toLowerCase())
 
-/** Every tag used on these notes, once each (ignoring case, first spelling kept), in the order first met. */
-export function tagsUsedOn(notes: readonly IdeaNote[]): string[] {
+/** Every tag used on these, once each (ignoring case, first spelling kept), in the order first met. */
+export function tagsUsedOn(items: readonly Tagged[]): string[] {
   const seen = new Map<string, string>()
-  for (const note of notes)
-    for (const tag of note.tags) seen.set(tag.toLowerCase(), seen.get(tag.toLowerCase()) ?? tag)
+  for (const item of items)
+    for (const tag of item.tags) seen.set(tag.toLowerCase(), seen.get(tag.toLowerCase()) ?? tag)
   return [...seen.values()]
 }
 
-export const hasTag = (note: IdeaNote, tag: string | null) =>
-  tag === null || note.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
+export const hasTag = (item: Tagged, tag: string | null) =>
+  tag === null || item.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
 
 /**
  * The complete order of all notes after the visible ones (a filtered view) were rearranged: hidden notes stay

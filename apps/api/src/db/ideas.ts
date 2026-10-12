@@ -141,6 +141,13 @@ export class IdeaStore {
     return changed
   }
 
+  /** Gives an item exactly these tags. */
+  setLinkTags(ideaId: string, linkId: string, tags: string[]): boolean {
+    const saved = this.reading.setTags(ideaId, linkId, tags)
+    if (saved) this.touch(ideaId)
+    return !!saved
+  }
+
   updateLink(ideaId: string, linkId: string, input: LinkWrite): boolean {
     const changed = this.reading.update(ideaId, linkId, input)
     if (changed) this.touch(ideaId)

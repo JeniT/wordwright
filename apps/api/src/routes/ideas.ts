@@ -8,6 +8,7 @@ import {
   IdeaLinkInputSchema,
   IdeaUpdateSchema,
   markdownToNotes,
+  NoteTagsInputSchema,
   ReadingItemReadSchema,
   ResearchInputSchema,
   ResearchItemIdsSchema,
@@ -98,6 +99,15 @@ export function ideaRoutes(
       .put('/:id/links/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
         const idea = find(c)
         if (!ideas.setLinkRead(idea.id, param(c, 'linkId'), c.req.valid('json').read)) {
+          throw notFound()
+        }
+        return c.json(find(c))
+      })
+      // The item's tags, replaced as a whole (like a note's).
+      .put('/:id/links/:linkId/tags', validateJson(NoteTagsInputSchema), (c) => {
+        const idea = find(c)
+        const tags = c.req.valid('json').tags
+        if (!store.transaction(() => ideas.setLinkTags(idea.id, param(c, 'linkId'), tags))) {
           throw notFound()
         }
         return c.json(find(c))

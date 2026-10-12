@@ -320,6 +320,7 @@ describe('the address checks', () => {
         url: 'https://listed.example.org/a',
         title: '',
         authors: [],
+        tags: [],
         readAt: null,
         origin: 'entered' as const,
       },

@@ -399,6 +399,42 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
 })
 
+test('tags reading-list items, and filters the list by a tag', async ({ page }) => {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await goTo(page, 'Research')
+  await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
+  for (const address of ['example.org/meanders', 'example.net/oxbows']) {
+    await page.getByLabel('Web address', { exact: true }).fill(address)
+    await page.getByRole('button', { name: 'Add link' }).click()
+    await expect(
+      page.getByRole('link', { name: new RegExp(`Fake title for ${address.split('/')[0]}`) }),
+    ).toBeVisible()
+  }
+  // No filter until something is tagged.
+  const filter = page.getByRole('group', { name: 'Show links with a tag' })
+  await expect(filter).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Edit link to Fake title for example.org' }).click()
+  await page.getByLabel('Tags for this link (optional)').fill('background, part 1')
+  await noViolations(page, 'editing a link with tags')
+  await page.getByRole('button', { name: 'Save link' }).click()
+  await expect(page.getByRole('list', { name: 'Tags' }).getByText('part 1')).toBeVisible()
+
+  // Show only that tag's items, then all again; the tag survives a reload.
+  await filter.getByRole('button', { name: 'part 1' }).click()
+  await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toHaveCount(0)
+  await filter.getByRole('button', { name: 'All' }).click()
+  await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('list', { name: 'Tags' }).getByText('background')).toBeVisible()
+  await noViolations(page, 'reading list with tags')
+})
+
 test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {
   await signUpWithProfile(page)
   await page.getByRole('link', { name: 'New idea' }).click()

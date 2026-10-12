@@ -2,6 +2,7 @@
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
+import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
@@ -11,6 +12,7 @@ import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
 import PageNav from './PageNav.vue'
 import SwitchField from './SwitchField.vue'
+import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
 
 /**
@@ -41,14 +43,24 @@ watch(
   },
   { immediate: true },
 )
-watch(showRead, () => {
+// Only the items with one tag, when the writer picks one. A tag nothing carries any more can't be what is shown.
+const usedTags = computed(() => tagsUsedOn(list.links.value ?? []))
+const tagFilter = ref<string | null>(null)
+watch(usedTags, (tags) => {
+  if (tagFilter.value && !tags.some((t) => t.toLowerCase() === tagFilter.value!.toLowerCase())) {
+    tagFilter.value = null
+  }
+})
+watch([showRead, tagFilter], () => {
   justRead.value = new Set()
   clearSelection()
   paging.first()
 })
 const readCount = computed(() => (list.links.value ?? []).filter((l) => l.readAt).length)
 const shown = computed(() =>
-  (list.links.value ?? []).filter((l) => !l.readAt || showRead.value || justRead.value.has(l.id)),
+  (list.links.value ?? []).filter(
+    (l) => (!l.readAt || showRead.value || justRead.value.has(l.id)) && hasTag(l, tagFilter.value),
+  ),
 )
 
 // ---- pages: filter first, then page. A new page or filter clears the selection, so what an action will touch is
@@ -196,6 +208,7 @@ function removeChosen() {
             @select-everything="selectEverything"
           >
             <template #filters>
+              <TagFilter v-model="tagFilter" :tags="usedTags" noun="links" class="!mb-0" />
               <SwitchField
                 v-if="readCount"
                 v-model="showRead"
@@ -265,6 +278,7 @@ function removeChosen() {
               :idea-id="ideaId"
               :link="link"
               :selected="selected.includes(link.id)"
+              :known-tags="usedTags"
               @select="toggleSelected(link.id, $event)"
               @remove="list.remove.mutate(link.id)"
             />

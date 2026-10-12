@@ -532,6 +532,8 @@ export const IdeaLinkSchema = z.object({
    * month after they were put there (`PROFILE_READING_DAYS`). Always false on an idea's list, which isn't swept.
    */
   kept: z.boolean().optional(),
+  /** Flat labels the writer has put on it, in the order given: the same rules as a note's (`NoteTagsInputSchema`). */
+  tags: z.array(z.string()).default([]),
   /** When it was put on this list (not when it was written): the month before an unkept item drops runs from here. */
   addedAt: z.string().optional(),
 })

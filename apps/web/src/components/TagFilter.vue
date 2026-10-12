@@ -1,6 +1,6 @@
 <script setup lang="ts">
-/** Shows only the notes with one tag. Not shown at all until some note has a tag. */
-defineProps<{ tags: readonly string[] }>()
+/** Shows only the notes (or other items) with one tag. Not shown at all until something has a tag. */
+defineProps<{ tags: readonly string[]; noun?: string }>()
 const selected = defineModel<string | null>({ default: null })
 </script>
 
@@ -8,7 +8,7 @@ const selected = defineModel<string | null>({ default: null })
   <div
     v-if="tags.length"
     role="group"
-    aria-label="Show notes with a tag"
+    :aria-label="`Show ${noun ?? 'notes'} with a tag`"
     class="mb-3 flex flex-wrap gap-1"
   >
     <button

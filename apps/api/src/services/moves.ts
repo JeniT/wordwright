@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { linkKey, MAX_IDEA_LINKS, MAX_IDEA_NOTES, type MoveResult } from '@lfwa/core'
+import { linkKey, MAX_IDEA_LINKS, MAX_IDEA_NOTES, MAX_NOTE_TAGS, type MoveResult } from '@lfwa/core'
 import type { Owner } from '../db/owner'
 import type { Store } from '../db/store'
 import { fail } from '../errors'
@@ -9,9 +9,9 @@ import { fail } from '../errors'
  * one transaction: it happens in full or not at all, refuses anything outside the profile, and is written to the
  * log of moves. What "move" keeps is written out in docs/decisions.md; in short:
  *
- * - A **reading item** moves with its read date, authors, address, title, why and origin, and the notes taken
+ * - A **reading item** moves with its read date, authors, tags, address, title, why and origin, and the notes taken
  *   from it go with it. If the destination already has an item with the same address, the two become one: the
- *   one already there stays, and the moved item's notes now point at it.
+ *   one already there stays, takes the moved item's tags too, and the moved item's notes now point at it.
  * - A **note** moves with its text, tags, author, origin and quotation mark, to the end of the destination's
  *   notes. The reading item it was taken from is *copied* to the destination (or the copy already there is used),
  *   so the note keeps its source without taking it away from other notes that came from it. It is no longer
@@ -99,6 +99,13 @@ export class MoveService {
           // It joins the item already there, which counts as read if this one was.
           if (p.link.readAt && !reading.get(toOwner, p.target)?.readAt) {
             reading.setRead(toOwner, p.target, true)
+          }
+          // Its tags join the ones already there (each once, ignoring case; the most an item can hold).
+          const have = reading.get(toOwner, p.target)?.tags ?? []
+          const seen = new Set(have.map((t) => t.toLowerCase()))
+          const joined = [...have, ...p.link.tags.filter((t) => !seen.has(t.toLowerCase()))]
+          if (joined.length > have.length) {
+            reading.setTags(toOwner, p.target, joined.slice(0, MAX_NOTE_TAGS))
           }
           reading.remove(fromOwner, p.id)
           merged++

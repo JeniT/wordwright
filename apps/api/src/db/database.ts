@@ -564,6 +564,15 @@ export const MIGRATIONS: Migration[] = [
   `
   ALTER TABLE profiles ADD COLUMN description_edited INTEGER NOT NULL DEFAULT 0;
   `,
+  // #140: flat tags on reading-list items, the same as on notes (kept in the order given; the same word on several
+  // items groups them). They go with the item.
+  `
+  CREATE TABLE idea_link_tags (
+    link_id TEXT NOT NULL REFERENCES idea_links(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (link_id, tag COLLATE NOCASE)
+  );
+  `,
 ]
 
 /**
