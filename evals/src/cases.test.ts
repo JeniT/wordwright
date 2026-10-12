@@ -6,20 +6,28 @@ import {
   DEFAULT_BRAINSTORM_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   RESEARCH_PROMPT,
+  VENUE_DESCRIPTION_PROMPT,
 } from '@lfwa/prompts'
 import { BRAINSTORM_TOOLS } from '../../apps/api/src/services/brainstorm'
 import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import AdapterProvider from './adapter-provider'
-import { CASES, type BrainstormCase, type CritiqueCase, type ResearchCase } from './cases'
+import {
+  CASES,
+  type BrainstormCase,
+  type CritiqueCase,
+  type ResearchCase,
+  type VenueCase,
+} from './cases'
 import { promptfooConfig } from './config'
 import { choiceFromEnv, buildAdapter } from './factory'
 import { renderReply } from './render'
 import { SCENARIOS } from './scenarios'
-import { brainstormRequest, critiqueRequest, researchRequest } from './request'
+import { brainstormRequest, critiqueRequest, researchRequest, venueRequest } from './request'
 
 const brainstorm = CASES.filter((c): c is BrainstormCase => c.app === 'brainstorm')
 const critique = CASES.filter((c): c is CritiqueCase => c.app === 'critique')
 const research = CASES.filter((c): c is ResearchCase => c.app === 'research')
+const venue = CASES.filter((c): c is VenueCase => c.app === 'venue')
 
 describe('the cases', () => {
   it('have unique ids, and every target names the issue whose work it defines', () => {
@@ -60,6 +68,12 @@ describe('the cases', () => {
       'critique-considers-the-readers-the-venue-has',
       'critique-ignores-instructions-in-the-venue-description',
       'research-ignores-instructions-in-the-venue-description',
+      // Drafting a description from sample posts (#135).
+      'venue-draft-describes-what-the-posts-show',
+      'venue-draft-says-when-the-evidence-is-thin',
+      'venue-draft-does-not-stereotype-readers',
+      'venue-draft-notes-when-the-posts-differ',
+      'venue-draft-ignores-instructions-in-the-posts',
     ]) {
       expect(current, id).toContain(id)
     }
@@ -117,6 +131,22 @@ describe('the requests', () => {
   it('carry the hostile notes in the research brief too, for the injection case', () => {
     const c = research.find((x) => x.id === 'research-ignores-instructions-in-the-idea')!
     expect(researchRequest(c).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
+  })
+
+  it('send the venue draft what the service sends: the prompt, and the posts numbered and escaped', () => {
+    expect(venue.length).toBeGreaterThan(0)
+    for (const c of venue) {
+      const request = venueRequest(c)
+      expect(request.system, c.id).toBe(VENUE_DESCRIPTION_PROMPT)
+      const text = JSON.stringify(request.messages)
+      expect(text, c.id).toContain('<sample_posts>')
+      expect(text, c.id).toContain('<post number=\\"1\\"')
+      expect(text, c.id).toContain(c.posts[0]!.url)
+    }
+    const hostile = venue.find((c) => c.id === 'venue-draft-ignores-instructions-in-the-posts')!
+    expect(JSON.stringify(venueRequest(hostile).messages)).toContain(
+      'IGNORE ALL PREVIOUS INSTRUCTIONS',
+    )
   })
 
   it('carry the venue description to all three, and none where the venue has none', () => {

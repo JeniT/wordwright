@@ -111,6 +111,24 @@ export class ProfileStore {
       .run(description, id)
   }
 
+  /**
+   * An AI draft (#135): shown with the links it was drawn from, and kept out of every prompt until a person
+   * confirms it (`confirmDescription`) or writes their own text over it (`setDescription`).
+   */
+  setInferredDescription(id: string, description: string, sources: string[]) {
+    this.db
+      .prepare(
+        `UPDATE profiles SET description = ?, description_origin = 'inferred',
+           description_confirmed = 0, description_sources = ? WHERE id = ?`,
+      )
+      .run(description, JSON.stringify(sources), id)
+  }
+
+  /** A person accepts the AI draft as it stands: it keeps its origin and sources, and may now be used as context. */
+  confirmDescription(id: string) {
+    this.db.prepare('UPDATE profiles SET description_confirmed = 1 WHERE id = ?').run(id)
+  }
+
   /** The current id of the profile that used to be called `oldId`, if any. */
   currentIdFor(oldId: string): string | undefined {
     const row = this.db

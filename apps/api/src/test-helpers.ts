@@ -100,12 +100,15 @@ export function setup(options: TestOptions = {}) {
   /** Every conversation turn (`chat()`), with the credentials it was made with. */
   const chats: { config: LLMConfig; request: LLMChatRequest }[] = []
   let chatResponder: FakeChatResponder = () => ({ text: 'A fake reply.' })
+  /** Decides what a one-shot `complete()` answers; by default a critique, since that is what asks. */
+  let completionResponder: ((request: LLMRequest) => string) | undefined
   const llmFactory = (config: LLMConfig) =>
     new FakeLLMProvider(
       (request) => {
         llmCalls.push({ config, request })
         if (config.apiKey.startsWith('bad-')) throw new LLMAuthError() // rejected by the provider
         if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
+        if (completionResponder) return completionResponder(request)
         return JSON.stringify({
           summary: `Critique from ${config.model}.`,
           ready: false,
@@ -166,6 +169,10 @@ export function setup(options: TestOptions = {}) {
     /** Decides what the fake AI says next in a brainstorming conversation. */
     setChat: (responder: FakeChatResponder) => {
       chatResponder = responder
+    },
+    /** Decides what the fake AI answers to a one-shot request (`complete()`), until reset with `undefined`. */
+    setCompletion: (responder?: (request: LLMRequest) => string) => {
+      completionResponder = responder
     },
     /** Every Research search (`find()`), with the credentials it was made with. */
     searches,

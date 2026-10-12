@@ -194,6 +194,8 @@ export function createApp(deps: AppDeps) {
         ),
         // Each look fetches a feed and up to five pages for the person: 20 an hour is plenty for real use.
         venueLimiter: limiter(20, HOUR),
+        // An AI draft of a venue description is meant to be edited, not re-rolled: 5 an hour for each profile.
+        venueDraftLimiter: limiter(5, HOUR),
         ideaLinks,
         brainstorm,
         research,

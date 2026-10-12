@@ -20,6 +20,7 @@ import { sourceRoutes } from './sources'
 import { venueRoutes } from './venue'
 import { moveRoutes, profileReadingRoutes } from './reading'
 import { noteRoutes } from './notes'
+import { VenueDescriptionService } from '../services/venue-description'
 import type { VenueSampleService } from '../services/venue-samples'
 import { NoteEditService } from '../services/note-edits'
 import { MoveService } from '../services/moves'
@@ -48,6 +49,8 @@ export interface ProfileRouteDeps {
   venueSamples: VenueSampleService
   /** Per person: each look at a venue's posts makes the server fetch pages. */
   venueLimiter: RateLimiter
+  /** Per profile: each AI draft of a venue description spends the person's own money. */
+  venueDraftLimiter: RateLimiter
   ideaLinks: IdeaLinkService
   brainstorm: BrainstormService
   research: ResearchService
@@ -63,6 +66,7 @@ export function profileRoutes({
   feedItems,
   venueSamples,
   venueLimiter,
+  venueDraftLimiter,
   ideaLinks,
   brainstorm,
   research,
@@ -72,6 +76,12 @@ export function profileRoutes({
   const noteEdits = new NoteEditService(store)
   const moves = new MoveService(store)
   const feedPosts = new FeedPostService(store)
+  const venueDescriptions = new VenueDescriptionService({
+    store,
+    samples: venueSamples,
+    resolveLlm: (userId) => llmKeys.resolve(userId),
+    limiter: venueDraftLimiter,
+  })
 
   return (
     new Hono<AppEnv>()
@@ -108,6 +118,11 @@ export function profileRoutes({
         store.profiles.setDescription(id, c.req.valid('json').description)
         return c.json(store.profiles.get(id, c.get('user').id))
       })
+
+      // The writer accepts an AI draft of the description as it stands, so it may be used as context (#27).
+      .post('/:profileId/description/confirm', member, (c) =>
+        c.json(venueDescriptions.confirm(param(c, 'profileId'), c.get('user').id)),
+      )
 
       .delete('/:profileId', owner, (c) => {
         store.profiles.delete(param(c, 'profileId'))
@@ -188,7 +203,10 @@ export function profileRoutes({
         sourceRoutes(store, feeds, feedLimiter, member, feedItems, feedPosts),
       )
       // Choosing and reading a venue's sample posts, to describe it from (#27).
-      .route('/:profileId/venue', venueRoutes(store, venueSamples, venueLimiter, member))
+      .route(
+        '/:profileId/venue',
+        venueRoutes(store, venueSamples, venueDescriptions, venueLimiter, member),
+      )
       // The profile's own reading list and notes, gathered before there is an idea.
       .route(
         '/:profileId/reading',

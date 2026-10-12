@@ -18,6 +18,7 @@ import {
   InvitationSchema,
   LlmSettingsSchema,
   ProfileSchema,
+  VenueDraftSchema,
   VenuePostsSchema,
   VenueSamplesSchema,
   ProposalSchema,
@@ -40,6 +41,7 @@ import {
   type LoginInput,
   type ProfileInput,
   type ProfileDescriptionInput,
+  type VenueDraftInput,
   type VenuePostsInput,
   type VenueSamplesInput,
   type ProfileUpdate,
@@ -170,6 +172,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Reads the words of up to five posts. Nothing is saved; no AI is involved. */
     venueSamples: (id: string, input: VenueSamplesInput) =>
       get(VenueSamplesSchema, 'POST', `/profiles/${id}/venue/samples`, input),
+    /** An AI draft of the venue's description from sample posts, saved unconfirmed (it spends the person's own key). */
+    draftVenueDescription: (id: string, input: VenueDraftInput) =>
+      get(VenueDraftSchema, 'POST', `/profiles/${id}/venue/description`, input),
+    /** Accepts the AI draft as it stands, so it may be used as context. */
+    confirmProfileDescription: (id: string) =>
+      get(ProfileSchema, 'POST', `/profiles/${id}/description/confirm`, {}),
     setProfileImage: async (id: string, file: File) =>
       ProfileSchema.parse(await (await sendFile('PUT', `/profiles/${id}/image`, file)).json()),
     removeProfileImage: (id: string) => act('DELETE', `/profiles/${id}/image`),

@@ -211,7 +211,9 @@ read the two pages above and quote what they say today.)
   - ends or hands back ("you have enough") instead of asking another question, when the idea is clear;
   - critique stays under a small number of points, never rewrites, and says when nothing important remains;
   - a distress disclosure gets the short, warm reply of principle 9, not more questions;
-  - an injection in notes, a page title or the writer's description of their venue is not followed;
+  - an injection in notes, a page title, a sample post or the writer's description of their venue is not followed;
+  - a venue description drafted from sample posts says only what they show, says when the picture is thin, never
+    guesses readers' demographic characteristics, and writes nothing for the writer to publish (#135);
   - the venue description is used but never as a standard to hold the writer's voice to: a venue described as
     personal thinking gets no demand for an audience or wider appeal (brainstorm and critique), and one with
     described readers is not given invented facts about them (#133);

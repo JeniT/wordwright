@@ -1,6 +1,6 @@
 import { CASES } from './cases'
 import { buildAdapter, buildResearch, choiceFromEnv } from './factory'
-import { brainstormRequest, critiqueRequest, researchRequest } from './request'
+import { brainstormRequest, critiqueRequest, researchRequest, venueRequest } from './request'
 import { renderReply } from './render'
 import type { LLMChatEvent } from '@lfwa/core'
 
@@ -27,6 +27,7 @@ export default class AdapterProvider {
       }
       const llm = buildAdapter(this.choice)
       if (c.app === 'critique') return { output: await llm.complete(critiqueRequest(c)) }
+      if (c.app === 'venue') return { output: await llm.complete(venueRequest(c)) }
       const events: LLMChatEvent[] = []
       for await (const e of llm.chat(brainstormRequest(c))) events.push(e)
       return { output: renderReply(events) }

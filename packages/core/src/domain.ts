@@ -384,6 +384,22 @@ export type VenueSample = z.infer<typeof VenueSampleSchema>
 export const VenueSamplesSchema = z.object({ samples: z.array(VenueSampleSchema) })
 export type VenueSamples = z.infer<typeof VenueSamplesSchema>
 
+/** Drafts a venue description from sample posts. The server reads the addresses itself, so the evidence is what it read. */
+export const VenueDraftInputSchema = z.object({
+  urls: VenueSamplesInputSchema.shape.urls,
+  /** Without it, a venue that already has a description is left alone (the draft would overwrite it). */
+  replace: z.boolean().default(false),
+})
+export type VenueDraftInput = z.input<typeof VenueDraftInputSchema>
+
+export const VenueDraftSchema = z.object({
+  /** The profile with the new description (`descriptionOrigin: 'inferred'`, not yet confirmed). */
+  profile: ProfileSchema,
+  /** Addresses that could not be read, so were not used, and what to do about each. */
+  skipped: z.array(z.object({ url: z.string(), message: z.string() })),
+})
+export type VenueDraft = z.infer<typeof VenueDraftSchema>
+
 // ---- Invitations (how people join a shared profile) ---------------------
 
 export const InviteInputSchema = z.object({ email: EmailSchema })
