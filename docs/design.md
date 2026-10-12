@@ -184,7 +184,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 | Section action | `btn-outline` (accent)                           | The thing the list is for: Add link                           |
 | Row's verb     | `btn-neutral btn-sm`                             | Take notes                                                    |
 | Row utilities  | `btn-quiet btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
-| Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Move to…, Remove N                                            |
+| Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Move to…, Remove N (opens a dialog)                           |
 
 Accent means "act here", so it appears at most once per visible group, never once per row. Repeated rows use neutral
 and quiet buttons. A chip is a **fact**, not a control: use `chip-quiet` (flat) so that only what you can press has a
@@ -223,6 +223,8 @@ One rule decides which control confirms, so the same kind of act always feels th
   draft; also clearing a whole conversation) asks in a **modal dialog** (`ConfirmDialog`). The dialog names what will
   go with it. Focus starts on Cancel. A whole-thing delete lives in a `DangerZone` at the bottom of its settings page,
   and its button opens the dialog. Never use the browser's `confirm()`.
+- **Deleting or removing several at once** (the bulk Delete or Remove N in a list toolbar) also asks in a dialog that
+  says how many, and is a text button, because more than one thing is at stake.
 - **Removing one thing with no consequences beyond it** (a note, a reading-list item, a feed, an invitation, a picture,
   an API key, a research run) takes a **press-and-hold** (`HoldButton`), with no dialog.
 - **How they look:** a delete with a dialog is a **text button that says "Delete …"**; a hold-to-confirm is a **trash

@@ -5,7 +5,7 @@ import { useMove, useMoveDestination } from '../lib/move'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
-import HoldButton from './HoldButton.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
@@ -117,9 +117,13 @@ const canMove = computed(
     !dest.makeIdea.isPending,
 )
 
-// ---- removing the selected items: held, like deleting anything that can't be got back
+// ---- removing the selected items, once confirmed in a dialog (it is more than one thing)
+const confirmingRemoveChosen = ref(false)
 function removeChosen() {
-  list.removeMany.mutate(chosen.value, { onSuccess: clearSelection })
+  list.removeMany.mutate(chosen.value, {
+    onSuccess: clearSelection,
+    onSettled: () => (confirmingRemoveChosen.value = false),
+  })
 }
 </script>
 
@@ -212,18 +216,15 @@ function removeChosen() {
               >
                 Move to…
               </button>
-              <HoldButton
+              <button
+                type="button"
                 class="btn btn-sm btn-danger"
                 :disabled="!chosen.length || list.removeMany.isPending.value"
-                :title="
-                  chosen.length
-                    ? 'Press and hold to remove the selected links'
-                    : 'Select links to remove them'
-                "
-                @confirm="removeChosen"
+                :title="chosen.length ? undefined : 'Select links to remove them'"
+                @click="confirmingRemoveChosen = true"
               >
                 Remove{{ chosen.length ? ` ${chosen.length}` : '' }}
-              </HoldButton>
+              </button>
             </template>
           </ListToolbar>
           <form
@@ -292,5 +293,16 @@ function removeChosen() {
 
       <AddLinkForm :profile-id="profileId" :idea-id="ideaId" />
     </template>
+    <ConfirmDialog
+      :open="confirmingRemoveChosen"
+      :title="`Remove ${chosen.length} ${chosen.length === 1 ? 'link' : 'links'}?`"
+      confirm-label="Yes, remove them"
+      busy-label="Removing…"
+      :busy="list.removeMany.isPending.value"
+      @confirm="removeChosen"
+      @cancel="confirmingRemoveChosen = false"
+    >
+      The selected links will be removed from the reading list. This can't be undone.
+    </ConfirmDialog>
   </section>
 </template>

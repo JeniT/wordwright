@@ -13,6 +13,7 @@ import {
   tagsUsedOn,
 } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
+import ConfirmDialog from './ConfirmDialog.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ListToolbar from './ListToolbar.vue'
@@ -255,7 +256,8 @@ const remove = useMutation({
   onError: () => notes.refetch(),
 })
 
-/** Deletes the selected notes (a held press, like deleting one). Each is tried even if an earlier one failed. */
+/** Deletes the selected notes, once confirmed in a dialog. Each is tried even if an earlier one failed. */
+const confirmingDeleteChosen = ref(false)
 const removeChosen = useMutation({
   mutationFn: async (ids: string[]) => {
     const results = await Promise.allSettled(
@@ -266,6 +268,7 @@ const removeChosen = useMutation({
   },
   onSuccess: clearSelection,
   onSettled: async () => {
+    confirmingDeleteChosen.value = false
     await notes.refetch() // shows what is left, whatever went wrong
     await refreshAround()
   },
@@ -386,18 +389,15 @@ const label = (note: IdeaNote) => {
                 >
                   Move to…
                 </button>
-                <HoldButton
+                <button
+                  type="button"
                   class="btn btn-sm btn-danger"
                   :disabled="!chosen.length || removeChosen.isPending.value"
-                  :title="
-                    chosen.length
-                      ? 'Press and hold to delete the selected notes'
-                      : 'Select notes to delete them'
-                  "
-                  @confirm="removeChosen.mutate(chosenIds)"
+                  :title="chosen.length ? undefined : 'Select notes to delete them'"
+                  @click="confirmingDeleteChosen = true"
                 >
                   Delete{{ chosen.length ? ` ${chosen.length}` : '' }}
-                </HoldButton>
+                </button>
               </template>
             </ListToolbar>
             <form
@@ -594,5 +594,17 @@ const label = (note: IdeaNote) => {
         </button>
       </form>
     </template>
+    <ConfirmDialog
+      :open="confirmingDeleteChosen"
+      :title="`Delete ${chosen.length} ${chosen.length === 1 ? 'note' : 'notes'}?`"
+      confirm-label="Yes, delete them"
+      busy-label="Deleting…"
+      :busy="removeChosen.isPending.value"
+      @confirm="removeChosen.mutate(chosenIds)"
+      @cancel="confirmingDeleteChosen = false"
+    >
+      The selected notes will be deleted from the {{ ideaId ? 'idea' : 'profile' }}. This can't be
+      undone.
+    </ConfirmDialog>
   </section>
 </template>

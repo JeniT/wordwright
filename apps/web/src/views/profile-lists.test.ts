@@ -599,17 +599,21 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     expect(screen.getByText('0 selected')).toBeInTheDocument() // what an action touches is always what is on screen
   })
 
-  it('removes the selected links only after a hold, and nothing until something is selected', async () => {
+  it('removes the selected links only after the dialog is confirmed, and nothing until something is selected', async () => {
     const state = fakeProfile({ links: seven().slice(0, 3) })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 1' }))
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 3' }))
-    const remove = screen.getByRole('button', { name: 'Remove 2' })
-    await fireEvent.click(remove) // a screen reader's first activation only arms it
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
+    const dialog = screen.getByRole('dialog', { name: 'Remove 2 links?' })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(state.links).toHaveLength(3)
-    await fireEvent.click(remove)
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, remove them' }),
+    )
     await waitFor(() => expect(state.links.map((l) => l.id)).toEqual(['l2']))
     await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
     expect(screen.getByText('0 selected')).toBeInTheDocument()
@@ -625,9 +629,10 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     await fireEvent.click(selectAll())
-    const remove = screen.getByRole('button', { name: 'Remove 2' })
-    await fireEvent.click(remove)
-    await fireEvent.click(remove)
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, remove them' }),
+    )
     expect(await screen.findByText(/Couldn't remove all of those links/)).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
     expect(screen.getByRole('checkbox', { name: 'Select Link 2' })).toBeChecked()
@@ -945,7 +950,7 @@ describe('moving notes', () => {
 })
 
 describe('deleting selected notes', () => {
-  it('deletes the selected notes only after a hold, and nothing until something is selected', async () => {
+  it('deletes the selected notes only after the dialog is confirmed, and nothing until something is selected', async () => {
     const state = fakeProfile({
       notes: [note('n1', 'One'), note('n2', 'Two'), note('n3', 'Three')],
     })
@@ -954,10 +959,14 @@ describe('deleting selected notes', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
     await fireEvent.click(screen.getByRole('checkbox', { name: /^Select note “One/ }))
     await fireEvent.click(screen.getByRole('checkbox', { name: /^Select note “Three/ }))
-    const del = screen.getByRole('button', { name: 'Delete 2' })
-    await fireEvent.click(del) // a screen reader's first activation only arms it
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete 2 notes?' })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(state.notes).toHaveLength(3)
-    await fireEvent.click(del)
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }))
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, delete them' }),
+    )
     await waitFor(() => expect(state.notes.map((n) => n.id)).toEqual(['n2']))
     await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())
     expect(screen.getByText('0 selected')).toBeInTheDocument()
