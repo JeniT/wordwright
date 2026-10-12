@@ -8,6 +8,7 @@ import UsernameSection from '../components/UsernameSection.vue'
 import { api } from '../lib/api'
 import { displayHost, useProfiles } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
+import QueryState from '../components/QueryState.vue'
 
 const session = useSessionStore()
 const profiles = useProfiles()
@@ -37,46 +38,41 @@ const justConnected = ref(false)
       <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary">New profile</RouterLink>
     </div>
 
-    <p v-if="profiles.isPending.value">Loading…</p>
-    <div v-else-if="profiles.isError.value" role="alert" class="callout callout-danger">
-      <p class="text-danger">We couldn't load your profiles.</p>
-      <button type="button" class="mt-2 text-sm underline" @click="profiles.refetch()">
-        Try again
-      </button>
-    </div>
-    <div
-      v-else-if="!profiles.data.value?.length"
-      class="rounded-ctl border border-dashed border-line-strong p-8 text-center"
-    >
-      <p class="font-display text-lg">Next, create your first profile</p>
-      <p class="mx-auto mt-2 max-w-md text-ink-soft">
-        A profile is a place you publish, like a Substack or a blog. It keeps its own ideas, readers
-        and drafts together. You can give it a name, a website and a picture, and share it with
-        others later.
-      </p>
-      <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary mt-4 inline-block">
-        Create your first profile
-      </RouterLink>
-    </div>
-    <ul v-else class="grid gap-4 sm:grid-cols-2">
-      <li v-for="p in profiles.data.value" :key="p.id">
-        <RouterLink
-          :to="{ name: 'profile', params: { profileId: p.id } }"
-          class="flex h-full items-center gap-4 rounded-panel border border-line bg-surface p-4 hover:border-accent"
-        >
-          <ProfileImage :id="p.id" :name="p.name" :image-url="p.imageUrl" />
-          <span class="min-w-0">
-            <span class="block truncate font-display text-lg font-semibold">{{ p.name }}</span>
-            <span v-if="p.siteUrl" class="block truncate text-sm text-ink-soft">
-              {{ displayHost(p.siteUrl) }}
-            </span>
-            <span v-if="p.members.length > 1" class="block text-sm text-ink-soft">
-              Shared with {{ p.members.length - 1 }}
-              {{ p.members.length === 2 ? 'person' : 'people' }}
-            </span>
-          </span>
+    <QueryState :query="profiles" what="your profiles">
+      <div
+        v-if="!profiles.data.value?.length"
+        class="rounded-ctl border border-dashed border-line-strong p-8 text-center"
+      >
+        <p class="font-display text-lg">Next, create your first profile</p>
+        <p class="mx-auto mt-2 max-w-md text-ink-soft">
+          A profile is a place you publish, like a Substack or a blog. It keeps its own ideas,
+          readers and drafts together. You can give it a name, a website and a picture, and share it
+          with others later.
+        </p>
+        <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary mt-4 inline-block">
+          Create your first profile
         </RouterLink>
-      </li>
-    </ul>
+      </div>
+      <ul v-else class="grid gap-4 sm:grid-cols-2">
+        <li v-for="p in profiles.data.value" :key="p.id">
+          <RouterLink
+            :to="{ name: 'profile', params: { profileId: p.id } }"
+            class="flex h-full items-center gap-4 rounded-panel border border-line bg-surface p-4 hover:border-accent"
+          >
+            <ProfileImage :id="p.id" :name="p.name" :image-url="p.imageUrl" />
+            <span class="min-w-0">
+              <span class="block truncate font-display text-lg font-semibold">{{ p.name }}</span>
+              <span v-if="p.siteUrl" class="block truncate text-sm text-ink-soft">
+                {{ displayHost(p.siteUrl) }}
+              </span>
+              <span v-if="p.members.length > 1" class="block text-sm text-ink-soft">
+                Shared with {{ p.members.length - 1 }}
+                {{ p.members.length === 2 ? 'person' : 'people' }}
+              </span>
+            </span>
+          </RouterLink>
+        </li>
+      </ul>
+    </QueryState>
   </section>
 </template>

@@ -13,6 +13,7 @@ import NoteText from './NoteText.vue'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import NoteTags from './NoteTags.vue'
 import TagFilter from './TagFilter.vue'
+import QueryState from './QueryState.vue'
 
 const props = defineProps<{
   profileId: string
@@ -75,12 +76,7 @@ const label = (note: IdeaNote) => {
       grip to where you want it. The draft is saved as you do.
     </p>
 
-    <p v-if="notes.isPending.value">Loading notes…</p>
-    <div v-else-if="notes.isError.value" role="alert" class="mb-3">
-      <p class="text-danger">We couldn't load the notes.</p>
-      <button type="button" class="btn btn-outline mt-2" @click="notes.refetch()">Try again</button>
-    </div>
-    <template v-else>
+    <QueryState :query="notes" what="the notes" loading="Loading notes…">
       <p v-if="!notes.data.value?.length" class="text-ink-soft">
         No notes yet.
         <RouterLink
@@ -176,6 +172,6 @@ const label = (note: IdeaNote) => {
           Couldn't put that note back. Please try again.
         </p>
       </div>
-    </template>
+    </QueryState>
   </div>
 </template>

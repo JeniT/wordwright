@@ -11,6 +11,7 @@ import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, useIdeaNotes } from '../lib/queries'
 import { nameList, noteOriginPhrase } from '../lib/note-label'
 import { readingBackRoute, readingRoute, useReadingList } from '../lib/reading'
+import QueryState from '../components/QueryState.vue'
 
 /** Reading one item of an idea's reading list, or (no `id`) of the profile's own, and taking notes from it. */
 const props = defineProps<{ profileId: string; id?: string; linkId: string }>()
@@ -304,14 +305,7 @@ const add = useMutation({
         later.
       </p>
 
-      <p v-if="notes.isPending.value">Loading notes…</p>
-      <div v-else-if="notes.isError.value" role="alert" class="mb-4">
-        <p class="text-danger">We couldn't load the notes.</p>
-        <button type="button" class="btn btn-outline mt-2" @click="notes.refetch()">
-          Try again
-        </button>
-      </div>
-      <template v-else>
+      <QueryState :query="notes" what="the notes" loading="Loading notes…">
         <!-- Above the notes, so it stays where it is as they pile up beneath it. -->
         <form ref="addBox" class="mb-6" @submit.prevent="add.mutate()">
           <TextAreaField
@@ -365,7 +359,7 @@ const add = useMutation({
             </p>
           </li>
         </ul>
-      </template>
+      </QueryState>
     </section>
   </article>
 </template>

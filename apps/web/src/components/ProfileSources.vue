@@ -10,6 +10,7 @@ import Icon from './Icon.vue'
 import ProfileImage from './ProfileImage.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
+import QueryState from './QueryState.vue'
 
 const props = defineProps<{ profileId: string }>()
 
@@ -124,12 +125,7 @@ function shortName(address: string) {
       appear when you point at the list, to change the order.
     </p>
 
-    <p v-if="sources.isPending.value">Loading sources…</p>
-    <div v-else-if="sources.isError.value" role="alert" class="text-danger">
-      <p>We couldn't load the sources. Check your connection and try again.</p>
-      <button type="button" class="underline" @click="sources.refetch()">Try again</button>
-    </div>
-    <template v-else>
+    <QueryState :query="sources" what="the sources" loading="Loading sources…">
       <p v-if="!sources.data.value?.length" class="text-sm text-ink-soft">
         No sources yet. Paste the address of a blog, newsletter or news feed below to start your
         list.
@@ -262,7 +258,7 @@ function shortName(address: string) {
       <p v-if="move.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(move.error.value) }}
       </p>
-    </template>
+    </QueryState>
     <!-- Not role="status": the settings page already has one for "Saved", and pages should have one each. -->
     <p aria-live="polite" aria-atomic="true" class="sr-only">{{ notice }}</p>
   </section>

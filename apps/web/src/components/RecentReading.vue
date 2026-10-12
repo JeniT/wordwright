@@ -5,6 +5,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { readingRoute, useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
 import LandingSection from './LandingSection.vue'
+import QueryState from './QueryState.vue'
 
 /**
  * A summary of a reading list for a landing page: the first few items still to read, a box to add one, and a link
@@ -39,32 +40,29 @@ const host = (url: string) => {
         See the reading list<span v-if="unread.length" class="meta"> ({{ unread.length }})</span>
       </RouterLink>
     </template>
-    <p v-if="list.isPending.value" class="text-ink-soft">Loading…</p>
-    <p v-else-if="list.isError.value" role="alert" class="text-danger">
-      Couldn't load the reading list.
-      <button type="button" class="underline" @click="list.refetch()">Try again</button>
-    </p>
-    <p v-else-if="!top.length" class="mb-4 text-ink-soft">
-      {{
-        list.links.value?.length
-          ? 'You have read everything on the list.'
-          : 'Nothing on the reading list yet.'
-      }}
-    </p>
-    <ul v-else class="panel mb-4 divide-y divide-line" aria-label="To read">
-      <li v-for="link in top" :key="link.id">
-        <RouterLink
-          :to="readingRoute({ profileId, ideaId }, link.id)"
-          class="block px-4 py-3 no-underline hover:bg-sunken"
-        >
-          <span class="block font-medium break-words">{{ link.title || link.url }}</span>
-          <span class="meta block break-words">
-            {{ host(link.url)
-            }}<template v-if="link.authors.length"> · {{ link.authors.join(', ') }}</template>
-          </span>
-        </RouterLink>
-      </li>
-    </ul>
+    <QueryState :query="list" what="the reading list">
+      <p v-if="!top.length" class="mb-4 text-ink-soft">
+        {{
+          list.links.value?.length
+            ? 'You have read everything on the list.'
+            : 'Nothing on the reading list yet.'
+        }}
+      </p>
+      <ul v-else class="panel mb-4 divide-y divide-line" aria-label="To read">
+        <li v-for="link in top" :key="link.id">
+          <RouterLink
+            :to="readingRoute({ profileId, ideaId }, link.id)"
+            class="block px-4 py-3 no-underline hover:bg-sunken"
+          >
+            <span class="block font-medium break-words">{{ link.title || link.url }}</span>
+            <span class="meta block break-words">
+              {{ host(link.url)
+              }}<template v-if="link.authors.length"> · {{ link.authors.join(', ') }}</template>
+            </span>
+          </RouterLink>
+        </li>
+      </ul>
+    </QueryState>
     <AddLinkForm :profile-id="profileId" :idea-id="ideaId" />
   </LandingSection>
 </template>

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
 import ProfileSettingsPanel from '../components/ProfileSettingsPanel.vue'
-import { useProfile } from '../lib/useProfiles'
+import ProfileGate from '../components/ProfileGate.vue'
 
 const props = defineProps<{ profileId: string }>()
-const { profiles, profile } = useProfile(() => props.profileId)
 
 // The panel starts afresh for each profile, but not when saving a new name moves this profile to a
 // new address: that would throw away the "Saved" notice.
@@ -20,16 +18,7 @@ watch(
 </script>
 
 <template>
-  <p v-if="profiles.isPending.value">Loading…</p>
-  <p v-else-if="profiles.isError.value" role="alert" class="text-danger">
-    We couldn't load this profile. Check your connection and try again.
-  </p>
-  <div v-else-if="!profile" role="alert" class="panel p-6">
-    <h1 class="font-display text-lg">We couldn't find that profile</h1>
-    <p class="mt-1 text-ink-soft">
-      It may have been deleted, or it may belong to someone who hasn't shared it with you.
-    </p>
-    <RouterLink to="/" class="mt-3 inline-block underline">Back to your profiles</RouterLink>
-  </div>
-  <ProfileSettingsPanel v-else :key="panelKey" :profile="profile" @renamed="renamedTo = $event" />
+  <ProfileGate v-slot="{ profile }" :profile-id="profileId">
+    <ProfileSettingsPanel :key="panelKey" :profile="profile" @renamed="renamedTo = $event" />
+  </ProfileGate>
 </template>

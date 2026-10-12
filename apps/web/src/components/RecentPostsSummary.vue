@@ -4,10 +4,11 @@ import { RECENT_DAYS_DEFAULT } from '@lfwa/core'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
-import { api, errorMessage } from '../lib/api'
+import { api } from '../lib/api'
 import { queryKeys, useSources } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import ProfileImage from './ProfileImage.vue'
+import QueryState from './QueryState.vue'
 
 /**
  * A summary of the profile's feeds for a landing page: the newest few posts still waiting for a decision, with a
@@ -52,50 +53,49 @@ const when = (iso: string | null) =>
     <template #actions>
       <RouterLink :to="to" class="link text-sm">See more and set up feeds</RouterLink>
     </template>
-    <p v-if="sources.isPending.value" class="text-ink-soft">Loading…</p>
-    <p v-else-if="sources.isError.value" role="alert" class="text-danger">
-      We couldn’t load your feeds. Try reloading the page.
-    </p>
-    <p v-else-if="!sources.data.value?.length" class="text-ink-soft">
-      No feeds yet.
-      <RouterLink :to="to" class="link">Add a blog, newsletter or journal</RouterLink> and its
-      newest posts will show up here.
-    </p>
-    <template v-else>
-      <p v-if="posts.isPending.value" class="text-ink-soft">Reading your feeds…</p>
-      <p v-else-if="posts.isError.value" role="alert" class="text-danger">
-        {{ errorMessage(posts.error.value) }}
-        <button type="button" class="underline" @click="posts.refetch()">Try again</button>
+    <QueryState :query="sources" what="your feeds">
+      <p v-if="!sources.data.value?.length" class="text-ink-soft">
+        No feeds yet.
+        <RouterLink :to="to" class="link">Add a blog, newsletter or journal</RouterLink> and its
+        newest posts will show up here.
       </p>
-      <p v-else-if="!top.length" class="text-ink-soft">
-        Nothing new from your feeds in the last month.
-      </p>
-      <ul v-else class="panel divide-y divide-line" aria-label="Recent posts from your feeds">
-        <li v-for="post in top" :key="`${post.sourceId}-${post.id}`" class="flex gap-3 px-4 py-3">
-          <ProfileImage
-            :id="post.sourceId"
-            :name="nameOf(post.sourceId)"
-            :image-url="byId.get(post.sourceId)?.iconUrl"
-            size="xs"
-            kind="source"
-            class="mt-0.5"
-          />
-          <div class="min-w-0 flex-1">
-            <a
-              :href="post.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="font-medium break-words underline"
+      <template v-else>
+        <QueryState :query="posts" what="your feeds" loading="Reading your feeds…" detail>
+          <p v-if="!top.length" class="text-ink-soft">
+            Nothing new from your feeds in the last month.
+          </p>
+          <ul v-else class="panel divide-y divide-line" aria-label="Recent posts from your feeds">
+            <li
+              v-for="post in top"
+              :key="`${post.sourceId}-${post.id}`"
+              class="flex gap-3 px-4 py-3"
             >
-              {{ post.title }}<span class="sr-only"> (opens in a new tab)</span>
-            </a>
-            <p class="meta break-words">
-              {{ nameOf(post.sourceId)
-              }}<template v-if="post.publishedAt"> · {{ when(post.publishedAt) }}</template>
-            </p>
-          </div>
-        </li>
-      </ul>
-    </template>
+              <ProfileImage
+                :id="post.sourceId"
+                :name="nameOf(post.sourceId)"
+                :image-url="byId.get(post.sourceId)?.iconUrl"
+                size="xs"
+                kind="source"
+                class="mt-0.5"
+              />
+              <div class="min-w-0 flex-1">
+                <a
+                  :href="post.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="font-medium break-words underline"
+                >
+                  {{ post.title }}<span class="sr-only"> (opens in a new tab)</span>
+                </a>
+                <p class="meta break-words">
+                  {{ nameOf(post.sourceId)
+                  }}<template v-if="post.publishedAt"> · {{ when(post.publishedAt) }}</template>
+                </p>
+              </div>
+            </li>
+          </ul>
+        </QueryState>
+      </template>
+    </QueryState>
   </LandingSection>
 </template>

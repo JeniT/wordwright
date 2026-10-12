@@ -8,6 +8,7 @@ import { useIdeaNotes } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import NoteText from './NoteText.vue'
 import TextAreaField from './TextAreaField.vue'
+import QueryState from './QueryState.vue'
 
 /**
  * A summary of notes for a landing page: the latest few, a way to jot one down, and a link to all of them. It shares
@@ -57,16 +58,14 @@ const add = useMutation({
         >
       </RouterLink>
     </template>
-    <p v-if="notes.isPending.value" class="text-ink-soft">Loading…</p>
-    <p v-else-if="notes.isError.value" role="alert" class="text-danger">
-      Couldn't load the notes. Try reloading the page.
-    </p>
-    <p v-else-if="!recent.length" class="mb-4 text-ink-soft">No notes yet.</p>
-    <ul v-else class="panel mb-4 divide-y divide-line" aria-label="Recent notes">
-      <li v-for="note in recent" :key="note.id" class="px-4 py-3">
-        <NoteText :note="note" />
-      </li>
-    </ul>
+    <QueryState :query="notes" what="the notes">
+      <p v-if="!recent.length" class="mb-4 text-ink-soft">No notes yet.</p>
+      <ul v-else class="panel mb-4 divide-y divide-line" aria-label="Recent notes">
+        <li v-for="note in recent" :key="note.id" class="px-4 py-3">
+          <NoteText :note="note" />
+        </li>
+      </ul>
+    </QueryState>
     <form @submit.prevent="add.mutate()">
       <TextAreaField
         v-model="draft"

@@ -138,8 +138,8 @@ describe('feeds on the Search page', () => {
       ),
     )
     await openSearch()
-    expect(await screen.findByText(/couldn't load the sources/)).toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    const problem = (await screen.findByText(/couldn't load the sources/)).closest('[role=alert]')!
+    await fireEvent.click(within(problem as HTMLElement).getByRole('button', { name: 'Try again' }))
     expect(await screen.findByText('Alpha Notes')).toBeInTheDocument()
   })
 

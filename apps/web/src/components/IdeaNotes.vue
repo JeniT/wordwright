@@ -27,6 +27,7 @@ import SwitchField from './SwitchField.vue'
 import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
 import TextField from './TextField.vue'
+import QueryState from './QueryState.vue'
 
 /** An idea's notes, or (no `ideaId`) the profile's own, gathered before there is an idea. */
 const props = defineProps<{
@@ -314,12 +315,7 @@ const label = (note: IdeaNote) => {
     </p>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
-    <p v-if="notes.isPending.value">Loading notes…</p>
-    <div v-else-if="notes.isError.value" role="alert" class="mb-4">
-      <p class="text-danger">We couldn't load the notes.</p>
-      <button type="button" class="btn btn-outline mt-2" @click="notes.refetch()">Try again</button>
-    </div>
-    <template v-else>
+    <QueryState :query="notes" what="the notes" loading="Loading notes…">
       <div
         v-if="mover.outcome.value"
         role="status"
@@ -581,7 +577,7 @@ const label = (note: IdeaNote) => {
           {{ add.isPending.value ? 'Adding…' : 'Add note' }}
         </button>
       </form>
-    </template>
+    </QueryState>
     <ConfirmDialog
       :open="confirmingDeleteChosen"
       :title="`Delete ${chosen.length} ${chosen.length === 1 ? 'note' : 'notes'}?`"

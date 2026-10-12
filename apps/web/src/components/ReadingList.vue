@@ -11,6 +11,7 @@ import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
 import PageNav from './PageNav.vue'
 import SwitchField from './SwitchField.vue'
+import QueryState from './QueryState.vue'
 
 /**
  * The reading list of an idea, or (no `ideaId`) of the profile: the items, with a box to add one. The items open
@@ -150,12 +151,7 @@ function removeChosen() {
       </template>
     </p>
 
-    <p v-if="list.isPending.value">Loading the reading list…</p>
-    <div v-else-if="list.isError.value" role="alert" class="mb-4">
-      <p class="text-danger">We couldn't load the reading list.</p>
-      <button type="button" class="btn btn-outline mt-2" @click="list.refetch()">Try again</button>
-    </div>
-    <template v-else>
+    <QueryState :query="list" what="the reading list" loading="Loading the reading list…">
       <div
         v-if="mover.outcome.value"
         role="status"
@@ -292,7 +288,7 @@ function removeChosen() {
       </p>
 
       <AddLinkForm :profile-id="profileId" :idea-id="ideaId" />
-    </template>
+    </QueryState>
     <ConfirmDialog
       :open="confirmingRemoveChosen"
       :title="`Remove ${chosen.length} ${chosen.length === 1 ? 'link' : 'links'}?`"

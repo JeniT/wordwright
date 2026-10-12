@@ -139,7 +139,7 @@ describe('a profile’s landing page', () => {
         ),
       )
       await renderAt('/p/ada-substack')
-      expect(await screen.findByText(/Couldn't load the notes/)).toBeInTheDocument()
+      expect(await screen.findByText(/couldn't load the notes/)).toBeInTheDocument()
     })
   })
 
@@ -175,7 +175,7 @@ describe('a profile’s landing page', () => {
         ),
       )
       await renderAt('/p/ada-substack')
-      expect(await screen.findByText(/Couldn't load ideas/)).toBeInTheDocument()
+      expect(await screen.findByText(/couldn't load ideas/)).toBeInTheDocument()
     })
   })
 })
@@ -265,7 +265,7 @@ describe('a profile’s landing page: search', () => {
       ),
     )
     await renderAt('/p/ada-substack')
-    expect(await screen.findByText(/couldn’t load your feeds/)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn't load your feeds/)).toBeInTheDocument()
   })
 
   it('never asks the feeds to check again just because the page was opened', async () => {
@@ -380,6 +380,6 @@ describe('a profile’s landing page: read', () => {
       ),
     )
     await renderAt('/p/ada-substack')
-    expect(await screen.findByText(/Couldn't load the reading list/)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn't load the reading list/)).toBeInTheDocument()
   })
 })

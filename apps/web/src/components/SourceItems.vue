@@ -2,8 +2,9 @@
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Source } from '@lfwa/core'
 import { ref, watch } from 'vue'
-import { api, errorMessage } from '../lib/api'
+import { api } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
+import QueryState from './QueryState.vue'
 
 const props = defineProps<{ profileId: string; source: Source; name: string }>()
 const SHOWN = 5
@@ -41,40 +42,37 @@ const when = (iso: string) =>
       Recent posts<span class="sr-only"> from {{ name }}</span>
     </summary>
     <div class="mt-1">
-      <p v-if="posts.isPending.value">Reading the feed…</p>
-      <div v-else-if="posts.isError.value" role="alert" class="text-danger">
-        <p>{{ errorMessage(posts.error.value) }}</p>
-        <button type="button" class="underline" @click="posts.refetch()">Try again</button>
-      </div>
-      <template v-else-if="posts.data.value">
-        <p v-if="posts.data.value.lastError" role="alert" class="mb-1 text-danger">
-          We couldn’t read this feed just now: {{ posts.data.value.lastError }}
-          <template v-if="posts.data.value.lastWorkedAt">
-            It last worked on {{ when(posts.data.value.lastWorkedAt) }}.
-          </template>
-        </p>
-        <p v-if="!posts.data.value.items.length && !posts.data.value.lastError">
-          This feed has no posts in it yet.
-        </p>
-        <ul v-else class="space-y-1">
-          <li v-for="item in posts.data.value.items.slice(0, SHOWN)" :key="item.id">
-            <a :href="item.url" target="_blank" rel="noopener noreferrer" class="underline">
-              {{ item.title }}<span class="sr-only"> (opens in a new tab)</span>
-            </a>
-            <span v-if="item.publishedAt || item.authors.length" class="text-ink-soft">
-              ·
-              {{
-                [item.authors.join(', '), item.publishedAt ? when(item.publishedAt) : '']
-                  .filter(Boolean)
-                  .join(', ')
-              }}
-            </span>
-          </li>
-        </ul>
-        <p v-if="posts.data.value.items.length > SHOWN" class="mt-1 text-ink-soft">
-          and {{ posts.data.value.items.length - SHOWN }} more
-        </p>
-      </template>
+      <QueryState :query="posts" what="the feed" loading="Reading the feed…" detail>
+        <template v-if="posts.data.value">
+          <p v-if="posts.data.value.lastError" role="alert" class="mb-1 text-danger">
+            We couldn’t read this feed just now: {{ posts.data.value.lastError }}
+            <template v-if="posts.data.value.lastWorkedAt">
+              It last worked on {{ when(posts.data.value.lastWorkedAt) }}.
+            </template>
+          </p>
+          <p v-if="!posts.data.value.items.length && !posts.data.value.lastError">
+            This feed has no posts in it yet.
+          </p>
+          <ul v-else class="space-y-1">
+            <li v-for="item in posts.data.value.items.slice(0, SHOWN)" :key="item.id">
+              <a :href="item.url" target="_blank" rel="noopener noreferrer" class="underline">
+                {{ item.title }}<span class="sr-only"> (opens in a new tab)</span>
+              </a>
+              <span v-if="item.publishedAt || item.authors.length" class="text-ink-soft">
+                ·
+                {{
+                  [item.authors.join(', '), item.publishedAt ? when(item.publishedAt) : '']
+                    .filter(Boolean)
+                    .join(', ')
+                }}
+              </span>
+            </li>
+          </ul>
+          <p v-if="posts.data.value.items.length > SHOWN" class="mt-1 text-ink-soft">
+            and {{ posts.data.value.items.length - SHOWN }} more
+          </p>
+        </template>
+      </QueryState>
     </div>
   </details>
 </template>

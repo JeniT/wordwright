@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import ConfirmDialog from './ConfirmDialog.vue'
 import TextAreaField from './TextAreaField.vue'
+import QueryState from './QueryState.vue'
 
 const queryClient = useQueryClient()
 const settings = useQuery({
@@ -75,43 +76,41 @@ const hint = computed(
       your work, so editing this can't break those.
     </p>
 
-    <p v-if="settings.isPending.value">Loading…</p>
-    <p v-else-if="settings.isError.value" role="alert" class="text-danger">
-      We couldn't load your brainstorming prompt. Try reloading the page.
-    </p>
-    <form v-else @submit.prevent="save.mutate()">
-      <p class="mb-2 text-sm text-ink-soft">
-        {{
-          isDefault
-            ? 'You are using the default prompt.'
-            : 'You are using your own version of the prompt.'
-        }}
-      </p>
-      <TextAreaField
-        v-model="text"
-        label="Prompt"
-        :rows="16"
-        :maxlength="BRAINSTORM_PROMPT_MAX"
-        :hint="hint"
-      />
-      <p v-if="save.isError.value || reset.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(save.error.value ?? reset.error.value) }}
-      </p>
-      <div class="flex flex-wrap items-center gap-3">
-        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || !edited">
-          {{ save.isPending.value ? 'Saving…' : 'Save' }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-neutral"
-          :disabled="save.isPending.value || (isDefault && !edited)"
-          @click="startReset"
-        >
-          Reset to default
-        </button>
-        <p role="status" class="text-sm text-ink-soft">{{ status }}</p>
-      </div>
-    </form>
+    <QueryState :query="settings" what="your brainstorming prompt">
+      <form @submit.prevent="save.mutate()">
+        <p class="mb-2 text-sm text-ink-soft">
+          {{
+            isDefault
+              ? 'You are using the default prompt.'
+              : 'You are using your own version of the prompt.'
+          }}
+        </p>
+        <TextAreaField
+          v-model="text"
+          label="Prompt"
+          :rows="16"
+          :maxlength="BRAINSTORM_PROMPT_MAX"
+          :hint="hint"
+        />
+        <p v-if="save.isError.value || reset.isError.value" role="alert" class="mb-3 text-danger">
+          {{ errorMessage(save.error.value ?? reset.error.value) }}
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || !edited">
+            {{ save.isPending.value ? 'Saving…' : 'Save' }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-neutral"
+            :disabled="save.isPending.value || (isDefault && !edited)"
+            @click="startReset"
+          >
+            Reset to default
+          </button>
+          <p role="status" class="text-sm text-ink-soft">{{ status }}</p>
+        </div>
+      </form>
+    </QueryState>
 
     <ConfirmDialog
       :open="confirmingReset"

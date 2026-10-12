@@ -90,7 +90,7 @@ describe('ideas on the profile page', () => {
       ),
     )
     await renderAt('/p/ada-substack')
-    expect(await screen.findByText(/Couldn't load ideas/)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn't load ideas/)).toBeInTheDocument()
   })
 })
 

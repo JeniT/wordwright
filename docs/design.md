@@ -331,6 +331,11 @@ later; neither is built.
 - **Not by colour alone:** errors have words and (where it fits) an icon; AI-suggested things have a label, not just
   the highlighter; the current menu item has `aria-current` and an edge, not only a tint.
 - Every async action keeps its loading, empty and error states; error text says what to do next.
+- **Loading a list or section:** wrap it in `QueryState` (`:query`, `what="the notes"`). It shows a quiet "Loading…",
+  or "We couldn't load the notes." with a **Try again** button, and the content only once it has arrived; the empty
+  state ("No notes yet.") belongs inside it. Pass `loading` to say what is loading ("Reading your feeds…") and
+  `detail` when the server's reason helps ("Too many requests…"). A page about one idea or profile uses `IdeaGate` or
+  `ProfileGate`, which also handle "not found".
 - The e2e suite runs axe over the main pages. A new screen needs to be in it.
 
 ## Applying the design to a change
