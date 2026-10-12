@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   llmSettings,
   renderAt,
@@ -262,10 +262,6 @@ describe('profile page', () => {
 })
 
 describe('profile settings', () => {
-  beforeAll(() => {
-    vi.stubGlobal('confirm', () => true)
-  })
-
   it('lets the owner change the name and website, showing the address as stored', async () => {
     let sent: unknown
     server.use(
@@ -384,6 +380,9 @@ describe('profile settings', () => {
     )
     const { router } = await renderAt('/p/adalovelace-blog/settings')
     await fireEvent.click(await screen.findByRole('button', { name: 'Delete this profile' }))
+    expect(deleted).toBe(false) // a dialog asks first
+    const dialog = screen.getByRole('dialog', { name: 'Delete this profile?' })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, delete it' }))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
     await screen.findByText('Next, create your first profile')
   })

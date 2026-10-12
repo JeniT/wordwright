@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import DangerZone from '../components/DangerZone.vue'
 import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
 import CritiqueSettingsSection from '../components/CritiqueSettingsSection.vue'
 import EmailSection from '../components/EmailSection.vue'
@@ -74,10 +75,7 @@ const deleteAccount = useMutation({
       </p>
     </section>
 
-    <section aria-labelledby="delete-heading" class="callout callout-danger">
-      <h2 id="delete-heading" class="mb-2 font-display text-xl font-semibold text-danger">
-        Delete account
-      </h2>
+    <DangerZone title="Delete account">
       <p class="mb-4 text-sm">
         This permanently deletes your account, and every profile (with its drafts) that only you
         belong to. In profiles you share, you're removed, and the others keep their work.
@@ -106,6 +104,7 @@ const deleteAccount = useMutation({
         :open="confirmingDelete"
         title="Delete your account?"
         confirm-label="Yes, delete my account"
+        busy-label="Deleting…"
         :busy="deleteAccount.isPending.value"
         @confirm="deleteAccount.mutate()"
         @cancel="confirmingDelete = false"
@@ -115,6 +114,6 @@ const deleteAccount = useMutation({
           belong to will be permanently deleted.
         </p>
       </ConfirmDialog>
-    </section>
+    </DangerZone>
   </div>
 </template>

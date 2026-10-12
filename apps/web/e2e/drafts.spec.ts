@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Page } from '@playwright/test'
 import { e2eOutbox } from '../playwright.config'
-import { expect, goTo, test, watchForProblems } from './fixtures'
+import { expect, goTo, holdToConfirm, test, watchForProblems } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -582,7 +582,7 @@ test('revoking an invitation stops its link working', async ({ page, browser }) 
   await confirmEmail(page, adaEmail)
   const email = `revoked-${Date.now()}@example.com`
   const link = await invite(page, email)
-  await page.getByRole('button', { name: `Revoke invitation to ${email}` }).click()
+  await holdToConfirm(page, page.getByRole('button', { name: `Revoke invitation to ${email}` }))
   await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
 
   const guest = await (await browser.newContext()).newPage()

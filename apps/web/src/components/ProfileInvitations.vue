@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import HoldButton from './HoldButton.vue'
 import TextField from './TextField.vue'
 
 const props = defineProps<{
@@ -89,14 +90,14 @@ const revoke = useMutation({
               >
                 Resend
               </button>
-              <button
-                type="button"
+              <HoldButton
                 class="underline"
+                title="Press and hold to revoke this invitation"
                 :aria-label="`Revoke invitation to ${inv.email}`"
-                @click="revoke.mutate(inv.id)"
+                @confirm="revoke.mutate(inv.id)"
               >
                 Revoke
-              </button>
+              </HoldButton>
             </span>
           </li>
         </ul>

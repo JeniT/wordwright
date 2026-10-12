@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import DangerZone from '../components/DangerZone.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 import StepHeading from '../components/StepHeading.vue'
 import TextField from '../components/TextField.vue'
@@ -73,29 +74,26 @@ const remove = useMutation({
       </p>
     </form>
 
-    <section
-      aria-labelledby="delete-idea-heading"
-      class="rounded-ctl border border-danger bg-surface p-4"
+    <DangerZone
+      title="Delete this idea"
+      :error="remove.isError.value ? errorMessage(remove.error.value) : undefined"
     >
-      <h2 id="delete-idea-heading" class="mb-1 text-lg font-semibold text-danger">
-        Delete this idea
-      </h2>
-      <p class="meta mb-3">
+      <p class="mb-3 text-sm">
         This permanently deletes the idea, its links and
         {{ loaded.drafts.length ? 'all its drafts' : 'any drafts' }}.
       </p>
-      <p v-if="remove.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(remove.error.value) }}
-      </p>
-      <button type="button" class="btn btn-danger" @click="confirmingDelete = true">
-        Delete idea
-      </button>
-    </section>
+      <template #action>
+        <button type="button" class="btn btn-danger-solid" @click="confirmingDelete = true">
+          Delete idea
+        </button>
+      </template>
+    </DangerZone>
 
     <ConfirmDialog
       :open="confirmingDelete"
       title="Delete this idea?"
       confirm-label="Yes, delete it"
+      busy-label="Deleting…"
       :busy="remove.isPending.value"
       @confirm="remove.mutate()"
       @cancel="confirmingDelete = false"

@@ -215,9 +215,10 @@ describe('inviting from the profile settings page', () => {
       await screen.findByRole('button', { name: 'Resend invitation to bob@example.com' }),
     )
     await waitFor(() => expect(resent).toEqual({ email: 'bob@example.com' }))
-    await fireEvent.click(
-      screen.getByRole('button', { name: 'Revoke invitation to bob@example.com' }),
-    )
+    const revoke = screen.getByRole('button', { name: 'Revoke invitation to bob@example.com' })
+    await fireEvent.click(revoke) // no hold: it only asks to be pressed again
+    expect(revoked).toBe('')
+    await fireEvent.click(revoke)
     await waitFor(() => expect(revoked).toBe('i1'))
   })
 

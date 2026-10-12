@@ -6,6 +6,8 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
 import { displayHost } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
+import ConfirmDialog from './ConfirmDialog.vue'
+import DangerZone from './DangerZone.vue'
 import ImageField from './ImageField.vue'
 import ProfileImage from './ProfileImage.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
@@ -69,6 +71,7 @@ const canRemove = (memberId: string, memberRole: string) =>
   (isOwner && memberRole !== 'owner') || (!isOwner && memberId === session.user?.id)
 
 // ---- deletion
+const confirmingDelete = ref(false)
 const deleteProfile = useMutation({
   mutationFn: () => api.deleteProfile(props.profile.id),
   onSuccess: async () => {
@@ -76,16 +79,8 @@ const deleteProfile = useMutation({
     await refresh()
     await router.push('/')
   },
+  onSettled: () => (confirmingDelete.value = false),
 })
-function confirmDelete() {
-  if (
-    confirm(
-      `Delete "${props.profile.name}" and all its drafts for everyone who shares it? This can't be undone.`,
-    )
-  ) {
-    deleteProfile.mutate()
-  }
-}
 </script>
 
 <template>
@@ -196,19 +191,32 @@ function confirmDelete() {
       </p>
     </section>
 
-    <section v-if="isOwner" aria-labelledby="delete-profile-heading" class="callout callout-danger">
-      <h2 id="delete-profile-heading" class="mb-2 font-display text-xl font-semibold text-danger">
-        Delete profile
-      </h2>
+    <DangerZone
+      v-if="isOwner"
+      title="Delete profile"
+      :error="deleteProfile.isError.value ? errorMessage(deleteProfile.error.value) : undefined"
+    >
       <p class="mb-3 text-sm">
         This permanently deletes the profile and all its drafts, for everyone it's shared with.
       </p>
-      <p v-if="deleteProfile.isError.value" role="alert" class="mb-3 text-danger">
-        {{ errorMessage(deleteProfile.error.value) }}
-      </p>
-      <button type="button" class="btn btn-danger-solid" @click="confirmDelete">
-        Delete this profile
-      </button>
-    </section>
+      <template #action>
+        <button type="button" class="btn btn-danger-solid" @click="confirmingDelete = true">
+          Delete this profile
+        </button>
+      </template>
+    </DangerZone>
+
+    <ConfirmDialog
+      :open="confirmingDelete"
+      title="Delete this profile?"
+      confirm-label="Yes, delete it"
+      busy-label="Deleting…"
+      :busy="deleteProfile.isPending.value"
+      @confirm="deleteProfile.mutate()"
+      @cancel="confirmingDelete = false"
+    >
+      “{{ profile.name }}” and all its drafts will be deleted for everyone who shares it. This can't
+      be undone.
+    </ConfirmDialog>
   </div>
 </template>

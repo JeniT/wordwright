@@ -195,7 +195,10 @@ describe('feeds on the Search page', () => {
   it('removes a source', async () => {
     fakeSources()
     await openSearch()
-    await fireEvent.click(await screen.findByRole('button', { name: 'Remove Beta Weekly' }))
+    const remove = await screen.findByRole('button', { name: 'Remove Beta Weekly' })
+    await fireEvent.click(remove) // no hold: it only asks to be pressed again
+    expect(screen.getByText('Beta Weekly')).toBeInTheDocument()
+    await fireEvent.click(remove)
     await waitFor(() => expect(screen.queryByText('Beta Weekly')).not.toBeInTheDocument())
     expect(screen.getByText('Alpha Notes')).toBeInTheDocument()
     expect(screen.getByText('Removed Beta Weekly')).toBeInTheDocument()
@@ -351,7 +354,10 @@ describe('feeds on the Search page', () => {
     await showArrows()
     await fireEvent.click(screen.getByRole('button', { name: 'Move Beta Weekly up' }))
     await waitFor(() => expect(fake.orders).toHaveLength(1))
-    await fireEvent.click(screen.getByRole('button', { name: 'Remove Alpha Notes' }))
+    const remove = screen.getByRole('button', { name: 'Remove Alpha Notes' })
+    await fireEvent.click(remove) // no hold: it only asks to be pressed again
+    expect(screen.getByText('Alpha Notes')).toBeInTheDocument()
+    await fireEvent.click(remove)
     await waitFor(() => expect(screen.queryByText('Alpha Notes')).not.toBeInTheDocument())
   })
 })

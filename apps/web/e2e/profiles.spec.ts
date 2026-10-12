@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, showArrowsFor, test } from './fixtures'
+import { expect, goTo, holdToConfirm, showArrowsFor, test } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -101,8 +101,8 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await page.getByRole('button', { name: 'Remove picture' }).click()
   await expect(page.getByRole('main').locator('img')).toHaveCount(0)
 
-  page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Delete this profile' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()
   await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
   await expect(page.getByRole('main').getByRole('link', { name: /Final venue/ })).toHaveCount(0)
 })
@@ -367,7 +367,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
   await page.unroute('**/sources/order')
 
   // The order, and removals, survive a reload.
-  await sources.getByRole('button', { name: 'Remove Feed of three.example' }).click()
+  await holdToConfirm(page, sources.getByRole('button', { name: 'Remove Feed of three.example' }))
   await expect.poll(hosts).toEqual(['two.example', 'one.example'])
   await page.reload()
   await expect.poll(hosts).toEqual(['two.example', 'one.example'])

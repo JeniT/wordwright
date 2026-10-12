@@ -210,10 +210,21 @@ shown and disabled until something is selected, so the row never jumps. Text, no
 when there are more pages, "Select all N" offers the rest. Selection clears when the filter or the page changes, so
 what an action touches is always what is on screen.
 
-**Removing.** Not undoable, so it takes the same press-and-hold as deleting a profile, idea or draft (`HoldButton`),
-single or bulk (reading list: Remove; notes: Delete). Its tooltip says where to find the item again ("It stays in the
-feed it came from"). The exception is a feed in the feeds list: it is a plain click, because adding it again loses
-nothing.
+**Removing and deleting.** Two kinds, two controls (see [Confirming destructive actions](#confirming-destructive-actions)).
+Removing one thing that has no consequences beyond itself (a note, a reading-list item, a feed, an invitation) takes a
+press-and-hold (`HoldButton`), single or bulk (reading list: Remove; notes: Delete). Its tooltip says where to find the
+item again ("It stays in the feed it came from").
+
+### Confirming destructive actions
+
+One rule decides which control confirms, so the same kind of act always feels the same:
+
+- **Deleting something from the server that takes other information with it** (an account, a profile, an idea, a
+  draft; also clearing a whole conversation) asks in a **modal dialog** (`ConfirmDialog`). The dialog names what will
+  go with it. Focus starts on Cancel. A whole-thing delete lives in a `DangerZone` at the bottom of its settings page,
+  and its button opens the dialog. Never use the browser's `confirm()`.
+- **Removing one thing with no consequences beyond it** (a note, a reading-list item, a feed, an invitation) takes a
+  **press-and-hold** (`HoldButton`) on the row, with no dialog.
 
 **Pagination.** Notes show everything. Every other list pages client-side with `PageNav` above and below (the top one
 announces the new range; the bottom one returns you to the top of the list), five at a time (`PAGE_SIZE` in

@@ -4,6 +4,7 @@ import type { Source, SourceChoices } from '@lfwa/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import SourceItems from './SourceItems.vue'
+import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ProfileImage from './ProfileImage.vue'
 import ReorderableList from './ReorderableList.vue'
@@ -165,17 +166,15 @@ function shortName(address: string) {
           </div>
         </template>
         <template #actions="{ item: source }">
-          <!-- A click, not a hold: a feed is easy to add again, and nothing is lost with it. -->
-          <button
-            type="button"
+          <HoldButton
             class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
             :disabled="remove.isPending.value"
-            title="Remove this feed"
+            title="Press and hold to remove this feed"
             :aria-label="`Remove ${nameOf(source)}`"
-            @click="remove.mutate(source)"
+            @confirm="remove.mutate(source)"
           >
             <Icon name="remove" />
-          </button>
+          </HoldButton>
         </template>
       </ReorderableList>
 

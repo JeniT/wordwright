@@ -106,7 +106,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
             :disabled="busy"
             @click="emit('confirm')"
           >
-            {{ busy ? (busyLabel ?? 'Deleting…') : confirmLabel }}
+            {{ busy ? (busyLabel ?? 'Working…') : confirmLabel }}
           </button>
         </div>
       </div>
