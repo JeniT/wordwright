@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import LandingSection from '../components/LandingSection.vue'
+import ProfileDescription from '../components/ProfileDescription.vue'
 import ProfileGate from '../components/ProfileGate.vue'
 import ProfileImage from '../components/ProfileImage.vue'
 import RecentNotes from '../components/RecentNotes.vue'
@@ -32,6 +33,8 @@ const ideas = useIdeas(() => props.profileId)
         </p>
       </div>
     </div>
+
+    <ProfileDescription :profile-id="profileId" :description="profile.description" />
 
     <RecentPostsSummary :profile-id="profileId" :to="{ name: 'search', params: { profileId } }" />
 

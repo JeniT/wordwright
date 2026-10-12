@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -83,6 +83,58 @@ describe('a profile’s landing page', () => {
     expect(ideas.querySelector('h2')).toHaveTextContent(/^04\s*Ideas$/)
     // The numbers are decoration: the headings are named without them.
     expect(screen.getByRole('heading', { level: 2, name: 'Notes' })).toBeInTheDocument()
+  })
+
+  describe('description', () => {
+    const describedAs = (description: string | null) => {
+      fakeHome()
+      server.use(http.get('*/api/profiles', () => HttpResponse.json([{ ...profile, description }])))
+    }
+    /** jsdom does no layout, so say how tall the text is and how much room it gets. */
+    const layout = (scrollHeight: number, clientHeight: number) => {
+      vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(scrollHeight)
+      vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(clientHeight)
+    }
+    afterEach(() => vi.restoreAllMocks())
+
+    it('invites a description when there is none, linking to the settings', async () => {
+      describedAs(null)
+      await renderAt('/p/ada-substack')
+      const link = await screen.findByRole('link', { name: 'Add a description' })
+      expect(link).toHaveAttribute('href', '/p/ada-substack/settings')
+      expect(screen.queryByRole('button', { name: /Show/ })).toBeNull()
+    })
+
+    it('shows a short one in full as Markdown, with no Show more button', async () => {
+      describedAs('Weeknotes, *mostly for me*. See [home](https://example.com).')
+      layout(100, 100)
+      await renderAt('/p/ada-substack')
+      const about = await screen.findByRole('region', { name: 'About this profile' })
+      expect(within(about).getByRole('link', { name: 'home' })).toHaveAttribute(
+        'href',
+        'https://example.com',
+      )
+      expect(within(about).queryByRole('button')).toBeNull()
+    })
+
+    it('clamps a long one, and expands and collapses it, saying which', async () => {
+      describedAs('A long description.\n\nWith several paragraphs.')
+      layout(400, 200)
+      await renderAt('/p/ada-substack')
+      const more = await screen.findByRole('button', { name: 'Show more…' })
+      expect(more).toHaveAttribute('aria-expanded', 'false')
+      const body = document.getElementById(more.getAttribute('aria-controls')!)!
+      expect(body).toHaveClass('clamped')
+      await fireEvent.click(more)
+      const less = screen.getByRole('button', { name: 'Show less' })
+      expect(less).toHaveAttribute('aria-expanded', 'true')
+      expect(body).not.toHaveClass('clamped')
+      await fireEvent.click(less)
+      expect(screen.getByRole('button', { name: 'Show more…' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      )
+    })
   })
 
   describe('notes', () => {

@@ -107,7 +107,7 @@ tests inject fakes and nothing hits the network.
   adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
-  `/profiles/new` creates one; `/p/<id>` is its landing page, an overview with its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);
+  `/profiles/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) followed by its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);
   `/p/<id>/settings` edits it, shares it and deletes it. A profile also has a **description** (Markdown, up to 5000 characters: what the venue is, who reads it, what kinds of writing go there), which anyone who shares the profile can edit (`PUT /api/profiles/:id/description`); the name and website stay the owner's. Its origin (`entered` by a person, or `inferred` by the AI) is stored for the generation work in #27.
 - **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to

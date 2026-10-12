@@ -454,3 +454,38 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await expect(recent.getByRole('link', { name: /A post in Feed of read.example/ })).toBeVisible()
   await expect(recent.getByRole('listitem')).toContainText('Feed of read.example')
 })
+
+test('shows the description at the top of the profile page, clamped with Show more', async ({
+  page,
+}) => {
+  await registerUser(page, uniqueName('Robin'))
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Weeknotes')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  const about = page.getByRole('region', { name: 'About this profile' })
+  await expect(about.getByRole('link', { name: 'Add a description' })).toBeVisible()
+
+  await about.getByRole('link', { name: 'Add a description' }).click()
+  const paragraphs = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} about the venue.`)
+  await page.getByLabel('About this venue').fill(paragraphs.join('\n\n'))
+  await page.getByRole('button', { name: 'Save description' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' }).last()).toBeVisible()
+  await page.getByRole('link', { name: '← Weeknotes' }).click()
+
+  await expect(about.getByText('Paragraph 1 about')).toBeVisible()
+  await expect(about.getByText('Paragraph 12 about')).not.toBeInViewport()
+  await noViolations(page)
+  await about.getByRole('button', { name: 'Show more…' }).click()
+  await expect(about.getByText('Paragraph 12 about')).toBeVisible()
+  await about.getByRole('button', { name: 'Show less' }).click()
+  await expect(about.getByRole('button', { name: 'Show more…' })).toBeVisible()
+
+  // On a phone the same text wraps onto more lines, and nothing scrolls sideways.
+  await page.setViewportSize({ width: 390, height: 800 })
+  await expect(about.getByRole('button', { name: 'Show more…' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await noViolations(page)
+})
