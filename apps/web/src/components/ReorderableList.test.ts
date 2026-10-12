@@ -116,6 +116,20 @@ describe('ReorderableList', () => {
     expect(moves()).toHaveLength(0)
   })
 
+  it('puts the grips back when a rail is clicked while the arrows show, but not when an arrow is', async () => {
+    await mountList(['a', 'b'], { arrows: false })
+    const rails = () => document.querySelectorAll('[data-testid="rail"]')
+    await fireEvent.click(rails()[0]!)
+    expect(moves()).toHaveLength(4)
+    await fireEvent.click(screen.getByRole('button', { name: 'Move b up' })) // an arrow: they stay
+    expect(moves()).toHaveLength(4)
+    await fireEvent.click(rails()[1]!) // the rail, away from the arrows: back to the grip
+    expect(moves()).toHaveLength(0)
+    expect(document.querySelector('svg.list-rail-grip')).not.toHaveClass('invisible')
+    await fireEvent.click(rails()[0]!) // and a click asks for them again
+    expect(moves()).toHaveLength(4)
+  })
+
   it('keeps the arrows when focus moves to one of them, or somewhere unknown', async () => {
     await mountList(['a', 'b'], { arrows: false })
     screen.getByRole('button', { name: 'Reorder a' }).focus()

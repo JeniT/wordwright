@@ -165,9 +165,16 @@ onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onPointerDownOutside)
   document.removeEventListener('keydown', onEscape)
 })
-/** A click or tap on the rail itself (not on its checkbox or the arrows) shows the arrows, by focusing its button. */
+/**
+ * A click or tap on the rail itself (not on its checkbox or the arrows) toggles the arrows: it shows them, by focusing
+ * the rail's button, or, when they are already showing, puts the grips back.
+ */
 function onRailClick(event: MouseEvent, item: T) {
   if ((event.target as HTMLElement).closest('input, [data-move]')) return
+  if (armed.value) {
+    armed.value = false
+    return
+  }
   armed.value = true
   document.querySelector<HTMLButtonElement>(`[data-grip="${item.id}"]`)?.focus()
 }
@@ -271,7 +278,7 @@ const buttonClass = 'btn btn-quiet btn-rail'
             class="list-rail list-rail-grab select-none"
             draggable="true"
             data-testid="rail"
-            title="Drag to change the order, or click to show arrows"
+            title="Drag to change the order, or click to show or hide arrows"
             @click="onRailClick($event, item)"
             @dragstart="onDragStart($event, item)"
             @dragend="endDrag"

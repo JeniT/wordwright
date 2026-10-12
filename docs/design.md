@@ -198,7 +198,7 @@ own, and it is faint at rest (`line-strong`, 3:1) and darker on hover. It sits u
 nothing is drawn behind a control. Reordering without dragging is always available: **clicking or tapping a rail** (or
 focusing its hidden "Reorder" button) swaps the grip for small up/down arrows, on **all rows or none**, in the same slot
 so nothing moves. Hover alone never shows them, so the grip is there when the pointer arrives. They go again when the
-person clicks elsewhere, leaves the list, presses Escape or starts dragging, so the two never compete. For the
+person clicks a rail away from the arrows (a click on a rail toggles them), clicks elsewhere, leaves the list, presses Escape or starts dragging, so the two never compete. For the
 keyboard and screen readers the hidden button is there too (with it focused, the arrow keys move the row). The arrows
 are 28px (above the 24px WCAG 2.2 minimum), an exception to the 36px rule for small buttons because there are two to a
 row; their background is solid, a disabled one included (`btn-rail`). A list is
