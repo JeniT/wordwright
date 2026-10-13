@@ -177,6 +177,8 @@ Brainstorm's own prompt (`brainstorm-default.md`) and the three fixed prompts sa
 
 ## An AI draft of the venue description: reflect, label, confirm (#135, part of #27)
 
+> **Removed in #150** (see _Venue descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
+
 `POST /api/profiles/:id/venue/description` (`{ urls, replace? }`, any member, with their own key) drafts the venue
 description from 1 to 5 sample posts (#134). **Rung 2: it reflects** what the posts show and the writer then reads,
 edits and confirms it; it never writes what will be published (`prompts/venue-description.md` forbids slogans,
@@ -199,6 +201,8 @@ taglines, bios, advice and writing for the venue). Nothing is spent until the bu
   demographic guesses about readers; says when posts differ; ignores instructions planted in a post.
 
 ## Describing a venue: an optional page, and the origin follows the words (#136, part of #27)
+
+> **Removed in #150** (see _Venue descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
 
 The flow is its own page, `/p/:profileId/describe` ("Describe this venue"). **The first thing on it is the box to write the
 description in** (#146: the first version opened on a two-step flow that led with the post picker, which made drafting look like the
@@ -224,6 +228,8 @@ invitation, and from the profile settings, so it can be done later.
 - **Leaving without accepting** keeps the draft, unused. The profile page invites the writer to read it and decide.
 
 ## Sample posts for describing a venue: found and read without AI, kept nowhere (#134, part of #27)
+
+> **Removed in #150** (see _Venue descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
 
 To draft a venue description (#135, #136) the writer chooses 3 to 5 sample posts: ticked from the newest ten of the
 venue's own feed, and/or pasted as links. Finding and reading them is a chore, not writing, so no LLM is involved
@@ -1338,3 +1344,24 @@ nothing jumping when the pointer arrives. They are 28px, solid when disabled, an
 **Filters behind a funnel (#144).** The list header was crowded, so filters (tag buttons, Show read items) fold behind a funnel button and open a row under the header. The funnel is only there when there is something to filter by, and while a filter is on it is marked and a chip names it, so people are never left wondering why items are missing. The open/closed state is not remembered across visits. Select all was already limited to what is showing after the filter (notes and reading lists); tests now say so for both.
 
 **Bulk actions in the header (#145).** Actions that do something to a selection are hidden until something is selected. An action that needs input takes over the header instead of opening a panel under it (Tag… and Move to…): the rest of the header is its form, ending in a tick and a cross as icon buttons, with the explanation behind an info icon (`InfoTip`) so the form stays on one line where it can. Merge and Delete/Remove N stay one-click (Delete asks in a dialog). The header's form closes if the selection empties. The old `BulkTagPanel` (a panel under the header, with switches) became `BulkTagFields`, with press-to-remove chips; `MoveTo` is now an inline row. Tooltips are CSS (hover or focus within), not a JS popover.
+
+## Venue descriptions are written by the writer; AI drafting was removed (#150)
+
+The owner removed "Draft from a few posts" (#134, #135, #136, and the later #149 plan to fetch whole posts and page back
+through a site's feed). Drafting a description from sample posts spent the writer's tokens on a text that, under our own
+responsible-AI rules (reflect only what the posts show, say when the evidence is thin, never guess readers, never write
+what is published), was not worth what it cost, and fetching whole posts would have cost more. So nothing now creates an
+AI-inferred description.
+
+- **Removed:** the sample-posts picker, `POST /profiles/:id/venue/{posts,samples,description}`, the venue-description prompt
+  and its evals, `PageTextFetcher` (its port, HTTP adapter, fake, contract and readable-text extraction: nothing else used
+  it), and the rate limiters that went with them. `PAGE_FETCHER` remains: it still chooses the page _title_ fetcher.
+- **Instead, guidance.** The describe page opens on "What makes a useful description" (also folded above the editor in the
+  profile settings): what it is, what it covers, who reads it (by interests and knowledge, never by who they are; say so
+  when the writing is personal, so the assistants don't ask for an audience), how it is written, and what feedback the
+  writer wants, with an example, and a note that it is the writer's account of the venue and is never read as
+  instructions. The points follow how the prompts use the description (`prompts/brainstorm-rules.md`, `critique.md`,
+  `research.md`).
+- **Kept for now:** a description already saved as `inferred` (and its sources and confirmed/edited flags) still works as
+  before: shown marked "AI draft", never sent to a model until accepted. No migration was made, because the columns are
+  append-only history; removing the origin handling altogether is a follow-up once no such drafts remain.

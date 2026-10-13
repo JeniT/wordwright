@@ -3,7 +3,7 @@ import { RouterLink } from 'vue-router'
 import ProfileGate from '../components/ProfileGate.vue'
 import VenueDescriptionFlow from '../components/VenueDescriptionFlow.vue'
 
-/** Describe a venue: draft its description from sample posts, or write it. Optional; reachable from the profile. */
+/** Describe a venue: guidance on what a description needs, and a box to write it in. Optional; reachable from the profile. */
 defineProps<{ profileId: string }>()
 </script>
 
@@ -20,8 +20,8 @@ defineProps<{ profileId: string }>()
       </h1>
       <p class="mb-6 text-ink-soft">
         What it is, who reads it and what kinds of writing go there. It is shown at the top of the
-        profile and helps the assistant understand what you are writing for. You can skip this and
-        come back to it.
+        profile and helps the assistants understand what you are writing for. You write it yourself,
+        and you can skip this and come back to it.
       </p>
       <VenueDescriptionFlow :key="profile.id" :profile="profile" />
     </section>

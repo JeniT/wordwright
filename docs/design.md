@@ -147,7 +147,7 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
 - **Meaning:** the icon is never alone. The words "Uses your Anthropic key, so it costs tokens" are the button's
   tooltip and its accessible description, and the account page (AI assistant) explains the mark once.
 - **Which buttons:** the ones whose press makes an LLM request (Critique, Brainstorm's Start/Send/Try again, Research,
-  Draft a description) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
+  Research) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
   which open the conversation where the reply is written). Not the buttons around them: Save, Add note, Accept or
   Dismiss on a suggestion, Stop. The API-key check on saving the key is not shown as an AI action (the owner's call).
 - **Adding one:** tag the API function `@ai` in `lib/api.ts`, use `AiButton` where it is called, and list it in

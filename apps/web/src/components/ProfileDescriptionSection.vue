@@ -2,9 +2,9 @@
 import { PROFILE_DESCRIPTION_MAX, type Profile } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
+import DescriptionGuidance from './DescriptionGuidance.vue'
 import DescriptionOrigin from './DescriptionOrigin.vue'
 import SaveStatus from './SaveStatus.vue'
 import DescriptionEditor from './DescriptionEditor.vue'
@@ -41,6 +41,7 @@ const save = useMutation({
       the first thing people see on the profile page.
     </p>
     <DescriptionOrigin :profile="profile" class="mb-3" />
+    <DescriptionGuidance class="mb-4" />
     <form @submit.prevent="save.mutate()">
       <DescriptionEditor v-model="text" label="About this venue" />
       <div class="flex flex-wrap items-center gap-3">
@@ -57,12 +58,6 @@ const save = useMutation({
                 : 'Save description'
           }}
         </button>
-        <RouterLink
-          :to="{ name: 'describe-venue', params: { profileId: profile.id } }"
-          class="link text-sm"
-        >
-          Draft it from sample posts
-        </RouterLink>
         <SaveStatus :mutation="save" class="basis-full" />
       </div>
     </form>

@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
  * fails when one is used from a component that does not use `AiButton`, and when the list below changes.
  * Adding an AI function: tag it, add it here, and give its button the AI pattern (docs/design.md).
  */
-const AI_API_FUNCTIONS = ['critique', 'draftVenueDescription', 'runResearch', 'streamReply']
+const AI_API_FUNCTIONS = ['critique', 'runResearch', 'streamReply']
 
 const src = join(__dirname, '..')
 function vueFiles(dir: string): string[] {
@@ -34,22 +34,15 @@ describe('AI buttons', () => {
     const callers = vueFiles(src)
       .map((file) => ({ file, text: readFileSync(file, 'utf8') }))
       .filter(({ text }) => AI_API_FUNCTIONS.some((name) => text.includes(`api.${name}(`)))
-    // Critique (editor), Brainstorm Send, Research, and the venue description draft.
+    // Critique (editor), Brainstorm Send, and Research.
     expect(callers.map((c) => c.file.slice(src.length + 1)).sort()).toEqual([
       'components/ResearchForm.vue',
-      'components/VenueDescriptionFlow.vue',
       'views/BrainstormView.vue',
       'views/EditorView.vue',
     ])
     for (const { file, text } of callers) {
-      // The venue draft's button lives in the picker it is passed to with `ai`.
-      const holder = file.endsWith('VenueDescriptionFlow.vue')
-        ? readFileSync(join(src, 'components/VenueSamplePicker.vue'), 'utf8')
-        : text
-      expect(holder, file).toMatch(/^import AiButton from '(\.\.\/components|\.)\/AiButton\.vue'$/m)
+      expect(text, file).toMatch(/^import AiButton from '(\.\.\/components|\.)\/AiButton\.vue'$/m)
     }
-    const flow = readFileSync(join(src, 'components/VenueDescriptionFlow.vue'), 'utf8')
-    expect(flow).toMatch(/<VenueSamplePicker[^>]*\sai\b/)
   })
 
   it('include the buttons that hand over to a call', () => {

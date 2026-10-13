@@ -18,9 +18,8 @@ import {
 } from '../../apps/api/src/services/brainstorm'
 import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import { formatResearchBrief } from '../../apps/api/src/services/research'
-import { venueDescriptionRequest } from '../../apps/api/src/services/venue-description'
 import { MAX_RESEARCH_RESULTS } from '@lfwa/core'
-import type { BrainstormCase, CritiqueCase, ResearchCase, VenueCase } from './cases'
+import type { BrainstormCase, CritiqueCase, ResearchCase } from './cases'
 import { SCENARIOS } from './scenarios'
 
 /**
@@ -75,6 +74,3 @@ export function researchRequest(c: ResearchCase): ResearchRequest {
     maxResults: MAX_RESEARCH_RESULTS,
   }
 }
-
-/** Drafting a venue description sends the prompt and the sample posts the writer chose, numbered. */
-export const venueRequest = (c: VenueCase): LLMRequest => venueDescriptionRequest(c.posts)

@@ -2,12 +2,10 @@ import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import {
   NoPageInfoFetcher,
-  NoPageTextFetcher,
   type FeedFetcher,
   type LLMFactory,
   type ResearchFactory,
   type PageInfoFetcher,
-  type PageTextFetcher,
   type Providers,
 } from '@lfwa/core'
 import type { IdentityProvider } from './auth/identity'
@@ -24,7 +22,6 @@ import { invitationRoutes } from './routes/invitations'
 import { profileRoutes } from './routes/profiles'
 import { AccountService } from './services/accounts'
 import { BrainstormService } from './services/brainstorm'
-import { VenueSampleService } from './services/venue-samples'
 import { FeedItemService } from './services/feed-items'
 import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { ResearchService } from './services/research'
@@ -53,8 +50,6 @@ export interface AppDeps {
   mailer: Mailer
   /** Looks up the title of a page that is linked from an idea. Omit to skip title lookups. */
   pageFetcher?: PageInfoFetcher
-  /** Reads the words of sample posts when describing a venue. Omit to have none read. */
-  pageTextFetcher?: PageTextFetcher
   identityProviders?: IdentityProvider[]
   /** Origin the web app is served from, e.g. http://localhost:5173. */
   publicUrl: string
@@ -188,14 +183,6 @@ export function createApp(deps: AppDeps) {
           // Reads are mostly answered from the kept copy; this caps the ones that go out.
           limiter(120, HOUR),
         ),
-        venueSamples: new VenueSampleService(
-          deps.feeds,
-          deps.pageTextFetcher ?? new NoPageTextFetcher(),
-        ),
-        // Each look fetches a feed and up to five pages for the person: 20 an hour is plenty for real use.
-        venueLimiter: limiter(20, HOUR),
-        // An AI draft of a venue description is meant to be edited, not re-rolled: 5 an hour for each profile.
-        venueDraftLimiter: limiter(5, HOUR),
         ideaLinks,
         brainstorm,
         research,

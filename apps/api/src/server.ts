@@ -1,5 +1,5 @@
 import { serve } from '@hono/node-server'
-import { FakePageInfoFetcher, FakePageTextFetcher, type Providers } from '@lfwa/core'
+import { FakePageInfoFetcher, type Providers } from '@lfwa/core'
 import { createApp } from './app'
 import { googleProvider, type IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
@@ -15,7 +15,6 @@ import {
 import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { HttpPageInfoFetcher } from './pages/http-page-info'
-import { HttpPageTextFetcher } from './pages/http-page-text'
 import { AccountService } from './services/accounts'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
@@ -76,8 +75,6 @@ const app = createApp({
   mailer,
   pageFetcher:
     config.PAGE_FETCHER === 'fake' ? new FakePageInfoFetcher() : new HttpPageInfoFetcher(),
-  pageTextFetcher:
-    config.PAGE_FETCHER === 'fake' ? new FakePageTextFetcher() : new HttpPageTextFetcher(),
   identityProviders,
   publicUrl: config.PUBLIC_URL,
   sessionSecret: config.SESSION_SECRET,

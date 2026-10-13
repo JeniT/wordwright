@@ -493,70 +493,45 @@ test('shows the description at the top of the profile page, clamped with Show mo
   await noViolations(page)
 })
 
-test('drafts a description from sample posts with the AI, which is used only once it is accepted', async ({
+test('writes a description with guidance on what it needs, and nothing drafts it for the writer', async ({
   page,
 }) => {
   await registerUser(page, uniqueName('Sam'))
-  // The AI is the writer's own (any key works with the fake AI), and the draft is made only when asked for.
-  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-describe-key-1234567')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
-
   await page.getByRole('link', { name: 'New profile' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Garden notes')
   await page.getByLabel(/Website/).fill('garden.example')
   await page.getByRole('button', { name: 'Create and describe it' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
-  // The box comes first; drafting from posts is folded away under it until asked for.
-  await expect(page.getByLabel('About this venue')).toBeVisible()
-  await expect(page.getByText('Nothing is sent before that.')).toBeHidden()
-  await noViolations(page)
-  await page.getByText('Draft from a few posts', { exact: true }).click()
-  await expect(page.getByText('Nothing is sent before that.')).toBeVisible()
+  const describeUrl = page.url()
 
-  // Choose a post from the venue's feed, and add one from a similar venue.
-  await page.getByRole('button', { name: 'Find recent posts' }).click()
-  await page.getByRole('checkbox').first().check()
-  await page
-    .getByLabel('Post links')
-    .fill('https://good.example/essay\nhttps://unreadable.example/gone')
-  await page.getByRole('button', { name: 'Read these posts' }).click()
-  const read = page.getByRole('list', { name: 'Posts read' })
-  await expect(read.getByText('couldn’t read that page')).toBeVisible()
-  await noViolations(page)
-  await page.getByRole('button', { name: 'Draft a description' }).click()
-
-  // The draft fills the box (and the section folds away); it is marked as the AI's, shows where it came
-  // from and is not in use yet.
-  await expect(page.getByRole('heading', { name: 'Read it, change it, then use it' })).toBeVisible()
-  await expect(page.getByLabel('About this venue')).toBeFocused()
-  await expect(page.getByText('Nothing is sent before that.')).toBeHidden()
-  await expect(page.getByLabel('About this venue')).toContainText(
-    'A fake description drawn from 2 posts',
-  )
-  await expect(page.getByText('AI draft', { exact: true })).toBeVisible()
-  await expect(page.getByText(/You have not accepted it yet/)).toBeVisible()
-  await page.getByText('The posts it was drawn from').click()
-  await expect(page.getByRole('link', { name: /good\.example\/essay/ })).toBeVisible()
+  // The guidance is open above the box, and there is no AI drafting from posts.
+  const guidance = page.locator('details', { hasText: 'What makes a useful description' })
+  await expect(guidance).toHaveAttribute('open', '')
+  await expect(guidance.getByText('Who reads it.')).toBeVisible()
+  await expect(guidance.getByText('An example')).toBeVisible()
+  await expect(page.getByText('Draft from a few posts')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Draft a description' })).toHaveCount(0)
   await noViolations(page)
 
-  // Using it as it stands goes to the profile, which says what it is.
-  await page.getByRole('button', { name: 'Use this description' }).click()
-  const about = page.getByRole('region', { name: 'About this profile' })
-  await expect(about.getByText(/A fake description drawn from 2 posts/)).toBeVisible()
-  await expect(about.getByText(/Accepted by you as it was/)).toBeVisible()
-  await noViolations(page)
-
-  // Changing the words keeps the mark, and says it was edited.
-  await page.getByRole('link', { name: 'Profile settings' }).click()
-  await page.getByLabel('About this venue').fill('Garden essays, by me.')
+  await page.getByLabel('About this venue').fill('Garden essays, by me, for me.')
   await page.getByRole('button', { name: 'Save description' }).click()
-  await expect(page.getByText(/Then edited by you/)).toBeVisible()
+  const about = page.getByRole('region', { name: 'About this profile' })
+  await expect(about.getByText('Garden essays, by me, for me.')).toBeVisible()
+  await expect(about.getByText('AI draft', { exact: true })).toHaveCount(0)
+  await noViolations(page)
 
-  // The same page on a phone, in dark mode.
+  // The settings offer the same guidance, folded away.
+  await page.getByRole('link', { name: 'Profile settings' }).click()
+  const folded = page.locator('details', { hasText: 'What makes a useful description' })
+  await expect(folded).not.toHaveAttribute('open', '')
+  await folded.getByText('What makes a useful description').click()
+  await expect(folded.getByText('How it is written.')).toBeVisible()
+  await noViolations(page)
+
+  // The describe page on a phone, in dark mode.
   await page.setViewportSize({ width: 390, height: 800 })
   await page.emulateMedia({ colorScheme: 'dark' })
-  await page.getByRole('link', { name: 'Draft it from sample posts' }).click()
+  await page.goto(describeUrl)
   await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

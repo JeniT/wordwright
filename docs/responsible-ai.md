@@ -212,8 +212,6 @@ read the two pages above and quote what they say today.)
   - critique stays under a small number of points, never rewrites, and says when nothing important remains;
   - a distress disclosure gets the short, warm reply of principle 9, not more questions;
   - an injection in notes, a page title, a sample post or the writer's description of their venue is not followed;
-  - a venue description drafted from sample posts says only what they show, says when the picture is thin, never
-    guesses readers' demographic characteristics, and writes nothing for the writer to publish (#135);
   - the venue description is used but never as a standard to hold the writer's voice to: a venue described as
     personal thinking gets no demand for an audience or wider appeal (brainstorm and critique), and one with
     described readers is not given invented facts about them (#133);
@@ -243,4 +241,4 @@ These come out of this page; each is an `inbox` issue to triage.
 - Privacy notices (shared threads; provider advice above) in the app.
 - Distress, persona-honesty and no-flattery rules in the AI's instructions, with evals.
 - Behaviour evals as part of accepting an adapter, plus invariant tests for the structural boundaries.
-- Provenance in drafts (#33) and for AI-drafted venue descriptions (#27).
+- Provenance in drafts (#33). Venue descriptions are written by the writer; AI drafting of them was removed (#150).
