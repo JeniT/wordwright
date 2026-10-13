@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PROFILE_DESCRIPTION_MAX, type Profile } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
@@ -12,9 +12,9 @@ import TextAreaField from './TextAreaField.vue'
 import VenueSamplePicker from './VenueSamplePicker.vue'
 
 /**
- * Describing a venue, in two optional steps: choose a few sample posts and have the AI draft a description from them,
- * or write it yourself; then read it, change it and use it. The AI only reflects what the posts show, nothing is
- * sent until its button is pressed, and an AI draft is not used by anything until the writer accepts it.
+ * Describing a venue: a box to write the description in, and, under it, an optional section that chooses a few
+ * sample posts and has the AI draft one from them. The AI only reflects what the posts show, nothing is sent until
+ * its button is pressed, and a draft fills the box, marked as the AI's and used by nothing until the writer accepts it.
  */
 const props = defineProps<{ profile: Profile }>()
 const router = useRouter()
@@ -22,34 +22,42 @@ const queryClient = useQueryClient()
 const refresh = () => queryClient.invalidateQueries({ queryKey: ['profiles'] })
 const toProfile = () => router.push({ name: 'profile', params: { profileId: props.profile.id } })
 
-const step = ref<'choose' | 'review'>(props.profile.description ? 'review' : 'choose')
 const text = useSavedValue(() => props.profile.description ?? '', '')
 const skipped = ref<{ url: string; message: string }[]>([])
+const root = useTemplateRef<HTMLElement>('root')
 
-const draft = useMutation({
-  mutationFn: (urls: string[]) =>
-    // A description that is there already is replaced only because the person chose to start again.
-    api.draftVenueDescription(props.profile.id, { urls, replace: !!props.profile.description }),
-  onSuccess: async (made) => {
-    skipped.value = made.skipped
-    text.value = made.profile.description ?? ''
-    await refresh()
-    step.value = 'review'
-  },
-})
+/** Closed until asked for (writing it yourself is the main way, drafting is a help), and closed again by a draft. */
+const drafting = useTemplateRef<HTMLDetailsElement>('drafting')
 
-const draftNotAccepted = computed(
+const unaccepted = computed(
   () =>
     props.profile.descriptionOrigin === 'inferred' &&
     !props.profile.descriptionConfirmed &&
     !!props.profile.description,
 )
 const unchanged = computed(() => text.value.trim() === (props.profile.description ?? ''))
+/** A draft takes the box's place, so say so when there is something in it, saved or not. */
+const replaces = computed(() => !!text.value.trim() || !!props.profile.description)
+
+const draft = useMutation({
+  mutationFn: (urls: string[]) =>
+    // A description that is there already is replaced only because the person pressed Draft.
+    api.draftVenueDescription(props.profile.id, { urls, replace: !!props.profile.description }),
+  onSuccess: async (made) => {
+    skipped.value = made.skipped
+    text.value = made.profile.description ?? ''
+    await refresh()
+    if (drafting.value) drafting.value.open = false
+    // The draft is what to read next: take the person to it.
+    await nextTick()
+    root.value?.querySelector('textarea')?.focus()
+  },
+})
 
 const accept = useMutation({
   mutationFn: () =>
     // Accepting a draft as it stands needs no new words; anything else saves what is in the box.
-    draftNotAccepted.value && unchanged.value
+    unaccepted.value && unchanged.value
       ? api.confirmProfileDescription(props.profile.id)
       : api.setProfileDescription(props.profile.id, { description: text.value }),
   onSuccess: async () => {
@@ -57,57 +65,18 @@ const accept = useMutation({
     await toProfile()
   },
 })
-
-function startAgain() {
-  draft.reset()
-  step.value = 'choose'
-}
 </script>
 
 <template>
-  <div>
-    <section v-if="step === 'choose'" aria-labelledby="venue-choose-heading">
-      <h2 id="venue-choose-heading" class="mb-2 font-display text-xl font-semibold">
-        Draft it from a few posts
-      </h2>
-      <p class="mb-3 text-ink-soft">
-        A few posts that show what the venue is like are enough. If it is new and has few posts, use
-        posts from similar venues instead.
-      </p>
-      <p class="callout mb-4 text-sm">
-        <strong>What is sent:</strong> when you press <em>Draft a description</em>, the text of the
-        posts you chose goes to your own AI provider, using your own API key, to write a first
-        draft. Nothing is sent before that. The draft only says what the posts show; you read it,
-        change it and decide whether to use it, and nothing treats it as true until you do.
-      </p>
-      <VenueSamplePicker
-        :profile-id="profile.id"
-        :site-url="profile.siteUrl"
-        use-label="Draft a description"
-        busy-label="Drafting…"
-        :busy="draft.isPending.value"
-        @use="draft.mutate($event.map((s) => s.url))"
-      />
-      <SaveStatus :mutation="draft" saved="" class="mt-2" />
-
-      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-4">
-        <button type="button" class="btn btn-outline" @click="step = 'review'">
-          {{ profile.description ? 'Back to the description' : 'Write it myself' }}
-        </button>
-        <RouterLink
-          :to="{ name: 'profile', params: { profileId: profile.id } }"
-          class="link text-sm"
-        >
-          Skip for now
-        </RouterLink>
-      </div>
-    </section>
-
-    <section v-else aria-labelledby="venue-review-heading">
-      <h2 id="venue-review-heading" class="mb-2 font-display text-xl font-semibold">
-        {{ draftNotAccepted ? 'Read it, change it, then use it' : 'The description' }}
+  <div ref="root">
+    <section aria-labelledby="venue-description-heading">
+      <h2 id="venue-description-heading" class="mb-2 font-display text-xl font-semibold">
+        {{ unaccepted ? 'Read it, change it, then use it' : 'The description' }}
       </h2>
       <DescriptionOrigin :profile="profile" class="mb-3" />
+      <p v-if="draft.isSuccess.value" role="status" class="callout mb-3 text-sm">
+        The draft is in the box below. Read it, change anything that is wrong, then use it.
+      </p>
       <div v-if="skipped.length" role="status" class="callout mb-3 text-sm">
         <p>These posts could not be read, so the draft does not use them:</p>
         <ul class="mt-1 list-disc pl-5">
@@ -135,27 +104,51 @@ function startAgain() {
             {{
               accept.isPending.value
                 ? 'Saving…'
-                : draftNotAccepted
+                : unaccepted
                   ? 'Use this description'
                   : 'Save description'
             }}
-          </button>
-          <button type="button" class="btn btn-outline" @click="startAgain">
-            Draft from posts
-            {{ profile.description ? '(replaces this)' : '' }}
           </button>
           <RouterLink
             :to="{ name: 'profile', params: { profileId: profile.id } }"
             class="link text-sm"
           >
-            {{ draftNotAccepted ? 'Not now' : 'Cancel' }}
+            {{ unaccepted ? 'Not now' : profile.description ? 'Cancel' : 'Skip for now' }}
           </RouterLink>
         </div>
         <SaveStatus :mutation="accept" saved="" class="mt-2" />
-        <p v-if="draftNotAccepted" class="mt-3 text-sm text-ink-soft">
+        <p v-if="unaccepted" class="mt-3 text-sm text-ink-soft">
           If you leave without using it, the draft is kept but the assistant will not see it.
         </p>
       </form>
     </section>
+
+    <details ref="drafting" class="panel mt-8 p-4">
+      <summary class="cursor-pointer font-display text-lg font-semibold">
+        Draft from a few posts
+      </summary>
+      <div class="mt-3">
+        <p class="mb-3 text-ink-soft">
+          A few posts that show what the venue is like are enough. If it is new and has few posts,
+          use posts from similar venues instead.
+        </p>
+        <p class="callout mb-4 text-sm">
+          <strong>What is sent:</strong> when you press <em>Draft a description</em>, the text of
+          the posts you chose goes to your own AI provider, using your own API key, to write a first
+          draft. Nothing is sent before that. The draft only says what the posts show; you read it,
+          change it and decide whether to use it, and nothing treats it as true until you do.
+        </p>
+        <p v-if="replaces" class="callout mb-4 text-sm">A draft replaces what is in the box now.</p>
+        <VenueSamplePicker
+          :profile-id="profile.id"
+          :site-url="profile.siteUrl"
+          use-label="Draft a description"
+          busy-label="Drafting…"
+          :busy="draft.isPending.value"
+          @use="draft.mutate($event.map((s) => s.url))"
+        />
+        <SaveStatus :mutation="draft" saved="" class="mt-2" />
+      </div>
+    </details>
   </div>
 </template>

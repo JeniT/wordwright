@@ -97,15 +97,18 @@ function fakeServer(start: typeof bare | typeof drafted = bare) {
   return { state, calls }
 }
 
-/** Pastes links, reads them, and presses the button that drafts. */
+const draftingSection = () => screen.getByText('Draft from a few posts').closest('details')!
+
+/** Opens the drafting section, pastes links, reads them, and presses the button that drafts. */
 async function draftFrom(links: string[]) {
+  await fireEvent.click(await screen.findByText('Draft from a few posts'))
   await fireEvent.update(await screen.findByLabelText('Post links'), links.join('\n'))
   await fireEvent.click(screen.getByRole('button', { name: 'Read these posts' }))
   await screen.findByRole('list', { name: 'Posts read' })
   await fireEvent.click(screen.getByRole('button', { name: 'Draft a description' }))
 }
 
-describe('describing a venue: choosing posts', () => {
+describe('describing a venue: the box, and drafting under it', () => {
   it('says what is sent and costs nothing until a button is pressed, and can be skipped', async () => {
     const { calls } = fakeServer()
     let posted = 0
@@ -128,10 +131,24 @@ describe('describing a venue: choosing posts', () => {
     expect(calls).toEqual([])
   })
 
-  it('goes straight to writing it yourself, and saves what is written', async () => {
+  it('opens on the box to write in, with drafting from posts folded away under it', async () => {
+    fakeServer()
+    await renderAt('/p/ada-venue/describe')
+    const box = await screen.findByLabelText('About this venue')
+    expect(screen.queryByRole('button', { name: 'Write it myself' })).toBeNull()
+    const section = draftingSection()
+    expect(section).not.toHaveAttribute('open')
+    // The box comes first on the page, and the section after it.
+    expect(box.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await fireEvent.click(screen.getByText('Draft from a few posts'))
+    expect(section).toHaveAttribute('open')
+    expect(within(section).getByRole('button', { name: 'Find recent posts' })).toBeInTheDocument()
+  })
+
+  it('saves what is written in the box', async () => {
     const { calls } = fakeServer()
     const { router } = await renderAt('/p/ada-venue/describe')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Write it myself' }))
+    await screen.findByLabelText('About this venue')
     expect(screen.queryByText(/AI draft/)).toBeNull() // nothing is marked as the AI's
     const save = screen.getByRole('button', { name: 'Save description' })
     expect(save).toBeDisabled() // nothing to save yet
@@ -158,6 +175,10 @@ describe('describing a venue: the AI draft', () => {
       await screen.findByRole('heading', { name: 'Read it, change it, then use it' }),
     ).toBeInTheDocument()
     expect(calls).toEqual([{ path: 'draft', body: { urls: POSTS, replace: false } }])
+    // The draft is in the box, which has the focus, and the drafting section has folded away.
+    await waitFor(() => expect(screen.getByLabelText('About this venue')).toHaveFocus())
+    await waitFor(() => expect(draftingSection()).not.toHaveAttribute('open'))
+    expect(screen.getByText(/The draft is in the box below/)).toBeInTheDocument()
     expect(screen.getByLabelText('About this venue')).toHaveValue(drafted.description)
     expect(screen.getByText('AI draft')).toBeInTheDocument()
     expect(
@@ -199,8 +220,9 @@ describe('describing a venue: the AI draft', () => {
     const { calls } = fakeServer()
     await renderAt('/p/ada-venue/describe')
     await draftFrom(POSTS)
+    await screen.findByRole('button', { name: 'Use this description' }) // the draft has arrived
     await fireEvent.update(
-      await screen.findByLabelText('About this venue'),
+      screen.getByLabelText('About this venue'),
       'Garden essays. Mine, mostly.',
     )
     await fireEvent.click(screen.getByRole('button', { name: 'Use this description' }))
@@ -212,7 +234,8 @@ describe('describing a venue: the AI draft', () => {
     const { calls, state } = fakeServer()
     await renderAt('/p/ada-venue/describe')
     await draftFrom(POSTS)
-    await fireEvent.update(await screen.findByLabelText('About this venue'), '  ')
+    await screen.findByRole('button', { name: 'Use this description' }) // the draft has arrived
+    await fireEvent.update(screen.getByLabelText('About this venue'), '  ')
     expect(screen.getByRole('button', { name: 'Use this description' })).toBeDisabled()
     expect(screen.getByRole('link', { name: 'Not now' })).toHaveAttribute('href', '/p/ada-venue')
     expect(
@@ -238,20 +261,27 @@ describe('describing a venue: the AI draft', () => {
     expect(screen.getByLabelText('Post links')).toHaveValue(POSTS.join('\n'))
     expect(screen.getByRole('button', { name: 'Draft a description' })).toBeEnabled() // try again
     expect(screen.queryByRole('heading', { name: 'Read it, change it, then use it' })).toBeNull()
+    expect(draftingSection()).toHaveAttribute('open') // still open, to try again
   })
 
-  it('starts from the review of a description that is already there, and replaces it only when asked', async () => {
+  it('says a draft replaces what is in the box, and replaces a saved description only because it was asked', async () => {
     const { calls } = fakeServer({ ...bare, description: 'My own words.' })
     await renderAt('/p/ada-venue/describe')
     expect(await screen.findByLabelText('About this venue')).toHaveValue('My own words.')
     expect(screen.getByRole('button', { name: 'Save description' })).toBeEnabled()
     expect(screen.queryByText('AI draft')).toBeNull()
-    await fireEvent.click(
-      screen.getByRole('button', { name: /Draft from posts \(replaces this\)/ }),
-    )
     await draftFrom(POSTS)
     await screen.findByText('AI draft')
     expect((calls[0]!.body as { replace: boolean }).replace).toBe(true)
+  })
+
+  it('warns that a draft replaces the box only when there is something in it', async () => {
+    fakeServer()
+    await renderAt('/p/ada-venue/describe')
+    const box = await screen.findByLabelText('About this venue')
+    expect(screen.queryByText('A draft replaces what is in the box now.')).toBeNull()
+    await fireEvent.update(box, 'Half a thought')
+    expect(screen.getByText('A draft replaces what is in the box now.')).toBeInTheDocument()
   })
 })
 

@@ -181,10 +181,13 @@ taglines, bios, advice and writing for the venue). Nothing is spent until the bu
 
 ## Describing a venue: an optional page, and the origin follows the words (#136, part of #27)
 
-The flow is its own page, `/p/:profileId/describe` ("Describe this venue"), in two steps that are both skippable:
-**choose posts** (the picker from #134: the venue's recent posts and/or pasted links, from this venue or similar ones)
-and **Draft a description**, or **Write it myself**; then **read, change and use it**. It is reached from the new-profile form
-(**Create and describe it**), from the profile page's invitation, and from the profile settings, so it can be done later.
+The flow is its own page, `/p/:profileId/describe` ("Describe this venue"). **The first thing on it is the box to write the
+description in** (#146: the first version opened on a two-step flow that led with the post picker, which made drafting look like the
+main path). Under the box is a **collapsed** section, "Draft from a few posts": the picker from #134 (the venue's recent posts
+and/or pasted links, from this venue or similar ones), what is sent, and **Draft a description**. A draft fills the box, closes the
+section and moves focus to the box, to read, change and use. A note says a draft replaces what is in the box when there is
+something there. The page is reached from the new-profile form (**Create and describe it**), from the profile page's
+invitation, and from the profile settings, so it can be done later.
 
 - **Opt-in beside "Create profile", not a step in the way.** The first plan put it between creating and arriving. It
   is a second button instead: describing is optional, and a forced extra screen would have been the default for every

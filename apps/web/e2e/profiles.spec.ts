@@ -465,9 +465,8 @@ test('shows the description at the top of the profile page, clamped with Show mo
   const about = page.getByRole('region', { name: 'About this profile' })
   await expect(about.getByRole('link', { name: 'Add a description' })).toBeVisible()
 
-  // Writing it yourself is the other way round the describe page; saving goes back to the profile.
+  // The box to write in is the first thing on the describe page; saving goes back to the profile.
   await about.getByRole('link', { name: 'Add a description' }).click()
-  await page.getByRole('button', { name: 'Write it myself' }).click()
   const paragraphs = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} about the venue.`)
   await page.getByLabel('About this venue').fill(paragraphs.join('\n\n'))
   await page.getByRole('button', { name: 'Save description' }).click()
@@ -505,8 +504,12 @@ test('drafts a description from sample posts with the AI, which is used only onc
   await page.getByLabel(/Website/).fill('garden.example')
   await page.getByRole('button', { name: 'Create and describe it' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
-  await expect(page.getByText('Nothing is sent before that.')).toBeVisible()
+  // The box comes first; drafting from posts is folded away under it until asked for.
+  await expect(page.getByLabel('About this venue')).toBeVisible()
+  await expect(page.getByText('Nothing is sent before that.')).toBeHidden()
   await noViolations(page)
+  await page.getByText('Draft from a few posts', { exact: true }).click()
+  await expect(page.getByText('Nothing is sent before that.')).toBeVisible()
 
   // Choose a post from the venue's feed, and add one from a similar venue.
   await page.getByRole('button', { name: 'Find recent posts' }).click()
@@ -520,8 +523,11 @@ test('drafts a description from sample posts with the AI, which is used only onc
   await noViolations(page)
   await page.getByRole('button', { name: 'Draft a description' }).click()
 
-  // The draft is marked as the AI's, shows where it came from and is not in use yet.
+  // The draft fills the box (and the section folds away); it is marked as the AI's, shows where it came
+  // from and is not in use yet.
   await expect(page.getByRole('heading', { name: 'Read it, change it, then use it' })).toBeVisible()
+  await expect(page.getByLabel('About this venue')).toBeFocused()
+  await expect(page.getByText('Nothing is sent before that.')).toBeHidden()
   await expect(page.getByLabel('About this venue')).toHaveValue(
     /A fake description drawn from 2 posts/,
   )
