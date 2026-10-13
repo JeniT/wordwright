@@ -30,6 +30,15 @@ export const server = setupServer(
   ),
   // The default number of critiques a draft gets (the account page shows the setting).
   http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds: 3 })),
+  // The AI buttons read which provider's key they spend; a key is set unless a test says otherwise.
+  http.get('*/api/llm', () =>
+    HttpResponse.json({
+      provider: 'anthropic',
+      model: 'claude-sonnet-5-5',
+      hasKey: true,
+      keyHint: '…7890',
+    }),
+  ),
   // No feeds yet, and so no recent posts.
   http.get('*/api/profiles/:profileId/sources', () => HttpResponse.json([])),
   // An empty reading list (the profile's, which the Read page shows).

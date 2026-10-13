@@ -97,6 +97,11 @@ const removeLlmKey = useMutation({
       >
       and paste it below. It's stored encrypted and never shown again.
     </p>
+    <p v-if="!props.guide" class="mb-3 text-sm text-ink-soft">
+      <Icon name="ai" :size="16" class="mr-1 inline align-text-bottom" />
+      A button with this mark sends your text to your AI and uses your key, so it costs tokens;
+      while it works, the mark turns into a spinner. Buttons without the mark never do.
+    </p>
     <p v-if="llm.data.value && !props.guide" role="status" class="mb-3 text-sm">
       <template v-if="llm.data.value.hasKey"
         >Anthropic key saved ({{ llm.data.value.keyHint }}).</template

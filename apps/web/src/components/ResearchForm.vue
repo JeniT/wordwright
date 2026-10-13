@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import { RESEARCH_AREAS_MAX } from '@lfwa/core'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
+import AiButton from './AiButton.vue'
 
 /**
  * The box for asking the AI to research an idea, shared by the Research page and the idea's landing page. Nothing
@@ -56,14 +57,16 @@ function submit() {
       For example: how fast river bends move, and what engineers have learned from straightening
       rivers. You can research other areas afterwards. Searching can take up to a minute.
     </p>
-    <button
+    <AiButton
       type="submit"
       class="btn btn-primary"
-      :disabled="!areas.trim() || search.isPending.value"
+      :busy="search.isPending.value"
+      busy-text="Searching the web. This can take up to a minute."
+      :disabled="!areas.trim()"
     >
-      {{ search.isPending.value ? 'Searching…' : 'Research' }}
-    </button>
-    <p v-if="search.isPending.value" role="status" class="mt-2 text-sm text-ink-soft">
+      Research
+    </AiButton>
+    <p v-if="search.isPending.value" class="mt-2 text-sm text-ink-soft">
       Searching the web. This can take up to a minute.
     </p>
     <div

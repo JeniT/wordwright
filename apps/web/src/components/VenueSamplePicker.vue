@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { api } from '../lib/api'
 import { displayHost } from '../lib/useProfiles'
+import AiButton from './AiButton.vue'
 import SaveStatus from './SaveStatus.vue'
 import TextAreaField from './TextAreaField.vue'
 
@@ -24,8 +25,10 @@ const props = withDefaults(
     /** True while whatever `use` started is working: the final button waits, saying `busyLabel`. */
     busy?: boolean
     busyLabel?: string
+    /** What `use` starts is an AI call: the final button is an AI button, and keeps its label while it works. */
+    ai?: boolean
   }>(),
-  { useLabel: 'Use these posts', busy: false, busyLabel: 'Working…' },
+  { useLabel: 'Use these posts', busy: false, busyLabel: 'Working…', ai: false },
 )
 const emit = defineEmits<{ use: [samples: ReadSample[]] }>()
 
@@ -171,14 +174,16 @@ const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length
             </template>
           </li>
         </ul>
-        <button
+        <component
+          :is="ai ? AiButton : 'button'"
           type="button"
           class="btn btn-primary mt-3"
-          :disabled="!readable.length || busy"
+          :disabled="!readable.length || (!ai && busy)"
+          v-bind="ai ? { busy, busyText: busyLabel } : {}"
           @click="emit('use', readable)"
         >
-          {{ busy ? busyLabel : useLabel }}
-        </button>
+          {{ !ai && busy ? busyLabel : useLabel }}
+        </component>
         <p v-if="!readable.length" class="mt-2 text-sm text-ink-soft">
           None of those could be read. Change the links above and read them again.
         </p>

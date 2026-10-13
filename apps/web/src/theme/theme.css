@@ -170,6 +170,11 @@
     cursor: not-allowed;
   }
 }
+/* An AI button that is working keeps the full strength of its spinner: the spinner is the news. */
+.btn[aria-busy='true']:disabled {
+  opacity: 0.85;
+  cursor: progress;
+}
 @utility btn-sm {
   min-height: 2.25rem;
   padding: 0.25rem 0.8rem;

@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import AiButton from '../components/AiButton.vue'
 import CritiquePanel from '../components/CritiquePanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
@@ -269,10 +270,18 @@ async function showInDraft(id: string) {
   editor.value?.focusPoint(id)
 }
 
+/** Busy from the press, through saving the latest text, until the comments (or why not) arrive. */
+const requestingCritique = ref(false)
+const critiquing = computed(() => requestingCritique.value || critique.isPending.value)
 async function requestCritique() {
-  await save.mutateAsync() // critique the latest text
-  sideTab.value = 'comments' // so the wait, and the answer, are in view
-  critique.mutate()
+  requestingCritique.value = true
+  try {
+    await save.mutateAsync() // critique the latest text
+    sideTab.value = 'comments' // so the wait, and the answer, are in view
+    critique.mutate()
+  } finally {
+    requestingCritique.value = false
+  }
 }
 </script>
 
@@ -323,15 +332,16 @@ async function requestCritique() {
           >
             Save
           </button>
-          <button
-            type="button"
-            class="rounded-ctl border border-accent px-4 py-2 text-sm font-medium text-accent hover:bg-sunken disabled:opacity-60"
-            :disabled="critique.isPending.value || outOfLooks"
+          <AiButton
+            class="btn btn-outline"
+            :busy="critiquing"
+            busy-text="Reading your draft…"
+            :disabled="outOfLooks"
             :aria-describedby="looks ? 'critique-looks' : undefined"
             @click="requestCritique"
           >
             Critique
-          </button>
+          </AiButton>
           <button
             v-if="draft.data.value?.ideaId"
             ref="openButton"

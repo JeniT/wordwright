@@ -138,8 +138,12 @@ describe('the research page', () => {
     await renderAt(page)
     await fireEvent.update(await areasBox(), 'Anything')
     await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
-    expect(await screen.findByRole('button', { name: 'Searching…' })).toBeDisabled()
-    expect(screen.getByText(/Searching the web. This can take up to a minute./)).toBeInTheDocument()
+    // The button keeps its label (and its width), is busy, and the wait is read out once.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Research' })).toBeDisabled())
+    expect(screen.getByRole('button', { name: 'Research' })).toHaveAttribute('aria-busy', 'true')
+    expect(document.querySelector('[aria-live=polite]')).toHaveTextContent(
+      'Searching the web. This can take up to a minute.',
+    )
     expect(screen.getByLabelText('What areas do you want to research?')).toBeDisabled()
     release()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Research' })).toBeDisabled())

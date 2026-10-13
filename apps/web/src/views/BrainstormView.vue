@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import type { ConversationMessage, Proposal, RecordedNote, SendMessageInput } from '@lfwa/core'
+import AiButton from '../components/AiButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Markdown from '../components/Markdown.vue'
 import NextStep from '../components/NextStep.vue'
@@ -82,7 +83,7 @@ async function send(body: SendMessageInput, restore?: string) {
   if (streaming.value) return
   replyProblem.value = null
   streaming.value = { text: '', proposals: [], notes: [] }
-  announcement.value = 'The coach is replying…'
+  announcement.value = ''
   controller = new AbortController()
   try {
     await api.streamReply(
@@ -235,9 +236,14 @@ const busyNote = computed(() =>
             answer. It adds the points you make to the idea's notes as you go, and can suggest a
             sharper title or a separate new idea, but only you decide on those.
           </p>
-          <button type="button" class="btn btn-primary" @click="send({ start: true })">
+          <AiButton
+            class="btn btn-primary"
+            :busy="!!streaming"
+            busy-text="The coach is replying…"
+            @click="send({ start: true })"
+          >
             Start brainstorming
-          </button>
+          </AiButton>
         </section>
 
         <div v-else role="log" aria-label="Conversation" aria-relevant="additions" class="mb-4">
@@ -308,9 +314,14 @@ const busyNote = computed(() =>
 
         <div v-if="unanswered" class="mb-4 panel p-3">
           <p class="mb-2 text-ink-soft">Your coach hasn't replied to the last message.</p>
-          <button type="button" class="btn btn-outline" @click="send({ retry: true })">
+          <AiButton
+            class="btn btn-outline"
+            :busy="!!streaming"
+            busy-text="The coach is replying…"
+            @click="send({ retry: true })"
+          >
             Try again
-          </button>
+          </AiButton>
         </div>
 
         <p v-if="busyNote" role="status" class="mb-4 text-ink-soft">{{ busyNote }}</p>
@@ -331,15 +342,18 @@ const busyNote = computed(() =>
             Press Ctrl+Enter (⌘+Enter on a Mac) to send.
           </p>
           <div class="flex items-center gap-3">
-            <button
-              v-if="!streaming"
+            <AiButton
               type="submit"
               class="btn btn-primary"
+              :busy="!!streaming"
+              busy-text="The coach is replying…"
               :disabled="!draft.trim() || !!replyingNow"
             >
               Send
+            </AiButton>
+            <button v-if="streaming" type="button" class="btn btn-neutral" @click="stop">
+              Stop
             </button>
-            <button v-else type="button" class="btn btn-neutral" @click="stop">Stop</button>
           </div>
         </form>
 

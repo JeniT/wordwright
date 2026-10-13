@@ -172,7 +172,10 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Reads the words of up to five posts. Nothing is saved; no AI is involved. */
     venueSamples: (id: string, input: VenueSamplesInput) =>
       get(VenueSamplesSchema, 'POST', `/profiles/${id}/venue/samples`, input),
-    /** An AI draft of the venue's description from sample posts, saved unconfirmed (it spends the person's own key). */
+    /**
+     * An AI draft of the venue's description from sample posts, saved unconfirmed (it spends the person's own key).
+     * @ai
+     */
     draftVenueDescription: (id: string, input: VenueDraftInput) =>
       get(VenueDraftSchema, 'POST', `/profiles/${id}/venue/description`, input),
     /** Accepts the AI draft as it stands, so it may be used as context. */
@@ -380,6 +383,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      * calling `onEvent` for each event. Resolves when the reply ends; rejects with an `ApiError` if it
      * couldn't begin (no key, someone else's reply in progress, too many messages...), and with an
      * `AbortError` if `signal` is aborted. Failures during the reply arrive as an `error` event.
+     * @ai
      */
     streamReply: async (
       profileId: string,
@@ -431,7 +435,10 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // research: searches for reading, apart from the conversation
     getResearch: (profileId: string, ideaId: string) =>
       get(ResearchRunsSchema, 'GET', research(profileId, ideaId)),
-    /** Asks the person's AI to search the web for these areas. Can take up to a minute. */
+    /**
+     * Asks the person's AI to search the web for these areas. Can take up to a minute.
+     * @ai
+     */
     runResearch: (profileId: string, ideaId: string, areas: string) =>
       get(ResearchRunSchema, 'POST', research(profileId, ideaId), { areas }),
     /** Adds the ticked pages of a run to the idea's reading list. */
@@ -456,7 +463,10 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(DraftSchema, 'GET', `${drafts(profileId)}/${id}`),
     updateDraft: (profileId: string, id: string, input: DraftInput) =>
       get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
-    /** Asks for a critique of the saved draft; it is kept with the draft. */
+    /**
+     * Asks for a critique of the saved draft; it is kept with the draft.
+     * @ai
+     */
     critique: (profileId: string, draftId: string) =>
       get(CritiqueStateSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
     /** The latest critique of the draft (null if none), and how many of its looks are used. */

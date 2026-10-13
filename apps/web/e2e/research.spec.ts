@@ -45,6 +45,10 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
   await expect(page.getByText(/Nothing yet/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled()
+  // The button says it spends the writer's own key, and it is the only kind of button that does.
+  await expect(
+    page.getByRole('button', { name: 'Research', exact: true }),
+  ).toHaveAccessibleDescription('Uses your Anthropic key, so it costs tokens')
   await noViolations(page, 'empty research page')
 
   await page.getByLabel('What areas do you want to research?').fill('How fast river bends migrate')

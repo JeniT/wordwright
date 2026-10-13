@@ -119,6 +119,7 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `btn btn-quiet`                                                   | Icon-only and low-emphasis actions (edit, remove, reorder grips). Keeps a faint outline                                                                                                                                                                                         |
 | `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                                                                                                                                                                     |
 | `btn-icon`                                                        | With `btn-sm btn-quiet`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                                                                                                                                                                         |
+| `AiButton` (with a `btn` variant)                                 | Every button that makes an AI request, or leads straight to one: see _AI buttons_ below                                                                                                                                                                                         |
 | `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_                                                                                                                                                            |
 | `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is the drag handle (`list-rail-grab`, with a `list-rail-grip` glyph) and holds the arrows                                                                                                                |
 | `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones                                                                                                                                                 |
@@ -130,6 +131,27 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `tab` (+ `TabPanels`)                                             | Tabs for areas that share one place (beside the draft: Notes, Reading list, Comments). Selected is bold with a heavy underline and `aria-selected`; arrow keys move; panels stay mounted. The tab names its panel, so a heading inside repeats nothing visibly: it is `sr-only` |
 | `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                                                                                                                                                                     |
 | `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                                                                                                                                                                             |
+
+### AI buttons
+
+Every press of a button that sends something to the writer's AI spends tokens on their own key, so the button says so
+before it is pressed and while it works (`docs/responsible-ai.md`: the writer is always told what an AI call is).
+
+- **One component, `AiButton`**, takes the place of the `<button>`. Give it the `btn` variant the action already
+  has (Critique is `btn-outline`, Send `btn-primary`): the AI mark does not change the hierarchy, and there is no
+  separate "AI colour". It carries the **AI icon** (`Icon name="ai"`, sparkles) beside the visible label.
+- **Busy:** pass `busy` and `busy-text`. The icon is replaced by a spinner (`Icon name="working"`) of the same size,
+  the label does not change (so the button keeps its width), the button is disabled with `aria-busy="true"`, and
+  `busy-text` is read out through a polite live region the component owns (don't add a second status for the
+  same wait). Under reduced motion the spinner stays still: the busy button and its words are the signal.
+- **Meaning:** the icon is never alone. The words "Uses your Anthropic key, so it costs tokens" are the button's
+  tooltip and its accessible description, and the account page (AI assistant) explains the mark once.
+- **Which buttons:** the ones whose press makes an LLM request (Critique, Brainstorm's Start/Send/Try again, Research,
+  Draft a description) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
+  which open the conversation where the reply is written). Not the buttons around them: Save, Add note, Accept or
+  Dismiss on a suggestion, Stop. The API-key check on saving the key is not shown as an AI action (the owner's call).
+- **Adding one:** tag the API function `@ai` in `lib/api.ts`, use `AiButton` where it is called, and list it in
+  `lib/ai-buttons.test.ts`, which fails when an AI call is used by a component without the pattern.
 
 ### The description editor
 

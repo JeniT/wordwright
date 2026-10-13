@@ -138,6 +138,7 @@ const accept = useMutation({
           :site-url="profile.siteUrl"
           use-label="Draft a description"
           busy-label="Drafting…"
+          ai
           :busy="draft.isPending.value"
           @use="draft.mutate($event.map((s) => s.url))"
         />

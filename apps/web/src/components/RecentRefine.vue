@@ -7,6 +7,7 @@ import { holdMessage } from '../lib/pending-message'
 import { queryKeys } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import Markdown from './Markdown.vue'
+import AiButton from './AiButton.vue'
 import QueryState from './QueryState.vue'
 
 /**
@@ -71,7 +72,7 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
           or a separate new idea, but only you decide on those. Your idea, its notes and links, and
           this publication’s details are sent to your AI provider; the text of your drafts never is.
         </p>
-        <button type="button" class="btn btn-primary" @click="start">Start brainstorming</button>
+        <AiButton class="btn btn-primary" @click="start">Start brainstorming</AiButton>
       </div>
       <template v-else>
         <div v-if="latest" class="panel-sunken mb-4 p-3">
@@ -101,7 +102,9 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
           <p id="landing-reply-hint" class="mb-2 text-sm text-ink-soft">
             Sending takes you to the conversation, where your reply is written.
           </p>
-          <button type="submit" class="btn btn-outline" :disabled="!message.trim()">Send</button>
+          <AiButton type="submit" class="btn btn-outline" :disabled="!message.trim()"
+            >Send</AiButton
+          >
         </form>
       </template>
     </QueryState>

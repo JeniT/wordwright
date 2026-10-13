@@ -300,11 +300,16 @@ describe('the brainstorm page', () => {
 
     expect(await screen.findByText('Thinking…')).toBeInTheDocument()
     expect(screen.getByLabelText('Your message')).toBeDisabled()
+    // Send stays in its place, busy, with Stop beside it.
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Send' })).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled()
     release()
     expect(await screen.findByText(/Half a thought/)).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
     await waitFor(() => expect(screen.getByLabelText('Your message')).toBeEnabled())
-    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send' })).toHaveAttribute('aria-busy', 'false')
+    expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull()
   })
 
   describe('when a reply fails', () => {
