@@ -4,14 +4,7 @@ import { computed, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
-import {
-  hasTag,
-  orderWithHidden,
-  parseTags,
-  sameTags,
-  tagsToText,
-  tagsUsedOn,
-} from '../lib/note-tags'
+import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
 import BulkTagPanel from './BulkTagPanel.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -22,9 +15,9 @@ import MoveTo from './MoveTo.vue'
 import NoteCard from './NoteCard.vue'
 import ReorderableList from './ReorderableList.vue'
 import SwitchField from './SwitchField.vue'
+import TagEditor from './TagEditor.vue'
 import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
-import TextField from './TextField.vue'
 import QueryState from './QueryState.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
@@ -76,7 +69,6 @@ const add = useMutation({
 
 // ---- editing one note at a time
 const editText = ref('')
-const editTags = ref('')
 const list = ref<HTMLElement>()
 const {
   editing: editingId,
@@ -90,28 +82,27 @@ const {
 function startEditing(note: IdeaNote) {
   save.reset()
   editText.value = note.text
-  editTags.value = tagsToText(note.tags)
   return start(note.id)
 }
 const save = useMutation({
-  // Only what changed is sent: the text, and the tags as a whole set.
-  mutationFn: async (note: IdeaNote) => {
-    let saved = note
-    if (editText.value.trim() !== note.text) {
-      saved = await api.updateIdeaNote(props.profileId, props.ideaId, note.id, editText.value)
-    }
-    const tags = parseTags(editTags.value)
-    if (!sameTags(tags, note.tags)) {
-      saved = await api.setIdeaNoteTags(props.profileId, props.ideaId, note.id, tags)
-    }
-    return saved
-  },
+  // Only a changed text is sent; tags are set on their own, under each note.
+  mutationFn: async (note: IdeaNote) =>
+    editText.value.trim() !== note.text
+      ? api.updateIdeaNote(props.profileId, props.ideaId, note.id, editText.value)
+      : note,
   onSuccess: async (note) => {
     setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === note.id ? note : n)))
     await stopEditing()
     await refreshAround()
   },
 })
+
+/** Gives a note exactly these tags (one more or one fewer than before, each time the person presses Enter). */
+async function saveTags(note: IdeaNote, tags: string[]) {
+  const saved = await api.setIdeaNoteTags(props.profileId, props.ideaId, note.id, tags)
+  setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === saved.id ? saved : n)))
+  await refreshAround()
+}
 
 // ---- selecting notes for a bulk action (Merge, Move to…, Delete). The tick is always there, in each row's rail.
 const selected = ref<string[]>([])
@@ -522,25 +513,6 @@ const label = (note: IdeaNote) => {
               <p v-if="split.isError.value" role="alert" class="mb-3 text-danger">
                 {{ errorMessage(split.error.value) }}
               </p>
-              <TextField
-                v-model="editTags"
-                :label="`Tags for ${label(note)}`"
-                autocomplete="off"
-                hint="Separate tags with commas, for example: intro, part 2. Use the same word on other notes to group them."
-              />
-              <p v-if="usedTags.length" class="mb-4 -mt-2 text-xs text-ink-soft">
-                Already used:
-                <button
-                  v-for="tag in usedTags"
-                  :key="tag"
-                  type="button"
-                  class="mr-1 underline"
-                  :aria-label="`Add the tag ${tag}`"
-                  @click="editTags = tagsToText(parseTags(`${editTags}, ${tag}`))"
-                >
-                  {{ tag }}
-                </button>
-              </p>
               <div class="flex gap-2">
                 <button
                   type="submit"
@@ -559,7 +531,16 @@ const label = (note: IdeaNote) => {
                 </button>
               </div>
             </form>
-            <NoteCard v-else :note="note" :reading-list="readingList" />
+            <NoteCard v-else :note="note" :reading-list="readingList">
+              <template #tags>
+                <TagEditor
+                  :label="label(note)"
+                  :tags="note.tags"
+                  :suggestions="usedTags"
+                  :save="(tags) => saveTags(note, tags)"
+                />
+              </template>
+            </NoteCard>
           </template>
           <template #actions="{ item: note }">
             <button

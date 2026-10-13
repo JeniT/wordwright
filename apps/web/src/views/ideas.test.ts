@@ -468,54 +468,56 @@ describe('idea page', () => {
       expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
     })
 
-    it('edits a link’s tags with its address and title, sending only what changed', async () => {
-      const calls: string[] = []
-      let tags: unknown
+    it('adds and removes a link’s tags under it, one at a time, saving each', async () => {
+      const sent: string[][] = []
       await openTagged([
-        http.patch(`${ideaUrl}/links/l1`, () => {
-          calls.push('link')
-          return HttpResponse.json(tagged)
-        }),
         http.put(`${ideaUrl}/links/l1/tags`, async ({ request }) => {
-          calls.push('tags')
-          tags = ((await request.json()) as { tags: string[] }).tags
+          const tags = ((await request.json()) as { tags: string[] }).tags
+          sent.push(tags)
           return HttpResponse.json({
             ...tagged,
-            links: [{ ...tagged.links[0]!, tags: tags as string[] }, ...tagged.links.slice(1)],
+            links: [{ ...tagged.links[0]!, tags }, ...tagged.links.slice(1)],
           })
         }),
       ])
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
-      const field = screen.getByLabelText('Tags for this link (optional)')
-      expect(field).toHaveValue('background, part 2')
-      await fireEvent.update(field, '')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add the tag part 2' })) // already used elsewhere
-      expect(field).toHaveValue('part 2')
-      await fireEvent.update(field, 'part 2, new one')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
-      await waitFor(() => expect(tags).toEqual(['part 2', 'new one']))
-      expect(calls).toEqual(['link', 'tags'])
-      await waitFor(() =>
-        expect(screen.queryByLabelText('Tags for this link (optional)')).toBeNull(),
+      await fireEvent.click(await screen.findByRole('button', { name: 'Add tags to A paper' }))
+      const field = screen.getByLabelText('Add a tag to A paper')
+      await fireEvent.update(field, 'new one')
+      await fireEvent.keyDown(field, { key: 'Enter' })
+      await waitFor(() => expect(sent).toEqual([['background', 'part 2', 'new one']]))
+      expect(field).toHaveValue('')
+      await fireEvent.click(
+        screen.getByRole('button', { name: 'Remove the tag background from A paper' }),
       )
+      await waitFor(() => expect(sent.at(-1)).toEqual(['part 2', 'new one']))
+      await fireEvent.click(screen.getByRole('button', { name: 'Done tagging A paper' }))
+      expect(screen.queryByLabelText('Add a tag to A paper')).toBeNull()
       expect(
         within(screen.getAllByRole('list', { name: 'Tags' })[0]!).getByText('new one'),
       ).toBeInTheDocument()
     })
 
-    it('says why tags could not be saved, and stays open with the words', async () => {
+    it('is not part of the edit form any more, which is for the address and title', async () => {
+      await openTagged()
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
+      expect(screen.queryByLabelText(/^Tags for/)).toBeNull()
+      expect(screen.getByLabelText('Title of this link (optional)')).toBeInTheDocument()
+    })
+
+    it('says why a tag could not be saved, and takes it off again', async () => {
       await openTagged([
-        http.patch(`${ideaUrl}/links/l1`, () => HttpResponse.json(tagged)),
         http.put(`${ideaUrl}/links/l1/tags`, () =>
           HttpResponse.json({ error: 'Use 10 tags or fewer on a note' }, { status: 400 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
-      const field = screen.getByLabelText('Tags for this link (optional)')
-      await fireEvent.update(field, 'a, b')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
+      await fireEvent.click(await screen.findByRole('button', { name: 'Add tags to A paper' }))
+      const field = screen.getByLabelText('Add a tag to A paper')
+      await fireEvent.update(field, 'a')
+      await fireEvent.keyDown(field, { key: 'Enter' })
       expect(await screen.findByText('Use 10 tags or fewer on a note')).toHaveClass('text-danger')
-      expect(field).toHaveValue('a, b')
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Remove the tag a from A paper' })).toBeNull(),
+      )
     })
   })
 
@@ -594,12 +596,13 @@ describe('idea page', () => {
       const panel = screen.getByRole('form', { name: /Tag the 2 links/ })
       expect(within(panel).getByText('On 1 of the 2 selected.')).toBeInTheDocument()
       await fireEvent.click(within(panel).getByRole('switch', { name: 'Remove “background”' }))
-      await fireEvent.update(screen.getByLabelText('Add tags'), 'part 2')
+      await fireEvent.update(screen.getByLabelText('Add a tag'), 'part 2')
+      await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
       await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 links' }))
       await waitFor(() =>
         expect(sent).toEqual([{ ids: ['l1', 'l2'], add: ['part 2'], remove: ['background'] }]),
       )
-      await waitFor(() => expect(screen.queryByLabelText('Add tags')).toBeNull())
+      await waitFor(() => expect(screen.queryByLabelText('Add a tag')).toBeNull())
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       expect(screen.getByText('Tagged 2 links.')).toBeInTheDocument()
       expect(screen.getByText('2 selected')).toBeInTheDocument()
@@ -614,10 +617,11 @@ describe('idea page', () => {
       await screen.findByRole('link', { name: /A paper/ })
       await fireEvent.click(tick('A paper'))
       await fireEvent.click(tagButton())
-      await fireEvent.update(screen.getByLabelText('Add tags'), 'x')
+      await fireEvent.update(screen.getByLabelText('Add a tag'), 'x')
+      await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
       await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
       expect(await screen.findByText('A link can have up to 10 tags')).toBeInTheDocument()
-      expect(screen.getByLabelText('Add tags')).toHaveValue('x')
+      expect(screen.getByRole('list', { name: 'Tags to add' })).toHaveTextContent('x')
     })
 
     it('works for the profile’s own list too, and closes when Move to… opens', async () => {
@@ -637,9 +641,10 @@ describe('idea page', () => {
       await fireEvent.click(tick('Other'))
       await fireEvent.click(tagButton())
       await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-      expect(screen.queryByLabelText('Add tags')).toBeNull()
+      expect(screen.queryByLabelText('Add a tag')).toBeNull()
       await fireEvent.click(tagButton())
-      await fireEvent.update(screen.getByLabelText('Add tags'), 'later')
+      await fireEvent.update(screen.getByLabelText('Add a tag'), 'later')
+      await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
       await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
       await waitFor(() => expect(sent).toEqual([{ ids: ['l2'], add: ['later'], remove: [] }]))
     })
@@ -1181,51 +1186,89 @@ describe('idea page', () => {
         await screen.findByText('Only one.')
         await fireEvent.click(within(region()).getByRole('button', { name: 'solo' }))
         expect(texts()).toEqual(['Only one.'])
-        await fireEvent.click(screen.getByRole('button', { name: /^Edit note “Only one\.”/ }))
-        await fireEvent.update(screen.getByLabelText(/^Tags for note/), '')
-        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+        await fireEvent.click(
+          screen.getByRole('button', { name: /^Add tags to note “Only one\.”/ }),
+        )
+        await fireEvent.click(
+          screen.getByRole('button', { name: /^Remove the tag solo from note “Only one\.”/ }),
+        )
         await waitFor(() => expect(texts()).toEqual(['Only one.', 'Other.']))
         expect(within(region()).queryByRole('group', { name: 'Show notes with a tag' })).toBeNull()
       })
 
-      it('are edited with the note: tidied and sent as a whole set, without resending unchanged text', async () => {
+      it('are added one at a time under the note: Enter saves a tag and keeps the field, the tick closes it', async () => {
         const api = fakeNotes(tagged())
         await open()
-        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Deposition/ }))
-        const field = screen.getByLabelText(/^Tags for note “Deposition/)
-        expect(field).toHaveValue('draft 2')
-        expect(field).toHaveAccessibleDescription(/Separate tags with commas/)
-        await fireEvent.update(field, '  draft 2 , Part   three,, PART THREE ')
-        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
-
+        const opener = await screen.findByRole('button', { name: /^Add tags to note “Deposition/ })
+        await fireEvent.click(opener)
+        const field = screen.getByLabelText(/^Add a tag to note “Deposition/)
+        await waitFor(() => expect(field).toHaveFocus())
+        await fireEvent.update(field, '  Part   three ')
+        await fireEvent.keyDown(field, { key: 'Enter' })
         await waitFor(() =>
           expect(api.tagged).toEqual([{ id: 'n2', tags: ['draft 2', 'Part three'] }]),
         )
-        expect(api.sent).toEqual([]) // the text was not changed, so it was not sent
-        expect(await screen.findByRole('button', { name: /^Edit note “Deposition/ })).toHaveFocus()
+        expect(field).toHaveValue('') // emptied, and still there for the next
+        expect(field).toHaveFocus()
+        await fireEvent.update(field, 'PART THREE')
+        await fireEvent.keyDown(field, { key: 'Enter' }) // already there, ignoring case
+        await fireEvent.update(field, 'a, b')
+        await fireEvent.keyDown(field, { key: 'Enter' }) // a comma separates too
+        await waitFor(() =>
+          expect(api.tagged.at(-1)).toEqual({
+            id: 'n2',
+            tags: ['draft 2', 'Part three', 'a', 'b'],
+          }),
+        )
+        await fireEvent.click(
+          screen.getByRole('button', { name: /^Done tagging note “Deposition/ }),
+        )
+        expect(screen.queryByLabelText(/^Add a tag to note/)).toBeNull()
+        expect(
+          await screen.findByRole('button', { name: /^Add tags to note “Deposition/ }),
+        ).toHaveFocus()
+        expect(api.sent).toEqual([]) // no text was sent
       })
 
-      it('saves a changed text and changed tags together', async () => {
+      it('can be taken off again while the field is open', async () => {
         const api = fakeNotes(tagged())
         await open()
-        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Untagged/ }))
-        await fireEvent.update(screen.getByLabelText(/^Text of note/), 'Tagged thought.')
-        await fireEvent.update(screen.getByLabelText(/^Tags for note/), 'intro')
-        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
-        await waitFor(() => expect(api.tagged).toEqual([{ id: 'n3', tags: ['intro'] }]))
-        expect(api.sent).toEqual([{ text: 'Tagged thought.' }])
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Add tags to note “Deposition/ }),
+        )
+        await fireEvent.click(
+          screen.getByRole('button', { name: /^Remove the tag draft 2 from note “Deposition/ }),
+        )
+        await waitFor(() => expect(api.tagged).toEqual([{ id: 'n2', tags: [] }]))
       })
 
-      it('can be picked from the ones already used', async () => {
+      it('also tag a quotation, whose words cannot be edited', async () => {
+        const api = fakeNotes([{ ...note('n9', 'Exact words.', 'reading'), quote: true }])
+        await open()
+        await screen.findByText('Exact words.')
+        expect(screen.queryByRole('button', { name: /^Edit note/ })).toBeNull()
+        await fireEvent.click(
+          screen.getByRole('button', { name: /^Add tags to note “Exact words/ }),
+        )
+        const field = screen.getByLabelText(/^Add a tag to note “Exact words/)
+        await fireEvent.update(field, 'cited')
+        await fireEvent.keyDown(field, { key: 'Enter' })
+        await waitFor(() => expect(api.tagged).toEqual([{ id: 'n9', tags: ['cited'] }]))
+      })
+
+      it('offer the tags already used as the person types', async () => {
         fakeNotes(tagged())
         await open()
-        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Untagged/ }))
-        await fireEvent.click(screen.getByRole('button', { name: 'Add the tag draft 2' }))
-        await fireEvent.click(screen.getByRole('button', { name: 'Add the tag intro' }))
-        expect(screen.getByLabelText(/^Tags for note/)).toHaveValue('draft 2, intro')
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Add tags to note “Untagged/ }),
+        )
+        const options = [...document.querySelectorAll('datalist option')].map((o) =>
+          o.getAttribute('value'),
+        )
+        expect(options).toEqual(['intro', 'draft 2'])
       })
 
-      it('show the explanation when the tags are refused, and keep the form open', async () => {
+      it('say why a tag was refused, and take it off the note again', async () => {
         fakeNotes(tagged())
         server.use(
           http.put(`${notesUrl}/n3/tags`, () =>
@@ -1233,11 +1276,32 @@ describe('idea page', () => {
           ),
         )
         await open()
-        await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Untagged/ }))
-        await fireEvent.update(screen.getByLabelText(/^Tags for note/), 'a, b')
-        await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Add tags to note “Untagged/ }),
+        )
+        const field = screen.getByLabelText(/^Add a tag to note “Untagged/)
+        await fireEvent.update(field, 'a')
+        await fireEvent.keyDown(field, { key: 'Enter' })
         expect(await screen.findByText('Use 10 tags or fewer on a note')).toBeInTheDocument()
-        expect(screen.getByLabelText(/^Tags for note/)).toHaveValue('a, b')
+        await waitFor(() =>
+          expect(
+            screen.queryByRole('button', { name: /^Remove the tag a from note “Untagged/ }),
+          ).toBeNull(),
+        )
+      })
+
+      it('stop at ten, saying so, without asking the server', async () => {
+        const full = Array.from({ length: 10 }, (_, i) => `t${i}`)
+        const api = fakeNotes([{ ...note('n1', 'Full.'), tags: full }])
+        await open()
+        await fireEvent.click(
+          await screen.findByRole('button', { name: /^Add tags to note “Full/ }),
+        )
+        const field = screen.getByLabelText(/^Add a tag to note “Full/)
+        await fireEvent.update(field, 'eleven')
+        await fireEvent.keyDown(field, { key: 'Enter' })
+        expect(await screen.findByText(/Use 10 tags or fewer/)).toBeInTheDocument()
+        expect(api.tagged).toEqual([])
       })
     })
 
@@ -1246,6 +1310,11 @@ describe('idea page', () => {
         screen.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) })
       const tagButton = () => screen.getByRole('button', { name: 'Tag…' })
       const tagged = (tags: string[]) => ({ ...note('n1', 'Erosion loops.'), tags })
+      const enter = async (text: string) => {
+        const field = screen.getByLabelText('Add a tag')
+        await fireEvent.update(field, text)
+        await fireEvent.keyDown(field, { key: 'Enter' })
+      }
 
       it('has Tag… in the toolbar, only enabled once notes are selected', async () => {
         fakeNotes()
@@ -1265,7 +1334,8 @@ describe('idea page', () => {
         await fireEvent.click(tagButton())
         const send = () => screen.getByRole('button', { name: 'Tag 2 notes' })
         expect(send()).toBeDisabled() // nothing to do yet
-        await fireEvent.update(screen.getByLabelText('Add tags'), 'Part 2, intro')
+        await enter('Part 2')
+        await enter('intro')
         await fireEvent.click(send())
         await waitFor(() =>
           expect(api.bulkTagged).toEqual([
@@ -1274,7 +1344,7 @@ describe('idea page', () => {
         )
         // Shown on the notes, the panel closes, and the two are still selected.
         expect(await screen.findAllByText('Part 2')).not.toHaveLength(0)
-        await waitFor(() => expect(screen.queryByLabelText('Add tags')).toBeNull())
+        await waitFor(() => expect(screen.queryByLabelText('Add a tag')).toBeNull())
         expect(screen.getByText('2 selected')).toBeInTheDocument()
         expect(screen.getByText('Tagged 2 notes.')).toBeInTheDocument()
       })
@@ -1290,8 +1360,10 @@ describe('idea page', () => {
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tick('Deposition'))
         await fireEvent.click(tagButton())
-        await fireEvent.click(screen.getByRole('button', { name: 'Add the tag draft' }))
-        expect(screen.getByLabelText('Add tags')).toHaveValue('draft')
+        expect(
+          [...document.querySelectorAll('datalist option')].map((o) => o.getAttribute('value')),
+        ).toEqual(['intro', 'draft'])
+        await enter('draft')
         const panel = screen.getByRole('form', { name: /Tag the 2 notes/ })
         expect(within(panel).getByText('On 2 of the 2 selected.')).toBeInTheDocument()
         expect(within(panel).getByText('On 1 of the 2 selected.')).toBeInTheDocument()
@@ -1311,7 +1383,7 @@ describe('idea page', () => {
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tagButton())
         await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-        expect(screen.queryByLabelText('Add tags')).toBeNull()
+        expect(screen.queryByLabelText('Add a tag')).toBeNull()
         expect(api.bulkTagged).toEqual([])
       })
 
@@ -1326,10 +1398,10 @@ describe('idea page', () => {
         await screen.findByText('Erosion loops.')
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tagButton())
-        await fireEvent.update(screen.getByLabelText('Add tags'), 'x')
+        await enter('x')
         await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 note' }))
         expect(await screen.findByText('A note can have up to 10 tags')).toBeInTheDocument()
-        expect(screen.getByLabelText('Add tags')).toHaveValue('x')
+        expect(screen.getByRole('list', { name: 'Tags to add' })).toHaveTextContent('x')
         expect(screen.getByText('1 selected')).toBeInTheDocument()
       })
 
@@ -1339,9 +1411,9 @@ describe('idea page', () => {
         await screen.findByText('Erosion loops.')
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tagButton())
-        expect(screen.getByLabelText('Add tags')).toBeInTheDocument()
+        expect(screen.getByLabelText('Add a tag')).toBeInTheDocument()
         await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-        expect(screen.queryByLabelText('Add tags')).toBeNull()
+        expect(screen.queryByLabelText('Add a tag')).toBeNull()
         await fireEvent.click(tagButton())
         expect(screen.queryByLabelText('Move to')).toBeNull()
       })

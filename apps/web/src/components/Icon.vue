@@ -3,7 +3,10 @@
  * The few icons the app uses, drawn inline so there is no dependency. They are decoration: the button that holds one
  * always has a name of its own (an aria-label), and an icon-only button says what it does in a tooltip too.
  */
-defineProps<{ name: 'edit' | 'remove' | 'up' | 'down'; size?: number }>()
+defineProps<{
+  name: 'edit' | 'remove' | 'up' | 'down' | 'label' | 'check' | 'close' | 'filter' | 'info'
+  size?: number
+}>()
 </script>
 
 <template>
@@ -30,6 +33,23 @@ defineProps<{ name: 'edit' | 'remove' | 'up' | 'down'; size?: number }>()
       <path d="M10 11v6M14 11v6" />
     </template>
     <path v-else-if="name === 'up'" d="m18 15-6-6-6 6" />
-    <path v-else d="m6 9 6 6 6-6" />
+    <path v-else-if="name === 'down'" d="m6 9 6 6 6-6" />
+    <template v-else-if="name === 'label'">
+      <path
+        d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"
+      />
+      <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+    </template>
+    <path v-else-if="name === 'check'" d="M20 6 9 17l-5-5" />
+    <template v-else-if="name === 'close'">
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </template>
+    <polygon v-else-if="name === 'filter'" points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    <template v-else>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </template>
   </svg>
 </template>

@@ -4,10 +4,9 @@ import { RouterLink } from 'vue-router'
 import { PROFILE_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
 import { errorMessage } from '../lib/api'
 import { readingRoute, useReadingActions } from '../lib/reading'
-import { parseTags, sameTags, tagsToText } from '../lib/note-tags'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
-import NoteTags from './NoteTags.vue'
+import TagEditor from './TagEditor.vue'
 import SwitchField from './SwitchField.vue'
 import TextField from './TextField.vue'
 import { useInlineEdit } from '../lib/inline-edit'
@@ -25,13 +24,13 @@ const props = defineProps<{
 const emit = defineEmits<{ remove: []; select: [on: boolean] }>()
 const owner = () => ({ profileId: props.profileId, ideaId: props.ideaId })
 const { setRead, setKept, setTags, update: save } = useReadingActions(owner)
+const saveTags = (tags: string[]) => setTags.mutateAsync({ linkId: props.link.id, tags })
 
 /** What the link is called: its title, or failing that the address itself. */
 const label = () => props.link.title || props.link.url
 
 const url = ref('')
 const title = ref('')
-const tags = ref('')
 const form = useTemplateRef<HTMLFormElement>('form')
 const editButton = useTemplateRef<HTMLButtonElement>('editButton')
 const {
@@ -47,9 +46,7 @@ const editing = computed(() => editingKey.value !== null)
 function startEditing() {
   url.value = props.link.url
   title.value = props.link.title
-  tags.value = tagsToText(props.link.tags)
   save.reset()
-  setTags.reset()
   return start('link')
 }
 
@@ -93,20 +90,12 @@ const removeHint = () =>
     : props.link.origin === 'entered'
       ? 'Press and hold, or tap twice, to remove. Nothing else keeps a copy of it.'
       : 'Press and hold, or tap twice, to remove. You can find it again where it came from.'
-/** Saves the address and title, then the tags if they changed; the form closes when both are saved. */
-async function saveLink() {
-  try {
-    await save.mutateAsync({ linkId: props.link.id, url: url.value, title: title.value })
-    const next = parseTags(tags.value)
-    if (!sameTags(next, props.link.tags)) {
-      await setTags.mutateAsync({ linkId: props.link.id, tags: next })
-    }
-  } catch {
-    return // the form says what went wrong and stays open
-  }
-  await stopEditing()
+function saveLink() {
+  save.mutate(
+    { linkId: props.link.id, url: url.value, title: title.value },
+    { onSuccess: stopEditing },
+  )
 }
-const saving = computed(() => save.isPending.value || setTags.isPending.value)
 </script>
 
 <template>
@@ -136,35 +125,16 @@ const saving = computed(() => save.isPending.value || setTags.isPending.value)
         :maxlength="200"
         hint="Leave this blank to look the title up again."
       />
-      <TextField
-        v-model="tags"
-        label="Tags for this link (optional)"
-        autocomplete="off"
-        :invalid="setTags.isError.value"
-        :hint="
-          setTags.isError.value
-            ? errorMessage(setTags.error.value)
-            : 'Separate tags with commas, for example: background, part 2.'
-        "
-      />
-      <p v-if="knownTags?.length" class="mb-4 -mt-2 text-xs text-ink-soft">
-        Already used:
-        <button
-          v-for="tag in knownTags"
-          :key="tag"
-          type="button"
-          class="mr-1 underline"
-          :aria-label="`Add the tag ${tag}`"
-          @click="tags = tagsToText(parseTags(`${tags}, ${tag}`))"
-        >
-          {{ tag }}
-        </button>
-      </p>
       <div class="flex gap-2">
-        <button type="submit" class="btn btn-primary" :disabled="saving">
-          {{ saving ? 'Saving…' : 'Save link' }}
+        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
+          {{ save.isPending.value ? 'Saving…' : 'Save link' }}
         </button>
-        <button type="button" class="btn btn-neutral" :disabled="saving" @click="stopEditing">
+        <button
+          type="button"
+          class="btn btn-neutral"
+          :disabled="save.isPending.value"
+          @click="stopEditing"
+        >
           Cancel
         </button>
       </div>
@@ -232,7 +202,7 @@ const saving = computed(() => save.isPending.value || setTags.isPending.value)
             </HoldButton>
           </div>
         </div>
-        <NoteTags :tags="link.tags" />
+        <TagEditor :label="label()" :tags="link.tags" :suggestions="knownTags" :save="saveTags" />
         <p v-if="link.why" class="mt-2 text-sm text-ink-soft">
           <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
         </p>

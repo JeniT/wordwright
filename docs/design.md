@@ -205,12 +205,18 @@ row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
+**Tags: one at a time (`TagEditor`, `TagEntry`).** Under each note and each reading-list link, beside its tags, a small
+label-icon button opens a text field: type a tag and press **Enter**, and it is saved at once and the field stays,
+emptied and focused, for the next (a comma also separates tags). While it is open each tag shows a small **×**, and a
+small **tick** closes it. The tags already used on the list are offered as the person types. This is on every note,
+**quotations included**: tagging changes none of their words. Tags are never entered in an edit form.
+
 **Bulk tagging (`BulkTagPanel`), on notes and on reading lists.** **Tag…** in the toolbar's bulk actions (enabled when something is selected) opens a
-panel under the toolbar, like Move to…, and only one of the two is open at a time. It has an "Add tags" field (comma
-separated, with the tags already used offered as buttons) and, for each tag the selection already carries, a switch to
-take it off all of them (with "On 2 of the 3 selected"). The button says what it will do ("Tag 3 notes"), the result is
-announced, and the selection is kept. The change is one request and all or nothing, so a note that would exceed the
-limit refuses the whole thing and says which.
+panel under the toolbar, like Move to…, and only one of the two is open at a time. It uses the same entry as a single
+note (type, Enter, again; the tags typed so far are chips that can be taken back out) and, for each tag the selection
+already carries, a switch to take it off all of them (with "On 2 of the 3 selected"). The button says what it will do
+("Tag 3 notes"), the result is announced, and the selection is kept. The change is one request and all or nothing, so a
+note that would exceed the limit refuses the whole thing and says which.
 
 **The toolbar (`ListToolbar`).** Filters on the **left** (after the select-all checkbox, which sits above the rail of
 row checkboxes); actions for the selected items on the **right**, with a "3 selected" count. The actions are always

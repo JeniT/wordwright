@@ -421,11 +421,18 @@ test('tags reading-list items, one or several at once, and filters the list by a
   const filter = page.getByRole('group', { name: 'Show links with a tag' })
   await expect(filter).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Edit link to Fake title for example.org' }).click()
-  await page.getByLabel('Tags for this link (optional)').fill('background, part 1')
-  await noViolations(page, 'editing a link with tags')
-  await page.getByRole('button', { name: 'Save link' }).click()
+  // Tags go in one at a time under the link: type, Enter, type, Enter, then the tick.
+  await page.getByRole('button', { name: 'Add tags to Fake title for example.org' }).click()
+  const tagField = page.getByLabel('Add a tag to Fake title for example.org')
+  await tagField.fill('background')
+  await tagField.press('Enter')
+  await expect(tagField).toBeFocused() // still open for the next one
+  await tagField.fill('part 1')
+  await tagField.press('Enter')
   await expect(page.getByRole('list', { name: 'Tags' }).getByText('part 1')).toBeVisible()
+  await noViolations(page, 'tagging a link')
+  await page.getByRole('button', { name: 'Done tagging Fake title for example.org' }).click()
+  await expect(tagField).toHaveCount(0)
 
   // Show only that tag's items, then all again; the tag survives a reload.
   await filter.getByRole('button', { name: 'part 1' }).click()
@@ -440,10 +447,11 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await page.getByRole('checkbox', { name: 'Select Fake title for example.org' }).check()
   await page.getByRole('checkbox', { name: 'Select Fake title for example.net' }).check()
   await page.getByRole('button', { name: 'Tag…' }).click()
-  await page.getByLabel('Add tags').fill('shared')
+  await page.getByLabel('Add a tag', { exact: true }).fill('shared')
+  await page.getByLabel('Add a tag', { exact: true }).press('Enter')
   await noViolations(page, 'reading list with the tag panel open')
   await page.getByRole('button', { name: 'Tag 2 links' }).click()
-  await expect(page.getByLabel('Add tags')).toHaveCount(0)
+  await expect(page.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
   await page
     .getByRole('group', { name: 'Show links with a tag' })
     .getByRole('button', { name: 'shared' })
@@ -473,10 +481,13 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
   await notes.getByRole('checkbox', { name: /^Select note “Deposition/ }).check()
   await notes.getByRole('button', { name: 'Tag…' }).click()
-  await notes.getByLabel('Add tags').fill('section one, intro')
+  for (const tag of ['section one', 'intro']) {
+    await notes.getByLabel('Add a tag', { exact: true }).fill(tag)
+    await notes.getByLabel('Add a tag', { exact: true }).press('Enter')
+  }
   await noViolations(page, 'notes with the tag panel open')
   await notes.getByRole('button', { name: 'Tag 2 notes' }).click()
-  await expect(notes.getByLabel('Add tags')).toHaveCount(0)
+  await expect(notes.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
 
   // Both notes carry the tags, the third does not, and the tag now filters.
   const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
@@ -521,15 +532,25 @@ test('tags group notes by draft or section, and filter them on the idea page and
   // No filter until something is tagged.
   await expect(notes.getByRole('group', { name: 'Show notes with a tag' })).toHaveCount(0)
 
-  const tag = async (noteStart: RegExp, tags: string) => {
-    await notes.getByRole('button', { name: noteStart }).click()
-    await notes.getByLabel(/^Tags for note/).fill(tags)
-    await notes.getByRole('button', { name: 'Save note' }).click()
-    await expect(notes.getByRole('button', { name: 'Save note' })).toHaveCount(0)
+  // One at a time under each note: type a tag, Enter, the next, then the tick.
+  const tag = async (noteStart: string, tags: string[]) => {
+    await notes.getByRole('button', { name: new RegExp(`^Add tags to note “${noteStart}`) }).click()
+    const field = notes.getByLabel(new RegExp(`^Add a tag to note “${noteStart}`))
+    for (const t of tags) {
+      await field.fill(t)
+      await field.press('Enter')
+      await expect(
+        notes.getByRole('list', { name: 'Tags' }).getByText(t, { exact: true }).first(),
+      ).toBeVisible()
+    }
+    await notes
+      .getByRole('button', { name: new RegExp(`^Done tagging note “${noteStart}`) })
+      .click()
+    await expect(field).toHaveCount(0)
   }
-  await tag(/^Edit note “Erosion/, 'intro, part 1')
-  await tag(/^Edit note “Deposition/, 'part 1')
-  await tag(/^Edit note “Oxbow/, 'Part 2')
+  await tag('Erosion', ['intro', 'part 1'])
+  await tag('Deposition', ['part 1'])
+  await tag('Oxbow', ['Part 2'])
   await noViolations(page, 'idea page with tagged notes')
 
   // Show only one tag's notes; they can still be put in order, and "All" brings the rest back.
