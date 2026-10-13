@@ -6,9 +6,10 @@ import { api, errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
 import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
-import BulkTagPanel from './BulkTagPanel.vue'
+import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HoldButton from './HoldButton.vue'
+import InfoTip from './InfoTip.vue'
 import Icon from './Icon.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
@@ -143,6 +144,8 @@ const merge = useMutation({
 
 // ---- tagging: add tags to, or take tags off, all the selected notes at once
 const tagging = ref(false)
+const tagAdd = ref<string[]>([])
+const tagRemove = ref<string[]>([])
 /** The tags the selected notes carry (each spelled as first met), and on how many. */
 const carried = computed(() => {
   const counts = new Map<string, { tag: string; count: number }>()
@@ -167,6 +170,8 @@ const tagChosen = useMutation({
 function toggleTagging() {
   moving.value = false
   tagging.value = !tagging.value
+  tagAdd.value = []
+  tagRemove.value = []
   tagChosen.reset()
 }
 
@@ -224,6 +229,34 @@ async function moveChosen() {
       },
     },
   )
+}
+
+// ---- the header's form (Tag… or Move to…) and its tick and cross
+const formOpen = computed(() => tagging.value || moving.value)
+const plural = (n: number) => `${n} ${n === 1 ? 'note' : 'notes'}`
+const confirmLabel = computed(() =>
+  tagging.value
+    ? tagChosen.isPending.value
+      ? 'Tagging…'
+      : `Tag ${plural(chosen.value.length)}`
+    : mover.moveNotes.isPending.value || dest.makeIdea.isPending
+      ? 'Moving…'
+      : `Move ${plural(movingIds.value.length)}`,
+)
+const canConfirm = computed(() =>
+  tagging.value
+    ? chosen.value.length > 0 &&
+      !tagChosen.isPending.value &&
+      tagAdd.value.length + tagRemove.value.length > 0
+    : canMove.value,
+)
+function confirmForm() {
+  if (tagging.value) tagChosen.mutate({ add: tagAdd.value, remove: tagRemove.value })
+  else void moveChosen()
+}
+function cancelForm() {
+  if (tagging.value) toggleTagging()
+  else if (moving.value) toggleMoving()
 }
 
 // ---- splitting: cut the note being edited where the cursor is
@@ -370,12 +403,20 @@ const label = (note: IdeaNote) => {
               noun="notes"
               :can-filter="usedTags.length > 0"
               :filter-summary="tagFilter ?? undefined"
+              :form-open="formOpen"
+              :confirm-label="confirmLabel"
+              :can-confirm="canConfirm"
               @toggle-page="selectAll"
+              @confirm="confirmForm"
+              @cancel="cancelForm"
             >
               <template #filters>
                 <TagFilter v-model="tagFilter" :tags="usedTags" class="!mb-0" />
               </template>
               <template #actions>
+                <button type="button" class="btn btn-sm btn-neutral" @click="toggleTagging">
+                  Tag…
+                </button>
                 <button
                   type="button"
                   class="btn btn-sm btn-neutral"
@@ -385,97 +426,74 @@ const label = (note: IdeaNote) => {
                 >
                   {{ merge.isPending.value ? 'Merging…' : 'Merge' }}
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-neutral"
-                  :aria-expanded="tagging"
-                  :disabled="!chosen.length && !tagging"
-                  @click="toggleTagging"
-                >
-                  Tag…
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-neutral"
-                  :aria-expanded="moving"
-                  :disabled="!chosen.length && !moving"
-                  @click="toggleMoving"
-                >
+                <button type="button" class="btn btn-sm btn-neutral" @click="toggleMoving">
                   Move to…
                 </button>
                 <button
                   type="button"
                   class="btn btn-sm btn-danger"
-                  :disabled="!chosen.length || removeChosen.isPending.value"
-                  :title="chosen.length ? undefined : 'Select notes to delete them'"
+                  :disabled="removeChosen.isPending.value"
                   @click="confirmingDeleteChosen = true"
                 >
-                  Delete{{ chosen.length ? ` ${chosen.length}` : '' }}
+                  Delete {{ chosen.length }}
                 </button>
               </template>
-            </ListToolbar>
-            <BulkTagPanel
-              v-if="tagging"
-              noun="note"
-              :count="chosen.length"
-              :carried="carried"
-              :suggestions="usedTags"
-              :pending="tagChosen.isPending.value"
-              :error="tagChosen.isError.value ? errorMessage(tagChosen.error.value) : undefined"
-              @apply="tagChosen.mutate($event)"
-              @cancel="toggleTagging"
-            />
-            <form
-              v-if="moving"
-              class="border-b border-line bg-sunken p-3"
-              aria-label="Move the chosen notes"
-              @submit.prevent="moveChosen"
-            >
-              <p class="mb-2 text-sm text-ink-soft">
-                They keep the order you arranged them in, along with their tags and whether they are
-                quotations. They are moved, not copied.
-              </p>
-              <MoveTo
-                v-model:destination="dest.destination"
-                v-model:new-idea-name="dest.newIdeaName"
-                :dest="dest"
-                :from-idea="!!ideaId"
-                profile-label="The profile’s notes"
-                allow-new
-                new-idea-hint="In your own words. The notes you move become its first notes."
-              />
-              <p v-if="chosen.length && dest.chosen" class="mb-3 text-sm" data-move-says>
-                {{ movingIds.length }} {{ movingIds.length === 1 ? 'note' : 'notes' }} will move to
-                {{ dest.name }}.
-                <template v-if="sourceIds.length">
-                  {{ sourceIds.length === 1 ? 'The page' : `The ${sourceIds.length} pages` }} they
-                  were taken from will be copied to its reading list (or the copy already there is
-                  used); the originals stay where they are.
-                </template>
-              </p>
-              <div v-if="othersFromSources.length" class="mb-3">
-                <SwitchField
-                  v-model="bringAll"
-                  :label="`Also bring the ${othersFromSources.length} other ${othersFromSources.length === 1 ? 'note' : 'notes'} taken from those pages`"
+              <template #form>
+                <BulkTagFields
+                  v-if="tagging"
+                  v-model:add="tagAdd"
+                  v-model:remove="tagRemove"
+                  noun="note"
+                  :count="chosen.length"
+                  :carried="carried"
+                  :suggestions="usedTags"
                 />
-                <p class="meta">Otherwise they stay here, still pointing at the pages here.</p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <button type="submit" class="btn btn-sm btn-primary" :disabled="!canMove">
-                  {{
-                    mover.moveNotes.isPending.value || dest.makeIdea.isPending
-                      ? 'Moving…'
-                      : `Move ${movingIds.length} ${movingIds.length === 1 ? 'note' : 'notes'}`
-                  }}
-                </button>
-                <button type="button" class="btn btn-sm btn-neutral" @click="toggleMoving">
-                  Cancel
-                </button>
-              </div>
-              <p v-if="mover.moveNotes.isError.value" role="alert" class="mt-2 text-sm text-danger">
-                {{ errorMessage(mover.moveNotes.error.value) }}
-              </p>
-            </form>
+                <template v-else>
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <MoveTo
+                      v-model:destination="dest.destination"
+                      v-model:new-idea-name="dest.newIdeaName"
+                      :dest="dest"
+                      :from-idea="!!ideaId"
+                      profile-label="The profile’s notes"
+                      allow-new
+                      new-idea-hint="In your own words. The notes you move become its first notes."
+                    />
+                    <InfoTip label="About moving notes">
+                      They keep the order you arranged them in, along with their tags and whether
+                      they are quotations. They are moved, not copied.
+                    </InfoTip>
+                  </div>
+                  <p
+                    v-if="chosen.length && dest.chosen"
+                    class="mt-1 text-xs text-ink-soft"
+                    data-move-says
+                  >
+                    {{ movingIds.length }} {{ movingIds.length === 1 ? 'note' : 'notes' }} will move
+                    to {{ dest.name }}.
+                    <template v-if="sourceIds.length">
+                      {{ sourceIds.length === 1 ? 'The page' : `The ${sourceIds.length} pages` }}
+                      they were taken from will be copied to its reading list (or the copy already
+                      there is used); the originals stay where they are.
+                    </template>
+                  </p>
+                  <div v-if="othersFromSources.length" class="mt-1">
+                    <SwitchField
+                      v-model="bringAll"
+                      :label="`Also bring the ${othersFromSources.length} other ${othersFromSources.length === 1 ? 'note' : 'notes'} taken from those pages`"
+                    />
+                    <p class="meta">Otherwise they stay here, still pointing at the pages here.</p>
+                  </div>
+                </template>
+                <p
+                  v-if="tagging ? tagChosen.isError.value : mover.moveNotes.isError.value"
+                  role="alert"
+                  class="mt-1 text-sm text-danger"
+                >
+                  {{ errorMessage(tagging ? tagChosen.error.value : mover.moveNotes.error.value) }}
+                </p>
+              </template>
+            </ListToolbar>
           </template>
           <template #rail="{ item: note }">
             <input

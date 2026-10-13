@@ -211,22 +211,26 @@ emptied and focused, for the next (a comma also separates tags). While it is ope
 small **tick** closes it. The tags already used on the list are offered as the person types. This is on every note,
 **quotations included**: tagging changes none of their words. Tags are never entered in an edit form.
 
-**Bulk tagging (`BulkTagPanel`), on notes and on reading lists.** **Tag…** in the toolbar's bulk actions (enabled when something is selected) opens a
-panel under the toolbar, like Move to…, and only one of the two is open at a time. It uses the same entry as a single
-note (type, Enter, again; the tags typed so far are chips that can be taken back out) and, for each tag the selection
-already carries, a switch to take it off all of them (with "On 2 of the 3 selected"). The button says what it will do
-("Tag 3 notes"), the result is announced, and the selection is kept. The change is one request and all or nothing, so a
-note that would exceed the limit refuses the whole thing and says which.
+**Bulk tagging (`BulkTagFields`), on notes and on reading lists.** **Tag…** opens its form in the header (above). It uses
+the same entry as a single note (type, Enter, again; the tags typed so far are chips that can be taken back out) and,
+for each tag the selection already carries, a chip to press to take it off all of them (its title says "On 2 of the 3
+selected"). The tick says what it will do ("Tag 3 notes"), the result is announced, and the selection is kept. The
+change is one request and all or nothing, so a note that would exceed the limit refuses the whole thing and says which.
 
 **The toolbar (`ListToolbar`).** On the **left**, after the select-all checkbox (which sits above the rail of row
-checkboxes), a **filter button** with the funnel icon; actions for the selected items on the **right**, with a "3
-selected" count. The filters themselves are folded away: the funnel (`aria-expanded`, only offered when there is
-something to filter by) opens a row of them under the header (tag buttons and, on a reading list, the Show read items
-switch), which a close button folds again. While it is folded and a filter is on, the funnel is marked and a small chip
-says what is filtering, so a filtered list never looks like the whole list. The actions are always shown and disabled
-until something is selected, so the row never jumps. Text, not icons. Select all means the items showing, after the
-filter, on this page; when there are more pages, "Select all N" offers the rest of the filtered list. Selection clears
-when the filter or the page changes, so what an action touches is always what is on screen.
+checkboxes), a **filter button** with the funnel icon; on the **right**, once something is selected, the actions for the
+selected items with a "3 selected" count. Until then the actions are not shown. The filters are folded away: the funnel
+(`aria-expanded`, only offered when there is something to filter by) opens a row of them under the header (tag buttons
+and, on a reading list, the Show read items switch), which a close button folds again. While it is folded and a filter is
+on, the funnel is marked and a small chip says what is filtering, so a filtered list never looks like the whole list.
+**An action that needs input takes over the header**: Tag… and Move to… hide the other actions, and the rest of the
+header holds their form, ending in a **tick** (confirm; named "Tag 3 notes", "Move 2 items") and a **cross** (cancel)
+as icon buttons, to leave room. The wordy explanation goes behind an **info icon** (`InfoTip`: shown on hover, focus or
+tap, and read as the icon's description) at the end of the form, or in very small text below it when there is one line.
+Merge acts at once, and Delete or Remove N asks in its dialog, so neither opens a form. If the selection empties, the
+form closes. Text on the actions that open the form, icons for the tick and the cross. Select all means the items
+showing, after the filter, on this page; when there are more pages, "Select all N" offers the rest of the filtered
+list. Selection clears when the filter or the page changes, so what an action touches is always what is on screen.
 
 **Removing and deleting.** Two kinds, two controls (see [Confirming destructive actions](#confirming-destructive-actions)).
 Removing one thing that has no consequences beyond itself (a note, a reading-list item, a feed, an invitation) takes a

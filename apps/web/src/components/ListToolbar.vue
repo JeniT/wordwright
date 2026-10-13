@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { computed, useId, useTemplateRef, watchEffect } from 'vue'
+import { computed, useId, useTemplateRef, watch, watchEffect } from 'vue'
 import Icon from './Icon.vue'
 
 /**
- * The top row of a list of items: the select-all checkbox above the rail of row checkboxes, a filter button (a
- * funnel) on the left, and the actions that apply to the selected items on the right. The filters themselves are
- * folded away: the funnel opens a row of them under this one, and says what is filtering while it is closed. Actions
- * are always shown, and disabled until something is selected, so the row never jumps. Selecting all means all the
- * items this page shows, after any filter; when the filtered list has more pages, "Select all N" offers the rest.
+ * The top of a list of items: the select-all checkbox above the rail of row checkboxes, a filter button (a funnel)
+ * beside it, and, once something is selected, the actions that apply to the selected items on the right.
+ *
+ * - The filters are folded away: the funnel opens a row of them under the header, and says what is filtering while
+ *   it is closed.
+ * - The actions appear only when something is selected. An action that needs input (Tag, Move to…) takes over the
+ *   header while its form is open (`form-open`): the other actions go, the `form` slot fills the header, and a tick
+ *   (confirm) and a cross (cancel) end it, as icons to leave room. Long explanations belong behind an `InfoTip`.
+ * - Selecting all means the items this page shows, after any filter; when the filtered list has more pages,
+ *   "Select all N" offers the rest.
+ *
  * Put it first inside the list's panel.
  */
 const props = defineProps<{
@@ -24,10 +30,20 @@ const props = defineProps<{
   canFilter?: boolean
   /** A filter is on, and what it is ("part 1"), shown beside the funnel while the filters are folded away. */
   filterSummary?: string
+  /** An action's form is open, and takes over the header. */
+  formOpen?: boolean
+  /** What the form's tick does, as a name ("Tag 3 notes"), and whether it can be pressed now. */
+  confirmLabel?: string
+  canConfirm?: boolean
+}>()
+const emit = defineEmits<{
+  'toggle-page': [on: boolean]
+  'select-everything': []
+  confirm: []
+  cancel: []
 }>()
 /** Whether the row of filters is open. */
 const filtering = defineModel<boolean>('filtering', { default: false })
-const emit = defineEmits<{ 'toggle-page': [on: boolean]; 'select-everything': [] }>()
 
 const id = useId()
 const box = useTemplateRef<HTMLInputElement>('box')
@@ -37,8 +53,15 @@ watchEffect(() => {
   if (box.value) box.value.indeterminate = some.value
 })
 const more = computed(() => all.value && props.total > props.selected)
-const filtersOpen = computed(() => filtering.value && !!props.canFilter)
+const filtersOpen = computed(() => filtering.value && !!props.canFilter && !props.formOpen)
 const filtersId = `${id}-filters`
+// A form for nothing makes no sense: if the selection empties (a filter, a delete), the form closes.
+watch(
+  () => props.selected,
+  (n) => {
+    if (n === 0 && props.formOpen) emit('cancel')
+  },
+)
 </script>
 
 <template>
@@ -55,7 +78,39 @@ const filtersId = `${id}-filters`
           @change="emit('toggle-page', ($event.target as HTMLInputElement).checked)"
         />
       </div>
+      <!-- An action's form: the whole header, ending in tick and cross. -->
+      <form
+        v-if="formOpen"
+        class="flex min-w-0 flex-1 items-start gap-2 px-4 py-2"
+        :aria-label="confirmLabel"
+        @submit.prevent="canConfirm && emit('confirm')"
+      >
+        <div class="min-w-0 flex-1">
+          <slot name="form" />
+        </div>
+        <div class="flex shrink-0 gap-1">
+          <button
+            type="submit"
+            class="btn btn-sm btn-icon btn-primary"
+            :disabled="!canConfirm"
+            :title="confirmLabel"
+            :aria-label="confirmLabel"
+          >
+            <Icon name="check" :size="16" />
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-icon btn-neutral"
+            title="Cancel"
+            aria-label="Cancel"
+            @click="emit('cancel')"
+          >
+            <Icon name="close" :size="16" />
+          </button>
+        </div>
+      </form>
       <div
+        v-else
         class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2"
       >
         <div class="flex flex-wrap items-center gap-x-5 gap-y-1">
@@ -79,6 +134,7 @@ const filtersId = `${id}-filters`
           </span>
         </div>
         <div
+          v-if="selected > 0"
           role="group"
           :aria-label="`Actions for the selected ${noun}`"
           class="flex flex-wrap items-center gap-2"
@@ -86,6 +142,7 @@ const filtersId = `${id}-filters`
           <span class="meta" aria-live="polite" aria-atomic="true">{{ selected }} selected</span>
           <slot name="actions" />
         </div>
+        <span v-else class="sr-only" aria-live="polite" aria-atomic="true">0 selected</span>
       </div>
     </div>
     <div
@@ -106,7 +163,7 @@ const filtersId = `${id}-filters`
         <Icon name="close" :size="16" />
       </button>
     </div>
-    <p v-if="more" class="meta px-4 pb-2 ps-[4.25rem]">
+    <p v-if="more && !formOpen" class="meta px-4 pb-2 ps-[4.25rem]">
       All {{ selectedOnPage }} {{ noun }} on this page are selected.
       <button type="button" class="link" @click="emit('select-everything')">
         Select all {{ total }}

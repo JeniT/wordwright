@@ -422,15 +422,15 @@ describe('moving reading items', () => {
   it('offers ticks on each item and a place to move to, and moves only once both are chosen', async () => {
     fake()
     await open()
-    expect(screen.getByRole('button', { name: 'Move to…' })).toBeDisabled() // nothing selected yet
+    expect(screen.queryByRole('button', { name: 'Move to…' })).toBeNull() // hidden until something is selected
     await tick('A paper')
     await tick('Another')
     expect(screen.getByText('2 selected')).toBeInTheDocument()
     await openMove()
-    expect(screen.getByRole('button', { name: 'Move to…' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
+    // The form takes over the header: the other actions are gone, and a tick and a cross end it.
+    expect(screen.queryByRole('button', { name: 'Move to…' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Tag/ })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeDisabled() // no place chosen yet
     await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
     expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeEnabled()
@@ -611,7 +611,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     const state = fakeProfile({ links: seven().slice(0, 3) })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^Remove \d+$/ })).toBeNull() // hidden until something is selected
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 1' }))
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 3' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
@@ -796,8 +796,8 @@ describe('moving notes', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: new RegExp(`^Select note “${text}`) }))
   /** Move to… is for what is selected, so choose first; it opens the form, then a place is picked. */
   const moveTo = async (value: string) => {
-    const button = screen.getByRole('button', { name: 'Move to…' })
-    if (button.getAttribute('aria-expanded') !== 'true') await fireEvent.click(button)
+    const button = screen.queryByRole('button', { name: 'Move to…' }) // gone once the form has taken over
+    if (button) await fireEvent.click(button)
     await fireEvent.update(await screen.findByLabelText('Move to'), value)
   }
   const says = () => document.querySelector('[data-move-says]')
@@ -806,7 +806,7 @@ describe('moving notes', () => {
     fake()
     await open()
     expect(screen.getAllByRole('checkbox', { name: /^Select note/ })).toHaveLength(4)
-    expect(screen.getByRole('button', { name: 'Move to…' })).toBeDisabled() // nothing selected yet
+    expect(screen.queryByRole('button', { name: 'Move to…' })).toBeNull() // hidden until something is selected
     await tick('Typed thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeDisabled() // no place yet
@@ -966,7 +966,7 @@ describe('deleting selected notes', () => {
     })
     await renderAt('/p/ada-substack/notes')
     await screen.findByText('One')
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^Delete \d+$/ })).toBeNull() // hidden until something is selected
     await fireEvent.click(screen.getByRole('checkbox', { name: /^Select note “One/ }))
     await fireEvent.click(screen.getByRole('checkbox', { name: /^Select note “Three/ }))
     await fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }))

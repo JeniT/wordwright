@@ -6,9 +6,10 @@ import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
-import BulkTagPanel from './BulkTagPanel.vue'
+import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
+import InfoTip from './InfoTip.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
 import PageNav from './PageNav.vue'
@@ -102,6 +103,8 @@ const selectEverything = () => (selected.value = shown.value.map((l) => l.id))
 
 // ---- tagging the selected items together
 const tagging = ref(false)
+const tagAdd = ref<string[]>([])
+const tagRemove = ref<string[]>([])
 /** The tags the selected items carry (each spelled as first met), and on how many. */
 const carried = computed(() => {
   const counts = new Map<string, { tag: string; count: number }>()
@@ -114,10 +117,10 @@ const carried = computed(() => {
   return [...counts.values()]
 })
 const announcement = ref('')
-function applyTags(change: { add: string[]; remove: string[] }) {
+function applyTags() {
   const ids = chosen.value
   list.tagMany.mutate(
-    { ids, ...change },
+    { ids, add: tagAdd.value, remove: tagRemove.value },
     {
       onSuccess: () => {
         announcement.value = `Tagged ${ids.length} ${ids.length === 1 ? 'link' : 'links'}.`
@@ -129,6 +132,8 @@ function applyTags(change: { add: string[]; remove: string[] }) {
 function toggleTagging() {
   moving.value = false
   tagging.value = !tagging.value
+  tagAdd.value = []
+  tagRemove.value = []
   list.tagMany.reset()
 }
 
@@ -168,6 +173,34 @@ const canMove = computed(
     !mover.moveReading.isPending.value &&
     !dest.makeIdea.isPending,
 )
+
+// ---- the header's form (Tag… or Move to…) and its tick and cross
+const formOpen = computed(() => tagging.value || moving.value)
+const plural = (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`
+const confirmLabel = computed(() =>
+  tagging.value
+    ? list.tagMany.isPending.value
+      ? 'Tagging…'
+      : `Tag ${chosen.value.length} ${chosen.value.length === 1 ? 'link' : 'links'}`
+    : mover.moveReading.isPending.value || dest.makeIdea.isPending
+      ? 'Moving…'
+      : `Move ${plural(chosen.value.length)}`,
+)
+const canConfirm = computed(() =>
+  tagging.value
+    ? chosen.value.length > 0 &&
+      !list.tagMany.isPending.value &&
+      tagAdd.value.length + tagRemove.value.length > 0
+    : canMove.value,
+)
+function confirmForm() {
+  if (tagging.value) applyTags()
+  else void move()
+}
+function cancelForm() {
+  if (tagging.value) toggleTagging()
+  else if (moving.value) toggleMoving()
+}
 
 // ---- removing the selected items, once confirmed in a dialog (it is more than one thing)
 const confirmingRemoveChosen = ref(false)
@@ -246,8 +279,13 @@ function removeChosen() {
             noun="links"
             :can-filter="usedTags.length > 0 || readCount > 0"
             :filter-summary="filterSummary"
+            :form-open="formOpen"
+            :confirm-label="confirmLabel"
+            :can-confirm="canConfirm"
             @toggle-page="selectPage"
             @select-everything="selectEverything"
+            @confirm="confirmForm"
+            @cancel="cancelForm"
           >
             <template #filters>
               <TagFilter v-model="tagFilter" :tags="usedTags" noun="links" class="!mb-0" />
@@ -258,80 +296,56 @@ function removeChosen() {
               />
             </template>
             <template #actions>
-              <button
-                type="button"
-                class="btn btn-sm btn-neutral"
-                :aria-expanded="tagging"
-                :disabled="!chosen.length && !tagging"
-                @click="toggleTagging"
-              >
+              <button type="button" class="btn btn-sm btn-neutral" @click="toggleTagging">
                 Tag…
               </button>
-              <button
-                type="button"
-                class="btn btn-sm btn-neutral"
-                :aria-expanded="moving"
-                :disabled="!chosen.length && !moving"
-                @click="toggleMoving"
-              >
+              <button type="button" class="btn btn-sm btn-neutral" @click="toggleMoving">
                 Move to…
               </button>
               <button
                 type="button"
                 class="btn btn-sm btn-danger"
-                :disabled="!chosen.length || list.removeMany.isPending.value"
-                :title="chosen.length ? undefined : 'Select links to remove them'"
+                :disabled="list.removeMany.isPending.value"
                 @click="confirmingRemoveChosen = true"
               >
-                Remove{{ chosen.length ? ` ${chosen.length}` : '' }}
+                Remove {{ chosen.length }}
               </button>
             </template>
-          </ListToolbar>
-          <BulkTagPanel
-            v-if="tagging"
-            noun="link"
-            :count="chosen.length"
-            :carried="carried"
-            :suggestions="usedTags"
-            :pending="list.tagMany.isPending.value"
-            :error="list.tagMany.isError.value ? errorMessage(list.tagMany.error.value) : undefined"
-            @apply="applyTags"
-            @cancel="toggleTagging"
-          />
-          <form
-            v-if="moving"
-            class="border-b border-line bg-sunken p-3"
-            aria-label="Move the chosen links"
-            @submit.prevent="move"
-          >
-            <p class="mb-2 text-sm text-ink-soft">
-              Each goes with the notes you took from it, and keeps whether you have read it.
-            </p>
-            <MoveTo
-              v-model:destination="dest.destination"
-              v-model:new-idea-name="dest.newIdeaName"
-              :dest="dest"
-              :from-idea="!!ideaId"
-              profile-label="The profile’s reading list"
-              :allow-new="!ideaId"
-              new-idea-hint="In your own words. The items you move become its reading list."
-            />
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="submit" class="btn btn-sm btn-primary" :disabled="!canMove">
+            <template #form>
+              <BulkTagFields
+                v-if="tagging"
+                v-model:add="tagAdd"
+                v-model:remove="tagRemove"
+                noun="link"
+                :count="chosen.length"
+                :carried="carried"
+                :suggestions="usedTags"
+              />
+              <div v-else class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <MoveTo
+                  v-model:destination="dest.destination"
+                  v-model:new-idea-name="dest.newIdeaName"
+                  :dest="dest"
+                  :from-idea="!!ideaId"
+                  profile-label="The profile’s reading list"
+                  :allow-new="!ideaId"
+                  new-idea-hint="In your own words. The items you move become its reading list."
+                />
+                <InfoTip label="About moving links">
+                  Each goes with the notes you took from it, and keeps whether you have read it.
+                </InfoTip>
+              </div>
+              <p
+                v-if="tagging ? list.tagMany.isError.value : mover.moveReading.isError.value"
+                role="alert"
+                class="mt-1 text-sm text-danger"
+              >
                 {{
-                  mover.moveReading.isPending.value || dest.makeIdea.isPending
-                    ? 'Moving…'
-                    : `Move ${chosen.length} ${chosen.length === 1 ? 'item' : 'items'}`
+                  errorMessage(tagging ? list.tagMany.error.value : mover.moveReading.error.value)
                 }}
-              </button>
-              <button type="button" class="btn btn-sm btn-neutral" @click="toggleMoving">
-                Cancel
-              </button>
-            </div>
-            <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-sm text-danger">
-              {{ errorMessage(mover.moveReading.error.value) }}
-            </p>
-          </form>
+              </p>
+            </template>
+          </ListToolbar>
           <ul v-if="paging.pageItems.value.length" class="divide-y divide-line">
             <IdeaLinkItem
               v-for="link in paging.pageItems.value"

@@ -599,10 +599,10 @@ describe('idea page', () => {
     const tick = (title: string) => screen.getByRole('checkbox', { name: `Select ${title}` })
     const tagButton = () => screen.getByRole('button', { name: 'Tag…' })
 
-    it('has Tag… in the toolbar, enabled once links are selected', async () => {
+    it('has Tag… in the header only once links are selected', async () => {
       await openWith(two)
       await screen.findByRole('link', { name: /A paper/ })
-      expect(tagButton()).toBeDisabled()
+      expect(screen.queryByRole('button', { name: 'Tag…' })).toBeNull()
       await fireEvent.click(tick('A paper'))
       expect(tagButton()).toBeEnabled()
     })
@@ -634,9 +634,10 @@ describe('idea page', () => {
       await fireEvent.click(tick('A paper'))
       await fireEvent.click(tick('Other'))
       await fireEvent.click(tagButton())
-      const panel = screen.getByRole('form', { name: /Tag the 2 links/ })
-      expect(within(panel).getByText('On 1 of the 2 selected.')).toBeInTheDocument()
-      await fireEvent.click(within(panel).getByRole('switch', { name: 'Remove “background”' }))
+      const panel = screen.getByRole('form', { name: 'Tag 2 links' })
+      const drop = within(panel).getByRole('button', { name: 'Remove “background”' })
+      expect(drop).toHaveAttribute('title', 'On 1 of the 2 selected')
+      await fireEvent.click(drop)
       await fireEvent.update(screen.getByLabelText('Add a tag'), 'part 2')
       await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
       await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 links' }))
@@ -646,7 +647,7 @@ describe('idea page', () => {
       await waitFor(() => expect(screen.queryByLabelText('Add a tag')).toBeNull())
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       expect(screen.getByText('Tagged 2 links.')).toBeInTheDocument()
-      expect(screen.getByText('2 selected')).toBeInTheDocument()
+      expect(screen.getByText('2 selected')).toBeInTheDocument() // the header is back, with the choice kept
     })
 
     it("shows the server's reason, and keeps the panel and the words", async () => {
@@ -665,7 +666,7 @@ describe('idea page', () => {
       expect(screen.getByRole('list', { name: 'Tags to add' })).toHaveTextContent('x')
     })
 
-    it('works for the profile’s own list too, and closes when Move to… opens', async () => {
+    it('works for the profile’s own list too, and one form replaces the other', async () => {
       const sent: unknown[] = []
       server.use(
         signedInAs(testUser),
@@ -680,10 +681,11 @@ describe('idea page', () => {
       await renderAt('/p/ada-substack/read')
       await screen.findByRole('link', { name: /A paper/ })
       await fireEvent.click(tick('Other'))
-      await fireEvent.click(tagButton())
       await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-      expect(screen.queryByLabelText('Add a tag')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Tag…' })).toBeNull() // the move form has the header
+      await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
       await fireEvent.click(tagButton())
+      expect(screen.queryByLabelText('Move to')).toBeNull()
       await fireEvent.update(screen.getByLabelText('Add a tag'), 'later')
       await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
       await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
@@ -1360,11 +1362,11 @@ describe('idea page', () => {
         await fireEvent.keyDown(field, { key: 'Enter' })
       }
 
-      it('has Tag… in the toolbar, only enabled once notes are selected', async () => {
+      it('has Tag… in the header only once notes are selected', async () => {
         fakeNotes()
         await open()
         await screen.findByText('Erosion loops.')
-        expect(tagButton()).toBeDisabled()
+        expect(screen.queryByRole('button', { name: 'Tag…' })).toBeNull()
         await fireEvent.click(tick('Erosion'))
         expect(tagButton()).toBeEnabled()
       })
@@ -1408,10 +1410,16 @@ describe('idea page', () => {
           [...document.querySelectorAll('datalist option')].map((o) => o.getAttribute('value')),
         ).toEqual(['intro', 'draft'])
         await enter('draft')
-        const panel = screen.getByRole('form', { name: /Tag the 2 notes/ })
-        expect(within(panel).getByText('On 2 of the 2 selected.')).toBeInTheDocument()
-        expect(within(panel).getByText('On 1 of the 2 selected.')).toBeInTheDocument()
-        await fireEvent.click(within(panel).getByRole('switch', { name: 'Remove “intro”' }))
+        const panel = screen.getByRole('form', { name: 'Tag 2 notes' })
+        const drop = within(panel).getByRole('button', { name: 'Remove “intro”' })
+        expect(drop).toHaveAttribute('title', 'On 2 of the 2 selected')
+        expect(within(panel).getByRole('button', { name: 'Remove “draft”' })).toHaveAttribute(
+          'title',
+          'On 1 of the 2 selected',
+        )
+        expect(drop).toHaveAttribute('aria-pressed', 'false')
+        await fireEvent.click(drop)
+        expect(drop).toHaveAttribute('aria-pressed', 'true')
         await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 notes' }))
         await waitFor(() =>
           expect(api.bulkTagged).toEqual([
@@ -1446,20 +1454,39 @@ describe('idea page', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 note' }))
         expect(await screen.findByText('A note can have up to 10 tags')).toBeInTheDocument()
         expect(screen.getByRole('list', { name: 'Tags to add' })).toHaveTextContent('x')
-        expect(screen.getByText('1 selected')).toBeInTheDocument()
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        expect(screen.getByText('1 selected')).toBeInTheDocument() // the choice is kept
       })
 
-      it('closes when Move to… opens, and the other way round: one panel at a time', async () => {
+      it('takes over the header: the other actions go while its form is open, and come back on cancel', async () => {
+        fakeNotes()
+        await open()
+        await screen.findByText('Erosion loops.')
+        await fireEvent.click(tick('Erosion'))
+        for (const name of ['Tag…', 'Merge', 'Move to…', 'Delete 1'])
+          expect(screen.getByRole('button', { name })).toBeInTheDocument()
+        await fireEvent.click(tagButton())
+        expect(screen.getByLabelText('Add a tag')).toBeInTheDocument()
+        for (const name of ['Tag…', 'Merge', 'Move to…', 'Delete 1'])
+          expect(screen.queryByRole('button', { name })).toBeNull()
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        expect(screen.getByRole('button', { name: 'Move to…' })).toBeInTheDocument()
+        await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+        expect(screen.getByLabelText('Move to')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Add a tag')).toBeNull()
+      })
+
+      it('closes the form when the selection empties, and explains itself behind an info icon', async () => {
         fakeNotes()
         await open()
         await screen.findByText('Erosion loops.')
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tagButton())
-        expect(screen.getByLabelText('Add a tag')).toBeInTheDocument()
-        await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-        expect(screen.queryByLabelText('Add a tag')).toBeNull()
-        await fireEvent.click(tagButton())
-        expect(screen.queryByLabelText('Move to')).toBeNull()
+        expect(
+          screen.getByRole('button', { name: 'About tagging several at once' }),
+        ).toHaveAccessibleDescription(/up to 10 each/)
+        await fireEvent.click(tick('Erosion')) // deselect it
+        await waitFor(() => expect(screen.queryByLabelText('Add a tag')).toBeNull())
       })
     })
 
@@ -1469,11 +1496,11 @@ describe('idea page', () => {
         screen.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) })
       const merge = () => screen.getByRole('button', { name: 'Merge' })
 
-      it('has Merge always in the toolbar, and only enabled for two or more notes', async () => {
+      it('has Merge in the header once something is selected, and only enabled for two or more notes', async () => {
         fakeNotes([note('n1', 'Only one.'), note('n2', 'Another.')])
         await open()
         await screen.findByText('Only one.')
-        expect(merge()).toBeDisabled()
+        expect(screen.queryByRole('button', { name: 'Merge' })).toBeNull()
         await fireEvent.click(tick('Only one'))
         expect(merge()).toBeDisabled()
         await fireEvent.click(tick('Another'))

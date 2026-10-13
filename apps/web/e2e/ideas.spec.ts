@@ -486,10 +486,19 @@ test('tags several notes at once, then takes a tag off them all again', async ({
     await expect(notes.getByText(text)).toBeVisible()
   }
 
-  // Tag… waits for a selection.
-  await expect(notes.getByRole('button', { name: 'Tag…' })).toBeDisabled()
+  // The bulk actions appear once something is selected.
+  await expect(notes.getByRole('button', { name: 'Tag…' })).toHaveCount(0)
   await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
   await notes.getByRole('checkbox', { name: /^Select note “Deposition/ }).check()
+  await notes.getByRole('button', { name: 'Tag…' }).click()
+  // The form takes over the header: the other actions are gone, a tick and a cross end it, and the explanation
+  // sits behind an info icon.
+  for (const name of ['Merge', 'Move to…', 'Delete 2'])
+    await expect(notes.getByRole('button', { name, exact: true })).toHaveCount(0)
+  await notes.getByRole('button', { name: 'About tagging several at once' }).hover()
+  await expect(notes.getByRole('tooltip')).toContainText('up to 10 each')
+  await notes.getByRole('button', { name: 'Cancel' }).click()
+  await expect(notes.getByRole('button', { name: 'Merge', exact: true })).toBeVisible()
   await notes.getByRole('button', { name: 'Tag…' }).click()
   for (const tag of ['section one', 'intro']) {
     await notes.getByLabel('Add a tag', { exact: true }).fill(tag)
@@ -511,7 +520,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
   await notes.getByRole('checkbox', { name: /^Select note “Deposition/ }).check()
   await notes.getByRole('button', { name: 'Tag…' }).click()
-  await notes.getByRole('switch', { name: 'Remove “intro”' }).check()
+  await notes.getByRole('button', { name: 'Remove “intro”' }).click()
   await notes.getByRole('button', { name: 'Tag 2 notes' }).click()
   await expect(filter.getByRole('button', { name: 'intro' })).toHaveCount(0)
   await expect(filter.getByRole('button', { name: 'section one' })).toBeVisible()
