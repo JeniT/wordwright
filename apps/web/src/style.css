@@ -135,3 +135,25 @@
   color: var(--color-accent);
   text-decoration: underline;
 }
+
+/* The venue description editor: a field that looks like the text it makes (see DescriptionEditor). */
+.description-field {
+  cursor: text;
+}
+.description-field:focus-within {
+  border-color: var(--color-accent);
+}
+.description-editor {
+  min-height: 9rem; /* the text keeps the app's own focus outline */
+}
+.description-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-ink-soft);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.description-editor a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}

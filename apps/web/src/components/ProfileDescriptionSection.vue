@@ -6,9 +6,8 @@ import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
 import DescriptionOrigin from './DescriptionOrigin.vue'
-import Markdown from './Markdown.vue'
 import SaveStatus from './SaveStatus.vue'
-import TextAreaField from './TextAreaField.vue'
+import DescriptionEditor from './DescriptionEditor.vue'
 
 /** Everyone who works in the profile can write this, so there is no owner-only branch. */
 const props = defineProps<{ profile: Profile }>()
@@ -25,6 +24,7 @@ const unaccepted = computed(
 const changed = computed(
   () => unaccepted.value || text.value.trim() !== (props.profile.description ?? ''),
 )
+const tooLong = computed(() => text.value.length > PROFILE_DESCRIPTION_MAX)
 
 const save = useMutation({
   mutationFn: () => api.setProfileDescription(props.profile.id, { description: text.value }),
@@ -42,19 +42,13 @@ const save = useMutation({
     </p>
     <DescriptionOrigin :profile="profile" class="mb-3" />
     <form @submit.prevent="save.mutate()">
-      <TextAreaField
-        v-model="text"
-        label="About this venue"
-        :rows="8"
-        :maxlength="PROFILE_DESCRIPTION_MAX"
-        hint="You can use Markdown: *emphasis*, lists, and [links](https://example.com)."
-      />
-      <details v-if="text.trim()" class="panel mb-4">
-        <summary class="cursor-pointer text-sm font-medium">Preview</summary>
-        <Markdown :text="text" class="mt-2" />
-      </details>
+      <DescriptionEditor v-model="text" label="About this venue" />
       <div class="flex flex-wrap items-center gap-3">
-        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || !changed">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="save.isPending.value || !changed || tooLong"
+        >
           {{
             save.isPending.value
               ? 'Saving…'

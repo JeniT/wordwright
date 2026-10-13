@@ -131,6 +131,14 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                                                                                                                                                                     |
 | `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                                                                                                                                                                             |
 
+### The description editor
+
+`DescriptionEditor` is a small rich-text field for short, formatted text (today the venue description), so people don't have to know
+Markdown: a toolbar of five worded buttons (Bold, Italic, Bulleted list, Numbered list, Link; `aria-pressed` shows what is on) above a
+`field`-styled text box that looks like the text it makes (it uses the `markdown` reading styles), with the app's own focus outline. The link
+address is a small form that takes focus and gives it back. It reads and writes Markdown. Use it for any other short formatted text; the draft
+editor (`RichEditor`) is the long-form one.
+
 ### Critique marks in the editor
 
 A point of a critique that is about a paragraph is shown beside it, in the editor, without touching the writer's words:

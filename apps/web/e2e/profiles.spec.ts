@@ -87,19 +87,22 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await expect(page.getByRole('status')).toHaveText('Saved')
   await expect(page.getByLabel('Website')).toHaveValue('https://final.example.com')
 
-  // The description is Markdown, with a preview, and survives a reload.
-  await page
-    .getByLabel('About this venue')
-    .fill('Personal weeknotes, *mostly for me*. See [my site](https://example.com).')
-  await page.getByText('Preview', { exact: true }).click()
-  await expect(page.getByRole('link', { name: 'my site' })).toHaveAttribute(
-    'href',
-    'https://example.com',
-  )
+  // The description is written in a rich-text editor, with no Markdown to know, and survives a reload.
+  const description = page.getByRole('textbox', { name: 'About this venue' })
+  await description.fill('Personal weeknotes, mostly for me.')
+  await description.press('ControlOrMeta+a')
+  await page.getByRole('button', { name: 'Bold' }).click()
+  await expect(page.getByRole('button', { name: 'Bold' })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Link' }).click()
+  await page.getByLabel('Link address').fill('example.com')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  await expect(description.locator('a')).toHaveAttribute('href', 'https://example.com')
+  await noViolations(page)
   await page.getByRole('button', { name: 'Save description' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).last()).toBeVisible()
   await page.reload()
-  await expect(page.getByLabel('About this venue')).toHaveValue(/Personal weeknotes/)
+  await expect(description.locator('strong')).toHaveText('Personal weeknotes, mostly for me.')
+  await expect(description.locator('a')).toHaveAttribute('href', 'https://example.com')
   await noViolations(page)
 
   // A non-image is refused with a reason; a real one is accepted.
@@ -528,8 +531,8 @@ test('drafts a description from sample posts with the AI, which is used only onc
   await expect(page.getByRole('heading', { name: 'Read it, change it, then use it' })).toBeVisible()
   await expect(page.getByLabel('About this venue')).toBeFocused()
   await expect(page.getByText('Nothing is sent before that.')).toBeHidden()
-  await expect(page.getByLabel('About this venue')).toHaveValue(
-    /A fake description drawn from 2 posts/,
+  await expect(page.getByLabel('About this venue')).toContainText(
+    'A fake description drawn from 2 posts',
   )
   await expect(page.getByText('AI draft', { exact: true })).toBeVisible()
   await expect(page.getByText(/You have not accepted it yet/)).toBeVisible()

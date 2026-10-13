@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   llmSettings,
   renderAt,
@@ -12,6 +12,8 @@ import {
 } from '../test-utils'
 
 useMockServer()
+// jsdom cannot type into the rich-text editor; its own tests are in DescriptionEditor.test.ts.
+vi.mock('../components/DescriptionEditor.vue', () => import('../testing/description-editor-stub'))
 beforeEach(() => server.use(llmSettings(true), sourcesList()))
 
 const POSTS = ['https://garden.example/one', 'https://garden.example/two']

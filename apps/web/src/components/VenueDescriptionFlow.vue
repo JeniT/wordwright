@@ -6,9 +6,8 @@ import { RouterLink, useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
 import DescriptionOrigin from './DescriptionOrigin.vue'
-import Markdown from './Markdown.vue'
 import SaveStatus from './SaveStatus.vue'
-import TextAreaField from './TextAreaField.vue'
+import DescriptionEditor from './DescriptionEditor.vue'
 import VenueSamplePicker from './VenueSamplePicker.vue'
 
 /**
@@ -37,6 +36,7 @@ const unaccepted = computed(
 )
 const unchanged = computed(() => text.value.trim() === (props.profile.description ?? ''))
 /** A draft takes the box's place, so say so when there is something in it, saved or not. */
+const tooLong = computed(() => text.value.length > PROFILE_DESCRIPTION_MAX)
 const replaces = computed(() => !!text.value.trim() || !!props.profile.description)
 
 const draft = useMutation({
@@ -50,7 +50,7 @@ const draft = useMutation({
     if (drafting.value) drafting.value.open = false
     // The draft is what to read next: take the person to it.
     await nextTick()
-    root.value?.querySelector('textarea')?.focus()
+    root.value?.querySelector<HTMLElement>('[role=textbox], textarea')?.focus()
   },
 })
 
@@ -84,22 +84,16 @@ const accept = useMutation({
         </ul>
       </div>
       <form @submit.prevent="accept.mutate()">
-        <TextAreaField
+        <DescriptionEditor
           v-model="text"
           label="About this venue"
-          :rows="10"
-          :maxlength="PROFILE_DESCRIPTION_MAX"
-          hint="What the venue is, who reads it and what kinds of writing go here. You can use Markdown."
+          hint="What the venue is, who reads it and what kinds of writing go here."
         />
-        <details v-if="text.trim()" class="panel mb-4">
-          <summary class="cursor-pointer text-sm font-medium">Preview</summary>
-          <Markdown :text="text" class="mt-2" />
-        </details>
         <div class="flex flex-wrap items-center gap-3">
           <button
             type="submit"
             class="btn btn-primary"
-            :disabled="accept.isPending.value || !text.trim()"
+            :disabled="accept.isPending.value || !text.trim() || tooLong"
           >
             {{
               accept.isPending.value

@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   llmSettings,
   renderAt,
@@ -12,6 +12,8 @@ import {
 } from '../test-utils'
 
 useMockServer()
+// jsdom cannot type into the rich-text editor; its own tests are in DescriptionEditor.test.ts.
+vi.mock('../components/DescriptionEditor.vue', () => import('../testing/description-editor-stub'))
 // The landing page asks whether a key is saved; these tests are about profiles.
 beforeEach(() => server.use(llmSettings(true), sourcesList()))
 
@@ -270,7 +272,7 @@ describe('profile page', () => {
 })
 
 describe('profile description', () => {
-  it('lets the owner write it in Markdown, previews it, and shows it saved', async () => {
+  it('lets the owner write it, and shows it saved', async () => {
     const bodies: unknown[] = []
     server.use(
       signedInAs(testUser),
@@ -285,11 +287,6 @@ describe('profile description', () => {
     const field = await screen.findByLabelText('About this venue')
     expect(screen.getByRole('button', { name: 'Save description' })).toBeDisabled()
     await fireEvent.update(field, 'Weeknotes, *mostly for me*. See [home](https://example.com).')
-    await fireEvent.click(screen.getByText('Preview'))
-    expect(screen.getByRole('link', { name: 'home' })).toHaveAttribute(
-      'href',
-      'https://example.com',
-    )
     await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
     await screen.findByText('Saved')
     expect(bodies).toEqual([
