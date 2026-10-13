@@ -121,3 +121,16 @@ export async function showArrowsFor(
     .filter({ has: page.getByRole('button', { name: reorder }) })
     .click({ position: { x: 3, y: 3 } })
 }
+
+/** Opens the row of filters under a list's header (the funnel button), if it isn't open already. */
+export async function openFilters(page: Page) {
+  const funnel = page.getByRole('button', { name: /^Filter/ })
+  await expect(funnel).toBeVisible()
+  if ((await funnel.getAttribute('aria-expanded')) !== 'true') await funnel.click()
+}
+
+/** Shows the read items of a reading list, which the filters fold away by default. */
+export async function showReadItems(page: Page) {
+  await openFilters(page)
+  await page.getByRole('switch', { name: /^Show read items/ }).check()
+}

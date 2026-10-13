@@ -368,6 +368,8 @@ const label = (note: IdeaNote) => {
               :selected="chosen.length"
               :selected-on-page="chosen.length"
               noun="notes"
+              :can-filter="usedTags.length > 0"
+              :filter-summary="tagFilter ?? undefined"
               @toggle-page="selectAll"
             >
               <template #filters>

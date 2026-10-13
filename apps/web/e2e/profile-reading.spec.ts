@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, showArrowsFor, test } from './fixtures'
+import { expect, goTo, showReadItems, showArrowsFor, test } from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -67,19 +67,19 @@ test('reads and takes notes before there is an idea: a profile reading list and 
   await expect(
     page.getByText(/Links you add stay; links from your feeds go after a month/),
   ).toBeVisible()
-  await page.getByRole('switch', { name: /^Show read items/ }).check() // taking notes marked it read
+  await showReadItems(page) // taking notes marked it read
   const keep = page.getByRole('switch', { name: /^Keep: Fake title for example\.org/ })
   await expect(keep).toBeChecked() // a link the writer added is kept from the start
   await keep.uncheck()
   await expect(page.getByText(/Removed from this list on .* unless kept/)).toBeVisible()
   await page.reload()
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
   await expect(keep).not.toBeChecked()
   await page.getByRole('link', { name: 'Take notes' }).click()
 
   // Taking a note marks it read.
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
   await expect(
     page.getByRole('switch', { name: /^Read: Fake title for example\.org/ }),
   ).toBeChecked()
@@ -253,7 +253,7 @@ test('moves reading items, with their notes, between the profile and an idea, an
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Rivers tire of straight lines.')).toBeVisible()
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
 
   // Move both to a new idea. The note goes with its item, and the message says what moved.
   await page.getByRole('checkbox', { name: /^Select Fake title for example\.org/ }).check()
@@ -275,7 +275,7 @@ test('moves reading items, with their notes, between the profile and an idea, an
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
   await goTo(page, 'Research')
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Fake title for example\.com/ })).toBeVisible()
 
@@ -347,7 +347,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
     notes.getByText(/From reading “A post in Feed of read.example”/).first(),
   ).toBeVisible()
   await goTo(page, 'Research')
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
   await expect(page.getByRole('link', { name: new RegExp(title) })).toBeVisible()
   await goTo(page, 'Notes')
 

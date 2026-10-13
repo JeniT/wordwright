@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   expectOrigin,
+  openFilters,
   renderAt,
   server,
   showArrows,
@@ -256,6 +257,7 @@ describe('the profile’s reading list', () => {
       expect(await screen.findByText('Still to read')).toBeInTheDocument()
       expect(screen.queryByText('Already read')).not.toBeInTheDocument()
 
+      await openFilters()
       const tick = screen.getByRole('switch', { name: 'Show read items (2)' })
       await fireEvent.click(tick)
       expect(await screen.findByText('Already read')).toBeInTheDocument()
@@ -298,6 +300,7 @@ describe('the profile’s reading list', () => {
       await renderAt('/p/ada-substack/reading')
       await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
       await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+      await openFilters()
       const show = await screen.findByRole('switch', { name: 'Show read items (3)' })
       await fireEvent.click(show) // show them all
       await fireEvent.click(show) // and hide them again
@@ -565,6 +568,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     await fireEvent.click(screen.getAllByRole('button', { name: /^Next/ })[0]!)
     expect(titles()).toEqual(['Link 6', 'Link 7'])
     // A new filter starts again at the first page, and the count is of the filtered list.
+    await openFilters()
     await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
     expect(titles()).toHaveLength(5)
     expect(screen.getAllByText('Links 1–5 of 8').length).toBeGreaterThan(0)
@@ -896,6 +900,7 @@ describe('moving notes', () => {
       note('n3', 'Untagged'),
     ])
     await renderAt('/p/ada-substack/notes')
+    await openFilters()
     await fireEvent.click(await screen.findByRole('button', { name: /^intro/ }))
     await fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Select all notes on this page' }),
@@ -938,6 +943,7 @@ describe('moving notes', () => {
     await renderAt('/p/ada-substack/notes')
     await fireEvent.click(await screen.findByRole('checkbox', { name: /^Select note “Untagged/ }))
     expect(screen.getByText('1 selected')).toBeInTheDocument()
+    await openFilters()
     await fireEvent.click(screen.getByRole('button', { name: /^intro/ }))
     expect(screen.getByText('0 selected')).toBeInTheDocument()
   })

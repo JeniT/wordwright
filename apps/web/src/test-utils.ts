@@ -1,5 +1,5 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import { render, screen, within } from '@testing-library/vue'
+import { fireEvent, render, screen, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { createPinia, setActivePinia } from 'pinia'
@@ -134,4 +134,10 @@ export async function showArrows() {
   const grips = await screen.findAllByRole('button', { name: /^Reorder / })
   grips[0]!.focus()
   await nextTick()
+}
+
+/** Opens the row of filters under a list's header (the funnel button), if it is not already open. */
+export async function openFilters() {
+  const button = await screen.findByRole('button', { name: /^Filter/ })
+  if (button.getAttribute('aria-expanded') !== 'true') await fireEvent.click(button)
 }

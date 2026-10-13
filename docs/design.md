@@ -218,11 +218,15 @@ already carries, a switch to take it off all of them (with "On 2 of the 3 select
 ("Tag 3 notes"), the result is announced, and the selection is kept. The change is one request and all or nothing, so a
 note that would exceed the limit refuses the whole thing and says which.
 
-**The toolbar (`ListToolbar`).** Filters on the **left** (after the select-all checkbox, which sits above the rail of
-row checkboxes); actions for the selected items on the **right**, with a "3 selected" count. The actions are always
-shown and disabled until something is selected, so the row never jumps. Text, not icons. Select all means the page;
-when there are more pages, "Select all N" offers the rest. Selection clears when the filter or the page changes, so
-what an action touches is always what is on screen.
+**The toolbar (`ListToolbar`).** On the **left**, after the select-all checkbox (which sits above the rail of row
+checkboxes), a **filter button** with the funnel icon; actions for the selected items on the **right**, with a "3
+selected" count. The filters themselves are folded away: the funnel (`aria-expanded`, only offered when there is
+something to filter by) opens a row of them under the header (tag buttons and, on a reading list, the Show read items
+switch), which a close button folds again. While it is folded and a filter is on, the funnel is marked and a small chip
+says what is filtering, so a filtered list never looks like the whole list. The actions are always shown and disabled
+until something is selected, so the row never jumps. Text, not icons. Select all means the items showing, after the
+filter, on this page; when there are more pages, "Select all N" offers the rest of the filtered list. Selection clears
+when the filter or the page changes, so what an action touches is always what is on screen.
 
 **Removing and deleting.** Two kinds, two controls (see [Confirming destructive actions](#confirming-destructive-actions)).
 Removing one thing that has no consequences beyond itself (a note, a reading-list item, a feed, an invitation) takes a

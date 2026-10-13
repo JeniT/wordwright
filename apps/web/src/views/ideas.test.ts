@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import {
+  openFilters,
   renderAt,
   server,
   showArrows,
@@ -283,6 +284,7 @@ describe('idea page', () => {
       // Read items are out of the way until asked for.
       expect(await screen.findByRole('switch', { name: 'Read: Unread one' })).not.toBeChecked()
       expect(screen.queryByRole('switch', { name: 'Read: Read one' })).not.toBeInTheDocument()
+      await openFilters()
       await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
       expect(await screen.findByRole('switch', { name: 'Read: Read one' })).toBeChecked()
       expect(screen.getByText('Suggested in brainstorming')).toBeInTheDocument()
@@ -443,6 +445,7 @@ describe('idea page', () => {
       await openTagged()
       await screen.findByRole('link', { name: /A paper/ })
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
+      await openFilters()
       const filter = screen.getByRole('group', { name: 'Show links with a tag' })
       expect(
         within(filter)
@@ -462,10 +465,48 @@ describe('idea page', () => {
       expect(screen.getByRole('link', { name: /Other/ })).toBeInTheDocument()
     })
 
-    it('has no filter while nothing is tagged', async () => {
+    it('folds the filters behind a funnel button, which says what is filtering while they are closed', async () => {
+      await openTagged()
+      await screen.findByRole('link', { name: /A paper/ })
+      const funnel = screen.getByRole('button', { name: 'Filter' })
+      expect(funnel).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+      await fireEvent.click(funnel)
+      expect(funnel).toHaveAttribute('aria-expanded', 'true')
+      await fireEvent.click(
+        within(screen.getByRole('group', { name: 'Show links with a tag' })).getByRole('button', {
+          name: 'part 2',
+        }),
+      )
+      await fireEvent.click(screen.getByRole('button', { name: 'Close the filters' }))
+      expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+      // Still filtering, and the header says so.
+      expect(screen.getByRole('button', { name: 'Filter (on: part 2)' })).toBeInTheDocument()
+      expect(screen.getByText('part 2', { selector: '.chip' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /Other/ })).toBeNull()
+    })
+
+    it('selects only the links showing, not the ones a filter hides', async () => {
+      await openTagged()
+      await screen.findByRole('link', { name: /A paper/ })
+      await openFilters()
+      await fireEvent.click(
+        within(screen.getByRole('group', { name: 'Show links with a tag' })).getByRole('button', {
+          name: 'background',
+        }),
+      )
+      await fireEvent.click(screen.getByRole('checkbox', { name: 'Select all links on this page' }))
+      expect(screen.getByText('2 selected')).toBeInTheDocument() // A paper and Third, not Other
+      expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Select Third' })).toBeChecked()
+      expect(screen.queryByRole('checkbox', { name: 'Select Other' })).toBeNull()
+    })
+
+    it('has no filter, and no funnel, while nothing is tagged or read', async () => {
       await open()
       await screen.findByRole('link', { name: /A paper/ })
       expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+      expect(screen.queryByRole('button', { name: /^Filter/ })).toBeNull()
     })
 
     it('adds and removes a link’s tags under it, one at a time, saving each', async () => {
@@ -1143,6 +1184,7 @@ describe('idea page', () => {
         fakeNotes(tagged())
         await open()
         await screen.findByText('Erosion loops.')
+        await openFilters()
         const filter = within(region()).getByRole('group', { name: 'Show notes with a tag' })
         // Each tag once, whatever its case, and "All" first.
         expect(
@@ -1171,6 +1213,7 @@ describe('idea page', () => {
         const api = fakeNotes(tagged())
         await open()
         await screen.findByText('Erosion loops.')
+        await openFilters()
         await fireEvent.click(within(region()).getByRole('button', { name: 'draft 2' }))
         await showArrows()
         // Shown: n1, n2. Move n2 above n1; n3 and n4 are hidden and keep their places.
@@ -1184,6 +1227,7 @@ describe('idea page', () => {
         fakeNotes([{ ...note('n1', 'Only one.'), tags: ['solo'] }, note('n2', 'Other.')])
         await open()
         await screen.findByText('Only one.')
+        await openFilters()
         await fireEvent.click(within(region()).getByRole('button', { name: 'solo' }))
         expect(texts()).toEqual(['Only one.'])
         await fireEvent.click(

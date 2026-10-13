@@ -1,6 +1,14 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, holdToConfirm, showArrowsFor, test } from './fixtures'
+import {
+  expect,
+  goTo,
+  openFilters,
+  showReadItems,
+  holdToConfirm,
+  showArrowsFor,
+  test,
+} from './fixtures'
 
 async function signUpWithProfile(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -71,7 +79,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.reload()
   // Read items are out of the way until asked for.
   await expect(readBox).toHaveCount(0)
-  await page.getByRole('switch', { name: 'Show read items (1)' }).check()
+  await showReadItems(page)
   await expect(readBox).toBeChecked()
 
   // The same page twice is refused, however it is written, and what was typed stays put.
@@ -209,7 +217,7 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   // Removing a link and deleting the idea both work, and deleting asks first.
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await goTo(page, 'Research')
-  await page.getByRole('switch', { name: /^Show read items/ }).check() // example.org was read
+  await showReadItems(page) // example.org was read
   await holdToConfirm(
     page,
     page.getByRole('button', { name: 'Remove link to Fake title for example.org' }),
@@ -384,7 +392,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
   // (the first item; the second, added from the reading page, is unread; read items are hidden until shown)
   await expect(page.getByRole('switch', { name: 'Read: Meanders, explained' })).toHaveCount(0)
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
   await expect(page.getByRole('switch', { name: 'Read: Meanders, explained' })).toBeChecked()
   await expect(page.getByRole('switch', { name: /^Read: / })).toHaveCount(2)
   // Read items go last: the unread page found while reading comes first, the one just read after it.
@@ -419,7 +427,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   }
   // No filter until something is tagged.
   const filter = page.getByRole('group', { name: 'Show links with a tag' })
-  await expect(filter).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0) // no funnel yet
 
   // Tags go in one at a time under the link: type, Enter, type, Enter, then the tick.
   await page.getByRole('button', { name: 'Add tags to Fake title for example.org' }).click()
@@ -435,6 +443,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await expect(tagField).toHaveCount(0)
 
   // Show only that tag's items, then all again; the tag survives a reload.
+  await openFilters(page)
   await filter.getByRole('button', { name: 'part 1' }).click()
   await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toHaveCount(0)
   await filter.getByRole('button', { name: 'All' }).click()
@@ -452,6 +461,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await noViolations(page, 'reading list with the tag panel open')
   await page.getByRole('button', { name: 'Tag 2 links' }).click()
   await expect(page.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
+  await openFilters(page)
   await page
     .getByRole('group', { name: 'Show links with a tag' })
     .getByRole('button', { name: 'shared' })
@@ -490,6 +500,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await expect(notes.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
 
   // Both notes carry the tags, the third does not, and the tag now filters.
+  await openFilters(page)
   const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
   await filter.getByRole('button', { name: 'section one' }).click()
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
@@ -505,11 +516,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await expect(filter.getByRole('button', { name: 'intro' })).toHaveCount(0)
   await expect(filter.getByRole('button', { name: 'section one' })).toBeVisible()
   await page.reload()
-  await expect(
-    page
-      .getByRole('region', { name: 'Notes' })
-      .getByRole('group', { name: 'Show notes with a tag' }),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Filter/ })).toBeVisible() // the funnel, folded
 })
 
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({
@@ -554,6 +561,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await noViolations(page, 'idea page with tagged notes')
 
   // Show only one tag's notes; they can still be put in order, and "All" brings the rest back.
+  await openFilters(page)
   const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
   await filter.getByRole('button', { name: 'part 1' }).click()
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
@@ -695,7 +703,7 @@ test('a link to something on the reading list goes in only once it has been read
   await expect(dialog).toHaveCount(0)
   await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
   await goTo(page, 'Research')
-  await page.getByRole('switch', { name: /^Show read items/ }).check()
+  await showReadItems(page)
   await expect(page.getByRole('switch', { name: /^Read: Fake title/ })).toBeChecked()
 })
 

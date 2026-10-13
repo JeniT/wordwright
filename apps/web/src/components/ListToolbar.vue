@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, useId, useTemplateRef, watchEffect } from 'vue'
+import Icon from './Icon.vue'
 
 /**
- * The top row of a list of items: the select-all checkbox above the rail of row checkboxes, then the filters on the
- * left, and the actions that apply to the selected items on the right. Actions are always shown, and disabled until
- * something is selected, so the row never jumps. Selecting all means all the items on this page; when the filtered
- * list has more pages, "Select all N" offers the rest. Put it first inside the list's panel.
+ * The top row of a list of items: the select-all checkbox above the rail of row checkboxes, a filter button (a
+ * funnel) on the left, and the actions that apply to the selected items on the right. The filters themselves are
+ * folded away: the funnel opens a row of them under this one, and says what is filtering while it is closed. Actions
+ * are always shown, and disabled until something is selected, so the row never jumps. Selecting all means all the
+ * items this page shows, after any filter; when the filtered list has more pages, "Select all N" offers the rest.
+ * Put it first inside the list's panel.
  */
 const props = defineProps<{
   /** How many items this page shows, and how many of all (filtered) items there are. */
@@ -17,7 +20,13 @@ const props = defineProps<{
   selectedOnPage: number
   /** What the items are called, plural: "links". */
   noun: string
+  /** There is something to filter by, so the funnel is offered. */
+  canFilter?: boolean
+  /** A filter is on, and what it is ("part 1"), shown beside the funnel while the filters are folded away. */
+  filterSummary?: string
 }>()
+/** Whether the row of filters is open. */
+const filtering = defineModel<boolean>('filtering', { default: false })
 const emit = defineEmits<{ 'toggle-page': [on: boolean]; 'select-everything': [] }>()
 
 const id = useId()
@@ -28,6 +37,8 @@ watchEffect(() => {
   if (box.value) box.value.indeterminate = some.value
 })
 const more = computed(() => all.value && props.total > props.selected)
+const filtersOpen = computed(() => filtering.value && !!props.canFilter)
+const filtersId = `${id}-filters`
 </script>
 
 <template>
@@ -49,7 +60,23 @@ const more = computed(() => all.value && props.total > props.selected)
       >
         <div class="flex flex-wrap items-center gap-x-5 gap-y-1">
           <label :for="id" class="text-sm">Select all</label>
-          <slot name="filters" />
+          <span v-if="canFilter" class="inline-flex items-center gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-icon btn-neutral"
+              :class="{ '!border-accent !bg-accent-wash': filterSummary }"
+              :aria-expanded="filtersOpen"
+              :aria-controls="filtersId"
+              title="Filter"
+              :aria-label="filterSummary ? `Filter (on: ${filterSummary})` : 'Filter'"
+              @click="filtering = !filtering"
+            >
+              <Icon name="filter" :size="16" />
+            </button>
+            <span v-if="filterSummary && !filtersOpen" class="chip chip-quiet">{{
+              filterSummary
+            }}</span>
+          </span>
         </div>
         <div
           role="group"
@@ -60,6 +87,24 @@ const more = computed(() => all.value && props.total > props.selected)
           <slot name="actions" />
         </div>
       </div>
+    </div>
+    <div
+      v-if="filtersOpen"
+      :id="filtersId"
+      class="flex items-center justify-between gap-3 border-t border-line bg-sunken px-4 py-2 ps-[4.25rem]"
+    >
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-1">
+        <slot name="filters" />
+      </div>
+      <button
+        type="button"
+        class="btn btn-sm btn-icon btn-quiet shrink-0"
+        title="Close the filters"
+        aria-label="Close the filters"
+        @click="filtering = false"
+      >
+        <Icon name="close" :size="16" />
+      </button>
     </div>
     <p v-if="more" class="meta px-4 pb-2 ps-[4.25rem]">
       All {{ selectedOnPage }} {{ noun }} on this page are selected.

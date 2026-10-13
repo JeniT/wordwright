@@ -58,6 +58,11 @@ watch([showRead, tagFilter], () => {
   paging.first()
 })
 const readCount = computed(() => (list.links.value ?? []).filter((l) => l.readAt).length)
+/** What is filtering the list, for the funnel to say while the filters are folded away. */
+const filterSummary = computed(() => {
+  const parts = [tagFilter.value, showRead.value ? 'including read' : null].filter(Boolean)
+  return parts.length ? parts.join(' · ') : undefined
+})
 const shown = computed(() =>
   (list.links.value ?? []).filter(
     (l) => (!l.readAt || showRead.value || justRead.value.has(l.id)) && hasTag(l, tagFilter.value),
@@ -239,6 +244,8 @@ function removeChosen() {
             :selected="chosen.length"
             :selected-on-page="chosenOnPage"
             noun="links"
+            :can-filter="usedTags.length > 0 || readCount > 0"
+            :filter-summary="filterSummary"
             @toggle-page="selectPage"
             @select-everything="selectEverything"
           >
