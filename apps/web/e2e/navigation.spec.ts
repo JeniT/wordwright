@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, goTo, test } from './fixtures'
 
-// The side menu follows you: home, then a profile's three steps, then an idea's five. See docs/design.md.
+// The side menu follows you: home, then a profile's three steps, then an idea's four. See docs/design.md.
 
 async function signUpWithIdea(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -35,9 +35,9 @@ test('leads through a profile and an idea step by step, without ever locking one
 }) => {
   await signUpWithIdea(page)
 
-  // In an idea: five steps, in order, the current one marked, each always available.
+  // In an idea: four steps, in order, the current one marked, each always available.
   const idea = page.getByRole('navigation', { name: 'Idea' })
-  await expect(idea.getByRole('listitem')).toHaveCount(5 + 1) // five steps and Idea settings
+  await expect(idea.getByRole('listitem')).toHaveCount(4 + 1) // four steps and Idea settings
   await expect(idea.getByRole('link', { name: 'Notes', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
@@ -75,16 +75,20 @@ test('leads through a profile and an idea step by step, without ever locking one
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
 
-  // Publish: copy the draft as Markdown, title first.
+  // Publishing is done to this draft, at the bottom of its page: copy it as Markdown, title first.
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
-  await goTo(page, 'Publish')
-  await expect(page.getByRole('heading', { level: 1, name: 'Publish' })).toBeVisible()
-  await page.getByRole('button', { name: 'Copy Markdown' }).click()
+  await page.getByRole('button', { name: 'Copy as Markdown' }).click()
   await expect(page.getByText(/Copied\. Paste it where you publish/)).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     '# A cut is a question\n\nTake out a third.\n',
   )
-  await noViolations(page, 'Publish step')
+  await noViolations(page, 'Draft page with its publish section')
+  // The old Publish address leads to the idea's drafts.
+  const draftsHref = await page.getByRole('link', { name: '← All drafts' }).getAttribute('href')
+  await page.goto(draftsHref!.replace(/\/drafts$/, '/publish'))
+  await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
+  await expect(page).toHaveURL(/\/drafts$/)
+  await expect(idea.getByRole('link', { name: 'Publish' })).toHaveCount(0)
 
   // Idea settings are apart from the steps: no step is current there.
   await page.getByRole('link', { name: 'Idea settings' }).click()
@@ -184,7 +188,7 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
   await page.getByRole('link', { name: /What pruning teaches/ }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   await noViolations(page, 'Idea landing page in dark mode')
-  for (const step of ['Research', 'Notes', 'Refine', 'Draft', 'Publish']) {
+  for (const step of ['Research', 'Notes', 'Refine', 'Draft']) {
     await goTo(page, step)
     await expect(page.getByRole('heading', { level: 1, name: step })).toBeVisible()
     await noViolations(page, `${step} step in dark mode`)

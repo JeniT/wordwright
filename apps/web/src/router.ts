@@ -161,7 +161,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'profile' },
   },
 
-  // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, 05 Publish, and its settings ———
+  // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, and its settings ———
   {
     path: '/p/:profileId/ideas/:id',
     name: 'idea',
@@ -216,11 +216,9 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'idea', step: 'draft' },
   },
   {
+    // Publishing is done to one draft, at the bottom of its page; old links land on the idea's drafts.
     path: '/p/:profileId/ideas/:id/publish',
-    name: 'idea-publish',
-    component: () => import('./views/IdeaPublishView.vue'),
-    props: true,
-    meta: { level: 'idea', step: 'publish' },
+    redirect: (to) => ({ name: 'idea-drafts', params: to.params, query: to.query }),
   },
   {
     path: '/p/:profileId/ideas/:id/settings',

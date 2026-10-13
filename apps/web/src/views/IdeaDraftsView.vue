@@ -2,7 +2,6 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
 import IdeaGate from '../components/IdeaGate.vue'
-import NextStep from '../components/NextStep.vue'
 import ReorderableList from '../components/ReorderableList.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
 import StepHeading from '../components/StepHeading.vue'
@@ -74,12 +73,5 @@ async function saveDraftOrder(ids: string[]) {
         {{ errorMessage(moveDrafts.error.value) }}
       </p>
     </section>
-    <NextStep
-      v-if="idea.drafts.length"
-      :to="{ name: 'idea-publish', params: { profileId, id } }"
-      label="Next: 05 Publish"
-    >
-      When a draft is ready, get it ready to send out.
-    </NextStep>
   </IdeaGate>
 </template>

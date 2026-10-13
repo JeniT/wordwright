@@ -320,11 +320,11 @@ How people are led through the app. The side menu **follows you**: what it lists
 back up and the name of the thing you are in. (We drew three approaches, a steady menu with steps on the page and a
 menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#navigation-the-menu-follows-you).)
 
-| Level   | You are choosing…               | The menu lists                                                                                                                                  | Settings         |
-| ------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Home    | which **profile** to work on    | Profiles, Account settings                                                                                                                      | Account settings |
-| Profile | what to gather, then which idea | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                                 | Profile settings |
-| Idea    | how to develop it               | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**, **05 Publish** | Idea settings    |
+| Level   | You are choosing…               | The menu lists                                                                                                                  | Settings         |
+| ------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Home    | which **profile** to work on    | Profiles, Account settings                                                                                                      | Account settings |
+| Profile | what to gather, then which idea | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Profile settings |
+| Idea    | how to develop it               | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Idea settings    |
 
 The principles (they are the point of the pattern; keep them when you add a page):
 
@@ -334,7 +334,7 @@ The principles (they are the point of the pattern; keep them when you add a page
 3. **See where you are in two places**: the current step is marked in the menu (`aria-current`, a filled badge and an
    edge) and in the page title, with the profile or idea name above it (`StepHeading`).
 4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 03 Refine →"), an outline button, never the
-   primary one. A step where the next move is a choice (Ideas), or the last (Publish), has none.
+   primary one. A step where the next move is a choice (Ideas), or the last (Draft), has none.
 5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Start brainstorming**,
    Research's **Start research**); arriving by the menu must never cost the writer money.
 6. **Always a way up**: "← All profiles", "← {profile}".
@@ -354,10 +354,10 @@ The principles (they are the point of the pattern; keep them when you add a page
 9. **The name leads back up to the landing page**: the profile's or idea's name in the menu, and the small name above
    a step's title, are links to it (current on the landing page itself, where the title is not a link).
 
-|                                                           |                                                          |
-| --------------------------------------------------------- | -------------------------------------------------------- |
-| ![Idea, Research step](screenshots/nav-idea-research.png) | ![Idea, Publish step](screenshots/nav-idea-publish.png)  |
-| ![Profile, Ideas step](screenshots/nav-profile-ideas.png) | ![Phone, menu open](screenshots/nav-phone-menu-open.png) |
+|                                                           |                                                           |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| ![Idea, Research step](screenshots/nav-idea-research.png) | ![Profile, Ideas step](screenshots/nav-profile-ideas.png) |
+| ![Phone, menu open](screenshots/nav-phone-menu-open.png)  |                                                           |
 
 **How a page joins the menu.** Give its route `meta: { level: 'profile' | 'idea', step: '<key>' }` in `router.ts`
 (`step` is a key from `PROFILE_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
@@ -370,9 +370,11 @@ its idea from the draft (`ideaFromDraft: true`).
 Adding a step (rare): add it to the step list in `lib/nav.ts`, give its route the meta, and update the table above
 and in README. Renumbering is automatic.
 
-**Publish** is where a finished draft leaves: today **Copy Markdown** (title first, with a Show Markdown fallback if the
-clipboard is out of reach). Publishing straight to a newsletter, and help drafting social threads, would belong here
-later; neither is built.
+**Publishing is not a step.** It is done to one draft, so it sits at the bottom of the Draft page (`DraftPublish`): **Copy**
+(rich text, with plain text beside it, so it keeps its headings and links when pasted into an editor or an email) and
+**Copy as Markdown** (title first), with a text box to select from if the clipboard is out of reach. Publishing straight to
+a newsletter, and help drafting social threads, would add their own buttons there later; neither is built. The old
+`/ideas/:id/publish` address redirects to the idea's drafts, and the drafts list is the last step, with no next step.
 
 ## Layout
 

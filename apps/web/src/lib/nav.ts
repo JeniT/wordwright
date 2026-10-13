@@ -8,7 +8,7 @@ import { useProfile } from './useProfiles'
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
  *   home    -> Profiles, Account settings
  *   profile -> 01 Search, 02 Read, 03 Notes, 04 Ideas, and the profile's settings
- *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, 05 Publish, and the idea's settings
+ *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, and the idea's settings
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
  */
@@ -31,7 +31,6 @@ export const IDEA_STEPS: Step[] = [
   { key: 'notes', label: 'Notes', route: 'idea-notes' },
   { key: 'refine', label: 'Refine', route: 'brainstorm' },
   { key: 'draft', label: 'Draft', route: 'idea-drafts' },
-  { key: 'publish', label: 'Publish', route: 'idea-publish' },
 ]
 
 export type NavLevel = 'home' | 'profile' | 'idea'

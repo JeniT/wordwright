@@ -243,6 +243,19 @@ test('register, write, save and request a critique', async ({ page }) => {
     true,
   )
 
+  // The publish buttons are at the bottom of the draft, and the closed notes drawer does not cover them.
+  const copy = page.getByRole('button', { name: 'Copy as Markdown' })
+  await copy.scrollIntoViewIfNeeded()
+  await expect(copy).toBeVisible()
+  const box = (await copy.boundingBox())!
+  expect(box.x + box.width).toBeLessThanOrEqual(390)
+  await expect(page.getByRole('button', { name: 'Copy', exact: true })).toBeInViewport()
+  const topmost = await copy.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))
+  })
+  expect(topmost).toBe(true)
+
   // There the comments are in the drawer, and pressing one shows its paragraph and gets the drawer out of the way.
   await page.getByRole('button', { name: 'Notes and comments' }).click()
   const drawer = page.getByRole('complementary')

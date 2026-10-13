@@ -322,7 +322,7 @@ describe('EditorView critique', () => {
     expect(screen.getByRole('button', { name: 'Critique' })).toBeDisabled()
     expect(screen.getByRole('link', { name: 'publish it' })).toHaveAttribute(
       'href',
-      '/p/p1/ideas/i1/publish',
+      '/p/p1/drafts/d1#publish',
     )
     expect(screen.getByRole('link', { name: 'account settings' })).toHaveAttribute(
       'href',
@@ -1080,5 +1080,98 @@ describe('the tabs beside the draft', () => {
       const heading = screen.getByRole('heading', { level: 2, name, hidden: true })
       expect(heading, name).toHaveClass('sr-only')
     }
+  })
+})
+
+describe('publishing from the draft page', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    Reflect.deleteProperty(navigator, 'clipboard')
+  })
+
+  /** A clipboard that records what it is given, with or without support for rich text. */
+  function stubClipboard(opts: { rich: boolean; plainFails?: boolean }) {
+    const writeText = vi.fn(async () => {
+      if (opts.plainFails) throw new Error('denied')
+    })
+    const write = vi.fn().mockResolvedValue(undefined)
+    class FakeItem {
+      constructor(public data: Record<string, Blob>) {}
+    }
+    // Only the clipboard is replaced: the editor reads other things (the platform) from the real navigator.
+    Object.defineProperty(navigator, 'clipboard', {
+      value: opts.rich ? { writeText, write } : { writeText },
+      configurable: true,
+    })
+    if (opts.rich) vi.stubGlobal('ClipboardItem', FakeItem)
+    else vi.stubGlobal('ClipboardItem', undefined)
+    return { writeText, write }
+  }
+  const textOf = (blob: Blob) => blob.text()
+
+  async function openDraft() {
+    mockEditor(() => new Response(null, { status: 500 }))
+    server.use(
+      http.get('*/api/profiles/p1/drafts/d1', () =>
+        HttpResponse.json({
+          ...draft,
+          title: 'Part 1',
+          body: 'Erosion **loops**.\n\nBends migrate.',
+        }),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    return screen.findByRole('region', { name: 'Publish' })
+  }
+
+  it('sits at the bottom of the draft with the reassurance that the idea stays', async () => {
+    const section = await openDraft()
+    expect(within(section).getByText(/The words are yours; nothing is added/)).toBeInTheDocument()
+    expect(within(section).getByText(/Your idea stays here/)).toBeInTheDocument()
+  })
+
+  it('copies the title and body as rich text, with plain text beside it', async () => {
+    const { write } = stubClipboard({ rich: true })
+    const section = await openDraft()
+    await fireEvent.click(within(section).getByRole('button', { name: 'Copy' }))
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1))
+    const item = write.mock.calls[0]![0][0] as { data: Record<string, Blob> }
+    expect(await textOf(item.data['text/html']!)).toBe(
+      '<h1>Part 1</h1>\n<p>Erosion <strong>loops</strong>.</p>\n<p>Bends migrate.</p>\n',
+    )
+    expect(await textOf(item.data['text/plain']!)).toBe(
+      'Part 1\n\nErosion **loops**.\n\nBends migrate.\n',
+    )
+    expect(await within(section).findByText(/Copied\. Paste it where you publish/)).toBeTruthy()
+  })
+
+  it('copies the plain words when rich copy is not supported', async () => {
+    const { writeText } = stubClipboard({ rich: false })
+    const section = await openDraft()
+    await fireEvent.click(within(section).getByRole('button', { name: 'Copy' }))
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith('Part 1\n\nErosion **loops**.\n\nBends migrate.\n'),
+    )
+    expect(await within(section).findByText(/Copied\. Paste it where you publish/)).toBeTruthy()
+  })
+
+  it('copies the Markdown, title first as a heading', async () => {
+    const { writeText } = stubClipboard({ rich: true })
+    const section = await openDraft()
+    await fireEvent.click(within(section).getByRole('button', { name: 'Copy as Markdown' }))
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith('# Part 1\n\nErosion **loops**.\n\nBends migrate.\n'),
+    )
+    expect(await within(section).findByText(/Copied\. Paste it where you publish/)).toBeTruthy()
+  })
+
+  it('shows the text to select when the clipboard is out of reach', async () => {
+    stubClipboard({ rich: false, plainFails: true })
+    const section = await openDraft()
+    await fireEvent.click(within(section).getByRole('button', { name: 'Copy as Markdown' }))
+    expect(await within(section).findByText(/couldn't reach your clipboard/)).toBeTruthy()
+    expect(within(section).getByLabelText(/to select and copy/)).toHaveValue(
+      '# Part 1\n\nErosion **loops**.\n\nBends migrate.\n',
+    )
   })
 })

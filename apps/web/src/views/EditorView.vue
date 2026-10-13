@@ -6,6 +6,7 @@ import AiButton from '../components/AiButton.vue'
 import CritiquePanel from '../components/CritiquePanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
+import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
@@ -363,21 +364,16 @@ async function requestCritique() {
           <template v-if="outOfLooks">
             You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
             this draft. The next step is to
-            <RouterLink
-              v-if="draft.data.value?.ideaId"
-              :to="{
-                name: 'idea-publish',
-                params: { profileId: props.profileId, id: draft.data.value.ideaId },
-              }"
-              class="underline"
-              >publish it</RouterLink
-            ><template v-else>publish it</template>. You can change how many looks a draft gets in
-            your <RouterLink to="/account" class="underline">account settings</RouterLink>.
+            <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. You
+            can change how many looks a draft gets in your
+            <RouterLink to="/account" class="underline">account settings</RouterLink>.
           </template>
           <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
         </p>
 
         <DraftInsertions :profile-id="profileId" :draft-id="id" :body="body" />
+
+        <DraftPublish :title="title" :body="body" />
       </article>
 
       <div

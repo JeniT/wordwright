@@ -1,6 +1,6 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
+import { fireEvent, screen, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -131,12 +131,12 @@ describe('the menu in a profile', () => {
 })
 
 describe('the menu in an idea', () => {
-  it('names the idea, lists five steps with counts, and leads back up to the profile', async () => {
+  it('names the idea, lists four steps with counts, and leads back up to the profile', async () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas/i1/notes')
     const nav = await screen.findByRole('navigation', { name: 'Idea' })
-    expect(within(nav).getAllByRole('listitem').length).toBeGreaterThanOrEqual(5)
-    for (const name of ['Research', 'Notes', 'Refine', 'Draft', 'Publish']) {
+    expect(within(nav).getAllByRole('listitem').length).toBeGreaterThanOrEqual(4)
+    for (const name of ['Research', 'Notes', 'Refine', 'Draft']) {
       expect(within(nav).getByRole('link', { name })).toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
@@ -265,57 +265,20 @@ describe('the menu folds away on pages read beside another window', () => {
   })
 })
 
-describe('the Publish step', () => {
-  afterEach(() => vi.unstubAllGlobals())
-
-  it('copies a draft as Markdown, title first, ready to paste where it is published', async () => {
+describe('the old Publish step', () => {
+  it('is gone from the menu, and its address leads to the idea’s drafts', async () => {
     mockApp()
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
     await renderAt('/p/ada-substack/ideas/i1/publish')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Copy Markdown' }))
-    await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith('# Part 1\n\nErosion loops.\n\nBends migrate.\n'),
-    )
-    expect(await screen.findByText(/Copied\. Paste it where you publish/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Draft' })).toBeInTheDocument()
+    const nav = await screen.findByRole('navigation', { name: 'Idea' })
+    expect(within(nav).queryByRole('link', { name: 'Publish' })).toBeNull()
+    expect(within(nav).getByRole('link', { name: 'Draft' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('shows the Markdown to select when the clipboard is out of reach', async () => {
+  it('leaves the drafts list as the last step, with no next step', async () => {
     mockApp()
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
-    })
-    await renderAt('/p/ada-substack/ideas/i1/publish')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Copy Markdown' }))
-    expect(await screen.findByText(/couldn't reach your clipboard/)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Markdown of “Part 1”/)).toHaveValue(
-      '# Part 1\n\nErosion loops.\n\nBends migrate.\n',
-    )
-  })
-
-  it('shows and hides the Markdown on request, and says when there is nothing to publish', async () => {
-    mockApp()
-    await renderAt('/p/ada-substack/ideas/i1/publish')
-    const show = await screen.findByRole('button', { name: 'Show Markdown' })
-    await fireEvent.click(show)
-    expect(screen.getByLabelText(/Markdown of “Part 1”/)).toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('button', { name: 'Hide Markdown' }))
-    expect(screen.queryByLabelText(/Markdown of “Part 1”/)).toBeNull()
-  })
-
-  it('points to the Draft step when there is no draft yet', async () => {
-    mockApp()
-    server.use(
-      http.get('*/api/profiles/ada-substack/ideas/i1', () =>
-        HttpResponse.json({ ...idea, drafts: [] }),
-      ),
-    )
-    await renderAt('/p/ada-substack/ideas/i1/publish')
-    expect(await screen.findByText(/nothing to publish yet/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Start a draft.' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/ideas/i1/drafts',
-    )
+    await renderAt('/p/ada-substack/ideas/i1/drafts')
+    await screen.findByRole('heading', { level: 1, name: 'Draft' })
+    expect(screen.queryByRole('link', { name: /Next:/ })).toBeNull()
   })
 })

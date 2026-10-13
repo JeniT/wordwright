@@ -1183,7 +1183,7 @@ distinct heading typeface.
 
 **Decision.** The side menu **follows you** through three levels: Home (Profiles, Account settings), a profile (**01
 Search**, **02 Read**, **03 Notes**, **04 Ideas**, Profile settings) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
-**04 Draft**, **05 Publish**, Idea settings). The long Idea page was split into those steps, each its own page. How it
+**04 Draft**, Idea settings; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
 works and how to extend it is in [design.md](design.md#navigation-the-menu-follows-you); the mock-ups we compared, with
 screenshots, are in [design-concepts/navigation/](design-concepts/navigation/README.md).
 
@@ -1204,8 +1204,7 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
   copied). That arrived with T37d (**Move notes** on the profile's Notes step); the menu needed no change for it.
 - **The idea's reading list is separate from the profile's** (as the data already was). The profile's reading list lives
   in Read (step 02); the idea's in Research (step 01).
-- **Publish** is for getting a finished draft out: now **Copy Markdown**; later, publishing straight to Substack and help
-  drafting social threads, which are on the back burner and not built.
+- **Publish** was for getting a finished draft out; see _Publishing moved to the Draft page_ below (#97).
 - **The menu stays on the editor** on a laptop or desktop, but **folds away on the reading and note-taking page**, where
   the writer has the source and the app side by side in narrow windows.
 
@@ -1226,7 +1225,22 @@ annoying). Several e2e specs had to change because they found links by names ("B
 that are now step names in the menu.
 
 **Revisit if** people with many ideas find going up a level to switch tiresome (add an idea switcher, or reconsider the
-map); or Publish grows beyond copying.
+map).
+
+## Publishing moved to the Draft page (#97)
+
+Publishing is something you do to one draft, not a stage of an idea, and a separate **05 Publish** step listing every
+draft sat oddly after Draft. The step, its route and view are gone; each draft's page ends with a publish section
+(`DraftPublish`) acting on that draft as it stands on the page, saved or not. `/ideas/:id/publish` redirects to the
+idea's drafts so old links work, and the drafts list is the last step.
+
+- **Two copy buttons.** **Copy** puts rich text (`text/html`, from the same safe Markdown renderer as the rest of the app)
+  on the clipboard with `text/plain` beside it, so it pastes with its formatting; where the browser can't write rich text
+  it copies the plain words instead, and if even that is refused the text is shown to select. **Copy as Markdown** is what
+  the old Copy Markdown button did. Plain text is the title, a blank line, then the Markdown body.
+- **The Show Markdown toggle went.** The text appears only when the clipboard fails, which is when it is needed.
+- **"The next step is to publish it"** (when a draft's critique looks run out) now scrolls to the publish section.
+- **Revisit if** publishing straight to a newsletter arrives: it adds buttons to this section, or earns its own page.
 
 ## Checkboxes select, switches set a state, and lists share a rail and a toolbar (#88)
 
