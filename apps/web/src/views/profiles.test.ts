@@ -26,9 +26,6 @@ const substack = {
   siteUrl: 'https://ada.substack.com/about',
   imageUrl: '/api/profiles/adalovelace-substack/image?v=1',
   description: null,
-  descriptionOrigin: 'entered',
-  descriptionConfirmed: true,
-  descriptionSources: [],
   role: 'owner',
   members: [owner],
 }
@@ -38,9 +35,6 @@ const blog = {
   siteUrl: null,
   imageUrl: null,
   description: null,
-  descriptionOrigin: 'entered',
-  descriptionConfirmed: true,
-  descriptionSources: [],
   role: 'owner',
   members: [owner, editor],
 }

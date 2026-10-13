@@ -5,7 +5,6 @@ import { computed } from 'vue'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
 import DescriptionGuidance from './DescriptionGuidance.vue'
-import DescriptionOrigin from './DescriptionOrigin.vue'
 import SaveStatus from './SaveStatus.vue'
 import DescriptionEditor from './DescriptionEditor.vue'
 
@@ -14,16 +13,7 @@ const props = defineProps<{ profile: Profile }>()
 const queryClient = useQueryClient()
 
 const text = useSavedValue(() => props.profile.description ?? '', '')
-/** An AI draft nobody has accepted: saving it, even unchanged, is how it is accepted. */
-const unaccepted = computed(
-  () =>
-    !!props.profile.description &&
-    props.profile.descriptionOrigin === 'inferred' &&
-    !props.profile.descriptionConfirmed,
-)
-const changed = computed(
-  () => unaccepted.value || text.value.trim() !== (props.profile.description ?? ''),
-)
+const changed = computed(() => text.value.trim() !== (props.profile.description ?? ''))
 const tooLong = computed(() => text.value.length > PROFILE_DESCRIPTION_MAX)
 
 const save = useMutation({
@@ -40,7 +30,6 @@ const save = useMutation({
       “Personal weeknotes, mostly for me”. Everyone who shares this profile can change it, and it's
       the first thing people see on the profile page.
     </p>
-    <DescriptionOrigin :profile="profile" class="mb-3" />
     <DescriptionGuidance class="mb-4" />
     <form @submit.prevent="save.mutate()">
       <DescriptionEditor v-model="text" label="About this venue" />
@@ -50,13 +39,7 @@ const save = useMutation({
           class="btn btn-primary"
           :disabled="save.isPending.value || !changed || tooLong"
         >
-          {{
-            save.isPending.value
-              ? 'Saving…'
-              : unaccepted
-                ? 'Use this description'
-                : 'Save description'
-          }}
+          {{ save.isPending.value ? 'Saving…' : 'Save description' }}
         </button>
         <SaveStatus :mutation="save" class="basis-full" />
       </div>

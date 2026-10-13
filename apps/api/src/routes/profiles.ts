@@ -102,18 +102,6 @@ export function profileRoutes({
         return c.json(store.profiles.get(id, c.get('user').id))
       })
 
-      // The writer accepts a description an AI drafted (before drafting was removed, #150) as it stands, so it may be
-      // used as context. A description a person wrote needs no confirming.
-      .post('/:profileId/description/confirm', member, (c) => {
-        const id = param(c, 'profileId')
-        const userId = c.get('user').id
-        if (!store.profiles.get(id, userId)?.description) {
-          throw fail(409, 'There is no description to confirm.')
-        }
-        store.profiles.confirmDescription(id)
-        return c.json(store.profiles.get(id, userId))
-      })
-
       .delete('/:profileId', owner, (c) => {
         store.profiles.delete(param(c, 'profileId'))
         return c.body(null, 204)

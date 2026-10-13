@@ -160,9 +160,6 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(ProfileSchema, 'PATCH', `/profiles/${id}`, changes),
     setProfileDescription: (id: string, input: ProfileDescriptionInput) =>
       get(ProfileSchema, 'PUT', `/profiles/${id}/description`, input),
-    /** Accepts the AI draft as it stands, so it may be used as context. */
-    confirmProfileDescription: (id: string) =>
-      get(ProfileSchema, 'POST', `/profiles/${id}/description/confirm`, {}),
     setProfileImage: async (id: string, file: File) =>
       ProfileSchema.parse(await (await sendFile('PUT', `/profiles/${id}/image`, file)).json()),
     removeProfileImage: (id: string) => act('DELETE', `/profiles/${id}/image`),

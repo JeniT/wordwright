@@ -341,8 +341,7 @@ The principles (they are the point of the pattern; keep them when you add a page
 7. **Settings sit apart from the steps**, at their own level, with no step current.
 8. **A level has a landing page** (a profile's, at `/p/:profileId`; an idea's, at `/p/:profileId/ideas/:id`) that is none of the numbered steps: a summary of
    each step with its quick action (the newest feed posts; the reading list and a form to add to it; the latest notes and a form to add one; the ideas). Nothing in the menu is current there.
-   The profile's description comes first: an AI-drafted one carries the highlighter mark ("AI draft"), what happened to it
-   and the posts it was drawn from (`DescriptionOrigin`), with a way to review it while it is not yet accepted.
+   The profile's description comes first.
    Panels reuse the step pages' components, and, like the steps, visiting spends nothing. The page is titled with the
    profile's name (`h1`) beside its picture and website link, then the profile's description (Markdown, clamped to about eight lines with a
    **Show more…** / **Show less** button that appears only when text is hidden; an invitation to add one when empty); each section is a `LandingSection`: the step's number

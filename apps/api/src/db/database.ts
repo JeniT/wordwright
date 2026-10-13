@@ -573,6 +573,14 @@ export const MIGRATIONS: Migration[] = [
     PRIMARY KEY (link_id, tag COLLATE NOCASE)
   );
   `,
+  // #151: AI-drafted descriptions are gone (#150), so a description is always the writer's own words and the
+  // columns that said where it came from, whether it was accepted and what it was drawn from are dropped.
+  `
+  ALTER TABLE profiles DROP COLUMN description_origin;
+  ALTER TABLE profiles DROP COLUMN description_confirmed;
+  ALTER TABLE profiles DROP COLUMN description_sources;
+  ALTER TABLE profiles DROP COLUMN description_edited;
+  `,
 ]
 
 /**

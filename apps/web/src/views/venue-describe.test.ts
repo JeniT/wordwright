@@ -16,7 +16,6 @@ useMockServer()
 vi.mock('../components/DescriptionEditor.vue', () => import('../testing/description-editor-stub'))
 beforeEach(() => server.use(llmSettings(true), sourcesList()))
 
-const POSTS = ['https://garden.example/one', 'https://garden.example/two']
 const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
 const bare = {
   id: 'ada-venue',
@@ -24,23 +23,13 @@ const bare = {
   siteUrl: 'https://garden.example/',
   imageUrl: null,
   description: null,
-  descriptionOrigin: 'entered',
-  descriptionConfirmed: true,
-  descriptionSources: [] as string[],
-  descriptionEdited: false,
   role: 'owner',
   members: [owner],
 }
-const drafted = {
-  ...bare,
-  description: 'The posts are personal essays about gardens (posts 1 and 2).',
-  descriptionOrigin: 'inferred',
-  descriptionConfirmed: false,
-  descriptionSources: POSTS,
-}
-
 /** The server as far as these pages need it, remembering the profile so a save shows on the next read. */
-function fakeServer(start: typeof bare | typeof drafted = bare) {
+function fakeServer(
+  start: Omit<typeof bare, 'description'> & { description: string | null } = bare,
+) {
   const state = { profile: { ...start } as Record<string, unknown> }
   const calls: { path: string; body: unknown }[] = []
   server.use(
@@ -48,21 +37,10 @@ function fakeServer(start: typeof bare | typeof drafted = bare) {
     http.get('*/api/profiles', () => HttpResponse.json([state.profile])),
     http.get('*/api/profiles/ada-venue/ideas', () => HttpResponse.json([])),
     http.get('*/api/profiles/ada-venue/notes', () => HttpResponse.json([])),
-    http.post('*/api/profiles/ada-venue/description/confirm', () => {
-      calls.push({ path: 'confirm', body: null })
-      state.profile = { ...state.profile, descriptionConfirmed: true }
-      return HttpResponse.json(state.profile)
-    }),
     http.put('*/api/profiles/ada-venue/description', async ({ request }) => {
       const body = (await request.json()) as { description: string }
       calls.push({ path: 'save', body })
-      const fromDraft = state.profile.descriptionOrigin === 'inferred'
-      state.profile = {
-        ...state.profile,
-        description: body.description,
-        descriptionConfirmed: true,
-        descriptionEdited: fromDraft && body.description !== state.profile.description,
-      }
+      state.profile = { ...state.profile, description: body.description }
       return HttpResponse.json(state.profile)
     }),
   )
@@ -126,101 +104,23 @@ describe('describing a venue: guidance and the box', () => {
   })
 })
 
-describe('describing a venue: an AI draft saved before drafting was removed', () => {
-  it('is shown as AI-drafted with its evidence, and needs confirming', async () => {
-    const { calls } = fakeServer(drafted)
-    const { router } = await renderAt('/p/ada-venue/describe')
-    expect(
-      await screen.findByRole('heading', { name: 'Read it, change it, then use it' }),
-    ).toBeInTheDocument()
-    expect(screen.getByLabelText('About this venue')).toHaveValue(drafted.description)
-    expect(screen.getByText('AI draft')).toBeInTheDocument()
-    expect(
-      screen.getByText(/Drafted by AI from 2 posts\. You have not accepted it yet/),
-    ).toBeInTheDocument()
-    await fireEvent.click(screen.getByText('The posts it was drawn from'))
-    const evidence = within(
-      screen.getByText('The posts it was drawn from').closest('details')!,
-    ).getAllByRole('link')
-    expect(evidence.map((a) => a.getAttribute('href'))).toEqual(POSTS)
-
-    // Using it as it stands confirms it, without changing a word.
-    await fireEvent.click(screen.getByRole('button', { name: 'Use this description' }))
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-venue'))
-    expect(calls.map((c) => c.path)).toEqual(['confirm'])
+describe('the description in the settings and on the profile page', () => {
+  it('has the same guidance in the settings, folded away', async () => {
+    fakeServer({ ...bare, description: 'Mine.' })
+    await renderAt('/p/ada-venue/settings')
+    const guidance = (await screen.findByText('What makes a useful description')).closest(
+      'details',
+    )!
+    expect(guidance).not.toHaveAttribute('open')
+    expect(within(guidance).getByText(/Who reads it\./)).toBeInTheDocument()
   })
 
-  it('saves the writer’s changes instead when they edit it first', async () => {
-    const { calls } = fakeServer(drafted)
-    await renderAt('/p/ada-venue/describe')
-    await screen.findByRole('button', { name: 'Use this description' })
-    await fireEvent.update(
-      screen.getByLabelText('About this venue'),
-      'Garden essays. Mine, mostly.',
-    )
-    await fireEvent.click(screen.getByRole('button', { name: 'Use this description' }))
-    await waitFor(() => expect(calls.map((c) => c.path)).toEqual(['save']))
-    expect(calls[0]!.body).toEqual({ description: 'Garden essays. Mine, mostly.' })
-  })
-
-  it('does not use an emptied draft, and lets the writer leave it unused', async () => {
-    const { calls, state } = fakeServer(drafted)
-    await renderAt('/p/ada-venue/describe')
-    await screen.findByRole('button', { name: 'Use this description' })
-    await fireEvent.update(screen.getByLabelText('About this venue'), '  ')
-    expect(screen.getByRole('button', { name: 'Use this description' })).toBeDisabled()
-    expect(screen.getByRole('link', { name: 'Not now' })).toHaveAttribute('href', '/p/ada-venue')
-    expect(
-      screen.getByText(/the draft is kept but the assistant will not see it/),
-    ).toBeInTheDocument()
-    expect(calls).toEqual([])
-    expect(state.profile.descriptionConfirmed).toBe(false)
-  })
-})
-
-describe('where an AI draft is marked', () => {
-  const origin = (over: object) => ({ ...drafted, ...over })
-
-  it('on the profile page: not accepted yet, with a way to review it', async () => {
-    fakeServer(drafted)
-    await renderAt('/p/ada-venue')
-    const about = await screen.findByRole('region', { name: 'About this profile' })
-    expect(within(about).getByText('AI draft')).toBeInTheDocument()
-    expect(about).toHaveTextContent(
-      'You have not accepted it yet, so the assistant does not see it.',
-    )
-    expect(within(about).getByRole('link', { name: /Read it and decide/ })).toHaveAttribute(
-      'href',
-      '/p/ada-venue/describe',
-    )
-  })
-
-  it.each([
-    [{ descriptionConfirmed: true }, 'Accepted by you as it was.'],
-    [{ descriptionConfirmed: true, descriptionEdited: true }, 'Then edited by you.'],
-  ])('says what happened to it after %j', async (over, phrase) => {
-    fakeServer(origin(over))
-    await renderAt('/p/ada-venue')
-    const about = await screen.findByRole('region', { name: 'About this profile' })
-    expect(about).toHaveTextContent(phrase)
-    expect(within(about).queryByRole('link', { name: /Read it and decide/ })).toBeNull()
-  })
-
-  it('not at all for words the writer wrote', async () => {
+  it('shows the writer’s words with no mark about where they came from', async () => {
     fakeServer({ ...bare, description: 'Mine.' })
     await renderAt('/p/ada-venue')
     const about = await screen.findByRole('region', { name: 'About this profile' })
     expect(about).toHaveTextContent('Mine.')
-    expect(within(about).queryByText('AI draft')).toBeNull()
-  })
-
-  it('in the settings, where saving accepts it', async () => {
-    const { calls } = fakeServer(drafted)
-    await renderAt('/p/ada-venue/settings')
-    expect(await screen.findByText('AI draft')).toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('button', { name: 'Use this description' }))
-    await screen.findByText(/Accepted by you as it was/)
-    expect(calls).toEqual([{ path: 'save', body: { description: drafted.description } }])
+    expect(about).not.toHaveTextContent(/AI draft|accepted/i)
   })
 })
 

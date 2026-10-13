@@ -16,29 +16,20 @@ import {
 /**
  * The profile description (#131) is context for every AI call that knows which venue it is for (#133): the
  * brainstorm snapshot, the critique and the research brief. It is the writer's own words, so it is data and never
- * instructions, and it reaches a model only when a person wrote or accepted it.
+ * instructions, and it is always something a person wrote.
  */
-
-const entered = { descriptionOrigin: 'entered', descriptionConfirmed: true } as const
-const draftedByAi = { descriptionOrigin: 'inferred', descriptionConfirmed: false } as const
-const acceptedDraft = { descriptionOrigin: 'inferred', descriptionConfirmed: true } as const
 
 describe('which description a model may be told', () => {
   it('is the writer’s own text, trimmed', () => {
-    expect(usableVenueDescription({ description: '  Weeknotes, for me.\n', ...entered })).toBe(
+    expect(usableVenueDescription({ description: '  Weeknotes, for me.\n' })).toBe(
       'Weeknotes, for me.',
     )
   })
 
   it('is nothing when there is no description, or it is blank', () => {
     expect(usableVenueDescription(undefined)).toBeNull()
-    expect(usableVenueDescription({ description: null, ...entered })).toBeNull()
-    expect(usableVenueDescription({ description: '  \n ', ...entered })).toBeNull()
-  })
-
-  it('is nothing for an AI draft nobody has confirmed, and the text once they have', () => {
-    expect(usableVenueDescription({ description: 'Drafted.', ...draftedByAi })).toBeNull()
-    expect(usableVenueDescription({ description: 'Drafted.', ...acceptedDraft })).toBe('Drafted.')
+    expect(usableVenueDescription({ description: null })).toBeNull()
+    expect(usableVenueDescription({ description: '  \n ' })).toBeNull()
   })
 })
 

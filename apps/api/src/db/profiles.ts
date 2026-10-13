@@ -4,7 +4,6 @@ import {
   profileIdFor,
   type ImageType,
   type Profile,
-  type ProfileDescriptionOrigin,
   type ProfileMember,
   type ProfileRole,
 } from '@lfwa/core'
@@ -101,47 +100,9 @@ export class ProfileStore {
     return next
   }
 
-  /**
-   * A person saves the description (null clears it). Saving is accepting, so it is confirmed. Words that began as an
-   * AI draft stay marked as one, with the posts they were drawn from, and are "edited" once the text differs from the
-   * draft: the origin follows the text (docs/responsible-ai.md). Clearing starts again from nothing.
-   */
+  /** A person saves the description (null clears it). */
   setDescription(id: string, description: string | null) {
-    if (description === null) {
-      this.db
-        .prepare(
-          `UPDATE profiles SET description = NULL, description_origin = 'entered', description_confirmed = 1,
-             description_sources = '[]', description_edited = 0 WHERE id = ?`,
-        )
-        .run(id)
-      return
-    }
-    this.db
-      .prepare(
-        `UPDATE profiles SET
-           description_edited = CASE WHEN description_origin = 'inferred' AND description IS NOT ? THEN 1
-                                     ELSE description_edited END,
-           description = ?, description_confirmed = 1 WHERE id = ?`,
-      )
-      .run(description, description, id)
-  }
-
-  /**
-   * An AI draft (#135): shown with the links it was drawn from, and kept out of every prompt until a person
-   * confirms it (`confirmDescription`) or writes their own text over it (`setDescription`).
-   */
-  setInferredDescription(id: string, description: string, sources: string[]) {
-    this.db
-      .prepare(
-        `UPDATE profiles SET description = ?, description_origin = 'inferred',
-           description_confirmed = 0, description_sources = ?, description_edited = 0 WHERE id = ?`,
-      )
-      .run(description, JSON.stringify(sources), id)
-  }
-
-  /** A person accepts the AI draft as it stands: it keeps its origin and sources, and may now be used as context. */
-  confirmDescription(id: string) {
-    this.db.prepare('UPDATE profiles SET description_confirmed = 1 WHERE id = ?').run(id)
+    this.db.prepare('UPDATE profiles SET description = ? WHERE id = ?').run(description, id)
   }
 
   /** The current id of the profile that used to be called `oldId`, if any. */
@@ -243,8 +204,7 @@ export class ProfileStore {
     if (!role) return undefined
     const row = this.db
       .prepare(
-        `SELECT p.name, p.site_url, p.description, p.description_origin, p.description_confirmed,
-           p.description_sources, p.description_edited, i.updated_at AS image_updated_at FROM profiles p
+        `SELECT p.name, p.site_url, p.description, i.updated_at AS image_updated_at FROM profiles p
          LEFT JOIN profile_images i ON i.profile_id = p.id WHERE p.id = ?`,
       )
       .get(profileId) as
@@ -252,10 +212,6 @@ export class ProfileStore {
           name: string
           site_url: string | null
           description: string | null
-          description_origin: ProfileDescriptionOrigin
-          description_confirmed: number
-          description_sources: string
-          description_edited: number
           image_updated_at: string | null
         }
       | undefined
@@ -270,10 +226,6 @@ export class ProfileStore {
           ? `/api/profiles/${profileId}/image?v=${Date.parse(row.image_updated_at)}`
           : null,
         description: row.description,
-        descriptionOrigin: row.description_origin,
-        descriptionConfirmed: row.description_confirmed === 1,
-        descriptionSources: JSON.parse(row.description_sources) as string[],
-        descriptionEdited: row.description_edited === 1,
         role,
         members: this.members(profileId),
       }

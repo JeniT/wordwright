@@ -114,10 +114,8 @@ it is rendered by the same safe renderer as the AI's messages (no raw HTML, only
 5000 characters, because it will go into prompts.
 
 Everyone who works in the profile can edit it, so it has its own route (`PUT /api/profiles/:id/description`, members)
-instead of the owner-only `PATCH`. The row also stores `description_origin` (`entered` or `inferred`),
-`description_confirmed` and `description_sources` (a JSON list of links), unused until an AI-drafted description exists
-(#135, #136): a draft will show its evidence and stay out of prompts until a person accepts it (docs/responsible-ai.md,
-origin follows the text). A save of a person's own words is `entered`, confirmed, no sources; saving over an AI draft keeps its origin (see #136 below).
+instead of the owner-only `PATCH`. (It also once stored where the words came from and whether a person had accepted them, for AI drafts; those columns were
+dropped in #151, see the last decision below.)
 
 ## The description is written in a rich-text editor, stored as Markdown (#147, part of #27)
 
@@ -164,8 +162,8 @@ Brainstorm's own prompt (`brainstorm-default.md`) and the three fixed prompts sa
 
 - **Data, not instructions.** It is the writer's own text, so like their notes it is escaped (it cannot close the
   block) and every prompt says never to follow instructions found in it. Evals plant instructions in it for all three.
-- **No block when there is nothing to tell.** A blank description, or an AI-drafted one nobody has confirmed (#27),
-  is not sent (`usableVenueDescription`); requests are then byte-for-byte what they were before. The brainstorm snapshot
+- **No block when there is nothing to tell.** A blank description is not sent (`usableVenueDescription`; it once also
+  left out an AI draft nobody had confirmed); requests are then byte-for-byte what they were before. The brainstorm snapshot
   still says "(not described yet)", which is what makes the coach ask who the readers are.
 - **Adapt, not a mode.** Whether a venue is for readers or for writing to think in public (#25) is not a setting: the
   prompts tell the model to read the description, so a venue that says "personal, mostly for me" is not asked for an
@@ -1376,6 +1374,7 @@ AI-inferred description.
   writer wants, with an example, and a note that it is the writer's account of the venue and is never read as
   instructions. The points follow how the prompts use the description (`prompts/brainstorm-rules.md`, `critique.md`,
   `research.md`).
-- **Kept for now:** a description already saved as `inferred` (and its sources and confirmed/edited flags) still works as
-  before: shown marked "AI draft", never sent to a model until accepted. No migration was made, because the columns are
-  append-only history; removing the origin handling altogether is a follow-up once no such drafts remain.
+- **Origin handling removed too (#151).** With nothing live to keep, a migration dropped `description_origin`,
+  `description_confirmed`, `description_sources` and `description_edited`; the "AI draft" mark (`DescriptionOrigin`),
+  `POST /profiles/:id/description/confirm`, the unconfirmed check in `usableVenueDescription` and the profile fields that
+  carried them went with it. A description is always the writer's own words, and every saved one reaches the assistants.

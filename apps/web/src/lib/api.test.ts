@@ -44,10 +44,6 @@ describe('api client', () => {
       siteUrl: null,
       imageUrl: '/api/profiles/ada-blog/image?v=1',
       description: null,
-      descriptionOrigin: 'entered',
-      descriptionConfirmed: true,
-      descriptionSources: [],
-      descriptionEdited: false,
       role: 'owner',
       members: [],
     }

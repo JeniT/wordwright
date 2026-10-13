@@ -80,7 +80,7 @@ Built by the server on every turn, never by the client.
 - **Idea snapshot**, sent as the start of a user turn: the idea's title and notes, the related links (address and
   title), the venue's name, website and the writer's description of it, in a `<venue_description>` block (or a line saying
   it has not been described yet, so the model asks who the readers are, unless the description says the writing is
-  personal; an AI-drafted description nobody has confirmed is left out, #27), and the _titles_ of existing drafts so it knows what's already been written.
+  personal), and the _titles_ of existing drafts so it knows what's already been written.
   - A fresh snapshot is attached to a user turn **only when it differs from the last one sent**, since the person
     edits as they chat. Snapshots are stored with the message, not recomputed, so replays are identical.
   - Why not in the system prompt: it would change every turn and defeat prompt caching of the history.

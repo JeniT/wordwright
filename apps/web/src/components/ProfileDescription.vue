@@ -2,7 +2,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Profile } from '@lfwa/core'
-import DescriptionOrigin from './DescriptionOrigin.vue'
 import Markdown from './Markdown.vue'
 
 /**
@@ -11,9 +10,6 @@ import Markdown from './Markdown.vue'
  */
 const props = defineProps<{ profile: Profile }>()
 const description = computed(() => props.profile.description)
-const unaccepted = computed(
-  () => props.profile.descriptionOrigin === 'inferred' && !props.profile.descriptionConfirmed,
-)
 const bodyId = useId()
 const body = ref<HTMLElement>()
 const expanded = ref(false)
@@ -59,15 +55,6 @@ watch(
       >
         {{ expanded ? 'Show less' : 'Show more…' }}
       </button>
-      <DescriptionOrigin :profile="profile" class="mt-2" />
-      <p v-if="unaccepted" class="mt-1 text-sm">
-        <RouterLink
-          :to="{ name: 'describe-venue', params: { profileId: profile.id } }"
-          class="link"
-        >
-          Read it and decide whether to use it
-        </RouterLink>
-      </p>
     </template>
     <p v-else class="text-sm text-ink-soft">
       Say what this venue is for, who reads it and what kinds of writing go here.

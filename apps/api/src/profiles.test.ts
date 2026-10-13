@@ -310,14 +310,14 @@ describe('profile description', () => {
     id = (await (await ada.get('/api/profiles')).json())[0].id
   })
 
-  it('starts empty and entered, then keeps what is written, trimmed', async () => {
+  it('starts empty, then keeps what is written, trimmed', async () => {
     const before = await (await ada.get(`/api/profiles/${id}`)).json()
-    expect(before).toMatchObject({
-      description: null,
-      descriptionOrigin: 'entered',
-      descriptionConfirmed: true,
-      descriptionSources: [],
-    })
+    expect(before).toMatchObject({ description: null })
+    // A description is always the writer's own words: nothing says where it came from or whether it was accepted.
+    for (const gone of ['descriptionOrigin', 'descriptionConfirmed', 'descriptionSources']) {
+      expect(before).not.toHaveProperty(gone)
+    }
+    expect((await ada.post(`/api/profiles/${id}/description/confirm`, {})).status).toBe(404)
     const markdown = 'Weeknotes, mostly *for me*. See [the site](https://example.com).'
     const res = await ada.put(url(), { description: `  ${markdown}\n` })
     expect(res.status).toBe(200)
