@@ -119,6 +119,23 @@ instead of the owner-only `PATCH`. The row also stores `description_origin` (`en
 (#135, #136): a draft will show its evidence and stay out of prompts until a person accepts it (docs/responsible-ai.md,
 origin follows the text). A save of a person's own words is `entered`, confirmed, no sources; saving over an AI draft keeps its origin (see #136 below).
 
+## Prompts do not vary by an explicit profile mode (#137, #25)
+
+Decided by the owner: **no "writing mode" on the profile** ("for readers" or "to think in public") choosing between
+brainstorm and critique prompt variants, and no per-profile prompt editing. How the AI treats a venue comes from the
+writer's own description of it (#131, #133): the prompts tell the model to read it, so a venue described as personal
+thinking is coached rather than edited, and is not asked for an audience or a wider appeal.
+
+- **Why.** A mode is one more thing to set and to get wrong, a venue is often both kinds of writing, and the free-text
+  description already carries the distinction, in the writer's words and visible to everyone in the profile. One set of
+  prompts is also one set to evaluate and keep within `docs/responsible-ai.md`.
+- **What this settles.** #25's open question (prompts that vary by profile) is answered: they don't, beyond the
+  description. Per-profile prompt customisation ("a house style for each venue", `docs/brainstorming.md`) is not planned.
+  The distress-handling rules (principle 9) are not a profile mode either: they apply to every conversation.
+- **If it stops being enough.** The boundary evals added in #133 (a personal venue is not asked for an audience, a venue with
+  readers is weighed against them) are what to watch; if real use shows the description alone is unreliable, the fix is
+  to improve those prompts and cases first, and a mode would need a new decision.
+
 ## The venue description is context for brainstorm, critique and research (#133, part of #27)
 
 Every AI call that knows which venue it is for puts the profile description (#131) in a `<venue_description>` block:
@@ -134,7 +151,7 @@ Brainstorm's own prompt (`brainstorm-default.md`) and the three fixed prompts sa
 - **Adapt, not a mode.** Whether a venue is for readers or for writing to think in public (#25) is not a setting: the
   prompts tell the model to read the description, so a venue that says "personal, mostly for me" is not asked for an
   audience or a wider appeal, and critique then reads as a coach would. Whether that is enough, or the profile needs
-  an explicit mode, is decision #137; the evals added here are what it will be judged on.
+  an explicit mode, was decision #137: it does not (see above); the evals added here are what to watch.
 - **Shared by the profile.** The description belongs to the profile, so everyone in it sends the same block through
   their own key, model and (for brainstorm) prompt. People who saved their own brainstorm prompt keep it; the rules that
   are added after it carry the instructions about the description either way.

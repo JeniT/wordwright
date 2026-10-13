@@ -194,7 +194,7 @@ read the two pages above and quote what they say today.)
 | T7/T38 Research (#12, #38)           | —    | AI adds to the reading list only; its "why relevant" is labelled unverified (5, 10). Friction for unread sources (T34) stays.                                                                                                                                                    |
 | T16 Audiences (#2), #27 Profile gen. | 2–4  | An AI-drafted description needs an origin, visible evidence (the links used), and the writer's explicit confirmation before it becomes context (5, 6). Built (#131–#136): marked as AI-drafted (and "edited"), unused until accepted.                                            |
 | T33 Notes drawer (#33)               | —    | Inserted passages keep the note's origin (5).                                                                                                                                                                                                                                    |
-| #25 Writing to think                 | 1–2  | Profile-level mode; reflect and ask only; principle 9.                                                                                                                                                                                                                           |
+| #25 Writing to think                 | 1–2  | No profile mode (#137): the writer's venue description steers brainstorm and critique; reflect and ask only; principle 9.                                                                                                                                                        |
 
 ## How this is checked
 
