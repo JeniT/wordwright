@@ -92,7 +92,12 @@ export async function goTo(page: Page, step: string) {
     }
     await expect(link).toBeVisible({ timeout: 1500 })
   }).toPass()
+  // Wait for the page to be the step's, not just for the click: the page we leave (a landing page has a Notes
+  // section with its own "Add a note" box, say) is still there until the route changes, and a test that types into
+  // it straight away loses what it typed when the new page replaces it.
+  const href = await link.getAttribute('href')
   await link.click()
+  if (href) await expect(page).toHaveURL((url) => url.pathname === href)
 }
 
 export { expect }

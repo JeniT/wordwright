@@ -34,9 +34,17 @@ async function startDraft(page: Page) {
 const noViolations = async (page: Page, what: string) =>
   expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
 
-test('captures an idea, adds related work, and develops it into a linked set of drafts', async ({
-  page,
-}) => {
+/** Signs up with a profile and creates the idea "Why rivers meander" (with its first note), ending on the idea's page. */
+async function startIdea(page: Page) {
+  await signUpWithProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+}
+
+test('captures an idea, and its first note is kept as a note', async ({ page }) => {
   await signUpWithProfile(page)
   await expect(page.getByText('No ideas yet')).toBeVisible()
   await noViolations(page, 'profile page')
@@ -47,9 +55,25 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+
+  // Brainstorming has its own step, Refine (see brainstorm.spec.ts).
+  await expect(
+    page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Refine' }),
+  ).toBeVisible()
+
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  // The one typed when the idea was created is a card.
+  const notes = page.getByRole('region', { name: 'Notes' })
+  await expect(notes.getByRole('listitem')).toHaveCount(1)
+  await expect(notes.getByRole('listitem').first()).toContainText('Added')
+  await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toBeVisible()
+})
 
+test('keeps a reading list for the idea: adds, ticks off, edits and checks links', async ({
+  page,
+}) => {
+  await startIdea(page)
   await goTo(page, 'Research')
   // The reading list. Text that isn't a web address is refused, in red under the field, and kept for fixing.
   const address = page.getByLabel('Web address', { exact: true })
@@ -112,11 +136,12 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   // A cleared title is looked up again, for the new address.
   await expect(page.getByRole('link', { name: /Fake title for example\.net/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save link' })).toHaveCount(0)
+})
 
-  // Brainstorming has its own step, Refine (see brainstorm.spec.ts).
-  await expect(
-    page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Refine' }),
-  ).toBeVisible()
+test('develops an idea into a linked set of drafts, in an order that can be changed', async ({
+  page,
+}) => {
+  await startIdea(page)
 
   // Two drafts make a linked set; each opens in the editor and links back.
   await startDraft(page)
@@ -161,12 +186,20 @@ test('captures an idea, adds related work, and develops it into a linked set of 
   await page.reload()
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
 
+  // The profile lists the idea with its drafts.
+  await page.getByRole('link', { name: '← Weekly letters' }).click()
+  await expect(
+    page.getByRole('main').getByRole('link', { name: /Why rivers meander.*drafts/ }),
+  ).toContainText('2 drafts')
+})
+
+test('notes on an idea can be added, ordered, edited and deleted, and it is all saved', async ({
+  page,
+}) => {
+  await startIdea(page)
   await goTo(page, 'Notes')
   // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
   const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByRole('listitem')).toHaveCount(1)
-  await expect(notes.getByRole('listitem').first()).toContainText('Added')
-  await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toBeVisible()
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
     await notes.getByLabel('Add a note').fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
@@ -207,17 +240,21 @@ test('captures an idea, adds related work, and develops it into a linked set of 
     /Erosion on the outside of each bend, deposition inside\./,
     /Oxbow lakes form when a loop is cut off\./,
   ])
+})
 
-  // The profile lists it.
-  await page.getByRole('link', { name: '← Weekly letters' }).click()
-  await expect(
-    page.getByRole('main').getByRole('link', { name: /Why rivers meander.*drafts/ }),
-  ).toContainText('2 drafts')
-
-  // Removing a link and deleting the idea both work, and deleting asks first.
-  await page.getByRole('link', { name: /Why rivers meander/ }).click()
+test('removes links and deletes an idea, which asks first', async ({ page }) => {
+  await startIdea(page)
   await goTo(page, 'Research')
-  await showReadItems(page) // example.org was read
+  const address = page.getByLabel('Web address', { exact: true })
+  for (const link of ['example.org/meanders', 'example.net/other']) {
+    await address.fill(link)
+    await page.getByRole('button', { name: 'Add link' }).click()
+    await expect(
+      page.getByRole('link', {
+        name: new RegExp(`Fake title for ${link.split('/')[0]!.replace('.', '\\.')}`),
+      }),
+    ).toBeVisible()
+  }
   await holdToConfirm(
     page,
     page.getByRole('button', { name: 'Remove link to Fake title for example.org' }),
