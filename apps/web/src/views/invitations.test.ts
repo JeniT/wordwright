@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/profile-roles'
 import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -239,5 +240,30 @@ describe('inviting from the profile settings page', () => {
     await fireEvent.update(await screen.findByLabelText(/Invite someone to/), 'bob@example.com')
     await fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/lot of invitations/)
+  })
+
+  it('says what members and owners can do before you invite, using the shared wording', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/profiles/p1/invitations', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/p1/settings')
+    const note = await screen.findByTestId('invite-roles')
+    expect(note).toHaveTextContent(/People you invite join as members/)
+    for (const ability of [...MEMBER_ABILITIES, ...OWNER_ABILITIES]) {
+      expect(note).toHaveTextContent(ability)
+    }
+    expect(note).toHaveTextContent(/make someone an owner after they join/i)
+  })
+
+  it('does not show it to someone who has not confirmed their address (no form to explain)', async () => {
+    server.use(
+      signedInAs({ ...testUser, emailVerified: false }),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+    )
+    await renderAt('/p/p1/settings')
+    await screen.findByText(/Confirm your email address to invite people/)
+    expect(screen.queryByTestId('invite-roles')).toBeNull()
   })
 })

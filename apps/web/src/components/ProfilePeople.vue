@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
-import { MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/profile-roles'
+import { joinList, MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/profile-roles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
 import SaveStatus from './SaveStatus.vue'
@@ -52,7 +52,7 @@ const setRole = useMutation({
   onSettled: () => (pending.value = null),
 })
 
-const memberList = new Intl.ListFormat('en').format(MEMBER_ABILITIES)
+const memberList = joinList(MEMBER_ABILITIES)
 const stepping = computed(() => !!pending.value && isMe(pending.value.member))
 const promoting = computed(() => pending.value?.role === 'owner')
 const title = computed(() => {

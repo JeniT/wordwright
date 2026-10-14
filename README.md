@@ -280,7 +280,8 @@ tests inject fakes and nothing hits the network.
   whether or not the address has an account or is already in (so it can't be used to look people up), and
   accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
   resend or revoke them, and make members owners (or remove other owners, or step down) from the people list in
-  the profile's settings; each person can send 20 a day since every one emails a stranger, and any one address
+  the profile's settings (the invitation form says first what members and owners can do, from the wording in
+  `apps/web/src/lib/profile-roles.ts`; invitees always join as members); each person can send 20 a day since every one emails a stranger, and any one address
   receives at most 5 a day from everyone together.
 - **Declining and blocking invitations:** every invitation email links to a page where the invitee (signed in or
   not) can decline and, optionally, stop invitations from that sender or from everyone. The sender is never

@@ -17,3 +17,6 @@ export const MEMBER_ABILITIES = [
   'add ideas and notes',
   'edit the drafts they are the editor of',
 ]
+
+/** "a, b and c": the abilities above as a sentence. */
+export const joinList = (items: string[]) => new Intl.ListFormat('en').format(items)
