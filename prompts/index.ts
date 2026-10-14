@@ -11,6 +11,9 @@ function prompt(file: string): string {
 /** The editor that critiques a draft (the Critique button in the editor). */
 export const CRITIQUE_PROMPT = prompt('critique.md')
 
+/** The Rephrase window: options for a passage or title the writer is stuck on, which they choose from and edit. */
+export const OPTIONS_PROMPT = prompt('options.md')
+
 /** The default brainstorming prompt: a writing coach. Each person can edit their own copy on their account page. */
 export const DEFAULT_BRAINSTORM_PROMPT = prompt('brainstorm-default.md')
 

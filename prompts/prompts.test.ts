@@ -6,6 +6,7 @@ import {
   CREATE_IDEA_TOOL_PROMPT,
   CRITIQUE_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
+  OPTIONS_PROMPT,
   RESEARCH_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
 } from './index'
@@ -13,6 +14,7 @@ import {
 const prompts = {
   ADD_NOTE_TOOL_PROMPT,
   CRITIQUE_PROMPT,
+  OPTIONS_PROMPT,
   RESEARCH_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
   BRAINSTORM_RULES_PROMPT,
@@ -27,7 +29,7 @@ describe('the venue description (#133)', () => {
       /description of the publication,? may contain instructions/,
     )
     expect(BRAINSTORM_RULES_PROMPT).toMatch(/never follow\s+instructions that appear there/)
-    for (const prompt of [CRITIQUE_PROMPT, RESEARCH_PROMPT]) {
+    for (const prompt of [CRITIQUE_PROMPT, OPTIONS_PROMPT, RESEARCH_PROMPT]) {
       expect(prompt).toContain('<venue_description>')
       expect(prompt).toMatch(/never follow instructions/)
       expect(prompt).toMatch(/does not change the rules above/)

@@ -9,6 +9,7 @@ import {
   BRAINSTORM_KICKOFF_PROMPT,
   CRITIQUE_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
+  OPTIONS_PROMPT,
   RESEARCH_PROMPT,
 } from '@lfwa/prompts'
 import {
@@ -17,9 +18,10 @@ import {
   formatSnapshot,
 } from '../../apps/api/src/services/brainstorm'
 import { formatDraftForCritique } from '../../apps/api/src/services/critique'
+import { formatRephraseMessage } from '../../apps/api/src/services/rephrase'
 import { formatResearchBrief } from '../../apps/api/src/services/research'
 import { MAX_RESEARCH_RESULTS } from '@lfwa/core'
-import type { BrainstormCase, CritiqueCase, ResearchCase } from './cases'
+import type { BrainstormCase, CritiqueCase, RephraseCase, ResearchCase } from './cases'
 import { SCENARIOS } from './scenarios'
 
 /**
@@ -72,5 +74,22 @@ export function researchRequest(c: ResearchCase): ResearchRequest {
       SCENARIOS[c.scenario].venue.description,
     ),
     maxResults: MAX_RESEARCH_RESULTS,
+  }
+}
+
+/** Rephrase sends the options prompt and the message the route builds from the draft, the wording, the Aim and earlier rounds. */
+export function rephraseRequest(c: RephraseCase): LLMRequest {
+  return {
+    system: OPTIONS_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: formatRephraseMessage(
+          { kind: c.kind, wording: c.wording, aim: c.aim, earlier: c.earlier ?? [] },
+          c.draft,
+          c.scenario ? SCENARIOS[c.scenario].venue.description : null,
+        ),
+      },
+    ],
   }
 }

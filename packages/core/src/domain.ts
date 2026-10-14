@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { HANDLE_MAX, HANDLE_MIN, HANDLE_PATTERN, RESERVED_HANDLES } from './ids'
+import { REPHRASE } from './rephrase'
 import { WebAddressSchema, withScheme } from './web-address'
 
 // ---- Shared field rules -------------------------------------------------
@@ -1095,6 +1096,43 @@ export const CritiqueStateSchema = z.object({
   allowed: z.number().int().min(CRITIQUE_ROUNDS_MIN),
 })
 export type CritiqueState = z.infer<typeof CritiqueStateSchema>
+
+// ---- Rephrase: options for a passage or a title -------------------------
+
+/** Character ceilings that keep a request a sensible size; the word rules in `REPHRASE` are the real limits. */
+const REPHRASE_TEXT_MAX = 3000
+const REPHRASE_AIM_MAX = 1000
+
+/** One round already asked in this Rephrase window: the Aim given and the options it brought back. */
+export const RephraseRoundSchema = z.object({
+  aim: z.string().max(REPHRASE_AIM_MAX),
+  options: z.array(z.string().max(REPHRASE_TEXT_MAX)).max(REPHRASE.short.max),
+})
+export type RephraseRound = z.infer<typeof RephraseRoundSchema>
+
+/**
+ * Asking for options. `wording` is what is in the window's editable field: the selected passage, or the title.
+ * `earlier` holds the rounds already asked in this window, so the AI is told what it has offered. Nothing is kept
+ * on the server: the window holds the state, and the only record is made when an option is used.
+ */
+export const RephraseRequestSchema = z.object({
+  draftId: z.string(),
+  kind: z.enum(['title', 'passage']),
+  wording: z.string().max(REPHRASE_TEXT_MAX),
+  aim: z.string().max(REPHRASE_AIM_MAX),
+  earlier: z.array(RephraseRoundSchema).max(CRITIQUE_ROUNDS_MAX).default([]),
+})
+export type RephraseRequest = z.infer<typeof RephraseRequestSchema>
+
+/** What the AI sends back, before we check it: untrusted, so only the shape is assumed. */
+export const ModelRephraseSchema = z.object({ options: z.array(z.string()) })
+
+/** Options for the wording, and whether it was short (shown as a list) or long (a carousel). */
+export const RephraseResultSchema = z.object({
+  size: z.enum(['short', 'long']),
+  options: z.array(z.string().min(1)),
+})
+export type RephraseResult = z.infer<typeof RephraseResultSchema>
 
 // ---- Comments on a draft ------------------------------------------------
 

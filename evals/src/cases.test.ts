@@ -3,6 +3,7 @@ import { FakeLLMProvider } from '@lfwa/core'
 import {
   BRAINSTORM_KICKOFF_PROMPT,
   CRITIQUE_PROMPT,
+  OPTIONS_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   RESEARCH_PROMPT,
@@ -10,16 +11,23 @@ import {
 import { BRAINSTORM_TOOLS } from '../../apps/api/src/services/brainstorm'
 import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import AdapterProvider from './adapter-provider'
-import { CASES, type BrainstormCase, type CritiqueCase, type ResearchCase } from './cases'
+import {
+  CASES,
+  type BrainstormCase,
+  type CritiqueCase,
+  type RephraseCase,
+  type ResearchCase,
+} from './cases'
 import { promptfooConfig } from './config'
 import { choiceFromEnv, buildAdapter } from './factory'
 import { renderReply } from './render'
 import { SCENARIOS } from './scenarios'
-import { brainstormRequest, critiqueRequest, researchRequest } from './request'
+import { brainstormRequest, critiqueRequest, rephraseRequest, researchRequest } from './request'
 
 const brainstorm = CASES.filter((c): c is BrainstormCase => c.app === 'brainstorm')
 const critique = CASES.filter((c): c is CritiqueCase => c.app === 'critique')
 const research = CASES.filter((c): c is ResearchCase => c.app === 'research')
+const rephrase = CASES.filter((c): c is RephraseCase => c.app === 'rephrase')
 
 describe('the cases', () => {
   it('have unique ids, and every target names the issue whose work it defines', () => {
@@ -60,6 +68,14 @@ describe('the cases', () => {
       'critique-considers-the-readers-the-venue-has',
       'critique-ignores-instructions-in-the-venue-description',
       'research-ignores-instructions-in-the-venue-description',
+      // Rephrase (#15): options reword and never add, differ in kind, stay near the size, and treat text as data.
+      'rephrase-offers-different-approaches',
+      'rephrase-does-not-invent-facts',
+      'rephrase-stays-near-the-size-of-the-original',
+      'rephrase-title-options-are-short-and-differ',
+      'rephrase-later-round-offers-something-new',
+      'rephrase-ignores-instructions-in-the-draft',
+      'rephrase-ignores-instructions-in-the-venue-description',
     ]) {
       expect(current, id).toContain(id)
     }
@@ -99,6 +115,21 @@ describe('the requests', () => {
         messages: [{ role: 'user', content: formatDraftForCritique(c.draft, venue).message }],
       })
     }
+  })
+
+  it('send rephrase what the route sends: the options prompt, and a message of the draft, wording and Aim', () => {
+    expect(rephrase.length).toBeGreaterThan(0)
+    for (const c of rephrase) {
+      const request = rephraseRequest(c)
+      expect(request.system, c.id).toBe(OPTIONS_PROMPT)
+      const content = String(request.messages[0]!.content)
+      expect(content, c.id).toContain(c.wording)
+      expect(content, c.id).toContain('<aim>')
+    }
+    const later = rephrase.find((c) => c.id === 'rephrase-later-round-offers-something-new')!
+    expect(String(rephraseRequest(later).messages[0]!.content)).toContain('<earlier_round>')
+    const hostile = rephrase.find((c) => c.scenario === 'hostileVenue')!
+    expect(String(rephraseRequest(hostile).messages[0]!.content)).toContain('<venue_description>')
   })
 
   it('send research what the service sends: the research prompt, and a brief of the areas, the idea and the list so far', () => {
@@ -300,5 +331,35 @@ describe('the deterministic check on a critique', () => {
     expect(run(reply([point({ reason: '' })]))).toBe(false)
     expect(run(reply([], { ready: 'yes' }))).toBe(false)
     expect(() => run('Tighten the opening.')).toThrow()
+  })
+})
+
+describe('the deterministic checks on rephrase options', () => {
+  const checks = (id: string) =>
+    CASES.find((c) => c.id === id)!
+      .assert.filter((a) => a.type === 'javascript')
+      .map(
+        (a) => (output: string) => new Function('output', `return (${a.value})`)(output) as boolean,
+      )
+  const reply = (options: string[]) => JSON.stringify({ options })
+  const some = (n: number, words = 4) =>
+    Array.from({ length: n }, (_, i) => `${'word '.repeat(words - 1)}${i}x`)
+
+  it('accepts a plausible number of options, perhaps fenced, and refuses anything else', () => {
+    const [shape] = checks('rephrase-offers-different-approaches')
+    expect(shape!(reply(some(8)))).toBe(true)
+    expect(shape!('```json\n' + reply(some(6)) + '\n```')).toBe(true)
+    expect(shape!(reply(some(3)))).toBe(false)
+    expect(shape!(reply(some(12)))).toBe(false)
+    expect(shape!(reply(['fine', '  ', ...some(5)]))).toBe(false)
+  })
+
+  it('refuses digits where the passage had none, and options longer than allowed', () => {
+    const [, noDigits] = checks('rephrase-does-not-invent-facts')
+    expect(noDigits!(reply(['The river leans into its bend.']))).toBe(true)
+    expect(noDigits!(reply(['Rivers bend 40% more often.']))).toBe(false)
+    const [, short] = checks('rephrase-stays-near-the-size-of-the-original')
+    expect(short!(reply(some(5, 10)))).toBe(true)
+    expect(short!(reply(some(5, 40)))).toBe(false)
   })
 })

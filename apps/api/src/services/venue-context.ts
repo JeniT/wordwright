@@ -1,7 +1,7 @@
 import type { Profile } from '@lfwa/core'
 
 /** Keeps text we insert from closing or imitating the tags it sits in. */
-const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+export const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 /**
  * The writer's description of the venue, if there is one the AI may be told: the writer's own words, trimmed. A blank
