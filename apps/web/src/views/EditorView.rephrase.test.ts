@@ -203,6 +203,29 @@ describe('EditorView: Rephrase', () => {
     await waitFor(() => expect(rephraseButton()).resolves.toHaveFocus())
   })
 
+  it('replaces nothing, and says so, if the draft was changed under the window', async () => {
+    const { saved, recorded } = mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    await select(1, 56)
+    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await fireEvent.click(await rephraseButton())
+    const dialog = await screen.findByRole('dialog')
+    await fireEvent.update(
+      within(dialog).getByLabelText('Current wording'),
+      'rivers wander as banks wear away',
+    )
+    // The text is replaced from elsewhere while the window is open (as a refetch would), so the range now means other words.
+    const editor = (document.querySelector('.ProseMirror') as HTMLElement & { editor: Editor })
+      .editor
+    editor.commands.setContent('Entirely different words now, and a good many of them too.')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('changed while the window was open')
+    expect(editorText()).toContain('Entirely different words now')
+    expect(editorText()).not.toContain('rivers wander')
+    expect(recorded).toEqual([])
+    expect(saved.at(-1)?.body ?? '').not.toContain('rivers wander')
+  })
+
   it('is not offered to someone who cannot change the draft', async () => {
     mockDraft({ ...testUser, id: 'u2', name: 'Bob Jones', email: 'bob@example.com', handle: 'bob' })
     await renderAt('/p/p1/drafts/d1')

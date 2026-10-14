@@ -270,6 +270,7 @@ describe('RephraseDialog', () => {
     expect(generate()).toHaveAttribute('aria-busy', 'true')
     await fireEvent.keyDown(document, { key: 'Escape' })
     expect(view.emitted().cancel).toBeUndefined()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled() // so a late answer cannot land in a later window
     release()
     await screen.findByRole('list', { name: 'Options' })
   })

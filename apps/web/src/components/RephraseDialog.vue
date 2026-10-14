@@ -219,7 +219,14 @@ function use() {
         </div>
 
         <div class="mt-5 flex flex-wrap justify-end gap-3">
-          <button type="button" class="btn btn-neutral" @click="emit('cancel')">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-neutral"
+            :disabled="generate.isPending.value"
+            @click="emit('cancel')"
+          >
+            Cancel
+          </button>
           <button type="button" class="btn btn-primary" :disabled="!canUse" @click="use">
             Use this
           </button>

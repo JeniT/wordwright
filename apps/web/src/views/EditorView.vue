@@ -232,8 +232,9 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
   const target = rephrasing.value
   rephrasing.value = null
   if (!target) return
-  if (!editor.value?.replaceRange(target.from, target.to, result.text)) {
-    rephraseNotice.value = "The draft isn't ready yet. Try again in a moment."
+  if (!editor.value?.replaceRange(target.from, target.to, result.text, target.text)) {
+    rephraseNotice.value =
+      'The draft changed while the window was open, so nothing was replaced. Select the words again to try once more.'
     return
   }
   try {

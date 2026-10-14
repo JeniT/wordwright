@@ -114,11 +114,15 @@ const editor = useEditor({
 
 /**
  * Replaces the text between two positions with plain words (a Rephrase window handing back what the writer chose),
- * leaving the cursor after them. Returns false if the editor isn't ready. The change reaches `model` like typing.
+ * leaving the cursor after them. Returns false if the editor isn't ready, or if what is there is no longer
+ * `expected` (the draft was replaced from elsewhere while a window was open, so the positions mean something else).
+ * The change reaches `model` like typing.
  */
-function replaceRange(from: number, to: number, text: string): boolean {
+function replaceRange(from: number, to: number, text: string, expected: string): boolean {
   const e = editor.value
   if (!e) return false
+  const size = e.state.doc.content.size
+  if (to > size || e.state.doc.textBetween(from, to, ' ') !== expected) return false
   return e.chain().focus().insertContentAt({ from, to }, { type: 'text', text }).run()
 }
 
