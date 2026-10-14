@@ -14,6 +14,7 @@ import {
   verifyEmailEmail,
 } from '../mail/templates'
 import { removeUserAndOwnedData } from './remove-user'
+import { isSoleOwnerOfSharedProfile, NEEDS_ANOTHER_OWNER } from './owners'
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
@@ -36,7 +37,8 @@ export class AccountError extends Error {
       | 'confirmation_failed'
       | 'no_password'
       | 'password_unchanged'
-      | 'password_exists',
+      | 'password_exists'
+      | 'sole_owner',
     message: string,
   ) {
     super(message)
@@ -409,8 +411,8 @@ export class AccountService {
   /**
    * Deletes the account and everything that belongs only to it:
    * credentials, identities, sessions, reset tokens, memberships, and every profile (with its
-   * drafts) of which this user is the sole member. In shared profiles the user is removed;
-   * if they were the owner, the longest-standing remaining member becomes owner. Drafts the
+   * drafts) of which this user is the sole member. In shared profiles the user is removed, unless they are the only
+   * owner, which is refused (`sole_owner`) until they make someone else an owner. Drafts the
    * user wrote in shared profiles stay with the profile (their author reference is cleared; their name stays on
    * their notes and the like if `keepName`).
    */
@@ -429,7 +431,20 @@ export class AccountService {
       throw new AccountError('confirmation_failed', 'Incorrect password')
     }
 
-    store.transaction(() => removeUserAndOwnedData(store, user, { keepName }))
+    store.transaction(() => {
+      // Never hand a profile to someone who didn't agree to run it: the owner chooses a successor first.
+      const stranded = store.profiles
+        .listIdsForUser(user.id)
+        .find((id) => isSoleOwnerOfSharedProfile(store, id, user.id))
+      if (stranded) {
+        const name = store.profiles.get(stranded, user.id)?.name
+        throw new AccountError(
+          'sole_owner',
+          `You are the only owner of “${name}”. ${NEEDS_ANOTHER_OWNER}`,
+        )
+      }
+      removeUserAndOwnedData(store, user, { keepName })
+    })
   }
 
   // ---- internals ----------------------------------------------------------

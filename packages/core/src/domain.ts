@@ -142,6 +142,10 @@ export const ProfileMemberSchema = z.object({
 })
 export type ProfileMember = z.infer<typeof ProfileMemberSchema>
 
+/** An owner makes a member an owner, or an owner a member. */
+export const MemberRoleInputSchema = z.object({ role: ProfileRoleSchema })
+export type MemberRoleInput = z.infer<typeof MemberRoleInputSchema>
+
 /** Long enough for a few paragraphs about the venue; short enough to put in every prompt. */
 export const PROFILE_DESCRIPTION_MAX = 5000
 

@@ -57,6 +57,7 @@ const STATUS = {
   no_password: 400,
   password_unchanged: 400,
   password_exists: 409,
+  sole_owner: 409,
   email_not_verified: 403,
   confirmation_failed: 403,
 } as const

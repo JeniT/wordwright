@@ -5,6 +5,7 @@ import {
   type FeedFetcher,
   MAX_IMAGE_BYTES,
   MAX_OWNED_PROFILES,
+  MemberRoleInputSchema,
   ProfileDescriptionInputSchema,
   ProfileInputSchema,
   ProfileUpdateSchema,
@@ -35,6 +36,7 @@ import type { ReviewService } from '../services/reviews'
 import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
 import { fail } from '../errors'
+import { NEEDS_ANOTHER_OWNER, setMemberRole } from '../services/owners'
 import { param } from './params'
 
 export interface ProfileRouteDeps {
@@ -160,8 +162,14 @@ export function profileRoutes({
         return c.body(null, 204)
       })
 
-      // Owners remove others; anyone can remove themselves, except the owner (who must delete
-      // the profile or hand it over first).
+      .put('/:profileId/members/:userId/role', owner, validateJson(MemberRoleInputSchema), (c) => {
+        const id = param(c, 'profileId')
+        setMemberRole(store, id, c.get('user').id, param(c, 'userId'), c.req.valid('json').role)
+        return c.json(store.profiles.get(id, c.get('user').id))
+      })
+
+      // Owners remove others; anyone can remove themselves, except an owner, who steps down first
+      // (or makes someone else an owner, or deletes the profile).
       .delete('/:profileId/members/:userId', member, (c) => {
         const id = param(c, 'profileId')
         const me = c.get('user').id
@@ -169,7 +177,15 @@ export function profileRoutes({
         const isOwner = c.get('role') === 'owner'
         if (targetId !== me && !isOwner) throw fail(403, 'Owner only')
         if (targetId === me && isOwner) {
-          throw fail(400, 'Owners cannot leave; delete the profile instead')
+          const another = store.profiles
+            .members(id)
+            .some((m) => m.role === 'owner' && m.userId !== me)
+          throw fail(
+            400,
+            another
+              ? 'Step down as owner first, then you can leave.'
+              : `You are the only owner. ${NEEDS_ANOTHER_OWNER}`,
+          )
         }
         if (!store.profiles.roleOf(id, targetId)) throw fail(404, 'Not found')
         store.transaction(() => {

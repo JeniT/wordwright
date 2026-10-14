@@ -500,3 +500,113 @@ describe('drafts and critique within a profile', () => {
     ).toBe(400)
   })
 })
+
+describe('several owners', () => {
+  let ada: TestClient
+  let bob: TestClient
+  let ctx: ReturnType<typeof setup>
+  let profile: string
+  let adaId: string
+  let bobId: string
+  const role = (client: TestClient, userId: string, role: 'owner' | 'member') =>
+    client.put(`/api/profiles/${profile}/members/${userId}/role`, { role })
+  const roleOf = async (userId: string) =>
+    (
+      (await (await ada.get(`/api/profiles/${profile}`)).json()).members as {
+        userId: string
+        role: string
+      }[]
+    ).find((m) => m.userId === userId)?.role
+
+  beforeEach(async () => {
+    ctx = setup()
+    ada = ctx.client()
+    bob = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com', 'bob@example.com')
+    profile = (await (await ada.get('/api/profiles')).json())[0].id
+    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    adaId = (await (await ada.get('/api/auth/me')).json()).id
+    bobId = (await (await bob.get('/api/auth/me')).json()).id
+  })
+
+  it('lets an owner make a member an owner, who can then manage the profile', async () => {
+    expect((await bob.patch(`/api/profiles/${profile}`, { name: 'Mine' })).status).toBe(403)
+    const res = await role(ada, bobId, 'owner')
+    expect(res.status).toBe(200)
+    expect(
+      (await res.json()).members.find((m: { userId: string }) => m.userId === bobId).role,
+    ).toBe('owner')
+    expect((await bob.patch(`/api/profiles/${profile}`, { name: 'Ours' })).status).toBe(200)
+  })
+
+  it('lets an owner remove another owner, who stays a member with their drafts', async () => {
+    await role(ada, bobId, 'owner')
+    const draft = await createDraft(bob, profile, { title: 'Bob wrote this' })
+    expect(
+      (await ada.put(`/api/profiles/${profile}/members/${bobId}/role`, { role: 'member' })).status,
+    ).toBe(200)
+    expect(await roleOf(bobId)).toBe('member')
+    expect((await bob.patch(`/api/profiles/${profile}`, { name: 'x' })).status).toBe(403)
+    const seen = await (await bob.get(`/api/profiles/${profile}/drafts/${draft.id}`)).json()
+    expect(seen.editorId).toBe(bobId)
+  })
+
+  it('lets an owner step down when another owner exists, and then lose owner-only powers', async () => {
+    await role(ada, bobId, 'owner')
+    expect((await role(ada, adaId, 'member')).status).toBe(200)
+    expect((await ada.patch(`/api/profiles/${profile}`, { name: 'x' })).status).toBe(403)
+    expect(await roleOf(adaId)).toBe('member')
+  })
+
+  it('never leaves a profile without an owner', async () => {
+    const res = await role(ada, adaId, 'member')
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/at least one owner/i)
+    expect(await roleOf(adaId)).toBe('owner')
+  })
+
+  it('stops two owners removing each other at once', async () => {
+    await role(ada, bobId, 'owner')
+    expect((await role(ada, bobId, 'member')).status).toBe(200)
+    // Bob has just been demoted, so his request to demote Ada is no longer allowed.
+    expect((await role(bob, adaId, 'member')).status).toBe(403)
+    expect(await roleOf(adaId)).toBe('owner')
+  })
+
+  it('is for owners only, and for members of this profile only', async () => {
+    expect((await role(bob, bobId, 'owner')).status).toBe(403)
+    expect((await role(bob, adaId, 'member')).status).toBe(403)
+    const stranger = ctx.client()
+    await register(stranger, 'eve@example.com', 'Eve')
+    expect((await role(stranger, bobId, 'owner')).status).toBe(404)
+    const eveId = (await (await stranger.get('/api/auth/me')).json()).id
+    expect((await role(ada, eveId, 'owner')).status).toBe(404) // not a member
+    expect(
+      (await ada.put(`/api/profiles/${profile}/members/${bobId}/role`, { role: 'admin' })).status,
+    ).toBe(400)
+  })
+
+  it('tells an owner who tries to leave what to do instead', async () => {
+    const alone = await ada.delete(`/api/profiles/${profile}/members/${adaId}`)
+    expect(alone.status).toBe(400)
+    expect((await alone.json()).error).toMatch(/make someone else an owner first/i)
+    await role(ada, bobId, 'owner')
+    const shared = await ada.delete(`/api/profiles/${profile}/members/${adaId}`)
+    expect((await shared.json()).error).toMatch(/step down as owner first/i)
+  })
+
+  it('does not let the last owner delete their account while others depend on the profile', async () => {
+    const body = { confirmEmail: 'ada@example.com', password: PASSWORD }
+    const refused = await ada.delete('/api/account', body)
+    expect(refused.status).toBe(409)
+    expect((await refused.json()).error).toMatch(/make someone else an owner first/i)
+    expect((await ada.get('/api/auth/me')).status).toBe(200)
+    await role(ada, bobId, 'owner')
+    expect((await ada.delete('/api/account', body)).status).toBe(204)
+    expect(await (await bob.get(`/api/profiles/${profile}`)).json()).toMatchObject({
+      role: 'owner',
+    })
+  })
+})

@@ -51,6 +51,7 @@ import {
   type LoginInput,
   type OptionUseInput,
   type ProfileInput,
+  type ProfileRole,
   type ProfileDescriptionInput,
   type ProfileUpdate,
   type RegisterInput,
@@ -228,6 +229,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     endReview: (id: string) => act('POST', `/reviews/${id}/end`),
     /** Chooses a username and becomes a full account. */
     startWriting: (handle: string) => get(UserSchema, 'POST', '/reviews/start-writing', { handle }),
+    setMemberRole: (id: string, userId: string, role: ProfileRole) =>
+      get(ProfileSchema, 'PUT', `/profiles/${id}/members/${userId}/role`, { role }),
     removeMember: (id: string, userId: string) =>
       act('DELETE', `/profiles/${id}/members/${userId}`),
 

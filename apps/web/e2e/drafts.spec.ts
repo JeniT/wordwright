@@ -633,6 +633,65 @@ async function joinFrom(page: Page, browser: Browser, name: string) {
   return them
 }
 
+test('an owner makes a member an owner, then steps down; the last owner cannot', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  const bob = await joinFrom(page, browser, 'Bob')
+  const bobProblems = watchForProblems(bob)
+  await openSettings(page)
+
+  // Ada is the only owner, so she can't step down, and is told why.
+  await expect(page.getByRole('button', { name: 'Step down as owner' })).toBeDisabled()
+  await expect(page.getByText('Make someone else an owner first')).toBeVisible()
+
+  // Making Bob an owner asks first, saying what changes.
+  await page.getByRole('button', { name: 'Make owner Bob' }).click()
+  const dialog = page.getByRole('dialog', { name: /^Make Bob an owner of / })
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Make Bob an owner' }).click()
+  await expect(page.getByText('Bob is now an owner.')).toBeVisible()
+
+  // Bob can now change the profile's details.
+  await bob.reload()
+  await bob.getByRole('link', { name: 'Profile settings' }).click()
+  await expect(bob.getByRole('button', { name: 'Save details' })).toBeVisible()
+
+  // Ada steps down and loses the owner-only parts of the page.
+  await page.getByRole('button', { name: 'Step down as owner' }).click()
+  const stepDown = page.getByRole('dialog', { name: /^Step down as owner of / })
+  await expect(stepDown).toContainText('Only another owner can give them back')
+  await stepDown.getByRole('button', { name: 'Step down as owner' }).click()
+  await expect(page.getByText('You are no longer an owner.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save details' })).toHaveCount(0)
+
+  // Bob is now the only owner.
+  await bob.reload()
+  await expect(bob.getByRole('button', { name: 'Step down as owner' })).toBeDisabled()
+  expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
+test('the only owner of a shared profile cannot delete their account until another owner is chosen', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  await joinFrom(page, browser, 'Bob')
+  await page.getByRole('link', { name: 'Ada', exact: true }).first().click()
+  await page.getByLabel(/Type your email/).fill(adaEmail)
+  await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
+  await page.getByRole('button', { name: 'Delete my account' }).click()
+  await page
+    .getByRole('dialog', { name: 'Delete your account?' })
+    .getByRole('button', { name: 'Yes, delete my account' })
+    .click()
+  await expect(page.getByRole('alert')).toContainText('Make someone else an owner first')
+})
+
 test('only a draft’s editor can change it: another member sees it read-only', async ({
   page,
   browser,

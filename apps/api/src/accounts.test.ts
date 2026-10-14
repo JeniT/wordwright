@@ -487,7 +487,7 @@ describe('account deletion', () => {
     ).toBe(401)
   })
 
-  it('leaves shared profiles intact for the others, passing ownership on', async () => {
+  it('leaves shared profiles intact for the others once another owner has been chosen', async () => {
     const { client, store, mailer } = setup()
     const ada = client()
     const bob = client()
@@ -502,6 +502,13 @@ describe('account deletion', () => {
     await shareProfile({ mailer }, ada, shared.id, carol, 'carol@example.com')
     await createDraft(ada, shared.id, { title: 'Co-written', body: 'text' })
 
+    // As the only owner she can't leave the others without one; she chooses Bob first.
+    const refused = await ada.delete('/api/account', {
+      confirmEmail: 'ada@example.com',
+      password: PASSWORD,
+    })
+    expect(refused.status).toBe(409)
+    await ada.put(`/api/profiles/${shared.id}/members/${bobUser.id}/role`, { role: 'owner' })
     await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
 
     const view = await (await bob.get(`/api/profiles/${shared.id}`)).json()

@@ -80,7 +80,9 @@ const deleteAccount = useMutation({
     <DangerZone title="Delete account">
       <p class="mb-4 text-sm">
         This permanently deletes your account, and every profile (with its drafts) that only you
-        belong to. In profiles you share, you're removed, and the others keep their work.
+        belong to. In profiles you share, you're removed, and the others keep their work. If you're
+        the only owner of a shared profile, make someone else an owner first (in that profile's
+        settings), or delete the profile.
       </p>
       <form @submit.prevent="confirmingDelete = true">
         <fieldset class="mb-4">

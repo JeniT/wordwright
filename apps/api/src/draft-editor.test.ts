@@ -113,7 +113,8 @@ describe('a draft has one editor (#154)', () => {
       expect((await open(ada)).editorId).toBe(adaId)
     })
 
-    it('hands them to the new owner when the owner who edited them deletes their account', async () => {
+    it('hands them to the remaining owner when the owner who edited them deletes their account', async () => {
+      await ada.put(`${base()}/members/${bobId}/role`, { role: 'owner' }) // the only owner can't leave without one
       const gone = await ada.delete('/api/account', {
         confirmEmail: 'ada@example.com',
         password: PASSWORD,

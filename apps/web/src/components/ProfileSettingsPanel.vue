@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Profile } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
 import { displayHost } from '../lib/useProfiles'
@@ -13,6 +13,7 @@ import Icon from './Icon.vue'
 import ImageField from './ImageField.vue'
 import ProfileDescriptionSection from './ProfileDescriptionSection.vue'
 import ProfileImage from './ProfileImage.vue'
+import ProfilePeople from './ProfilePeople.vue'
 import ProfileInvitations from './ProfileInvitations.vue'
 import TextField from './TextField.vue'
 import SaveStatus from './SaveStatus.vue'
@@ -26,7 +27,8 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const refresh = () => queryClient.invalidateQueries({ queryKey: ['profiles'] })
-const isOwner = props.profile.role === 'owner'
+// Computed because stepping down changes it while this page is open.
+const isOwner = computed(() => props.profile.role === 'owner')
 
 // ---- details
 const name = ref(props.profile.name)
@@ -62,17 +64,6 @@ const removeImage = useMutation({
   mutationFn: () => api.removeProfileImage(props.profile.id),
   onSuccess: refresh,
 })
-
-// ---- sharing
-const removeMember = useMutation({
-  mutationFn: (userId: string) => api.removeMember(props.profile.id, userId),
-  onSuccess: async (_, userId) => {
-    await refresh()
-    if (userId === session.user?.id) await router.push('/') // you left; it's no longer yours to see
-  },
-})
-const canRemove = (memberId: string, memberRole: string) =>
-  (isOwner && memberRole !== 'owner') || (!isOwner && memberId === session.user?.id)
 
 // ---- deletion
 const confirmingDelete = ref(false)
@@ -163,35 +154,13 @@ const deleteProfile = useMutation({
 
     <section aria-labelledby="sharing-heading">
       <h2 id="sharing-heading" class="mb-3 font-display text-xl font-semibold">Sharing</h2>
-      <ul class="text-sm">
-        <li
-          v-for="m in profile.members"
-          :key="m.userId"
-          class="flex items-center justify-between py-1"
-        >
-          <span>
-            {{ m.name }}
-            <span class="text-ink-soft">({{ m.email }}, {{ m.role }})</span>
-          </span>
-          <button
-            v-if="canRemove(m.userId, m.role)"
-            type="button"
-            class="underline"
-            @click="removeMember.mutate(m.userId)"
-          >
-            {{ m.userId === session.user?.id ? 'Leave' : 'Remove' }}
-          </button>
-        </li>
-      </ul>
+      <ProfilePeople :profile="profile" />
       <ProfileInvitations
         v-if="isOwner"
         :profile-id="profile.id"
         :profile-name="profile.name"
         :confirmed="session.user?.emailVerified ?? false"
       />
-      <p v-if="removeMember.isError.value" role="alert" class="mt-2 text-danger">
-        {{ errorMessage(removeMember.error.value) }}
-      </p>
     </section>
 
     <DangerZone

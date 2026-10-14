@@ -104,7 +104,7 @@ tests inject fakes and nothing hits the network.
 ## Accounts and sign-in
 
 - **Model:** a user has any number of _profiles_; ideas belong to a profile, and every draft belongs to an idea. Profiles are shared by
-  adding members (`owner` or `member`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
+  adding members (`owner` or `member`; a profile can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/profiles/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) followed by its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);
@@ -279,7 +279,8 @@ tests inject fakes and nothing hits the network.
   _that_ address and clicks Join. Nobody is ever added without accepting, the owner's reply is identical
   whether or not the address has an account or is already in (so it can't be used to look people up), and
   accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
-  resend or revoke them; each person can send 20 a day since every one emails a stranger, and any one address
+  resend or revoke them, and make members owners (or remove other owners, or step down) from the people list in
+  the profile's settings; each person can send 20 a day since every one emails a stranger, and any one address
   receives at most 5 a day from everyone together.
 - **Declining and blocking invitations:** every invitation email links to a page where the invitee (signed in or
   not) can decline and, optionally, stop invitations from that sender or from everyone. The sender is never
@@ -298,8 +299,9 @@ tests inject fakes and nothing hits the network.
   email says so, and one reminder (with a fresh confirmation link) is sent 3 days before deletion. The same pass removes expired sessions, used/expired links and old invitations. It logs
   counts only, never who.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
-  (with its drafts) where they are the only member. In shared profiles they are removed and, if they
-  were the owner, the longest-standing member becomes owner; drafts they wrote there stay. The page asks
+  (with its drafts) where they are the only member. In shared profiles they are removed and drafts they wrote
+  there stay; the only owner of a shared profile must first make someone else an owner (or delete the profile),
+  and the request answers 409 until they do. The page asks
   whether to **keep their name** on their notes, brainstorming messages, research runs and draft insertions in
   profiles that continue (the default; `keepName` in `DELETE /api/account`) or show them as "a former member".
   Only the display name is copied (into `kept_name` columns, at deletion; never the email or username), and
