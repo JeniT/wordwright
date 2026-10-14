@@ -3,7 +3,7 @@ import {
   REPHRASE,
   countWords,
   maxOptionWords,
-  normalizeAim,
+  normalizeText,
   rephraseSize,
   wordingProblem,
 } from './rephrase'
@@ -29,7 +29,7 @@ describe('rephrase sizes', () => {
   })
 
   it('compares aims ignoring case and spacing', () => {
-    expect(normalizeAim('  Make it   PUNCHIER ')).toBe(normalizeAim('make it punchier'))
+    expect(normalizeText('  Make it   PUNCHIER ')).toBe(normalizeText('make it punchier'))
   })
 })
 

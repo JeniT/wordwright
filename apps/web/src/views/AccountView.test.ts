@@ -268,6 +268,10 @@ describe('AccountView: critiques of a draft', () => {
         .getAllByRole('option')
         .map((o) => o.textContent?.trim()),
     ).toEqual(['1', '2', '3 (suggested)', '4', '5'])
+    // The same setting limits the rounds in a Rephrase window (#161), and the page says so.
+    expect(screen.getByRole('region', { name: 'Critiques of a draft' })).toHaveTextContent(
+      /limits Rephrase/,
+    )
     await fireEvent.update(select, '5')
     await fireEvent.click(
       within(screen.getByRole('region', { name: 'Critiques of a draft' })).getByRole('button', {

@@ -1479,3 +1479,38 @@ Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse
 - **The AI boundary is structural.** `formatDraftForCritique` takes only the draft's title and body (and the venue
   description); a test writes comments from two people and checks the request sent to the model contains none of them.
   No prompt changed.
+
+## Rephrase: options for a passage or title (#161, part of #15)
+
+Decided with the owner in triage of #15. Terms (**Rephrase**, **Aim**, **Option**) are in `CONTEXT.md`. Rung 4 of the
+assistance ladder. This task is the service; the window is #162, the title entry point #163, social posts are parked (#164).
+
+- **One feature, not four.** Titles, openings, closings and any passage a writer is struggling with are the same thing:
+  select the wording, say what it should do, get options. The writer selects text (inside one paragraph, 5 to 150 words)
+  or uses the title; there is no separate "opening" or "closing" because we cannot tell whether a writer has written one.
+- **The Aim comes first, and is required.** At least three words, in the writer's own words, also for titles. It is
+  friction on purpose (docs/responsible-ai.md, principle 3) and what makes the options fit.
+- **No per-draft quota (this amends principles 1 and 4 and priority 4 in `AGENTS.md`).** The first plan was a small
+  total of option sets per draft. The owner judged a number arbitrary: the cost is the writer's own, and someone who
+  wants to game it can. What stays: another round needs a changed Aim (compared ignoring case and spacing, against every
+  earlier Aim in the window), and a window allows the number of rounds in the critique-looks account setting (default 3),
+  shown as "Round n of 3". That limit is in the window, not on the server, so it is friction and not a guarantee:
+  reopening starts again, as adding a new draft gets round the critique limit. Critique's own cap is unchanged.
+- **Stateless on the server.** The request carries the rounds already asked (Aim and options), the server checks and
+  counts nothing, and the only record will be made when an option is used (#162, a row beside `draft_insertions`).
+- **How many, and how long.** Short wording (a title, or up to 25 words) gets a list of about 8 options (5 to 10
+  accepted); longer wording gets a carousel of about 4 (3 to 5). An option may be at most the larger of 1.5 times the
+  wording or the wording plus 15 words, and a title option at most 20 words, so a phrase cannot become a paragraph.
+  Options over the bound, blank ones, repeats, the wording itself and anything already offered are dropped; too few left
+  is a 502 telling the writer to try the aim another way. A title needs a draft of about 300 words to work from, since
+  titles are best made when the piece is nearly done. **All of these numbers are in `REPHRASE`
+  (`packages/core/src/rephrase.ts`)**, to tune in one place. A heading counts by its words; there is no special case.
+- **What is sent, and who may ask.** The Aim, the wording, the draft's title and body, the venue description and any
+  earlier options in the window, to the writer's own provider. Never notes, brainstorm threads or comments (a test
+  fails if they appear). Only the draft's editor can ask, as with critique.
+- **Structural and prompt-level.** Structural: the AI has no tool that writes to a draft; the server checks counts,
+  lengths and the changed Aim; text enters a draft only by the writer's "Use this". Prompt-level, eval-tested and not
+  guaranteed (`prompts/options.md`, `evals/`): options differ in approach, reword without adding facts or quotations,
+  say what they cannot supply if the Aim asks for new material, and treat the draft, wording, Aim and venue description
+  as data. A prompt change is a product change: the owner reviews it.
+- **Not built yet:** the window, the record on use and the title button (#162, #163); social posts (#164).

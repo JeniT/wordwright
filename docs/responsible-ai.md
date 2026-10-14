@@ -35,8 +35,11 @@ hitting publish, not session length, message count or return visits. So:
     default: see #103.
   - A critique **ranks and stops**: the few things that matter most, and an explicit statement when nothing
     important remains ("this is ready; what is left is taste"). It must never pad to look thorough.
-  - The same applies to anything else that can be re-run indefinitely: "more options" for titles or openings is
-    capped too (see 4).
+  - The same applies to anything else that can be re-run indefinitely, with one deliberate exception. **Rephrase**
+    (options for a passage or title, principle 4) has no quota per draft: the owner judged a number arbitrary. Its
+    friction is that another round needs a _changed aim_ (the writer says what they want differently), plus a limit on
+    rounds in one window (the same setting as critique looks). That limit is a UI limit, not a guarantee: closing and
+    reopening starts again, as adding a new draft gets round the critique limit. See `docs/decisions.md`, "Rephrase".
 - **Rate limits for cost are not a substitute.** The existing throttles protect money and servers; the caps above
   protect the writer.
 
@@ -68,16 +71,21 @@ thinking, so the assistant presses for the writer's version first.
 
 Titles, openings, closings and social posts stay in scope, with these rules:
 
-- **A set, never one.** Offer several different options (3–5), so the writer is choosing and judging rather than
-  accepting. Different in kind, not near-duplicates.
-- **Drawn from the writer's text.** Generated from the draft and notes, not from nothing. A request with no draft
-  to work from is declined.
+- **A set, never one.** Offer several different options (5–10 for a phrase, sentence or title; 3–5 for a longer
+  passage), so the writer is choosing and judging rather than accepting. Different in kind (different approaches),
+  not near-duplicates with the words swapped.
+- **Drawn from the writer's text.** The writer selects a passage of their draft (inside one paragraph, about 5 to 150
+  words) or uses the title; a title needs a draft of about 300 words to work from. The options reword and reshape what
+  is there and add no facts, quotations or claims. Notes, brainstorm threads and comments are never sent.
+- **Writer first: the Aim.** Before any options, the writer says in their own words what the wording should do. It is
+  friction on purpose, and what makes the options useful.
 - **Pick, then edit.** Choosing an option puts it in an editable field; nothing is used until the writer has had it
-  in front of them to change. Show a "write your own" slot alongside the options, first in the list, at no extra
-  cost.
+  in front of them to change, and then presses "Use this". The wording they started with is that field's first
+  content, at no extra cost.
 - **No one-click path out.** No "copy" or "post" shortcut straight from a generated option, and no publishing
   integration for generated text (social posts especially: that is where AI text most directly reaches readers).
-- **Capped regeneration.** "Give me different options" has a small limit (see 1).
+- **Regeneration needs a changed aim.** "Give me different options" is only possible after the writer has changed the
+  aim, up to the round limit of one window (see 1). There is no per-draft quota.
 - **Origin kept.** The chosen text records that it began as an AI option, and whether the writer edited it.
 
 ### 5. Provenance is visible and persists
@@ -189,7 +197,7 @@ read the two pages above and quote what they say today.)
 | Brainstorm (shipped)                 | 1–2  | Stop pressing on: fewer questions, a way to end (principle 1). Add distress and persona rules (8, 9).                                                                                                                                                                                                                                                                 |
 | T9 Critique (#14)                    | 3    | Ranked, paragraph-anchored points with a ready verdict (#90), kept and marked in the draft (#91), capped per draft with a writer-set limit of 1 to 5, 3 by default (#92: done); rank and stop; say when it is done; point at problems with reasons, not replacement text (1, 2).                                                                                      |
 | #26 Suggestions/comments on drafts   | 3    | A comment mechanism is fine. A tracked "suggested change" with replacement text is rung 4–5: not for the AI. Built as #156: AI and people's comments share one model, but people's comments are never sent to the AI (structural invariant, with a test in `comments.test.ts`), are marked apart from the AI's (the highlighter is the AI's alone), and are uncapped. |
-| T10 Titles, openings, etc. (#15)     | 4    | As principle 4: a set, drawn from the draft, pick-then-edit, no shortcut out, capped, origin kept.                                                                                                                                                                                                                                                                    |
+| T10 Titles, openings, etc. (#15)     | 4    | As principle 4, built as **Rephrase** (#161 the service, #162 the window, #163 titles): select a passage or the title, state an Aim, get options that differ in kind, pick then edit; a changed aim for another round, with a window limit; no shortcut out; origin kept on use. Social posts are parked (#164).                                                      |
 | T6 Idea generation (#11)             | 3–4  | Surface items and ask the writer what they notice; do not write pitches. Reshape as T38 was: AI adds to a reading list, the writer makes the idea (2, 3).                                                                                                                                                                                                             |
 | T7/T38 Research (#12, #38)           | —    | AI adds to the reading list only; its "why relevant" is labelled unverified (5, 10). Friction for unread sources (T34) stays.                                                                                                                                                                                                                                         |
 | T16 Audiences (#2), #27 Profile gen. | 2–4  | Not built: AI-drafted descriptions were removed (#150, #151). A venue description is the writer's own words, which would have needed an origin, visible evidence and explicit confirmation before becoming context (5, 6).                                                                                                                                            |

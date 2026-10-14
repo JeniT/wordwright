@@ -3,14 +3,14 @@ import {
   REPHRASE,
   countWords,
   maxOptionWords,
-  normalizeAim,
+  normalizeText,
   rephraseSize,
   wordingProblem,
   type RephraseRequest,
   type RephraseSize,
 } from '@lfwa/core'
 import { fail } from '../errors'
-import { escape, venueDescriptionBlock } from './venue-context'
+import { escapeTags, venueDescriptionBlock } from './venue-context'
 
 export const NOT_ENOUGH_OPTIONS = `The AI didn't give enough usable options. Try saying your aim a different way, or write it yourself.`
 
@@ -31,8 +31,8 @@ export function checkRephrase(req: RephraseRequest, draft: { body: string }) {
       `Write more first. Options for a title come from what you've written, and work best once the draft is nearly done.`,
     )
   }
-  const aim = normalizeAim(req.aim)
-  if (req.earlier.some((round) => normalizeAim(round.aim) === aim)) {
+  const aim = normalizeText(req.aim)
+  if (req.earlier.some((round) => normalizeText(round.aim) === aim)) {
     throw fail(400, `Change your aim before asking again: say what you'd like to be different.`)
   }
 }
@@ -50,15 +50,15 @@ export function formatRephraseMessage(
   const ask = REPHRASE[rephraseSize(req.kind, req.wording)].ask
   return [
     venueDescriptionBlock(venueDescription),
-    `<draft_title>${escape(draft.title)}</draft_title>`,
-    `<draft>\n${escape(draft.body)}\n</draft>`,
-    `<wording kind="${req.kind}">\n${escape(req.wording)}\n</wording>`,
-    `<aim>\n${escape(req.aim)}\n</aim>`,
+    `<draft_title>${escapeTags(draft.title)}</draft_title>`,
+    `<draft>\n${escapeTags(draft.body)}\n</draft>`,
+    `<wording kind="${req.kind}">\n${escapeTags(req.wording)}\n</wording>`,
+    `<aim>\n${escapeTags(req.aim)}\n</aim>`,
     ...req.earlier.map((round) =>
       [
         '<earlier_round>',
-        `<aim>${escape(round.aim)}</aim>`,
-        ...round.options.map((o) => `<option>${escape(o)}</option>`),
+        `<aim>${escapeTags(round.aim)}</aim>`,
+        ...round.options.map((o) => `<option>${escapeTags(o)}</option>`),
         '</earlier_round>',
       ].join('\n'),
     ),
@@ -93,13 +93,13 @@ export function parseOptions(
   const size = rephraseSize(req.kind, req.wording)
   const longest = maxOptionWords(req.kind, req.wording)
   const seen = new Set([
-    normalizeAim(req.wording),
-    ...req.earlier.flatMap((r) => r.options.map(normalizeAim)),
+    normalizeText(req.wording),
+    ...req.earlier.flatMap((r) => r.options.map(normalizeText)),
   ])
   const options: string[] = []
   for (const candidate of parsed.data.options) {
     const option = candidate.trim()
-    const key = normalizeAim(option)
+    const key = normalizeText(option)
     if (!option || seen.has(key) || countWords(option) > longest) continue
     seen.add(key)
     options.push(option)

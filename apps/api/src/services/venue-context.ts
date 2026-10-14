@@ -1,7 +1,7 @@
 import type { Profile } from '@lfwa/core'
 
 /** Keeps text we insert from closing or imitating the tags it sits in. */
-export const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+export const escapeTags = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 /**
  * The writer's description of the venue, if there is one the AI may be told: the writer's own words, trimmed. A blank
@@ -20,6 +20,6 @@ export function usableVenueDescription(
  */
 export function venueDescriptionBlock(description: string | null): string | null {
   return description
-    ? ['<venue_description>', escape(description), '</venue_description>'].join('\n')
+    ? ['<venue_description>', escapeTags(description), '</venue_description>'].join('\n')
     : null
 }

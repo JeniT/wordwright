@@ -27,7 +27,7 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
 4. **Augment the writer; never substitute for them.** The AI helps people think and judge their own writing. It
    does not write what they publish, and the service must not add AI-generated text to the information environment,
    encourage dependence on it, or keep people using it for its own sake. The goal is **finished, published writing**,
-   so no engagement design, and anything that can be re-run forever (critique, "more options") is capped. Every
+   so no engagement design, and anything that can be re-run forever is limited (critique: looks per draft; Rephrase: a changed aim and a round limit per window). Every
    AI feature names its rung on the assistance ladder. Read [docs/responsible-ai.md](docs/responsible-ai.md) before
    designing or changing anything that calls an LLM or edits a prompt.
 

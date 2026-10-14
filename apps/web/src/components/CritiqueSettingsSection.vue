@@ -33,6 +33,10 @@ const save = useMutation({
       of critiques. The count is kept for the draft, and editing it doesn't reset it. When they are
       used up, the next step is to publish.
     </p>
+    <p class="mb-3 text-sm text-ink-soft">
+      The same number limits <strong>Rephrase</strong>: in one Rephrase window you can change your
+      aim and ask for more options this many times.
+    </p>
     <p v-if="settings.isError.value" role="alert" class="mb-3 text-danger">
       {{ errorMessage(settings.error.value) }}
     </p>

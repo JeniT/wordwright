@@ -43,9 +43,9 @@ export function maxOptionWords(kind: 'title' | 'passage', wording: string): numb
   return Math.max(Math.ceil(n * REPHRASE.option.growth), n + REPHRASE.option.extraWords)
 }
 
-/** Aims are compared ignoring case and spacing, so adding a space or a capital is not "a different Aim". */
-export function normalizeAim(aim: string): string {
-  return aim.toLowerCase().replace(/\s+/g, ' ').trim()
+/** Text compared ignoring case and spacing, so adding a space or a capital is not "a different Aim" or option. */
+export function normalizeText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
 /**

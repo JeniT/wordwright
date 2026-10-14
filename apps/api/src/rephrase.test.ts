@@ -3,6 +3,7 @@ import { LLMAuthError, REPHRASE, type RephraseRequest } from '@lfwa/core'
 import { OPTIONS_PROMPT } from '@lfwa/prompts'
 import { formatRephraseMessage, parseOptions } from './services/rephrase'
 import {
+  allRows,
   createDraft,
   register,
   saveKey,
@@ -170,11 +171,11 @@ describe('POST /assist/rephrase', () => {
 
   it('counts nothing and keeps nothing: the window holds the rounds', async () => {
     const { ctx, ask } = await ada()
-    const before = JSON.stringify(ctx.db.prepare('SELECT * FROM critique_rounds').all())
+    const before = JSON.stringify(allRows(ctx))
     for (let i = 0; i < 5; i++) {
       expect((await ask({ aim: `Aim number ${i} for this` })).status).toBe(200)
     }
-    expect(JSON.stringify(ctx.db.prepare('SELECT * FROM critique_rounds').all())).toBe(before)
+    expect(JSON.stringify(allRows(ctx))).toBe(before)
   })
 
   it('offers options for a title once the draft has enough body', async () => {

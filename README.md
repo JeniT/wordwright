@@ -374,4 +374,13 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   (the design is in [docs/decisions.md](docs/decisions.md#comment-marks-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
   The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
   gets 3 critiques by default (each person can choose 1 to 5 on their account page), counted per draft.
-- **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.
+- **Rephrase** (`POST /api/profiles/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage
+  or the title: `{draftId, kind: 'title'|'passage', wording, aim, earlier}` gives `{size, options}`. `earlier` holds the
+  rounds already asked in this window, so the AI is told what it has offered and a later round needs a different aim.
+  The server keeps nothing (the window holds the state; the record on use comes with #162). It refuses a selection that
+  crosses paragraphs or is outside 5 to 150 words, an aim of fewer than 3 words, and a title for a draft under about 300
+  words, before spending anything. Short wording (a title, or up to 25 words) gets 5 to 10 options, longer gets 3 to 5, and the
+  AI is told to make them differ in approach. Every number is in one place, `packages/core/src/rephrase.ts`. The prompt is
+  `prompts/options.md`. The round limit in a window is the critique-looks setting (account page). Only the draft, wording,
+  aim and venue description are sent: never notes, threads or comments.
+- **Not yet built:** idea scanning, outlining, streaming critique, the Rephrase window (#162, #163) and social posts (#164).
