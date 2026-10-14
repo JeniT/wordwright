@@ -118,9 +118,27 @@ export function fakeCritiqueReply(request: LLMRequest): string {
   return JSON.stringify({ summary: 'A fake critique: one thing to look at.', ready: false, points })
 }
 
+/**
+ * The pretend options-giver of development and e2e runs: as many short, different options as the message asks for
+ * ("Offer N options."), numbered by round so a later round brings new ones.
+ */
+export function fakeOptionsReply(request: LLMRequest): string {
+  const text = request.messages.at(-1)?.content ?? ''
+  const count = Number(text.match(/Offer (\d+) options/)?.[1] ?? 5)
+  const round = (text.match(/<earlier_round>/g)?.length ?? 0) + 1
+  const options = Array.from({ length: count }, (_, i) => `Fake option ${i + 1} of round ${round}.`)
+  return JSON.stringify({ options })
+}
+
+/** What a pretend one-shot request answers: options for Rephrase, otherwise a critique. */
+export const fakeCompletion = (request: LLMRequest): string =>
+  /<wording kind="/.test(request.messages.at(-1)?.content ?? '')
+    ? fakeOptionsReply(request)
+    : fakeCritiqueReply(request)
+
 /** For local development and e2e tests: no network, accepts any key. */
 export const fakeLlmFactory: LLMFactory = () =>
-  new FakeLLMProvider(fakeCritiqueReply, fakeBrainstormReply)
+  new FakeLLMProvider(fakeCompletion, fakeBrainstormReply)
 
 /** For local development and e2e tests: three pages, one fine, one with no title, one that doesn't exist. */
 export const fakeResearchFactory: ResearchFactory = () => new FakeResearchProvider()

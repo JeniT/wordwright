@@ -440,7 +440,7 @@ async function requestCritique() {
           Ctrl or ⌘ and click a link to open it.
         </p>
 
-        <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
+        <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
           <button
             v-if="canEdit"
             type="button"

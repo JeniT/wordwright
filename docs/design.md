@@ -173,6 +173,25 @@ Marks are ProseMirror decorations (`lib/comment-marks.ts`): they are drawn, neve
 `getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A comment
 whose paragraph has been rewritten loses its mark and moves to "This passage has changed" in the panel.
 
+### The Rephrase window and its options
+
+Rephrase (the button beside Save and Critique, enabled only while words inside one paragraph are selected, with the
+reason beside it when not) opens a **modal dialog** on top of the draft. It is built with `lib/modal.ts` (`useModal`,
+shared with `ConfirmDialog`): focus goes in (to the Aim, since the wording is filled in), Tab stays inside, Escape and
+Cancel close it, and focus returns to the Rephrase button. It is `max-w-2xl`, scrolls inside itself (`max-h-[90vh]`) and
+fits a 390px phone. Order, top to bottom: the **current wording** (editable), the **Aim** ("What should it do?"), the
+**Generate options** `AiButton` with "Round n of N" beside it and, in words, why it is disabled when it is, the options,
+then **Cancel** and **Use this**. Nothing leaves the window until Use this.
+
+- **Short wording** (a title, or up to 25 words) shows its options as a **list**: each row is the option and a
+  `btn btn-sm btn-outline` **Replace wording** button, which puts it in the wording field. **Longer wording** shows a
+  **carousel** (`RephraseOptions`): one option at a time, **Previous** and **Next** buttons (disabled at the ends), "Option
+  2 of 4" announced politely, Left and Right arrow keys, and its Replace wording button inside the slide.
+- The buttons repeat on every row but carry text, not an icon: "Replace wording" is the whole point of the row, and an
+  icon alone would not say whether it replaces, copies or uses. Each has an `aria-label` that names its option.
+- There is no copy or post button on an option, and no highlighter on them: they are choices, not suggestions already
+  made. The highlighter stays for what the AI has put in the writer's text.
+
 ## Actions and lists
 
 Which control for which job, so every list (reading lists, notes, feeds, drafts) looks and behaves alike. The reading

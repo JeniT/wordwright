@@ -17,6 +17,19 @@ describe('LLM factories', () => {
     )
   })
 
+  it('has a pretend options-giver for Rephrase that brings new options each round', async () => {
+    const llm = fakeLlmFactory({ provider: 'anthropic', apiKey: 'anything', model: 'm' })
+    const ask = async (content: string) =>
+      JSON.parse(await llm.complete({ messages: [{ role: 'user', content }] })).options as string[]
+    const first = await ask('<wording kind="passage">\nx\n</wording>\n\nOffer 8 options.')
+    expect(first).toHaveLength(8)
+    const second = await ask(
+      '<wording kind="passage">\nx\n</wording>\n\n<earlier_round>\n</earlier_round>\n\nOffer 4 options.',
+    )
+    expect(second).toHaveLength(4)
+    expect(second.filter((o) => first.includes(o))).toEqual([])
+  })
+
   describe('the pretend coach', () => {
     const llm = fakeLlmFactory({ provider: 'anthropic', apiKey: 'anything', model: 'm' })
     const turn = async (request: LLMChatRequest) => {

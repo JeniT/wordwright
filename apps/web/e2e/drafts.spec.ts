@@ -270,6 +270,129 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Draft body' })).toBeFocused()
 })
 
+test('rephrases a passage: select words, state an aim, choose and edit an option, use it', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await registerUser(page)
+  await page.goto('/account')
+  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-rephrase-key-5678')
+  await page.getByRole('button', { name: 'Save' }).first().click()
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Anthropic key saved (…5678)' }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers bend')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Why rivers bend')
+  const bodyBox = page.getByRole('textbox', { name: 'Draft body' })
+  await bodyBox.click()
+  await page.keyboard.type('The river bends because the outside bank erodes faster.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('It drifts across the valley over centuries.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+
+  // Nothing selected: the button waits, and says why.
+  const rephrase = page.getByRole('button', { name: 'Rephrase', exact: true })
+  await expect(rephrase).toBeDisabled()
+  await expect(page.getByText('Select some of your draft to rephrase it.')).toBeVisible()
+
+  // Select a paragraph (a triple click) and ask.
+  await bodyBox.getByText('The river bends').click({ clickCount: 3 })
+  await expect(rephrase).toBeEnabled()
+  await rephrase.click()
+  const dialog = page.getByRole('dialog', { name: 'Rephrase this passage' })
+  await expect(dialog.getByLabel('Current wording')).toHaveValue(
+    'The river bends because the outside bank erodes faster.',
+  )
+  await expect(dialog.getByLabel('What should it do?')).toBeFocused()
+  const generate = dialog.getByRole('button', { name: 'Generate options' })
+  await expect(generate).toBeDisabled()
+  await dialog.getByLabel('What should it do?').fill('Shorter, with the cause first')
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the dialog before asking').toEqual(
+    [],
+  )
+  await generate.click()
+  const list = dialog.getByRole('list', { name: 'Options' })
+  await expect(list.getByRole('listitem')).toHaveCount(8)
+  await expect(dialog.getByText('Round 1 of 3', { exact: true })).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the dialog with options').toEqual(
+    [],
+  )
+
+  // Another round needs a changed aim.
+  await expect(generate).toBeDisabled()
+  await dialog.getByLabel('What should it do?').fill('Warmer, like speaking to a friend')
+  await generate.click()
+  await expect(dialog.getByText('Round 2 of 3', { exact: true })).toBeVisible()
+  await expect(list.getByRole('listitem').first()).toContainText('round 2')
+
+  // Dark mode and a phone: the window fits and passes the checks.
+  await page.emulateMedia({ colorScheme: 'dark' })
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the dialog in dark').toEqual([])
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 390, height: 800 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
+  const box = (await dialog.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(390)
+  await page.setViewportSize({ width: 1280, height: 800 })
+
+  // Choose an option, change it, use it: it replaces just the selected words.
+  await list
+    .getByRole('listitem')
+    .nth(1)
+    .getByRole('button', { name: /Replace the wording/ })
+    .click()
+  await expect(dialog.getByLabel('Current wording')).toHaveValue('Fake option 2 of round 2.')
+  await dialog.getByLabel('Current wording').fill('Fake option 2 of round 2, in my words.')
+  await dialog.getByRole('button', { name: 'Use this' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(bodyBox).toContainText('Fake option 2 of round 2, in my words.')
+  await expect(bodyBox).toContainText('It drifts across the valley over centuries.')
+  await expect(bodyBox).not.toContainText('outside bank erodes')
+  await expect(rephrase).toBeDisabled() // the selection is gone
+
+  // It is saved, and its beginnings are on record.
+  await page.reload()
+  await expect(bodyBox).toContainText('Fake option 2 of round 2, in my words.')
+  await page.getByText('Where some of the words came from (1)').click()
+  await expect(
+    page.getByText(/began as an AI option, for “Warmer, like speaking to a friend”/),
+  ).toBeVisible()
+  await expect(page.getByText('Still as inserted')).toBeVisible()
+})
+
+test('closing the Rephrase window with Escape changes nothing and returns to the button', async ({
+  page,
+}) => {
+  await registerUser(page)
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers bend')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const bodyBox = page.getByRole('textbox', { name: 'Draft body' })
+  await bodyBox.click()
+  await page.keyboard.type('The river bends because the outside bank erodes faster.')
+  await bodyBox.getByText('The river bends').click({ clickCount: 3 })
+  const rephrase = page.getByRole('button', { name: 'Rephrase', exact: true })
+  await rephrase.click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(rephrase).toBeFocused()
+  await expect(bodyBox).toContainText('The river bends because the outside bank erodes faster.')
+})
+
 test('sign out and back in, and the session survives a reload', async ({ page }) => {
   const email = await registerUser(page)
   await page.reload()

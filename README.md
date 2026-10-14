@@ -391,4 +391,11 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   AI is told to make them differ in approach. Every number is in one place, `packages/core/src/rephrase.ts`. The prompt is
   `prompts/options.md`. The round limit in a window is the critique-looks setting (account page). Only the draft, wording,
   aim and venue description are sent: never notes, threads or comments.
-- **Not yet built:** idea scanning, outlining, streaming critique, the Rephrase window (#162, #163) and social posts (#164).
+  **The Rephrase window** (#162): in the draft editor, select words inside one paragraph and press **Rephrase**. A dialog
+  shows the wording (editable), asks "What should it do?" (the Aim), and **Generate options** (saving the draft first, since
+  the AI reads the saved draft) brings a list (short wording) or carousel (longer) with a **Replace wording** button on
+  each; **Use this** replaces exactly the selected words, saves the draft and, if the words began as an option, records it
+  (`POST …/drafts/:id/option-insertions`, in `draft_insertions` with origin `option`, shown in the draft's "Where some of the
+  words came from" list). The record is the writer's own report of what was offered, because the server keeps nothing between
+  rounds. Words the writer wrote themselves leave no record. The fake LLM (`FAKE_LLM=true`) answers with numbered options.
+- **Not yet built:** idea scanning, outlining, streaming critique, Rephrase for the title (#163) and social posts (#164).
