@@ -174,7 +174,8 @@ tests inject fakes and nothing hits the network.
   member can **ask** (`POST …/asks`), which only shows the editor a request to offer or set aside. An owner can
   **reassign** (`POST …/reassign`) without the editor. Only an offer sends an email (to the offered member, with a link
   to the draft; 20 a day per editor); nothing else does. Everything is kept as a history, showing "Reassigned by Jo"
-  and the like; a person's name there is shown only while their account exists. Leaving, removal and account deletion
+  and the like, and "Passed to Ada when the previous editor left" for the system's own moves; names follow the
+  keep-my-name choice at account deletion. Leaving, removal and account deletion
   also close what the person had open before their drafts pass to an owner.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they

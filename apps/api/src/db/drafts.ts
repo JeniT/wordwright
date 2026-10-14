@@ -48,6 +48,17 @@ export class DraftStore {
     return result.changes ? this.get(profileId, id) : undefined
   }
 
+  /** The drafts in the profile that this person is editor of. */
+  editedBy(profileId: string, userId: string): string[] {
+    return (
+      this.db
+        .prepare(
+          'SELECT id FROM drafts WHERE profile_id = ? AND editor_id = ? ORDER BY position, id',
+        )
+        .all(profileId, userId) as { id: string }[]
+    ).map((r) => r.id)
+  }
+
   /** Makes `userId` the editor of this one draft. */
   setEditor(id: string, userId: string) {
     this.db.prepare('UPDATE drafts SET editor_id = ? WHERE id = ?').run(userId, id)

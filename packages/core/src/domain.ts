@@ -433,6 +433,8 @@ export const HandoverEventSchema = z.object({
   memberName: z.string().nullable(),
   createdAt: z.string(),
   resolvedAt: z.string().nullable(),
+  /** True for a reassignment the system made because the previous editor left the profile. */
+  automatic: z.boolean(),
 })
 export type HandoverEvent = z.infer<typeof HandoverEventSchema>
 

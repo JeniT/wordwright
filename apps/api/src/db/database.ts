@@ -638,6 +638,13 @@ export const MIGRATIONS: Migration[] = [
   CREATE UNIQUE INDEX draft_handovers_one_offer ON draft_handovers(draft_id)
     WHERE kind = 'offer' AND status = 'pending';
   `,
+  // The handover log keeps names like everything else people did (#153): copied at account deletion only if the
+  // person chose to keep their name. `reason` marks a reassignment the system made because the editor left.
+  `
+  ALTER TABLE draft_handovers ADD COLUMN kept_actor_name TEXT;
+  ALTER TABLE draft_handovers ADD COLUMN kept_member_name TEXT;
+  ALTER TABLE draft_handovers ADD COLUMN reason TEXT;
+  `,
 ]
 
 /**

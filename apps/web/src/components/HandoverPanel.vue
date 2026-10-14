@@ -68,7 +68,11 @@ const outcome: Record<string, string> = {
 function describe(e: HandoverEvent): string {
   const actor = person(e.actorName)
   const member = person(e.memberName)
-  if (e.kind === 'reassign') return `Reassigned by ${actor} to ${member}`
+  if (e.kind === 'reassign') {
+    return e.automatic
+      ? `Passed to ${member} when the previous editor left`
+      : `Reassigned by ${actor} to ${member}`
+  }
   const said =
     e.kind === 'offer' ? `${actor} offered the draft to ${member}` : `${actor} asked for the draft`
   return `${said}: ${outcome[e.status]}`

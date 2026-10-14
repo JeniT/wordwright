@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   PASSWORD,
+  allRows,
   createDraft,
   register,
   setup,
@@ -14,7 +15,13 @@ type State = {
   editorName: string
   offer: { id: string; toId: string; toName: string } | null
   asks: { id: string; byId: string; byName: string }[]
-  history: { kind: string; status: string; actorName: string | null; memberName: string | null }[]
+  history: {
+    kind: string
+    status: string
+    actorName: string | null
+    memberName: string | null
+    automatic: boolean
+  }[]
 }
 
 describe('handing over a draft (#155)', () => {
@@ -209,22 +216,45 @@ describe('handing over a draft (#155)', () => {
   })
 
   describe('when people go', () => {
-    it('closes what they had open, and passes the draft to an owner', async () => {
+    async function bobEditsOfferAndLeaves(keepName?: boolean) {
       ctx.store.drafts.setEditor(draftId, ids.bob)
       await bob.post(url('/offer'), { userId: ids.cy })
       await cy.post(url('/asks'), {})
       const gone = await bob.delete('/api/account', {
         confirmEmail: 'bob@example.com',
         password: PASSWORD,
+        ...(keepName === undefined ? {} : { keepName }),
       })
       expect(gone.status).toBe(204)
+    }
+
+    it('closes what they had open, passes the draft to an owner and logs that, keeping their name', async () => {
+      await bobEditsOfferAndLeaves()
       expect(await state(ada)).toMatchObject({
         editorId: ids.ada,
         offer: null,
         history: [
-          { kind: 'ask', status: 'pending' }, // Cy's ask now goes to Ada
-          { kind: 'offer', status: 'withdrawn', actorName: null }, // no name once the account is gone
+          { kind: 'reassign', status: 'done', automatic: true, memberName: 'Ada', actorName: null },
+          { kind: 'ask', status: 'pending', actorName: 'Cy', memberName: 'Bob' }, // Cy's ask goes to Ada now
+          { kind: 'offer', status: 'withdrawn', actorName: 'Bob', memberName: 'Cy' },
         ],
+      })
+    })
+
+    it('leaves no trace of their name in the log if they chose not to keep it', async () => {
+      await bobEditsOfferAndLeaves(false)
+      const history = (await state(ada)).history
+      expect(history.find((h) => h.kind === 'offer')).toMatchObject({ actorName: null })
+      expect(JSON.stringify(allRows(ctx))).not.toContain('"Bob"')
+    })
+
+    it('logs the hand-over when an editor is removed from the profile', async () => {
+      ctx.store.drafts.setEditor(draftId, ids.bob)
+      await ada.delete(`/api/profiles/${profile}/members/${ids.bob}`)
+      expect((await state(ada)).history[0]).toMatchObject({
+        kind: 'reassign',
+        automatic: true,
+        memberName: 'Ada',
       })
     })
 

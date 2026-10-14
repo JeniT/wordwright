@@ -40,6 +40,17 @@ export class HandoverStore {
     return this.get(draftId, id)!
   }
 
+  /** The system moved the editor role because the previous editor left the profile. */
+  addAutomaticReassignment(draftId: string, newEditorId: string) {
+    const now = nowIso()
+    this.db
+      .prepare(
+        `INSERT INTO draft_handovers (id, draft_id, kind, status, actor_id, member_id, created_at, resolved_at, reason)
+         VALUES (?, ?, 'reassign', 'done', NULL, ?, ?, ?, 'left')`,
+      )
+      .run(randomUUID(), draftId, newEditorId, now, now)
+  }
+
   get(draftId: string, id: string): HandoverRow | undefined {
     const row = this.db
       .prepare('SELECT * FROM draft_handovers WHERE draft_id = ? AND id = ?')
@@ -108,7 +119,8 @@ export class HandoverStore {
   state(draftId: string, editorId: string, editorName: string): HandoverState {
     const rows = this.db
       .prepare(
-        `SELECT h.*, a.name AS actor_name, m.name AS member_name
+        `SELECT h.*, coalesce(a.name, h.kept_actor_name) AS actor_name,
+                coalesce(m.name, h.kept_member_name) AS member_name
          FROM draft_handovers h
          LEFT JOIN users a ON a.id = h.actor_id
          LEFT JOIN users m ON m.id = h.member_id
@@ -123,6 +135,7 @@ export class HandoverStore {
       memberName: (r.member_name as string | null) ?? null,
       createdAt: r.created_at as string,
       resolvedAt: (r.resolved_at as string | null) ?? null,
+      automatic: r.reason === 'left',
     }))
     const open = rows.filter((r) => r.status === 'pending')
     const offer = open.find((r) => r.kind === 'offer')

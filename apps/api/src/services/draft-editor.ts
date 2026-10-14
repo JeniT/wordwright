@@ -17,5 +17,9 @@ export function handDraftsToOwner(store: Store, profileId: string, leavingUserId
   const others = store.profiles.members(profileId).filter((m) => m.userId !== leavingUserId)
   const next = others.find((m) => m.role === 'owner') ?? others[0]
   store.handovers.closeForLeaver(profileId, leavingUserId)
-  if (next) store.drafts.reassignEditor(profileId, leavingUserId, next.userId)
+  if (!next) return
+  for (const draftId of store.drafts.editedBy(profileId, leavingUserId)) {
+    store.drafts.setEditor(draftId, next.userId)
+    store.handovers.addAutomaticReassignment(draftId, next.userId)
+  }
 }

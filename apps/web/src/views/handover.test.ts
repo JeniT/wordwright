@@ -185,6 +185,16 @@ describe('handing a draft over (#155)', () => {
       handover: state({
         history: [
           {
+            id: '4',
+            kind: 'reassign',
+            status: 'done',
+            actorName: null,
+            memberName: 'Ada Lovelace',
+            createdAt: '2026-04-01T00:00:00Z',
+            resolvedAt: null,
+            automatic: true,
+          },
+          {
             id: '3',
             kind: 'reassign',
             status: 'done',
@@ -192,6 +202,7 @@ describe('handing a draft over (#155)', () => {
             memberName: 'Ada Lovelace',
             createdAt: '2026-03-01T00:00:00Z',
             resolvedAt: null,
+            automatic: false,
           },
           {
             id: '2',
@@ -201,6 +212,7 @@ describe('handing a draft over (#155)', () => {
             memberName: 'Bob Jones',
             createdAt: '2026-02-01T00:00:00Z',
             resolvedAt: null,
+            automatic: false,
           },
           {
             id: '1',
@@ -210,12 +222,14 @@ describe('handing a draft over (#155)', () => {
             memberName: 'Ada Lovelace',
             createdAt: '2026-01-01T00:00:00Z',
             resolvedAt: null,
+            automatic: false,
           },
         ],
       }),
     })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText(/Who has edited this draft \(3\)/))
+    await fireEvent.click(await screen.findByText(/Who has edited this draft \(4\)/))
+    expect(screen.getByText(/Passed to Ada Lovelace when the previous editor left/)).toBeTruthy()
     expect(screen.getByText(/Reassigned by Jo Park to Ada Lovelace/)).toBeTruthy()
     expect(screen.getByText(/Ada Lovelace offered the draft to Bob Jones: declined/)).toBeTruthy()
     expect(screen.getByText(/a former member asked for the draft: withdrawn/)).toBeTruthy()

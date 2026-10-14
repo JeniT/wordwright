@@ -172,6 +172,8 @@ export class UserStore {
     set('idea_research', 'kept_name', 'created_by')
     set('draft_insertions', 'kept_note_author_name', 'note_author_id')
     set('draft_insertions', 'kept_inserted_by_name', 'inserted_by')
+    set('draft_handovers', 'kept_actor_name', 'actor_id')
+    set('draft_handovers', 'kept_member_name', 'member_id')
   }
 
   delete(id: string) {
