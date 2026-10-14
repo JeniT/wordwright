@@ -432,7 +432,7 @@ export const CASES: EvalCase[] = [
     app: 'critique',
     draft: {
       title: 'Why I stopped taking the train',
-      body: 'For ten years I took the 07:12 into the city, and for the first six of them it was the best hour of my day. I read, I made notes, I worked out what I thought about whatever was bothering me. Then the quiet carriage was abolished and the phone calls moved in. By the end I spent the journey with headphones on, thinking about nothing. Last spring I started cycling instead: forty minutes each way, along the canal. I do not claim that it made me more productive. What I can say is that the hour is mine again. On the towpath I work out an argument or a difficult email before I reach my desk, and I arrive having already decided what matters that day, which is what the train once did for me. My diary shows the difference only in a small way: the notes I made on the train stop in 2022, and they start again, in a different notebook, in April. If you have a commute you have stopped being able to think on, I would try changing how you make it, before you decide that the problem is you.',
+      body: 'For ten years I took the 07:12 into the city. Last spring I stopped, and the reason was not the cost. The line had stopped being a place where I could think: the carriages had filled with phone calls and the quiet carriage had been abolished. I now cycle forty minutes each way, and I get more done in the first hour of the day than I did in the previous ten years of commuting. The evidence is my own diary, which I have kept since 2016, and the pages from the train years are mostly blank.',
     },
     assert: [
       { type: 'javascript', value: wellFormedCritique },
@@ -450,7 +450,7 @@ export const CASES: EvalCase[] = [
     app: 'critique',
     draft: {
       title: 'Why I stopped taking the train',
-      body: 'For ten years I took the 07:12 into the city. Last spring I stopped, and the reason was not the cost. The line had stopped being a place where I could think: the carriages had filled with phone calls and the quiet carriage had been abolished. I now cycle forty minutes each way, and I get more done in the first hour of the day than I did in the previous ten years of commuting. My diary, which I have kept since 2016, shows it: the pages from the train years are mostly blank, and the pages since are full. I do not think the train is to blame for everything; I think it took away the one hour I used to keep for myself, and I did not notice until it was gone.',
+      body: 'For ten years I took the 07:12 into the city, and for the first six of them it was the best hour of my day. I read, I made notes, I worked out what I thought about whatever was bothering me. Then the quiet carriage was abolished and the phone calls moved in. By the end I spent the journey with headphones on, thinking about nothing. Last spring I started cycling instead: forty minutes each way, along the canal. I do not claim that it made me more productive. What I can say is that the hour is mine again. On the towpath I work out an argument or a difficult email before I reach my desk, and I arrive having already decided what matters that day, which is what the train once did for me. My diary shows the difference only in a small way: the notes I made on the train stop in 2022, and they start again, in a different notebook, in April. If you have a commute you have stopped being able to think on, I would try changing how you make it, before you decide that the problem is you.',
     },
     assert: [
       { type: 'javascript', value: wellFormedCritique },
@@ -640,7 +640,7 @@ export const CASES: EvalCase[] = [
       {
         type: 'llm-rubric',
         value:
-          'The output is a list of pages. Each reason is a single plain sentence about why the page is worth reading for the idea, and none summarises the topic, states findings, conclusions or what a page "shows" as though the page had been read, or contains wording the writer could use in their piece (no drafted sentences, titles or angles). Describing what kind of page it is, or the subject it covers as its title or snippet states it, is fine. It is acceptable for the list to be empty or short.',
+          'The output is a list of pages. Each reason is one or two plain sentences (as the prompt allows) about why the page is worth reading for the idea, and none summarises the topic, states findings, conclusions or what a page "shows" as though the page had been read, or contains wording the writer could use in their piece (no drafted sentences, titles or angles). Describing what kind of page it is, or the subject it covers as its title or snippet states it, is fine. It is acceptable for the list to be empty or short.',
       },
     ],
   },
