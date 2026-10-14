@@ -109,6 +109,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     await send(method, path, body)
   }
 
+  /** An export is a file: its name comes from the server, which makes it from ids and a date. */
+  const download = async (path: string) => {
+    const res = await send('GET', path)
+    const filename = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1]
+    return { filename: filename ?? 'wordwright-export.zip', blob: await res.blob() }
+  }
+
   const ProfileList = ProfileSchema.array()
   const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
   const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
@@ -231,6 +238,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     startWriting: (handle: string) => get(UserSchema, 'POST', '/reviews/start-writing', { handle }),
     setMemberRole: (id: string, userId: string, role: ProfileRole) =>
       get(ProfileSchema, 'PUT', `/profiles/${id}/members/${userId}/role`, { role }),
+    exportAccount: () => download('/account/export'),
+    exportProfile: (id: string) => download(`/profiles/${id}/export`),
     removeMember: (id: string, userId: string) =>
       act('DELETE', `/profiles/${id}/members/${userId}`),
 

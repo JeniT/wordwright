@@ -30,6 +30,7 @@ import { HandoverService } from './services/handover'
 import { ReviewService } from './services/reviews'
 import { reviewInvitationRoutes, reviewRoutes } from './routes/reviews'
 import { InvitationService } from './services/invitations'
+import { ExportService } from './services/export'
 import { LlmKeyService } from './services/llm'
 import { EmailChangeService } from './services/email-change'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
@@ -130,6 +131,8 @@ export function createApp(deps: AppDeps) {
     }),
   )
   const brainstormPrompts = new BrainstormPromptService(store)
+  const exports = new ExportService(store, deps.now)
+  const exportLimiter = limiter(5, HOUR)
   api.route(
     '/account',
     accountRoutes(
@@ -139,6 +142,8 @@ export function createApp(deps: AppDeps) {
       brainstormPrompts,
       limiter(5, DAY),
       store.userSettings,
+      exports,
+      exportLimiter,
     ),
   )
   const signedIn = (routes: Hono<AppEnv>) =>
@@ -200,6 +205,8 @@ export function createApp(deps: AppDeps) {
         reviews,
         handover,
         inviteLimiter,
+        exports,
+        exportLimiter,
         feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
         feedLimiter: limiter(30, HOUR),

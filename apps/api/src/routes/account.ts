@@ -19,6 +19,8 @@ import type { UserSettingsStore } from '../db/user-settings'
 import { validateJson } from '../validate'
 import { toHttpError } from './auth'
 import { fail } from '../errors'
+import type { ExportService } from '../services/export'
+import { throttleExport, zipResponse } from './zip-response'
 
 export function accountRoutes(
   accounts: AccountService,
@@ -27,11 +29,19 @@ export function accountRoutes(
   brainstormPrompts: BrainstormPromptService,
   handleChangeLimiter: RateLimiter,
   userSettings: UserSettingsStore,
+  exports: ExportService,
+  exportLimiter: RateLimiter,
 ) {
   return (
     new Hono<AppEnv>()
       .use(requireUser(accounts))
       // Guessing the current password is the attack here, so attempts are throttled per person.
+      // All their profiles, as Markdown (#167); a reviewer-only account never reaches it (no such route for them).
+      .get('/export', (c) => {
+        const user = c.get('user')
+        throttleExport(exportLimiter, user.id)
+        return zipResponse(c, exports.account(user))
+      })
       .post('/password', validateJson(ChangePasswordInputSchema), async (c) => {
         const user = c.get('user')
         if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')

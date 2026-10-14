@@ -299,6 +299,12 @@ tests inject fakes and nothing hits the network.
   no drafts or ideas, no saved API key, nobody else in their profiles. That frees addresses taken by typos. The signup
   email says so, and one reminder (with a fresh confirmation link) is sent 3 days before deletion. The same pass removes expired sessions, used/expired links and old invitations. It logs
   counts only, never who.
+- **Exporting your writing** (#167): the account page (all your profiles, `GET /api/account/export`) and each profile's
+  settings (`GET /api/profiles/:id/export`) download a zip of Markdown only: a README, then per profile a file for the
+  profile, one per idea (notes, reading list, links to drafts) and one per draft. Owners get every draft, members
+  the drafts they edit or started; notes and reading items are everyone's, with names. Comments, reviews, brainstorm
+  chats, API keys and email addresses are never included. Built on request, throttled to 5 an hour per person; see
+  `docs/decisions.md`.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
   (with its drafts) where they are the only member. In shared profiles they are removed and drafts they wrote
   there stay; the only owner of a shared profile must first make someone else an owner (or delete the profile),

@@ -1308,6 +1308,48 @@ test('the sign-up form explains a problem the server finds, in words', async ({ 
   await expect(page.getByText('[object Object]')).toHaveCount(0)
 })
 
+test('downloads your writing as a zip from the account page and from a profile', async ({
+  page,
+}) => {
+  await registerUser(page, 'Ada')
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+
+  /** The zip's file names sit uncompressed in its directory, so they can be read without unpacking it. */
+  const downloaded = async (page: Page, trigger: () => Promise<void>) => {
+    const [download] = await Promise.all([page.waitForEvent('download'), trigger()])
+    const path = await download.path()
+    const names = readFileSync(path).toString('latin1')
+    return { name: download.suggestedFilename(), names }
+  }
+
+  await page.getByRole('link', { name: 'Ada', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Download your writing' })).toBeVisible()
+  const account = await downloaded(page, () =>
+    page.getByRole('button', { name: 'Download as a zip' }).click(),
+  )
+  expect(account.name).toMatch(/^wordwright-export-\d{4}-\d{2}-\d{2}\.zip$/)
+  expect(account.names.startsWith('PK')).toBe(true)
+  expect(account.names).toContain('drafts/meanders.md')
+  await expect(page.getByText('Downloaded')).toBeVisible()
+
+  await openSettings(page)
+  const profile = await downloaded(page, () =>
+    page.getByRole('button', { name: 'Download as a zip' }).click(),
+  )
+  expect(profile.name).toMatch(/^wordwright-.+-\d{4}-\d{2}-\d{2}\.zip$/)
+  expect(profile.names).toContain('ideas/why-rivers-meander.md')
+})
+
 test('deletes an account', async ({ page }) => {
   const email = await registerUser(page)
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()

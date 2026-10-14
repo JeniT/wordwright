@@ -36,6 +36,8 @@ import type { ReviewService } from '../services/reviews'
 import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
 import { fail } from '../errors'
+import type { ExportService } from '../services/export'
+import { throttleExport, zipResponse } from './zip-response'
 import { ownerCannotLeaveMessage, setMemberRole } from '../services/owners'
 import { param } from './params'
 
@@ -47,6 +49,9 @@ export interface ProfileRouteDeps {
   reviews: ReviewService
   /** Per person: each invitation emails a stranger. */
   inviteLimiter: RateLimiter
+  exports: ExportService
+  /** Per person: building an export costs the server real work. */
+  exportLimiter: RateLimiter
   feeds: FeedFetcher
   /** Per person: each new source makes the server fetch pages. */
   feedLimiter: RateLimiter
@@ -63,6 +68,8 @@ export function profileRoutes({
   handover,
   reviews,
   inviteLimiter,
+  exports,
+  exportLimiter,
   feeds,
   feedLimiter,
   feedItems,
@@ -120,6 +127,13 @@ export function profileRoutes({
       .delete('/:profileId', owner, (c) => {
         store.profiles.delete(param(c, 'profileId'))
         return c.body(null, 204)
+      })
+
+      // Everything of theirs in this profile, as Markdown (#167); which drafts depends on their role.
+      .get('/:profileId/export', member, (c) => {
+        const user = c.get('user')
+        throttleExport(exportLimiter, user.id)
+        return zipResponse(c, exports.profile(param(c, 'profileId'), user))
       })
 
       // The picture is raw bytes in the request body. What it is gets decided by looking at the

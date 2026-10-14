@@ -9,6 +9,7 @@ export const OWNER_ABILITIES = [
   'make members owners, or remove owners (you included)',
   'move a draft to another editor when its editor is away',
   'end the review of any draft',
+  'download every draft in the profile',
   'delete the profile',
 ]
 
@@ -16,6 +17,7 @@ export const MEMBER_ABILITIES = [
   'read and comment on every draft',
   'add ideas and notes',
   'edit the drafts they are the editor of',
+  'download the drafts they edit or started',
 ]
 
 const sentence = (items: string[]) => new Intl.ListFormat('en').format(items)

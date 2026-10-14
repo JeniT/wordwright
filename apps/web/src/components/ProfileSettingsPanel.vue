@@ -8,6 +8,7 @@ import { displayHost } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
 import DangerZone from './DangerZone.vue'
+import ExportSection from './ExportSection.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ImageField from './ImageField.vue'
@@ -162,6 +163,8 @@ const deleteProfile = useMutation({
         :confirmed="session.user?.emailVerified ?? false"
       />
     </section>
+
+    <ExportSection :profile="{ id: profile.id, role: profile.role }" />
 
     <DangerZone
       v-if="isOwner"

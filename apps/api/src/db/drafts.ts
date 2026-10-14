@@ -72,6 +72,17 @@ export class DraftStore {
     ).map((r) => r.id)
   }
 
+  /** The drafts in the profile that this person started, whoever edits them now. */
+  startedBy(profileId: string, userId: string): string[] {
+    return (
+      this.db
+        .prepare(
+          'SELECT id FROM drafts WHERE profile_id = ? AND created_by = ? ORDER BY position, id',
+        )
+        .all(profileId, userId) as { id: string }[]
+    ).map((r) => r.id)
+  }
+
   /** Makes `userId` the editor of this one draft. */
   setEditor(id: string, userId: string) {
     this.db.prepare('UPDATE drafts SET editor_id = ? WHERE id = ?').run(userId, id)

@@ -12,6 +12,7 @@ import {
   type ResearchFinding,
   type ResearchRequest,
 } from '@lfwa/core'
+import { crc32, inflateRawSync } from 'node:zlib'
 import { createApp } from './app'
 import { exampleFeeds } from './feeds/factory'
 import type { IdentityProvider } from './auth/identity'
@@ -296,4 +297,32 @@ export async function createDraft(
   const res = await client.post(`${base}/${idea.id}/drafts`, input)
   expectStatus(res.status, 201)
   return res.json()
+}
+
+/** Reads a zip made by `export/zip.ts` back into `{ path: text }`, checking each file's checksum. */
+export function readZip(bytes: Uint8Array): Record<string, string> {
+  const buf = Buffer.from(bytes)
+  const eocd = buf.length - 22
+  if (buf.readUInt32LE(eocd) !== 0x06054b50) throw new Error('No end-of-archive record')
+  const count = buf.readUInt16LE(eocd + 10)
+  let at = buf.readUInt32LE(eocd + 16)
+  const out: Record<string, string> = {}
+  for (let i = 0; i < count; i++) {
+    if (buf.readUInt32LE(at) !== 0x02014b50) throw new Error('Bad central directory entry')
+    const method = buf.readUInt16LE(at + 10)
+    const crc = buf.readUInt32LE(at + 16)
+    const size = buf.readUInt32LE(at + 20)
+    const nameLength = buf.readUInt16LE(at + 28)
+    const extra = buf.readUInt16LE(at + 30)
+    const comment = buf.readUInt16LE(at + 32)
+    const local = buf.readUInt32LE(at + 42)
+    const name = buf.toString('utf8', at + 46, at + 46 + nameLength)
+    const dataAt = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28)
+    const raw = buf.subarray(dataAt, dataAt + size)
+    const data = method === 8 ? inflateRawSync(raw) : raw
+    if (crc32(data) !== crc) throw new Error(`Checksum mismatch for ${name}`)
+    out[name] = data.toString('utf8')
+    at += 46 + nameLength + extra + comment
+  }
+  return out
 }

@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import DangerZone from '../components/DangerZone.vue'
+import ExportSection from '../components/ExportSection.vue'
 import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
 import CritiqueSettingsSection from '../components/CritiqueSettingsSection.vue'
 import EmailSection from '../components/EmailSection.vue'
@@ -77,7 +78,14 @@ const deleteAccount = useMutation({
       </p>
     </section>
 
+    <ExportSection />
+
     <DangerZone title="Delete account">
+      <p class="mb-4 text-sm">
+        Deleting can't be undone, so
+        <a href="#download" class="underline">download your writing first</a> if you want to keep
+        it.
+      </p>
       <p class="mb-4 text-sm">
         This permanently deletes your account, and every profile (with its drafts) that only you
         belong to. In profiles you share, you're removed, and the others keep their work. If you're

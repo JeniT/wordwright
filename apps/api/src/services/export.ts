@@ -1,0 +1,193 @@
+import { firstAvailable, slugify, type Draft, type IdeaLink, type IdeaNote } from '@lfwa/core'
+import type { Store } from '../db/store'
+import { zip, type ZipFile } from '../export/zip'
+
+export interface ExportResult {
+  filename: string
+  bytes: Uint8Array
+}
+
+const longDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
+/** Text that continues a bullet on the lines below it. */
+const indent = (text: string) => text.trim().replace(/\n/g, '\n  ')
+const tagsOf = (tags: string[]) => (tags.length ? ` — tags: ${tags.join(', ')}` : '')
+
+const noteLine = (n: IdeaNote) =>
+  `- ${n.quote ? 'Quote: ' : ''}${indent(n.text)} (${n.authorName ?? 'a former member'}, ${longDate(n.createdAt)})${tagsOf(n.tags)}`
+
+/** Reading items record when they were added but not by whom, so that is all the credit there is to give. */
+const readingLine = (l: IdeaLink) => {
+  const address = l.url.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29')
+  const parts = [`[${(l.title || l.url).replace(/[[\]]/g, '')}](${address})`]
+  if (l.authors.length) parts.push(`by ${l.authors.join(', ')}`)
+  if (l.readAt) parts.push(`read ${longDate(l.readAt)}`)
+  if (l.addedAt) parts.push(`added ${longDate(l.addedAt)}`)
+  return `- ${parts.join(', ')}${tagsOf(l.tags)}`
+}
+
+const section = (heading: string, lines: string[]) =>
+  lines.length ? `## ${heading}\n\n${lines.join('\n')}\n` : ''
+
+/** Names a file after its title: lower-case letters, digits and hyphens only, so no title can name a path. */
+function fileNamer() {
+  const taken = new Set<string>()
+  return (title: string) => {
+    const name = firstAvailable(slugify(title) || 'untitled', (c) => taken.has(c), '-')
+    taken.add(name)
+    return name
+  }
+}
+
+/**
+ * Builds the zip of a person's own writing, as Markdown only (#167). What goes in depends on their role in each
+ * profile: an owner gets every draft, a member the drafts they edit or started; notes and reading items are everyone's
+ * and are credited. Comments, snapshots and reviews, critiques, brainstorm chats, API keys and email addresses never
+ * go in. Callers have checked that the person belongs to each profile.
+ */
+export class ExportService {
+  constructor(
+    private readonly store: Store,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
+
+  profile(profileId: string, user: { id: string; name: string }): ExportResult {
+    const day = this.day()
+    return this.build(`wordwright-${profileId}-${day}.zip`, [profileId], user)
+  }
+
+  account(user: { id: string; name: string }): ExportResult {
+    const ids = this.store.profiles.listIdsForUser(user.id)
+    return this.build(`wordwright-export-${this.day()}.zip`, ids, user)
+  }
+
+  private day() {
+    return this.now().toISOString().slice(0, 10)
+  }
+
+  private build(filename: string, profileIds: string[], user: { id: string; name: string }) {
+    const root = `wordwright-export-${this.day()}`
+    const files: ZipFile[] = []
+    const profiles: { name: string; role: 'owner' | 'member' }[] = []
+    for (const id of profileIds) {
+      const role = this.store.profiles.roleOf(id, user.id)
+      if (!role) continue
+      profiles.push({ name: this.store.profiles.get(id, user.id)!.name, role })
+      files.push(...this.profileFiles(`${root}/${id}`, id, user.id, role))
+    }
+    files.unshift({ path: `${root}/README.md`, content: this.readme(user.name, profiles) })
+    return { filename, bytes: zip(files, this.now()) }
+  }
+
+  private readme(name: string, profiles: { name: string; role: 'owner' | 'member' }[]) {
+    const owner = profiles.some((p) => p.role === 'owner')
+    const member = profiles.some((p) => p.role === 'member')
+    const rules = [
+      owner &&
+        '- As an owner of a profile, this includes every draft in it, including drafts other members edit.',
+      member &&
+        '- As a member of a profile, this includes the drafts you edit or started. Drafts other members edit or started are not included: they are theirs to export.',
+      '- Notes and reading-list items from everyone in a profile are included. Notes name who wrote them; reading-list items show only when they were added, because that is all we record.',
+    ].filter(Boolean)
+    return `# Your writing from Wordwright
+
+Exported on ${longDate(this.now().toISOString())} for ${name}. Everything here is plain Markdown: open it in any text editor or notes app. Links between the files are relative, so keep the folders together.
+
+## What is in this export
+
+${profiles.map((p) => `- ${p.name} (you are ${p.role === 'owner' ? 'an owner' : 'a member'})`).join('\n')}
+
+Each profile has a folder with a file about the profile, one file per idea (its notes, reading list and drafts) and one file per draft.
+
+## Who gets what
+
+${rules.join('\n')}
+
+## What is not in it
+
+- Comments, from people or from the AI, and the critiques the AI wrote.
+- Copies sent for review, and the people who reviewed them.
+- Brainstorming conversations. Anything worth keeping from them should already be in your notes.
+- API keys, and anyone's email address.
+`
+  }
+
+  private profileFiles(dir: string, profileId: string, userId: string, role: 'owner' | 'member') {
+    const { store } = this
+    const profile = store.profiles.get(profileId, userId)!
+    const started = new Set(store.drafts.startedBy(profileId, userId))
+    const all = new Map(store.drafts.list(profileId).map((d) => [d.id, d]))
+    const included = (d: Draft) => role === 'owner' || d.editorId === userId || started.has(d.id)
+
+    const files: ZipFile[] = []
+    const draftName = fileNamer()
+    const draftFile = new Map<string, string>()
+    for (const d of [...all.values()].filter(included)) {
+      const name = draftName(d.title)
+      draftFile.set(d.id, name)
+      files.push({
+        path: `${dir}/drafts/${name}.md`,
+        content: `# ${d.title.trim() || 'Untitled'}\n\n${d.body.trimEnd()}\n`,
+      })
+    }
+
+    const ideaName = fileNamer()
+    const ideaLines: string[] = []
+    for (const summary of store.ideas.list(profileId)) {
+      const idea = store.ideas.get(profileId, summary.id)!
+      const name = ideaName(idea.name)
+      ideaLines.push(`- [${idea.name.replace(/[[\]]/g, '')}](ideas/${name}.md)`)
+      const draftLines = idea.drafts.flatMap((d) => {
+        const file = draftFile.get(d.id)
+        if (!file) return []
+        const full = all.get(d.id)!
+        const handed = role === 'member' && full.editorId !== userId
+        return `- [${(d.title || 'Untitled').replace(/[[\]]/g, '')}](../drafts/${file}.md)${handed ? ' (now edited by someone else)' : ''}`
+      })
+      const left = idea.drafts.length - draftLines.length
+      if (left > 0) {
+        draftLines.push(
+          `\n${left} draft${left === 1 ? '' : 's'} by other members ${left === 1 ? 'isn’t' : 'aren’t'} included.`,
+        )
+      }
+      files.push({
+        path: `${dir}/ideas/${name}.md`,
+        content: [
+          `# ${idea.name}\n\n[← ${profile.name}](../${profileId}.md)\n`,
+          section('Drafts', draftLines),
+          section('Notes', store.notes.list(idea.id).map(noteLine)),
+          section('Reading list', idea.links.map(readingLine)),
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      })
+    }
+
+    const about = profile.description
+      ? `## About this profile\n\n${profile.description.trim()}\n`
+      : ''
+    const site = profile.siteUrl ? `${profile.siteUrl}\n` : ''
+    files.push({
+      path: `${dir}/${profileId}.md`,
+      content: [
+        `# ${profile.name}\n${site ? `\n${site}` : ''}`,
+        about,
+        section('Ideas', ideaLines),
+        section('Notes not yet in an idea', store.notes.list({ profileId }).map(noteLine)),
+        section(
+          'Reading list not yet in an idea',
+          store.reading.list({ profileId }).map(readingLine),
+        ),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    })
+    return files
+  }
+}

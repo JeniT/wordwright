@@ -49,7 +49,7 @@ Removes the user and everything only they own (including profiles where they're 
 they're removed; drafts they wrote there remain. A person who is the **only owner** of a profile others belong to is
 refused (409) until they make someone else an owner or delete the profile (#166), so nobody is handed a profile they
 didn't agree to run. The cleanup of never-confirmed accounts still passes ownership on to the longest-standing member:
-there is no one to ask, and those accounts are unused. Immediate, no grace period (export is #167).
+there is no one to ask, and those accounts are unused. Immediate, no grace period; the account page offers a download of the person's writing first (#167, below).
 
 **Several owners (#166).** A profile can have several owners but never none. Any owner can make a member an owner or
 remove another owner (`PUT /api/profiles/:id/members/:userId/role`, `{role}`), and an owner can step down if another
@@ -1573,3 +1573,30 @@ assistance ladder. This task is the service; the window is #162, the title entry
 - **One modal behaviour.** Focus in, Tab kept inside, Escape, focus back: now `lib/modal.ts`, used by `ConfirmDialog` and
   the Rephrase dialog, so a third dialog does not copy it.
 - **Layout.** The button row under the editor now wraps, since a third button no longer fit beside the others on a phone.
+
+## Exporting your writing: Markdown only, by role, built on request (#167)
+
+A zip of Markdown files, nothing else, so a writer can open their words anywhere (priority 4: no lock-in). Chosen with
+the owner: **no JSON** ("I don't think JSON will be useful generally"), **one file per profile, idea and draft**, with
+the idea and profile files holding bullet lists of notes and the reading list and relative links to what belongs to
+them. Layout: `README.md` at the top (what is in, who gets what, what is left out), then `<profile-id>/` with
+`<profile-id>.md`, `ideas/<slug>.md` and `drafts/<slug>.md`. File names are slugs of titles (letters, digits and
+hyphens, numbered when two collide), so a title can never name a path; the zip writer refuses any other path.
+
+- **Who gets which drafts.** An **owner** gets every draft in the profile, including other members'. A **member** gets
+  the drafts they are the editor of or started (a draft they started and handed away is still listed, marked "now edited
+  by someone else"); the idea file says how many drafts by other members aren't included. Notes and reading-list
+  items are everyone's and are all included. Members can read every draft in the app, so this is a rule about what
+  _leaves_ the system in bulk, not about reading; the README says so.
+- **Credits.** Notes carry their author's name and the date; a deleted account shows as "a former member". Reading
+  items record when they were added but not by whom, so they show only the date (adding an author column would be a
+  migration for little gain).
+- **Left out.** Comments (human and AI), critiques, snapshots and reviews, brainstorm conversations (anything worth
+  keeping should already be a note), API keys, and every email address. The AI's `why` on a suggested reading item is
+  left out too: it is the AI's claim, not the writer's words.
+- **Built on request, downloaded at once** (`GET /api/account/export`, all the person's profiles, and
+  `GET /api/profiles/:id/export`, one), with no job queue or emailed link: it is a few seconds of text. Throttled to 5
+  an hour per person because it costs the server work, shared by both routes. A reviewer-only account has neither
+  route (404 like the rest). The zip is written by hand in `apps/api/src/export/zip.ts` (about sixty lines on
+  `node:zlib`) rather than adding a dependency for small UTF-8 text files.
+- **Where.** The account page (above the delete-account section, which links to it) and each profile's settings.
