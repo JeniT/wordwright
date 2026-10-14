@@ -1,9 +1,15 @@
 import { Hono } from 'hono'
-import { CritiquePointDismissSchema, DraftInsertionInputSchema, DraftSaveSchema } from '@lfwa/core'
+import {
+  CritiquePointDismissSchema,
+  DraftInsertionInputSchema,
+  DraftSaveSchema,
+  HandoverTargetSchema,
+} from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import { critiqueState } from '../services/critique'
 import { requireEditor } from '../services/draft-editor'
+import type { HandoverService } from '../services/handover'
 import { validateJson } from '../validate'
 import { fail } from '../errors'
 import { param } from './params'
@@ -12,8 +18,14 @@ import { param } from './params'
  * Mounted under `/profiles/:profileId`, after membership has been checked. Drafts are created and
  * listed through their idea (`/ideas/:id/drafts`); these routes open, save and delete one by id.
  */
-export function draftRoutes(store: Store) {
+export function draftRoutes(store: Store, handover: HandoverService) {
   const { drafts, notes, ideas, critiques } = store
+  /** The draft a handover route is about, or a 404. */
+  const draftOf = (c: Parameters<typeof param>[0]) => {
+    const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+    if (!draft) throw fail(404, 'Not found')
+    return draft
+  }
   return (
     new Hono<AppEnv>()
       .get('/:id', (c) => {
@@ -101,6 +113,23 @@ export function draftRoutes(store: Store) {
           201,
         )
       })
+      // Moving the editor role: offer, accept, decline, withdraw, ask, reassign. Each answers with the new state.
+      .get('/:id/handover', (c) => c.json(handover.state(draftOf(c))))
+      .post('/:id/handover/offer', validateJson(HandoverTargetSchema), (c) =>
+        c.json(handover.offer(draftOf(c), c.get('user'), c.req.valid('json').userId)),
+      )
+      .delete('/:id/handover/offer', (c) => c.json(handover.withdraw(draftOf(c), c.get('user'))))
+      .post('/:id/handover/offer/accept', (c) => c.json(handover.accept(draftOf(c), c.get('user'))))
+      .post('/:id/handover/offer/decline', (c) =>
+        c.json(handover.decline(draftOf(c), c.get('user'))),
+      )
+      .post('/:id/handover/asks', (c) => c.json(handover.ask(draftOf(c), c.get('user'))))
+      .delete('/:id/handover/asks/:askId', (c) =>
+        c.json(handover.closeAsk(draftOf(c), c.get('user'), param(c, 'askId'))),
+      )
+      .post('/:id/handover/reassign', validateJson(HandoverTargetSchema), (c) =>
+        c.json(handover.reassign(draftOf(c), c.get('user'), c.req.valid('json').userId)),
+      )
       .delete('/:id', (c) =>
         drafts.delete(param(c, 'profileId'), param(c, 'id'))
           ? c.body(null, 204)

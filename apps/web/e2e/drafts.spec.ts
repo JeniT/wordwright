@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Page } from '@playwright/test'
+import type { Browser, Page } from '@playwright/test'
 import { e2eOutbox } from '../playwright.config'
 import { expect, goTo, holdToConfirm, test, watchForProblems } from './fixtures'
 
@@ -492,6 +492,22 @@ test('invites someone who has no account yet: they register from the email and j
   expect(newbieProblems, "Newbie's browser problems").toEqual([])
 })
 
+/** Invites a new person from `page` and has them register and join in their own browser; returns their page. */
+async function joinFrom(page: Page, browser: Browser, name: string) {
+  const email = `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  const link = await invite(page, email)
+  const them = await (await browser.newContext()).newPage()
+  await them.goto(link)
+  await them.getByRole('link', { name: 'Create an account' }).click()
+  await them.getByLabel('What should we call you?').fill(name)
+  await them.getByLabel('Username').fill(uniqueUsername())
+  await them.getByLabel('Password').fill(PASSWORD)
+  await them.getByRole('button', { name: 'Create account' }).click()
+  await them.getByRole('button', { name: /^Join / }).click()
+  await expect(them.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+  return them
+}
+
 test('only a draft’s editor can change it: another member sees it read-only', async ({
   page,
   browser,
@@ -511,18 +527,8 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await expect(page.getByRole('status')).toHaveText('Saved')
   const draftUrl = page.url()
 
-  const newbieEmail = `newbie-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
-  const link = await invite(page, newbieEmail)
-  const bob = await (await browser.newContext()).newPage()
+  const bob = await joinFrom(page, browser, 'Bob')
   const bobProblems = watchForProblems(bob)
-  await bob.goto(link)
-  await bob.getByRole('link', { name: 'Create an account' }).click()
-  await bob.getByLabel('What should we call you?').fill('Bob')
-  await bob.getByLabel('Username').fill(uniqueUsername())
-  await bob.getByLabel('Password').fill(PASSWORD)
-  await bob.getByRole('button', { name: 'Create account' }).click()
-  await bob.getByRole('button', { name: /^Join / }).click()
-  await expect(bob.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 
   // Bob can read the draft, with the editor named, but not change it.
   await bob.goto(draftUrl)
@@ -548,6 +554,63 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await expect(page.getByRole('status')).toHaveText('Saved')
   await bob.reload()
   await expect(bob.getByText('They bend instead.')).toBeVisible()
+  expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
+test('the editor offers a draft; the member declines once and accepts the next time', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  const draftUrl = page.url()
+  const bob = await joinFrom(page, browser, 'Bob')
+  const bobProblems = watchForProblems(bob)
+
+  const offer = async () => {
+    await page.goto(draftUrl)
+    await page.getByText('Hand this draft to someone').click()
+    await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
+    await page.getByRole('button', { name: 'Offer the draft' }).click()
+    await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
+  }
+
+  // Ada offers; she keeps the pen. Bob is told on the draft page and declines.
+  await offer()
+  await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
+  await bob.goto(draftUrl)
+  const offered = bob.getByTestId('offered-to-me')
+  await expect(offered).toContainText('Ada has offered you this draft')
+  await offered.getByRole('button', { name: 'Decline' }).click()
+  await expect(bob.getByTestId('offered-to-me')).toHaveCount(0)
+  await bob.getByRole('button', { name: 'Ask Ada for this draft' }).click()
+  await expect(bob.getByText('You have asked Ada for this draft')).toBeVisible()
+
+  // Ada sees the request, offers again, and this time Bob accepts: the pen moves.
+  await page.goto(draftUrl)
+  await expect(page.getByText('Bob asked for this draft')).toBeVisible()
+  await page.getByRole('button', { name: 'Offer it to Bob' }).click()
+  await bob.reload()
+  await bob.getByTestId('offered-to-me').getByRole('button', { name: 'Accept' }).click()
+  await expect(bob.getByRole('button', { name: 'Save' })).toBeVisible()
+  await expect(bob.getByTestId('read-only')).toHaveCount(0)
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
+
+  await page.reload()
+  await expect(page.getByTestId('read-only')).toContainText('Bob')
+  await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0)
+  await page.getByText(/Who has edited this draft/).click()
+  await expect(page.getByText(/Ada offered the draft to Bob: accepted/)).toBeVisible()
+  await expect(page.getByText(/Ada offered the draft to Bob: declined/)).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 

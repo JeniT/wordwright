@@ -8,6 +8,7 @@ import {
   CritiqueStateSchema,
   DraftInsertionSchema,
   DraftSchema,
+  HandoverStateSchema,
   HandleAvailabilitySchema,
   IdeaLinkSchema,
   IdeaNoteSchema,
@@ -443,6 +444,32 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(DraftSchema, 'GET', `${drafts(profileId)}/${id}`),
     updateDraft: (profileId: string, id: string, input: DraftSave) =>
       get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
+    // handing over a draft's editor role: each answers with the handover as it now stands
+    getHandover: (profileId: string, draftId: string) =>
+      get(HandoverStateSchema, 'GET', `${drafts(profileId)}/${draftId}/handover`),
+    offerDraft: (profileId: string, draftId: string, userId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/offer`, {
+        userId,
+      }),
+    withdrawOffer: (profileId: string, draftId: string) =>
+      get(HandoverStateSchema, 'DELETE', `${drafts(profileId)}/${draftId}/handover/offer`),
+    acceptOffer: (profileId: string, draftId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/offer/accept`, {}),
+    declineOffer: (profileId: string, draftId: string) =>
+      get(
+        HandoverStateSchema,
+        'POST',
+        `${drafts(profileId)}/${draftId}/handover/offer/decline`,
+        {},
+      ),
+    askForDraft: (profileId: string, draftId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/asks`, {}),
+    closeAsk: (profileId: string, draftId: string, askId: string) =>
+      get(HandoverStateSchema, 'DELETE', `${drafts(profileId)}/${draftId}/handover/asks/${askId}`),
+    reassignDraft: (profileId: string, draftId: string, userId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/reassign`, {
+        userId,
+      }),
     /**
      * Asks for a critique of the saved draft; it is kept with the draft.
      * @ai

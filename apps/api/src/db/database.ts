@@ -620,6 +620,24 @@ export const MIGRATIONS: Migration[] = [
      ORDER BY m.joined_at, m.rowid LIMIT 1)
   );
   `,
+  // #155: handing a draft's editor role over. Offers, asks and reassignments are kept as a history; people are
+  // referenced by id (so a name is shown only while the account exists) and closed before they leave a profile.
+  `
+  CREATE TABLE draft_handovers (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('offer', 'ask', 'reassign')),
+    status TEXT NOT NULL CHECK (status IN
+      ('pending', 'accepted', 'declined', 'withdrawn', 'dismissed', 'fulfilled', 'done')),
+    actor_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    member_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL,
+    resolved_at TEXT
+  );
+  CREATE INDEX draft_handovers_draft ON draft_handovers(draft_id, created_at);
+  CREATE UNIQUE INDEX draft_handovers_one_offer ON draft_handovers(draft_id)
+    WHERE kind = 'offer' AND status = 'pending';
+  `,
 ]
 
 /**

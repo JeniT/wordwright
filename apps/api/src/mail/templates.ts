@@ -123,6 +123,28 @@ ${declineLink}`,
   }
 }
 
+/** Tells a member the draft's editor wants to hand the draft to them. The link opens the draft, where they answer. */
+export function handoverOfferEmail(input: {
+  fromName: string
+  draftTitle: string
+  profileName: string
+  link: string
+}): Content {
+  const { fromName, draftTitle, profileName, link } = input
+  const title = draftTitle.trim() || 'an untitled draft'
+  return {
+    subject: `${fromName} has offered you a draft`,
+    text: `${fromName} has offered to hand you "${title}" in "${profileName}" on Wordwright, so you become the editor, the one person who changes its words.
+
+Open the draft to accept or decline. Nothing changes until you accept, and ${fromName} can keep working on it until then:
+
+${link}`,
+    html: layout(`<p><strong>${escapeHtml(fromName)}</strong> has offered to hand you <strong>${escapeHtml(title)}</strong> in ${escapeHtml(profileName)}, so you become its editor, the one person who changes its words.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Open the draft</a></p>
+<p style="font-size:14px">Nothing changes until you accept, and ${escapeHtml(fromName)} can keep working on it until then. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>`),
+  }
+}
+
 /** Tells people when their password changed, so a change they didn't make is noticed. No link to act on a token. */
 export function passwordChangedEmail(input: { name: string; resetUrl: string }): Content {
   const { name, resetUrl } = input

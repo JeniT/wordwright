@@ -16,6 +16,7 @@ export const queryKeys = {
     ['notes', profileId, ideaId ?? 'profile'] as const,
   sources: (profileId: string) => ['sources', profileId] as const,
   draft: (profileId: string, id: string) => ['draft', profileId, id] as const,
+  handover: (profileId: string, id: string) => ['draft-handover', profileId, id] as const,
   conversation: (profileId: string, ideaId: string) => ['conversation', profileId, ideaId] as const,
   research: (profileId: string, ideaId: string) => ['research', profileId, ideaId] as const,
   recentPosts: (profileId: string, days: number, feeds: string) =>
@@ -24,7 +25,9 @@ export const queryKeys = {
 
 export type QueryRoot =
   | 'conversation'
+  | 'critique'
   | 'draft'
+  | 'draft-handover'
   | 'draft-insertions'
   | 'idea'
   | 'ideas'

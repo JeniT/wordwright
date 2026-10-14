@@ -1399,6 +1399,21 @@ AI-inferred description.
 - **Non-editors see no AI comments.** `GET …/critique` returns `round: null` for them and the Comments tab is hidden,
   following independent review (below). Setting a comment aside is the editor's too. The count of looks used is shared.
 
+## Handover: how it was built (#155)
+
+- **One table, one history.** `draft_handovers` holds offers, asks and reassignments with a status; "one open offer per
+  draft" is a partial unique index, so two simultaneous offers can't both win. The page's state (open offer, open asks,
+  history) is one read, and every action answers with it.
+- **Asks have no email and no deadline.** They only show on the editor's page. An ask is answered when its asker becomes
+  editor, whichever way (the editor's offer, or an owner's reassignment).
+- **An editor change cancels the old editor's open offer.** Whether by accept, reassignment, or the editor leaving: an
+  offer from someone who no longer has the pen means nothing. An offer to someone who leaves is declined.
+- **History names people by id, not name.** Names are looked up while the account exists and show as "a former member"
+  afterwards, so deleting an account leaves no copy of the name here (the keep-my-name choice of #153 covers what people
+  wrote, not this log).
+- **Email:** one template (`handoverOfferEmail`), sent in the background with only the error logged; the offer is
+  throttled at 20 a day per editor. No new configuration.
+
 ## Human review and draft editors (#26)
 
 Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse choices are `docs/adr/0001-reviews-are-of-snapshots.md` and `docs/adr/0002-reviewer-only-accounts.md`. Built as #152–#159.

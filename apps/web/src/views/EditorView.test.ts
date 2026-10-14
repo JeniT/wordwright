@@ -29,6 +29,15 @@ function mockEditor(
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([])),
+    http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+      HttpResponse.json({
+        editorId: draft.editorId,
+        editorName: 'Ada Lovelace',
+        offer: null,
+        asks: [],
+        history: [],
+      }),
+    ),
     http.get('*/api/profiles/p1/ideas/i1', () =>
       HttpResponse.json({
         id: 'i1',
@@ -442,6 +451,15 @@ function mockDrafting(
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([])),
+    http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+      HttpResponse.json({
+        editorId: draft.editorId,
+        editorName: 'Ada Lovelace',
+        offer: null,
+        asks: [],
+        history: [],
+      }),
+    ),
     http.get('*/api/profiles/p1/ideas/i1', () => HttpResponse.json(ideaNow())),
     http.put('*/api/profiles/p1/ideas/i1/links/l1/read', async ({ request }) => {
       const body = (await request.json()) as { read: boolean }

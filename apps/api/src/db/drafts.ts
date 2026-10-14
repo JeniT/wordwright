@@ -48,6 +48,11 @@ export class DraftStore {
     return result.changes ? this.get(profileId, id) : undefined
   }
 
+  /** Makes `userId` the editor of this one draft. */
+  setEditor(id: string, userId: string) {
+    this.db.prepare('UPDATE drafts SET editor_id = ? WHERE id = ?').run(userId, id)
+  }
+
   /** Makes `toUserId` the editor of every draft in the profile that `fromUserId` is editor of. */
   reassignEditor(profileId: string, fromUserId: string, toUserId: string) {
     this.db

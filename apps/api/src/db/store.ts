@@ -5,6 +5,7 @@ import { CritiqueStore } from './critiques'
 import { openDatabase, transaction } from './database'
 import { DraftStore } from './drafts'
 import { FeedDecisionStore } from './feed-decisions'
+import { HandoverStore } from './handovers'
 import { IdeaStore } from './ideas'
 import { MoveStore } from './moves'
 import { NoteStore } from './notes'
@@ -23,6 +24,7 @@ export interface Store {
   tokens: TokenStore
   profiles: ProfileStore
   drafts: DraftStore
+  handovers: HandoverStore
   critiques: CritiqueStore
   ideas: IdeaStore
   notes: NoteStore
@@ -46,6 +48,7 @@ export function createStore(db: DatabaseSync): Store {
     tokens: new TokenStore(db),
     profiles: new ProfileStore(db),
     drafts: new DraftStore(db),
+    handovers: new HandoverStore(db),
     critiques: new CritiqueStore(db),
     ideas: new IdeaStore(db),
     notes: new NoteStore(db),

@@ -29,6 +29,7 @@ import type { IdeaLinkService } from '../services/idea-links'
 import { handDraftsToOwner } from '../services/draft-editor'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
+import type { HandoverService } from '../services/handover'
 import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
 import { fail } from '../errors'
@@ -38,6 +39,7 @@ export interface ProfileRouteDeps {
   store: Store
   llmKeys: LlmKeyService
   invitations: InvitationService
+  handover: HandoverService
   /** Per person: each invitation emails a stranger. */
   inviteLimiter: RateLimiter
   feeds: FeedFetcher
@@ -53,6 +55,7 @@ export function profileRoutes({
   store,
   llmKeys,
   invitations,
+  handover,
   inviteLimiter,
   feeds,
   feedLimiter,
@@ -173,7 +176,10 @@ export function profileRoutes({
           .use(owner)
           .route('/', profileInvitationRoutes(invitations, inviteLimiter)),
       )
-      .route('/:profileId/drafts', new Hono<AppEnv>().use(member).route('/', draftRoutes(store)))
+      .route(
+        '/:profileId/drafts',
+        new Hono<AppEnv>().use(member).route('/', draftRoutes(store, handover)),
+      )
       .route(
         '/:profileId/ideas',
         new Hono<AppEnv>()

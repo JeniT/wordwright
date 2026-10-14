@@ -6,6 +6,7 @@ import AiButton from '../components/AiButton.vue'
 import CritiquePanel from '../components/CritiquePanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
+import HandoverPanel from '../components/HandoverPanel.vue'
 import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
@@ -332,6 +333,7 @@ async function requestCritique() {
           is this draft's editor. You can read it and its notes, but only they can change it. Reload
           the page, or come back to it, to see their latest changes.
         </p>
+        <HandoverPanel :profile-id="profileId" :draft-id="id" />
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
         <input

@@ -16,5 +16,6 @@ export function requireEditor(draft: Draft, userId: string) {
 export function handDraftsToOwner(store: Store, profileId: string, leavingUserId: string) {
   const others = store.profiles.members(profileId).filter((m) => m.userId !== leavingUserId)
   const next = others.find((m) => m.role === 'owner') ?? others[0]
+  store.handovers.closeForLeaver(profileId, leavingUserId)
   if (next) store.drafts.reassignEditor(profileId, leavingUserId, next.userId)
 }

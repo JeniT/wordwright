@@ -406,6 +406,52 @@ export type DraftInput = z.infer<typeof DraftInputSchema>
 export const DraftSaveSchema = DraftInputSchema.extend({ version: z.number().int().min(1) })
 export type DraftSave = z.infer<typeof DraftSaveSchema>
 
+// ---- Handing a draft's editor role to someone else (#155) -----------------------------
+
+export const HandoverTargetSchema = z.object({ userId: z.string().min(1) })
+export type HandoverTarget = z.infer<typeof HandoverTargetSchema>
+
+export const HANDOVER_KINDS = ['offer', 'ask', 'reassign'] as const
+export const HANDOVER_STATUSES = [
+  'pending',
+  'accepted',
+  'declined',
+  'withdrawn',
+  'dismissed',
+  'fulfilled',
+  'done',
+] as const
+
+/** One line of a draft's handover history. A name is null once that person's account is gone. */
+export const HandoverEventSchema = z.object({
+  id: z.string(),
+  kind: z.enum(HANDOVER_KINDS),
+  status: z.enum(HANDOVER_STATUSES),
+  /** Who offered, asked or reassigned. */
+  actorName: z.string().nullable(),
+  /** Who was offered the draft, was asked, or became its editor. */
+  memberName: z.string().nullable(),
+  createdAt: z.string(),
+  resolvedAt: z.string().nullable(),
+})
+export type HandoverEvent = z.infer<typeof HandoverEventSchema>
+
+export const HandoverStateSchema = z.object({
+  editorId: z.string(),
+  editorName: z.string(),
+  /** The editor's open offer, if any (there is at most one). */
+  offer: z
+    .object({ id: z.string(), toId: z.string(), toName: z.string(), createdAt: z.string() })
+    .nullable(),
+  /** Members who have asked the editor for the draft and not been answered. */
+  asks: z.array(
+    z.object({ id: z.string(), byId: z.string(), byName: z.string(), createdAt: z.string() }),
+  ),
+  /** Newest first. */
+  history: z.array(HandoverEventSchema),
+})
+export type HandoverState = z.infer<typeof HandoverStateSchema>
+
 // ---- Ideas (belong to a profile; drafts develop them) -------------------
 
 export const IDEA_NAME_MAX = 200

@@ -26,6 +26,7 @@ import { FeedItemService } from './services/feed-items'
 import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { ResearchService } from './services/research'
 import { IdeaLinkService } from './services/idea-links'
+import { HandoverService } from './services/handover'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
 import { EmailChangeService } from './services/email-change'
@@ -138,6 +139,14 @@ export function createApp(deps: AppDeps) {
     now: deps.now,
     logger: deps.logger,
   })
+  const handover = new HandoverService({
+    store,
+    mailer: deps.mailer,
+    publicUrl,
+    // Each offer emails a colleague: 20 a day per editor is plenty.
+    offerLimiter: limiter(20, DAY),
+    logger: deps.logger,
+  })
   // 20 invitations a day per person: each one emails a stranger from our server.
   const inviteLimiter = limiter(20, DAY)
   // Each lookup contacts someone else's website from our server, so cap them per person.
@@ -172,6 +181,7 @@ export function createApp(deps: AppDeps) {
         store,
         llmKeys,
         invitations,
+        handover,
         inviteLimiter,
         feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
