@@ -645,6 +645,32 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE draft_handovers ADD COLUMN kept_member_name TEXT;
   ALTER TABLE draft_handovers ADD COLUMN reason TEXT;
   `,
+  // #156: one comment model for people and the AI. A critique's points become comments (those with a round_id are
+  // the AI's; "dismissed" becomes "resolved"), and members can add their own. A person's comment keeps their name
+  // through leaving a profile (it is read from the account) and, if they delete their account and choose to,
+  // through that (kept_name, copied at deletion like the other contributions).
+  `
+  CREATE TABLE draft_comments (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    round_id TEXT REFERENCES critique_rounds(id) ON DELETE CASCADE,
+    author_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    kept_name TEXT,
+    rank INTEGER NOT NULL DEFAULT 0,
+    block TEXT NOT NULL,
+    block_hash TEXT,
+    excerpt TEXT NOT NULL,
+    text TEXT NOT NULL,
+    reason TEXT,
+    resolved_at TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX draft_comments_draft ON draft_comments(draft_id, created_at, rank);
+  INSERT INTO draft_comments (id, draft_id, round_id, rank, block, block_hash, excerpt, text, reason, resolved_at, created_at)
+    SELECT p.id, r.draft_id, r.id, p.rank, p.block, p.block_hash, p.excerpt, p.point, p.reason, p.dismissed_at, r.created_at
+    FROM critique_points p JOIN critique_rounds r ON r.id = p.round_id;
+  DROP TABLE critique_points;
+  `,
 ]
 
 /**

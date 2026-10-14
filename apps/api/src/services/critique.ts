@@ -34,7 +34,7 @@ export function formatDraftForCritique(
 }
 
 /** The start of a block, enough to tell which one it is. */
-function excerptOf(text: string): string {
+export function excerptOf(text: string): string {
   const plain = text.replace(/\s+/g, ' ').trim()
   return plain.length > 90 ? `${plain.slice(0, 89)}…` : plain
 }

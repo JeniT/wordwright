@@ -1,12 +1,14 @@
 import { Hono } from 'hono'
 import {
-  CritiquePointDismissSchema,
+  CommentInputSchema,
+  CommentResolveSchema,
   DraftInsertionInputSchema,
   DraftSaveSchema,
   HandoverTargetSchema,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
+import { addComment, visibleComments } from '../services/comments'
 import { critiqueState } from '../services/critique'
 import { requireEditor } from '../services/draft-editor'
 import type { HandoverService } from '../services/handover'
@@ -19,7 +21,7 @@ import { param } from './params'
  * listed through their idea (`/ideas/:id/drafts`); these routes open, save and delete one by id.
  */
 export function draftRoutes(store: Store, handover: HandoverService) {
-  const { drafts, notes, ideas, critiques } = store
+  const { drafts, notes, ideas, comments } = store
   /** The draft a handover route is about, or a 404. */
   const draftOf = (c: Parameters<typeof param>[0]) => {
     const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
@@ -48,25 +50,40 @@ export function draftRoutes(store: Store, handover: HandoverService) {
         }
         return c.json(saved)
       })
-      // The latest critique of the draft with how many looks are used, and the writer setting one of its points aside.
+      // The latest critique's summary with how many looks are used. It is the editor's alone: for everyone else it says
+      // nothing, not even how many looks have been spent (independent review).
       .get('/:id/critique', (c) => {
         const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
         const state = critiqueState(store, draft.id, c.get('user').id)
-        // The AI's comments are the editor's to weigh; everyone else reviews independently (see CONTEXT.md).
-        return c.json(draft.editorId === c.get('user').id ? state : { ...state, round: null })
+        return c.json(
+          draft.editorId === c.get('user').id ? state : { ...state, round: null, used: 0 },
+        )
       })
-      .put('/:id/critique/points/:pointId', validateJson(CritiquePointDismissSchema), (c) => {
+      // Comments on the draft, from members and the AI, as this person may see them (see `visibleComments`).
+      .get('/:id/comments', (c) => {
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        if (!draft) return c.json({ error: 'Not found' }, 404)
+        return c.json(visibleComments(store, draft, c.get('user').id))
+      })
+      // Any member may comment on any draft, however they are not its editor.
+      .post('/:id/comments', validateJson(CommentInputSchema), (c) => {
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        if (!draft) return c.json({ error: 'Not found' }, 404)
+        return c.json(addComment(store, draft, c.get('user').id, c.req.valid('json')), 201)
+      })
+      // Only the editor resolves a comment, and it answers with the comments as the editor now sees them.
+      .put('/:id/comments/:commentId', validateJson(CommentResolveSchema), (c) => {
         const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
         requireEditor(draft, c.get('user').id)
-        const done = critiques.setDismissed(
+        const done = comments.setResolved(
           draft.id,
-          param(c, 'pointId'),
-          c.req.valid('json').dismissed,
+          param(c, 'commentId'),
+          c.req.valid('json').resolved,
         )
         return done
-          ? c.json(critiqueState(store, draft.id, c.get('user').id))
+          ? c.json(visibleComments(store, draft, c.get('user').id))
           : c.json({ error: 'Not found' }, 404)
       })
       // Words pulled into the draft from the idea's notes, and where they came from.

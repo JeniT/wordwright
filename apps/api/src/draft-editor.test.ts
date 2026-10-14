@@ -69,20 +69,14 @@ describe('a draft has one editor (#154)', () => {
     expect((await ada.put(url(), { title: 'T', body: 'x' })).status).toBe(400)
   })
 
-  it('stops other members setting the AI’s comments aside, and shows them none', async () => {
+  it('shows other members none of the critique, not even how many looks it has used', async () => {
     await saveKey(ada)
     const made = await ada.post(`${base()}/assist/critique`, { draftId: draft.id })
     expect(made.status).toBe(200)
-    const pointId = (await made.json()).round.points[0].id
-    expect((await open(ada)).editorId).toBe(adaId)
-
-    expect((await bob.put(`${url()}/critique/points/${pointId}`, { dismissed: true })).status).toBe(
-      403,
-    )
     const theirs = await (await bob.get(`${url()}/critique`)).json()
     expect(theirs.round).toBeNull()
-    expect(theirs.used).toBe(1)
-    expect((await (await ada.get(`${url()}/critique`)).json()).round.points).toHaveLength(1)
+    expect(theirs.used).toBe(0)
+    expect((await (await ada.get(`${url()}/critique`)).json()).used).toBe(1)
   })
 
   it('stops other members asking for a critique before anything is sent or counted', async () => {

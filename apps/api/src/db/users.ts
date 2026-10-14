@@ -174,6 +174,7 @@ export class UserStore {
     set('draft_insertions', 'kept_inserted_by_name', 'inserted_by')
     set('draft_handovers', 'kept_actor_name', 'actor_id')
     set('draft_handovers', 'kept_member_name', 'member_id')
+    set('draft_comments', 'kept_name', 'author_id')
   }
 
   delete(id: string) {

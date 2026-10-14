@@ -1060,11 +1060,13 @@ export const CritiqueSchema = z.object({
 })
 export type Critique = z.infer<typeof CritiqueSchema>
 
-/** A critique as kept with its draft: one round, with each point given an id and whether the writer set it aside. */
+/**
+ * A critique as kept with its draft: one round, its summary and whether it found the draft ready. The points it made
+ * are comments (`CommentSchema`), kept with the draft like any person's.
+ */
 export const CritiqueRoundSchema = CritiqueSchema.omit({ points: true }).extend({
   id: z.string(),
   createdAt: z.string(),
-  points: z.array(CritiquePointSchema.extend({ id: z.string(), dismissed: z.boolean() })),
 })
 export type CritiqueRound = z.infer<typeof CritiqueRoundSchema>
 
@@ -1092,8 +1094,48 @@ export const CritiqueStateSchema = z.object({
 })
 export type CritiqueState = z.infer<typeof CritiqueStateSchema>
 
-/** Sets a point aside (it stays on record and can be brought back), or brings it back. */
-export const CritiquePointDismissSchema = z.object({ dismissed: z.boolean() })
+// ---- Comments on a draft ------------------------------------------------
+
+/** The longest comment a person can write: it is a remark about the writing, not a rewrite of it. */
+export const COMMENT_MAX_LENGTH = 2000
+
+/**
+ * A remark about one paragraph of a draft, or the draft as a whole, from a member or from the AI's critique. It is
+ * words about the writing and never carries replacement text. The editor sees every comment; everyone else sees only
+ * their own (independent review: see CONTEXT.md).
+ */
+export const CommentSchema = z.object({
+  id: z.string(),
+  /** The AI's critique made this one. */
+  byAi: z.boolean(),
+  /** The member who wrote it; null for the AI, and for someone whose account has gone. */
+  authorId: z.string().nullable(),
+  /** Their name: still theirs after they leave the profile; null when the AI wrote it, or the account was deleted without keeping it. */
+  authorName: z.string().nullable(),
+  /** `b3`: the paragraph (or heading, list item...) it is about; `whole`: the draft as a whole. */
+  block: z.string(),
+  /** The start of that block, to show which one it is and to find it again after edits; empty for `whole`. */
+  excerpt: z.string(),
+  /** The block's `blockHash` when it was written; null for `whole`. */
+  hash: z.string().nullable(),
+  text: z.string(),
+  /** Why the AI says so; people write one thing. */
+  reason: z.string().nullable(),
+  /** The editor set it aside as dealt with: hidden, not deleted. */
+  resolved: z.boolean(),
+  createdAt: z.string(),
+})
+export type DraftComment = z.infer<typeof CommentSchema>
+
+/** A member's new comment. The server works out the excerpt and hash from the draft it is about. */
+export const CommentInputSchema = z.object({
+  block: z.string().min(1).max(20),
+  text: z.string().trim().min(1).max(COMMENT_MAX_LENGTH),
+})
+export type CommentInput = z.infer<typeof CommentInputSchema>
+
+/** Sets a comment aside (it stays on record and the editor can show it again), or brings it back. */
+export const CommentResolveSchema = z.object({ resolved: z.boolean() })
 
 // ---- Bring-your-own LLM credentials ------------------------------------
 

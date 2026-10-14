@@ -96,24 +96,33 @@ describe('kept critiques', () => {
     return { ctx, client, profileId, draft, base }
   }
 
-  it('has none until the draft is critiqued, then returns the latest round with its anchors', async () => {
+  it('has none until the draft is critiqued, then returns the latest round and its points as comments with their anchors', async () => {
     const { client, base, draft } = await ada()
     expect(await (await client.get(`${base}/drafts/${draft.id}/critique`)).json()).toEqual({
       round: null,
       used: 0,
       allowed: 3,
     })
+    expect(await (await client.get(`${base}/drafts/${draft.id}/comments`)).json()).toEqual([])
 
     const made = await (await client.post(`${base}/assist/critique`, { draftId: draft.id })).json()
     const again = await (await client.get(`${base}/drafts/${draft.id}/critique`)).json()
     expect(again).toEqual(made)
     expect(again.used).toBe(1)
-    expect(again.round.points[0]).toMatchObject({
+    expect(again.round.points).toBeUndefined() // the points are comments now
+    const [first] = await (await client.get(`${base}/drafts/${draft.id}/comments`)).json()
+    expect(first).toMatchObject({
+      byAi: true,
+      authorId: null,
+      authorName: null,
       block: 'b1',
       excerpt: 'First paragraph.',
       hash: blockHash('First paragraph.'),
+      text: 'Needs a stronger opening.',
+      reason: 'It is the first thing read.',
+      resolved: false,
     })
-    expect(again.round.points[0].id).toBeTruthy()
+    expect(first.id).toBeTruthy()
   })
 
   it('keeps every round but returns the newest', async () => {
@@ -123,40 +132,9 @@ describe('kept critiques', () => {
       await client.post(`${base}/assist/critique`, { draftId: draft.id })
     ).json()
     const latest = await (await client.get(`${base}/drafts/${draft.id}/critique`)).json()
-    expect(latest.id).toBe(second.id)
-  })
-
-  it('lets a point be set aside and brought back, and says no for a point it does not have', async () => {
-    const { client, base, draft } = await ada()
-    const { round } = await (
-      await client.post(`${base}/assist/critique`, { draftId: draft.id })
-    ).json()
-    const url = `${base}/drafts/${draft.id}/critique/points/${round.points[0].id}`
-    expect(
-      (await (await client.put(url, { dismissed: true })).json()).round.points[0].dismissed,
-    ).toBe(true)
-    expect(
-      (await (await client.get(`${base}/drafts/${draft.id}/critique`)).json()).round.points[0]
-        .dismissed,
-    ).toBe(true)
-    expect(
-      (await (await client.put(url, { dismissed: false })).json()).round.points[0].dismissed,
-    ).toBe(false)
-    expect(
-      (await client.put(`${base}/drafts/${draft.id}/critique/points/nope`, { dismissed: true }))
-        .status,
-    ).toBe(404)
-    expect((await client.put(url, { dismissed: 'yes' })).status).toBe(400)
-  })
-
-  it("will not set aside another draft's point", async () => {
-    const { client, base, draft, profileId } = await ada()
-    const other = await createDraft(client, profileId, { title: 'U', body: 'Other.' })
-    const { round } = await (
-      await client.post(`${base}/assist/critique`, { draftId: draft.id })
-    ).json()
-    const stolen = `${base}/drafts/${other.id}/critique/points/${round.points[0].id}`
-    expect((await client.put(stolen, { dismissed: true })).status).toBe(404)
+    expect(latest.round.id).toBe(second.round.id)
+    // Only the latest round's comments are listed.
+    expect(await (await client.get(`${base}/drafts/${draft.id}/comments`)).json()).toHaveLength(1)
   })
 
   it('is private to the profile and needs sign-in', async () => {
@@ -173,13 +151,16 @@ describe('kept critiques', () => {
     const { ctx, client, base, draft, profileId } = await ada()
     await client.post(`${base}/assist/critique`, { draftId: draft.id })
     expect(ctx.store.critiques.latest(draft.id)).toBeDefined()
+    expect(ctx.store.comments.all(draft.id)).toHaveLength(1)
     await client.delete(`${base}/drafts/${draft.id}`)
     expect(ctx.store.critiques.latest(draft.id)).toBeUndefined()
+    expect(ctx.store.comments.all(draft.id)).toEqual([])
 
     const second = await createDraft(client, profileId, { title: 'V', body: 'Again.' })
     await client.post(`${base}/assist/critique`, { draftId: second.id })
     expect((await client.delete(base)).status).toBe(204)
     expect(ctx.store.critiques.latest(second.id)).toBeUndefined()
+    expect(ctx.store.comments.all(second.id)).toEqual([])
   })
 })
 

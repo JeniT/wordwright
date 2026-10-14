@@ -54,7 +54,10 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
       if (!critique) {
         throw fail(502, 'The AI sent back something we could not read. Please try again.')
       }
-      store.critiques.add(draft.id, critique)
+      store.transaction(() => {
+        const round = store.critiques.add(draft.id, critique)
+        store.comments.addFromCritique(draft.id, round.id, critique.points)
+      })
       return c.json(critiqueState(store, draft.id, userId))
     } catch (err) {
       if (err instanceof LLMAuthError) {
