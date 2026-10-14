@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
-import { joinList, MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/profile-roles'
+import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES_TEXT } from '../lib/profile-roles'
 import HoldButton from './HoldButton.vue'
 import TextField from './TextField.vue'
 
@@ -46,10 +46,9 @@ const revoke = useMutation({
     <template v-else>
       <!-- Handing someone a role is a trust decision, so what it allows is said before the address is asked for. -->
       <div data-testid="invite-roles" class="mb-3 space-y-1 text-sm text-ink-soft">
-        <p>People you invite join as members, who can {{ joinList(MEMBER_ABILITIES) }}.</p>
+        <p>People you invite join as members, who can {{ MEMBER_ABILITIES_TEXT }}.</p>
         <p>
-          Owners can also {{ joinList(OWNER_ABILITIES) }}. You can make someone an owner after they
-          join.
+          Owners can also {{ OWNER_ABILITIES_TEXT }}. You can make someone an owner after they join.
         </p>
       </div>
       <form class="flex items-end gap-2" @submit.prevent="invite.mutate(email)">

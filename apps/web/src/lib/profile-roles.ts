@@ -5,7 +5,7 @@
  */
 export const OWNER_ABILITIES = [
   'change the profile’s name, website and picture',
-  'invite people and remove them',
+  'invite people and remove members',
   'make members owners, or remove owners (you included)',
   'move a draft to another editor when its editor is away',
   'end the review of any draft',
@@ -18,5 +18,8 @@ export const MEMBER_ABILITIES = [
   'edit the drafts they are the editor of',
 ]
 
-/** "a, b and c": the abilities above as a sentence. */
-export const joinList = (items: string[]) => new Intl.ListFormat('en').format(items)
+const sentence = (items: string[]) => new Intl.ListFormat('en').format(items)
+
+/** The abilities above as a phrase ("a, b and c"), so every place that shows them reads the same. */
+export const MEMBER_ABILITIES_TEXT = sentence(MEMBER_ABILITIES)
+export const OWNER_ABILITIES_TEXT = sentence(OWNER_ABILITIES)

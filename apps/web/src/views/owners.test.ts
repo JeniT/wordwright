@@ -48,7 +48,7 @@ describe('owners in the people list', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Make Bob an owner of Joint piece?' })
     expect(within(dialog).getByText(/Bob will be able to/)).toBeInTheDocument()
-    expect(within(dialog).getByText(/invite people and remove them/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/invite people and remove members/)).toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
     expect(state.requests).toEqual([])
 

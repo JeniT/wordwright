@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
-import { joinList, MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/profile-roles'
+import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES } from '../lib/profile-roles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
 import SaveStatus from './SaveStatus.vue'
@@ -52,7 +52,6 @@ const setRole = useMutation({
   onSettled: () => (pending.value = null),
 })
 
-const memberList = joinList(MEMBER_ABILITIES)
 const stepping = computed(() => !!pending.value && isMe(pending.value.member))
 const promoting = computed(() => pending.value?.role === 'owner')
 const title = computed(() => {
@@ -150,8 +149,8 @@ const confirmLabel = computed(() => {
         <li v-for="ability in OWNER_ABILITIES" :key="ability">{{ ability }}</li>
       </ul>
       <p v-if="promoting">
-        {{ pending.member.name }} will still be able to {{ memberList }}. Another owner can remove
-        them as an owner later.
+        {{ pending.member.name }} will still be able to {{ MEMBER_ABILITIES_TEXT }}. Another owner
+        can remove them as an owner later.
       </p>
       <p v-else-if="stepping">
         You stay a member and keep your own drafts. Only another owner can give them back.
