@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_IDEA_NOTES, NOTE_TEXT_MAX } from '@lfwa/core'
 import { MIGRATIONS, migrate } from './db/database'
 import {
+  allRows,
   PASSWORD,
   register,
   setup,
@@ -616,7 +617,7 @@ describe('idea notes', () => {
     expect((await list()).map((n) => n.authorName)).toEqual(['Ada King'])
   })
 
-  it("names each note's author, and says nothing once they have left", async () => {
+  it("names each note's author, and says nothing once they have left and asked for their name to go", async () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
@@ -630,12 +631,40 @@ describe('idea notes', () => {
     const left = await bob.delete('/api/account', {
       confirmEmail: 'bob@example.com',
       password: PASSWORD,
+      keepName: false,
     })
     expect(left.status).toBe(204)
     expect(await list()).toMatchObject([
       { authorName: 'Ada' },
       { authorId: null, authorName: null },
     ])
+    expect(JSON.stringify(allRows(ctx))).not.toContain('"Bob"')
+  })
+
+  it('keeps only the display name on their notes when they leave and choose to (the default)', async () => {
+    const bob = ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com')
+    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await bob.post(notes(), { text: 'Bob wrote this' })
+    const left = await bob.delete('/api/account', {
+      confirmEmail: 'bob@example.com',
+      password: PASSWORD,
+    })
+    expect(left.status).toBe(204)
+    expect(await list()).toMatchObject([{ authorId: null, authorName: 'Bob' }])
+    const rows = JSON.stringify(allRows(ctx))
+    expect(rows).not.toContain('bob@example.com')
+  })
+
+  it('keeps the name when someone is only removed from the profile', async () => {
+    const bob = ctx.client()
+    const joined = await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(ctx, 'ada@example.com')
+    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await bob.post(notes(), { text: 'Bob wrote this' })
+    ctx.store.profiles.removeMember(profile, joined.id)
+    expect(await list()).toMatchObject([{ authorName: 'Bob' }])
   })
 
   it("does not reach into another profile's idea", async () => {

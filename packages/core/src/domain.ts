@@ -113,6 +113,8 @@ export type ChangeEmailInput = z.infer<typeof ChangeEmailInputSchema>
 export const DeleteAccountInputSchema = z.object({
   confirmEmail: EmailSchema,
   password: z.string().max(128, 'That password is too long').optional(),
+  /** Leave the display name on notes and messages in profiles that continue (otherwise "a former member"). */
+  keepName: z.boolean().default(true),
 })
 
 export const AuthConfigSchema = z.object({

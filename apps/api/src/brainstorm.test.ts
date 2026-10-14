@@ -1004,7 +1004,7 @@ describe('what is kept when things are deleted', () => {
     expect(ctx.store.conversations.messages(idea.id)).toEqual([])
   })
 
-  it("keeps a departed member's messages in a shared profile, without their name", async () => {
+  it("keeps a departed member's messages in a shared profile, with their name if they chose that", async () => {
     const { ada, send, thread, addBob } = await world()
     const bob = await addBob()
     await send(ada, START)
@@ -1012,6 +1012,24 @@ describe('what is kept when things are deleted', () => {
     const gone = await bob.delete('/api/account', {
       confirmEmail: 'bob@example.com',
       password: PASSWORD,
+    })
+    expect(gone.status).toBe(204)
+    const messages = (await thread(ada)).messages
+    expect(messages.filter((m) => m.role === 'user').map((m) => [m.text, m.authorName])).toEqual([
+      ['', 'Ada'],
+      ['Bob was here.', 'Bob'],
+    ])
+  })
+
+  it("keeps a departed member's messages in a shared profile, without their name if they chose that", async () => {
+    const { ada, send, thread, addBob } = await world()
+    const bob = await addBob()
+    await send(ada, START)
+    await send(bob, say('Bob was here.'))
+    const gone = await bob.delete('/api/account', {
+      confirmEmail: 'bob@example.com',
+      password: PASSWORD,
+      keepName: false,
     })
     expect(gone.status).toBe(204)
     const messages = (await thread(ada)).messages

@@ -33,7 +33,7 @@ export class NoteStore {
   private select(where: string, ...args: string[]): IdeaNote[] {
     const notes = this.db
       .prepare(
-        `SELECT n.*, u.name AS author_name FROM idea_notes n
+        `SELECT n.*, COALESCE(u.name, n.kept_name) AS author_name FROM idea_notes n
          LEFT JOIN users u ON u.id = n.created_by WHERE ${where}`,
       )
       .all(...args)

@@ -99,8 +99,8 @@ export function accountRoutes(
       .delete('/', validateJson(DeleteAccountInputSchema), async (c) => {
         const user = c.get('user')
         if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')
-        const { confirmEmail, password } = c.req.valid('json')
-        await accounts.deleteAccount(user, confirmEmail, password).catch(toHttpError)
+        const { confirmEmail, password, keepName } = c.req.valid('json')
+        await accounts.deleteAccount(user, confirmEmail, password, keepName).catch(toHttpError)
         deleteCookie(c, SESSION_COOKIE, { path: '/' })
         return c.body(null, 204)
       })

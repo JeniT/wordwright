@@ -258,7 +258,11 @@ tests inject fakes and nothing hits the network.
   counts only, never who.
 - **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
   (with its drafts) where they are the only member. In shared profiles they are removed and, if they
-  were the owner, the longest-standing member becomes owner; drafts they wrote there stay.
+  were the owner, the longest-standing member becomes owner; drafts they wrote there stay. The page asks
+  whether to **keep their name** on their notes, brainstorming messages, research runs and draft insertions in
+  profiles that continue (the default; `keepName` in `DELETE /api/account`) or show them as "a former member".
+  Only the display name is copied (into `kept_name` columns, at deletion; never the email or username), and
+  choosing not to leaves no trace of it on any row. Leaving or being removed from a profile keeps the name anyway.
 - **Email:** see below.
 
 ## Email

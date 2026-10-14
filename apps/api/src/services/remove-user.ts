@@ -7,10 +7,17 @@ import type { UserRecord } from '../db/users'
  * they're removed and, if they were the owner, the longest-standing member becomes owner; drafts they
  * wrote there stay. Invitations other people sent to their address go too.
  *
+ * With `keepName` their display name stays on their notes, messages and the like in profiles that continue (#153);
+ * without it no trace of the name is left.
+ *
  * Must be called inside `store.transaction`. Shared by "delete my account" and the cleanup of
  * never-confirmed accounts, so the two can never disagree about what deletion means.
  */
-export function removeUserAndOwnedData(store: Store, user: UserRecord) {
+export function removeUserAndOwnedData(
+  store: Store,
+  user: UserRecord,
+  { keepName = false }: { keepName?: boolean } = {},
+) {
   for (const profileId of store.profiles.listIdsForUser(user.id)) {
     const others = store.profiles.members(profileId).filter((m) => m.userId !== user.id)
     if (others.length === 0) {
@@ -21,6 +28,7 @@ export function removeUserAndOwnedData(store: Store, user: UserRecord) {
       }
     }
   }
+  if (keepName) store.users.keepNameOnContributions(user.id, user.name)
   store.invitations.deleteForEmail(user.email)
   store.users.delete(user.id) // cascades: credential, identities, sessions, resets, memberships
 }

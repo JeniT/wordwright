@@ -380,9 +380,15 @@ export class AccountService {
    * credentials, identities, sessions, reset tokens, memberships, and every profile (with its
    * drafts) of which this user is the sole member. In shared profiles the user is removed;
    * if they were the owner, the longest-standing remaining member becomes owner. Drafts the
-   * user wrote in shared profiles stay with the profile (their author reference is cleared).
+   * user wrote in shared profiles stay with the profile (their author reference is cleared; their name stays on
+   * their notes and the like if `keepName`).
    */
-  async deleteAccount(user: UserRecord, confirmEmail: string, password?: string): Promise<void> {
+  async deleteAccount(
+    user: UserRecord,
+    confirmEmail: string,
+    password?: string,
+    keepName = true,
+  ): Promise<void> {
     const { store, hasher } = this.d
     if (confirmEmail !== user.email) {
       throw new AccountError('confirmation_failed', 'The email address does not match')
@@ -392,7 +398,7 @@ export class AccountService {
       throw new AccountError('confirmation_failed', 'Incorrect password')
     }
 
-    store.transaction(() => removeUserAndOwnedData(store, user))
+    store.transaction(() => removeUserAndOwnedData(store, user, { keepName }))
   }
 
   // ---- internals ----------------------------------------------------------

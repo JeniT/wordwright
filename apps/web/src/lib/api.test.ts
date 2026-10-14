@@ -91,6 +91,6 @@ describe('api client', () => {
     server.use(
       http.delete('http://localhost/api/account', () => new HttpResponse(null, { status: 204 })),
     )
-    await expect(api.deleteAccount('ada@example.com', 'pw')).resolves.toBeUndefined()
+    await expect(api.deleteAccount('ada@example.com', 'pw', true)).resolves.toBeUndefined()
   })
 })

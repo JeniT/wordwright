@@ -24,9 +24,11 @@ const queryClient = useQueryClient()
 // ---- account deletion
 const confirmEmail = ref('')
 const deletePassword = ref('')
+const keepName = ref(true)
 const confirmingDelete = ref(false)
 const deleteAccount = useMutation({
-  mutationFn: () => api.deleteAccount(confirmEmail.value, deletePassword.value || undefined),
+  mutationFn: () =>
+    api.deleteAccount(confirmEmail.value, deletePassword.value || undefined, keepName.value),
   onSuccess: async () => {
     session.set(null)
     queryClient.clear()
@@ -81,6 +83,21 @@ const deleteAccount = useMutation({
         belong to. In profiles you share, you're removed, and the others keep their work.
       </p>
       <form @submit.prevent="confirmingDelete = true">
+        <fieldset class="mb-4">
+          <legend class="mb-1 text-sm font-medium">Your name on what you wrote</legend>
+          <p class="mb-2 text-sm text-ink-soft">
+            In profiles that continue, your notes and brainstorming messages stay. Only your display
+            name can stay with them, never your email address or username.
+          </p>
+          <label class="mb-2 flex items-start gap-2 text-sm">
+            <input v-model="keepName" type="radio" name="keep-name" :value="true" class="mt-1" />
+            <span>Keep my name on my notes (and comments) in profiles that continue</span>
+          </label>
+          <label class="mb-2 flex items-start gap-2 text-sm">
+            <input v-model="keepName" type="radio" name="keep-name" :value="false" class="mt-1" />
+            <span>Show them as “a former member”, with no trace of my name</span>
+          </label>
+        </fieldset>
         <TextField
           v-model="confirmEmail"
           :label="`Type your email (${session.user.email}) to confirm`"

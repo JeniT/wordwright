@@ -1022,6 +1022,14 @@ describe('idea page', () => {
       expectOrigin(items[1]!, 'From brainstorming', 'A former member')
     })
 
+    it('names the author of a note whose account is gone when they chose to leave their name (#153)', async () => {
+      fakeNotes([{ ...note('n1', 'Still credited.', 'entered', 'Bob'), authorId: null }])
+      await open()
+      await screen.findByText('Still credited.')
+      expectOrigin(within(region()).getAllByRole('listitem')[0]!, 'Added', 'Bob')
+      expect(screen.queryByText('A former member')).toBeNull()
+    })
+
     it('says so when there are no notes', async () => {
       await open()
       expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()

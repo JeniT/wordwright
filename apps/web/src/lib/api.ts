@@ -133,8 +133,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     confirmEmailChange: (token: string) => act('POST', '/auth/confirm-email-change', { token }),
     undoEmailChange: (token: string) => act('POST', '/auth/undo-email-change', { token }),
     requestPasswordSetup: () => act('POST', '/account/password/setup-email', {}),
-    deleteAccount: (confirmEmail: string, password?: string) =>
-      act('DELETE', '/account', { confirmEmail, password }),
+    deleteAccount: (confirmEmail: string, password: string | undefined, keepName: boolean) =>
+      act('DELETE', '/account', { confirmEmail, password, keepName }),
 
     // bring-your-own LLM key (write-only: the key is never returned)
     getLlmSettings: () => get(LlmSettingsSchema, 'GET', '/llm'),

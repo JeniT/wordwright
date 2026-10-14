@@ -49,6 +49,14 @@ Removes the user and everything only they own (including profiles where they're 
 they're removed; if they were the owner, the longest-standing member becomes owner; drafts they wrote there remain.
 Immediate, no grace period or export yet (see T11).
 
+**Names stay if the person chooses (#153).** Deletion asks whether to keep the display name on what they contributed
+to profiles that continue (default yes) or show "a former member". On "keep", the name alone (never the email or
+handle) is copied into `kept_name` columns on the rows that would lose their author (`idea_notes`, `idea_messages`,
+`idea_research`, `draft_insertions`) just before the user row goes; reads use `COALESCE(users.name, kept_name)`, so
+while the account exists the live name wins (renames still follow). On "don't keep" nothing is copied, so no row
+holds the name (a test scans every table). Anything that later records an author (the #26 comments) must follow the
+same rule: add its column to `UserStore.keepNameOnContributions`. Accounts purged as unconfirmed never keep a name.
+
 ## Sharing is by emailed invitation, addressed to an email rather than an account
 
 People join a profile only by accepting an invitation, so nobody can be added unilaterally and inviting someone
@@ -415,7 +423,7 @@ tabbing away cancels; finishing the hold deletes.
 A note's origin line names the person (see "Who took a note is a chip" below). It is
 a trusted space (the owner's call), and in a shared profile "added by hand" wouldn't say whose hand. `IdeaNote.authorName`
 is joined from `users` when notes are read, so it is always the person's current name; it is null once their
-account is gone (the note stays, `created_by` is set null), and the label then says "a former member". For a note
+account is gone (the note stays, `created_by` is set null) unless they chose to keep their name (see Account deletion semantics), and the label then says "a former member". For a note
 the AI recorded, the author is the person whose message led to it. Notes written through the old single-text
 route (`PATCH /ideas/:id` with `notes`, which no screen uses any more) have no author.
 

@@ -75,7 +75,7 @@ export class ConversationStore {
   messages(ideaId: string): MessageRecord[] {
     return this.db
       .prepare(
-        `SELECT m.*, u.name AS author_name FROM idea_messages m
+        `SELECT m.*, COALESCE(u.name, m.kept_name) AS author_name FROM idea_messages m
          LEFT JOIN users u ON u.id = m.author_id
          WHERE m.idea_id = ? ORDER BY m.seq`,
       )
@@ -86,7 +86,7 @@ export class ConversationStore {
   message(ideaId: string, id: string): MessageRecord | undefined {
     const row = this.db
       .prepare(
-        `SELECT m.*, u.name AS author_name FROM idea_messages m
+        `SELECT m.*, COALESCE(u.name, m.kept_name) AS author_name FROM idea_messages m
          LEFT JOIN users u ON u.id = m.author_id WHERE m.idea_id = ? AND m.id = ?`,
       )
       .get(ideaId, id)

@@ -598,6 +598,16 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE profile_members_new RENAME TO profile_members;
   CREATE INDEX profile_members_user ON profile_members(user_id);
   `,
+  // #153: when someone deletes their account they may leave their display name (only) on what they contributed to
+  // profiles that continue. It is copied here at deletion, never before, and is read only when the account is gone,
+  // so a person who chooses not to keep it leaves no trace of the name on any row.
+  `
+  ALTER TABLE idea_notes ADD COLUMN kept_name TEXT;
+  ALTER TABLE idea_messages ADD COLUMN kept_name TEXT;
+  ALTER TABLE idea_research ADD COLUMN kept_name TEXT;
+  ALTER TABLE draft_insertions ADD COLUMN kept_note_author_name TEXT;
+  ALTER TABLE draft_insertions ADD COLUMN kept_inserted_by_name TEXT;
+  `,
 ]
 
 /**

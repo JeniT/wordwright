@@ -16,7 +16,8 @@ import { createApp } from './app'
 import { exampleFeeds } from './feeds/factory'
 import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
-import { openStore } from './db/store'
+import { openDatabase } from './db/database'
+import { createStore } from './db/store'
 import { MemoryMailer, type Mailer } from './mail/mailer'
 
 export const PUBLIC_URL = 'http://localhost:5173'
@@ -88,7 +89,8 @@ export class TestClient {
 }
 
 export function setup(options: TestOptions = {}) {
-  const store = openStore(':memory:')
+  const db = openDatabase(':memory:')
+  const store = createStore(db)
   const pageFetcher = options.pageFetcher ?? new FakePageInfoFetcher()
   const memoryMailer = new MemoryMailer()
   const mailer = options.mailer ?? memoryMailer
@@ -158,6 +160,8 @@ export function setup(options: TestOptions = {}) {
   return {
     app,
     store,
+    /** The raw database, for tests that must look at every row (see `allRows`). */
+    db,
     mailer: memoryMailer,
     llmCalls,
     /** Every brainstorming turn (`chat()`), with the credentials it was made with. */
@@ -185,6 +189,14 @@ export function setup(options: TestOptions = {}) {
 }
 
 export type TestContext = ReturnType<typeof setup>
+
+/** Every row of every table, to prove that something leaves no trace anywhere. */
+export function allRows({ db }: Pick<TestContext, 'db'>): unknown[] {
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as {
+    name: string
+  }[]
+  return tables.map(({ name }) => db.prepare(`SELECT * FROM "${name}"`).all())
+}
 
 export const PASSWORD = 'correct horse battery'
 

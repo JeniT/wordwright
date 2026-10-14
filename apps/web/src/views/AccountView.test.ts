@@ -37,7 +37,33 @@ describe('AccountView', () => {
     expect(body).toBeUndefined() // nothing is deleted until the person confirms
     await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
-    expect(body).toEqual({ confirmEmail: 'ada@example.com', password: 'my password 123' })
+    expect(body).toEqual({
+      confirmEmail: 'ada@example.com',
+      password: 'my password 123',
+      keepName: true,
+    })
+  })
+
+  it('asks whether to keep their name on their notes, and sends the answer', async () => {
+    let body: { keepName?: boolean } = {}
+    server.use(
+      signedInAs({ ...testUser, hasPassword: false }),
+      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.delete('*/api/account', async ({ request }) => {
+        body = (await request.json()) as typeof body
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const { router } = await renderAt('/account')
+    const keep = await screen.findByRole('radio', { name: /Keep my name on my notes/ })
+    expect(keep).toBeChecked() // the default
+    await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
+    await fireEvent.update(screen.getByLabelText(/Type your email/), 'ada@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    const dialog = await screen.findByRole('dialog')
+    await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
+    await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
+    expect(body.keepName).toBe(false)
   })
 
   it('keeps the account if the person cancels the confirmation', async () => {

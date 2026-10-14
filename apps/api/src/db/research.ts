@@ -20,7 +20,7 @@ export class ResearchStore {
   list(ideaId: string): ResearchRun[] {
     return this.db
       .prepare(
-        `SELECT r.*, u.name AS author_name FROM idea_research r
+        `SELECT r.*, COALESCE(u.name, r.kept_name) AS author_name FROM idea_research r
          LEFT JOIN users u ON u.id = r.created_by
          WHERE r.idea_id = ? ORDER BY r.created_at DESC, r.rowid DESC`,
       )
@@ -31,7 +31,7 @@ export class ResearchStore {
   get(ideaId: string, id: string): ResearchRun | undefined {
     const row = this.db
       .prepare(
-        `SELECT r.*, u.name AS author_name FROM idea_research r
+        `SELECT r.*, COALESCE(u.name, r.kept_name) AS author_name FROM idea_research r
          LEFT JOIN users u ON u.id = r.created_by WHERE r.idea_id = ? AND r.id = ?`,
       )
       .get(ideaId, id)

@@ -49,7 +49,8 @@ export class DraftStore {
   insertions(draftId: string): DraftInsertion[] {
     return this.db
       .prepare(
-        `SELECT i.*, na.name AS note_author_name, ib.name AS inserted_by_name
+        `SELECT i.*, COALESCE(na.name, i.kept_note_author_name) AS note_author_name,
+                COALESCE(ib.name, i.kept_inserted_by_name) AS inserted_by_name
          FROM draft_insertions i
          LEFT JOIN users na ON na.id = i.note_author_id
          LEFT JOIN users ib ON ib.id = i.inserted_by

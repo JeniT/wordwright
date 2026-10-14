@@ -170,6 +170,7 @@ describe('words pulled into a draft from notes', () => {
     const left = await bob.delete('/api/account', {
       confirmEmail: 'bob@example.com',
       password: PASSWORD,
+      keepName: false,
     })
     expect(left.status).toBe(204)
     expect(await (await ada.get(insertions())).json()).toMatchObject([{ insertedByName: null }])

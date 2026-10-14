@@ -720,6 +720,8 @@ test('deletes an account', async ({ page }) => {
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
   await page.getByLabel(/Type your email/).fill(email)
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
+  await expect(page.getByRole('radio', { name: /Keep my name on my notes/ })).toBeChecked()
+  await page.getByRole('radio', { name: /a former member/ }).check()
   await page.getByRole('button', { name: 'Delete my account' }).click()
   const dialog = page.getByRole('dialog', { name: 'Delete your account?' })
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])

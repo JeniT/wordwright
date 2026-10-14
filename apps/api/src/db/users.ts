@@ -160,6 +160,20 @@ export class UserStore {
     this.db.prepare('UPDATE users SET email = ?, email_verified = 1 WHERE id = ?').run(email, id)
   }
 
+  /**
+   * Copies the person's display name (never the email or handle) onto what they contributed, in the rows that
+   * would otherwise lose their author when the account goes. Call just before `delete`.
+   */
+  keepNameOnContributions(id: string, name: string) {
+    const set = (table: string, column: string, by: string) =>
+      this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${by} = ?`).run(name, id)
+    set('idea_notes', 'kept_name', 'created_by')
+    set('idea_messages', 'kept_name', 'author_id')
+    set('idea_research', 'kept_name', 'created_by')
+    set('draft_insertions', 'kept_note_author_name', 'note_author_id')
+    set('draft_insertions', 'kept_inserted_by_name', 'inserted_by')
+  }
+
   delete(id: string) {
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id)
   }
