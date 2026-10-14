@@ -164,9 +164,9 @@ tests inject fakes and nothing hits the network.
   **Each draft has one editor** (#154): the member responsible for its title and body, its creator at first
   (`editorId`, `editorName`). Only the editor can save (`PUT` needs the `version` it was made from; a stale one is
   refused with 409 and never merged, which also covers the same person in two tabs), add notes or links to the
-  draft, set a critique's comments aside, or ask for a critique (403 before anything is sent or counted). Other
-  members read it, with a banner naming the editor, and see changes on reload or when the window regains focus;
-  they get no Comments tab, since the AI's comments are the editor's alone. Notes stay open to every member. When
+  draft, resolve comments, or ask for a critique (403 before anything is sent or counted). Other
+  members read it, with a banner naming the editor, and see changes on reload or when the window regains focus.
+  Notes stay open to every member. When
   the editor leaves, is removed or deletes their account, their drafts go to the profile's longest-standing owner.
   **Handover** (#155), on the draft page itself (`/api/profiles/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
@@ -177,6 +177,15 @@ tests inject fakes and nothing hits the network.
   and the like, and "Passed to Ada when the previous editor left" for the system's own moves; names follow the
   keep-my-name choice at account deletion. Leaving, removal and account deletion
   also close what the person had open before their drafts pass to an owner.
+  **Comments** (#156): any member can comment on any draft, about one paragraph or the whole draft
+  (`POST …/drafts/:draft/comments`, `{block, text}`; the server finds the paragraph and keeps its hash and start). The
+  AI's critique points are the same kind of comment (`byAi`). `GET …/comments` is independent review: the editor gets
+  every comment, resolved ones included, each with its author; everyone else gets only their own open ones
+  (`visibleComments` in `services/comments.ts` is the one place that decides, and the critique route likewise tells
+  non-editors nothing, not even how many looks are used). Only the editor resolves (`PUT …/comments/:id`,
+  `{resolved}`): the comment is hidden, never deleted, and the editor can show it again. A comment carries words about
+  the writing and no replacement text, has no cap, does not count against the critique looks, and is never sent to the AI.
+  A commenter's name stays after they leave the profile, and after they delete their account if they chose to keep it.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
@@ -355,6 +364,6 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
   (the design is in [docs/decisions.md](docs/decisions.md#critique-points-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
-  The latest critique is kept with the draft and its points are marked beside the paragraphs they are about. A draft
+  The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
   gets 3 critiques by default (each person can choose 1 to 5 on their account page), counted per draft.
 - **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.
