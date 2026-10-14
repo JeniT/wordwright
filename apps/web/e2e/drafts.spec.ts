@@ -156,7 +156,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(comment).toContainText('Rivers rarely flow straight.')
 
   // The point is marked beside the paragraph it is about, and the page is still accessible with the marks in.
-  const mark = page.getByRole('button', { name: 'Critique point 1' })
+  const mark = page.getByRole('button', { name: 'Comment 1' })
   await expect(mark).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   for (const tab of ['Notes', 'Reading list', 'Comments']) {
@@ -194,7 +194,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   // It is kept with the draft: after a reload it is still there (under Comments), and nothing was asked again.
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Critique point 1' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Comment 1' })).toBeVisible()
   await page
     .getByRole('complementary')
     .getByRole('tab', { name: /^Comments/ })
@@ -203,17 +203,19 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   // Rewriting the paragraph takes the mark away and moves the point to its own list.
   await page.getByRole('textbox', { name: 'Draft body' }).fill('Meanders come from erosion.')
-  await expect(page.getByRole('button', { name: 'Critique point 1' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Comment 1' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
-  // The writer marks a comment Read when they have dealt with it. It stays where it is, and the tab counts one fewer.
+  // The editor resolves a comment when they have dealt with it. It is hidden, not deleted, and the tab counts one fewer.
   const side2 = page.getByRole('complementary')
   await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
-  await side2.getByRole('switch', { name: 'Read: point 1' }).check()
+  await side2.getByRole('switch', { name: 'Resolved: comment 1' }).check()
   await expect(side2.getByRole('tab', { name: 'Comments, 1' })).toBeVisible()
-  await expect(side2.getByRole('switch', { name: 'Read: point 1' })).toBeChecked()
-  expect((await new AxeBuilder({ page }).analyze()).violations, 'a Read comment').toEqual([])
-  await side2.getByRole('switch', { name: 'Read: point 1' }).uncheck()
+  await expect(side2.getByRole('switch', { name: 'Resolved: comment 1' })).toHaveCount(0)
+  await side2.getByRole('switch', { name: 'Show resolved (1)' }).check()
+  await expect(side2.getByRole('switch', { name: 'Resolved: comment 1' })).toBeChecked()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'a resolved comment').toEqual([])
+  await side2.getByRole('switch', { name: 'Resolved: comment 1' }).uncheck()
   await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
@@ -535,7 +537,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   const banner = bob.getByTestId('read-only')
   await expect(banner).toContainText('Ada')
   await expect(banner).toContainText('is this draft’s editor'.replace('’', "'"))
-  await expect(bob.getByText('Rivers rarely flow straight.')).toBeVisible()
+  await expect(bob.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
   await expect(bob.getByLabel('Title', { exact: true })).toHaveAttribute('readonly', '')
   await expect(bob.getByRole('button', { name: 'Save' })).toHaveCount(0)
   await expect(bob.getByRole('button', { name: 'Critique' })).toHaveCount(0)
@@ -545,15 +547,42 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   )
   expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
 
-  // The editor's changes reach Bob when he reloads.
+  // Bob can comment, and sees only his own. Ada, the editor, sees it with his name on it and resolves it.
+  const bobSide = bob.getByRole('complementary')
+  await bobSide.getByRole('tab', { name: /^Comments/ }).click()
+  await expect(bobSide.getByText(/You haven't commented on this draft yet/)).toBeVisible()
+  await bobSide.getByLabel('About').selectOption({ label: '1. Rivers rarely flow straight.' })
+  await bobSide.getByLabel('Your comment').fill('Lovely first line.')
+  await bobSide.getByRole('button', { name: 'Add comment' }).click()
+  await expect(bobSide.getByText('Comment added')).toBeVisible()
+  await expect(bobSide.getByRole('listitem')).toHaveCount(1)
+  await expect(bob.getByRole('button', { name: 'Comment 1' })).toBeVisible()
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations, 'Bob’s comment').toEqual([])
+
   await page.goto(draftUrl)
+  const adaSide = page.getByRole('complementary')
+  await adaSide.getByRole('tab', { name: /^Comments/ }).click()
+  const bobsComment = adaSide.getByRole('listitem').filter({ hasText: 'Lovely first line.' })
+  await expect(bobsComment).toContainText('Bob')
+  await adaSide.getByRole('switch', { name: 'Resolved: comment 1' }).check()
+  await expect(adaSide.getByText('Lovely first line.')).toHaveCount(0)
+  await bob.reload()
+  await bob
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
+  await expect(bob.getByText('Lovely first line.')).toHaveCount(0)
+
+  // The editor's changes reach Bob when he reloads.
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.press('Enter')
   await page.keyboard.type('They bend instead.')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
   await bob.reload()
-  await expect(bob.getByText('They bend instead.')).toBeVisible()
+  await expect(
+    bob.getByRole('textbox', { name: 'Draft body' }).getByText('They bend instead.'),
+  ).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
