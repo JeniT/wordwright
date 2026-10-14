@@ -11,12 +11,11 @@ A publishing venue: a container of ideas and drafts, with people who work in it.
 _Avoid_: Workspace, account, blog
 
 **Owner**:
-A person who administers a profile (invites and removes people, reassigns drafts).
+A person who administers a profile (invites and removes people, makes other members owners, reassigns drafts). A profile can have several owners but never none.
 _Avoid_: Admin
 
 **Member**:
-A person who works in a profile. An owner is also a member.
-_Avoid_: Collaborator, user, profile editor
+A person who works in a profile. An owner is also a member._Avoid_: Collaborator, user, profile editor
 
 **Reviewer**:
 A person invited by email to read and comment on a draft, without being a member of its profile. Has a reviewer-only account, which can be upgraded to a full one.
