@@ -22,7 +22,6 @@ const props = defineProps<{
   viewerId?: string
 }>()
 const emit = defineEmits<{ show: []; setResolved: [resolved: boolean] }>()
-const resolved = () => props.entry.resolved
 const flip = useTemplateRef<InstanceType<typeof SwitchField>>('flip')
 defineExpose({ revert: () => flip.value?.revert() })
 
@@ -45,7 +44,7 @@ const author = computed(() => {
         kind === 'show' ? 'hover:bg-sunken' : '',
         active
           ? 'border-accent'
-          : resolved() || kind === 'changed'
+          : entry.resolved || kind === 'changed'
             ? 'border-line'
             : 'border-line-strong',
       ]"
@@ -53,7 +52,7 @@ const author = computed(() => {
       @click="kind === 'show' && emit('show')"
     >
       <span class="block text-sm text-ink-soft">
-        <span class="chip mr-1" :class="entry.byAi && !resolved() ? 'chip-ai' : 'chip-quiet'">{{
+        <span class="chip mr-1" :class="entry.byAi && !entry.resolved ? 'chip-ai' : 'chip-quiet'">{{
           entry.number
         }}</span>
         <template v-if="showAuthor || entry.byAi">
@@ -68,7 +67,7 @@ const author = computed(() => {
       </span>
       <span
         class="block whitespace-pre-wrap"
-        :class="resolved() ? 'text-ink-soft' : entry.byAi ? 'font-medium' : ''"
+        :class="entry.resolved ? 'text-ink-soft' : entry.byAi ? 'font-medium' : ''"
         >{{ entry.text }}</span
       >
       <span v-if="entry.reason" class="block text-ink-soft">{{ entry.reason }}</span>
