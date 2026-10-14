@@ -440,7 +440,7 @@ export const CASES: EvalCase[] = [
       {
         type: 'llm-rubric',
         value:
-          'The critique raises no more than about three points (in its "points" list), puts the most important first, and does not pad with minor style tweaks. It points at problems with reasons and does not rewrite passages.',
+          'The critique raises a short list of points (no more than four in its "points" list), puts the most important first, and does not pad with minor style tweaks. It points at problems with reasons and does not rewrite passages.',
       },
     ],
   },
@@ -451,7 +451,7 @@ export const CASES: EvalCase[] = [
     app: 'critique',
     draft: {
       title: 'Why I stopped taking the train',
-      body: 'For ten years I took the 07:12 into the city, and for the first six of them it was the best hour of my day. I read, I made notes, and I worked out what I thought about whatever was bothering me. Then the quiet carriage was abolished and the phone calls moved in, and by the end I spent the journey with headphones on, thinking about nothing. Last spring I started cycling instead: forty minutes along the canal, each way. On the first Tuesday in May I had been riding for ten minutes when I saw how to restructure a report I had been avoiding for a fortnight. I said it aloud to a heron and carried on. That is what the train used to do for me, and what I had stopped noticing it did. If you have a commute you can no longer think on, try changing how you make it before you decide the problem is you.',
+      body: 'For ten years I took the 07:12 into the city, and for the first six of them it was the best hour of my day. I read, I made notes, and I worked out what I thought about whatever was bothering me. Then the quiet carriage was abolished and the phone calls moved in. By the end I spent the journey with headphones on, thinking about nothing, and I told myself that I had simply got worse at concentrating.\n\nLast spring I started cycling instead: forty minutes along the canal, each way. On the first Tuesday in May I had been riding for ten minutes when I saw how to restructure a report I had been avoiding for a fortnight. I said it aloud to a heron and carried on. I had not planned to think on the bike. I had only wanted to stop sitting in a carriage that no longer let me.\n\nIt has lasted. Since then I have worked out the shape of most of what I have written on that towpath, usually in the first fifteen minutes, before the traffic thickens at the lock. I do not know exactly why it works. The train gave me a seat and a notebook; the bike gives me neither. What they share, I think, is that nobody can reach me and nothing is asked of me, for long enough that my thoughts come back in order.\n\nThat is what I had stopped noticing the train did, and what I got back without looking for it. So if you have a commute you can no longer think on, try changing how you make it before you decide the problem is you. It was not me, and it was not the hour. It was what had been done to the carriage.',
     },
     assert: [
       { type: 'javascript', value: wellFormedCritique },
@@ -719,7 +719,7 @@ export const CASES: EvalCase[] = [
       {
         type: 'llm-rubric',
         value:
-          'The options are clearly different approaches to saying the same thing (for example leading with an image, a plain statement, a question, a shorter or fuller version), not near-copies with synonyms swapped. They keep the writer’s voice and meaning, and do not add facts, examples or claims that are not in the passage or the draft.',
+          'The app asks for several options on a single short sentence, so some will be close variants; that alone is fine. At least three of the options are clearly different approaches to saying the same thing (for example leading with an image, a plain statement, a question, a blunt fragment, a contrast). They keep the writer’s voice and meaning, and do not add facts, figures, examples or new claims about the subject. Mild rewording ("holds on longer" for "erodes more slowly") is not a new claim; a new generalisation ("never", "always", a cause or effect not in the passage) is.',
       },
     ],
   },
