@@ -1,25 +1,26 @@
 import { computed, ref } from 'vue'
 
 /**
- * Light or dark. With no saved choice the app follows the system (see theme/palette-*.css);
- * choosing sets `data-theme` on <html>, which the palette file answers to. index.html applies a saved choice
- * before first paint so the page never flashes the wrong theme.
+ * System, light or dark. "System" (the default) follows the device (see theme/palette-*.css); choosing light or
+ * dark sets `data-theme` on <html>, which the palette file answers to, and saves it. Choosing System removes both,
+ * so the person can hand control back. index.html applies a saved choice before first paint so the page never
+ * flashes the wrong theme.
  */
 export const THEME_KEY = 'wordwright-theme'
-type Choice = 'light' | 'dark'
+export type ThemeChoice = 'system' | 'light' | 'dark'
 
-function saved(): Choice | null {
+function saved(): ThemeChoice {
   try {
     const value = localStorage.getItem(THEME_KEY)
-    return value === 'light' || value === 'dark' ? value : null
+    return value === 'light' || value === 'dark' ? value : 'system'
   } catch {
-    return null // storage can be unavailable (private windows, blocked cookies); the system setting still applies
+    return 'system' // storage can be unavailable (private windows, blocked cookies); the system setting still applies
   }
 }
 const systemDark = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
 
-const choice = ref<Choice | null>(saved())
+const choice = ref<ThemeChoice>(saved())
 const systemIsDark = ref(systemDark())
 if (typeof matchMedia === 'function') {
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', (e) => {
@@ -28,15 +29,20 @@ if (typeof matchMedia === 'function') {
 }
 
 export function useTheme() {
-  const dark = computed(() => (choice.value ? choice.value === 'dark' : systemIsDark.value))
-  function toggle() {
-    choice.value = dark.value ? 'light' : 'dark'
-    document.documentElement.setAttribute('data-theme', choice.value)
+  const dark = computed(() =>
+    choice.value === 'system' ? systemIsDark.value : choice.value === 'dark',
+  )
+  function choose(next: ThemeChoice) {
+    choice.value = next
+    const root = document.documentElement
+    if (next === 'system') root.removeAttribute('data-theme')
+    else root.setAttribute('data-theme', next)
     try {
-      localStorage.setItem(THEME_KEY, choice.value)
+      if (next === 'system') localStorage.removeItem(THEME_KEY)
+      else localStorage.setItem(THEME_KEY, next)
     } catch {
       // Not saved; it applies until the page is closed.
     }
   }
-  return { dark, toggle }
+  return { choice, dark, choose }
 }

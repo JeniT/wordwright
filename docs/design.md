@@ -39,7 +39,7 @@ The running app (these are screenshots of the real thing, not mock-ups):
 | `apps/web/src/theme/theme.css`                          | The design built on a palette: fonts, the Tailwind token map, shared base rules (focus, selection, reduced motion), and every component utility (`btn`, `field`, `panel`, `chip`, `callout` ...). |
 | `apps/web/src/style.css`                                | Imports the two above, plus the editor and Markdown typography.                                                                                                                                   |
 | `apps/web/src/theme/palette.test.ts`                    | Fails if any colour pair on screen drops below WCAG 2.2 AA, in light or dark.                                                                                                                     |
-| `apps/web/src/lib/useTheme.ts`                          | The light/dark choice (saved in `localStorage`, applied as `data-theme` on `<html>`, defaults to the system).                                                                                     |
+| `apps/web/src/lib/useTheme.ts`                          | The System/Light/Dark choice (Light and Dark saved in `localStorage` and applied as `data-theme` on `<html>`; System removes both and follows the device, the default).                           |
 | `apps/web/src/assets/fonts/`                            | Self-hosted IBM Plex Sans (OFL). No third-party font requests.                                                                                                                                    |
 | `apps/web/src/App.vue`                                  | The shell: side menu (a Menu button on phones), skip link, landmarks.                                                                                                                             |
 | `apps/web/src/lib/nav.ts`, `components/SideMenu.vue`    | What the side menu lists for where you are (see _Navigation_).                                                                                                                                    |
@@ -338,8 +338,9 @@ how they are framed. Identity-provider buttons ("Continue with Google") should u
 
 ## Dark mode
 
-Dark follows the person's system setting unless they choose (the Light/Dark button at the foot of the side menu,
-`useTheme`). Dark is **not** an inversion: accents are lighter and more saturated (`#f08a4b`), buttons carry dark
+Dark follows the person's system setting unless they choose. The **Appearance** control (`ThemeChoice`, a `segmented`
+radio group: System / Light / Dark, at the foot of the side menu and in the reviewer bar) lets them pin Light or Dark,
+and System hands control back to the device (`useTheme`). Dark is **not** an inversion: accents are lighter and more saturated (`#f08a4b`), buttons carry dark
 text, washes are deep tints of the accent, and the highlighter becomes a deep blue-grey. All of it lives in the
 palette file, so components need no `dark:` variants. If you find yourself writing `dark:`, a role is missing.
 
@@ -407,7 +408,7 @@ a newsletter, and help drafting social threads, would add their own buttons ther
 ## Layout
 
 A **reviewer-only account** (someone asked to read a draft, see decisions.md "Reviewers") has no side menu: a single top
-bar with the name, Sign out and the light/dark switch, over one column. Its pages (`ReviewsView`, `ReviewView`) use the
+bar with the name, Sign out and the Appearance choice, over one column. Its pages (`ReviewsView`, `ReviewView`) use the
 same cards, callouts and chips as everywhere else.
 
 - **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button

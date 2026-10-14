@@ -7,7 +7,7 @@ import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
 import { useNav } from './lib/nav'
 import { useProfileAddressRedirect, useProfiles } from './lib/useProfiles'
-import { useTheme } from './lib/useTheme'
+import ThemeChoice from './components/ThemeChoice.vue'
 import { useSessionStore } from './stores/session'
 
 const session = useSessionStore()
@@ -35,8 +35,6 @@ const signOut = useMutation({
 })
 
 const reload = () => window.location.reload()
-
-const { dark, toggle: toggleTheme } = useTheme()
 
 // On a phone the menu folds away behind a button; moving to another page closes it again.
 const menuOpen = ref(false)
@@ -80,15 +78,7 @@ watch(
       <div class="flex flex-wrap items-center gap-3 text-sm">
         <span>{{ session.user.name }}</span>
         <button type="button" class="link" @click="signOut.mutate()">Sign out</button>
-        <button
-          type="button"
-          class="btn btn-quiet btn-sm"
-          :aria-pressed="dark"
-          aria-label="Dark mode"
-          @click="toggleTheme"
-        >
-          {{ dark ? 'Dark' : 'Light' }}
-        </button>
+        <ThemeChoice />
       </div>
     </header>
     <header
@@ -149,15 +139,7 @@ watch(
             }}</RouterLink>
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
               <button type="button" class="link" @click="signOut.mutate()">Sign out</button>
-              <button
-                type="button"
-                class="btn btn-quiet btn-sm"
-                :aria-pressed="dark"
-                aria-label="Dark mode"
-                @click="toggleTheme"
-              >
-                {{ dark ? 'Dark' : 'Light' }}
-              </button>
+              <ThemeChoice />
             </div>
           </div>
         </div>

@@ -357,6 +357,52 @@
   color: var(--color-ok);
 }
 /*
+ * A segmented choice: one of a few options that are all visible at once (Appearance: System, Light, Dark). It is a
+ * radio group, so the arrow keys move between options. Markup: <div role="radiogroup" aria-label="..." class="segmented">
+ * <label><input type="radio" name="..."> <span>Option</span></label> ... </div>. The chosen one is shown by a filled
+ * accent background and a tick, not by colour alone.
+ */
+@utility segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-ctl);
+  overflow: hidden;
+  & > label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding-inline: 0.75rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    & + label {
+      border-inline-start: 1px solid var(--color-line-strong);
+    }
+    &:hover {
+      background: var(--color-sunken);
+    }
+    &:has(input:checked) {
+      background: var(--color-accent);
+      color: var(--color-on-accent);
+      font-weight: 600;
+      & > span::before {
+        content: '✓ ';
+      }
+    }
+    &:has(input:focus-visible) {
+      outline: 3px solid var(--color-focus);
+      outline-offset: -3px;
+    }
+  }
+  & > label > input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+/*
  * A switch: the state of one thing (Read, Keep, Show read), saved as soon as it is flipped. A checkbox only ever
  * means "select this item". Markup: <label class="switch"><input type="checkbox" role="switch"> <span data-switch-track
  * aria-hidden="true"></span> <span>Label</span></label>. On is shown by the knob's place and a tick, not by colour alone.

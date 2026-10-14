@@ -193,11 +193,17 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
     await expect(page.getByRole('heading', { level: 1, name: step })).toBeVisible()
     await noViolations(page, `${step} step in dark mode`)
   }
-  // The choice made with the button is remembered, and overrides the system.
-  await page.getByRole('button', { name: 'Dark mode' }).click()
+  // The system is dark here; choosing Light overrides it, is remembered, and System hands control back.
+  await expect(page.getByRole('radio', { name: 'System' })).toBeChecked()
+  await page.getByRole('radio', { name: 'Light' }).check()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await expect(page.getByRole('radio', { name: 'Light' })).toBeChecked()
+  await page.getByRole('radio', { name: 'System' }).check()
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme')
+  await page.reload()
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme')
 })
 
 test('on a phone the menu folds behind a button, and says where you are while closed', async ({
