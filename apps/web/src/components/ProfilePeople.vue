@@ -25,6 +25,7 @@ const hintId = useId()
 // ---- leaving and removing
 // Asks first: the person's drafts move to an owner and they lose access, which only an invitation brings back.
 const removing = ref<ProfileMember | null>(null)
+const removingSelf = computed(() => !!removing.value && isMe(removing.value))
 const removeMember = useMutation({
   mutationFn: (userId: string) => api.removeMember(props.profile.id, userId),
   onSuccess: async (_, userId) => {
@@ -138,26 +139,24 @@ const confirmLabel = computed(() => {
   <ConfirmDialog
     :open="removing !== null"
     :title="
-      removing && isMe(removing)
-        ? `Leave ${profile.name}?`
-        : `Remove ${removing?.name} from ${profile.name}?`
+      removingSelf ? `Leave ${profile.name}?` : `Remove ${removing?.name} from ${profile.name}?`
     "
-    :confirm-label="removing && isMe(removing) ? 'Leave' : `Remove ${removing?.name}`"
+    :confirm-label="removingSelf ? 'Leave' : `Remove ${removing?.name}`"
     busy-label="Removing…"
     :busy="removeMember.isPending.value"
     @confirm="removing && removeMember.mutate(removing.userId)"
     @cancel="removing = null"
   >
     <template v-if="removing">
-      <p v-if="isMe(removing)">
+      <p v-if="removingSelf">
         You will lose access to its ideas, notes and drafts. Drafts you edit go to the profile's
-        longest-standing owner, and what you wrote stays with your name. You can come back only if
-        an owner invites you again.
+        longest-standing owner, any handover you had open is closed, and what you wrote stays with
+        your name. You can come back only if an owner invites you again.
       </p>
       <p v-else>
         {{ removing.name }} will lose access to its ideas, notes and drafts. Drafts they edit go to
-        the profile's longest-standing owner, and what they wrote stays with their name. You can
-        invite them again later.
+        the profile's longest-standing owner, any handover they had open is closed, and what they
+        wrote stays with their name. You can invite them again later.
       </p>
     </template>
   </ConfirmDialog>
