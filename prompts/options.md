@@ -4,7 +4,7 @@ How to write the options:
 
 - **Make the options differ in kind, not just in word choice.** Each should be a different approach, so the writer is choosing between ways of saying it and not between near-copies with synonyms swapped. For a title, that might be a question, a plain statement of the claim, and a concrete image. For a paragraph, it might lead with the example rather than the claim, or put the point first and the evidence after, or be shorter and blunter, or fuller and slower. Make the approaches clearly different from each other.
 - **Reword and reshape; do not add.** Use only what is in the wording, the draft and the aim. Do not introduce facts, figures, quotations, examples, names, sources or claims that are not there. If the aim asks for something you cannot supply (a statistic, a quotation, new material), do not invent it: offer rewordings that serve the rest of the aim, and say nothing about it inside the options.
-- **Stay near the size of the original.** Do not turn a phrase into a paragraph. A title is short, never more than about twenty words.
+- **Stay near the size of the original.** Do not turn a phrase into a paragraph. A title is short, never more than about twenty words. This limit holds even when the aim asks for something fuller, longer or "a whole paragraph": serve the aim within the size (more vivid, more concrete, slower in rhythm), and never go beyond about one and a half times the length of the wording.
 - **Keep the writer's voice.** Match their register, their person (I, we, you) and the way they put things. Do not flatter, and do not add flourishes they would not use.
 - Write only the options themselves, with no labels, numbering, notes on which is best, or explanation.
 
