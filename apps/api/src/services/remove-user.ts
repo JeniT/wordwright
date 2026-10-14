@@ -5,8 +5,9 @@ import type { UserRecord } from '../db/users'
 /**
  * Removes a user and everything that belongs only to them: credentials, identities, sessions, tokens,
  * memberships, and every profile (with its drafts) where they are the sole member. In shared profiles
- * they're removed and, if they were the owner, the longest-standing member becomes owner; drafts they
- * wrote there stay. Invitations other people sent to their address go too.
+ * they're removed and drafts they wrote there stay. If they were the only owner, the longest-standing member becomes
+ * owner here, because the one caller that can reach this (the cleanup of never-confirmed accounts) has no one to ask,
+ * and such an account can't have invited anyone. "Delete my account" refuses that case first (`AccountService.deleteAccount`). Invitations other people sent to their address go too.
  *
  * With `keepName` their display name stays on their notes, messages and the like in profiles that continue (#153);
  * without it no trace of the name is left.

@@ -36,7 +36,7 @@ import type { ReviewService } from '../services/reviews'
 import type { InvitationService } from '../services/invitations'
 import type { LlmKeyService } from '../services/llm'
 import { fail } from '../errors'
-import { NEEDS_ANOTHER_OWNER, setMemberRole } from '../services/owners'
+import { ownerCannotLeaveMessage, setMemberRole } from '../services/owners'
 import { param } from './params'
 
 export interface ProfileRouteDeps {
@@ -177,15 +177,7 @@ export function profileRoutes({
         const isOwner = c.get('role') === 'owner'
         if (targetId !== me && !isOwner) throw fail(403, 'Owner only')
         if (targetId === me && isOwner) {
-          const another = store.profiles
-            .members(id)
-            .some((m) => m.role === 'owner' && m.userId !== me)
-          throw fail(
-            400,
-            another
-              ? 'Step down as owner first, then you can leave.'
-              : `You are the only owner. ${NEEDS_ANOTHER_OWNER}`,
-          )
+          throw fail(400, ownerCannotLeaveMessage(store, id, me))
         }
         if (!store.profiles.roleOf(id, targetId)) throw fail(404, 'Not found')
         store.transaction(() => {

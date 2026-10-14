@@ -6,7 +6,7 @@
 export const OWNER_ABILITIES = [
   'change the profile’s name, website and picture',
   'invite people and remove them',
-  'make other members owners, or remove other owners',
+  'make members owners, or remove owners (you included)',
   'move a draft to another editor when its editor is away',
   'end the review of any draft',
   'delete the profile',

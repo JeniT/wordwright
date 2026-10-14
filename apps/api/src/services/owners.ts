@@ -4,6 +4,16 @@ import { fail } from '../errors'
 
 export const NEEDS_ANOTHER_OWNER = 'Make someone else an owner first, or delete the profile.'
 
+const ownersOf = (store: Store, profileId: string) =>
+  store.profiles.members(profileId).filter((m) => m.role === 'owner')
+
+/** What to tell an owner who tries to leave: stepping down comes first, and the only owner needs a successor. */
+export function ownerCannotLeaveMessage(store: Store, profileId: string, userId: string) {
+  return ownersOf(store, profileId).some((m) => m.userId !== userId)
+    ? 'Step down as owner first, then you can leave.'
+    : `You are the only owner. ${NEEDS_ANOTHER_OWNER}`
+}
+
 /**
  * Owners make members owners and owners members (CONTEXT.md, "Owner"). A profile always keeps at least one owner:
  * the count is checked inside the same transaction as the change, so two owners removing each other at once
@@ -23,8 +33,7 @@ export function setMemberRole(
     if (!current) throw fail(404, 'Not found')
     if (current === role) return
     if (role === 'member') {
-      const owners = store.profiles.members(profileId).filter((m) => m.role === 'owner')
-      if (owners.length <= 1) {
+      if (ownersOf(store, profileId).length <= 1) {
         throw fail(409, `There must be at least one owner. ${NEEDS_ANOTHER_OWNER}`)
       }
     }
@@ -38,6 +47,6 @@ export function isSoleOwnerOfSharedProfile(store: Store, profileId: string, user
   return (
     members.length > 1 &&
     members.some((m) => m.userId === userId && m.role === 'owner') &&
-    members.filter((m) => m.role === 'owner').length === 1
+    ownersOf(store, profileId).length === 1
   )
 }
