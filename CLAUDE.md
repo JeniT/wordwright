@@ -1,6 +1,5 @@
 @AGENTS.md
 
-
 ## Agent skills
 
 ### Issue tracker
