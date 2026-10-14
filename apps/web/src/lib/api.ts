@@ -3,6 +3,7 @@ import {
   AuthConfigSchema,
   BrainstormEventSchema,
   BrainstormPromptSchema,
+  CommentSchema,
   ConversationSchema,
   CritiqueSettingsSchema,
   CritiqueStateSchema,
@@ -31,6 +32,7 @@ import {
   SourceSchema,
   UserSchema,
   type BrainstormEvent,
+  type CommentInput,
   type DraftInput,
   type DraftSave,
   type DraftInsertionInput,
@@ -479,19 +481,21 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** The latest critique of the draft (null if none), and how many of its looks are used. */
     latestCritique: (profileId: string, draftId: string) =>
       get(CritiqueStateSchema, 'GET', `${drafts(profileId)}/${draftId}/critique`),
-    /** Sets a point aside (or, with `dismissed: false`, brings it back). Answers with the critique as it now is. */
-    setCritiquePointDismissed: (
+    /** The comments on the draft that this person may see: all of them for its editor, only their own for others. */
+    listComments: (profileId: string, draftId: string) =>
+      get(CommentSchema.array(), 'GET', `${drafts(profileId)}/${draftId}/comments`),
+    addComment: (profileId: string, draftId: string, input: CommentInput) =>
+      get(CommentSchema, 'POST', `${drafts(profileId)}/${draftId}/comments`, input),
+    /** The editor sets a comment aside (or, with `resolved: false`, brings it back). Answers with the comments as they now are. */
+    setCommentResolved: (
       profileId: string,
       draftId: string,
-      pointId: string,
-      dismissed: boolean,
+      commentId: string,
+      resolved: boolean,
     ) =>
-      get(
-        CritiqueStateSchema,
-        'PUT',
-        `${drafts(profileId)}/${draftId}/critique/points/${pointId}`,
-        { dismissed },
-      ),
+      get(CommentSchema.array(), 'PUT', `${drafts(profileId)}/${draftId}/comments/${commentId}`, {
+        resolved,
+      }),
   }
 }
 

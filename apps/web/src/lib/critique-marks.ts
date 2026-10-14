@@ -5,7 +5,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
 /**
- * A point of a critique, as the editor needs it to mark the paragraph it is about. The marks are decorations: they
+ * A comment, as the editor needs it to mark the paragraph it is about. The marks are decorations: they
  * are drawn over the document but are not part of it, so they never reach `getMarkdown()` or the saved draft.
  */
 export interface CritiqueMarkPoint {
@@ -18,7 +18,9 @@ export interface CritiqueMarkPoint {
   number: number
   /** Said by the mark to a screen reader. */
   label: string
-  /** Read: still placed (so its comment can show its paragraph) but not marked in the text. */
+  /** The AI's: marked in the highlighter colour, which is only for what the AI suggested. */
+  byAi: boolean
+  /** Resolved: still placed (so its comment can show its paragraph) but not marked in the text. */
   hidden?: boolean
 }
 
@@ -88,7 +90,9 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
       for (const p of points) {
         const button = document.createElement('button')
         button.type = 'button'
-        button.className = 'btn btn-sm btn-icon critique-mark'
+        button.className = p.byAi
+          ? 'btn btn-sm btn-icon critique-mark'
+          : 'btn btn-sm btn-icon critique-mark is-person'
         button.dataset.pointId = p.id
         button.textContent = String(p.number)
         button.setAttribute('aria-label', p.label)
@@ -112,10 +116,11 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
             for (const [at, points] of byBlock) {
               const b = blocks[at]!
               const isActive = points.some((p) => p.id === active)
+              const classes = ['critique-block']
+              if (!points.some((p) => p.byAi)) classes.push('is-person')
+              if (isActive) classes.push('is-active')
               decorations.push(
-                Decoration.node(b.pos, b.pos + b.size, {
-                  class: isActive ? 'critique-block is-active' : 'critique-block',
-                }),
+                Decoration.node(b.pos, b.pos + b.size, { class: classes.join(' ') }),
                 Decoration.widget(b.pos + b.size - 1, () => widget(points, active), {
                   side: 1,
                   key: points.map((p) => `${p.id}${p.id === active ? '*' : ''}`).join(),

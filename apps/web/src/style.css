@@ -25,13 +25,17 @@
   font-size: 1.5rem;
 }
 /*
- * Critique points: the paragraph they are about gets an edge in the highlighter colour (the writer's words are not
- * tinted), and a numbered mark at its end. The editor draws these as decorations, so they are never saved.
+ * Comments: the paragraph they are about gets an edge (in the highlighter colour for the AI's, which is only for what
+ * the AI suggested; plain for a person's), and a numbered mark at its end. The writer's words are not tinted. The
+ * editor draws these as decorations, so they are never saved.
  */
 .prose-editor .ProseMirror .critique-block {
   border-left: 3px solid var(--color-mark);
   margin-left: -0.9rem;
   padding-left: 0.75rem;
+}
+.prose-editor .ProseMirror .critique-block.is-person {
+  border-left-color: var(--color-line-strong);
 }
 .prose-editor .ProseMirror .critique-block.is-active {
   border-left-color: var(--color-accent);
@@ -47,6 +51,9 @@
   background: var(--color-mark);
   font-size: 0.875rem;
   font-weight: 600;
+}
+.prose-editor .ProseMirror .critique-mark.is-person {
+  background: var(--color-surface);
 }
 .prose-editor .ProseMirror .critique-mark[aria-current='true'] {
   border-color: var(--color-accent);

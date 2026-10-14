@@ -22,12 +22,20 @@ const draft = {
 
 /** The critique the server has kept for the draft (null: none yet), and what a new request answers. */
 function mockEditor(
-  critique: () => Response,
-  latest: object | null = null,
+  critique: () => Response | Promise<Response>,
+  latest: ({ points?: object[] } & object) | null = null,
   looks: { used: number; allowed: number } = { used: latest ? 1 : 0, allowed: 3 },
+  /** Who is looking: the draft's editor (u1) unless a test says otherwise. */
+  viewer: typeof testUser = testUser,
 ) {
+  // The points of a round are comments, kept apart from it, as the server keeps them.
+  const split = (r: ({ points?: object[] } & object) | null) => {
+    const { points = [], ...rest } = (r ?? {}) as { points?: object[] }
+    return { round: r ? rest : null, points }
+  }
+  const state = { comments: split(latest).points as object[] }
   server.use(
-    signedInAs(testUser),
+    signedInAs(viewer),
     http.get('*/api/profiles', () => HttpResponse.json([])),
     http.get('*/api/profiles/p1/drafts/d1/handover', () =>
       HttpResponse.json({
@@ -53,10 +61,19 @@ function mockEditor(
     http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.put('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
     http.get('*/api/profiles/p1/drafts/d1/critique', () =>
-      HttpResponse.json({ round: latest, ...looks }),
+      HttpResponse.json({ round: split(latest).round, ...looks }),
     ),
-    http.post('*/api/profiles/p1/assist/critique', critique),
+    http.get('*/api/profiles/p1/drafts/d1/comments', () => HttpResponse.json(state.comments)),
+    http.post('*/api/profiles/p1/assist/critique', async () => {
+      const res = await critique()
+      if (!res.ok) return res
+      const made = (await res.json()) as { round: { points?: object[] } | null }
+      const { round, points } = split(made.round)
+      state.comments = points
+      return HttpResponse.json({ ...made, round })
+    }),
   )
+  return state
 }
 
 const round = (points: object[], extra: object = {}) => ({
@@ -72,17 +89,31 @@ const pointOn = (id: string, over: object = {}) => ({
   block: 'b1',
   excerpt: 'Some text',
   hash: blockHash('Some text'),
-  point: 'Tighten the opening.',
+  byAi: true,
+  authorId: null,
+  authorName: null,
+  text: 'Tighten the opening.',
   reason: 'Readers skim.',
-  dismissed: false,
+  resolved: false,
+  createdAt: '2026-01-02T00:00:00Z',
   ...over,
 })
+/** A comment from a person. */
+const saidBy = (id: string, name: string, over: object = {}) =>
+  pointOn(id, {
+    byAi: false,
+    authorId: name === 'Ada Lovelace' ? 'u1' : `u-${name}`,
+    authorName: name,
+    reason: null,
+    text: `${name} on the opening.`,
+    ...over,
+  })
 /** What the server answers about a draft's critiques. */
 const state = (r: object | null, used = 1, allowed = 3) => ({ round: r, used, allowed })
 /** Shows one of the tabs beside the draft (notes, reading list, comments). */
 const showTab = async (name: string) =>
   fireEvent.click(await screen.findByRole('tab', { name: new RegExp(`^${name}`) }))
-const critiqueRegion = async () => screen.findByRole('region', { name: 'Comments' })
+const commentsRegion = async () => screen.findByRole('region', { name: 'Comments' })
 
 describe('EditorView critique', () => {
   it('points users without an API key to their account settings', async () => {
@@ -105,7 +136,7 @@ describe('EditorView critique', () => {
         state(
           round([
             pointOn('p1'),
-            pointOn('p2', { block: 'whole', excerpt: '', hash: null, point: 'The order is odd.' }),
+            pointOn('p2', { block: 'whole', excerpt: '', hash: null, text: 'The order is odd.' }),
           ]),
         ),
       ),
@@ -113,22 +144,22 @@ describe('EditorView critique', () => {
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
     await screen.findByText('A decent start.')
-    const points = within(await critiqueRegion()).getAllByRole('listitem')
+    const points = within(await commentsRegion()).getAllByRole('listitem')
     expect(points[0]).toHaveTextContent('Some text')
     expect(points[0]).toHaveTextContent('Tighten the opening.')
     expect(points[0]).toHaveTextContent('Readers skim.')
-    expect(points[1]).toHaveTextContent('The whole piece')
+    expect(points[1]).toHaveTextContent('The whole draft')
     expect(points[1]).toHaveTextContent('The order is odd.')
     // Only the paragraph point is marked, in the text; the whole-piece point has no paragraph to mark.
-    expect(await screen.findAllByRole('button', { name: /^Critique point/ })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'Critique point 1' })).toBeTruthy()
+    expect(await screen.findAllByRole('button', { name: /^Comment \d/ })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Comment 1' })).toBeTruthy()
   })
 
   it('shows the critique kept from last time, without asking for another', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
     await renderAt('/p/p1/drafts/d1')
     await screen.findByText('A decent start.')
-    await screen.findByRole('button', { name: 'Critique point 1' })
+    await screen.findByRole('button', { name: 'Comment 1' })
   })
 
   it('opens the comment when its mark in the text is pressed', async () => {
@@ -139,16 +170,16 @@ describe('EditorView critique', () => {
       'aria-selected',
       'true',
     )
-    await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Comment 1' }))
     expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute('aria-selected', 'true')
-    const comment = await within(await critiqueRegion()).findByRole('button', {
+    const comment = await within(await commentsRegion()).findByRole('button', {
       name: /Tighten the opening/,
     })
     await waitFor(() => expect(comment).toHaveAttribute('aria-current', 'true'))
     await waitFor(() => expect(comment).toHaveFocus())
     // The mark is drawn again to show it is the one being looked at.
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Critique point 1' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: 'Comment 1' })).toHaveAttribute(
         'aria-current',
         'true',
       ),
@@ -186,7 +217,7 @@ describe('EditorView critique', () => {
     Element.prototype.scrollTo = areaScroll as never
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Comment 1' }))
     await waitFor(() => expect(pageScroll).toHaveBeenCalled())
     await waitFor(() => expect(areaScroll).toHaveBeenCalled())
     vi.unstubAllGlobals()
@@ -226,89 +257,94 @@ describe('EditorView critique', () => {
         pointOn('p2', {
           hash: blockHash('A paragraph that is not in the draft any more.'),
           excerpt: 'A paragraph that is not in the draft any more.',
-          point: 'This one is gone.',
+          text: 'This one is gone.',
         }),
       ]),
     )
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByRole('button', { name: 'Critique point 1' })
+    await screen.findByRole('button', { name: 'Comment 1' })
     await showTab('Comments')
-    const region = await critiqueRegion()
+    const region = await commentsRegion()
     await within(region).findByRole('heading', { name: 'This passage has changed' })
-    expect(screen.queryByRole('button', { name: 'Critique point 2' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Comment 2' })).toBeNull()
     expect(region).toHaveTextContent('This one is gone.')
   })
 
-  it('marks a comment Read, which takes its mark away and leaves it where it is, and unmarks it', async () => {
+  it('resolves a comment, which takes its mark away and hides it, and shows it again on request', async () => {
     const sent: boolean[] = []
-    mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1'), pointOn('p2')]))
+    let comments = [pointOn('p1'), pointOn('p2')]
+    mockEditor(() => new Response(null, { status: 500 }), round(comments))
     server.use(
-      http.put('*/api/profiles/p1/drafts/d1/critique/points/p1', async ({ request }) => {
-        const { dismissed } = (await request.json()) as { dismissed: boolean }
-        sent.push(dismissed)
-        return HttpResponse.json(state(round([pointOn('p1', { dismissed }), pointOn('p2')])))
+      http.get('*/api/profiles/p1/drafts/d1/comments', () => HttpResponse.json(comments)),
+      http.put('*/api/profiles/p1/drafts/d1/comments/p1', async ({ request }) => {
+        const { resolved } = (await request.json()) as { resolved: boolean }
+        sent.push(resolved)
+        comments = [pointOn('p1', { resolved }), pointOn('p2')]
+        return HttpResponse.json(comments)
       }),
     )
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
-    const read = await screen.findByRole('switch', { name: 'Read: point 1' })
-    expect(read).not.toBeChecked()
+    const resolve = await screen.findByRole('switch', { name: 'Resolved: comment 1' })
+    expect(resolve).not.toBeChecked()
     expect(screen.getByRole('tab', { name: 'Comments, 2' })).toBeTruthy()
-    await fireEvent.click(read)
-    await waitFor(() => expect(screen.getByRole('switch', { name: 'Read: point 1' })).toBeChecked())
-    // Its mark is gone and the tab counts one fewer; the comment itself has not moved or been hidden.
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Critique point 1' })).toBeNull(),
-    )
-    expect(screen.getByRole('button', { name: 'Critique point 2' })).toBeTruthy()
+    await fireEvent.click(resolve)
+    // Its mark is gone, the tab counts one fewer, and the comment is hidden rather than deleted.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Comment 1' })).toBeNull())
+    expect(screen.getByRole('button', { name: 'Comment 2' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy()
-    const items = within(await critiqueRegion()).getAllByRole('listitem')
-    expect(items[0]).toHaveTextContent('Tighten the opening.')
+    expect(within(await commentsRegion()).getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.queryByText('Resolved: comment 1')).toBeNull()
+
+    const show = screen.getByRole('switch', { name: 'Show resolved (1)' })
+    await fireEvent.click(show)
+    const items = within(await commentsRegion()).getAllByRole('listitem')
     expect(items).toHaveLength(2)
-    expect(screen.queryByText(/Set aside/)).toBeNull()
-    // A Read comment still shows its paragraph.
+    expect(items[0]).toHaveTextContent('Tighten the opening.') // keeps its place and number
+    expect(screen.queryByRole('button', { name: 'Comment 1' })).toBeNull() // still no mark in the text
+    // A resolved comment still shows its paragraph.
     await fireEvent.click(within(items[0]!).getByRole('button', { name: /Tighten the opening/ }))
     await waitFor(() => expect(document.querySelector('.ProseMirror')).toHaveFocus())
 
-    await fireEvent.click(screen.getByRole('switch', { name: 'Read: point 1' }))
-    await screen.findByRole('button', { name: 'Critique point 1' })
+    await fireEvent.click(screen.getByRole('switch', { name: 'Resolved: comment 1' }))
+    await screen.findByRole('button', { name: 'Comment 1' })
     expect(sent).toEqual([true, false])
   })
 
-  it('puts the switch back, and says so, when Read could not be saved', async () => {
+  it('puts the switch back, and says so, when Resolved could not be saved', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
     server.use(
-      http.put('*/api/profiles/p1/drafts/d1/critique/points/p1', () =>
+      http.put('*/api/profiles/p1/drafts/d1/comments/p1', () =>
         HttpResponse.json({ error: 'The server is having a bad day' }, { status: 500 }),
       ),
     )
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
-    await fireEvent.click(await screen.findByRole('switch', { name: 'Read: point 1' }))
+    await fireEvent.click(await screen.findByRole('switch', { name: 'Resolved: comment 1' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't save that/i)
     await waitFor(() =>
-      expect(screen.getByRole('switch', { name: 'Read: point 1' })).not.toBeChecked(),
+      expect(screen.getByRole('switch', { name: 'Resolved: comment 1' })).not.toBeChecked(),
     )
-    expect(screen.getByRole('button', { name: 'Critique point 1' })).toBeTruthy() // still marked
+    expect(screen.getByRole('button', { name: 'Comment 1' })).toBeTruthy() // still marked
   })
 
-  it('has the switch on comments about the whole piece and about a rewritten passage too', async () => {
+  it('has the switch on comments about the whole draft and about a rewritten passage too', async () => {
     mockEditor(
       () => new Response(null, { status: 500 }),
       round([
         pointOn('p1'),
-        pointOn('p2', { block: 'whole', excerpt: '', hash: null, point: 'The order is odd.' }),
+        pointOn('p2', { block: 'whole', excerpt: '', hash: null, text: 'The order is odd.' }),
         pointOn('p3', {
           hash: blockHash('A paragraph that is not in the draft any more.'),
           excerpt: 'A paragraph that is not in the draft any more.',
-          point: 'This one is gone.',
+          text: 'This one is gone.',
         }),
       ]),
     )
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
     for (const n of [1, 2, 3]) {
-      expect(await screen.findByRole('switch', { name: `Read: point ${n}` })).toBeTruthy()
+      expect(await screen.findByRole('switch', { name: `Resolved: comment ${n}` })).toBeTruthy()
     }
   })
 
@@ -360,8 +396,154 @@ describe('EditorView critique', () => {
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
     await screen.findByText('This is ready to publish.')
-    expect(within(await critiqueRegion()).queryByRole('listitem')).toBeNull()
+    expect(within(await commentsRegion()).queryByRole('listitem')).toBeNull()
     expect(screen.getByText(/nothing important left/i)).toBeTruthy()
+  })
+})
+
+const bob = { ...testUser, id: 'u2', name: 'Bob Byron', email: 'bob@example.com' }
+
+describe('EditorView comments from members', () => {
+  it('lets a member who is not the editor comment, with no critique button and no way to resolve', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob).comments.push(
+      saidBy('c1', 'Bob Byron', { authorId: 'u2' }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    expect(screen.queryByRole('button', { name: 'Critique' })).toBeNull()
+    await showTab('Comments')
+    const region = await commentsRegion()
+    expect(await within(region).findByText('Bob Byron on the opening.')).toBeTruthy()
+    expect(within(region).queryByRole('switch')).toBeNull()
+    expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy()
+    // Said to them: who will see what they write.
+    expect(region).toHaveTextContent('Only you and Ada Lovelace, the editor, will see this.')
+  })
+
+  it('says so when a member has not commented yet', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    expect(await screen.findByText(/You haven't commented on this draft yet/)).toBeTruthy()
+    expect(within(await commentsRegion()).queryByRole('listitem')).toBeNull()
+  })
+
+  it('adds a comment on a chosen paragraph, or on the whole draft, and clears the form', async () => {
+    const sent: unknown[] = []
+    const state = mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
+    server.use(
+      http.post('*/api/profiles/p1/drafts/d1/comments', async ({ request }) => {
+        const input = (await request.json()) as { block: string; text: string }
+        sent.push(input)
+        state.comments.push(saidBy('c1', 'Bob Byron', { authorId: 'u2', text: input.text }))
+        return HttpResponse.json(state.comments.at(-1), { status: 201 })
+      }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    const about = await screen.findByLabelText('About')
+    expect(
+      within(about)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['The whole draft', '1. Some text'])
+    const button = screen.getByRole('button', { name: 'Add comment' })
+    expect(button).toBeDisabled() // nothing to say yet
+    await fireEvent.update(about, 'b1')
+    await fireEvent.update(screen.getByLabelText('Your comment'), 'This drags.')
+    await fireEvent.click(button)
+    expect(await screen.findByText('Comment added')).toBeTruthy()
+    expect(sent).toEqual([{ block: 'b1', text: 'This drags.' }])
+    expect(screen.getByLabelText('Your comment')).toHaveValue('')
+    // It is on the list, and marked beside its paragraph.
+    expect(await within(await commentsRegion()).findByText('This drags.')).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Comment 1' })).toBeTruthy()
+  })
+
+  it('says why a comment could not be added, and keeps what was written', async () => {
+    mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
+    server.use(
+      http.post('*/api/profiles/p1/drafts/d1/comments', () =>
+        HttpResponse.json(
+          { error: "That paragraph isn't in the draft any more." },
+          { status: 400 },
+        ),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    await fireEvent.update(await screen.findByLabelText('Your comment'), 'Still here.')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("isn't in the draft any more")
+    expect(screen.getByLabelText('Your comment')).toHaveValue('Still here.')
+  })
+
+  it('shows the editor everyone’s comments by author, the AI’s marked, and their own as "You"', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([pointOn('p1'), saidBy('p2', 'Bob Byron'), saidBy('p3', 'Ada Lovelace')]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    const items = await within(await commentsRegion()).findAllByRole('listitem')
+    await waitFor(() => expect(items).toHaveLength(3))
+    expect(items[0]).toHaveTextContent('AI critique')
+    expect(items[0]!.querySelector('.chip-ai')).not.toBeNull()
+    expect(items[1]).toHaveTextContent('Bob Byron')
+    expect(items[1]!.querySelector('.chip-ai')).toBeNull() // the highlighter is only for the AI
+    expect(items[2]).toHaveTextContent('You')
+    // A person's comment is marked in the text too, but not in the highlighter.
+    const marks = await screen.findAllByRole('button', { name: /^Comment \d/ })
+    expect(marks).toHaveLength(3)
+    expect(marks[0]).not.toHaveClass('is-person')
+    expect(marks[1]).toHaveClass('is-person')
+  })
+
+  it('names a commenter whose account is gone without a name', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([saidBy('p1', 'x', { authorId: null, authorName: null, text: 'From before.' })]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    expect(await within(await commentsRegion()).findByText('A former member')).toBeTruthy()
+  })
+
+  it('keeps a comment whose passage was rewritten open, apart from the rest', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([
+        saidBy('p1', 'Bob Byron', {
+          hash: blockHash('Gone.'),
+          excerpt: 'Gone.',
+          text: 'About the old words.',
+        }),
+      ]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    const region = await commentsRegion()
+    await within(region).findByRole('heading', { name: 'This passage has changed' })
+    expect(region).toHaveTextContent('About the old words.')
+    expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy() // still open
+  })
+
+  it('says it is loading, and what to do when the comments could not be loaded', async () => {
+    mockEditor(() => new Response(null, { status: 500 }))
+    let fail = true
+    server.use(
+      http.get('*/api/profiles/p1/drafts/d1/comments', () =>
+        fail
+          ? HttpResponse.json({ error: 'Down' }, { status: 500 })
+          : HttpResponse.json([saidBy('p1', 'Bob Byron')]),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    const region = await commentsRegion()
+    expect(await within(region).findByRole('alert')).toHaveTextContent(/couldn't load the comments/)
+    fail = false
+    await fireEvent.click(within(region).getByRole('button', { name: 'Try again' }))
+    expect(await within(region).findByText('Bob Byron on the opening.')).toBeTruthy()
   })
 })
 
@@ -1030,7 +1212,7 @@ describe('the notes beside the draft', () => {
       mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
       await renderAt('/p/p1/drafts/d1')
       const open = await screen.findByRole('button', { name: 'Notes and comments' })
-      await fireEvent.click(await screen.findByRole('button', { name: 'Critique point 1' }))
+      await fireEvent.click(await screen.findByRole('button', { name: 'Comment 1' }))
       await waitFor(() => expect(open).toHaveAttribute('aria-expanded', 'true'))
       expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
         'aria-selected',
@@ -1210,7 +1392,7 @@ describe('a draft has one editor (#154)', () => {
     expect(screen.getByLabelText('Title')).toHaveAttribute('readonly')
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Critique' })).toBeNull()
-    expect(screen.queryByRole('tab', { name: /^Comments/ })).toBeNull()
+    expect(screen.getByRole('tab', { name: /^Comments/ })).toBeTruthy() // anyone can comment
     expect(screen.queryByText(/Copy as Markdown/)).toBeNull() // publishing is the editor's
     await waitFor(() =>
       expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
-import CritiquePanel from '../components/CritiquePanel.vue'
+import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
 import HandoverPanel from '../components/HandoverPanel.vue'
@@ -12,7 +12,7 @@ import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
-import type { IdeaLink, IdeaNote } from '@lfwa/core'
+import { splitBlocks, type CommentInput, type IdeaLink, type IdeaNote } from '@lfwa/core'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import {
@@ -20,6 +20,7 @@ import {
   queryKeys,
   refreshNotesEverywhere,
   useDraft,
+  useDraftComments,
   useIdea,
 } from '../lib/queries'
 import type { CritiqueMarkPoint } from '../lib/critique-marks'
@@ -200,11 +201,10 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
 
 // Beside the draft on a wide screen the side area (notes, reading list, comments) is always there; on a phone it
 // slides in over the page.
-// The AI's comments are the editor's alone to weigh (independent review), so others have no Comments tab yet.
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
-  ...(canEdit.value ? [{ id: 'comments', label: 'Comments', count: openComments.value }] : []),
+  { id: 'comments', label: 'Comments', count: openComments.value },
 ])
 const sideTab = ref('notes')
 const notesOpen = ref(false)
@@ -223,16 +223,24 @@ async function closeNotes() {
   openButton.value?.focus()
 }
 
-// ---- critique: the latest round is kept with the draft, and its points are marked beside their paragraphs
+// ---- comments: the editor sees everyone's (the AI's critique included) and the others only their own; the server
+// decides which. The latest critique's summary and the looks used are the editor's alone.
 const critiqueKey = ['critique', () => props.profileId, () => props.id] as const
 const lastCritique = useQuery({
   queryKey: critiqueKey,
   queryFn: () => api.latestCritique(props.profileId, props.id),
+  enabled: canEdit,
 })
+const commentList = useDraftComments(
+  () => props.profileId,
+  () => props.id,
+)
+const comments = computed(() => commentList.data.value ?? [])
 const critique = useMutation({
   mutationFn: () => api.critique(props.profileId, props.id),
-  onSuccess: (state) => {
+  onSuccess: async (state) => {
     queryClient.setQueryData(['critique', props.profileId, props.id], state)
+    await invalidateRoots(queryClient, 'comments')
     activePointId.value = null
   },
   // Whatever came back (comments, or why not) is shown, even on a phone where the comments are in the drawer.
@@ -241,39 +249,46 @@ const critique = useMutation({
     if (!sideIsBeside()) await openNotes()
   },
 })
-// A comment is marked Read (or not) as soon as the switch is flipped; if that cannot be saved the switch goes back.
-const readProblem = ref('')
-const setRead = useMutation({
-  mutationFn: (v: { pointId: string; read: boolean }) =>
-    api.setCritiquePointDismissed(props.profileId, props.id, v.pointId, v.read),
-  onMutate: () => (readProblem.value = ''),
-  onSuccess: (state) => queryClient.setQueryData(['critique', props.profileId, props.id], state),
+// A comment is resolved (or not) as soon as the switch is flipped; if that cannot be saved the switch goes back.
+const resolveProblem = ref('')
+const setResolved = useMutation({
+  mutationFn: (v: { commentId: string; resolved: boolean }) =>
+    api.setCommentResolved(props.profileId, props.id, v.commentId, v.resolved),
+  onMutate: () => (resolveProblem.value = ''),
+  onSuccess: (all) => queryClient.setQueryData(queryKeys.comments(props.profileId, props.id), all),
   onError: (err, v) => {
-    readProblem.value = `We couldn't save that: ${errorMessage(err)}`
-    critiquePanel.value?.revert(v.pointId)
+    resolveProblem.value = `We couldn't save that: ${errorMessage(err)}`
+    commentsPanel.value?.revert(v.commentId)
   },
 })
+async function addComment(input: CommentInput) {
+  await api.addComment(props.profileId, props.id, input)
+  await invalidateRoots(queryClient, 'comments')
+}
+/** The paragraphs a new comment can be about: the draft as saved, because that is what the server finds them in. */
+const blocks = computed(() => splitBlocks(draft.data.value?.body ?? ''))
 const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
-/** Comments not yet marked Read: what the tab counts. */
-const openComments = computed(() => round.value?.points.filter((p) => !p.dismissed).length ?? 0)
-const critiquePanel = useTemplateRef<InstanceType<typeof CritiquePanel>>('critiquePanel')
+/** Comments not yet resolved, as this person sees them: what the tab counts. */
+const openComments = computed(() => comments.value.filter((c) => !c.resolved).length)
+const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
 const markPoints = computed<CritiqueMarkPoint[]>(() =>
-  (round.value?.points ?? []).flatMap((p, i) =>
-    p.block === 'whole'
+  comments.value.flatMap((c, i) =>
+    c.block === 'whole'
       ? []
       : [
           {
-            id: p.id,
-            block: p.block,
-            hash: p.hash,
-            excerpt: p.excerpt,
+            id: c.id,
+            block: c.block,
+            hash: c.hash,
+            excerpt: c.excerpt,
             number: i + 1,
-            label: `Critique point ${i + 1}`,
-            hidden: p.dismissed, // a comment marked Read has no mark in the text, but still finds its paragraph
+            label: `Comment ${i + 1}`,
+            byAi: c.byAi,
+            hidden: c.resolved, // a resolved comment has no mark in the text, but still finds its paragraph
           },
         ],
   ),
@@ -284,13 +299,13 @@ async function pickPoint(id: string) {
   activePointId.value = id
   sideTab.value = 'comments'
   if (!sideIsBeside() && !notesOpen.value) await openNotes()
-  void critiquePanel.value?.focusPoint(id) // the comment to the top of its area...
+  void commentsPanel.value?.focusPoint(id) // the comment to the top of its area...
   editor.value?.scrollToPoint(id) // ...and its paragraph to the top of the page, side by side
 }
 /** A comment was pressed: show its paragraph in the draft (a drawer gets out of the way first). */
 async function showInDraft(id: string) {
   activePointId.value = id
-  void critiquePanel.value?.focusPoint(id, { focus: false })
+  void commentsPanel.value?.focusPoint(id, { focus: false })
   if (notesOpen.value) await closeNotes()
   editor.value?.focusPoint(id)
 }
@@ -464,16 +479,23 @@ async function requestCritique() {
             />
           </template>
           <template #comments>
-            <CritiquePanel
-              ref="critiquePanel"
+            <CommentsPanel
+              ref="commentsPanel"
+              :query="commentList"
+              :comments="comments"
+              :round="round"
               :pending="critique.isPending.value"
               :error="critique.error.value ?? lastCritique.error.value"
-              :round="round"
               :located="located"
               :active-id="activePointId"
-              :read-problem="readProblem"
+              :is-editor="canEdit"
+              :viewer-id="session.user?.id"
+              :editor-name="draft.data.value.editorName"
+              :blocks="blocks"
+              :add="addComment"
+              :resolve-problem="resolveProblem"
               @show="showInDraft"
-              @set-read="(pointId, read) => setRead.mutate({ pointId, read })"
+              @set-resolved="(commentId, resolved) => setResolved.mutate({ commentId, resolved })"
             />
           </template>
         </TabPanels>

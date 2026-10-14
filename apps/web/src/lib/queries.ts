@@ -17,6 +17,7 @@ export const queryKeys = {
   sources: (profileId: string) => ['sources', profileId] as const,
   draft: (profileId: string, id: string) => ['draft', profileId, id] as const,
   handover: (profileId: string, id: string) => ['draft-handover', profileId, id] as const,
+  comments: (profileId: string, draftId: string) => ['comments', profileId, draftId] as const,
   conversation: (profileId: string, ideaId: string) => ['conversation', profileId, ideaId] as const,
   research: (profileId: string, ideaId: string) => ['research', profileId, ideaId] as const,
   recentPosts: (profileId: string, days: number, feeds: string) =>
@@ -24,6 +25,7 @@ export const queryKeys = {
 }
 
 export type QueryRoot =
+  | 'comments'
   | 'conversation'
   | 'critique'
   | 'draft'
@@ -96,6 +98,14 @@ export function useDraft(
     queryKey: computed(() => queryKeys.draft(profileId(), id())),
     queryFn: () => api.getDraft(profileId(), id()),
     enabled,
+  })
+}
+
+/** The comments on a draft that the signed-in person may see (the editor sees all of them; the others their own). */
+export function useDraftComments(profileId: Get<string>, draftId: Get<string>) {
+  return useQuery({
+    queryKey: computed(() => queryKeys.comments(profileId(), draftId())),
+    queryFn: () => api.listComments(profileId(), draftId()),
   })
 }
 
