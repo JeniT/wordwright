@@ -1,4 +1,5 @@
-import { DEFAULT_GRADER } from './config'
+import { CASES } from './cases'
+import { DEFAULT_GRADER, matchesCase } from './config'
 import { defaultModel } from './factory'
 
 export const MAX_TRIALS = 20
@@ -12,6 +13,8 @@ export interface RunOptions {
   grader: string
   /** How many times each case is run. One sample says little; several give a rate. */
   trials: number
+  /** Only run cases whose id contains one of these texts. Empty means all of the chosen group. */
+  cases: string[]
 }
 
 /** How to talk to the person. `askSecret` must not echo what is typed. Absent when the run is not interactive. */
@@ -47,9 +50,22 @@ export async function resolveOptions(
   const model = take('--model') ?? env.EVAL_MODEL ?? defaultModel(provider)
   const grader = take('--grader') ?? env.EVAL_GRADER ?? DEFAULT_GRADER
   const trialsFlag = take('--trials')
+  const caseFlag = take('--case')
+  const cases = caseFlag
+    ? caseFlag
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : []
   const which = (args[0] ?? 'current') as GroupChoice
   if (!['current', 'targets', 'all'].includes(which)) {
     throw new Error(`Unknown group "${which}". Use current, targets or all.`)
+  }
+
+  if (cases.length && !CASES.some((c) => matchesCase(c, cases))) {
+    throw new Error(
+      `No case id contains "${caseFlag}". Case ids look like "${CASES[0]!.id}"; see evals/src/cases.ts.`,
+    )
   }
 
   const notes: string[] = []
@@ -104,7 +120,7 @@ export async function resolveOptions(
       notes.push('Dry run with the fake adapter: rubrics cannot be graded without a grader key.')
   }
 
-  return { options: { which, provider, model, grader, trials }, env: childEnv, notes }
+  return { options: { which, provider, model, grader, trials, cases }, env: childEnv, notes }
 }
 
 function parseTrials(text: string): number {

@@ -32,7 +32,8 @@ files, the app's own tool list, a realistic snapshot) and grade the replies. The
 that a prompt works: each case is one sample and a model grades it. `pnpm eval` runs the cases for behaviour the
 prompts already ask for; `pnpm eval:targets` runs the ones that define planned work. In a terminal they ask for an API
 key (hidden, never saved) and how many times to run each case; they spend that key's money and are not part of
-`pnpm check` or CI. Add a case in
+`pnpm check` or CI. To rerun only some cases, add `--case` with part of each id, comma-separated:
+`pnpm eval -- --case rephrase-offers,critique-says --trials 3`. Add a case in
 [`evals/src/cases.ts`](../evals/src/cases.ts) when you change what a prompt should do, and tell the owner, who reviews
 prompt changes.
 

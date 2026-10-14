@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { promptfooConfig } from './config'
 import { resolveOptions, summarise, type Terminal } from './options'
 
 /** A terminal that records what it was asked and answers from a script. */
@@ -32,6 +33,21 @@ describe('resolveOptions', () => {
     expect(asked).toEqual([])
     expect(r.options.trials).toBe(5)
     expect(r.env.EVAL_API_KEY).toBe('k')
+  })
+
+  it('narrows the run to the cases named with --case, and rejects a name that matches none', async () => {
+    const env = { EVAL_API_KEY: 'k', ANTHROPIC_API_KEY: 'k' }
+    const r = await resolveOptions(
+      ['--trials', '1', '--case', 'rephrase-offers, critique-says'],
+      env,
+    )
+    expect(r.options.cases).toEqual(['rephrase-offers', 'critique-says'])
+    expect((await resolveOptions(['--trials', '1'], env)).options.cases).toEqual([])
+    await expect(resolveOptions(['--trials', '1', '--case', 'no-such-case'], env)).rejects.toThrow(
+      /No case id contains/,
+    )
+    const config = promptfooConfig('current', 'x', undefined, ['rephrase-offers'])
+    expect(config.tests.map((t) => t.vars.case)).toEqual(['rephrase-offers-different-approaches'])
   })
 
   it('defaults to one trial when the answer is empty', async () => {
