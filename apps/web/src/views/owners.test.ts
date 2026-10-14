@@ -119,3 +119,72 @@ describe('owners in the people list', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/at least one owner/)
   })
 })
+
+describe('removing someone and leaving', () => {
+  const deleted = (state: { removed: string[] }) =>
+    server.use(
+      http.delete('*/api/profiles/p1/members/:userId', ({ params }) => {
+        state.removed.push(String(params.userId))
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+  it('asks what happens before an owner removes a member, then does it', async () => {
+    serverWith({ ada: 'owner', bob: 'member' })
+    const state = { removed: [] as string[] }
+    deleted(state)
+    await renderAt('/p/p1/settings')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Remove Bob' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Remove Bob from Joint piece?' })
+    expect(within(dialog).getByText(/longest-standing owner/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/invite them again/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    expect(state.removed).toEqual([])
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove Bob' }))
+    await waitFor(() => expect(state.removed).toEqual(['u2']))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('does nothing when the removal is cancelled', async () => {
+    serverWith({ ada: 'owner', bob: 'member' })
+    const state = { removed: [] as string[] }
+    deleted(state)
+    await renderAt('/p/p1/settings')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Remove Bob' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(state.removed).toEqual([])
+  })
+
+  it('asks before a member leaves, and says they will need a new invitation to come back', async () => {
+    serverWith({ ada: 'member', bob: 'owner' }, 'member')
+    const state = { removed: [] as string[] }
+    deleted(state)
+    await renderAt('/p/p1/settings')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Leave' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Leave Joint piece?' })
+    expect(within(dialog).getByText(/only if an owner invites you again/)).toBeInTheDocument()
+    expect(state.removed).toEqual([])
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Leave' }))
+    await waitFor(() => expect(state.removed).toEqual(['u1']))
+  })
+
+  it("shows the server's reason if removing fails", async () => {
+    serverWith({ ada: 'owner', bob: 'member' })
+    server.use(
+      http.delete('*/api/profiles/p1/members/u2', () =>
+        HttpResponse.json({ error: 'That person is already gone.' }, { status: 404 }),
+      ),
+    )
+    await renderAt('/p/p1/settings')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Remove Bob' }))
+    await fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove Bob' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(/already gone/)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})

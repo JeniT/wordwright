@@ -303,6 +303,9 @@ One rule decides which control confirms, so the same kind of act always feels th
   and its button opens the dialog. Never use the browser's `confirm()`.
 - **Deleting or removing several at once** (the bulk Delete or Remove N in a list toolbar) also asks in a dialog that
   says how many, and is a text button, because more than one thing is at stake.
+- **Removing a person from a profile, or leaving one, and changing someone's role** (making or removing an owner)
+  affect what another person can do and where their drafts go, so each asks in a **dialog** that says what changes
+  (the people list in profile settings; the wording is in `lib/profile-roles.ts`). They are text buttons, not icons.
 - **Removing one thing with no consequences beyond it** (a note, a reading-list item, a feed, an invitation, a picture,
   an API key, a research run) takes a **press-and-hold** (`HoldButton`), with no dialog.
 - **How they look:** a delete with a dialog is a **text button that says "Delete …"**; a hold-to-confirm is a **trash

@@ -23,12 +23,16 @@ const isMe = (m: ProfileMember) => m.userId === session.user?.id
 const hintId = useId()
 
 // ---- leaving and removing
+// Asks first: the person's drafts move to an owner and they lose access, which only an invitation brings back.
+const removing = ref<ProfileMember | null>(null)
 const removeMember = useMutation({
   mutationFn: (userId: string) => api.removeMember(props.profile.id, userId),
   onSuccess: async (_, userId) => {
+    removing.value = null // before the refresh, so the dialog never lingers over the updated list
     await refresh()
     if (userId === session.user?.id) await router.push('/') // you left; it's no longer yours to see
   },
+  onSettled: () => (removing.value = null), // a failure shows in the status line below the list
 })
 const canRemove = (m: ProfileMember) =>
   (isOwner.value && m.role !== 'owner') || (!isOwner.value && isMe(m))
@@ -112,7 +116,7 @@ const confirmLabel = computed(() => {
           type="button"
           class="underline"
           :aria-label="isMe(m) ? undefined : `Remove ${m.name}`"
-          @click="removeMember.mutate(m.userId)"
+          @click="removing = m"
         >
           {{ isMe(m) ? 'Leave' : 'Remove' }}
         </button>
@@ -130,6 +134,33 @@ const confirmLabel = computed(() => {
     ><span>{{ changed }}</span></SaveStatus
   >
   <SaveStatus :mutation="removeMember" saved="" class="mt-2" />
+
+  <ConfirmDialog
+    :open="removing !== null"
+    :title="
+      removing && isMe(removing)
+        ? `Leave ${profile.name}?`
+        : `Remove ${removing?.name} from ${profile.name}?`
+    "
+    :confirm-label="removing && isMe(removing) ? 'Leave' : `Remove ${removing?.name}`"
+    busy-label="Removing…"
+    :busy="removeMember.isPending.value"
+    @confirm="removing && removeMember.mutate(removing.userId)"
+    @cancel="removing = null"
+  >
+    <template v-if="removing">
+      <p v-if="isMe(removing)">
+        You will lose access to its ideas, notes and drafts. Drafts you edit go to the profile's
+        longest-standing owner, and what you wrote stays with your name. You can come back only if
+        an owner invites you again.
+      </p>
+      <p v-else>
+        {{ removing.name }} will lose access to its ideas, notes and drafts. Drafts they edit go to
+        the profile's longest-standing owner, and what they wrote stays with their name. You can
+        invite them again later.
+      </p>
+    </template>
+  </ConfirmDialog>
 
   <ConfirmDialog
     :open="pending !== null"

@@ -463,6 +463,9 @@ describe('profile settings', () => {
     expect(screen.queryByRole('button', { name: 'Delete this profile' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Share' })).toBeNull()
     await fireEvent.click(screen.getByRole('button', { name: 'Leave' }))
+    expect(left).toBe(false) // it asks first
+    const dialog = await screen.findByRole('dialog', { name: /^Leave / })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Leave' }))
     await waitFor(() => expect(left).toBe(true))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
   })

@@ -674,6 +674,43 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
+test('removing a member and leaving a profile each ask first, saying what happens', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  await joinFrom(page, browser, 'Bob')
+  const cara = await joinFrom(page, browser, 'Cara')
+  const caraProblems = watchForProblems(cara)
+  await openSettings(page)
+
+  // Cancelling leaves Bob in place.
+  await page.getByRole('button', { name: 'Remove Bob' }).click()
+  const dialog = page.getByRole('dialog', { name: /^Remove Bob from / })
+  await expect(dialog).toContainText('longest-standing owner')
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('button', { name: 'Remove Bob' })).toBeVisible()
+
+  // Confirming removes him.
+  await page.getByRole('button', { name: 'Remove Bob' }).click()
+  await dialog.getByRole('button', { name: 'Remove Bob' }).click()
+  await expect(page.getByRole('button', { name: 'Remove Bob' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Remove Cara' })).toBeVisible()
+
+  // Cara leaves from her own page, after being told she needs a new invitation to come back.
+  await cara.reload()
+  await cara.getByRole('link', { name: 'Profile settings' }).click()
+  await cara.getByRole('button', { name: 'Leave', exact: true }).click()
+  const leaving = cara.getByRole('dialog', { name: /^Leave / })
+  await expect(leaving).toContainText('only if an owner invites you again')
+  await leaving.getByRole('button', { name: 'Leave', exact: true }).click()
+  await expect(cara.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  expect(caraProblems, "Cara's browser problems").toEqual([])
+})
+
 test('the only owner of a shared profile cannot delete their account until another owner is chosen', async ({
   page,
   browser,
