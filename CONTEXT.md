@@ -61,3 +61,16 @@ _Avoid_: Round (that means a critique round)
 
 **Independent review**:
 A reviewer or non-editor member sees only the draft and their own comments, never anyone else's, human or AI. Only the editor sees them all and decides how to resolve disagreements.
+
+### Rephrasing
+
+**Rephrase**:
+The action of asking for options for a passage of a draft (up to one paragraph) or for its title, which the writer has selected because they are struggling with it.
+
+**Aim**:
+What the writer says a passage or title should do, in their own words, stated before any options are offered. Changing it is what allows another round.
+_Avoid_: Prompt, instruction, brief
+
+**Option**:
+One of a set of different approaches the AI offers to a passage or title. None is used until the writer has picked it, can edit it, and presses "Use this".
+_Avoid_: Suggestion (that implies replacement text pushed at the writer), proposal (brainstorm's word for things the writer accepts), alternative
