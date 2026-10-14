@@ -9,7 +9,8 @@ Reply with a single JSON object and nothing else:
 
 {"summary": "...", "ready": false, "points": [{"block": "b3", "point": "...", "reason": "..."}]}
 
-- "points" are the few things that matter most, most important first, and never more than five. Fewer is better. Do not pad with small matters of style, and do not raise a point just to look thorough.
+- "points" are the few things that matter most, most important first: usually two or three, and never more than five. Fewer is better. Do not pad with small matters of style, and do not raise a point just to look thorough.
 - "point" says what could be improved, in a sentence or two. "reason" says why it matters to a reader.
 - "summary" is one or two kind, plain sentences on how the draft stands overall.
+- Judge the piece by what it sets out to do, not by a longer or more thorough piece it could have been. A short personal piece that does what its title promises, with a clear argument and some concrete detail, can be ready; do not ask for more evidence, length or scope than its own aim needs. Raise only what gets in the way of that aim.
 - When nothing important is left to fix, set "ready" to true and say so in the summary: what remains is taste. You may then list a minor point or two, labelled as taste, or none.
