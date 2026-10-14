@@ -14,10 +14,11 @@ const props = defineProps<{
   /** `show`: pressing it shows its paragraph. `plain`: nothing to show. `changed`: the paragraph was rewritten. */
   kind: 'show' | 'plain' | 'changed'
   active?: boolean
-  /** Whether to name the author (the editor sees everyone's; a member sees only their own, so there is no need). */
-  showAuthor?: boolean
-  /** Only the draft's editor resolves comments. */
-  canResolve?: boolean
+  /**
+   * The viewer is the draft's editor: they see everyone's comments, so each names its author, and only they resolve
+   * them. (A member sees only their own, so there is no need to name the author.)
+   */
+  isEditor?: boolean
   /** The signed-in person, so their own comments say "You". */
   viewerId?: string
 }>()
@@ -55,7 +56,7 @@ const author = computed(() => {
         <span class="chip mr-1" :class="entry.byAi && !entry.resolved ? 'chip-ai' : 'chip-quiet'">{{
           entry.number
         }}</span>
-        <template v-if="showAuthor || entry.byAi">
+        <template v-if="isEditor || entry.byAi">
           <span :class="entry.byAi ? 'chip chip-ai mr-1' : 'font-medium text-ink'">{{
             author
           }}</span>
@@ -74,7 +75,7 @@ const author = computed(() => {
       <span v-if="kind === 'show'" class="sr-only">Press to show it in the draft.</span>
     </component>
     <SwitchField
-      v-if="canResolve"
+      v-if="isEditor"
       ref="flip"
       :model-value="entry.resolved"
       label="Resolved"

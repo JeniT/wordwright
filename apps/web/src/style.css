@@ -29,33 +29,33 @@
  * the AI suggested; plain for a person's), and a numbered mark at its end. The writer's words are not tinted. The
  * editor draws these as decorations, so they are never saved.
  */
-.prose-editor .ProseMirror .critique-block {
+.prose-editor .ProseMirror .comment-block {
   border-left: 3px solid var(--color-mark);
   margin-left: -0.9rem;
   padding-left: 0.75rem;
 }
-.prose-editor .ProseMirror .critique-block.is-person {
+.prose-editor .ProseMirror .comment-block.is-person {
   border-left-color: var(--color-line-strong);
 }
-.prose-editor .ProseMirror .critique-block.is-active {
+.prose-editor .ProseMirror .comment-block.is-active {
   border-left-color: var(--color-accent);
 }
-.prose-editor .ProseMirror .critique-marks {
+.prose-editor .ProseMirror .comment-marks {
   display: inline-flex;
   gap: 0.25rem;
   margin-left: 0.4rem;
   vertical-align: middle;
   user-select: none;
 }
-.prose-editor .ProseMirror .critique-mark {
+.prose-editor .ProseMirror .comment-mark {
   background: var(--color-mark);
   font-size: 0.875rem;
   font-weight: 600;
 }
-.prose-editor .ProseMirror .critique-mark.is-person {
+.prose-editor .ProseMirror .comment-mark.is-person {
   background: var(--color-surface);
 }
-.prose-editor .ProseMirror .critique-mark[aria-current='true'] {
+.prose-editor .ProseMirror .comment-mark[aria-current='true'] {
   border-color: var(--color-accent);
   outline: 2px solid var(--color-accent);
 }

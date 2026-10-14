@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blockHash, locateBlock, splitBlocks } from './blocks'
+import { blockHash, excerptOf, locateBlock, splitBlocks } from './blocks'
 
 const texts = (md: string) => splitBlocks(md).map((b) => b.text)
 
@@ -107,5 +107,17 @@ describe('locateBlock', () => {
 
   it('does not match on a short start', () => {
     expect(locateBlock(point('Rivers.', 0), text('Rivers run.'))).toBeNull()
+  })
+})
+
+describe('excerptOf', () => {
+  it('puts a block on one line and leaves a short one whole', () => {
+    expect(excerptOf('  One\n\ntwo   three ')).toBe('One two three')
+  })
+
+  it('cuts a long block to the length given, ending with an ellipsis', () => {
+    expect(excerptOf('a'.repeat(100))).toBe(`${'a'.repeat(89)}…`)
+    expect(excerptOf('a'.repeat(100), 10)).toBe(`${'a'.repeat(9)}…`)
+    expect(excerptOf('a'.repeat(10), 10)).toBe('a'.repeat(10))
   })
 })

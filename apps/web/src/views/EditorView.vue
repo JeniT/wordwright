@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
@@ -12,7 +12,7 @@ import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { splitBlocks, type CommentInput, type IdeaLink, type IdeaNote } from '@lfwa/core'
+import { WHOLE_DRAFT, splitBlocks, type IdeaLink, type IdeaNote } from '@lfwa/core'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import {
@@ -20,10 +20,13 @@ import {
   queryKeys,
   refreshNotesEverywhere,
   useDraft,
+  useAddComment,
   useDraftComments,
+  useDraftCritique,
+  useResolveComment,
   useIdea,
 } from '../lib/queries'
-import type { CritiqueMarkPoint } from '../lib/critique-marks'
+import type { CommentMarkPoint } from '../lib/comment-marks'
 import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 import QueryState from '../components/QueryState.vue'
 
@@ -225,12 +228,11 @@ async function closeNotes() {
 
 // ---- comments: the editor sees everyone's (the AI's critique included) and the others only their own; the server
 // decides which. The latest critique's summary and the looks used are the editor's alone.
-const critiqueKey = ['critique', () => props.profileId, () => props.id] as const
-const lastCritique = useQuery({
-  queryKey: critiqueKey,
-  queryFn: () => api.latestCritique(props.profileId, props.id),
-  enabled: canEdit,
-})
+const lastCritique = useDraftCritique(
+  () => props.profileId,
+  () => props.id,
+  () => canEdit.value,
+)
 const commentList = useDraftComments(
   () => props.profileId,
   () => props.id,
@@ -239,7 +241,7 @@ const comments = computed(() => commentList.data.value ?? [])
 const critique = useMutation({
   mutationFn: () => api.critique(props.profileId, props.id),
   onSuccess: async (state) => {
-    queryClient.setQueryData(['critique', props.profileId, props.id], state)
+    queryClient.setQueryData(queryKeys.critique(props.profileId, props.id), state)
     await invalidateRoots(queryClient, 'comments')
     activePointId.value = null
   },
@@ -251,20 +253,22 @@ const critique = useMutation({
 })
 // A comment is resolved (or not) as soon as the switch is flipped; if that cannot be saved the switch goes back.
 const resolveProblem = ref('')
-const setResolved = useMutation({
-  mutationFn: (v: { commentId: string; resolved: boolean }) =>
-    api.setCommentResolved(props.profileId, props.id, v.commentId, v.resolved),
-  onMutate: () => (resolveProblem.value = ''),
-  onSuccess: (all) => queryClient.setQueryData(queryKeys.comments(props.profileId, props.id), all),
-  onError: (err, v) => {
+const setResolved = useResolveComment(
+  () => props.profileId,
+  () => props.id,
+  (err, commentId) => {
     resolveProblem.value = `We couldn't save that: ${errorMessage(err)}`
-    commentsPanel.value?.revert(v.commentId)
+    commentsPanel.value?.revert(commentId)
   },
-})
-async function addComment(input: CommentInput) {
-  await api.addComment(props.profileId, props.id, input)
-  await invalidateRoots(queryClient, 'comments')
+)
+function resolve(commentId: string, resolved: boolean) {
+  resolveProblem.value = ''
+  setResolved.mutate({ commentId, resolved })
 }
+const addComment = useAddComment(
+  () => props.profileId,
+  () => props.id,
+)
 /** The paragraphs a new comment can be about: the draft as saved, because that is what the server finds them in. */
 const blocks = computed(() => splitBlocks(draft.data.value?.body ?? ''))
 const round = computed(() => lastCritique.data.value?.round)
@@ -275,9 +279,9 @@ const openComments = computed(() => comments.value.filter((c) => !c.resolved).le
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
-const markPoints = computed<CritiqueMarkPoint[]>(() =>
+const markPoints = computed<CommentMarkPoint[]>(() =>
   comments.value.flatMap((c, i) =>
-    c.block === 'whole'
+    c.block === WHOLE_DRAFT
       ? []
       : [
           {
@@ -362,7 +366,7 @@ async function requestCritique() {
         <RichEditor
           ref="editor"
           v-model="body"
-          :critique-points="markPoints"
+          :comment-marks="markPoints"
           :active-point-id="activePointId"
           :editable="canEdit"
           @note-drop="onNoteDrop"
@@ -495,7 +499,7 @@ async function requestCritique() {
               :add="addComment"
               :resolve-problem="resolveProblem"
               @show="showInDraft"
-              @set-resolved="(commentId, resolved) => setResolved.mutate({ commentId, resolved })"
+              @set-resolved="resolve"
             />
           </template>
         </TabPanels>

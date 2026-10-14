@@ -161,16 +161,16 @@ Markdown: a toolbar of five worded buttons (Bold, Italic, Bulleted list, Numbere
 address is a small form that takes focus and gives it back. It reads and writes Markdown. Use it for any other short formatted text; the draft
 editor (`RichEditor`) is the long-form one.
 
-### Critique marks in the editor
+### Comment marks in the editor
 
-A point of a critique that is about a paragraph is shown beside it, in the editor, without touching the writer's words:
-the paragraph gets a 3px edge in the highlighter colour (the text itself is not tinted, so it stays visibly theirs)
-and a small numbered button (`btn btn-sm btn-icon critique-mark`, named "Critique point 2") at the end of its last line.
-The number is the point's rank. The one being looked at has the accent edge and an outline, and `aria-current`.
+A comment (the AI's or a person's) that is about a paragraph is shown beside it, in the editor, without touching the writer's words:
+the paragraph gets a 3px edge, in the highlighter colour for the AI's comments and a plain line colour for a person's (the highlighter is only for what the AI suggested; the text itself is not tinted, so it stays visibly theirs)
+and a small numbered button (`btn btn-sm btn-icon comment-mark`, named "Comment 2") at the end of its last line.
+The number is the comment's place in the list. The one being looked at has the accent edge and an outline, and `aria-current`.
 Pressing a mark opens its comment in the **Comments** tab beside the draft (the drawer, on a phone), and pressing a
-comment shows its paragraph in the draft (a drawer gets out of the way first): there is no separate "show" button. A comment has a **Read** switch (a state of the comment, so a switch and not a button): a Read comment stays where it is, quieter, and its mark leaves the text. Showing one scrolls the draft so the paragraph is at the top of the window and the comments so the comment is at the top of their area, side by side (`lib/scroll.ts`; smooth unless the person prefers less motion). To make that possible for the last paragraph and comment, the page and the comments area get spare room below their end while comments are showing. The
-number is the point's rank. Marks are ProseMirror decorations (`lib/critique-marks.ts`): they are drawn, never saved, and never in
-`getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A point
+comment shows its paragraph in the draft (a drawer gets out of the way first): there is no separate "show" button. The draft's editor gets a **Resolved** switch on each comment (a state of the comment, so a switch and not a button): a resolved comment is hidden, with its mark, unless the editor turns on **Show resolved**. Showing one scrolls the draft so the paragraph is at the top of the window and the comments so the comment is at the top of their area, side by side (`lib/scroll.ts`; smooth unless the person prefers less motion). To make that possible for the last paragraph and comment, the page and the comments area get spare room below their end while comments are showing. The
+Marks are ProseMirror decorations (`lib/comment-marks.ts`): they are drawn, never saved, and never in
+`getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A comment
 whose paragraph has been rewritten loses its mark and moves to "This passage has changed" in the panel.
 
 ## Actions and lists

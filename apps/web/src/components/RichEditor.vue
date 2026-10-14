@@ -5,27 +5,27 @@ import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { watch } from 'vue'
 import {
-  CritiqueMarks,
-  critiqueMarksKey,
-  type CritiqueMarkPoint,
-  type CritiqueMarkStorage,
-} from '../lib/critique-marks'
+  CommentMarks,
+  commentMarksKey,
+  type CommentMarkPoint,
+  type CommentMarkStorage,
+} from '../lib/comment-marks'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { scrollPageToTop } from '../lib/scroll'
 
 const model = defineModel<string>({ required: true })
 const props = defineProps<{
-  /** The points of the latest critique to mark in the text, beside the paragraphs they are about. */
-  critiquePoints?: CritiqueMarkPoint[]
+  /** The comments to mark in the text, beside the paragraphs they are about. */
+  commentMarks?: CommentMarkPoint[]
   /** The point being looked at: its paragraph is marked more strongly. */
   activePointId?: string | null
   /** False for someone who may read the draft but not change it. */
   editable?: boolean
 }>()
 const emit = defineEmits<{
-  /** A critique mark was pressed. */
+  /** A comment mark was pressed. */
   pointPick: [id: string]
-  /** Which critique points found their paragraph in the text as it is now. */
+  /** Which comments found their paragraph in the text as it is now. */
   located: [ids: string[]]
   /** A note from the side bar was dropped on the text, at this position in it (unknown when it can't be worked out). */
   noteDrop: [noteId: string, position: number | undefined]
@@ -45,8 +45,8 @@ const editor = useEditor({
       dropcursor: { color: 'var(--color-accent)', width: 2 }, // shows where a dragged note will land
     }),
     Markdown,
-    CritiqueMarks.configure({
-      points: () => props.critiquePoints ?? [],
+    CommentMarks.configure({
+      points: () => props.commentMarks ?? [],
       activeId: () => props.activePointId ?? null,
       onPick: (id) => emit('pointPick', id),
       onLocated: (ids) => emit('located', ids),
@@ -124,17 +124,17 @@ function insertInlineMarkdown(markdown: string): boolean {
   if (!inline) return false
   return e.chain().focus().insertContent(inline).run()
 }
-/** The paragraph (or heading...) a critique point is about, if it is in the text now. */
+/** The paragraph (or heading...) a comment is about, if it is in the text now. */
 function pointElement(id: string): HTMLElement | null {
   const e = editor.value
   const pos = (
-    e?.storage as unknown as { critiqueMarks: CritiqueMarkStorage } | undefined
-  )?.critiqueMarks.positions.get(id)
+    e?.storage as unknown as { commentMarks: CommentMarkStorage } | undefined
+  )?.commentMarks.positions.get(id)
   if (!e || pos === undefined) return null
   const dom = e.view.nodeDOM(pos)
   return dom instanceof HTMLElement ? dom : null
 }
-/** Scrolls the page so the paragraph a critique point is about is at the top. False if it is not in the text now. */
+/** Scrolls the page so the paragraph a comment is about is at the top. False if it is not in the text now. */
 function scrollToPoint(id: string): boolean {
   const el = pointElement(id)
   if (el) scrollPageToTop(el)
@@ -155,10 +155,10 @@ defineExpose({ insertMarkdown, insertInlineMarkdown, focusPoint, scrollToPoint }
 
 // The marks are redrawn when the points or the one being looked at change, not only when the text does.
 watch(
-  () => [props.critiquePoints, props.activePointId],
+  () => [props.commentMarks, props.activePointId],
   () => {
     const e = editor.value
-    if (e) e.view.dispatch(e.state.tr.setMeta(critiqueMarksKey, 'refresh'))
+    if (e) e.view.dispatch(e.state.tr.setMeta(commentMarksKey, 'refresh'))
   },
   { deep: true },
 )

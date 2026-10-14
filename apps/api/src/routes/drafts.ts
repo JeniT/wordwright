@@ -13,7 +13,7 @@ import { critiqueState } from '../services/critique'
 import { requireEditor } from '../services/draft-editor'
 import type { HandoverService } from '../services/handover'
 import { validateJson } from '../validate'
-import { fail } from '../errors'
+import { fail, notFound } from '../errors'
 import { param } from './params'
 
 /**
@@ -22,10 +22,10 @@ import { param } from './params'
  */
 export function draftRoutes(store: Store, handover: HandoverService) {
   const { drafts, notes, ideas, comments } = store
-  /** The draft a handover route is about, or a 404. */
+  /** The draft a route is about, or a 404. */
   const draftOf = (c: Parameters<typeof param>[0]) => {
     const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
-    if (!draft) throw fail(404, 'Not found')
+    if (!draft) throw notFound()
     return draft
   }
   return (
@@ -53,8 +53,7 @@ export function draftRoutes(store: Store, handover: HandoverService) {
       // The latest critique's summary with how many looks are used. It is the editor's alone: for everyone else it says
       // nothing, not even how many looks have been spent (independent review).
       .get('/:id/critique', (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
-        if (!draft) return c.json({ error: 'Not found' }, 404)
+        const draft = draftOf(c)
         const state = critiqueState(store, draft.id, c.get('user').id)
         return c.json(
           draft.editorId === c.get('user').id ? state : { ...state, round: null, used: 0 },
@@ -62,29 +61,22 @@ export function draftRoutes(store: Store, handover: HandoverService) {
       })
       // Comments on the draft, from members and the AI, as this person may see them (see `visibleComments`).
       .get('/:id/comments', (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
-        if (!draft) return c.json({ error: 'Not found' }, 404)
+        const draft = draftOf(c)
         return c.json(visibleComments(store, draft, c.get('user').id))
       })
       // Any member may comment on any draft, however they are not its editor.
       .post('/:id/comments', validateJson(CommentInputSchema), (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
-        if (!draft) return c.json({ error: 'Not found' }, 404)
+        const draft = draftOf(c)
         return c.json(addComment(store, draft, c.get('user').id, c.req.valid('json')), 201)
       })
       // Only the editor resolves a comment, and it answers with the comments as the editor now sees them.
       .put('/:id/comments/:commentId', validateJson(CommentResolveSchema), (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
-        if (!draft) return c.json({ error: 'Not found' }, 404)
+        const draft = draftOf(c)
         requireEditor(draft, c.get('user').id)
-        const done = comments.setResolved(
-          draft.id,
-          param(c, 'commentId'),
-          c.req.valid('json').resolved,
-        )
-        return done
-          ? c.json(visibleComments(store, draft, c.get('user').id))
-          : c.json({ error: 'Not found' }, 404)
+        if (!comments.setResolved(draft.id, param(c, 'commentId'), c.req.valid('json').resolved)) {
+          throw notFound()
+        }
+        return c.json(visibleComments(store, draft, c.get('user').id))
       })
       // Words pulled into the draft from the idea's notes, and where they came from.
       .get('/:id/insertions', (c) => {

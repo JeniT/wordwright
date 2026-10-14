@@ -1,4 +1,4 @@
-import { locateBlock } from '@lfwa/core'
+import { WHOLE_DRAFT, locateBlock } from '@lfwa/core'
 import { Extension } from '@tiptap/vue-3'
 import type { Node as ProseNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
@@ -8,7 +8,7 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view'
  * A comment, as the editor needs it to mark the paragraph it is about. The marks are decorations: they
  * are drawn over the document but are not part of it, so they never reach `getMarkdown()` or the saved draft.
  */
-export interface CritiqueMarkPoint {
+export interface CommentMarkPoint {
   id: string
   /** `b3` or `whole`. Only blocks get a mark; the whole-piece points live in the panel. */
   block: string
@@ -24,18 +24,18 @@ export interface CritiqueMarkPoint {
   hidden?: boolean
 }
 
-export interface CritiqueMarkOptions {
-  points: () => CritiqueMarkPoint[]
+export interface CommentMarkOptions {
+  points: () => CommentMarkPoint[]
   activeId: () => string | null
   onPick: (id: string) => void
   /** Says which points found their paragraph in the text as it is now (the others have "changed"). */
   onLocated: (ids: string[]) => void
 }
 
-export const critiqueMarksKey = new PluginKey('critiqueMarks')
+export const commentMarksKey = new PluginKey('commentMarks')
 
 /** Where each point's paragraph is in the document now, by the point's id. Kept in the editor's storage. */
-export interface CritiqueMarkStorage {
+export interface CommentMarkStorage {
   positions: Map<string, number>
 }
 
@@ -50,8 +50,8 @@ function textBlocks(doc: ProseNode) {
   return blocks
 }
 
-export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkStorage>({
-  name: 'critiqueMarks',
+export const CommentMarks = Extension.create<CommentMarkOptions, CommentMarkStorage>({
+  name: 'commentMarks',
 
   addOptions: () => ({
     points: () => [],
@@ -69,9 +69,9 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
     function place(doc: ProseNode) {
       const blocks = textBlocks(doc)
       const positions = new Map<string, number>()
-      const byBlock = new Map<number, CritiqueMarkPoint[]>()
+      const byBlock = new Map<number, CommentMarkPoint[]>()
       for (const p of options.points()) {
-        if (p.block === 'whole' || p.hash === null) continue
+        if (p.block === WHOLE_DRAFT || p.hash === null) continue
         const at = locateBlock(
           { hash: p.hash, excerpt: p.excerpt, index: Number(p.block.slice(1)) - 1 },
           blocks,
@@ -83,16 +83,16 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
       return { blocks, positions, byBlock }
     }
 
-    function widget(points: CritiqueMarkPoint[], active: string | null) {
+    function widget(points: CommentMarkPoint[], active: string | null) {
       const wrap = document.createElement('span')
-      wrap.className = 'critique-marks'
+      wrap.className = 'comment-marks'
       wrap.contentEditable = 'false'
       for (const p of points) {
         const button = document.createElement('button')
         button.type = 'button'
         button.className = p.byAi
-          ? 'btn btn-sm btn-icon critique-mark'
-          : 'btn btn-sm btn-icon critique-mark is-person'
+          ? 'btn btn-sm btn-icon comment-mark'
+          : 'btn btn-sm btn-icon comment-mark is-person'
         button.dataset.pointId = p.id
         button.textContent = String(p.number)
         button.setAttribute('aria-label', p.label)
@@ -106,7 +106,7 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
     let lastLocated = ''
     return [
       new Plugin({
-        key: critiqueMarksKey,
+        key: commentMarksKey,
         props: {
           decorations: (state) => {
             const { blocks, positions, byBlock } = place(state.doc)
@@ -116,7 +116,7 @@ export const CritiqueMarks = Extension.create<CritiqueMarkOptions, CritiqueMarkS
             for (const [at, points] of byBlock) {
               const b = blocks[at]!
               const isActive = points.some((p) => p.id === active)
-              const classes = ['critique-block']
+              const classes = ['comment-block']
               if (!points.some((p) => p.byAi)) classes.push('is-person')
               if (isActive) classes.push('is-active')
               decorations.push(

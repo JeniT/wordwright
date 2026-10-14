@@ -1,7 +1,13 @@
-import { splitBlocks, type CommentInput, type Draft, type DraftComment } from '@lfwa/core'
+import {
+  WHOLE_DRAFT,
+  excerptOf,
+  splitBlocks,
+  type CommentInput,
+  type Draft,
+  type DraftComment,
+} from '@lfwa/core'
 import type { Store } from '../db/store'
 import { fail } from '../errors'
-import { excerptOf } from './critique'
 
 /**
  * The comments this person may see on the draft: the editor sees every one, resolved or not; everyone else sees only
@@ -21,25 +27,18 @@ export function addComment(
   userId: string,
   input: CommentInput,
 ): DraftComment {
-  if (input.block === 'whole') {
-    return store.comments.add(draft.id, userId, {
-      block: 'whole',
-      hash: null,
-      excerpt: '',
-      text: input.text,
-    })
-  }
-  const block = splitBlocks(draft.body).find((b) => b.id === input.block)
-  if (!block) {
+  const whole = input.block === WHOLE_DRAFT
+  const block = whole ? undefined : splitBlocks(draft.body).find((b) => b.id === input.block)
+  if (!whole && !block) {
     throw fail(
       400,
       "That paragraph isn't in the draft any more. Reload the page to see the latest version, then comment again.",
     )
   }
   return store.comments.add(draft.id, userId, {
-    block: block.id,
-    hash: block.hash,
-    excerpt: excerptOf(block.text),
+    block: block?.id ?? WHOLE_DRAFT,
+    hash: block?.hash ?? null,
+    excerpt: block ? excerptOf(block.text) : '',
     text: input.text,
   })
 }

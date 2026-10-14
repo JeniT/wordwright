@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
-import { COMMENT_MAX_LENGTH, type CommentInput } from '@lfwa/core'
+import { COMMENT_MAX_LENGTH, WHOLE_DRAFT, excerptOf, type CommentInput } from '@lfwa/core'
 import SaveStatus from './SaveStatus.vue'
 
 /**
@@ -17,16 +17,13 @@ const props = defineProps<{
   /** Whom it will be shown to, said above the field. */
   audience: string
 }>()
-const about = ref('whole')
+const about = ref(WHOLE_DRAFT)
 const text = ref('')
 const id = useId()
 
 const options = computed(() => [
-  { id: 'whole', label: 'The whole draft' },
-  ...props.blocks.map((b, i) => {
-    const plain = b.text.replace(/\s+/g, ' ').trim()
-    return { id: b.id, label: `${i + 1}. ${plain.length > 50 ? `${plain.slice(0, 49)}…` : plain}` }
-  }),
+  { id: WHOLE_DRAFT, label: 'The whole draft' },
+  ...props.blocks.map((b, i) => ({ id: b.id, label: `${i + 1}. ${excerptOf(b.text, 50)}` })),
 ])
 const post = useMutation({
   mutationFn: () => props.add({ block: about.value, text: text.value }),

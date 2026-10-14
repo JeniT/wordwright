@@ -5,6 +5,8 @@ import {
   MAX_CRITIQUE_POINTS,
   ModelCritiqueSchema,
   splitBlocks,
+  excerptOf,
+  WHOLE_DRAFT,
   type Block,
   type Critique,
 } from '@lfwa/core'
@@ -33,12 +35,6 @@ export function formatDraftForCritique(
   return { message, blocks }
 }
 
-/** The start of a block, enough to tell which one it is. */
-export function excerptOf(text: string): string {
-  const plain = text.replace(/\s+/g, ' ').trim()
-  return plain.length > 90 ? `${plain.slice(0, 89)}…` : plain
-}
-
 /**
  * Reads the model's reply (JSON, perhaps in a code fence) into a `Critique`. The reply is untrusted: points about a
  * block we did not send are dropped and the rest are cut to `MAX_CRITIQUE_POINTS`. Returns null when the reply is
@@ -58,12 +54,12 @@ export function parseCritique(reply: string, blocks: readonly Block[]): Critique
 
   const byId = new Map(blocks.map((b) => [b.id, b]))
   const points = parsed.data.points
-    .filter((p) => p.block === 'whole' || byId.has(p.block))
+    .filter((p) => p.block === WHOLE_DRAFT || byId.has(p.block))
     .slice(0, MAX_CRITIQUE_POINTS)
     .map((p) => ({
       block: p.block,
-      excerpt: p.block === 'whole' ? '' : excerptOf(byId.get(p.block)!.text),
-      hash: p.block === 'whole' ? null : byId.get(p.block)!.hash,
+      excerpt: p.block === WHOLE_DRAFT ? '' : excerptOf(byId.get(p.block)!.text),
+      hash: p.block === WHOLE_DRAFT ? null : byId.get(p.block)!.hash,
       point: p.point,
       reason: p.reason,
     }))

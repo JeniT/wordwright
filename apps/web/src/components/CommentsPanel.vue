@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, type Ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { CommentInput, CritiqueRound, DraftComment } from '@lfwa/core'
+import { WHOLE_DRAFT, type CommentInput, type CritiqueRound, type DraftComment } from '@lfwa/core'
 import { ApiError, errorMessage } from '../lib/api'
+import type { QueryStatus } from '../lib/queries'
 import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
 import CommentCard from './CommentCard.vue'
 import CommentForm from './CommentForm.vue'
@@ -18,12 +19,7 @@ import SwitchField from './SwitchField.vue'
  */
 const props = defineProps<{
   /** The comments query, shown with its own loading and error states. */
-  query: {
-    isPending: Ref<boolean>
-    isError: Ref<boolean>
-    error?: Ref<unknown>
-    refetch: () => unknown
-  }
+  query: QueryStatus
   comments: DraftComment[]
   /** The latest critique (its summary), if this person may see it. */
   round: CritiqueRound | null | undefined
@@ -50,6 +46,7 @@ const emit = defineEmits<{
 }>()
 
 const showResolved = ref(false)
+const cardProps = computed(() => ({ isEditor: props.isEditor, viewerId: props.viewerId }))
 
 type Entry = DraftComment & { number: number }
 /** Numbered by place in the whole list, so showing the resolved ones does not renumber the others. */
@@ -57,10 +54,10 @@ const numbered = computed<Entry[]>(() => props.comments.map((c, i) => ({ ...c, n
 const resolvedCount = computed(() => numbered.value.filter((c) => c.resolved).length)
 const shown = computed(() => numbered.value.filter((c) => showResolved.value || !c.resolved))
 const placed = computed(() =>
-  shown.value.filter((c) => c.block === 'whole' || props.located.has(c.id)),
+  shown.value.filter((c) => c.block === WHOLE_DRAFT || props.located.has(c.id)),
 )
 const changed = computed(() =>
-  shown.value.filter((c) => c.block !== 'whole' && !props.located.has(c.id)),
+  shown.value.filter((c) => c.block !== WHOLE_DRAFT && !props.located.has(c.id)),
 )
 
 /** Each comment, so a Resolved switch that could not be saved can be put back. */
@@ -133,11 +130,9 @@ const audience = computed(() =>
           <CommentCard
             :ref="remember(c.id)"
             :entry="c"
-            :kind="c.block === 'whole' ? 'plain' : 'show'"
+            :kind="c.block === WHOLE_DRAFT ? 'plain' : 'show'"
             :active="c.id === activeId"
-            :show-author="isEditor"
-            :can-resolve="isEditor"
-            :viewer-id="viewerId"
+            v-bind="cardProps"
             @show="emit('show', c.id)"
             @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"
           />
@@ -156,9 +151,7 @@ const audience = computed(() =>
               :ref="remember(c.id)"
               :entry="c"
               kind="changed"
-              :show-author="isEditor"
-              :can-resolve="isEditor"
-              :viewer-id="viewerId"
+              v-bind="cardProps"
               @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"
             />
           </li>

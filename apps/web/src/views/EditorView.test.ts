@@ -193,7 +193,7 @@ describe('EditorView critique', () => {
     expect(screen.queryByRole('button', { name: /Show in draft/ })).toBeNull()
     await fireEvent.click(await screen.findByRole('button', { name: /Tighten the opening/ }))
     await waitFor(() => expect(document.querySelector('.ProseMirror')).toHaveFocus())
-    expect(document.querySelector('.critique-block.is-active')).not.toBeNull()
+    expect(document.querySelector('.comment-block.is-active')).not.toBeNull()
   })
 
   it('scrolls the paragraph to the top of the page and the comment to the top of its area when a comment is pressed', async () => {

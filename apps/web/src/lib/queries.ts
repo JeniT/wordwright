@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query'
-import type { IdeaNote } from '@lfwa/core'
-import { computed } from 'vue'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query'
+import type { CommentInput, IdeaNote } from '@lfwa/core'
+import { computed, type Ref } from 'vue'
 import { api } from './api'
 
 /**
@@ -18,6 +18,7 @@ export const queryKeys = {
   draft: (profileId: string, id: string) => ['draft', profileId, id] as const,
   handover: (profileId: string, id: string) => ['draft-handover', profileId, id] as const,
   comments: (profileId: string, draftId: string) => ['comments', profileId, draftId] as const,
+  critique: (profileId: string, draftId: string) => ['critique', profileId, draftId] as const,
   conversation: (profileId: string, ideaId: string) => ['conversation', profileId, ideaId] as const,
   research: (profileId: string, ideaId: string) => ['research', profileId, ideaId] as const,
   recentPosts: (profileId: string, days: number, feeds: string) =>
@@ -26,6 +27,7 @@ export const queryKeys = {
 
 export type QueryRoot =
   | 'comments'
+  | 'critique'
   | 'conversation'
   | 'critique'
   | 'draft'
@@ -101,11 +103,56 @@ export function useDraft(
   })
 }
 
+/** What a component needs to know of a query to show its loading and error states (see `QueryState`). */
+export interface QueryStatus {
+  isPending: Ref<boolean>
+  isError: Ref<boolean>
+  error?: Ref<unknown>
+  refetch: () => unknown
+}
+
+/** The latest critique's summary and how many looks are used: the draft editor's alone (others get nothing). */
+export function useDraftCritique(
+  profileId: Get<string>,
+  draftId: Get<string>,
+  enabled: Get<boolean>,
+) {
+  return useQuery({
+    queryKey: computed(() => queryKeys.critique(profileId(), draftId())),
+    queryFn: () => api.latestCritique(profileId(), draftId()),
+    enabled,
+  })
+}
+
 /** The comments on a draft that the signed-in person may see (the editor sees all of them; the others their own). */
 export function useDraftComments(profileId: Get<string>, draftId: Get<string>) {
   return useQuery({
     queryKey: computed(() => queryKeys.comments(profileId(), draftId())),
     queryFn: () => api.listComments(profileId(), draftId()),
+  })
+}
+
+/** Adds the person's comment to the draft, then refreshes the list. */
+export function useAddComment(profileId: Get<string>, draftId: Get<string>) {
+  const queryClient = useQueryClient()
+  return async (input: CommentInput) => {
+    await api.addComment(profileId(), draftId(), input)
+    await invalidateRoots(queryClient, 'comments')
+  }
+}
+
+/** The editor resolving a comment (or bringing it back): keeps the list the server answers with. */
+export function useResolveComment(
+  profileId: Get<string>,
+  draftId: Get<string>,
+  onError: (err: unknown, commentId: string) => void,
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { commentId: string; resolved: boolean }) =>
+      api.setCommentResolved(profileId(), draftId(), v.commentId, v.resolved),
+    onSuccess: (all) => queryClient.setQueryData(queryKeys.comments(profileId(), draftId()), all),
+    onError: (err, v) => onError(err, v.commentId),
   })
 }
 

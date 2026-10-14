@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Ref } from 'vue'
 import { errorMessage } from '../lib/api'
+import type { QueryStatus } from '../lib/queries'
 
 /**
  * Loading and error states for a query, so every list and section says the same things the same way: a quiet
@@ -10,12 +10,7 @@ import { errorMessage } from '../lib/api'
  */
 defineProps<{
   /** The query (what `useQuery` returns). */
-  query: {
-    isPending: Ref<boolean>
-    isError: Ref<boolean>
-    error?: Ref<unknown>
-    refetch: () => unknown
-  }
+  query: QueryStatus
   /** What could not be loaded, after "We couldn't load": "the notes", "your feeds". */
   what: string
   /** Replaces "Loading…" where it helps to say what is loading ("Reading your feeds…"). */

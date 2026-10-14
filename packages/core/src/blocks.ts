@@ -11,6 +11,15 @@ export interface Block {
   hash: string
 }
 
+/** What a comment's `block` is when it is about the draft as a whole rather than one of its blocks. */
+export const WHOLE_DRAFT = 'whole'
+
+/** The start of a block, enough to tell which one it is: its words on one line, cut to `max` characters. */
+export function excerptOf(text: string, max = 90): string {
+  const plain = text.replace(/\s+/g, ' ').trim()
+  return plain.length > max ? `${plain.slice(0, max - 1)}…` : plain
+}
+
 const FENCE = /^\s{0,3}(```|~~~)/
 const HEADING = /^\s{0,3}#{1,6}(\s|$)/
 const LIST_ITEM = /^(?:[-*+]|\d{1,9}[.)])\s/

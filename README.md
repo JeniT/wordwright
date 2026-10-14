@@ -363,7 +363,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 - **UI components:** Tailwind plus our own component classes ([docs/design.md](docs/design.md)); add headless primitives
   (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
-  (the design is in [docs/decisions.md](docs/decisions.md#critique-points-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
+  (the design is in [docs/decisions.md](docs/decisions.md#comment-marks-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
   The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
   gets 3 critiques by default (each person can choose 1 to 5 on their account page), counted per draft.
 - **Not yet built:** idea scanning, research, outlining, streaming critique, title/social generation.
