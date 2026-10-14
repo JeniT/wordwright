@@ -608,6 +608,18 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE draft_insertions ADD COLUMN kept_note_author_name TEXT;
   ALTER TABLE draft_insertions ADD COLUMN kept_inserted_by_name TEXT;
   `,
+  // #154: each draft has one editor, who alone changes its words, and a version that saves must quote. Existing
+  // drafts go to their creator, or to the profile's longest-standing owner if the creator is gone. The editor
+  // is cleared if their account goes, but removing a member or an account hands their drafts to an owner first.
+  `
+  ALTER TABLE drafts ADD COLUMN editor_id TEXT REFERENCES users(id) ON DELETE SET NULL;
+  ALTER TABLE drafts ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+  UPDATE drafts SET editor_id = coalesce(
+    created_by,
+    (SELECT m.user_id FROM profile_members m WHERE m.profile_id = drafts.profile_id AND m.role = 'owner'
+     ORDER BY m.joined_at, m.rowid LIMIT 1)
+  );
+  `,
 ]
 
 /**

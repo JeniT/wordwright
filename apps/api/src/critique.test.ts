@@ -221,7 +221,11 @@ describe('critique rounds per draft', () => {
   it('counts per draft, and editing the draft does not earn more looks', async () => {
     const { client, base, profileId, draft, ask } = await ada()
     for (let i = 0; i < 3; i++) await ask()
-    await client.put(`${base}/drafts/${draft.id}`, { title: 'T', body: 'A completely new text.' })
+    await client.put(`${base}/drafts/${draft.id}`, {
+      title: 'T',
+      body: 'A completely new text.',
+      version: draft.version,
+    })
     expect((await ask()).status).toBe(409)
     const other = await createDraft(client, profileId, { title: 'U', body: 'Another.' })
     expect((await ask(other.id)).status).toBe(200)
@@ -267,6 +271,9 @@ describe('critique rounds per draft', () => {
     await bob.put('/api/account/critique-settings', { rounds: 4 })
     for (let i = 0; i < 3; i++) await ask()
     expect((await ask()).status).toBe(409) // Ada's limit is 3
+    // The editor is whoever asks, so Bob becomes the editor to ask with his own limit.
+    const bobId = (await (await bob.get('/api/auth/me')).json()).id
+    ctx.store.drafts.reassignEditor(profileId, draft.editorId, bobId)
     const res = await bob.post(`/api/profiles/${profileId}/assist/critique`, { draftId: draft.id })
     expect(res.status).toBe(200) // Bob's is 4
     expect(await res.json()).toMatchObject({ used: 4, allowed: 4 })

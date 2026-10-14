@@ -454,7 +454,11 @@ describe('drafts and critique within a profile', () => {
     expect(draft).toMatchObject({ title: 'Hello', body: 'World', profileId: pid })
 
     const updated = await (
-      await c.put(`${base}/drafts/${draft.id}`, { title: 'Hi', body: 'There' })
+      await c.put(`${base}/drafts/${draft.id}`, {
+        title: 'Hi',
+        body: 'There',
+        version: draft.version,
+      })
     ).json()
     expect(updated).toMatchObject({ title: 'Hi', body: 'There' })
     const idea = await (await c.get(`${base}/ideas/${draft.ideaId}`)).json()

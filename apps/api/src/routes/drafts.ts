@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
-import { CritiquePointDismissSchema, DraftInputSchema, DraftInsertionInputSchema } from '@lfwa/core'
+import { CritiquePointDismissSchema, DraftInsertionInputSchema, DraftSaveSchema } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import { critiqueState } from '../services/critique'
+import { requireEditor } from '../services/draft-editor'
 import { validateJson } from '../validate'
 import { fail } from '../errors'
 import { param } from './params'
@@ -19,20 +20,34 @@ export function draftRoutes(store: Store) {
         const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
       })
-      .put('/:id', validateJson(DraftInputSchema), (c) => {
-        const draft = drafts.update(param(c, 'profileId'), param(c, 'id'), c.req.valid('json'))
-        return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
+      // Only the editor saves, and only from the version they last saw: a stale save is refused (409), never merged.
+      .put('/:id', validateJson(DraftSaveSchema), (c) => {
+        const profileId = param(c, 'profileId')
+        const current = drafts.get(profileId, param(c, 'id'))
+        if (!current) return c.json({ error: 'Not found' }, 404)
+        requireEditor(current, c.get('user').id)
+        const { version, ...input } = c.req.valid('json')
+        const saved = drafts.update(profileId, current.id, input, version)
+        if (!saved) {
+          throw fail(
+            409,
+            'This draft has been saved somewhere else since you opened it. Reload the page to see the latest version.',
+          )
+        }
+        return c.json(saved)
       })
       // The latest critique of the draft with how many looks are used, and the writer setting one of its points aside.
       .get('/:id/critique', (c) => {
         const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
-        return draft
-          ? c.json(critiqueState(store, draft.id, c.get('user').id))
-          : c.json({ error: 'Not found' }, 404)
+        if (!draft) return c.json({ error: 'Not found' }, 404)
+        const state = critiqueState(store, draft.id, c.get('user').id)
+        // The AI's comments are the editor's to weigh; everyone else reviews independently (see CONTEXT.md).
+        return c.json(draft.editorId === c.get('user').id ? state : { ...state, round: null })
       })
       .put('/:id/critique/points/:pointId', validateJson(CritiquePointDismissSchema), (c) => {
         const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
+        requireEditor(draft, c.get('user').id)
         const done = critiques.setDismissed(
           draft.id,
           param(c, 'pointId'),
@@ -50,6 +65,7 @@ export function draftRoutes(store: Store) {
       .post('/:id/insertions', validateJson(DraftInsertionInputSchema), (c) => {
         const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
+        requireEditor(draft, c.get('user').id)
         const { noteId, text } = c.req.valid('json')
         // The origin and source come from the note, never from the request, so they can't be claimed falsely.
         const note = draft.ideaId ? notes.get(draft.ideaId, noteId) : undefined

@@ -1,3 +1,4 @@
+import { handDraftsToOwner } from './draft-editor'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 
@@ -27,6 +28,7 @@ export function removeUserAndOwnedData(
         store.profiles.setRole(profileId, others[0]!.userId, 'owner')
       }
     }
+    if (others.length > 0) handDraftsToOwner(store, profileId, user.id)
   }
   if (keepName) store.users.keepNameOnContributions(user.id, user.name)
   store.invitations.deleteForEmail(user.email)

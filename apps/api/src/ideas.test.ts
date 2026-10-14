@@ -361,6 +361,7 @@ describe('ideas', () => {
       const saved = await ada.put(`/api/profiles/${profile}/drafts/${draft.id}`, {
         title: 'Why rivers meander',
         body: 'Text',
+        version: draft.version,
       })
       expect((await saved.json()).ideaId).toBe(idea.id)
     })

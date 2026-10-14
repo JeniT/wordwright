@@ -12,7 +12,8 @@ import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@lfwa/core'
-import { api, errorMessage } from '../lib/api'
+import { ApiError, api, errorMessage } from '../lib/api'
+import { useSessionStore } from '../stores/session'
 import {
   invalidateRoots,
   queryKeys,
@@ -37,24 +38,45 @@ const idea = useIdea(
   () => props.profileId,
   () => draft.data.value?.ideaId,
 )
+const session = useSessionStore()
+/** Only the draft's editor changes its words; everyone else reads it (#154). */
+const canEdit = computed(() => !!draft.data.value && draft.data.value.editorId === session.user?.id)
 const title = ref('')
 const body = ref('')
+/** What the server had when the fields were last filled or saved: the words, and the version a save is made from. */
+let loaded: { title: string; body: string; version: number } | null = null
+// Newer words from elsewhere (another tab, a refetch when the window regains focus) fill the fields unless the person
+// has typed something not yet saved: that stays, and saving it is then refused (see `conflict`) instead of losing either.
 watch(
   () => draft.data.value,
   (d) => {
-    if (d) {
-      title.value = d.title
-      body.value = d.body
-    }
+    if (!d || (loaded && d.version === loaded.version)) return
+    if (loaded && (title.value !== loaded.title || body.value !== loaded.body)) return
+    title.value = d.title
+    body.value = d.body
+    loaded = { title: d.title, body: d.body, version: d.version }
   },
   { immediate: true },
 )
 
 const save = useMutation({
-  mutationFn: () =>
-    api.updateDraft(props.profileId, props.id, { title: title.value, body: body.value }),
-  onSuccess: (saved) => queryClient.setQueryData(queryKeys.draft(props.profileId, props.id), saved),
+  mutationFn: () => {
+    if (!loaded) throw new Error("The draft isn't ready yet. Try again in a moment.")
+    return api.updateDraft(props.profileId, props.id, {
+      title: title.value,
+      body: body.value,
+      version: loaded.version,
+    })
+  },
+  onSuccess: (saved) => {
+    loaded = { title: saved.title, body: saved.body, version: saved.version }
+    queryClient.setQueryData(queryKeys.draft(props.profileId, props.id), saved)
+  },
 })
+/** The draft was saved from somewhere else since this page loaded it: what is typed here is kept, not sent. */
+const conflict = computed(
+  () => save.error.value instanceof ApiError && save.error.value.status === 409,
+)
 
 // ---- pulling notes into the draft
 const editor = useTemplateRef<InstanceType<typeof RichEditor>>('editor')
@@ -177,10 +199,11 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
 
 // Beside the draft on a wide screen the side area (notes, reading list, comments) is always there; on a phone it
 // slides in over the page.
+// The AI's comments are the editor's alone to weigh (independent review), so others have no Comments tab yet.
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
-  { id: 'comments', label: 'Comments', count: openComments.value },
+  ...(canEdit.value ? [{ id: 'comments', label: 'Comments', count: openComments.value }] : []),
 ])
 const sideTab = ref('notes')
 const notesOpen = ref(false)
@@ -302,11 +325,19 @@ async function requestCritique() {
             ← All drafts
           </RouterLink>
         </p>
+        <p v-if="draft.data.value && !canEdit" class="callout mb-4 text-sm" data-testid="read-only">
+          <span class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
+            draft.data.value.editorName
+          }}</span>
+          is this draft's editor. You can read it and its notes, but only they can change it. Reload
+          the page, or come back to it, to see their latest changes.
+        </p>
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
         <input
           id="title"
           v-model="title"
+          :readonly="!canEdit"
           class="mb-6 w-full bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-ink-soft"
           placeholder="Title"
         />
@@ -316,6 +347,7 @@ async function requestCritique() {
           v-model="body"
           :critique-points="markPoints"
           :active-point-id="activePointId"
+          :editable="canEdit"
           @note-drop="onNoteDrop"
           @point-pick="pickPoint"
           @located="located = new Set($event)"
@@ -326,6 +358,7 @@ async function requestCritique() {
 
         <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
           <button
+            v-if="canEdit"
             type="button"
             class="btn btn-primary"
             :disabled="save.isPending.value"
@@ -334,6 +367,7 @@ async function requestCritique() {
             Save
           </button>
           <AiButton
+            v-if="canEdit"
             class="btn btn-outline"
             :busy="critiquing"
             busy-text="Reading your draft…"
@@ -357,10 +391,15 @@ async function requestCritique() {
           <p role="status" class="text-sm text-ink-soft">
             <template v-if="save.isPending.value">Saving…</template>
             <template v-else-if="save.isSuccess.value">Saved</template>
-            <template v-else-if="save.isError.value">Couldn't save</template>
+            <template v-else-if="save.isError.value && !conflict">Couldn't save</template>
           </p>
         </div>
-        <p v-if="looks" id="critique-looks" class="mt-2 text-sm text-ink-soft">
+        <p v-if="conflict" role="alert" class="mt-3 text-danger">
+          This draft was saved somewhere else since you opened it, perhaps in another tab, so this
+          save was not made. What you typed is still here: copy it somewhere safe, then reload the
+          page to see the latest version.
+        </p>
+        <p v-if="looks && canEdit" id="critique-looks" class="mt-2 text-sm text-ink-soft">
           <template v-if="outOfLooks">
             You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
             this draft. The next step is to
@@ -373,7 +412,7 @@ async function requestCritique() {
 
         <DraftInsertions :profile-id="profileId" :draft-id="id" :body="body" />
 
-        <DraftPublish :title="title" :body="body" />
+        <DraftPublish v-if="canEdit" :title="title" :body="body" />
       </article>
 
       <div
@@ -407,6 +446,7 @@ async function requestCritique() {
               :idea-id="draft.data.value.ideaId"
               :reading-list="idea.data.value?.links ?? []"
               :insert="insertNote"
+              :only-editor="canEdit ? undefined : draft.data.value.editorName"
             />
             <p v-if="dropProblem" role="alert" class="mt-3 text-danger">{{ dropProblem }}</p>
             <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
@@ -418,6 +458,7 @@ async function requestCritique() {
             <DraftReadingList
               :reading-list="idea.data.value?.links ?? []"
               :insert-link="insertLink"
+              :only-editor="canEdit ? undefined : draft.data.value.editorName"
             />
           </template>
           <template #comments>

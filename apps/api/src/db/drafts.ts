@@ -11,15 +11,13 @@ export class DraftStore {
 
   list(profileId: string): Draft[] {
     return this.db
-      .prepare('SELECT * FROM drafts WHERE profile_id = ? ORDER BY updated_at DESC')
+      .prepare(`${SELECT} WHERE d.profile_id = ? ORDER BY d.updated_at DESC`)
       .all(profileId)
       .map(toDraft)
   }
 
   get(profileId: string, id: string): Draft | undefined {
-    const row = this.db
-      .prepare('SELECT * FROM drafts WHERE profile_id = ? AND id = ?')
-      .get(profileId, id)
+    const row = this.db.prepare(`${SELECT} WHERE d.profile_id = ? AND d.id = ?`).get(profileId, id)
     return row ? toDraft(row) : undefined
   }
 
@@ -28,21 +26,33 @@ export class DraftStore {
     const now = nowIso()
     this.db
       .prepare(
-        `INSERT INTO drafts (id, profile_id, idea_id, created_by, title, body, position, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?,
+        `INSERT INTO drafts (id, profile_id, idea_id, created_by, editor_id, title, body, position, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?,
                  (SELECT coalesce(max(position) + 1, 0) FROM drafts WHERE idea_id = ?), ?, ?)`,
       )
-      .run(id, profileId, ideaId, createdBy, input.title, input.body, ideaId, now, now)
+      .run(id, profileId, ideaId, createdBy, createdBy, input.title, input.body, ideaId, now, now)
     return this.get(profileId, id)!
   }
 
-  update(profileId: string, id: string, input: DraftInput): Draft | undefined {
+  /**
+   * Saves the words if `version` is still the draft's current one. Undefined means nothing was saved: the draft
+   * is missing or has been saved since (the caller tells which by looking it up).
+   */
+  update(profileId: string, id: string, input: DraftInput, version: number): Draft | undefined {
     const result = this.db
       .prepare(
-        'UPDATE drafts SET title = ?, body = ?, updated_at = ? WHERE profile_id = ? AND id = ?',
+        `UPDATE drafts SET title = ?, body = ?, version = version + 1, updated_at = ?
+         WHERE profile_id = ? AND id = ? AND version = ?`,
       )
-      .run(input.title, input.body, nowIso(), profileId, id)
+      .run(input.title, input.body, nowIso(), profileId, id, version)
     return result.changes ? this.get(profileId, id) : undefined
+  }
+
+  /** Makes `toUserId` the editor of every draft in the profile that `fromUserId` is editor of. */
+  reassignEditor(profileId: string, fromUserId: string, toUserId: string) {
+    this.db
+      .prepare('UPDATE drafts SET editor_id = ? WHERE profile_id = ? AND editor_id = ?')
+      .run(toUserId, profileId, fromUserId)
   }
 
   /** What was pulled into a draft from notes, oldest first. */
@@ -127,6 +137,8 @@ export class DraftStore {
   }
 }
 
+const SELECT = `SELECT d.*, u.name AS editor_name FROM drafts d LEFT JOIN users u ON u.id = d.editor_id`
+
 function toDraft(row: Record<string, unknown>): Draft {
   return {
     id: row.id as string,
@@ -134,6 +146,9 @@ function toDraft(row: Record<string, unknown>): Draft {
     ideaId: row.idea_id as string,
     title: row.title as string,
     body: row.body as string,
+    editorId: row.editor_id as string,
+    editorName: row.editor_name as string,
+    version: row.version as number,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }

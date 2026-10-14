@@ -19,6 +19,8 @@ const props = defineProps<{
   critiquePoints?: CritiqueMarkPoint[]
   /** The point being looked at: its paragraph is marked more strongly. */
   activePointId?: string | null
+  /** False for someone who may read the draft but not change it. */
+  editable?: boolean
 }>()
 const emit = defineEmits<{
   /** A critique mark was pressed. */
@@ -34,6 +36,7 @@ let touched = false
 
 const editor = useEditor({
   content: model.value,
+  editable: props.editable !== false,
   contentType: 'markdown',
   extensions: [
     // A plain click puts the cursor in the link to edit it; Ctrl or Cmd with the click opens it (see handleClick).
@@ -158,6 +161,11 @@ watch(
     if (e) e.view.dispatch(e.state.tr.setMeta(critiqueMarksKey, 'refresh'))
   },
   { deep: true },
+)
+
+watch(
+  () => props.editable !== false,
+  (editable) => editor.value?.setEditable(editable),
 )
 
 // Reflect external changes (e.g. a draft finishing loading) without clobbering typing.

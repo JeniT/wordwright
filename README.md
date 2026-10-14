@@ -161,6 +161,14 @@ tests inject fakes and nothing hits the network.
   **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
   are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
   (`/p/<id>/drafts/<draft>` in the app), which links back to its idea's Draft step.
+  **Each draft has one editor** (#154): the member responsible for its title and body, its creator at first
+  (`editorId`, `editorName`). Only the editor can save (`PUT` needs the `version` it was made from; a stale one is
+  refused with 409 and never merged, which also covers the same person in two tabs), add notes or links to the
+  draft, set a critique's comments aside, or ask for a critique (403 before anything is sent or counted). Other
+  members read it, with a banner naming the editor, and see changes on reload or when the window regains focus;
+  they get no Comments tab, since the AI's comments are the editor's alone. Notes stay open to every member. When
+  the editor leaves, is removed or deletes their account, their drafts go to the profile's longest-standing owner.
+  Handing a draft over deliberately comes with #155.
 - **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external

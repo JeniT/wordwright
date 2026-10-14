@@ -227,6 +227,9 @@ describe('using the key', () => {
     await saveKey(ada.client)
     await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
     const draft = await createDraft(ada.client, ada.profileId, { title: 'T', body: 'B' })
+    // Bob must be the editor for his request to get as far as a key.
+    const bobId = (await (await bob.client.get('/api/auth/me')).json()).id
+    ctx.store.drafts.reassignEditor(ada.profileId, draft.editorId, bobId)
     const res = await bob.client.post(`/api/profiles/${ada.profileId}/assist/critique`, {
       draftId: draft.id,
     })

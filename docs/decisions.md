@@ -1387,6 +1387,18 @@ AI-inferred description.
   `POST /profiles/:id/description/confirm`, the unconfirmed check in `usableVenueDescription` and the profile fields that
   carried them went with it. A description is always the writer's own words, and every saved one reaches the assistants.
 
+## Draft editors: how they were built (#154)
+
+- **A version number, not the timestamp.** `drafts.version` counts saves and a save quotes the one it started from
+  (`UPDATE … WHERE version = ?`); two saves in the same millisecond can't both win, and a stale one gets 409. The page
+  keeps what the person typed and tells them to reload; newer words from elsewhere only fill the fields if nothing
+  unsaved would be lost. Non-editors pick up changes through the ordinary refetch on focus, so no new dependency.
+- **A draft always has an editor.** `editor_id` is `SET NULL` on user deletion as a backstop, but removing a member
+  and deleting an account hand their drafts to the longest-standing remaining owner first (`handDraftsToOwner`).
+  Existing drafts went to their creator, or the profile's oldest owner if the creator was gone.
+- **Non-editors see no AI comments.** `GET …/critique` returns `round: null` for them and the Comments tab is hidden,
+  following independent review (below). Setting a comment aside is the editor's too. The count of looks used is shared.
+
 ## Human review and draft editors (#26)
 
 Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse choices are `docs/adr/0001-reviews-are-of-snapshots.md` and `docs/adr/0002-reviewer-only-accounts.md`. Built as #152–#159.

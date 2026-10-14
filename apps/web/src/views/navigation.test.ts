@@ -38,6 +38,9 @@ const draft = {
   ideaId: 'i1',
   title: 'Part 1',
   body: 'Erosion loops.\n\nBends migrate.',
+  editorId: 'u1',
+  editorName: 'Ada Lovelace',
+  version: 1,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }

@@ -141,6 +141,43 @@ describe('migrations', () => {
       expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
     })
 
+    it('#154: makes each existing draft’s creator its editor, or the longest-standing owner if they are gone', () => {
+      const db = new DatabaseSync(':memory:')
+      db.exec('PRAGMA foreign_keys = ON')
+      const at = MIGRATIONS.findIndex(
+        (m) => typeof m === 'string' && m.includes('ADD COLUMN editor_id'),
+      )
+      expect(at).toBeGreaterThan(0)
+      migrate(db, 'test', MIGRATIONS.slice(0, at))
+      for (const [id, email] of [
+        ['u1', 'a@example.com'],
+        ['u2', 'b@example.com'],
+      ] as const) {
+        db.prepare('INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)').run(
+          id,
+          id,
+          email,
+          'x',
+        )
+      }
+      db.prepare("INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'x')").run()
+      db.prepare("INSERT INTO profile_members VALUES ('p', 'u1', 'owner', '2026-01-01')").run()
+      db.prepare("INSERT INTO profile_members VALUES ('p', 'u2', 'member', '2026-01-02')").run()
+      const draft = (id: string, createdBy: string | null) =>
+        db
+          .prepare(
+            "INSERT INTO drafts (id, profile_id, created_by, title, body, created_at, updated_at) VALUES (?, 'p', ?, 't', 'b', 'x', 'x')",
+          )
+          .run(id, createdBy)
+      draft('d-bob', 'u2')
+      draft('d-gone', null)
+      migrate(db, 'test', MIGRATIONS)
+      expect(db.prepare('SELECT id, editor_id, version FROM drafts ORDER BY id').all()).toEqual([
+        { id: 'd-bob', editor_id: 'u2', version: 1 },
+        { id: 'd-gone', editor_id: 'u1', version: 1 },
+      ])
+    })
+
     it('enforces unique handles afterwards', () => {
       const db = legacyDb()
       migrate(db, 'test', MIGRATIONS)

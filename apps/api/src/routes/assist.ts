@@ -10,6 +10,7 @@ import {
   formatDraftForCritique,
   parseCritique,
 } from '../services/critique'
+import { requireEditor } from '../services/draft-editor'
 import { validateJson } from '../validate'
 import { usableVenueDescription } from '../services/venue-context'
 import { toLlmHttpError } from './llm'
@@ -21,6 +22,8 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
   return new Hono<AppEnv>().post('/critique', validateJson(CritiqueRequestSchema), async (c) => {
     const draft = store.drafts.get(param(c, 'profileId'), c.req.valid('json').draftId)
     if (!draft) return c.json({ error: 'Not found' }, 404)
+    // Before anything is counted or sent: only the editor spends their key and a look on the draft.
+    requireEditor(draft, c.get('user').id)
 
     // Rationed: the looks are spent on the draft whoever asks, and the limit is the one the person asking has chosen.
     const userId = c.get('user').id

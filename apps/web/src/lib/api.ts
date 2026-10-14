@@ -31,6 +31,7 @@ import {
   UserSchema,
   type BrainstormEvent,
   type DraftInput,
+  type DraftSave,
   type DraftInsertionInput,
   type IdeaInput,
   type IdeaUpdate,
@@ -440,7 +441,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // drafts
     getDraft: (profileId: string, id: string) =>
       get(DraftSchema, 'GET', `${drafts(profileId)}/${id}`),
-    updateDraft: (profileId: string, id: string, input: DraftInput) =>
+    updateDraft: (profileId: string, id: string, input: DraftSave) =>
       get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
     /**
      * Asks for a critique of the saved draft; it is kept with the draft.

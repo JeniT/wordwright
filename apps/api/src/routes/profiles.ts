@@ -26,6 +26,7 @@ import type { BrainstormService } from '../services/brainstorm'
 import type { ResearchService } from '../services/research'
 import type { FeedItemService } from '../services/feed-items'
 import type { IdeaLinkService } from '../services/idea-links'
+import { handDraftsToOwner } from '../services/draft-editor'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { InvitationService } from '../services/invitations'
@@ -159,7 +160,10 @@ export function profileRoutes({
           throw fail(400, 'Owners cannot leave; delete the profile instead')
         }
         if (!store.profiles.roleOf(id, targetId)) throw fail(404, 'Not found')
-        store.profiles.removeMember(id, targetId)
+        store.transaction(() => {
+          store.profiles.removeMember(id, targetId)
+          handDraftsToOwner(store, id, targetId)
+        })
         return c.body(null, 204)
       })
 

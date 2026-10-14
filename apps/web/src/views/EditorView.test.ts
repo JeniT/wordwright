@@ -13,6 +13,9 @@ const draft = {
   ideaId: 'i1',
   title: 'T',
   body: 'Some text',
+  editorId: 'u1',
+  editorName: 'Ada Lovelace',
+  version: 1,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 }
@@ -1173,5 +1176,78 @@ describe('publishing from the draft page', () => {
     expect(within(section).getByLabelText(/to select and copy/)).toHaveValue(
       '# Part 1\n\nErosion **loops**.\n\nBends migrate.\n',
     )
+  })
+})
+
+describe('a draft has one editor (#154)', () => {
+  const bobsDraft = { ...draft, editorId: 'u2', editorName: 'Bob Jones' }
+
+  it('shows someone else’s draft read-only, names the editor, and offers no way to change it', async () => {
+    mockEditor(() => HttpResponse.json({}))
+    server.use(http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
+    await renderAt('/p/p1/drafts/d1')
+    const banner = await screen.findByTestId('read-only')
+    expect(banner).toHaveTextContent('Bob Jones is this draft’s editor'.replace('’', "'"))
+    expect(within(banner).getByText('Bob Jones')).toHaveClass('rounded-full') // the name chip
+    expect(screen.getByLabelText('Title')).toHaveAttribute('readonly')
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Critique' })).toBeNull()
+    expect(screen.queryByRole('tab', { name: /^Comments/ })).toBeNull()
+    expect(screen.queryByText(/Copy as Markdown/)).toBeNull() // publishing is the editor's
+    await waitFor(() =>
+      expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
+    )
+  })
+
+  it('says who can add the notes, instead of offering to', async () => {
+    mockDrafting()
+    server.use(http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
+    await renderAt('/p/p1/drafts/d1')
+    const notes = within(await screen.findByRole('complementary'))
+    await notes.findByText('Erosion loops.')
+    expect(notes.getByText(/Only Bob Jones, the draft's editor, can add these notes/)).toBeTruthy()
+    expect(notes.queryByRole('button', { name: /^Add note/ })).toBeNull()
+    await showTab('Reading list')
+    expect(
+      await screen.findByText(/Only Bob Jones, the draft's editor, can put links/),
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Insert a link/ })).toBeNull()
+  })
+
+  it('sends the version a save was made from, and the next save the version after it', async () => {
+    const sent: { version: number; body: string }[] = []
+    mockEditor(() => HttpResponse.json({}))
+    server.use(
+      http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
+        const input = (await request.json()) as { version: number; body: string }
+        sent.push(input)
+        return HttpResponse.json({ ...draft, body: input.body, version: input.version + 1 })
+      }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.update(await screen.findByLabelText('Title'), 'New title')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Saved')
+    await fireEvent.update(screen.getByLabelText('Title'), 'Newer title')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(sent.map((s) => s.version)).toEqual([1, 2]))
+  })
+
+  it('says to reload when a save is refused as out of date, and keeps what was typed', async () => {
+    mockEditor(() => HttpResponse.json({}))
+    server.use(
+      http.put('*/api/profiles/p1/drafts/d1', () =>
+        HttpResponse.json({ error: 'This draft has been saved somewhere else.' }, { status: 409 }),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    const title = await screen.findByLabelText('Title')
+    await fireEvent.update(title, 'My careful rewrite')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /saved somewhere else.*reload the page/,
+    )
+    expect(title).toHaveValue('My careful rewrite')
+    expect(screen.queryByText("Couldn't save")).toBeNull()
   })
 })

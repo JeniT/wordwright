@@ -492,6 +492,65 @@ test('invites someone who has no account yet: they register from the email and j
   expect(newbieProblems, "Newbie's browser problems").toEqual([])
 })
 
+test('only a draft’s editor can change it: another member sees it read-only', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  const draftUrl = page.url()
+
+  const newbieEmail = `newbie-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  const link = await invite(page, newbieEmail)
+  const bob = await (await browser.newContext()).newPage()
+  const bobProblems = watchForProblems(bob)
+  await bob.goto(link)
+  await bob.getByRole('link', { name: 'Create an account' }).click()
+  await bob.getByLabel('What should we call you?').fill('Bob')
+  await bob.getByLabel('Username').fill(uniqueUsername())
+  await bob.getByLabel('Password').fill(PASSWORD)
+  await bob.getByRole('button', { name: 'Create account' }).click()
+  await bob.getByRole('button', { name: /^Join / }).click()
+  await expect(bob.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+
+  // Bob can read the draft, with the editor named, but not change it.
+  await bob.goto(draftUrl)
+  const banner = bob.getByTestId('read-only')
+  await expect(banner).toContainText('Ada')
+  await expect(banner).toContainText('is this draft’s editor'.replace('’', "'"))
+  await expect(bob.getByText('Rivers rarely flow straight.')).toBeVisible()
+  await expect(bob.getByLabel('Title', { exact: true })).toHaveAttribute('readonly', '')
+  await expect(bob.getByRole('button', { name: 'Save' })).toHaveCount(0)
+  await expect(bob.getByRole('button', { name: 'Critique' })).toHaveCount(0)
+  await expect(bob.getByRole('textbox', { name: 'Draft body' })).toHaveAttribute(
+    'contenteditable',
+    'false',
+  )
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
+
+  // The editor's changes reach Bob when he reloads.
+  await page.goto(draftUrl)
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('They bend instead.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  await bob.reload()
+  await expect(bob.getByText('They bend instead.')).toBeVisible()
+  expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
 test('declining and blocking an inviter from the email, then lifting the block', async ({
   page,
   browser,

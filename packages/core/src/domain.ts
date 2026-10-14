@@ -385,6 +385,12 @@ export const DraftSchema = z.object({
   title: z.string(),
   /** Markdown source of the piece. */
   body: z.string(),
+  /** The one member responsible for the title and body (#154). Only they can save, add notes or ask for a critique. */
+  editorId: z.string(),
+  /** The editor's current name. */
+  editorName: z.string(),
+  /** Counts saves; a save says which version it was made from, so a stale one is refused instead of overwriting. */
+  version: z.number().int().min(1),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
@@ -395,6 +401,10 @@ export const DraftInputSchema = z.object({
   body: z.string().default(''),
 })
 export type DraftInput = z.infer<typeof DraftInputSchema>
+
+/** Saving an existing draft: its words, and the version they were written from. */
+export const DraftSaveSchema = DraftInputSchema.extend({ version: z.number().int().min(1) })
+export type DraftSave = z.infer<typeof DraftSaveSchema>
 
 // ---- Ideas (belong to a profile; drafts develop them) -------------------
 

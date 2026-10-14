@@ -126,10 +126,15 @@ describe('words pulled into a draft from notes', () => {
     verifyAccounts(ctx, 'ada@example.com')
     await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
     const note = await addNote('Ada wrote this')
+    // Bob is a member, not the editor: he can read what was added but not add anything.
+    expect((await bob.post(insertions(), { noteId: note.id, text: 'Ada wrote this' })).status).toBe(
+      403,
+    )
     const made = await (
-      await bob.post(insertions(), { noteId: note.id, text: 'Ada wrote this' })
+      await ada.post(insertions(), { noteId: note.id, text: 'Ada wrote this' })
     ).json()
-    expect(made).toMatchObject({ noteAuthorName: 'Ada', insertedByName: 'Bob' })
+    expect(made).toMatchObject({ noteAuthorName: 'Ada', insertedByName: 'Ada' })
+    expect(await (await bob.get(insertions())).json()).toHaveLength(1)
     expect((await eve.get(insertions())).status).toBe(404)
     expect((await eve.post(insertions(), { noteId: note.id, text: 'x' })).status).toBe(404)
   })
@@ -160,6 +165,9 @@ describe('words pulled into a draft from notes', () => {
     verifyAccounts(ctx, 'ada@example.com')
     await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
     const note = await addNote('Ada wrote this')
+    const adaId = (await (await ada.get('/api/auth/me')).json()).id
+    const bobId = (await (await bob.get('/api/auth/me')).json()).id
+    ctx.store.drafts.reassignEditor(profile, adaId, bobId) // until handover exists, Bob edits this one
     await bob.post(insertions(), { noteId: note.id, text: 'Ada wrote this' })
 
     await ada.delete(`${ideas()}/${idea}/notes/${note.id}`)

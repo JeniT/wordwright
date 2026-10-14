@@ -21,6 +21,8 @@ const props = defineProps<{
   readingList: readonly IdeaLink[]
   /** Puts the note in the draft and saves it; rejects (with a message) if that didn't work. */
   insert: (note: IdeaNote) => Promise<void>
+  /** Who may add notes to the draft when it is not the person looking (the draft's editor); undefined if they may. */
+  onlyEditor?: string
 }>()
 const queryClient = useQueryClient()
 
@@ -71,7 +73,11 @@ const label = (note: IdeaNote) => {
   <div>
     <!-- The tab beside the draft already says "Notes"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-notes-heading" class="sr-only">Notes</h2>
-    <p class="mb-3 text-sm text-ink-soft">
+    <p v-if="onlyEditor" class="mb-3 text-sm text-ink-soft">
+      Only {{ onlyEditor }}, the draft's editor, can add these notes to the draft. You can still
+      read them, and add and tidy notes on the idea page.
+    </p>
+    <p v-else class="mb-3 text-sm text-ink-soft">
       Add a note to put its words into the draft, after the paragraph you are in, or drag it by its
       grip to where you want it. The draft is saved as you do.
     </p>
@@ -100,6 +106,7 @@ const label = (note: IdeaNote) => {
           <!-- Dragging needs a mouse, and the draft is behind the drawer on a phone, so the grip is for wide screens;
                everyone can use the button. -->
           <span
+            v-if="!onlyEditor"
             class="hidden cursor-grab select-none text-ink-soft lg:inline"
             draggable="true"
             title="Drag into the draft"
@@ -120,6 +127,7 @@ const label = (note: IdeaNote) => {
               />
             </p>
             <button
+              v-if="!onlyEditor"
               type="button"
               class="btn btn-sm btn-outline mt-2"
               :disabled="adding.isPending.value"
