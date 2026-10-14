@@ -3,6 +3,9 @@ import {
   CommentInputSchema,
   CommentResolveSchema,
   DraftInsertionInputSchema,
+  OptionUseInputSchema,
+  REPHRASE,
+  countWords,
   DraftSaveSchema,
   HandoverTargetSchema,
   SendForReviewInputSchema,
@@ -127,6 +130,21 @@ export function draftRoutes(
         })
         return c.json(
           drafts.insertions(draft.id).find((i) => i.id === inserted),
+          201,
+        )
+      })
+      // The writer used an option from a Rephrase window: record that these words began as an AI option.
+      .post('/:id/option-insertions', validateJson(OptionUseInputSchema), (c) => {
+        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        if (!draft) return c.json({ error: 'Not found' }, 404)
+        requireEditor(draft, c.get('user').id)
+        const use = c.req.valid('json')
+        if (countWords(use.aim) < REPHRASE.aimMinWords) {
+          throw fail(400, 'Say in a few words what you wanted this to do.')
+        }
+        const id = drafts.addOptionInsertion(draft.id, c.get('user').id, use)
+        return c.json(
+          drafts.insertions(draft.id).find((i) => i.id === id),
           201,
         )
       })

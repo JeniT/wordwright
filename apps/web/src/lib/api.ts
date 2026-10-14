@@ -29,6 +29,7 @@ import {
   LlmSettingsSchema,
   ProfileSchema,
   ProposalSchema,
+  RephraseResultSchema,
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceChoicesSchema,
@@ -48,10 +49,12 @@ import {
   type IdeaUpdate,
   type LlmSettingsInput,
   type LoginInput,
+  type OptionUseInput,
   type ProfileInput,
   type ProfileDescriptionInput,
   type ProfileUpdate,
   type RegisterInput,
+  type RephraseRequest,
   type SendMessageInput,
 } from '@lfwa/core'
 import type { z } from 'zod'
@@ -519,6 +522,21 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      */
     critique: (profileId: string, draftId: string) =>
       get(CritiqueStateSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
+    /**
+     * Options for a selected passage (or the title) of the saved draft. Nothing is kept: the Rephrase window holds
+     * the rounds and sends the earlier ones back.
+     * @ai
+     */
+    rephrase: (profileId: string, input: RephraseRequest) =>
+      get(RephraseResultSchema, 'POST', `/profiles/${profileId}/assist/rephrase`, input),
+    /** Records that words in the draft began as an AI option; the writer's report of what was offered. */
+    addOptionInsertion: (profileId: string, draftId: string, input: OptionUseInput) =>
+      get(
+        DraftInsertionSchema,
+        'POST',
+        `/profiles/${profileId}/drafts/${draftId}/option-insertions`,
+        input,
+      ),
     /** The latest critique of the draft (null if none), and how many of its looks are used. */
     latestCritique: (profileId: string, draftId: string) =>
       get(CritiqueStateSchema, 'GET', `${drafts(profileId)}/${draftId}/critique`),

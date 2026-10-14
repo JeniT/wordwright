@@ -11,6 +11,7 @@ import {
   type CommentMarkStorage,
 } from '../lib/comment-marks'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
+import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
 
 const model = defineModel<string>({ required: true })
@@ -23,6 +24,8 @@ const props = defineProps<{
   editable?: boolean
 }>()
 const emit = defineEmits<{
+  /** The selection changed; null when nothing is selected. */
+  selectionChange: [selection: TextSelection | null]
   /** A comment mark was pressed. */
   pointPick: [id: string]
   /** Which comments found their paragraph in the text as it is now. */
@@ -93,7 +96,31 @@ const editor = useEditor({
   onUpdate: ({ editor }) => {
     model.value = editor.getMarkdown()
   },
+  onSelectionUpdate: ({ editor }) => {
+    const { from, to, empty, $from, $to } = editor.state.selection
+    emit(
+      'selectionChange',
+      empty
+        ? null
+        : {
+            from,
+            to,
+            text: editor.state.doc.textBetween(from, to, ' '),
+            sameBlock: $from.sameParent($to) && $from.parent.isTextblock,
+          },
+    )
+  },
 })
+
+/**
+ * Replaces the text between two positions with plain words (a Rephrase window handing back what the writer chose),
+ * leaving the cursor after them. Returns false if the editor isn't ready. The change reaches `model` like typing.
+ */
+function replaceRange(from: number, to: number, text: string): boolean {
+  const e = editor.value
+  if (!e) return false
+  return e.chain().focus().insertContentAt({ from, to }, { type: 'text', text }).run()
+}
 
 /**
  * Puts Markdown into the text as its own paragraph(s): at `at` if given (a drop), otherwise after the one the cursor
@@ -151,7 +178,7 @@ function focusPoint(id: string): boolean {
   scrollPageToTop(el)
   return true
 }
-defineExpose({ insertMarkdown, insertInlineMarkdown, focusPoint, scrollToPoint })
+defineExpose({ insertMarkdown, insertInlineMarkdown, replaceRange, focusPoint, scrollToPoint })
 
 // The marks are redrawn when the points or the one being looked at change, not only when the text does.
 watch(

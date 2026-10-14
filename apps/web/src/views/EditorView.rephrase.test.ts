@@ -1,0 +1,212 @@
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
+import { http, HttpResponse } from 'msw'
+import { describe, expect, it } from 'vitest'
+import type { Editor } from '@tiptap/vue-3'
+import { ONE_PARAGRAPH } from '@lfwa/core'
+import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+
+useMockServer({ warm: ['draft'] })
+
+const BODY =
+  'The river bends because the outside bank erodes faster.\n\nIt drifts across the valley.'
+const draft = {
+  id: 'd1',
+  profileId: 'p1',
+  ideaId: 'i1',
+  title: 'T',
+  body: BODY,
+  editorId: 'u1',
+  editorName: 'Ada Lovelace',
+  version: 1,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+}
+
+/** The draft's page for its editor (or, with `viewer`, someone else), recording what is saved and recorded. */
+function mockDraft(viewer = testUser) {
+  const saved: { title: string; body: string; version: number }[] = []
+  const recorded: Record<string, unknown>[] = []
+  const asked: Record<string, unknown>[] = []
+  server.use(
+    signedInAs(viewer),
+    http.get('*/api/profiles', () => HttpResponse.json([])),
+    http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+      HttpResponse.json({
+        editorId: 'u1',
+        editorName: 'Ada Lovelace',
+        offer: null,
+        asks: [],
+        history: [],
+      }),
+    ),
+    http.get('*/api/profiles/p1/ideas/i1', () =>
+      HttpResponse.json({
+        id: 'i1',
+        profileId: 'p1',
+        name: 'An idea',
+        notes: '',
+        links: [],
+        drafts: [],
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      }),
+    ),
+    http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
+      const body = (await request.json()) as { title: string; body: string; version: number }
+      saved.push(body)
+      return HttpResponse.json({ ...draft, ...body, version: body.version + 1 })
+    }),
+    http.post('*/api/profiles/p1/assist/rephrase', async ({ request }) => {
+      asked.push((await request.json()) as Record<string, unknown>)
+      return HttpResponse.json({
+        size: 'short',
+        options: [
+          'The river curves as its outer bank wears away.',
+          'Rivers bend; outer banks erode.',
+          'Erosion on the outside is what bends a river.',
+          'A river bends where the outside bank gives way.',
+          'The outer bank erodes, so the river bends.',
+        ],
+      })
+    }),
+    http.post('*/api/profiles/p1/drafts/d1/option-insertions', async ({ request }) => {
+      recorded.push((await request.json()) as Record<string, unknown>)
+      return HttpResponse.json(
+        {
+          id: 'x1',
+          text: 'x',
+          origin: 'option',
+          option: { kind: 'passage', offered: 'o', aim: 'a' },
+          noteAuthorName: null,
+          insertedByName: 'Ada',
+          insertedAt: '2026-01-02T00:00:00Z',
+          source: null,
+        },
+        { status: 201 },
+      )
+    }),
+  )
+  return { saved, recorded, asked }
+}
+
+/** Selects text in the editor the way a pointer would, through the editor itself (jsdom has no selection UI). */
+async function select(from: number, to: number) {
+  const dom = await waitFor(() => {
+    const el = document.querySelector('.ProseMirror') as (HTMLElement & { editor?: Editor }) | null
+    if (!el?.editor) throw new Error('editor not ready')
+    return el
+  })
+  dom.editor!.commands.setTextSelection({ from, to })
+}
+const rephraseButton = () => screen.findByRole('button', { name: 'Rephrase' })
+const editorText = () => document.querySelector('.ProseMirror')!.textContent
+
+describe('EditorView: Rephrase', () => {
+  it('is disabled, and says why, until some words are selected', async () => {
+    mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    const button = await rephraseButton()
+    expect(button).toBeDisabled()
+    expect(button).toHaveAccessibleDescription(/Select some of your draft to rephrase it/)
+  })
+
+  it('is enabled for words inside one paragraph, and says what it is for', async () => {
+    mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    await select(5, 40) // "river bends because the outside bank"
+    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    expect(await rephraseButton()).toHaveAccessibleDescription(
+      /options for the words you have selected/,
+    )
+  })
+
+  it('is disabled for a selection across paragraphs, or too small, with what to do', async () => {
+    mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    await select(5, 80) // into the second paragraph
+    await waitFor(async () => expect(await rephraseButton()).toBeDisabled())
+    expect(await rephraseButton()).toHaveAccessibleDescription(new RegExp(ONE_PARAGRAPH))
+    await select(5, 12)
+    await waitFor(async () =>
+      expect(await rephraseButton()).toHaveAccessibleDescription(/at least 5 words/),
+    )
+  })
+
+  it('opens on the selected words, and replaces exactly them with the chosen option, then saves and records it', async () => {
+    const { saved, recorded, asked } = mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    await select(1, 56) // the whole first sentence
+    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await fireEvent.click(await rephraseButton())
+
+    const dialog = await screen.findByRole('dialog', { name: 'Rephrase this passage' })
+    const wording = within(dialog).getByLabelText('Current wording') as HTMLTextAreaElement
+    expect(wording.value).toBe('The river bends because the outside bank erodes faster.')
+    await fireEvent.update(
+      within(dialog).getByLabelText('What should it do?'),
+      'Shorter and plainer',
+    )
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Generate options' }))
+    await within(dialog).findByRole('list', { name: 'Options' })
+    expect(asked[0]).toMatchObject({ draftId: 'd1', kind: 'passage', aim: 'Shorter and plainer' })
+    expect(saved.length).toBeGreaterThan(0) // the AI reads the saved draft
+
+    await fireEvent.click(
+      within(dialog).getByRole('button', { name: /Replace the wording with option 5/ }),
+    )
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    expect(editorText()).toContain('The outer bank erodes, so the river bends.')
+    expect(editorText()).not.toContain('outside bank erodes faster')
+    expect(editorText()).toContain('It drifts across the valley.')
+    await waitFor(() => expect(recorded).toHaveLength(1))
+    expect(recorded[0]).toEqual({
+      kind: 'passage',
+      offered: 'The outer bank erodes, so the river bends.',
+      text: 'The outer bank erodes, so the river bends.',
+      aim: 'Shorter and plainer',
+    })
+    expect(saved.at(-1)!.body).toContain('The outer bank erodes, so the river bends.')
+  })
+
+  it('records nothing when the writer uses their own words', async () => {
+    const { saved, recorded } = mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    await select(5, 40)
+    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await fireEvent.click(await rephraseButton())
+    const dialog = await screen.findByRole('dialog')
+    await fireEvent.update(
+      within(dialog).getByLabelText('Current wording'),
+      'rivers wander as banks wear away',
+    )
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
+    await waitFor(() => expect(saved.length).toBeGreaterThan(0))
+    expect(editorText()).toContain('rivers wander as banks wear away')
+    expect(recorded).toEqual([])
+  })
+
+  it('changes nothing when the window is cancelled', async () => {
+    const { saved, recorded } = mockDraft()
+    await renderAt('/p/p1/drafts/d1')
+    await select(5, 40)
+    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    ;(await rephraseButton()).focus() // a click focuses the button in a browser; jsdom's does not
+    await fireEvent.click(await rephraseButton())
+    await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(editorText()).toContain('The river bends because the outside bank erodes faster.')
+    expect(saved).toEqual([])
+    expect(recorded).toEqual([])
+    await waitFor(() => expect(rephraseButton()).resolves.toHaveFocus())
+  })
+
+  it('is not offered to someone who cannot change the draft', async () => {
+    mockDraft({ ...testUser, id: 'u2', name: 'Bob Jones', email: 'bob@example.com', handle: 'bob' })
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByTestId('read-only')
+    expect(screen.queryByRole('button', { name: 'Rephrase' })).toBeNull()
+  })
+})

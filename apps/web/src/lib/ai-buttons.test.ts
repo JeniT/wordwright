@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
  * fails when one is used from a component that does not use `AiButton`, and when the list below changes.
  * Adding an AI function: tag it, add it here, and give its button the AI pattern (docs/design.md).
  */
-const AI_API_FUNCTIONS = ['critique', 'runResearch', 'streamReply']
+const AI_API_FUNCTIONS = ['critique', 'rephrase', 'runResearch', 'streamReply']
 
 const src = join(__dirname, '..')
 function vueFiles(dir: string): string[] {
@@ -34,8 +34,9 @@ describe('AI buttons', () => {
     const callers = vueFiles(src)
       .map((file) => ({ file, text: readFileSync(file, 'utf8') }))
       .filter(({ text }) => AI_API_FUNCTIONS.some((name) => text.includes(`api.${name}(`)))
-    // Critique (editor), Brainstorm Send, and Research.
+    // Critique (editor), Rephrase, Brainstorm Send, and Research.
     expect(callers.map((c) => c.file.slice(src.length + 1)).sort()).toEqual([
+      'components/RephraseDialog.vue',
       'components/ResearchForm.vue',
       'views/BrainstormView.vue',
       'views/EditorView.vue',

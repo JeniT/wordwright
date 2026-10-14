@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { Draft, DraftInput, DraftInsertion, NoteOrigin } from '@lfwa/core'
+import type {
+  Draft,
+  DraftInput,
+  DraftInsertion,
+  InsertionOrigin,
+  NoteOrigin,
+  OptionUseInput,
+} from '@lfwa/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
 import { reorder } from './ordering'
@@ -92,7 +99,16 @@ export class DraftStore {
       .map((r) => ({
         id: r.id as string,
         text: r.text as string,
-        origin: r.origin as NoteOrigin,
+        origin: r.origin as InsertionOrigin,
+        ...(r.origin === 'option'
+          ? {
+              option: {
+                kind: r.option_kind as 'title' | 'passage',
+                offered: r.option_offered as string,
+                aim: r.option_aim as string,
+              },
+            }
+          : {}),
         noteAuthorName: r.note_author_name as string | null,
         insertedByName: r.inserted_by_name as string | null,
         insertedAt: r.inserted_at as string,
@@ -104,6 +120,18 @@ export class DraftStore {
             }
           : null,
       }))
+  }
+
+  /** Records that words in the draft began as an AI option (Rephrase), by whom, and what was offered. */
+  addOptionInsertion(draftId: string, insertedBy: string, i: OptionUseInput): string {
+    const id = randomUUID()
+    this.db
+      .prepare(
+        `INSERT INTO draft_insertions (id, draft_id, inserted_by, text, origin, option_kind, option_offered,
+           option_aim, inserted_at) VALUES (?, ?, ?, ?, 'option', ?, ?, ?, ?)`,
+      )
+      .run(id, draftId, insertedBy, i.text, i.kind, i.offered, i.aim, nowIso())
+    return id
   }
 
   addInsertion(

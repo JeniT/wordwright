@@ -10,10 +10,18 @@ import HandoverPanel from '../components/HandoverPanel.vue'
 import ReviewersPanel from '../components/ReviewersPanel.vue'
 import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
+import RephraseDialog from '../components/RephraseDialog.vue'
 import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { WHOLE_DRAFT, splitBlocks, type IdeaLink, type IdeaNote } from '@lfwa/core'
+import {
+  ONE_PARAGRAPH,
+  WHOLE_DRAFT,
+  splitBlocks,
+  wordingProblem,
+  type IdeaLink,
+  type IdeaNote,
+} from '@lfwa/core'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import {
@@ -29,6 +37,7 @@ import {
 } from '../lib/queries'
 import type { CommentMarkPoint } from '../lib/comment-marks'
 import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
+import type { TextSelection } from '../lib/text-selection'
 import QueryState from '../components/QueryState.vue'
 
 const props = defineProps<{ profileId: string; id: string }>()
@@ -200,6 +209,52 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
   } finally {
     dropping = false
     await refreshNotesEverywhere(queryClient)
+  }
+}
+
+// ---- Rephrase: options for the words selected in the text. The window opens on what is selected when the button is
+// pressed; what comes back replaces exactly those words, the draft is saved, and if an option was used that is recorded.
+const selection = ref<TextSelection | null>(null)
+const rephrasing = ref<{ from: number; to: number; text: string } | null>(null)
+const rephraseNotice = ref('')
+const rephraseProblem = computed(() => {
+  const s = selection.value
+  if (!s) return 'Select some of your draft to rephrase it.'
+  return s.sameBlock ? wordingProblem('passage', s.text) : ONE_PARAGRAPH
+})
+function openRephrase() {
+  const s = selection.value
+  if (!s || rephraseProblem.value) return
+  rephraseNotice.value = ''
+  rephrasing.value = { from: s.from, to: s.to, text: s.text }
+}
+async function useRephrased(result: { text: string; offered: string | null; aim: string | null }) {
+  const target = rephrasing.value
+  rephrasing.value = null
+  if (!target) return
+  if (!editor.value?.replaceRange(target.from, target.to, result.text)) {
+    rephraseNotice.value = "The draft isn't ready yet. Try again in a moment."
+    return
+  }
+  try {
+    await save.mutateAsync()
+  } catch {
+    rephraseNotice.value =
+      "We couldn't save the draft. The words are in it above; press Save to keep them."
+    return
+  }
+  // Words the writer wrote themselves need no record; words that began as an option do.
+  if (!result.offered || !result.aim) return
+  try {
+    await api.addOptionInsertion(props.profileId, props.id, {
+      kind: 'passage',
+      offered: result.offered,
+      text: result.text,
+      aim: result.aim,
+    })
+    await invalidateRoots(queryClient, 'draft-insertions')
+  } catch {
+    rephraseNotice.value = "The words are in your draft, but we couldn't record where they began."
   }
 }
 
@@ -376,6 +431,7 @@ async function requestCritique() {
           :comment-marks="markPoints"
           :active-point-id="activePointId"
           :editable="canEdit"
+          @selection-change="selection = $event"
           @note-drop="onNoteDrop"
           @point-pick="pickPoint"
           @located="located = new Set($event)"
@@ -406,6 +462,16 @@ async function requestCritique() {
             Critique
           </AiButton>
           <button
+            v-if="canEdit"
+            type="button"
+            class="btn btn-outline"
+            :disabled="!!rephraseProblem"
+            aria-describedby="rephrase-hint"
+            @click="openRephrase"
+          >
+            Rephrase
+          </button>
+          <button
             v-if="draft.data.value?.ideaId"
             ref="openButton"
             type="button"
@@ -422,6 +488,10 @@ async function requestCritique() {
             <template v-else-if="save.isError.value && !conflict">Couldn't save</template>
           </p>
         </div>
+        <p v-if="canEdit" id="rephrase-hint" class="mt-2 text-sm text-ink-soft">
+          {{ rephraseProblem ?? 'Rephrase gives you options for the words you have selected.' }}
+        </p>
+        <p v-if="rephraseNotice" role="alert" class="mt-2 text-danger">{{ rephraseNotice }}</p>
         <p v-if="conflict" role="alert" class="mt-3 text-danger">
           This draft was saved somewhere else since you opened it, perhaps in another tab, so this
           save was not made. What you typed is still here: copy it somewhere safe, then reload the
@@ -511,6 +581,18 @@ async function requestCritique() {
           </template>
         </TabPanels>
       </aside>
+
+      <RephraseDialog
+        :open="!!rephrasing"
+        kind="passage"
+        :wording="rephrasing?.text ?? ''"
+        :profile-id="profileId"
+        :draft-id="id"
+        :rounds="looks?.allowed"
+        :prepare="() => save.mutateAsync()"
+        @cancel="rephrasing = null"
+        @use="useRephrased"
+      />
 
       <ConfirmDialog
         :open="!!unreadAsk"

@@ -744,6 +744,37 @@ export const MIGRATIONS: Migration[] = [
     (SELECT r.id FROM draft_reviews r WHERE r.draft_id = draft_comments.draft_id AND r.reviewer_id = draft_comments.author_id)
     WHERE author_id IN (SELECT reviewer_id FROM draft_reviews);
   `,
+  // #162: words that came from an AI option in a Rephrase window are recorded beside the words pulled in from notes.
+  // A CHECK can't be widened in place, so draft_insertions is rebuilt (nothing refers to it; its rows are copied as
+  // they are). An option row has no note; it keeps what was offered, the writer's aim and where the words went.
+  `
+  CREATE TABLE draft_insertions_new (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    note_id TEXT REFERENCES idea_notes(id) ON DELETE SET NULL,
+    note_author_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    inserted_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    text TEXT NOT NULL,
+    origin TEXT NOT NULL CHECK (origin IN ('entered', 'brainstorm', 'reading', 'option')),
+    source_title TEXT,
+    source_url TEXT,
+    inserted_at TEXT NOT NULL,
+    source_authors TEXT,
+    kept_note_author_name TEXT,
+    kept_inserted_by_name TEXT,
+    option_kind TEXT CHECK (option_kind IN ('title', 'passage')),
+    option_offered TEXT,
+    option_aim TEXT
+  );
+  INSERT INTO draft_insertions_new (id, draft_id, note_id, note_author_id, inserted_by, text, origin, source_title,
+      source_url, inserted_at, source_authors, kept_note_author_name, kept_inserted_by_name)
+    SELECT id, draft_id, note_id, note_author_id, inserted_by, text, origin, source_title,
+      source_url, inserted_at, source_authors, kept_note_author_name, kept_inserted_by_name
+    FROM draft_insertions;
+  DROP TABLE draft_insertions;
+  ALTER TABLE draft_insertions_new RENAME TO draft_insertions;
+  CREATE INDEX draft_insertions_draft ON draft_insertions(draft_id);
+  `,
 ]
 
 /**

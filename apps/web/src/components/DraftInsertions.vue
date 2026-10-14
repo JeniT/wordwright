@@ -12,11 +12,17 @@ const insertions = useQuery({
   queryKey: ['draft-insertions', () => props.profileId, () => props.draftId],
   queryFn: () => api.listDraftInsertions(props.profileId, props.draftId),
 })
+/** An option the writer used says what they asked for; the chip is who used it, not who wrote a note. */
 const rows = computed(() =>
   (insertions.data.value ?? []).map((i) => ({
     ...i,
-    words: originPhrase(i.origin, i.source),
-    kept: stillInDraft(props.body, i.text),
+    words:
+      i.origin === 'option'
+        ? `${i.option?.kind === 'title' ? 'A title' : 'Words'} that began as an AI option, for “${i.option?.aim ?? ''}”`
+        : originPhrase(i.origin, i.source),
+    by: i.origin === 'option' ? i.insertedByName : i.noteAuthorName,
+    // A title is not part of the body, so it is not looked for there.
+    kept: i.option?.kind === 'title' ? null : stillInDraft(props.body, i.text),
   })),
 )
 </script>
@@ -27,8 +33,8 @@ const rows = computed(() =>
       Where some of the words came from ({{ rows.length }})
     </summary>
     <p class="mt-2 text-ink-soft">
-      Words you pulled in from notes keep a record of where they came from, even after you change
-      them.
+      Words you pulled in from notes, or took from an AI option, keep a record of where they came
+      from, even after you change them.
     </p>
     <ul class="mt-2 space-y-2">
       <li v-for="row in rows" :key="row.id" class="border-t border-line pt-2">
@@ -36,10 +42,13 @@ const rows = computed(() =>
           “{{ row.text.length > 120 ? `${row.text.slice(0, 120)}…` : row.text }}”
         </p>
         <p class="text-xs text-ink-soft">
-          <NoteOrigin :phrase="row.words" :author-name="row.noteAuthorName" /> ·
-          <span :class="row.kept ? '' : 'font-medium text-accent-strong'">{{
-            row.kept ? 'Still as inserted' : 'Edited or removed since'
-          }}</span>
+          <NoteOrigin :phrase="row.words" :author-name="row.by" />
+          <template v-if="row.kept !== null">
+            ·
+            <span :class="row.kept ? '' : 'font-medium text-accent-strong'">{{
+              row.kept ? 'Still as inserted' : 'Edited or removed since'
+            }}</span>
+          </template>
         </p>
       </li>
     </ul>

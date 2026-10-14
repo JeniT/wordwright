@@ -5,6 +5,10 @@ import { WebAddressSchema, withScheme } from './web-address'
 
 // ---- Shared field rules -------------------------------------------------
 
+/** Character ceilings that keep a request a sensible size; the word rules in `REPHRASE` are the real limits. */
+const REPHRASE_TEXT_MAX = 3000
+const REPHRASE_AIM_MAX = 1000
+
 export const EmailSchema = z
   .string()
   .trim()
@@ -727,10 +731,31 @@ export const DraftInsertionInputSchema = z.object({
 })
 export type DraftInsertionInput = z.infer<typeof DraftInsertionInputSchema>
 
+/** Where words in a draft came from: a note's origin, or `option` for an AI option the writer picked (Rephrase). */
+export const InsertionOriginSchema = z.enum([...NoteOriginSchema.options, 'option'])
+export type InsertionOrigin = z.infer<typeof InsertionOriginSchema>
+
+/**
+ * The writer says: I used this option from a Rephrase window. `offered` is the option as the AI gave it and `text` the
+ * words as they went into the draft (perhaps edited). The server cannot check what was offered, because it keeps
+ * nothing between rounds, so this is the writer's report; the record is for honesty about origin, not for proof.
+ */
+export const OptionUseInputSchema = z.object({
+  kind: z.enum(['title', 'passage']),
+  offered: z.string().trim().min(1).max(REPHRASE_TEXT_MAX),
+  text: z.string().trim().min(1).max(REPHRASE_TEXT_MAX),
+  aim: z.string().trim().min(1).max(REPHRASE_AIM_MAX),
+})
+export type OptionUseInput = z.infer<typeof OptionUseInputSchema>
+
 export const DraftInsertionSchema = z.object({
   id: z.string(),
   text: z.string(),
-  origin: NoteOriginSchema,
+  origin: InsertionOriginSchema,
+  /** For `origin: 'option'` only: what the AI offered, what the writer asked for, and where it went. */
+  option: z
+    .object({ kind: z.enum(['title', 'passage']), offered: z.string(), aim: z.string() })
+    .optional(),
   /** Who the note was by when it was inserted (their name now); null once they have left. */
   noteAuthorName: z.string().nullable(),
   insertedByName: z.string().nullable(),
@@ -1098,10 +1123,6 @@ export const CritiqueStateSchema = z.object({
 export type CritiqueState = z.infer<typeof CritiqueStateSchema>
 
 // ---- Rephrase: options for a passage or a title -------------------------
-
-/** Character ceilings that keep a request a sensible size; the word rules in `REPHRASE` are the real limits. */
-const REPHRASE_TEXT_MAX = 3000
-const REPHRASE_AIM_MAX = 1000
 
 /** One round already asked in this Rephrase window: the Aim given and the options it brought back. */
 export const RephraseRoundSchema = z.object({

@@ -48,6 +48,9 @@ export function normalizeText(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
+/** What to tell someone whose selection runs over more than one paragraph, or is too long. */
+export const ONE_PARAGRAPH = `Select part of a single paragraph, up to about ${REPHRASE.selection.maxWords} words.`
+
 /**
  * Why this wording cannot be rephrased, in words that say what to do; null when it can. A title only has to exist.
  * A passage must lie inside one block (a paragraph, list item or heading) and be neither tiny nor long.
@@ -56,10 +59,7 @@ export function wordingProblem(kind: 'title' | 'passage', wording: string): stri
   const n = countWords(wording)
   if (kind === 'title') return n === 0 ? 'Give the draft a title first, even a rough one.' : null
   const { minWords, maxWords } = REPHRASE.selection
-  if (splitBlocks(wording).length > 1) {
-    return `Select part of a single paragraph, up to about ${maxWords} words.`
-  }
+  if (splitBlocks(wording).length > 1 || n > maxWords) return ONE_PARAGRAPH
   if (n < minWords) return `Select at least ${minWords} words to rephrase.`
-  if (n > maxWords) return `Select part of a single paragraph, up to about ${maxWords} words.`
   return null
 }
