@@ -471,17 +471,18 @@ describe('drafts and critique within a profile', () => {
       round: {
         summary: 'Critique from claude-sonnet-5-5.',
         ready: false,
-        points: [
-          {
-            block: 'b1',
-            excerpt: 'There',
-            point: 'Needs a stronger opening.',
-            reason: 'It is the first thing read.',
-            dismissed: false,
-          },
-        ],
       },
     })
+    expect(await (await c.get(`${base}/drafts/${draft.id}/comments`)).json()).toMatchObject([
+      {
+        byAi: true,
+        block: 'b1',
+        excerpt: 'There',
+        text: 'Needs a stronger opening.',
+        reason: 'It is the first thing read.',
+        resolved: false,
+      },
+    ])
     expect(ctx.llmCalls.at(-1)?.request.messages[0]?.content).toContain('[b1] There')
 
     expect((await c.delete(`${base}/drafts/${draft.id}`)).status).toBe(204)
