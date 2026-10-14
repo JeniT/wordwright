@@ -7,6 +7,7 @@ const user = {
   id: 'u1',
   handle: 'ada',
   handleChosen: true,
+  reviewerOnly: false,
   name: 'Ada',
   email: 'ada@example.com',
   emailVerified: false,

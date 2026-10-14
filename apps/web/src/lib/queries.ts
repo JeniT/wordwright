@@ -16,6 +16,9 @@ export const queryKeys = {
     ['notes', profileId, ideaId ?? 'profile'] as const,
   sources: (profileId: string) => ['sources', profileId] as const,
   draft: (profileId: string, id: string) => ['draft', profileId, id] as const,
+  reviews: () => ['reviews'] as const,
+  review: (id: string) => ['review', id] as const,
+  reviewers: (profileId: string, id: string) => ['draft-reviewers', profileId, id] as const,
   handover: (profileId: string, id: string) => ['draft-handover', profileId, id] as const,
   comments: (profileId: string, draftId: string) => ['comments', profileId, draftId] as const,
   critique: (profileId: string, draftId: string) => ['critique', profileId, draftId] as const,
@@ -32,6 +35,9 @@ export type QueryRoot =
   | 'critique'
   | 'draft'
   | 'draft-handover'
+  | 'draft-reviewers'
+  | 'review'
+  | 'reviews'
   | 'draft-insertions'
   | 'idea'
   | 'ideas'

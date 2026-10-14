@@ -645,6 +645,34 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE draft_handovers ADD COLUMN kept_member_name TEXT;
   ALTER TABLE draft_handovers ADD COLUMN reason TEXT;
   `,
+  // #157: reviewer-only accounts (no username, no profile) and the reviews they were invited to. A review is the
+  // grant to read one draft and comment on it; it ends when the reviewer leaves or the editor or an owner revokes it.
+  // Review invitations are separate from profile invitations but share who has blocked whom.
+  `
+  ALTER TABLE users ADD COLUMN reviewer_only INTEGER NOT NULL DEFAULT 0;
+  CREATE TABLE draft_reviews (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    reviewer_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    state TEXT NOT NULL CHECK (state IN ('open', 'left', 'revoked')),
+    created_at TEXT NOT NULL,
+    ended_at TEXT,
+    UNIQUE (draft_id, reviewer_id)
+  );
+  CREATE INDEX draft_reviews_reviewer ON draft_reviews(reviewer_id);
+  CREATE TABLE review_invitations (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    invited_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    accepted_by TEXT REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE INDEX review_invitations_draft ON review_invitations(draft_id);
+  `,
   // #156: one comment model for people and the AI. A critique's points become comments (those with a round_id are
   // the AI's; "dismissed" becomes "resolved"), and members can add their own. A person's comment keeps their name
   // through leaving a profile (it is read from the account) and, if they delete their account and choose to,

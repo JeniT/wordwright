@@ -384,6 +384,10 @@ a newsletter, and help drafting social threads, would add their own buttons ther
 
 ## Layout
 
+A **reviewer-only account** (someone asked to read a draft, see decisions.md "Reviewers") has no side menu: a single top
+bar with the name, Sign out and the light/dark switch, over one column. Its pages (`ReviewsView`, `ReviewView`) use the
+same cards, callouts and chips as everywhere else.
+
 - **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button
   (`aria-expanded`) that folds the menu away, shows where you are while closed, and closes on navigation. Signed-out
   pages have a centred name only.

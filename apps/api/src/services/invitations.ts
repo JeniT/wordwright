@@ -1,3 +1,4 @@
+import { firstAvailable, suggestHandle } from '@lfwa/core'
 import type { Invitation, InvitationBlocks, InvitationPreview } from '@lfwa/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
@@ -132,6 +133,16 @@ export class InvitationService {
       }
       store.invitations.markAccepted(usable.id, user.id)
       if (!user.emailVerified) store.users.markEmailVerified(user.id)
+      // A reviewer invited into a profile becomes a full account: it gets a username now (the app asks once if
+      // they would like another) and keeps the reviews it already has.
+      if (user.reviewerOnly) {
+        store.users.setHandle(
+          user.id,
+          firstAvailable(suggestHandle(user.name, user.email), (h) => store.users.handleTaken(h)),
+          null,
+        )
+        store.users.clearHandleChosen(user.id)
+      }
     })
     return { profileId: usable.profileId }
   }

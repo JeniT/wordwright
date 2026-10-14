@@ -5,7 +5,9 @@ import { nowIso } from './database'
 
 export interface UserRecord {
   id: string
-  handle: string
+  /** Null for a reviewer-only account until the person chooses one. */
+  handle: string | null
+  reviewerOnly: boolean
   /** False while the username is one we generated and the person hasn't answered yet. */
   handleChosen: boolean
   name: string
@@ -37,20 +39,25 @@ export class UserStore {
     email: string
     emailVerified: boolean
     handle?: string
+    /** No username and no profile: the account can only review (#157). */
+    reviewerOnly?: boolean
   }): UserRecord {
     const id = randomUUID()
-    const handle =
-      input.handle ??
-      firstAvailable(suggestHandle(input.name, input.email), (h) => this.handleTaken(h))
+    const reviewerOnly = input.reviewerOnly === true
+    const handle = reviewerOnly
+      ? null
+      : (input.handle ??
+        firstAvailable(suggestHandle(input.name, input.email), (h) => this.handleTaken(h)))
     this.db
       .prepare(
-        `INSERT INTO users (id, handle, handle_chosen, name, email, email_verified, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (id, handle, handle_chosen, reviewer_only, name, email, email_verified, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
         handle,
         input.handle === undefined ? 0 : 1,
+        reviewerOnly ? 1 : 0,
         input.name,
         input.email,
         input.emailVerified ? 1 : 0,
@@ -59,6 +66,7 @@ export class UserStore {
     return {
       id,
       handle,
+      reviewerOnly,
       handleChosen: input.handle !== undefined,
       name: input.name,
       email: input.email,
@@ -81,8 +89,8 @@ export class UserStore {
    * Gives the user this username and records that they chose it. Their old one is kept for them
    * (see `retired_handles`). Call inside a transaction, after checking `handleTaken`.
    */
-  setHandle(id: string, handle: string, current: string) {
-    if (handle !== current) {
+  setHandle(id: string, handle: string, current: string | null) {
+    if (current && handle !== current) {
       this.db
         .prepare(
           'INSERT OR IGNORE INTO retired_handles (handle, user_id, retired_at) VALUES (?, ?, ?)',
@@ -90,7 +98,9 @@ export class UserStore {
         .run(current, id, nowIso())
       this.db.prepare('DELETE FROM retired_handles WHERE handle = ?').run(handle)
     }
-    this.db.prepare('UPDATE users SET handle = ?, handle_chosen = 1 WHERE id = ?').run(handle, id)
+    this.db
+      .prepare('UPDATE users SET handle = ?, handle_chosen = 1, reviewer_only = 0 WHERE id = ?')
+      .run(handle, id)
   }
 
   findById(id: string): UserRecord | undefined {
@@ -151,6 +161,16 @@ export class UserStore {
     this.db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, id)
   }
 
+  /** The account becomes a full one (invited to a profile, or the person chose to start writing). */
+  clearReviewerOnly(id: string) {
+    this.db.prepare('UPDATE users SET reviewer_only = 0 WHERE id = ?').run(id)
+  }
+
+  /** The username was one we generated, so the app asks once whether the person would like another. */
+  clearHandleChosen(id: string) {
+    this.db.prepare('UPDATE users SET handle_chosen = 0 WHERE id = ?').run(id)
+  }
+
   markEmailVerified(id: string) {
     this.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(id)
   }
@@ -186,6 +206,7 @@ export class UserStore {
     return {
       id: user.id,
       handle: user.handle,
+      reviewerOnly: user.reviewerOnly,
       handleChosen: user.handleChosen,
       name: user.name,
       email: user.email,
@@ -249,7 +270,8 @@ export class UserStore {
     const r = row as Record<string, unknown>
     return {
       id: r.id as string,
-      handle: r.handle as string,
+      handle: (r.handle as string | null) ?? null,
+      reviewerOnly: r.reviewer_only === 1,
       handleChosen: r.handle_chosen === 1,
       name: r.name as string,
       email: r.email as string,

@@ -247,6 +247,7 @@ function lastEmailToken(mailer: MemoryMailer, page: string): string {
 export const lastResetToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'reset-password')
 export const lastVerificationToken = (mailer: MemoryMailer) =>
   lastEmailToken(mailer, 'verify-email')
+export const lastReviewToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'review-invite')
 export const lastInvitationToken = (mailer: MemoryMailer) => lastEmailToken(mailer, 'accept-invite')
 
 /** Marks accounts as email-verified directly, for tests about something other than verification. */

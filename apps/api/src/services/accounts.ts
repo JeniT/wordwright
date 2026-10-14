@@ -97,6 +97,37 @@ export class AccountService {
     }
   }
 
+  /**
+   * A new person following a review link: an account that can only review (no username, no profile), with the
+   * address confirmed because the link only ever reached that inbox. `enroll` runs in the same transaction, so the
+   * account never exists without the review it was made for.
+   */
+  async registerReviewer(
+    input: { name: string; email: string; password: string },
+    enroll: (user: UserRecord) => void,
+  ): Promise<Session> {
+    const { store } = this.d
+    if (store.users.findByEmail(input.email)) throw emailInUse()
+    const hash = await this.d.hasher.hash(input.password)
+    try {
+      const user = store.transaction(() => {
+        const created = store.users.create({
+          name: input.name,
+          email: input.email,
+          emailVerified: true,
+          reviewerOnly: true,
+        })
+        store.users.setPasswordHash(created.id, hash)
+        enroll(created)
+        return created
+      })
+      return this.startSession(user)
+    } catch (err) {
+      if (isUniqueViolation(err)) throw emailInUse()
+      throw err
+    }
+  }
+
   async login(email: string, password: string): Promise<Session> {
     const { store, hasher } = this.d
     const user = store.users.findByEmail(email)

@@ -20,6 +20,9 @@ declare module 'vue-router' {
   }
 }
 
+/** Pages a reviewer-only account may open (the others are open to everyone, or for guests). */
+const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing'])
+
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./views/HomeView.vue') },
   {
@@ -75,6 +78,25 @@ export const routes: RouteRecordRaw[] = [
     name: 'accept-invite',
     component: () => import('./views/AcceptInviteView.vue'),
     meta: { open: true },
+  },
+  {
+    path: '/review-invite',
+    name: 'review-invite',
+    component: () => import('./views/ReviewInviteView.vue'),
+    meta: { open: true },
+  },
+  // ——— Reviews: the drafts someone was asked to read and comment on. The only pages a reviewer-only account has ———
+  { path: '/reviews', name: 'reviews', component: () => import('./views/ReviewsView.vue') },
+  {
+    path: '/reviews/start',
+    name: 'start-writing',
+    component: () => import('./views/StartWritingView.vue'),
+  },
+  {
+    path: '/reviews/:id',
+    name: 'review',
+    component: () => import('./views/ReviewView.vue'),
+    props: true,
   },
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue') },
   {
@@ -255,6 +277,10 @@ export function createAppRouter(history = createWebHistory()) {
     if (session.error) return // can't tell who's signed in; App shows the problem
     if (to.meta.open) return
     const signedIn = !!session.user
+    // A reviewer-only account has just its reviews (the server answers 404 to the rest, so don't ask for it).
+    if (session.user?.reviewerOnly && !REVIEWER_PAGES.has(String(to.name))) {
+      return { name: 'reviews' }
+    }
     // Reset links work whether or not you happen to be signed in.
     if (to.meta.guest && signedIn && to.name !== 'reset-password') return { name: 'home' }
     if (!to.meta.guest && !signedIn) {

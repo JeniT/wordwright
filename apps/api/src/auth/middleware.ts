@@ -15,11 +15,28 @@ export type AppEnv = {
   }
 }
 
+/**
+ * What a reviewer-only account may reach (ADR 0002): who it is, signing out, its own reviews, and deleting itself.
+ * Everything else answers 404, as it does for a stranger, so a reviewer finds out nothing about the rest of the app.
+ */
+export function reviewerMayReach(method: string, path: string): boolean {
+  const p = path.replace(/^\/api/, '')
+  if (p === '/auth/me' || p === '/auth/logout') return true
+  if (p === '/account' && method === 'DELETE') return true
+  // Accepting an invitation (to another review, or to a profile, which makes the account a full one).
+  if (method === 'POST' && (p === '/review-invitations/accept' || p === '/invitations/accept'))
+    return true
+  return p === '/reviews' || p.startsWith('/reviews/')
+}
+
 export const requireUser =
   (accounts: AccountService): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
     const user = accounts.authenticate(getCookie(c, SESSION_COOKIE))
     if (!user) throw fail(401, 'Not signed in')
+    if (user.reviewerOnly && !reviewerMayReach(c.req.method, c.req.path)) {
+      throw fail(404, 'Not found')
+    }
     c.set('user', user)
     await next()
   }

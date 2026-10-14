@@ -54,7 +54,9 @@ export const SiteUrlSchema = z
 export const UserSchema = z.object({
   id: z.string(),
   /** Short, unique, lower-case name that prefixes the ids of profiles this person creates. */
-  handle: HandleSchema,
+  handle: HandleSchema.nullable(),
+  /** A reviewer-only account (#157): reaches only the reviews it was invited to, and has no username or profile yet. */
+  reviewerOnly: z.boolean(),
   /** False for a username we generated (sign-up through an identity provider) until the person answers. */
   handleChosen: z.boolean(),
   name: z.string(),
@@ -1136,6 +1138,65 @@ export type CommentInput = z.infer<typeof CommentInputSchema>
 
 /** Sets a comment aside (it stays on record and the editor can show it again), or brings it back. */
 export const CommentResolveSchema = z.object({ resolved: z.boolean() })
+
+// ---- Reviewers (#157) -----------------------------------------------------
+
+export const REVIEW_STATES = ['open', 'left', 'revoked'] as const
+export const ReviewStateSchema = z.enum(REVIEW_STATES)
+export type ReviewState = z.infer<typeof ReviewStateSchema>
+
+/** One review as its reviewer lists it: what they were asked to read, by whom, and where it stands. */
+export const ReviewSummarySchema = z.object({
+  id: z.string(),
+  draftTitle: z.string(),
+  profileName: z.string(),
+  /** Null once the inviter's account has gone. */
+  inviterName: z.string().nullable(),
+  state: ReviewStateSchema,
+  createdAt: z.string(),
+})
+export type ReviewSummary = z.infer<typeof ReviewSummarySchema>
+
+/** A review opened: the draft to read (while access lasts) and the reviewer's own comments on it, and nothing else. */
+export const ReviewDetailSchema = ReviewSummarySchema.extend({
+  draft: z.object({ title: z.string(), body: z.string() }).nullable(),
+  comments: z.array(CommentSchema),
+})
+export type ReviewDetail = z.infer<typeof ReviewDetailSchema>
+
+/** What the holder of a review invitation link sees before answering. */
+export const ReviewInvitationPreviewSchema = z.object({
+  draftTitle: z.string(),
+  profileName: z.string(),
+  inviterName: z.string(),
+  email: z.string(),
+})
+export type ReviewInvitationPreview = z.infer<typeof ReviewInvitationPreviewSchema>
+
+export const ReviewAcceptedSchema = z.object({ reviewId: z.string() })
+
+/** A new person following a review link makes a reviewer-only account with just a name and password. */
+export const ReviewerRegisterInputSchema = z.object({
+  token: z.string().min(1).max(200),
+  name: NameSchema,
+  password: PasswordSchema,
+})
+export type ReviewerRegisterInput = z.infer<typeof ReviewerRegisterInputSchema>
+
+/** Who has been invited to review a draft, as its editor or an owner sees it. */
+export const DraftReviewersSchema = z.object({
+  reviewers: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      email: z.string(),
+      state: ReviewStateSchema,
+      createdAt: z.string(),
+    }),
+  ),
+  pending: z.array(z.object({ id: z.string(), email: z.string(), expiresAt: z.string() })),
+})
+export type DraftReviewers = z.infer<typeof DraftReviewersSchema>
 
 // ---- Bring-your-own LLM credentials ------------------------------------
 

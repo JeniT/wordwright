@@ -27,6 +27,8 @@ import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { ResearchService } from './services/research'
 import { IdeaLinkService } from './services/idea-links'
 import { HandoverService } from './services/handover'
+import { ReviewService } from './services/reviews'
+import { reviewInvitationRoutes, reviewRoutes } from './routes/reviews'
 import { InvitationService } from './services/invitations'
 import { LlmKeyService } from './services/llm'
 import { EmailChangeService } from './services/email-change'
@@ -96,6 +98,17 @@ export function createApp(deps: AppDeps) {
   /** Guessable or costly actions: 10 tries per 15 minutes. */
   const attempts = () => limiter(10, 15 * MINUTE)
 
+  const reviews = new ReviewService({
+    store,
+    mailer: deps.mailer,
+    accounts,
+    publicUrl,
+    // 5 a day to any one address, whoever sends them (the same cap as profile invitations).
+    recipientLimiter: limiter(5, DAY),
+    now: deps.now,
+    logger: deps.logger,
+  })
+
   const app = new Hono<AppEnv>()
   app.get('/health', (c) => c.json({ status: 'ok' }))
 
@@ -105,6 +118,7 @@ export function createApp(deps: AppDeps) {
     '/auth',
     authRoutes({
       accounts,
+      reviews,
       emailChanges,
       identityProviders: deps.identityProviders ?? [],
       publicUrl,
@@ -174,6 +188,8 @@ export function createApp(deps: AppDeps) {
     limiter: limiter(10, HOUR),
   })
   api.route('/invitations', invitationRoutes(invitations, accounts))
+  api.route('/review-invitations', reviewInvitationRoutes(reviews, accounts))
+  api.route('/reviews', signedIn(reviewRoutes(reviews, accounts)))
   api.route(
     '/profiles',
     signedIn(
@@ -181,6 +197,7 @@ export function createApp(deps: AppDeps) {
         store,
         llmKeys,
         invitations,
+        reviews,
         handover,
         inviteLimiter,
         feeds: deps.feeds,

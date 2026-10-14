@@ -10,7 +10,8 @@ export function useProfiles() {
   return useQuery({
     queryKey: ['profiles'],
     queryFn: () => api.listProfiles(),
-    enabled: computed(() => !!session.user),
+    // A reviewer-only account has no profiles, and the server answers 404 to asking.
+    enabled: computed(() => !!session.user && !session.user.reviewerOnly),
   })
 }
 

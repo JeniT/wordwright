@@ -5,6 +5,7 @@ import {
   ForgotPasswordInputSchema,
   LoginInputSchema,
   RegisterInputSchema,
+  ReviewerRegisterInputSchema,
   UsernameInputSchema,
   type HandleAvailability,
   ResetPasswordInputSchema,
@@ -19,6 +20,7 @@ import { generateToken } from '../auth/secrets'
 import { validateJson } from '../validate'
 import { AccountError, type AccountService, type Session } from '../services/accounts'
 import type { EmailChangeService } from '../services/email-change'
+import type { ReviewService } from '../services/reviews'
 import { fail } from '../errors'
 import { param } from './params'
 
@@ -27,6 +29,7 @@ const OAUTH_TTL_SECONDS = 600
 
 export interface AuthRouteDeps {
   accounts: AccountService
+  reviews: ReviewService
   emailChanges: EmailChangeService
   identityProviders: IdentityProvider[]
   /** Origin the web app is served from (also the origin the OAuth redirect URI lives on). */
@@ -109,6 +112,14 @@ export function authRoutes(d: AuthRouteDeps) {
 
       .post('/register', validateJson(RegisterInputSchema), async (c) => {
         const session = await d.accounts.register(c.req.valid('json')).catch(toHttpError)
+        setSession(c, session)
+        return c.json(d.accounts.toPublic(session.user), 201)
+      })
+
+      // A new person following a review link: a reviewer-only account, made and signed in at once.
+      .post('/register-reviewer', validateJson(ReviewerRegisterInputSchema), async (c) => {
+        const { token, name, password } = c.req.valid('json')
+        const session = await d.reviews.registerAndAccept(token, name, password).catch(toHttpError)
         setSession(c, session)
         return c.json(d.accounts.toPublic(session.user), 201)
       })

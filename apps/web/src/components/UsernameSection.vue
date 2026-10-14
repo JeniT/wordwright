@@ -12,7 +12,7 @@ defineProps<{ prompt?: boolean }>()
 
 const session = useSessionStore()
 const handle = ref('')
-const current = computed(() => session.user?.handle)
+const current = computed(() => session.user?.handle ?? undefined)
 const { hint, invalid, isCurrent } = useUsernameCheck(handle, current)
 
 const savedAs = ref('')
@@ -20,7 +20,7 @@ const save = useMutation({
   mutationFn: (chosen: string) => api.changeHandle(chosen),
   onSuccess: (user) => {
     session.set(user)
-    savedAs.value = user.handle
+    savedAs.value = user.handle ?? ''
     handle.value = ''
   },
 })
@@ -76,7 +76,7 @@ const save = useMutation({
           type="button"
           class="btn btn-outline"
           :disabled="save.isPending.value"
-          @click="save.mutate(session.user.handle)"
+          @click="save.mutate(session.user.handle ?? '')"
         >
           Keep {{ session.user.handle }}
         </button>

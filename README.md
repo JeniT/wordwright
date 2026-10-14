@@ -168,6 +168,14 @@ tests inject fakes and nothing hits the network.
   members read it, with a banner naming the editor, and see changes on reload or when the window regains focus.
   Notes stay open to every member. When
   the editor leaves, is removed or deletes their account, their drafts go to the profile's longest-standing owner.
+  **Reviewers** (#157): the editor or an owner can invite someone outside the profile to read one draft and comment
+  on it (`POST …/drafts/:draft/reviewers`, `{email}`; `GET` lists them, `DELETE …/reviewers/:review` ends a review).
+  They are emailed a 7-day link (`/review-invite`) bound to that address, with the same quiet `202`, throttles and
+  blocks as profile invitations. A new person makes a **reviewer-only account** with just a name and password: no
+  username and no profile, and every route outside `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation
+  and deleting the account) answers 404. Their page lists only their reviews; each opens the draft read-only with
+  their own comments, and they can add comments or stop reviewing. **Start writing** (`POST /reviews/start-writing`)
+  or an invitation to a profile makes it a full account.
   **Handover** (#155), on the draft page itself (`/api/profiles/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other

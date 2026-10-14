@@ -1387,6 +1387,30 @@ AI-inferred description.
   `POST /profiles/:id/description/confirm`, the unconfirmed check in `usableVenueDescription` and the profile fields that
   carried them went with it. A description is always the writer's own words, and every saved one reaches the assistants.
 
+## Reviewers: how they were built (#157)
+
+ADR 0002 is the decision; these are the details.
+
+- **A reviewer-only account** is `users.reviewer_only = 1` with a null `handle`. The one place that enforces what it
+  may reach is `requireUser` (`reviewerMayReach`): who it is, sign-out, `/reviews/*`, accepting an invitation and
+  deleting itself; everything else is 404, as for a stranger. A test walks every route the app registers as a reviewer.
+  The web app mirrors it (the router sends such an account to its reviews, and the profile list is never requested).
+- **A review is a grant on a draft** (`draft_reviews`: open, left or revoked), created by following a review
+  invitation (`review_invitations`, separate from profile invitations but sharing the blocks table, so "stop
+  invitations from everyone" covers both). The reviewer sees the live draft for now; #158 turns this into snapshots.
+  Once a review has ended the draft is no longer sent, and the reviewer's comments stay with the draft.
+- **Who may invite and end:** the draft's editor or an owner, with a confirmed address; capped per person (shares the
+  profile invitation cap of 20 a day) and per recipient (5 a day). The answer is the same `202` whatever the address,
+  and nothing is sent to an address that is blocked, already reviewing, or already a member.
+- **Only a name and password** make a new reviewer account (the link proves the inbox, so the address is confirmed).
+  Someone who follows the link with an existing account signs in and the review is added to it. A new person who would
+  rather use Google gets a full account through the ordinary sign-up and then follows the link again; reviewer-only
+  accounts are not made through an identity provider (a gap in the issue's wording, kept simple on purpose).
+- **Upgrading:** accepting a profile invitation as a reviewer-only account gives it a generated username (the app asks
+  once whether they'd like another) and keeps its reviews; **Start writing** chooses a username and does the same.
+- **Comments** are the ones from #156: a reviewer's are visible to them and the editor only, and follow the keep-my-name
+  choice at account deletion like members' do.
+
 ## Draft editors: how they were built (#154)
 
 - **A version number, not the timestamp.** `drafts.version` counts saves and a save quotes the one it started from

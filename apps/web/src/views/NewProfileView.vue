@@ -31,7 +31,9 @@ onBeforeUnmount(() => preview.value && URL.revokeObjectURL(preview.value))
 
 // The address people will share. The server adds a number if you already have one like it.
 const address = computed(() =>
-  name.value.trim() && session.user ? `/p/${profileIdFor(session.user.handle, name.value)}` : '',
+  name.value.trim() && session.user?.handle
+    ? `/p/${profileIdFor(session.user.handle, name.value)}`
+    : '',
 )
 
 const create = useMutation({

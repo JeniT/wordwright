@@ -123,6 +123,35 @@ ${declineLink}`,
   }
 }
 
+/** Asks someone outside the profile to read one draft and comment on it. They will see only that draft. */
+export function reviewInvitationEmail(input: {
+  inviterName: string
+  draftTitle: string
+  profileName: string
+  link: string
+  ttlDays: number
+}): Content {
+  const { inviterName, draftTitle, profileName, link, ttlDays } = input
+  const title = draftTitle.trim() || 'an untitled draft'
+  return {
+    subject: `${inviterName} asked you to review a draft`,
+    text: `${inviterName} would like your comments on "${title}", a draft in "${profileName}" on Wordwright.
+
+You'll be able to read that one draft and write comments on it, and nothing else: you won't see the rest of the profile, and no one else's comments. You can stop reviewing whenever you like.
+
+Open it here (you'll create a reviewer account or sign in with this email address; the link expires in ${ttlDays} days):
+
+${link}
+
+If you weren't expecting this, ignore this email and nothing will happen. The same page lets you decline, or stop invitations from ${inviterName} or from everyone.`,
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(profileName)} on Wordwright.</p>
+<p>You'll be able to read that one draft and write comments on it, and nothing else: you won't see the rest of the profile, and no one else's comments. You can stop reviewing whenever you like.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Read the draft</a></p>
+<p style="font-size:14px">You'll create a reviewer account or sign in with this email address. The link expires in ${ttlDays} days. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
+<p style="font-size:14px">If you weren't expecting this, ignore this email and nothing will happen. The same page lets you decline, or stop invitations from ${escapeHtml(inviterName)} or from everyone.</p>`),
+  }
+}
+
 /** Tells a member the draft's editor wants to hand the draft to them. The link opens the draft, where they answer. */
 export function handoverOfferEmail(input: {
   fromName: string

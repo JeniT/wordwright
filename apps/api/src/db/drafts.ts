@@ -21,6 +21,12 @@ export class DraftStore {
     return row ? toDraft(row) : undefined
   }
 
+  /** A draft by id alone, for callers that already know the person may reach it (a reviewer's own review). */
+  getById(id: string): Draft | undefined {
+    const row = this.db.prepare(`${SELECT} WHERE d.id = ?`).get(id)
+    return row ? toDraft(row) : undefined
+  }
+
   create(profileId: string, createdBy: string, input: DraftInput, ideaId: string): Draft {
     const id = randomUUID()
     const now = nowIso()

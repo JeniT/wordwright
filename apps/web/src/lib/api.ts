@@ -10,6 +10,12 @@ import {
   DraftInsertionSchema,
   DraftSchema,
   HandoverStateSchema,
+  DraftReviewersSchema,
+  ReviewAcceptedSchema,
+  ReviewDetailSchema,
+  ReviewInvitationPreviewSchema,
+  ReviewSummarySchema,
+  type ReviewerRegisterInput,
   HandleAvailabilitySchema,
   IdeaLinkSchema,
   IdeaNoteSchema,
@@ -184,6 +190,32 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     unblockInviter: (senderId: string) => act('DELETE', `/invitations/blocks/senders/${senderId}`),
     acceptInvitation: (token: string) =>
       get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
+    // reviewers: people outside the profile asked to read one draft and comment on it
+    listReviewers: (profileId: string, draftId: string) =>
+      get(DraftReviewersSchema, 'GET', `${drafts(profileId)}/${draftId}/reviewers`),
+    inviteReviewer: (profileId: string, draftId: string, email: string) =>
+      act('POST', `${drafts(profileId)}/${draftId}/reviewers`, { email }),
+    revokeReviewer: (profileId: string, draftId: string, reviewId: string) =>
+      act('DELETE', `${drafts(profileId)}/${draftId}/reviewers/${reviewId}`),
+    withdrawReviewInvitation: (profileId: string, draftId: string, invitationId: string) =>
+      act('DELETE', `${drafts(profileId)}/${draftId}/reviewers/invitations/${invitationId}`),
+    previewReviewInvitation: (token: string) =>
+      get(ReviewInvitationPreviewSchema, 'POST', '/review-invitations/preview', { token }),
+    declineReviewInvitation: (token: string, block: 'none' | 'sender' | 'all') =>
+      act('POST', '/review-invitations/decline', { token, block }),
+    acceptReviewInvitation: (token: string) =>
+      get(ReviewAcceptedSchema, 'POST', '/review-invitations/accept', { token }),
+    /** A new person's reviewer-only account, made and signed in by following the link. */
+    registerReviewer: (input: ReviewerRegisterInput) =>
+      get(UserSchema, 'POST', '/auth/register-reviewer', input),
+    // a reviewer's own reviews
+    listReviews: () => get(ReviewSummarySchema.array(), 'GET', '/reviews'),
+    getReview: (id: string) => get(ReviewDetailSchema, 'GET', `/reviews/${id}`),
+    commentOnReview: (id: string, input: CommentInput) =>
+      get(CommentSchema, 'POST', `/reviews/${id}/comments`, input),
+    leaveReview: (id: string) => act('POST', `/reviews/${id}/leave`),
+    /** Chooses a username and becomes a full account. */
+    startWriting: (handle: string) => get(UserSchema, 'POST', '/reviews/start-writing', { handle }),
     removeMember: (id: string, userId: string) =>
       act('DELETE', `/profiles/${id}/members/${userId}`),
 

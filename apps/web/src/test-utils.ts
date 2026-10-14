@@ -13,6 +13,7 @@ export const testUser = {
   id: 'u1',
   handle: 'adalovelace',
   handleChosen: true,
+  reviewerOnly: false,
   name: 'Ada Lovelace',
   email: 'ada@example.com',
   emailVerified: true,
@@ -94,7 +95,9 @@ async function loadRoute(name: string) {
   if (typeof component === 'function') await (component as () => Promise<unknown>)()
 }
 
-export const signedInAs = (user: typeof testUser | null) =>
+export const signedInAs = (
+  user: (Omit<typeof testUser, 'handle'> & { handle: string | null }) | null,
+) =>
   http.get('*/api/auth/me', () =>
     user ? HttpResponse.json(user) : HttpResponse.json({ error: 'Not signed in' }, { status: 401 }),
   )

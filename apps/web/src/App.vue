@@ -58,10 +58,41 @@ watch(
   -->
   <div
     class="min-h-screen"
-    :class="session.user && !nav.compact.value ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]' : ''"
+    :class="
+      session.user && !session.user.reviewerOnly && !nav.compact.value
+        ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]'
+        : ''
+    "
   >
+    <!-- A reviewer-only account has no menu: just its reviews, its name and a way out. -->
     <header
-      v-if="session.user"
+      v-if="session.user?.reviewerOnly"
+      class="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4"
+    >
+      <RouterLink to="/reviews" class="flex items-center gap-3 font-semibold no-underline">
+        <span
+          class="grid size-9 place-items-center rounded-ctl bg-accent text-sm text-on-accent"
+          aria-hidden="true"
+          >W</span
+        >
+        <span class="text-lg">Wordwright</span>
+      </RouterLink>
+      <div class="flex flex-wrap items-center gap-3 text-sm">
+        <span>{{ session.user.name }}</span>
+        <button type="button" class="link" @click="signOut.mutate()">Sign out</button>
+        <button
+          type="button"
+          class="btn btn-quiet btn-sm"
+          :aria-pressed="dark"
+          aria-label="Dark mode"
+          @click="toggleTheme"
+        >
+          {{ dark ? 'Dark' : 'Light' }}
+        </button>
+      </div>
+    </header>
+    <header
+      v-else-if="session.user"
       class="border-b border-line bg-surface"
       :class="nav.compact.value ? '' : 'md:border-r md:border-b-0'"
     >

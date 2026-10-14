@@ -32,5 +32,6 @@ export function removeUserAndOwnedData(
   }
   if (keepName) store.users.keepNameOnContributions(user.id, user.name)
   store.invitations.deleteForEmail(user.email)
+  store.reviews.deleteForEmail(user.email)
   store.users.delete(user.id) // cascades: credential, identities, sessions, resets, memberships
 }

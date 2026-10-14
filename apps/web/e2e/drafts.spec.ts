@@ -643,6 +643,77 @@ test('the editor offers a draft; the member declines once and accepts the next t
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
+test('a reviewer is invited by email, reads and comments on one draft, and can start writing', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  await openFirstProfile(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  const draftUrl = page.url()
+
+  // Ada asks someone outside the profile to review the draft.
+  const reviewerEmail = `rae-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await page.getByText('Ask someone to review this draft').click()
+  await page.getByLabel('Their email address').fill(reviewerEmail)
+  await page.getByRole('button', { name: 'Send the invitation' }).click()
+  await expect(page.getByText(/can be invited, they've been emailed/)).toBeVisible()
+  await expect(page.getByText(`${reviewerEmail} · waiting for a reply`)).toBeVisible()
+  const mail = await waitForEmail(reviewerEmail, 'Ada asked you to review a draft')
+  const link = linkIn(mail, '/review-invite')
+  expect(link, 'review link in the email').toBeTruthy()
+
+  // Rae follows the link and makes a reviewer account with a name and password.
+  const rae = await (await browser.newContext()).newPage()
+  const raeProblems = watchForProblems(rae)
+  await rae.goto(link!)
+  await expect(rae.getByText('would like your comments on')).toBeVisible()
+  expect((await new AxeBuilder({ page: rae }).analyze()).violations).toEqual([])
+  await rae.getByLabel('What should we call you?').fill('Rae')
+  await rae.getByLabel('Choose a password').fill(PASSWORD)
+  await rae.getByRole('button', { name: 'Read the draft' }).click()
+
+  // Her whole app is her reviews: no profiles, ideas, account or API key.
+  await expect(rae.getByRole('heading', { name: 'Drafts to review' })).toBeVisible()
+  await expect(rae.getByRole('link', { name: 'Account' })).toHaveCount(0)
+  await rae.getByRole('link', { name: 'Meanders' }).click()
+  await expect(rae.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
+  await expect(rae.getByRole('textbox', { name: 'Draft body' })).toHaveAttribute(
+    'contenteditable',
+    'false',
+  )
+  await rae.getByRole('textbox', { name: 'Your comment' }).fill('Which rivers do you mean?')
+  await rae.getByRole('button', { name: 'Add comment' }).click()
+  await expect(rae.getByText('Which rivers do you mean?')).toBeVisible()
+  expect((await new AxeBuilder({ page: rae }).analyze()).violations).toEqual([])
+
+  // Ada, the editor, sees the comment, labelled with Rae's name.
+  await page.goto(draftUrl)
+  await page.getByRole('tab', { name: /^Comments/ }).click()
+  await expect(page.getByText('Which rivers do you mean?')).toBeVisible()
+  await expect(
+    page.getByRole('tabpanel', { name: /^Comments/ }).getByText('Rae', { exact: true }),
+  ).toBeVisible()
+
+  // Rae chooses to start writing: a full account, sent to the home page.
+  await rae.getByRole('link', { name: '← All your reviews' }).click()
+  await rae.getByRole('link', { name: 'Start writing' }).click()
+  await rae.getByLabel('Username').fill(uniqueUsername())
+  await rae.getByRole('button', { name: 'Start writing' }).click()
+  await expect(rae.getByRole('link', { name: 'Account' }).first()).toBeVisible()
+  expect(raeProblems, "Rae's browser problems").toEqual([])
+})
+
 test('declining and blocking an inviter from the email, then lifting the block', async ({
   page,
   browser,

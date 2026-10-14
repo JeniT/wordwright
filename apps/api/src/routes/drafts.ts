@@ -5,6 +5,7 @@ import {
   DraftInsertionInputSchema,
   DraftSaveSchema,
   HandoverTargetSchema,
+  InviteInputSchema,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
@@ -12,6 +13,8 @@ import { addComment, visibleComments } from '../services/comments'
 import { critiqueState } from '../services/critique'
 import { requireEditor } from '../services/draft-editor'
 import type { HandoverService } from '../services/handover'
+import type { RateLimiter } from '../auth/rate-limit'
+import type { ReviewService } from '../services/reviews'
 import { validateJson } from '../validate'
 import { fail, notFound } from '../errors'
 import { param } from './params'
@@ -20,7 +23,12 @@ import { param } from './params'
  * Mounted under `/profiles/:profileId`, after membership has been checked. Drafts are created and
  * listed through their idea (`/ideas/:id/drafts`); these routes open, save and delete one by id.
  */
-export function draftRoutes(store: Store, handover: HandoverService) {
+export function draftRoutes(
+  store: Store,
+  handover: HandoverService,
+  reviews: ReviewService,
+  inviteLimiter: RateLimiter,
+) {
   const { drafts, notes, ideas, comments } = store
   /** The draft a route is about, or a 404. */
   const draftOf = (c: Parameters<typeof param>[0]) => {
@@ -139,6 +147,25 @@ export function draftRoutes(store: Store, handover: HandoverService) {
       .post('/:id/handover/reassign', validateJson(HandoverTargetSchema), (c) =>
         c.json(handover.reassign(draftOf(c), c.get('user'), c.req.valid('json').userId)),
       )
+      // Inviting people outside the profile to read this draft and comment on it (the editor or an owner).
+      .get('/:id/reviewers', (c) => c.json(reviews.reviewers(draftOf(c), c.get('user').id)))
+      .post('/:id/reviewers', validateJson(InviteInputSchema), (c) => {
+        // Each invitation emails a stranger from our server, so one person's are capped, like profile invitations.
+        if (!inviteLimiter.allow(c.get('user').id)) {
+          throw fail(429, 'You have sent a lot of invitations. Try again later.')
+        }
+        reviews.invite(c.get('user'), draftOf(c), c.req.valid('json').email)
+        // The same answer whatever happened, so it reveals nothing about who has an account or has blocked us.
+        return c.json({ ok: true }, 202)
+      })
+      .delete('/:id/reviewers/invitations/:invitationId', (c) => {
+        reviews.withdrawInvitation(draftOf(c), c.get('user').id, param(c, 'invitationId'))
+        return c.body(null, 204)
+      })
+      .delete('/:id/reviewers/:reviewId', (c) => {
+        reviews.revoke(draftOf(c), c.get('user').id, param(c, 'reviewId'))
+        return c.body(null, 204)
+      })
       .delete('/:id', (c) =>
         drafts.delete(param(c, 'profileId'), param(c, 'id'))
           ? c.body(null, 204)

@@ -7,6 +7,7 @@ import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
 import HandoverPanel from '../components/HandoverPanel.vue'
+import ReviewersPanel from '../components/ReviewersPanel.vue'
 import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RichEditor from '../components/RichEditor.vue'
@@ -353,6 +354,12 @@ async function requestCritique() {
           the page, or come back to it, to see their latest changes.
         </p>
         <HandoverPanel :profile-id="profileId" :draft-id="id" />
+        <ReviewersPanel
+          v-if="draft.data.value"
+          :profile-id="profileId"
+          :draft-id="id"
+          :editor-id="draft.data.value.editorId"
+        />
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
         <input

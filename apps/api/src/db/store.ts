@@ -14,6 +14,7 @@ import { ReadingStore } from './reading'
 import { InvitationStore } from './invitations'
 import { ProfileStore } from './profiles'
 import { ResearchStore } from './research'
+import { ReviewStore } from './reviews'
 import { SourceStore } from './sources'
 import { TokenStore } from './tokens'
 import { UserPromptStore } from './user-prompts'
@@ -37,6 +38,7 @@ export interface Store {
   research: ResearchStore
   sources: SourceStore
   invitations: InvitationStore
+  reviews: ReviewStore
   credentials: CredentialStore
   userPrompts: UserPromptStore
   userSettings: UserSettingsStore
@@ -62,6 +64,7 @@ export function createStore(db: DatabaseSync): Store {
     research: new ResearchStore(db),
     sources: new SourceStore(db),
     invitations: new InvitationStore(db),
+    reviews: new ReviewStore(db),
     credentials: new CredentialStore(db),
     userPrompts: new UserPromptStore(db),
     userSettings: new UserSettingsStore(db),
