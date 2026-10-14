@@ -10,6 +10,7 @@ const profile = {
   name: 'Ada’s writing',
   siteUrl: null,
   imageUrl: null,
+  siteIconUrl: null,
   description: null,
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }],

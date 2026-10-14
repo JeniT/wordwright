@@ -19,6 +19,7 @@ const profile = {
   name: 'Substack',
   siteUrl: null,
   imageUrl: null,
+  siteIconUrl: null,
   description: null,
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' }],

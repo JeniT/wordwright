@@ -22,6 +22,7 @@ const bare = {
   name: 'Garden notes',
   siteUrl: 'https://garden.example/',
   imageUrl: null,
+  siteIconUrl: null,
   description: null,
   role: 'owner',
   members: [owner],

@@ -333,7 +333,8 @@ own rounded corners stop at its edge and never wrap someone else's artwork. The 
 hard-coded colour in the system, deliberately.
 
 The person's own profile picture (`kind="profile"`, the default) is cropped to fill the same frame, since the writer
-chose it. Pictures are still fetched once and served from our own origin ([decisions.md](decisions.md)); this is only
+chose it. When a profile has no picture but has a website whose icon we could fetch, `ProfileImage` is given
+`site-icon-url` and draws that icon as a guest (on the plate, as above); the person's picture always wins. Pictures are still fetched once and served from our own origin ([decisions.md](decisions.md)); this is only
 how they are framed. Identity-provider buttons ("Continue with Google") should use the same plate for their logo.
 
 ## Dark mode

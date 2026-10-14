@@ -125,6 +125,19 @@ route with `nosniff`. The type comes from the file's leading bytes, not the decl
 accepted (script, same origin). No object-storage port yet: nothing else needs one, and moving it behind a port is
 easy when it does (hosting is D3). The per-user cap on owned profiles (25) bounds storage.
 
+## A profile's website icon is a guest, stored apart from the picture (#177)
+
+When a profile has a website and no picture of its own, the website's icon stands in. It is fetched with the same
+`FeedFetcher.fetchIcon` the reading list uses (SSRF-guarded; PNG, JPEG, GIF, WebP or ICO, never SVG, 256 KB), once
+when the profile is created or its website changes, and stored in `profile_site_icons`, apart from the owner's
+upload (1 MB, raster only, no ICO). Browsers get it from our own origin, so the other site never learns who looks.
+It is drawn as any other site's image (`ProfileImage kind="source"`, on a plate, contained), never cropped into the
+slot for the person's own picture; the owner's picture always wins, and removing it shows the icon again.
+
+Best effort: the fetch has a 5 second limit and is throttled with the feed limiter. A failure, a timeout or a throttle
+never stops the profile being saved; it just means no icon (and a changed website drops the old site's icon). It is
+fetched inside the request, not afterwards, so the page the person lands on already has it.
+
 ## One profile description, not audience personas (#131, part of #27)
 
 A profile has one Markdown description of the venue: what it is, who reads it and what kinds of writing go there. The

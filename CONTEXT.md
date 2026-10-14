@@ -10,6 +10,14 @@ A web app that supports a writer's journey from idea to published writing, with 
 A publishing venue: a container of ideas and drafts, with people who work in it.
 _Avoid_: Workspace, account, blog
 
+**Profile picture**:
+The image an owner chooses for a profile. Always shown in preference to the site icon.
+_Avoid_: Avatar, logo
+
+**Site icon**:
+The icon of a profile's website, fetched once when the website is set or changed and shown, as a guest image, only when the profile has no picture of its own.
+_Avoid_: Favicon, logo
+
 **Owner**:
 A person who administers a profile (invites and removes people, makes other members owners, reassigns drafts). A profile can have several owners but never none.
 _Avoid_: Admin

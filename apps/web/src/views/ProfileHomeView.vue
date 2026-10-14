@@ -23,7 +23,13 @@ const ideas = useIdeas(() => props.profileId)
 <template>
   <ProfileGate v-slot="{ profile }" :profile-id="profileId">
     <div class="mb-2 flex items-center gap-4">
-      <ProfileImage :id="profile.id" :name="profile.name" :image-url="profile.imageUrl" size="sm" />
+      <ProfileImage
+        :id="profile.id"
+        :name="profile.name"
+        :image-url="profile.imageUrl"
+        :site-icon-url="profile.siteIconUrl"
+        size="sm"
+      />
       <div class="min-w-0">
         <h1 class="h1 break-words">{{ profile.name }}</h1>
         <p v-if="profile.siteUrl" class="meta truncate">

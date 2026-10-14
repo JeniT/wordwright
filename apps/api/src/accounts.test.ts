@@ -433,6 +433,8 @@ describe('account deletion', () => {
     expect(store.drafts.insertions(ideaDraft.id)).toHaveLength(1)
     await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
     expect(store.profiles.getImage(second.id)).toBeDefined()
+    store.profiles.setSiteIcon(second.id, { contentType: 'image/png', data: PNG_BYTES })
+    expect(store.profiles.getSiteIcon(second.id)).toBeDefined()
     // The profile's own reading list and notes, and the log of a move, go with it too.
     const own = store.reading.add(second.id, null, { url: 'https://own.example/', title: 'Own' })
     store.notes.append(second.id, null, null, 'A profile-level note', 'reading', own.id)
@@ -462,6 +464,7 @@ describe('account deletion', () => {
     })
     expect(res.status).toBe(204)
     expect(store.profiles.getImage(second.id)).toBeUndefined()
+    expect(store.profiles.getSiteIcon(second.id)).toBeUndefined()
     expect(store.sources.getFetch(feed.id)).toBeUndefined()
     expect(store.reading.list({ profileId: second.id })).toEqual([])
     expect(store.notes.list({ profileId: second.id })).toEqual([])

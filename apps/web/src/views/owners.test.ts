@@ -13,6 +13,7 @@ const profile = (viewer: 'owner' | 'member', roles: { ada: string; bob: string }
   name: 'Joint piece',
   siteUrl: null,
   imageUrl: null,
+  siteIconUrl: null,
   description: null,
   role: viewer,
   members: [

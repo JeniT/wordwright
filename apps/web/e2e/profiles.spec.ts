@@ -27,6 +27,36 @@ const uniqueName = (prefix: string) => `${prefix}${Math.random().toString(36).sl
 const noViolations = async (page: Page) =>
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
+test("shows the website's icon when there is no picture, and the person's own picture instead when there is", async ({
+  page,
+}) => {
+  await registerUser(page, uniqueName('Ivy'))
+
+  // A website and no picture: the site's icon stands in, drawn as another site's image (on its plate).
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Garden notes')
+  await page.getByLabel(/Website/).fill('garden.example')
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page).toHaveURL(/garden-notes$/)
+  const icon = page.getByRole('banner').locator('img').filter({ visible: true }).first()
+  await expect(icon).toHaveAttribute('src', /\/site-icon\?v=\d+$/)
+  await expect(icon.locator('..')).toHaveClass(/source-mark/)
+  await noViolations(page)
+
+  // The same website with a picture: the picture is shown, not the icon.
+  await page.getByRole('link', { name: 'Wordwright' }).click()
+  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Allotment')
+  await page.getByLabel(/Website/).fill('allotment.example')
+  await page
+    .getByLabel(/Picture/)
+    .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: PNG })
+  await page.getByRole('button', { name: 'Create profile' }).click()
+  await expect(page).toHaveURL(/allotment$/)
+  const own = page.getByRole('banner').locator('img').filter({ visible: true }).first()
+  await expect(own).toHaveAttribute('src', /\/image\?v=\d+$/)
+})
+
 test('creates a profile with a website and picture, and opens its page', async ({ page }) => {
   const person = uniqueName('Pat')
   await registerUser(page, person)

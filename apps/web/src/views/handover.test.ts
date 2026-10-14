@@ -51,6 +51,7 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
           name: 'A profile',
           siteUrl: null,
           imageUrl: null,
+          siteIconUrl: null,
           description: null,
           role,
           members: [

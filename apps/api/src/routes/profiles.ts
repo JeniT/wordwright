@@ -40,6 +40,7 @@ import type { ExportService } from '../services/export'
 import { throttleExport, zipResponse } from './zip-response'
 import { ownerCannotLeaveMessage, setMemberRole } from '../services/owners'
 import { param } from './params'
+import { fetchSiteIcon } from '../services/site-icons'
 
 export interface ProfileRouteDeps {
   store: Store
@@ -83,11 +84,15 @@ export function profileRoutes({
   const moves = new MoveService(store)
   const feedPosts = new FeedPostService(store)
 
+  // Best effort, and throttled like adding a feed: each fetch makes the server visit a page the person typed.
+  const siteIconFor = (userId: string, siteUrl: string) =>
+    feedLimiter.allow(userId) ? fetchSiteIcon(feeds, siteUrl) : Promise.resolve(null)
+
   return (
     new Hono<AppEnv>()
       .get('/', (c) => c.json(store.profiles.listForUser(c.get('user').id)))
 
-      .post('/', validateJson(ProfileInputSchema), (c) => {
+      .post('/', validateJson(ProfileInputSchema), async (c) => {
         const user = c.get('user')
         if (store.profiles.countOwnedBy(user.id) >= MAX_OWNED_PROFILES) {
           throw fail(
@@ -96,7 +101,12 @@ export function profileRoutes({
           )
         }
         const { name, siteUrl } = c.req.valid('json')
-        const id = store.profiles.create(name, user.id, siteUrl ?? null)
+        const icon = siteUrl ? await siteIconFor(user.id, siteUrl) : null
+        const id = store.transaction(() => {
+          const created = store.profiles.create(name, user.id, siteUrl ?? null)
+          if (icon) store.profiles.setSiteIcon(created, icon)
+          return created
+        })
         return c.json(store.profiles.get(id, user.id), 201)
       })
 
@@ -109,12 +119,21 @@ export function profileRoutes({
         c.json(store.profiles.get(param(c, 'profileId'), c.get('user').id)),
       )
 
-      .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), (c) => {
-        // One transaction: the name, the website and the new address change together or not at all.
-        const id = store.transaction(() =>
-          store.profiles.update(param(c, 'profileId'), c.req.valid('json')),
-        )
-        return c.json(store.profiles.get(id, c.get('user').id))
+      .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), async (c) => {
+        const user = c.get('user')
+        const changes = c.req.valid('json')
+        const current = store.profiles.get(param(c, 'profileId'), user.id)
+        // The network comes first, outside the transaction. Only a different website has a different icon.
+        const websiteChanged = changes.siteUrl !== undefined && changes.siteUrl !== current?.siteUrl
+        const icon =
+          websiteChanged && changes.siteUrl ? await siteIconFor(user.id, changes.siteUrl) : null
+        // One transaction: the name, the website, its icon and the new address change together or not at all.
+        const id = store.transaction(() => {
+          const next = store.profiles.update(param(c, 'profileId'), changes)
+          if (websiteChanged) store.profiles.setSiteIcon(next, icon)
+          return next
+        })
+        return c.json(store.profiles.get(id, user.id))
       })
 
       // Anyone who works in the profile can describe it, unlike its name and website, which are the owner's.
@@ -142,6 +161,12 @@ export function profileRoutes({
         const image = store.profiles.getImage(param(c, 'profileId'))
         if (!image) throw fail(404, 'Not found')
         return imageResponse(c, image)
+      })
+
+      .get('/:profileId/site-icon', member, (c) => {
+        const icon = store.profiles.getSiteIcon(param(c, 'profileId'))
+        if (!icon) throw fail(404, 'Not found')
+        return imageResponse(c, icon)
       })
 
       .put(

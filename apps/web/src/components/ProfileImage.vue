@@ -6,6 +6,11 @@ const props = withDefaults(
     id: string
     name: string
     imageUrl?: string | null
+    /**
+     * The icon of the profile's website, a guest: used only when there is no `imageUrl`, and then drawn like any other
+     * site's picture (on the plate, contained), never cropped into the slot for the person's own picture.
+     */
+    siteIconUrl?: string | null
     size?: 'xs' | 'sm' | 'md' | 'lg'
     /**
      * `profile`: the person's own picture, cropped to fill the tile.
@@ -14,7 +19,7 @@ const props = withDefaults(
      */
     kind?: 'profile' | 'source'
   }>(),
-  { imageUrl: null, size: 'md', kind: 'profile' },
+  { imageUrl: null, siteIconUrl: null, size: 'md', kind: 'profile' },
 )
 
 // A palette-matched tint, chosen from the id so a profile or source keeps its colour everywhere.
@@ -24,6 +29,10 @@ const tint = computed(() => {
   for (const ch of props.id) hash = (hash * 31 + ch.codePointAt(0)!) >>> 0
   return TINTS[hash % TINTS.length]
 })
+// The person's own picture always wins over their website's icon.
+const shownIcon = computed(() =>
+  props.kind === 'source' ? props.imageUrl : props.imageUrl ? null : props.siteIconUrl,
+)
 const initial = computed(() => (Array.from(props.name.trim())[0] ?? '?').toUpperCase())
 const dimension = { xs: '2rem', sm: '3rem', md: '4rem', lg: '6rem' }
 const sizeStyle = computed(() => ({ '--mark-size': dimension[props.size] }))
@@ -31,8 +40,8 @@ const sizeStyle = computed(() => ({ '--mark-size': dimension[props.size] }))
 
 <template>
   <!-- Decorative: the name is always shown next to it. -->
-  <span v-if="imageUrl && kind === 'source'" class="source-mark" :style="sizeStyle">
-    <img :src="imageUrl" alt="" />
+  <span v-if="shownIcon" class="source-mark" :style="sizeStyle">
+    <img :src="shownIcon" alt="" />
   </span>
   <img
     v-else-if="imageUrl"

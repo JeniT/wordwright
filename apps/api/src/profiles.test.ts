@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_IMAGE_BYTES, MAX_OWNED_PROFILES } from '@lfwa/core'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { FakeFeedFetcher, MAX_IMAGE_BYTES, MAX_OWNED_PROFILES } from '@lfwa/core'
+import { exampleFeeds } from './feeds/factory'
 import {
   PASSWORD,
   PNG_BYTES,
@@ -608,5 +609,123 @@ describe('several owners', () => {
     expect(await (await bob.get(`/api/profiles/${profile}`)).json()).toMatchObject({
       role: 'owner',
     })
+  })
+})
+
+describe('profile site icon', () => {
+  let ctx: ReturnType<typeof setup>
+  let fetcher: FakeFeedFetcher
+  let ada: TestClient
+  let bob: TestClient
+
+  beforeEach(async () => {
+    fetcher = exampleFeeds()
+    ctx = setup({ feeds: fetcher })
+    ada = ctx.client()
+    bob = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    await register(bob, 'bob@example.com', 'Bob')
+  })
+
+  it('is fetched when a profile is created with a website, and served to members only', async () => {
+    const created = await (
+      await ada.post('/api/profiles', { name: 'Garden', siteUrl: 'https://garden.example/' })
+    ).json()
+    expect(created.imageUrl).toBeNull()
+    expect(created.siteIconUrl).toMatch(
+      new RegExp(`^/api/profiles/${created.id}/site-icon\\?v=\\d+$`),
+    )
+
+    const served = await ada.get(created.siteIconUrl)
+    expect(served.status).toBe(200)
+    expect(served.headers.get('content-type')).toBe('image/png')
+    expect(served.headers.get('x-content-type-options')).toBe('nosniff')
+    expect((await bob.get(`/api/profiles/${created.id}/site-icon`)).status).toBe(404)
+  })
+
+  it('is left out when there is no website, or the site has no icon', async () => {
+    const plain = await (await ada.post('/api/profiles', { name: 'Plain' })).json()
+    expect(plain.siteIconUrl).toBeNull()
+    expect((await ada.get(`/api/profiles/${plain.id}/site-icon`)).status).toBe(404)
+    // Not a *.example address, so the fake knows no icon for it.
+    const bare = await ada.post('/api/profiles', { name: 'Bare', siteUrl: 'https://nothing.test/' })
+    expect(bare.status).toBe(201)
+    expect((await bare.json()).siteIconUrl).toBeNull()
+  })
+
+  it('never stops a profile being created when the icon cannot be fetched', async () => {
+    const failing = setup({
+      feeds: new FakeFeedFetcher({}, () => ({ icon: true })),
+    })
+    vi.spyOn(failing.feeds, 'fetchIcon').mockRejectedValue(new Error('network down'))
+    const c = failing.client()
+    await register(c, 'cy@example.com', 'Cy')
+    const res = await c.post('/api/profiles', {
+      name: 'Garden',
+      siteUrl: 'https://garden.example/',
+    })
+    expect(res.status).toBe(201)
+    expect((await res.json()).siteIconUrl).toBeNull()
+  })
+
+  it('follows the website: replaced when it changes, removed when it is cleared', async () => {
+    const created = await (
+      await ada.post('/api/profiles', { name: 'Garden', siteUrl: 'https://garden.example/' })
+    ).json()
+    expect(fetcher.iconsFetched).toEqual(['https://garden.example/'])
+
+    // A change of name alone fetches nothing.
+    const renamed = await (
+      await ada.patch(`/api/profiles/${created.id}`, { name: 'Allotment' })
+    ).json()
+    expect(fetcher.iconsFetched).toHaveLength(1)
+    expect(renamed.siteIconUrl).toContain(`/api/profiles/${renamed.id}/site-icon`)
+
+    const moved = await (
+      await ada.patch(`/api/profiles/${renamed.id}`, { siteUrl: 'https://allotment.example/' })
+    ).json()
+    expect(fetcher.iconsFetched).toEqual(['https://garden.example/', 'https://allotment.example/'])
+    expect(moved.siteIconUrl).not.toBeNull()
+
+    const cleared = await (await ada.patch(`/api/profiles/${renamed.id}`, { siteUrl: null })).json()
+    expect(cleared.siteIconUrl).toBeNull()
+    expect((await ada.get(`/api/profiles/${renamed.id}/site-icon`)).status).toBe(404)
+  })
+
+  it('drops the old icon when the new website has none', async () => {
+    const created = await (
+      await ada.post('/api/profiles', { name: 'Garden', siteUrl: 'https://garden.example/' })
+    ).json()
+    const moved = await (
+      await ada.patch(`/api/profiles/${created.id}`, { siteUrl: 'https://nothing.test/' })
+    ).json()
+    expect(moved.siteIconUrl).toBeNull()
+  })
+
+  it('does not touch the uploaded picture, which is kept alongside it', async () => {
+    const created = await (
+      await ada.post('/api/profiles', { name: 'Garden', siteUrl: 'https://garden.example/' })
+    ).json()
+    await ada.putBytes(`/api/profiles/${created.id}/image`, PNG_BYTES, 'image/png')
+    const profile = await (await ada.get(`/api/profiles/${created.id}`)).json()
+    expect(profile.imageUrl).not.toBeNull()
+    expect(profile.siteIconUrl).not.toBeNull()
+    await ada.delete(`/api/profiles/${created.id}/image`)
+    const after = await (await ada.get(`/api/profiles/${created.id}`)).json()
+    expect(after.imageUrl).toBeNull()
+    expect(after.siteIconUrl).not.toBeNull()
+  })
+
+  it('goes with the profile, and moves with it when it is renamed', async () => {
+    const created = await (
+      await ada.post('/api/profiles', { name: 'Garden', siteUrl: 'https://garden.example/' })
+    ).json()
+    const renamed = await (
+      await ada.patch(`/api/profiles/${created.id}`, { name: 'Allotment' })
+    ).json()
+    expect((await ada.get(`/api/profiles/${renamed.id}/site-icon`)).status).toBe(200)
+    expect(ctx.store.profiles.getSiteIcon(renamed.id)).toBeDefined()
+    await ada.delete(`/api/profiles/${renamed.id}`)
+    expect(ctx.store.profiles.getSiteIcon(renamed.id)).toBeUndefined()
   })
 })

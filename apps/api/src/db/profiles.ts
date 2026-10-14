@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import {
   firstAvailable,
   profileIdFor,
+  type IconType,
   type ImageType,
   type Profile,
   type ProfileMember,
@@ -11,6 +12,11 @@ import { nowIso } from './database'
 
 export interface ProfileImage {
   contentType: ImageType
+  data: Uint8Array
+}
+
+export interface SiteIcon {
+  contentType: IconType
   data: Uint8Array
 }
 
@@ -89,6 +95,7 @@ export class ProfileStore {
       ['profiles', 'id'],
       ['profile_members', 'profile_id'],
       ['profile_images', 'profile_id'],
+      ['profile_site_icons', 'profile_id'],
       ['drafts', 'profile_id'],
       ['ideas', 'profile_id'],
       ['idea_notes', 'profile_id'],
@@ -137,6 +144,29 @@ export class ProfileStore {
 
   deleteImage(profileId: string) {
     this.db.prepare('DELETE FROM profile_images WHERE profile_id = ?').run(profileId)
+  }
+
+  // -- site icon
+  /** Replaces the stored icon, or removes it when the website has none (null). */
+  setSiteIcon(profileId: string, icon: SiteIcon | null) {
+    if (!icon) {
+      this.db.prepare('DELETE FROM profile_site_icons WHERE profile_id = ?').run(profileId)
+      return
+    }
+    this.db
+      .prepare(
+        `INSERT INTO profile_site_icons (profile_id, content_type, data, updated_at) VALUES (?, ?, ?, ?)
+         ON CONFLICT(profile_id) DO UPDATE SET content_type = excluded.content_type,
+           data = excluded.data, updated_at = excluded.updated_at`,
+      )
+      .run(profileId, icon.contentType, icon.data, nowIso())
+  }
+
+  getSiteIcon(profileId: string): SiteIcon | undefined {
+    const row = this.db
+      .prepare('SELECT content_type, data FROM profile_site_icons WHERE profile_id = ?')
+      .get(profileId) as { content_type: IconType; data: Uint8Array } | undefined
+    return row && { contentType: row.content_type, data: row.data }
   }
 
   // -- members
@@ -204,8 +234,10 @@ export class ProfileStore {
     if (!role) return undefined
     const row = this.db
       .prepare(
-        `SELECT p.name, p.site_url, p.description, i.updated_at AS image_updated_at FROM profiles p
-         LEFT JOIN profile_images i ON i.profile_id = p.id WHERE p.id = ?`,
+        `SELECT p.name, p.site_url, p.description, i.updated_at AS image_updated_at,
+           s.updated_at AS site_icon_updated_at FROM profiles p
+         LEFT JOIN profile_images i ON i.profile_id = p.id
+         LEFT JOIN profile_site_icons s ON s.profile_id = p.id WHERE p.id = ?`,
       )
       .get(profileId) as
       | {
@@ -213,6 +245,7 @@ export class ProfileStore {
           site_url: string | null
           description: string | null
           image_updated_at: string | null
+          site_icon_updated_at: string | null
         }
       | undefined
     return (
@@ -224,6 +257,9 @@ export class ProfileStore {
         // and still show a new image straight away.
         imageUrl: row.image_updated_at
           ? `/api/profiles/${profileId}/image?v=${Date.parse(row.image_updated_at)}`
+          : null,
+        siteIconUrl: row.site_icon_updated_at
+          ? `/api/profiles/${profileId}/site-icon?v=${Date.parse(row.site_icon_updated_at)}`
           : null,
         description: row.description,
         role,

@@ -18,6 +18,7 @@ const profile = (role: 'owner' | 'member') => ({
   name: 'Blog',
   siteUrl: null,
   imageUrl: null,
+  siteIconUrl: null,
   description: null,
   role,
   members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role }],

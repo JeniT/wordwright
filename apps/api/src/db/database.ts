@@ -775,6 +775,16 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE draft_insertions_new RENAME TO draft_insertions;
   CREATE INDEX draft_insertions_draft ON draft_insertions(draft_id);
   `,
+  `
+  -- The icon of the profile's website, shown when the profile has no picture of its own. Kept apart from
+  -- profile_images because it is another site's image, fetched by us, with its own (smaller, ICO-allowing) rules.
+  CREATE TABLE profile_site_icons (
+    profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+    content_type TEXT NOT NULL,
+    data BLOB NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ]
 
 /**

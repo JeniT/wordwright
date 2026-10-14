@@ -25,7 +25,13 @@ const itemClass =
   <div v-if="level === 'profile'" class="px-5 pb-4">
     <RouterLink :to="{ name: 'home' }" class="link text-sm">← All profiles</RouterLink>
     <div v-if="profile" class="mt-3 flex items-center gap-3">
-      <ProfileImage :id="profile.id" :name="profile.name" :image-url="profile.imageUrl" size="xs" />
+      <ProfileImage
+        :id="profile.id"
+        :name="profile.name"
+        :image-url="profile.imageUrl"
+        :site-icon-url="profile.siteIconUrl"
+        size="xs"
+      />
       <div class="min-w-0">
         <p class="leading-tight font-semibold break-words">
           <RouterLink

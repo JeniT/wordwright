@@ -75,6 +75,7 @@ describe('sign in', () => {
             name: "Ada's writing",
             siteUrl: null,
             imageUrl: null,
+            siteIconUrl: null,
             description: null,
             role: 'owner',
             members: [],

@@ -127,6 +127,7 @@ const deleteProfile = useMutation({
           :id="profile.id"
           :name="profile.name"
           :image-url="profile.imageUrl"
+          :site-icon-url="profile.siteIconUrl"
           size="lg"
         />
         <div v-if="isOwner" class="flex-1">

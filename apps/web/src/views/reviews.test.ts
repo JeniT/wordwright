@@ -302,6 +302,7 @@ describe('asking someone to review a draft', () => {
             name: 'P',
             siteUrl: null,
             imageUrl: null,
+            siteIconUrl: null,
             description: null,
             role,
             members: [

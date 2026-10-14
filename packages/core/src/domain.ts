@@ -158,6 +158,11 @@ export const ProfileSchema = z.object({
   /** Same-origin URL of the uploaded image, or null (the UI then draws a placeholder). */
   imageUrl: z.string().nullable(),
   /**
+   * Same-origin URL of the icon of the profile's website, or null. It is another site's image, so the UI shows it as a
+   * guest (`ProfileImage kind="source"`), and only when there is no uploaded picture.
+   */
+  siteIconUrl: z.string().nullable(),
+  /**
    * What the venue is, who reads it and what kinds of writing go there, in Markdown, in the writer's own words. It is
    * context for the AI and shown on the profile page. Null when nobody has written one.
    */

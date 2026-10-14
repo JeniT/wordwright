@@ -78,7 +78,12 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
             :to="{ name: 'profile', params: { profileId: p.id } }"
             class="flex h-full items-center gap-4 rounded-panel border border-line bg-surface p-4 hover:border-accent"
           >
-            <ProfileImage :id="p.id" :name="p.name" :image-url="p.imageUrl" />
+            <ProfileImage
+              :id="p.id"
+              :name="p.name"
+              :image-url="p.imageUrl"
+              :site-icon-url="p.siteIconUrl"
+            />
             <span class="min-w-0">
               <span class="block truncate font-display text-lg font-semibold">{{ p.name }}</span>
               <span v-if="p.siteUrl" class="block truncate text-sm text-ink-soft">
