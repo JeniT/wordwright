@@ -295,14 +295,18 @@ test('pulls notes into a draft from the side, keeping where the words came from'
 
   // On a wide screen the notes sit beside the draft.
   const side = page.getByRole('complementary')
-  await expect(side.getByText('Erosion on the outside of each bend.')).toBeVisible()
+  await expect(
+    side.getByText('Erosion on the outside of each bend.', { exact: true }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Notes and comments' })).toBeHidden()
   await noViolations(page, 'drafting page with notes beside it')
 
   // Adding a note puts its words after the paragraph you are in, saves the draft, and sets the note aside.
   await side.getByRole('button', { name: /^Add note “Erosion on the outside/ }).click()
   await expect(body).toContainText('Erosion on the outside of each bend.')
-  await expect(side.getByText('Erosion on the outside of each bend.')).toHaveCount(0)
+  await expect(side.getByText('Erosion on the outside of each bend.', { exact: true })).toHaveCount(
+    0,
+  )
   await expect(body.locator('p').first()).toHaveText('My opening paragraph.')
 
   // Where the words came from is recorded, and says whether they are still as they were put in.
@@ -864,14 +868,16 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   await expect(paragraphs).toHaveCount(2)
 
   // Dropped on the start of the last paragraph, the note goes between the two.
-  const note = side.getByText('Deposition on the inside.').locator('xpath=ancestor::li[1]')
+  const note = side
+    .getByText('Deposition on the inside.', { exact: true })
+    .locator('xpath=ancestor::li[1]')
   await note.getByTestId('note-grip').dragTo(paragraphs.nth(1), { targetPosition: { x: 4, y: 4 } })
   await expect(paragraphs).toHaveText([
     'First paragraph.',
     'Deposition on the inside.',
     'Last paragraph.',
   ])
-  await expect(side.getByText('Deposition on the inside.')).toHaveCount(0) // set aside
+  await expect(side.getByText('Deposition on the inside.', { exact: true })).toHaveCount(0) // set aside
   await expect(page.getByText(/Where some of the words came from \(1\)/)).toBeVisible()
   await noViolations(page, 'drafting page after a drop')
 
