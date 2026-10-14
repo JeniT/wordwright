@@ -4,17 +4,19 @@ import { RECENT_DAYS_DEFAULT } from '@lfwa/core'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
-import { api } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
 import { queryKeys, useSources } from '../lib/queries'
+import { useDecidePosts } from '../lib/recent-posts'
 import LandingSection from './LandingSection.vue'
-import ProfileImage from './ProfileImage.vue'
 import QueryState from './QueryState.vue'
+import RecentPostRow from './RecentPostRow.vue'
 
 /**
  * A summary of the profile's feeds for a landing page: the newest few posts still waiting for a decision, with a
- * link to Search to choose among them, configure the feeds and see more. It asks for the same lists, under the same
- * keys, as the Search page (at its default period), so the two share what has been fetched; it never asks the
- * feeds to check again.
+ * link to Search to configure the feeds and see more. The rows are the Search page's own (`RecentPostRow`), so a
+ * post can be added or ignored from here too. It asks for the same lists, under the same keys, as the Search page
+ * (at its default period), so the two share what has been fetched and what is decided; it never asks the feeds to
+ * check again.
  */
 const props = defineProps<{ profileId: string; to: RouteLocationRaw }>()
 const SHOWN = 5
@@ -38,14 +40,7 @@ const nameOf = (id: string) => {
   const s = byId.value.get(id)
   return s?.title ?? s?.url.replace(/^https?:\/\//, '') ?? 'a feed'
 }
-const when = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString(undefined, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
-    : ''
+const { decide, notice, busy } = useDecidePosts(() => props.profileId)
 </script>
 
 <template>
@@ -64,36 +59,26 @@ const when = (iso: string | null) =>
           <p v-if="!top.length" class="text-ink-soft">
             Nothing new from your feeds in the last month.
           </p>
-          <ul v-else class="panel divide-y divide-line" aria-label="Recent posts from your feeds">
-            <li
+          <ul
+            v-else
+            class="divide-y divide-line rounded-ctl border border-line bg-surface"
+            aria-label="Recent posts from your feeds"
+          >
+            <RecentPostRow
               v-for="post in top"
               :key="`${post.sourceId}-${post.id}`"
-              class="flex gap-3 px-4 py-3"
-            >
-              <ProfileImage
-                :id="post.sourceId"
-                :name="nameOf(post.sourceId)"
-                :image-url="byId.get(post.sourceId)?.iconUrl"
-                size="xs"
-                kind="source"
-                class="mt-0.5"
-              />
-              <div class="min-w-0 flex-1">
-                <a
-                  :href="post.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="font-medium break-words underline"
-                >
-                  {{ post.title }}<span class="sr-only"> (opens in a new tab)</span>
-                </a>
-                <p class="meta break-words">
-                  {{ nameOf(post.sourceId)
-                  }}<template v-if="post.publishedAt"> · {{ when(post.publishedAt) }}</template>
-                </p>
-              </div>
-            </li>
+              :post="post"
+              :feed-name="nameOf(post.sourceId)"
+              :feed-icon-url="byId.get(post.sourceId)?.iconUrl"
+              :busy="busy"
+              @decide="(what) => decide.mutate({ what, post })"
+            />
           </ul>
+          <div v-if="decide.isError.value" role="alert" class="mt-2 text-sm text-danger">
+            {{ errorMessage(decide.error.value) }}
+            <button type="button" class="ml-2 underline" @click="decide.reset()">Dismiss</button>
+          </div>
+          <p class="sr-only" aria-live="polite">{{ notice }}</p>
         </QueryState>
       </template>
     </QueryState>

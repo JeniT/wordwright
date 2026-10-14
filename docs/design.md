@@ -235,6 +235,13 @@ row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
+**Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a profile's landing page
+show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
+("Add to the reading list: {title}") and a **cross** ("Ignore: {title}"), each with a `title`; a decided post shows ✓ or ✗
+and a single **undo** button ("Reconsider: {title}"). A decision made in either place updates both (they share query keys),
+and is announced in a polite live region. The list has no bulk actions, so it has no select rail or `ListToolbar`; the
+Search page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.
+
 **Tags: one at a time (`TagEditor`, `TagEntry`).** Under each note and each reading-list link, beside its tags, a small
 label-icon button opens a text field: type a tag and press **Enter**, and it is saved at once and the field stays,
 emptied and focused, for the next (a comma also separates tags). While it is open each tag shows a small **×**, and a

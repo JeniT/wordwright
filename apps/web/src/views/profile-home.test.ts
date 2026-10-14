@@ -247,7 +247,7 @@ const post = (id: string, sourceId: string, title: string, day: number, status =
   title,
   url: `https://${sourceId}.example/${id}`,
   authors: [] as string[],
-  summary: null,
+  summary: null as string | null,
   publishedAt: `2026-01-${String(day).padStart(2, '0')}T00:00:00Z`,
   status,
 })
@@ -301,6 +301,109 @@ describe('a profile’s landing page: search', () => {
       'href',
       '/p/ada-substack/search',
     )
+  })
+
+  it('shows each post as the Search page does, with its authors, summary and icon buttons', async () => {
+    fakeHome()
+    fakeFeeds(
+      [source('s1', 'Alpha Notes')],
+      [{ ...post('p1', 's1', 'Post 1', 9), authors: ['Bo Writer'], summary: 'The start of it' }],
+    )
+    await renderAt('/p/ada-substack')
+    const row = (await screen.findByRole('link', { name: /Post 1/ })).closest('li')!
+    expect(row).toHaveTextContent('Bo Writer')
+    expect(row).toHaveTextContent('The start of it')
+    // Icon-only, so the names carry the meaning.
+    const add = within(row).getByRole('button', { name: 'Add to the reading list: Post 1' })
+    expect(add).toHaveTextContent('')
+    expect(add).toHaveAttribute('title', 'Add to the reading list')
+    expect(within(row).getByRole('button', { name: 'Ignore: Post 1' })).toHaveAttribute(
+      'title',
+      'Ignore',
+    )
+  })
+
+  describe('deciding', () => {
+    /** The feeds, remembering what was decided, and answering the way the server does. */
+    function fakeDecisions() {
+      const state = {
+        posts: [1, 2, 3].map((n) => post(`p${n}`, 's1', `Post ${n}`, 10 - n)),
+        sent: [] as { what: string; postId: string }[],
+      }
+      fakeHome()
+      server.use(
+        http.get('*/api/profiles/ada-substack/sources', () =>
+          HttpResponse.json([source('s1', 'Alpha Notes')]),
+        ),
+        http.get('*/api/profiles/ada-substack/sources/recent', () =>
+          HttpResponse.json({
+            days: 30,
+            posts: [
+              ...state.posts.filter((p) => p.status === 'new'),
+              ...state.posts.filter((p) => p.status !== 'new'),
+            ],
+            omitted: 0,
+            undated: 0,
+            failed: [],
+          }),
+        ),
+        http.post(
+          '*/api/profiles/ada-substack/sources/recent/:what',
+          async ({ params, request }) => {
+            const { posts } = (await request.json()) as { posts: { postId: string }[] }
+            const what = params.what as string
+            for (const { postId } of posts) state.sent.push({ what, postId })
+            state.posts = state.posts.map((p) =>
+              posts.some((x) => x.postId === p.id)
+                ? { ...p, status: what === 'add' ? 'added' : 'ignored' }
+                : p,
+            )
+            return HttpResponse.json({ results: [] })
+          },
+        ),
+      )
+      return state
+    }
+
+    it('adds a post to the reading list from the landing page, and the next one waiting takes its place', async () => {
+      const state = fakeDecisions()
+      await renderAt('/p/ada-substack')
+      const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
+      await fireEvent.click(
+        await within(list).findByRole('button', { name: 'Add to the reading list: Post 1' }),
+      )
+      await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
+      await waitFor(() => expect(within(list).queryByRole('link', { name: /Post 1/ })).toBeNull())
+      expect(within(list).getByRole('link', { name: /Post 2/ })).toBeInTheDocument()
+      expect(screen.getByText('Added “Post 1” to the reading list.')).toBeInTheDocument()
+    })
+
+    it('ignores a post from the landing page', async () => {
+      const state = fakeDecisions()
+      await renderAt('/p/ada-substack')
+      const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
+      await fireEvent.click(await within(list).findByRole('button', { name: 'Ignore: Post 2' }))
+      await waitFor(() => expect(state.sent).toEqual([{ what: 'ignore', postId: 'p2' }]))
+      await waitFor(() => expect(within(list).queryByRole('link', { name: /Post 2/ })).toBeNull())
+      expect(screen.getByText('Ignored “Post 2”.')).toBeInTheDocument()
+    })
+
+    it('says when a decision could not be saved, and the post stays', async () => {
+      fakeDecisions()
+      server.use(
+        http.post('*/api/profiles/ada-substack/sources/recent/:what', () =>
+          HttpResponse.json({ error: 'Could not save that. Try again.' }, { status: 500 }),
+        ),
+      )
+      await renderAt('/p/ada-substack')
+      const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
+      await fireEvent.click(await within(list).findByRole('button', { name: 'Ignore: Post 1' }))
+      const search = screen.getByRole('region', { name: 'Search' })
+      expect(await within(search).findByRole('alert')).toHaveTextContent('Could not save that')
+      expect(within(list).getByRole('link', { name: /Post 1/ })).toBeInTheDocument()
+      await fireEvent.click(within(search).getByRole('button', { name: 'Dismiss' }))
+      expect(within(search).queryByRole('alert')).toBeNull()
+    })
   })
 
   it('says when nothing is new', async () => {

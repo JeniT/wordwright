@@ -199,6 +199,45 @@ test('the profile’s own page summarises the feeds and the reading list, and ad
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
 })
 
+test('a post can be added or ignored from the profile’s own page, and the Search page agrees', async ({
+  page,
+}) => {
+  await signUpWithProfile(page)
+  await goTo(page, 'Search')
+  const feeds = page.getByRole('region', { name: 'Feeds' })
+  for (const feed of ['one.example/feed', 'two.example/feed']) {
+    await feeds.getByLabel('Add a feed').fill(feed)
+    await feeds.getByRole('button', { name: 'Add source' }).click()
+    await expect(
+      feeds.getByRole('listitem').filter({ hasText: `Feed of ${feed.split('/')[0]}` }),
+    ).toBeVisible()
+  }
+
+  // The same rows as the Search page, with icon buttons.
+  await page.getByRole('link', { name: 'Gathering', exact: true }).first().click()
+  const search = page.getByRole('region', { name: 'Search' })
+  const rows = search.getByRole('listitem')
+  await expect(rows).toHaveCount(2)
+  await noViolations(page, 'profile page with posts to decide')
+  const first = (await rows.first().innerText()).match(/A post in Feed of (\w+)\.example/)![1]!
+  const title = `A post in Feed of ${first}.example`
+  await search.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
+  await expect(search.getByRole('link', { name: title })).toHaveCount(0)
+  await expect(rows).toHaveCount(1)
+
+  // Search knows, and so does the reading list.
+  await goTo(page, 'Search')
+  const recent = page.getByRole('region', { name: 'Recent posts' })
+  await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
+  await goTo(page, 'Read')
+  await expect(
+    page
+      .getByRole('region', { name: 'Reading list' })
+      .getByRole('listitem')
+      .filter({ hasText: title }),
+  ).toBeVisible()
+})
+
 test('a post that is added or ignored moves to the end of the recent posts', async ({ page }) => {
   await signUpWithProfile(page)
   await goTo(page, 'Search')

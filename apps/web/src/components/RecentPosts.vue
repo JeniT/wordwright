@@ -4,9 +4,10 @@ import { RECENT_DAYS_DEFAULT, type Source } from '@lfwa/core'
 import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
+import { useDecidePosts } from '../lib/recent-posts'
 import { PAGE_SIZE } from '../lib/paging'
 import PageNav from './PageNav.vue'
-import ProfileImage from './ProfileImage.vue'
+import RecentPostRow from './RecentPostRow.vue'
 import QueryState from './QueryState.vue'
 
 const props = defineProps<{ profileId: string }>()
@@ -90,27 +91,9 @@ function goFromBottom(step: -1 | 1) {
   heading.value?.focus({ preventScroll: true }) // keyboard users continue from the top too
 }
 
-// ---- deciding: Add to the reading list, Ignore, or take either back (as in the research review)
-type Post = NonNullable<typeof shown.value>['posts'][number]
-const notice = ref('') // said out loud to screen readers after each decision
-const decide = useMutation({
-  mutationFn: ({ what, post }: { what: 'add' | 'ignore' | 'reconsider'; post: Post }) =>
-    api.decideFeedPosts(props.profileId, what, [{ sourceId: post.sourceId, postId: post.id }]),
-  onSuccess: (_, { what, post }) => {
-    notice.value =
-      what === 'add'
-        ? `Added “${post.title}” to the reading list.`
-        : what === 'ignore'
-          ? `Ignored “${post.title}”.`
-          : `“${post.title}” is back in the list.`
-  },
-  // Whatever happened, someone else may have decided first: show how things are now.
-  onSettled: () => invalidateRoots(queryClient, 'recent-posts', 'reading', 'ideas'),
-})
-const busy = computed(() => decide.isPending.value)
+// ---- deciding: Add to the reading list, Ignore, or take either back (shared with the profile's landing page)
+const { decide, notice, busy } = useDecidePosts(() => props.profileId)
 
-const when = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 const failedNames = computed(() =>
   (shown.value?.failed ?? []).map((f) => nameOf(byId.value.get(f.sourceId))),
 )
@@ -181,93 +164,15 @@ const failedNames = computed(() =>
               Nothing has been posted in {{ windowName }}. Try a longer period.
             </p>
             <ul v-else class="divide-y divide-line rounded-ctl border border-line bg-surface">
-              <li
+              <RecentPostRow
                 v-for="post in pagePosts"
                 :key="`${post.sourceId}-${post.id}`"
-                class="flex gap-3 px-3 py-2"
-              >
-                <ProfileImage
-                  :id="post.sourceId"
-                  :name="nameOf(byId.get(post.sourceId))"
-                  :image-url="byId.get(post.sourceId)?.iconUrl"
-                  size="xs"
-                  kind="source"
-                  class="mt-0.5"
-                />
-                <!-- Decided: just the title, how it went, and a way back. -->
-                <div
-                  v-if="post.status !== 'new'"
-                  class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1"
-                >
-                  <span
-                    v-if="post.status === 'added'"
-                    class="font-bold text-ok"
-                    role="img"
-                    aria-label="On a reading list"
-                    >✓</span
-                  >
-                  <span v-else class="font-bold text-danger" role="img" aria-label="Ignored"
-                    >✗</span
-                  >
-                  <span
-                    class="min-w-0 flex-1 break-words"
-                    :class="post.status === 'ignored' ? 'text-ink-soft' : ''"
-                    >{{ post.title }}
-                    <span class="text-sm text-ink-soft">
-                      · {{ nameOf(byId.get(post.sourceId)) }} ·
-                      {{ post.status === 'added' ? 'on a reading list' : 'ignored' }}</span
-                    ></span
-                  >
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-neutral"
-                    :disabled="busy"
-                    :aria-label="`Reconsider: ${post.title}`"
-                    @click="decide.mutate({ what: 'reconsider', post })"
-                  >
-                    Reconsider
-                  </button>
-                </div>
-                <!-- Waiting for a decision: everything needed to make one. -->
-                <div v-else class="min-w-0 flex-1">
-                  <a
-                    :href="post.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="break-words font-medium underline"
-                  >
-                    {{ post.title }}<span class="sr-only"> (opens in a new tab)</span>
-                  </a>
-                  <p class="break-words text-sm text-ink-soft">
-                    {{ nameOf(byId.get(post.sourceId)) }}
-                    <template v-if="post.authors.length"> · {{ post.authors.join(', ') }}</template>
-                    · {{ when(post.publishedAt!) }}
-                  </p>
-                  <p v-if="post.summary" class="line-clamp-2 break-words text-sm text-ink-soft">
-                    {{ post.summary }}
-                  </p>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-primary"
-                      :disabled="busy"
-                      :aria-label="`Add to the reading list: ${post.title}`"
-                      @click="decide.mutate({ what: 'add', post })"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-neutral"
-                      :disabled="busy"
-                      :aria-label="`Ignore: ${post.title}`"
-                      @click="decide.mutate({ what: 'ignore', post })"
-                    >
-                      Ignore
-                    </button>
-                  </div>
-                </div>
-              </li>
+                :post="post"
+                :feed-name="nameOf(byId.get(post.sourceId))"
+                :feed-icon-url="byId.get(post.sourceId)?.iconUrl"
+                :busy="busy"
+                @decide="(what) => decide.mutate({ what, post })"
+              />
             </ul>
             <PageNav
               v-if="pageCount > 1"
