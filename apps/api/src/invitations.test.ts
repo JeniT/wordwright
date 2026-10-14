@@ -275,7 +275,7 @@ describe('accepting', () => {
     expect((await (await newbie.get('/api/auth/me')).json()).emailVerified).toBe(true)
 
     const profile = await (await newbie.get(`/api/profiles/${profileId}`)).json()
-    expect(profile.role).toBe('editor')
+    expect(profile.role).toBe('member')
     expect(profile.members.map((m: { name: string }) => m.name)).toEqual(['Ada Lovelace', 'Newbie'])
     const draft = await createDraft(newbie, profileId, {
       title: 'Joint',

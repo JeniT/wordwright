@@ -122,7 +122,7 @@ export type AuthConfig = z.infer<typeof AuthConfigSchema>
 
 // ---- Profiles -----------------------------------------------------------
 
-export const ProfileRoleSchema = z.enum(['owner', 'editor'])
+export const ProfileRoleSchema = z.enum(['owner', 'member'])
 export type ProfileRole = z.infer<typeof ProfileRoleSchema>
 
 export const ProfileMemberSchema = z.object({

@@ -13,7 +13,7 @@ import {
 
 useMockServer({ warm: ['search'] })
 
-const profile = (role: 'owner' | 'editor') => ({
+const profile = (role: 'owner' | 'member') => ({
   id: 'adalovelace-blog',
   name: 'Blog',
   siteUrl: null,
@@ -70,7 +70,7 @@ function fakeSources(initial = [A, B, C]) {
   return state
 }
 
-async function openSearch(role: 'owner' | 'editor' = 'owner') {
+async function openSearch(role: 'owner' | 'member' = 'owner') {
   server.use(
     signedInAs(testUser),
     http.get('*/api/profiles', () => HttpResponse.json([profile(role)])),
@@ -347,7 +347,7 @@ describe('feeds on the Search page', () => {
 
   it('lets an editor, not just the owner, add, move and remove sources', async () => {
     const fake = fakeSources()
-    await openSearch('editor')
+    await openSearch('member')
     expect(await screen.findByText('Alpha Notes')).toBeInTheDocument()
     await fireEvent.update(screen.getByLabelText('Add a feed'), 'new.example/feed')
     await fireEvent.click(screen.getByRole('button', { name: 'Add source' }))

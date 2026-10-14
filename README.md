@@ -104,7 +104,7 @@ tests inject fakes and nothing hits the network.
 ## Accounts and sign-in
 
 - **Model:** a user has any number of _profiles_; ideas belong to a profile, and every draft belongs to an idea. Profiles are shared by
-  adding members (`owner` or `editor`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
+  adding members (`owner` or `member`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
 - **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/profiles/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) followed by its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);

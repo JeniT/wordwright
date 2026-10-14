@@ -126,6 +126,21 @@ describe('migrations', () => {
       expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
     })
 
+    it('#152: renames the profile role editor to member and keeps owners', () => {
+      const db = legacyDb()
+      migrate(db, 'test', MIGRATIONS)
+      expect(db.prepare('SELECT user_id, role FROM profile_members ORDER BY 1').all()).toEqual([
+        { user_id: 'u1', role: 'owner' },
+        { user_id: 'u1', role: 'owner' },
+        { user_id: 'u22', role: 'member' },
+        { user_id: 'u333', role: 'owner' },
+      ])
+      expect(() =>
+        db.exec("UPDATE profile_members SET role = 'editor' WHERE user_id = 'u22'"),
+      ).toThrow(/CHECK/)
+      expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+    })
+
     it('enforces unique handles afterwards', () => {
       const db = legacyDb()
       migrate(db, 'test', MIGRATIONS)

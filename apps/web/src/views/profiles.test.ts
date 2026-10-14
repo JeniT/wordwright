@@ -18,7 +18,7 @@ vi.mock('../components/DescriptionEditor.vue', () => import('../testing/descript
 beforeEach(() => server.use(llmSettings(true), sourcesList()))
 
 const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
-const editor = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'editor' }
+const member = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'member' }
 
 const substack = {
   id: 'adalovelace-substack',
@@ -36,7 +36,7 @@ const blog = {
   imageUrl: null,
   description: null,
   role: 'owner',
-  members: [owner, editor],
+  members: [owner, member],
 }
 
 const listProfiles = (profiles: unknown[]) =>
@@ -288,8 +288,8 @@ describe('profile description', () => {
     ])
   })
 
-  it('lets an editor write it too, and says why when saving fails', async () => {
-    const shared = { ...substack, role: 'editor', members: [owner, { ...editor, userId: 'u1' }] }
+  it('lets a member write it too, and says why when saving fails', async () => {
+    const shared = { ...substack, role: 'member', members: [owner, { ...member, userId: 'u1' }] }
     server.use(
       signedInAs(testUser),
       listProfiles([shared]),
@@ -419,7 +419,7 @@ describe('profile settings', () => {
       http.get('*/api/profiles/adalovelace-blog/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/p/adalovelace-blog/settings')
-    await screen.findByText(/bob@example.com, editor/)
+    await screen.findByText(/bob@example.com, member/)
     expect(screen.getByLabelText(/Invite someone to/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument()
   })
@@ -443,11 +443,11 @@ describe('profile settings', () => {
     await screen.findByText('Next, create your first profile')
   })
 
-  it('gives an editor a read-only view and a way to leave', async () => {
+  it('gives a member a read-only view and a way to leave', async () => {
     let left = false
     const bob = { ...owner, userId: 'u2', name: 'Bob', email: 'bob@example.com' }
-    const me = { ...owner, role: 'editor' }
-    const shared = { ...blog, role: 'editor', members: [bob, me] }
+    const me = { ...owner, role: 'member' }
+    const shared = { ...blog, role: 'member', members: [bob, me] }
     server.use(
       signedInAs(testUser),
       listProfiles([shared]),

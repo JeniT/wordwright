@@ -128,7 +128,7 @@ export class InvitationService {
     }
     store.transaction(() => {
       if (!store.profiles.roleOf(usable.profileId, user.id)) {
-        store.profiles.addMember(usable.profileId, user.id, 'editor')
+        store.profiles.addMember(usable.profileId, user.id, 'member')
       }
       store.invitations.markAccepted(usable.id, user.id)
       if (!user.emailVerified) store.users.markEmailVerified(user.id)

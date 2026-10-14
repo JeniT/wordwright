@@ -581,6 +581,23 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE profiles DROP COLUMN description_sources;
   ALTER TABLE profiles DROP COLUMN description_edited;
   `,
+  // #152: the profile role 'editor' becomes 'member' (#26 gives every draft an "editor", one person responsible
+  // for it). SQLite can't alter a CHECK, so the table is rebuilt; nothing references it.
+  `
+  CREATE TABLE profile_members_new (
+    profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('owner', 'member')),
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (profile_id, user_id)
+  );
+  INSERT INTO profile_members_new
+    SELECT profile_id, user_id, CASE role WHEN 'editor' THEN 'member' ELSE role END, joined_at
+    FROM profile_members;
+  DROP TABLE profile_members;
+  ALTER TABLE profile_members_new RENAME TO profile_members;
+  CREATE INDEX profile_members_user ON profile_members(user_id);
+  `,
 ]
 
 /**

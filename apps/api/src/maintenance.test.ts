@@ -127,7 +127,7 @@ describe('purging unconfirmed, unused accounts', () => {
           email: 'o@example.com',
           emailVerified: true,
         })
-        ctx.store.profiles.addMember(pid, other.id, 'editor')
+        ctx.store.profiles.addMember(pid, other.id, 'member')
       },
     ],
   ])('keeps an unconfirmed account that %s', async (_label, makeUsed) => {
