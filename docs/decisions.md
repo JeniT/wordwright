@@ -1581,7 +1581,9 @@ the owner: **no JSON** ("I don't think JSON will be useful generally"), **one fi
 the idea and profile files holding bullet lists of notes and the reading list and relative links to what belongs to
 them. Layout: `README.md` at the top (what is in, who gets what, what is left out), then `<profile-id>/` with
 `<profile-id>.md`, `ideas/<slug>.md` and `drafts/<slug>.md`. File names are slugs of titles (letters, digits and
-hyphens, numbered when two collide), so a title can never name a path; the zip writer refuses any other path.
+hyphens, numbered when two collide), so a title can never name a path; the zip writer refuses any other path. The
+profile's folder and file use its id (`<handle>-<name>`), not its name, for the same reason. An idea has no separate
+aim: its name is the writer's own statement of the core idea, so that is its heading.
 
 - **Who gets which drafts.** An **owner** gets every draft in the profile, including other members'. A **member** gets
   the drafts they are the editor of or started (a draft they started and handed away is still listed, marked "now edited

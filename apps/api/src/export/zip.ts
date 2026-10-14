@@ -11,7 +11,7 @@ export interface ZipFile {
  * ever need small UTF-8 text files, with no encryption, no streaming and no files over 4 GB.
  */
 export function zip(files: ZipFile[], now = new Date()): Uint8Array {
-  if (files.length > 0xffff) throw new Error('Too many files for one zip')
+  if (files.length >= 0xffff) throw new Error('Too many files for one zip')
   const time =
     ((now.getUTCHours() << 11) | (now.getUTCMinutes() << 5) | (now.getUTCSeconds() >> 1)) & 0xffff
   const date =

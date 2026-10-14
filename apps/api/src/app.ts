@@ -131,7 +131,7 @@ export function createApp(deps: AppDeps) {
     }),
   )
   const brainstormPrompts = new BrainstormPromptService(store)
-  const exports = new ExportService(store, deps.now)
+  const exportService = new ExportService(store, deps.now)
   const exportLimiter = limiter(5, HOUR)
   api.route(
     '/account',
@@ -142,7 +142,7 @@ export function createApp(deps: AppDeps) {
       brainstormPrompts,
       limiter(5, DAY),
       store.userSettings,
-      exports,
+      exportService,
       exportLimiter,
     ),
   )
@@ -205,7 +205,7 @@ export function createApp(deps: AppDeps) {
         reviews,
         handover,
         inviteLimiter,
-        exports,
+        exports: exportService,
         exportLimiter,
         feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.

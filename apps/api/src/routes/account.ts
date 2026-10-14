@@ -35,13 +35,14 @@ export function accountRoutes(
   return (
     new Hono<AppEnv>()
       .use(requireUser(accounts))
-      // Guessing the current password is the attack here, so attempts are throttled per person.
-      // All their profiles, as Markdown (#167); a reviewer-only account never reaches it (no such route for them).
+      // All their profiles, as Markdown (#167). A reviewer-only account gets 404 from `requireUser`, as for every
+      // route outside its reviews.
       .get('/export', (c) => {
         const user = c.get('user')
         throttleExport(exportLimiter, user.id)
         return zipResponse(c, exports.account(user))
       })
+      // Guessing the current password is the attack here, so attempts are throttled per person.
       .post('/password', validateJson(ChangePasswordInputSchema), async (c) => {
         const user = c.get('user')
         if (!limiter.allow(user.id)) throw fail(429, 'Too many attempts')

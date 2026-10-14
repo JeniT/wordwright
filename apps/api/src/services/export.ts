@@ -16,21 +16,26 @@ const longDate = (iso: string) =>
   })
 
 /** Text that continues a bullet on the lines below it. */
-const indent = (text: string) => text.trim().replace(/\n/g, '\n  ')
-const tagsOf = (tags: string[]) => (tags.length ? ` — tags: ${tags.join(', ')}` : '')
+const indent = (text: string) => text.trim().replace(/\r?\n/g, '\n  ')
+/** A name or title on one line, so it can't start a new heading or bullet. */
+const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
+const tagsOf = (tags: string[]) => (tags.length ? ` — tags: ${tags.map(oneLine).join(', ')}` : '')
 
 const noteLine = (n: IdeaNote) =>
-  `- ${n.quote ? 'Quote: ' : ''}${indent(n.text)} (${n.authorName ?? 'a former member'}, ${longDate(n.createdAt)})${tagsOf(n.tags)}`
+  `- ${n.quote ? 'Quote: ' : ''}${indent(n.text)} (${oneLine(n.authorName ?? 'a former member')}, ${longDate(n.createdAt)})${tagsOf(n.tags)}`
 
 /** Reading items record when they were added but not by whom, so that is all the credit there is to give. */
 const readingLine = (l: IdeaLink) => {
   const address = l.url.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29')
-  const parts = [`[${(l.title || l.url).replace(/[[\]]/g, '')}](${address})`]
-  if (l.authors.length) parts.push(`by ${l.authors.join(', ')}`)
+  const parts = [`[${linkText(l.title || l.url)}](${address})`]
+  if (l.authors.length) parts.push(`by ${l.authors.map(oneLine).join(', ')}`)
   if (l.readAt) parts.push(`read ${longDate(l.readAt)}`)
   if (l.addedAt) parts.push(`added ${longDate(l.addedAt)}`)
   return `- ${parts.join(', ')}${tagsOf(l.tags)}`
 }
+
+/** Text inside a link's brackets: a name with brackets in it must not end the link early. */
+const linkText = (text: string) => oneLine(text).replace(/[[\]]/g, '')
 
 const section = (heading: string, lines: string[]) =>
   lines.length ? `## ${heading}\n\n${lines.join('\n')}\n` : ''
@@ -133,7 +138,7 @@ ${rules.join('\n')}
       draftFile.set(d.id, name)
       files.push({
         path: `${dir}/drafts/${name}.md`,
-        content: `# ${d.title.trim() || 'Untitled'}\n\n${d.body.trimEnd()}\n`,
+        content: `# ${oneLine(d.title) || 'Untitled'}\n\n${d.body.trimEnd()}\n`,
       })
     }
 
@@ -142,13 +147,13 @@ ${rules.join('\n')}
     for (const summary of store.ideas.list(profileId)) {
       const idea = store.ideas.get(profileId, summary.id)!
       const name = ideaName(idea.name)
-      ideaLines.push(`- [${idea.name.replace(/[[\]]/g, '')}](ideas/${name}.md)`)
+      ideaLines.push(`- [${linkText(idea.name)}](ideas/${name}.md)`)
       const draftLines = idea.drafts.flatMap((d) => {
         const file = draftFile.get(d.id)
         if (!file) return []
         const full = all.get(d.id)!
         const handed = role === 'member' && full.editorId !== userId
-        return `- [${(d.title || 'Untitled').replace(/[[\]]/g, '')}](../drafts/${file}.md)${handed ? ' (now edited by someone else)' : ''}`
+        return `- [${linkText(d.title || 'Untitled')}](../drafts/${file}.md)${handed ? ' (now edited by someone else)' : ''}`
       })
       const left = idea.drafts.length - draftLines.length
       if (left > 0) {
@@ -159,7 +164,7 @@ ${rules.join('\n')}
       files.push({
         path: `${dir}/ideas/${name}.md`,
         content: [
-          `# ${idea.name}\n\n[← ${profile.name}](../${profileId}.md)\n`,
+          `# ${oneLine(idea.name)}\n\n[← ${linkText(profile.name)}](../${profileId}.md)\n`,
           section('Drafts', draftLines),
           section('Notes', store.notes.list(idea.id).map(noteLine)),
           section('Reading list', idea.links.map(readingLine)),
@@ -176,7 +181,7 @@ ${rules.join('\n')}
     files.push({
       path: `${dir}/${profileId}.md`,
       content: [
-        `# ${profile.name}\n${site ? `\n${site}` : ''}`,
+        `# ${oneLine(profile.name)}\n${site ? `\n${site}` : ''}`,
         about,
         section('Ideas', ideaLines),
         section('Notes not yet in an idea', store.notes.list({ profileId }).map(noteLine)),

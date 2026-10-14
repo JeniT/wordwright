@@ -141,6 +141,20 @@ describe('exporting writing as Markdown', () => {
     expect(names).toEqual(expect.arrayContaining(['same.md', 'same-2.md', 'untitled.md']))
   })
 
+  it('keeps a title with line breaks in it from starting headings or bullets of its own', async () => {
+    await ada.post(`${base()}/ideas/${ideaId}/drafts`, {
+      title: 'Two\r\n# Injected heading\n- fake bullet',
+      body: 'Body.',
+    })
+    const { files } = await download(ada, `${base()}/export`)
+    const draft = only(files, /drafts\/two-injected-heading-fake-bullet\.md$/)
+    expect(draft.split('\n')[0]).toBe('# Two # Injected heading - fake bullet')
+    expect(draft.split('\n').filter((line) => line.startsWith('#'))).toHaveLength(1)
+    const idea = only(files, /ideas\/why-rivers-meander\.md$/)
+    expect(idea).toContain('[Two # Injected heading - fake bullet](../drafts/')
+    expect(idea.split('\n').filter((line) => line.startsWith('- fake'))).toEqual([])
+  })
+
   it('exports every profile the person belongs to from the account page, one folder each', async () => {
     const second = await (await ada.post('/api/profiles', { name: 'Newsletter' })).json()
     const { res, files } = await download(ada, '/api/account/export')
