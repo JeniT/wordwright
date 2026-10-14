@@ -15,8 +15,8 @@ const session = useSessionStore()
 const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
 const stateLabel: Record<ReviewState, string> = {
   open: 'Open',
-  left: 'You stopped reviewing',
-  revoked: 'No longer shared with you',
+  ended: 'You ended this review',
+  closed: 'Closed by the editor',
 }
 const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
 </script>

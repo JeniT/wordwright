@@ -5,7 +5,7 @@ import {
   DraftInsertionInputSchema,
   DraftSaveSchema,
   HandoverTargetSchema,
-  InviteInputSchema,
+  SendForReviewInputSchema,
 } from '@lfwa/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
@@ -147,23 +147,29 @@ export function draftRoutes(
       .post('/:id/handover/reassign', validateJson(HandoverTargetSchema), (c) =>
         c.json(handover.reassign(draftOf(c), c.get('user'), c.req.valid('json').userId)),
       )
-      // Inviting people outside the profile to read this draft and comment on it (the editor or an owner).
+      // Sending the draft for review: a snapshot is frozen and people are asked to review it (the editor only).
       .get('/:id/reviewers', (c) => c.json(reviews.reviewers(draftOf(c), c.get('user').id)))
-      .post('/:id/reviewers', validateJson(InviteInputSchema), (c) => {
-        // Each invitation emails a stranger from our server, so one person's are capped, like profile invitations.
-        if (!inviteLimiter.allow(c.get('user').id)) {
-          throw fail(429, 'You have sent a lot of invitations. Try again later.')
+      .post('/:id/send-for-review', validateJson(SendForReviewInputSchema), (c) => {
+        // Each email goes to a stranger from our server, so one person's are capped, like profile invitations.
+        const input = c.req.valid('json')
+        for (let n = 0; n < input.emails.length; n++) {
+          if (!inviteLimiter.allow(c.get('user').id)) {
+            throw fail(429, 'You have sent a lot of invitations. Try again later.')
+          }
         }
-        reviews.invite(c.get('user'), draftOf(c), c.req.valid('json').email)
+        reviews.send(c.get('user'), draftOf(c), input)
         // The same answer whatever happened, so it reveals nothing about who has an account or has blocked us.
         return c.json({ ok: true }, 202)
       })
+      .post('/:id/reviewers/close', (c) =>
+        c.json({ closed: reviews.closeAll(draftOf(c), c.get('user').id) }),
+      )
       .delete('/:id/reviewers/invitations/:invitationId', (c) => {
         reviews.withdrawInvitation(draftOf(c), c.get('user').id, param(c, 'invitationId'))
         return c.body(null, 204)
       })
       .delete('/:id/reviewers/:reviewId', (c) => {
-        reviews.revoke(draftOf(c), c.get('user').id, param(c, 'reviewId'))
+        reviews.close(draftOf(c), c.get('user').id, param(c, 'reviewId'))
         return c.body(null, 204)
       })
       .delete('/:id', (c) =>

@@ -178,6 +178,70 @@ describe('migrations', () => {
       ])
     })
 
+    it('#158: gives reviews already made a snapshot of the draft, renames their states, and links reviewers’ comments', () => {
+      const db = new DatabaseSync(':memory:')
+      db.exec('PRAGMA foreign_keys = ON')
+      const at = MIGRATIONS.findIndex(
+        (m) => typeof m === 'string' && m.includes('CREATE TABLE draft_snapshots'),
+      )
+      expect(at).toBeGreaterThan(0)
+      migrate(db, 'test', MIGRATIONS.slice(0, at))
+      const run = (sql: string, ...args: (string | null)[]) => db.prepare(sql).run(...args)
+      for (const [id, email] of [
+        ['u1', 'ada@example.com'],
+        ['u2', 'rae@example.com'],
+        ['u3', 'ray@example.com'],
+      ] as const) {
+        run(
+          'INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)',
+          id,
+          id,
+          email,
+          'x',
+        )
+      }
+      run("INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'x')")
+      run(
+        "INSERT INTO drafts (id, profile_id, created_by, editor_id, title, body, created_at, updated_at) VALUES ('d', 'p', 'u1', 'u1', 'Title', 'Body', 'x', 'x')",
+      )
+      for (const [id, reviewer, state] of [
+        ['r-open', 'u2', 'open'],
+        ['r-left', 'u3', 'left'],
+      ] as const) {
+        run(
+          `INSERT INTO draft_reviews (id, draft_id, reviewer_id, invited_by, state, created_at) VALUES (?, 'd', ?, 'u1', ?, 'x')`,
+          id,
+          reviewer,
+          state,
+        )
+      }
+      run(
+        "INSERT INTO review_invitations (id, draft_id, invited_by, email, token_hash, created_at, expires_at) VALUES ('i', 'd', 'u1', 'new@example.com', 'h', 'x', 'x')",
+      )
+      run(
+        "INSERT INTO draft_comments (id, draft_id, author_id, block, excerpt, text, created_at) VALUES ('c', 'd', 'u2', 'whole', '', 'Hm', 'x')",
+      )
+      migrate(db, 'test', MIGRATIONS)
+
+      expect(db.prepare('SELECT title, body FROM draft_snapshots').all()).toEqual([
+        { title: 'Title', body: 'Body' },
+      ]) // one for the draft, however many reviews it had
+      expect(db.prepare('SELECT id, state FROM draft_reviews ORDER BY id').all()).toEqual([
+        { id: 'r-left', state: 'ended' },
+        { id: 'r-open', state: 'open' },
+      ])
+      expect(
+        db.prepare('SELECT count(*) AS n FROM draft_reviews WHERE snapshot_id IS NOT NULL').get(),
+      ).toEqual({ n: 2 })
+      expect(
+        db.prepare('SELECT snapshot_id IS NOT NULL AS ok FROM review_invitations').get(),
+      ).toEqual({ ok: 1 })
+      expect(db.prepare("SELECT review_id FROM draft_comments WHERE id = 'c'").get()).toEqual({
+        review_id: 'r-open',
+      })
+      expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+    })
+
     it('enforces unique handles afterwards', () => {
       const db = legacyDb()
       migrate(db, 'test', MIGRATIONS)

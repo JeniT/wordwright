@@ -18,6 +18,7 @@ const summary = (over: object = {}) => ({
 const comment = (over: object = {}) => ({
   id: 'c1',
   byAi: false,
+  reviewId: null,
   authorId: 'u9',
   authorName: 'Rae',
   block: 'whole',
@@ -35,7 +36,7 @@ describe('a reviewer’s landing page', () => {
     server.use(
       signedInAs(reviewer),
       http.get('*/api/reviews', () =>
-        HttpResponse.json([summary(), summary({ id: 'r2', draftTitle: 'Tides', state: 'left' })]),
+        HttpResponse.json([summary(), summary({ id: 'r2', draftTitle: 'Tides', state: 'ended' })]),
       ),
     )
     await renderAt('/reviews')
@@ -46,7 +47,7 @@ describe('a reviewer’s landing page', () => {
       '/reviews/r1',
     )
     expect(within(list).getAllByText(/asked by Ada Lovelace/)).toHaveLength(2)
-    expect(within(list).getByText('You stopped reviewing')).toBeTruthy()
+    expect(within(list).getByText('You ended this review')).toBeTruthy()
     // Nothing of the rest of the app is offered.
     expect(screen.queryByRole('link', { name: /Account|Profiles|Ideas/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
@@ -112,30 +113,48 @@ describe('reading one review', () => {
     await waitFor(() => expect(posted).toEqual([{ block: 'whole', text: 'Which rivers?' }]))
   })
 
-  it('lets them stop reviewing, and goes back to the list', async () => {
-    let left = false
-    open({ ...summary(), draft: { title: 'Meanders', body: 'x' }, comments: [] })
+  it('lets them end the review, which stays on the page as a read-only copy', async () => {
+    let state = 'open'
     server.use(
-      http.post('*/api/reviews/r1/leave', () => {
-        left = true
+      signedInAs(reviewer),
+      http.get('*/api/reviews/r1', () =>
+        HttpResponse.json({
+          ...summary({ state }),
+          draft: { title: 'Meanders', body: 'x' },
+          comments: [comment()],
+        }),
+      ),
+      http.post('*/api/reviews/r1/end', () => {
+        state = 'ended'
         return new HttpResponse(null, { status: 204 })
       }),
-      http.get('*/api/reviews', () => HttpResponse.json([summary({ state: 'left' })])),
+      http.get('*/api/reviews', () => HttpResponse.json([summary({ state })])),
     )
-    const { router } = await renderAt('/reviews/r1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Stop reviewing' }))
-    await waitFor(() => expect(router.currentRoute.value.name).toBe('reviews'))
-    expect(left).toBe(true)
+    await renderAt('/reviews/r1')
+    expect(await screen.findByText(/a copy of the draft as it was when it was sent/)).toBeTruthy()
+    await fireEvent.click(await screen.findByRole('button', { name: 'End review' }))
+    expect(await screen.findByTestId('review-ended')).toHaveTextContent('You ended this review')
+    // Still there: the copy and the comments, but nothing to add to or end.
+    expect(screen.getByText('Lovely start')).toBeTruthy()
+    expect(document.querySelector('.ProseMirror')).not.toBeNull()
+    expect(screen.queryByRole('textbox', { name: 'Your comment' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 
-  it('keeps the comments but not the draft once access has ended', async () => {
-    open({ ...summary({ state: 'revoked' }), draft: null, comments: [comment()] })
+  it('keeps the copy and the comments when the editor has closed the review', async () => {
+    open({
+      ...summary({ state: 'closed' }),
+      draft: { title: 'Meanders', body: 'Rivers bend.' },
+      comments: [comment()],
+    })
     await renderAt('/reviews/r1')
-    expect(await screen.findByTestId('review-ended')).toHaveTextContent('no longer shared with you')
+    expect(await screen.findByTestId('review-ended')).toHaveTextContent(
+      'the editor has stopped accepting comments',
+    )
     expect(screen.getByText('Lovely start')).toBeTruthy()
-    expect(document.querySelector('.ProseMirror')).toBeNull()
-    expect(screen.queryByLabelText('Your comment')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Stop reviewing' })).toBeNull()
+    expect(await screen.findByText('Rivers bend.')).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: 'Your comment' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 
   it('says when the review cannot be found', async () => {
@@ -285,7 +304,10 @@ describe('asking someone to review a draft', () => {
             imageUrl: null,
             description: null,
             role,
-            members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role }],
+            members: [
+              { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role },
+              { userId: 'u2', name: 'Bob Jones', email: 'bob@example.com', role: 'member' },
+            ],
           },
         ]),
       ),
@@ -320,17 +342,28 @@ describe('asking someone to review a draft', () => {
       http.get('*/api/profiles/p1/drafts/d1/reviewers', () =>
         HttpResponse.json({
           reviewers: [
-            { id: 'v1', name: 'Rae', email: 'rae@example.com', state: 'open', createdAt: 'x' },
+            {
+              id: 'v1',
+              name: 'Rae',
+              email: 'rae@example.com',
+              state: 'open',
+              sentAt: '2026-02-01T00:00:00Z',
+              commentCount: 2,
+            },
           ],
           pending: [{ id: 'i9', email: 'later@example.com', expiresAt: 'x' }],
         }),
       ),
-      http.post('*/api/profiles/p1/drafts/d1/reviewers', async ({ request }) => {
-        calls.push(`invite ${((await request.json()) as { email: string }).email}`)
+      http.post('*/api/profiles/p1/drafts/d1/send-for-review', async ({ request }) => {
+        calls.push(`send ${JSON.stringify(await request.json())}`)
         return HttpResponse.json({ ok: true }, { status: 202 })
       }),
+      http.post('*/api/profiles/p1/drafts/d1/reviewers/close', () => {
+        calls.push('close all')
+        return HttpResponse.json({ closed: 1 })
+      }),
       http.delete('*/api/profiles/p1/drafts/d1/reviewers/v1', () => {
-        calls.push('end v1')
+        calls.push('close v1')
         return new HttpResponse(null, { status: 204 })
       }),
       http.delete('*/api/profiles/p1/drafts/d1/reviewers/invitations/i9', () => {
@@ -341,31 +374,79 @@ describe('asking someone to review a draft', () => {
     return calls
   }
 
-  it('lets the editor invite, end a review and withdraw an invitation', async () => {
+  it('tells the editor the reviewers read a frozen copy, then sends, closes and withdraws', async () => {
     const calls = page('member')
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText(/Ask someone to review this draft/))
-    await fireEvent.update(screen.getByLabelText('Their email address'), 'new@example.com')
-    await fireEvent.click(screen.getByRole('button', { name: 'Send the invitation' }))
-    expect(await screen.findByText(/If new@example.com can be invited/)).toBeTruthy()
-    expect(await screen.findByText(/Rae/)).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: "End Rae's review" }))
+    await fireEvent.click(await screen.findByText(/Send this draft for review/))
+    expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
+      'frozen copy of the draft as it is now, not what you write after this',
+    )
+    expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
+      'Sending again makes a new copy',
+    )
+    expect(screen.getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
+    await fireEvent.update(
+      screen.getByLabelText('Email addresses'),
+      'new@example.com, other@example.com\nnew@example.com',
+    )
+    await fireEvent.click(screen.getByLabelText('Bob Jones'))
+    await fireEvent.click(screen.getByRole('button', { name: 'Send for review' }))
+    expect(await screen.findByText(/to 3 people/)).toBeTruthy()
+    // Each reviewer: state, comments so far, when it was sent.
+    expect(await screen.findByText(/Reading · 2 comments · sent/)).toBeTruthy()
+    await fireEvent.click(screen.getByRole('button', { name: "Stop accepting Rae's review" }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Stop accepting reviews' }))
     await fireEvent.click(
       screen.getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
     )
-    await waitFor(() => expect(calls).toEqual(['invite new@example.com', 'end v1', 'withdraw i9']))
+    await waitFor(() => expect(calls).toHaveLength(4))
+    expect(calls[0]).toBe(
+      'send {"emails":["new@example.com","other@example.com"],"memberIds":["u2"]}',
+    )
+    expect(calls.slice(1).sort()).toEqual(['close all', 'close v1', 'withdraw i9'])
+  })
+
+  it('lets an owner who is not the editor see and close reviews but not send', async () => {
+    page('owner', 'u2')
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByText(/Send this draft for review/))
+    expect(screen.getByText(/Only the draft's editor can send it for review/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Send for review' })).toBeNull()
+    expect(await screen.findByRole('button', { name: "Stop accepting Rae's review" })).toBeTruthy()
   })
 
   it('is for the editor and owners only', async () => {
     page('member', 'u2') // someone else edits, and this person is a plain member
     await renderAt('/p/p1/drafts/d1')
     await screen.findByTestId('read-only')
-    expect(screen.queryByText(/Ask someone to review this draft/)).toBeNull()
+    expect(screen.queryByText(/Send this draft for review/)).toBeNull()
   })
+})
 
-  it('is offered to an owner who is not the editor', async () => {
-    page('owner', 'u2')
-    await renderAt('/p/p1/drafts/d1')
-    expect(await screen.findByText(/Ask someone to review this draft/)).toBeTruthy()
+describe('a member asked to review', () => {
+  it('finds the draft on the home page', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/profiles', () => HttpResponse.json([])),
+      http.get('*/api/llm', () =>
+        HttpResponse.json({
+          provider: 'anthropic',
+          model: 'claude-sonnet-5-5',
+          hasKey: true,
+          keyHint: '…7890',
+        }),
+      ),
+      http.get('*/api/reviews', () =>
+        HttpResponse.json([summary(), summary({ id: 'r2', draftTitle: 'Old', state: 'ended' })]),
+      ),
+    )
+    await renderAt('/')
+    const heading = await screen.findByRole('heading', { name: 'Drafts to review' })
+    const section = heading.closest('section')!
+    expect(within(section).getByRole('link', { name: 'Meanders' })).toHaveAttribute(
+      'href',
+      '/reviews/r1',
+    )
+    expect(within(section).queryByText('Old')).toBeNull() // only the open ones
   })
 })

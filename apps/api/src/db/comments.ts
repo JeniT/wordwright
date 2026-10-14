@@ -41,17 +41,24 @@ export class CommentStore {
     )
   }
 
-  add(draftId: string, authorId: string, comment: NewComment): DraftComment {
+  /** `reviewId` when a reviewer made it in a review (so the editor can count and place them by review). */
+  add(
+    draftId: string,
+    authorId: string,
+    comment: NewComment,
+    reviewId: string | null = null,
+  ): DraftComment {
     const id = randomUUID()
     this.db
       .prepare(
-        `INSERT INTO draft_comments (id, draft_id, author_id, block, block_hash, excerpt, text, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO draft_comments (id, draft_id, author_id, review_id, block, block_hash, excerpt, text, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
         draftId,
         authorId,
+        reviewId,
         comment.block,
         comment.hash,
         comment.excerpt,
@@ -59,6 +66,11 @@ export class CommentStore {
         nowIso(),
       )
     return this.get(draftId, id)!
+  }
+
+  /** The comments made in one review, oldest first. */
+  forReview(draftId: string, reviewId: string): DraftComment[] {
+    return this.all(draftId).filter((c) => c.reviewId === reviewId)
   }
 
   get(draftId: string, id: string): DraftComment | undefined {
@@ -83,6 +95,7 @@ export class CommentStore {
     return rows.map((r) => ({
       id: r.id as string,
       byAi: r.round_id !== null,
+      reviewId: (r.review_id as string | null) ?? null,
       authorId: r.author_id as string | null,
       authorName: r.author_name as string | null,
       block: r.block as string,

@@ -90,6 +90,7 @@ const pointOn = (id: string, over: object = {}) => ({
   excerpt: 'Some text',
   hash: blockHash('Some text'),
   byAi: true,
+  reviewId: null,
   authorId: null,
   authorName: null,
   text: 'Tighten the opening.',
@@ -102,6 +103,7 @@ const pointOn = (id: string, over: object = {}) => ({
 const saidBy = (id: string, name: string, over: object = {}) =>
   pointOn(id, {
     byAi: false,
+    reviewId: null,
     authorId: name === 'Ada Lovelace' ? 'u1' : `u-${name}`,
     authorName: name,
     reason: null,

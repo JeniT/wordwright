@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { splitBlocks, type CommentInput } from '@lfwa/core'
 import CommentCard from '../components/CommentCard.vue'
 import CommentForm from '../components/CommentForm.vue'
@@ -12,29 +12,30 @@ import { queryKeys } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 
 /**
- * One review: the draft to read, as it is now, and the comments this person has made on it. Nobody else's comments
- * are here and nothing else of the profile is. While the review is open they can add comments or stop reviewing.
+ * One review: the copy of the draft that was sent (a snapshot, not the editor's latest words) and the comments this
+ * person has made on it. Nobody else's comments are here and nothing else of the profile is. While the review is open
+ * they can add comments or end it; an ended or closed review is read-only but still shows both.
  */
 const props = defineProps<{ id: string }>()
 const queryClient = useQueryClient()
-const router = useRouter()
 const session = useSessionStore()
 const review = useQuery({
   queryKey: computed(() => queryKeys.review(props.id)),
   queryFn: () => api.getReview(props.id),
 })
-const blocks = computed(() => splitBlocks(review.data.value?.draft?.body ?? ''))
-const body = computed(() => review.data.value?.draft?.body ?? '')
+const blocks = computed(() => splitBlocks(review.data.value?.draft.body ?? ''))
+const body = computed(() => review.data.value?.draft.body ?? '')
 
 async function add(input: CommentInput) {
   await api.commentOnReview(props.id, input)
   await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
 }
-const leave = useMutation({
-  mutationFn: () => api.leaveReview(props.id),
+const end = useMutation({
+  mutationFn: () => api.endReview(props.id),
+  // Ending is final for this copy: the page stays, now read-only, with the copy and the comments.
   onSuccess: async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.reviews() })
-    await router.push({ name: 'reviews' })
+    await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
   },
 })
 </script>
@@ -47,7 +48,7 @@ const leave = useMutation({
     <QueryState :query="review" what="this draft">
       <template v-if="review.data.value">
         <h1 class="mb-1 font-display text-3xl font-semibold break-words">
-          {{ review.data.value.draft?.title || review.data.value.draftTitle || 'Untitled draft' }}
+          {{ review.data.value.draft.title || 'Untitled draft' }}
         </h1>
         <p class="meta mb-4">
           In {{ review.data.value.profileName }}
@@ -57,26 +58,27 @@ const leave = useMutation({
         </p>
 
         <p
-          v-if="review.data.value.state !== 'open'"
+          v-if="review.data.value.state === 'ended'"
           class="callout mb-4"
           data-testid="review-ended"
         >
-          <template v-if="review.data.value.state === 'left'">
-            You stopped reviewing this draft, so it isn't shown any more. Your comments are kept
-            with it.
-          </template>
-          <template v-else>
-            This draft is no longer shared with you. Your comments are kept with it.
-          </template>
+          You ended this review. The copy you read and your comments are kept, but you can't add
+          more.
         </p>
-
-        <template v-if="review.data.value.draft">
-          <p class="callout mb-4 text-sm">
-            You are reading this draft, not editing it. Say what you think in a comment below. Only
-            you and the draft's editor will see your comments.
-          </p>
-          <RichEditor :model-value="body" :editable="false" />
-        </template>
+        <p
+          v-else-if="review.data.value.state === 'closed'"
+          class="callout mb-4"
+          data-testid="review-ended"
+        >
+          This review is closed: the editor has stopped accepting comments. The copy you read and
+          your comments are kept.
+        </p>
+        <p v-else class="callout mb-4 text-sm">
+          You are reading a copy of the draft as it was when it was sent to you, not the editor's
+          latest words. You can't change it; say what you think in a comment below. Only you and the
+          draft's editor will see your comments.
+        </p>
+        <RichEditor :model-value="body" :editable="false" />
 
         <section class="mt-8" aria-labelledby="mine">
           <h2 id="mine" class="mb-2 font-display text-xl font-semibold">Your comments</h2>
@@ -93,7 +95,7 @@ const leave = useMutation({
             </li>
           </ol>
           <CommentForm
-            v-if="review.data.value.draft"
+            v-if="review.data.value.state === 'open'"
             :blocks="blocks"
             :add="add"
             audience="Only you and the draft's editor will see this."
@@ -107,19 +109,19 @@ const leave = useMutation({
         >
           <h2 id="stop" class="mb-1 font-medium">Finished?</h2>
           <p class="mb-2 text-sm text-ink-soft">
-            You can stop reviewing at any time. You won't see the draft again, and your comments
-            stay with it.
+            Press End review when you have said what you wanted to. The editor is told once that you
+            finished, and how many comments you left. You can't add more afterwards.
           </p>
           <button
             type="button"
             class="btn btn-outline"
-            :disabled="leave.isPending.value"
-            @click="leave.mutate()"
+            :disabled="end.isPending.value"
+            @click="end.mutate()"
           >
-            Stop reviewing
+            End review
           </button>
-          <p v-if="leave.isError.value" role="alert" class="mt-2 text-danger">
-            {{ errorMessage(leave.error.value) }}
+          <p v-if="end.isError.value" role="alert" class="mt-2 text-danger">
+            {{ errorMessage(end.error.value) }}
           </p>
         </section>
       </template>

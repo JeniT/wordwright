@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import ProfileImage from '../components/ProfileImage.vue'
 import UsernameSection from '../components/UsernameSection.vue'
 import { api } from '../lib/api'
+import { queryKeys } from '../lib/queries'
 import { displayHost, useProfiles } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
 import QueryState from '../components/QueryState.vue'
@@ -15,6 +16,9 @@ const profiles = useProfiles()
 // Shares the cache with the setup form, which updates it when a key is saved.
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
 const justConnected = ref(false)
+// Drafts other people have asked this person to read and comment on (a member of a profile may be asked to).
+const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
+const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state === 'open'))
 </script>
 
 <template>
@@ -31,6 +35,21 @@ const justConnected = ref(false)
   <p v-else-if="justConnected" role="status" class="mb-6 rounded-ctl bg-sunken p-3 text-sm">
     Your Anthropic key is saved. Wordwright is ready to use.
   </p>
+
+  <section v-if="toReview.length" class="mb-10 panel p-5" aria-labelledby="to-review-heading">
+    <h2 id="to-review-heading" class="mb-2 font-display text-xl font-semibold">Drafts to review</h2>
+    <ul class="space-y-1">
+      <li v-for="r in toReview" :key="r.id">
+        <RouterLink :to="{ name: 'review', params: { id: r.id } }" class="link">{{
+          r.draftTitle || 'Untitled draft'
+        }}</RouterLink>
+        <span class="meta">
+          · {{ r.profileName
+          }}<template v-if="r.inviterName"> · asked by {{ r.inviterName }}</template></span
+        >
+      </li>
+    </ul>
+  </section>
 
   <section aria-labelledby="profiles-heading">
     <div class="mb-6 flex items-center justify-between gap-4">

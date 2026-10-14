@@ -643,7 +643,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
-test('a reviewer is invited by email, reads and comments on one draft, and can start writing', async ({
+test('the editor sends a frozen copy for review; the reviewer comments and ends; the editor sees it and closes', async ({
   page,
   browser,
 }) => {
@@ -662,16 +662,26 @@ test('a reviewer is invited by email, reads and comments on one draft, and can s
   await expect(page.getByRole('status')).toHaveText('Saved')
   const draftUrl = page.url()
 
-  // Ada asks someone outside the profile to review the draft.
+  // Ada sends it for review; the dialog says reviewers read a frozen copy.
   const reviewerEmail = `rae-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
-  await page.getByText('Ask someone to review this draft').click()
-  await page.getByLabel('Their email address').fill(reviewerEmail)
-  await page.getByRole('button', { name: 'Send the invitation' }).click()
-  await expect(page.getByText(/can be invited, they've been emailed/)).toBeVisible()
+  await page.getByText('Send this draft for review').click()
+  await expect(page.getByTestId('snapshot-notice')).toContainText('frozen copy')
+  await page.getByLabel('Email addresses').fill(reviewerEmail)
+  await page.getByRole('button', { name: 'Send for review' }).click()
+  await expect(
+    page.getByText(/Sent a snapshot of the draft as it is now to 1 person/),
+  ).toBeVisible()
   await expect(page.getByText(`${reviewerEmail} · waiting for a reply`)).toBeVisible()
   const mail = await waitForEmail(reviewerEmail, 'Ada asked you to review a draft')
   const link = linkIn(mail, '/review-invite')
   expect(link, 'review link in the email').toBeTruthy()
+
+  // Ada keeps writing after sending.
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Added after sending.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
 
   // Rae follows the link and makes a reviewer account with a name and password.
   const rae = await (await browser.newContext()).newPage()
@@ -683,11 +693,12 @@ test('a reviewer is invited by email, reads and comments on one draft, and can s
   await rae.getByLabel('Choose a password').fill(PASSWORD)
   await rae.getByRole('button', { name: 'Read the draft' }).click()
 
-  // Her whole app is her reviews: no profiles, ideas, account or API key.
+  // Her whole app is her reviews. She reads the copy as sent, without Ada's later line.
   await expect(rae.getByRole('heading', { name: 'Drafts to review' })).toBeVisible()
   await expect(rae.getByRole('link', { name: 'Account' })).toHaveCount(0)
   await rae.getByRole('link', { name: 'Meanders' }).click()
   await expect(rae.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
+  await expect(rae.getByText('Added after sending.')).toHaveCount(0)
   await expect(rae.getByRole('textbox', { name: 'Draft body' })).toHaveAttribute(
     'contenteditable',
     'false',
@@ -697,13 +708,49 @@ test('a reviewer is invited by email, reads and comments on one draft, and can s
   await expect(rae.getByText('Which rivers do you mean?')).toBeVisible()
   expect((await new AxeBuilder({ page: rae }).analyze()).violations).toEqual([])
 
-  // Ada, the editor, sees the comment, labelled with Rae's name.
+  // Ada sees the comment as it is made, labelled with Rae's name, and how far Rae has got.
   await page.goto(draftUrl)
   await page.getByRole('tab', { name: /^Comments/ }).click()
   await expect(page.getByText('Which rivers do you mean?')).toBeVisible()
   await expect(
     page.getByRole('tabpanel', { name: /^Comments/ }).getByText('Rae', { exact: true }),
   ).toBeVisible()
+  await page.getByText(/Send this draft for review/).click()
+  await expect(page.getByText(/Rae · Reading · 1 comment · sent/)).toBeVisible()
+
+  // Rae ends the review: the page stays, read-only, and Ada can see it finished.
+  await rae.getByRole('button', { name: 'End review' }).click()
+  await expect(rae.getByTestId('review-ended')).toContainText('You ended this review')
+  await expect(rae.getByText('Which rivers do you mean?')).toBeVisible()
+  await expect(rae.getByRole('button', { name: 'End review' })).toHaveCount(0)
+  await page.reload()
+  await page.getByText(/Send this draft for review/).click()
+  await expect(page.getByText(/Rae · Finished · 1 comment · sent/)).toBeVisible()
+  const finished = await waitForEmail(adaEmail, 'Rae has finished reviewing Meanders')
+  expect(finished.text).toContain('left 1 comment')
+
+  // A second reviewer is closed out by the editor before they finish.
+  const secondEmail = `sam-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await page.getByLabel('Email addresses').fill(secondEmail)
+  await page.getByRole('button', { name: 'Send for review' }).click()
+  const second = linkIn(
+    await waitForEmail(secondEmail, 'Ada asked you to review a draft'),
+    '/review-invite',
+  )
+  const sam = await (await browser.newContext()).newPage()
+  await sam.goto(second!)
+  await sam.getByLabel('What should we call you?').fill('Sam')
+  await sam.getByLabel('Choose a password').fill(PASSWORD)
+  await sam.getByRole('button', { name: 'Read the draft' }).click()
+  await sam.getByRole('link', { name: 'Meanders' }).click()
+  // Sending again made a new copy, so Sam's includes what Ada added after Rae's was sent.
+  await expect(sam.getByText('Added after sending.', { exact: true })).toBeVisible()
+  await page.reload()
+  await page.getByText(/Send this draft for review/).click()
+  await page.getByRole('button', { name: 'Stop accepting reviews' }).click()
+  await sam.reload()
+  await expect(sam.getByTestId('review-ended')).toContainText('closed')
+  await expect(sam.getByRole('textbox', { name: 'Your comment' })).toHaveCount(0)
 
   // Rae chooses to start writing: a full account, sent to the home page.
   await rae.getByRole('link', { name: '← All your reviews' }).click()

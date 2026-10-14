@@ -699,6 +699,51 @@ export const MIGRATIONS: Migration[] = [
     FROM critique_points p JOIN critique_rounds r ON r.id = p.round_id;
   DROP TABLE critique_points;
   `,
+  // #158: a review is of a snapshot, a frozen copy of the draft made when the editor sends it for review (ADR 0001).
+  // Reviews already made get a snapshot of the draft as it is now. States become open, ended (the reviewer finished)
+  // and closed (the editor stopped accepting), and a reviewer's comments remember the review they were made in.
+  `
+  CREATE TABLE draft_snapshots (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX draft_snapshots_draft ON draft_snapshots(draft_id, created_at);
+  INSERT INTO draft_snapshots (id, draft_id, title, body, created_by, created_at)
+    SELECT lower(hex(randomblob(16))), d.id, d.title, d.body, d.editor_id, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    FROM drafts d
+    WHERE d.id IN (SELECT draft_id FROM draft_reviews UNION SELECT draft_id FROM review_invitations);
+  CREATE TABLE draft_reviews_new (
+    id TEXT PRIMARY KEY,
+    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,
+    snapshot_id TEXT NOT NULL REFERENCES draft_snapshots(id) ON DELETE CASCADE,
+    reviewer_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    state TEXT NOT NULL CHECK (state IN ('open', 'ended', 'closed')),
+    created_at TEXT NOT NULL,
+    ended_at TEXT,
+    UNIQUE (snapshot_id, reviewer_id)
+  );
+  INSERT INTO draft_reviews_new (id, draft_id, snapshot_id, reviewer_id, invited_by, state, created_at, ended_at)
+    SELECT r.id, r.draft_id, (SELECT s.id FROM draft_snapshots s WHERE s.draft_id = r.draft_id), r.reviewer_id,
+           r.invited_by, CASE r.state WHEN 'left' THEN 'ended' WHEN 'revoked' THEN 'closed' ELSE r.state END,
+           r.created_at, r.ended_at
+    FROM draft_reviews r;
+  DROP TABLE draft_reviews;
+  ALTER TABLE draft_reviews_new RENAME TO draft_reviews;
+  CREATE INDEX draft_reviews_reviewer ON draft_reviews(reviewer_id);
+  CREATE INDEX draft_reviews_draft ON draft_reviews(draft_id);
+  ALTER TABLE review_invitations ADD COLUMN snapshot_id TEXT REFERENCES draft_snapshots(id) ON DELETE CASCADE;
+  UPDATE review_invitations SET snapshot_id =
+    (SELECT s.id FROM draft_snapshots s WHERE s.draft_id = review_invitations.draft_id);
+  ALTER TABLE draft_comments ADD COLUMN review_id TEXT REFERENCES draft_reviews(id) ON DELETE SET NULL;
+  UPDATE draft_comments SET review_id =
+    (SELECT r.id FROM draft_reviews r WHERE r.draft_id = draft_comments.draft_id AND r.reviewer_id = draft_comments.author_id)
+    WHERE author_id IN (SELECT reviewer_id FROM draft_reviews);
+  `,
 ]
 
 /**

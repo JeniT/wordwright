@@ -33,8 +33,8 @@ export function reviewRoutes(reviews: ReviewService, accounts: AccountService) {
       .post('/:id/comments', validateJson(CommentInputSchema), (c) =>
         c.json(reviews.comment(c.get('user'), param(c, 'id'), c.req.valid('json')), 201),
       )
-      .post('/:id/leave', (c) => {
-        reviews.leave(c.get('user'), param(c, 'id'))
+      .post('/:id/end', (c) => {
+        reviews.end(c.get('user'), param(c, 'id'))
         return c.body(null, 204)
       })
   )

@@ -1152,6 +1152,8 @@ export const CommentSchema = z.object({
   authorId: z.string().nullable(),
   /** Their name: still theirs after they leave the profile; null when the AI wrote it, or the account was deleted without keeping it. */
   authorName: z.string().nullable(),
+  /** The review it was made in, when a reviewer wrote it about the snapshot they were sent; null otherwise. */
+  reviewId: z.string().nullable(),
   /** `b3`: the paragraph (or heading, list item...) it is about; `whole`: the draft as a whole. */
   block: z.string(),
   /** The start of that block, to show which one it is and to find it again after edits; empty for `whole`. */
@@ -1179,7 +1181,8 @@ export const CommentResolveSchema = z.object({ resolved: z.boolean() })
 
 // ---- Reviewers (#157) -----------------------------------------------------
 
-export const REVIEW_STATES = ['open', 'left', 'revoked'] as const
+/** Open: can comment. Ended: the reviewer pressed End review. Closed: the editor stopped accepting. */
+export const REVIEW_STATES = ['open', 'ended', 'closed'] as const
 export const ReviewStateSchema = z.enum(REVIEW_STATES)
 export type ReviewState = z.infer<typeof ReviewStateSchema>
 
@@ -1195,9 +1198,12 @@ export const ReviewSummarySchema = z.object({
 })
 export type ReviewSummary = z.infer<typeof ReviewSummarySchema>
 
-/** A review opened: the draft to read (while access lasts) and the reviewer's own comments on it, and nothing else. */
+/**
+ * A review opened: the snapshot of the draft that was shared (not the live draft, ADR 0001), always, whatever the
+ * state, and the reviewer's own comments on it, and nothing else.
+ */
 export const ReviewDetailSchema = ReviewSummarySchema.extend({
-  draft: z.object({ title: z.string(), body: z.string() }).nullable(),
+  draft: z.object({ title: z.string(), body: z.string() }),
   comments: z.array(CommentSchema),
 })
 export type ReviewDetail = z.infer<typeof ReviewDetailSchema>
@@ -1210,6 +1216,18 @@ export const ReviewInvitationPreviewSchema = z.object({
   email: z.string(),
 })
 export type ReviewInvitationPreview = z.infer<typeof ReviewInvitationPreviewSchema>
+
+/**
+ * Sending a draft for review: people to ask by email, and members of the profile. The server freezes the draft's title
+ * and body as a snapshot, which is what they all review.
+ */
+export const SendForReviewInputSchema = z
+  .object({
+    emails: z.array(EmailSchema).max(20).default([]),
+    memberIds: z.array(z.string().min(1)).max(20).default([]),
+  })
+  .refine((v) => v.emails.length + v.memberIds.length > 0, 'Choose at least one person to ask')
+export type SendForReviewInput = z.input<typeof SendForReviewInputSchema>
 
 export const ReviewAcceptedSchema = z.object({ reviewId: z.string() })
 
@@ -1229,7 +1247,10 @@ export const DraftReviewersSchema = z.object({
       name: z.string(),
       email: z.string(),
       state: ReviewStateSchema,
-      createdAt: z.string(),
+      /** When the snapshot they review was sent. */
+      sentAt: z.string(),
+      /** What they have said so far. */
+      commentCount: z.number().int(),
     }),
   ),
   pending: z.array(z.object({ id: z.string(), email: z.string(), expiresAt: z.string() })),

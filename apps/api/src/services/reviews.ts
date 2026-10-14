@@ -5,6 +5,7 @@ import type {
   ReviewDetail,
   ReviewInvitationPreview,
   ReviewSummary,
+  SendForReviewInput,
 } from '@lfwa/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
@@ -13,9 +14,9 @@ import type { UserRecord } from '../db/users'
 import { fail } from '../errors'
 import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
-import { reviewInvitationEmail } from '../mail/templates'
+import { reviewFinishedEmail, reviewInvitationEmail, reviewRequestEmail } from '../mail/templates'
 import type { AccountService, Session } from './accounts'
-import { addComment, visibleComments } from './comments'
+import { addComment } from './comments'
 
 export const REVIEW_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -54,43 +55,89 @@ export class ReviewService {
     }
   }
 
-  invite(inviter: UserRecord, draft: Draft, email: string): void {
+  /**
+   * Sends the draft for review: freezes its title and body as a snapshot (ADR 0001) and asks each person to review
+   * that. Only the editor sends. People by email are invited as profile members are (a quiet outcome whatever the
+   * address); members of the profile are asked directly and told by email.
+   */
+  send(editor: UserRecord, draft: Draft, input: SendForReviewInput): void {
     const { store } = this.d
-    this.requireManager(draft, inviter.id)
-    if (!inviter.emailVerified) {
+    if (draft.editorId !== editor.id) {
+      throw fail(403, `Only ${draft.editorName}, the draft’s editor, can send it for review.`)
+    }
+    const emails = [...new Set((input.emails ?? []).map((e) => e.trim().toLowerCase()))]
+    const memberIds = [...new Set(input.memberIds ?? [])]
+    if (emails.length && !editor.emailVerified) {
       throw fail(403, 'Please confirm your email address before inviting someone')
     }
-    // Quiet outcomes, so the inviter learns nothing about the address: already reviewing, blocked, or enough emails.
-    const existing = store.users.findByEmail(email)
-    if (existing && store.reviews.forReviewer(draft.id, existing.id)?.state === 'open') return
-    if (existing && store.profiles.roleOf(draft.profileId, existing.id)) return
-    if (store.invitations.isBlocked(email, inviter.id)) return
-    if (!this.d.recipientLimiter.allow(email)) return
+    const members = new Map(store.profiles.members(draft.profileId).map((m) => [m.userId, m]))
+    for (const id of memberIds) {
+      if (id === editor.id || !members.has(id)) {
+        throw fail(
+          400,
+          'You can ask other members of this profile, but not yourself or anyone else.',
+        )
+      }
+    }
 
-    const token = generateToken()
-    store.reviews.replacePending({
-      draftId: draft.id,
-      invitedBy: inviter.id,
-      email,
-      tokenHash: hashToken(token),
-      expiresAt: new Date(this.now().getTime() + REVIEW_INVITE_TTL_MS),
+    const profile = store.profiles.get(draft.profileId, editor.id)
+    const profileName = profile?.name ?? 'a profile'
+    const snapshot = store.transaction(() => {
+      const made = store.reviews.createSnapshot(draft.id, draft.title, draft.body, editor.id)
+      for (const id of memberIds) store.reviews.grant(made.id, draft.id, id, editor.id)
+      return made
     })
-    const profile = store.profiles.get(draft.profileId, inviter.id)
-    sendInBackground(
-      this.d.mailer,
-      this.d.logger ?? console,
-      `review invitation for draft ${draft.id}`,
-      {
-        to: email,
-        ...reviewInvitationEmail({
-          inviterName: inviter.name,
-          draftTitle: draft.title,
-          profileName: profile?.name ?? 'a profile',
-          link: `${this.d.publicUrl}/review-invite?token=${token}`,
-          ttlDays: REVIEW_INVITE_TTL_MS / 86_400_000,
-        }),
-      },
-    )
+
+    for (const id of memberIds) {
+      const review = store.reviews.forReviewer(snapshot.id, id)!
+      const to = store.users.findById(id)
+      if (!to) continue
+      sendInBackground(
+        this.d.mailer,
+        this.d.logger ?? console,
+        `review request for draft ${draft.id}`,
+        {
+          to: to.email,
+          ...reviewRequestEmail({
+            inviterName: editor.name,
+            draftTitle: snapshot.title,
+            profileName,
+            link: `${this.d.publicUrl}/reviews/${review.id}`,
+          }),
+        },
+      )
+    }
+    for (const email of emails) {
+      // Quiet outcomes, so the editor learns nothing about the address: a member (asked above), blocked, or too many emails.
+      const existing = store.users.findByEmail(email)
+      if (existing && store.profiles.roleOf(draft.profileId, existing.id)) continue
+      if (store.invitations.isBlocked(email, editor.id)) continue
+      if (!this.d.recipientLimiter.allow(email)) continue
+      const token = generateToken()
+      store.reviews.replacePending({
+        draftId: draft.id,
+        snapshotId: snapshot.id,
+        invitedBy: editor.id,
+        email,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(this.now().getTime() + REVIEW_INVITE_TTL_MS),
+      })
+      sendInBackground(
+        this.d.mailer,
+        this.d.logger ?? console,
+        `review invitation for draft ${draft.id}`,
+        {
+          to: email,
+          ...reviewInvitationEmail({
+            inviterName: editor.name,
+            draftTitle: snapshot.title,
+            profileName,
+            link: `${this.d.publicUrl}/review-invite?token=${token}`,
+            ttlDays: REVIEW_INVITE_TTL_MS / 86_400_000,
+          }),
+        },
+      )
+    }
   }
 
   reviewers(draft: Draft, userId: string): DraftReviewers {
@@ -102,12 +149,18 @@ export class ReviewService {
     }
   }
 
-  /** Ends someone's review: they can no longer read the draft, and their comments stay. */
-  revoke(draft: Draft, userId: string, reviewId: string): void {
+  /** The editor or an owner stops accepting one review: it becomes read-only, and the comments stay. */
+  close(draft: Draft, userId: string, reviewId: string): void {
     this.requireManager(draft, userId)
     const review = this.d.store.reviews.ofDraft(draft.id, reviewId)
     if (!review) throw fail(404, 'Not found')
-    this.d.store.reviews.end(review.id, 'revoked')
+    this.d.store.reviews.end(review.id, 'closed')
+  }
+
+  /** ...or every open review of the draft at once. */
+  closeAll(draft: Draft, userId: string): number {
+    this.requireManager(draft, userId)
+    return this.d.store.reviews.closeAllOpen(draft.id)
   }
 
   withdrawInvitation(draft: Draft, userId: string, invitationId: string): void {
@@ -132,7 +185,7 @@ export class ReviewService {
     const { store } = this.d
     const prior = store.reviews.findInvitation(hashToken(token))
     if (prior?.acceptedBy === user.id) {
-      const review = store.reviews.forReviewer(prior.draftId, user.id)
+      const review = store.reviews.forReviewer(prior.snapshotId, user.id)
       if (review) return { reviewId: review.id }
     }
     const inv = this.usable(token)
@@ -174,32 +227,59 @@ export class ReviewService {
     return this.d.store.reviews.listFor(user.id)
   }
 
-  /** The draft and the reviewer's own comments, while the review is open; the comments alone once it has ended. */
+  /** The snapshot that was shared and this reviewer's own comments on it, in whatever state the review is in. */
   open(user: UserRecord, reviewId: string): ReviewDetail {
     const { store } = this.d
     const review = store.reviews.ownedBy(reviewId, user.id)
     const summary = store.reviews.listFor(user.id).find((r) => r.id === reviewId)
-    if (!review || !summary) throw fail(404, 'Not found')
-    const draft = this.draftOf(review.draftId)
+    const snapshot = review && store.reviews.snapshot(review.snapshotId)
+    if (!review || !summary || !snapshot) throw fail(404, 'Not found')
     return {
       ...summary,
-      draft: review.state === 'open' ? { title: draft.title, body: draft.body } : null,
-      comments: visibleComments(store, draft, user.id),
+      draft: { title: snapshot.title, body: snapshot.body },
+      comments: store.comments.forReview(review.draftId, review.id),
     }
   }
 
+  /** A comment is about a paragraph of the snapshot, whatever the editor has done to the live draft since. */
   comment(user: UserRecord, reviewId: string, input: CommentInput) {
-    const review = this.d.store.reviews.ownedBy(reviewId, user.id)
-    if (!review) throw fail(404, 'Not found')
-    if (review.state !== 'open')
+    const { store } = this.d
+    const review = store.reviews.ownedBy(reviewId, user.id)
+    const snapshot = review && store.reviews.snapshot(review.snapshotId)
+    if (!review || !snapshot) throw fail(404, 'Not found')
+    if (review.state !== 'open') {
       throw fail(409, 'This review has ended, so you can’t add comments.')
-    return addComment(this.d.store, this.draftOf(review.draftId), user.id, input)
+    }
+    return addComment(store, this.draftOf(review.draftId), user.id, input, {
+      id: review.id,
+      body: snapshot.body,
+    })
   }
 
-  leave(user: UserRecord, reviewId: string): void {
-    const review = this.d.store.reviews.ownedBy(reviewId, user.id)
+  /** "End review": the reviewer is finished. The editor is emailed once, and the review becomes read-only. */
+  end(user: UserRecord, reviewId: string): void {
+    const { store } = this.d
+    const review = store.reviews.ownedBy(reviewId, user.id)
     if (!review) throw fail(404, 'Not found')
-    this.d.store.reviews.end(review.id, 'left')
+    if (!store.reviews.end(review.id, 'ended')) return // already over: nothing to announce again
+    const draft = this.draftOf(review.draftId)
+    const editor = store.users.findById(draft.editorId)
+    const snapshot = store.reviews.snapshot(review.snapshotId)
+    if (!editor) return
+    sendInBackground(
+      this.d.mailer,
+      this.d.logger ?? console,
+      `review finished for draft ${draft.id}`,
+      {
+        to: editor.email,
+        ...reviewFinishedEmail({
+          reviewerName: user.name,
+          draftTitle: snapshot?.title ?? draft.title,
+          commentCount: store.reviews.commentCount(review.id),
+          link: `${this.d.publicUrl}/p/${draft.profileId}/drafts/${draft.id}`,
+        }),
+      },
+    )
   }
 
   /** "Start writing": the reviewer chooses a username and becomes a full account. */
@@ -210,9 +290,12 @@ export class ReviewService {
 
   // ---- internals -------------------------------------------------------------
 
-  private enroll(user: UserRecord, inv: { id: string; draftId: string; invitedBy: string }) {
+  private enroll(
+    user: UserRecord,
+    inv: { id: string; draftId: string; snapshotId: string; invitedBy: string },
+  ) {
     const { store } = this.d
-    const review = store.reviews.grant(inv.draftId, user.id, inv.invitedBy)
+    const review = store.reviews.grant(inv.snapshotId, inv.draftId, user.id, inv.invitedBy)
     store.reviews.markAccepted(inv.id, user.id)
     if (!user.emailVerified) store.users.markEmailVerified(user.id)
     return { reviewId: review.id }

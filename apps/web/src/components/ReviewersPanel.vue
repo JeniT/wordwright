@@ -7,41 +7,56 @@ import { queryKeys } from '../lib/queries'
 import { useProfile } from '../lib/useProfiles'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
-import TextField from './TextField.vue'
 
 /**
- * Asking people outside the profile to read this draft and comment on it. They get an emailed link and an account that
- * reaches only this draft; nothing else of the profile is shown to them. The editor and owners invite and can end a
- * review at any time. Others in the profile don't see this at all.
+ * Sending the draft for review. The draft's title and body are frozen as a snapshot, and the people asked (by email, or
+ * members of the profile) read and comment on that, not on later edits (ADR 0001). Only the editor sends; the editor
+ * and owners see who is reviewing, how far they have got, and can stop accepting reviews. Others don't see this.
  */
 const props = defineProps<{ profileId: string; draftId: string; editorId: string }>()
 const queryClient = useQueryClient()
 const session = useSessionStore()
 const { profile } = useProfile(() => props.profileId)
-const mayManage = computed(
-  () => session.user?.id === props.editorId || profile.value?.role === 'owner',
+const isEditor = computed(() => session.user?.id === props.editorId)
+const mayManage = computed(() => isEditor.value || profile.value?.role === 'owner')
+const others = computed(() =>
+  (profile.value?.members ?? []).filter((m) => m.userId !== props.editorId),
 )
 
 const list = useQuery({
   queryKey: computed(() => queryKeys.reviewers(props.profileId, props.draftId)),
   queryFn: () => api.listReviewers(props.profileId, props.draftId),
   enabled: mayManage,
+  // Comments appear for the editor as they are made.
+  refetchInterval: 30_000,
 })
 const refresh = () =>
   queryClient.invalidateQueries({ queryKey: queryKeys.reviewers(props.profileId, props.draftId) })
 
-const email = ref('')
-const sentTo = ref('')
-const invite = useMutation({
-  mutationFn: () => api.inviteReviewer(props.profileId, props.draftId, email.value),
+const emails = ref('')
+const chosen = ref<string[]>([])
+const sentSummary = ref('')
+const addresses = computed(() => [...new Set(emails.value.split(/[\s,;]+/).filter(Boolean))])
+const send = useMutation({
+  mutationFn: () =>
+    api.sendForReview(props.profileId, props.draftId, {
+      emails: addresses.value,
+      memberIds: chosen.value,
+    }),
   onSuccess: async () => {
-    sentTo.value = email.value
-    email.value = ''
+    const n = addresses.value.length + chosen.value.length
+    sentSummary.value = `Sent a snapshot of the draft as it is now to ${n} ${n === 1 ? 'person' : 'people'}.`
+    emails.value = ''
+    chosen.value = []
     await refresh()
   },
 })
-const revoke = useMutation({
-  mutationFn: (id: string) => api.revokeReviewer(props.profileId, props.draftId, id),
+const close = useMutation({
+  mutationFn: (id: string) => api.closeReview(props.profileId, props.draftId, id),
+  onSuccess: refresh,
+})
+const closeAll = useMutation({
+  mutationFn: () => api.closeAllReviews(props.profileId, props.draftId),
   onSuccess: refresh,
 })
 const withdraw = useMutation({
@@ -49,44 +64,70 @@ const withdraw = useMutation({
   onSuccess: refresh,
 })
 const problem = computed(() => {
-  const failed = [invite, revoke, withdraw].find((m) => m.isError.value)
+  const failed = [send, close, closeAll, withdraw].find((m) => m.isError.value)
   return failed ? errorMessage(failed.error.value) : ''
 })
 const stateLabel: Record<ReviewState, string> = {
   open: 'Reading',
-  left: 'Stopped reviewing',
-  revoked: 'Access ended',
+  ended: 'Finished',
+  closed: 'Closed by you',
 }
+const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state === 'open') ?? false)
 </script>
 
 <template>
   <details v-if="mayManage" class="mb-6 text-sm">
     <summary class="cursor-pointer text-ink-soft">
-      Ask someone to review this draft<template v-if="list.data.value?.reviewers.length">
+      Send this draft for review<template v-if="list.data.value?.reviewers.length">
         ({{ list.data.value.reviewers.length }})</template
       >
     </summary>
     <div class="mt-3">
-      <p class="mb-3 text-ink-soft">
-        They are emailed a link and can read this one draft and write comments on it, and nothing
-        else of the profile. Only you see their comments.
-      </p>
-      <form class="flex flex-wrap items-end gap-3" @submit.prevent="invite.mutate()">
-        <div class="min-w-60 flex-1">
-          <TextField
-            v-model="email"
-            label="Their email address"
-            type="email"
+      <form v-if="isEditor" @submit.prevent="send.mutate()">
+        <p class="callout mb-3" data-testid="snapshot-notice">
+          The people you ask read a <strong>frozen copy</strong> of the draft as it is now, not what
+          you write after this. Sending again makes a new copy. They can comment, and only you see
+          their comments.
+        </p>
+        <div class="mb-3">
+          <label for="review-emails" class="mb-1 block font-medium">Email addresses</label>
+          <textarea
+            id="review-emails"
+            v-model="emails"
+            rows="2"
+            class="field"
             autocomplete="off"
-            required
-          />
+            placeholder="One or more, separated by commas or new lines"
+          ></textarea>
+          <p class="mt-1 text-ink-soft">
+            They get a link and an account that reaches only this copy of the draft.
+          </p>
         </div>
-        <button type="submit" class="mb-4 btn btn-outline" :disabled="invite.isPending.value">
-          Send the invitation
+        <fieldset v-if="others.length" class="mb-3">
+          <legend class="mb-1 font-medium">Members of this profile</legend>
+          <label v-for="m in others" :key="m.userId" class="mb-1 flex items-center gap-2">
+            <input
+              v-model="chosen"
+              type="checkbox"
+              :value="m.userId"
+              class="size-4 accent-accent"
+            />
+            {{ m.name }}
+          </label>
+        </fieldset>
+        <button
+          type="submit"
+          class="btn btn-outline"
+          :disabled="send.isPending.value || (!addresses.length && !chosen.length)"
+        >
+          Send for review
         </button>
+        <p v-if="sentSummary" role="status" class="mt-3">{{ sentSummary }}</p>
       </form>
-      <p v-if="sentTo" role="status" class="mb-3">
-        If {{ sentTo }} can be invited, they've been emailed a link.
+      <p v-else class="mb-3 text-ink-soft">
+        Only the draft's editor can send it for review. You can see who is reviewing, and stop
+        accepting reviews.
       </p>
       <p v-if="problem" role="alert" class="mb-3 text-danger">{{ problem }}</p>
 
@@ -98,20 +139,31 @@ const stateLabel: Record<ReviewState, string> = {
             class="flex flex-wrap items-center gap-x-3 gap-y-1"
           >
             <span>
-              <strong>{{ r.name }}</strong> ({{ r.email }}) · {{ stateLabel[r.state] }}
+              <strong>{{ r.name }}</strong> · {{ stateLabel[r.state] }} · {{ r.commentCount }}
+              {{ r.commentCount === 1 ? 'comment' : 'comments' }} · sent
+              {{ when(r.sentAt) }}
             </span>
             <button
               v-if="r.state === 'open'"
               type="button"
               class="btn btn-sm btn-neutral"
-              :disabled="revoke.isPending.value"
-              :aria-label="`End ${r.name}'s review`"
-              @click="revoke.mutate(r.id)"
+              :disabled="close.isPending.value"
+              :aria-label="`Stop accepting ${r.name}'s review`"
+              @click="close.mutate(r.id)"
             >
-              End their review
+              Close review
             </button>
           </li>
         </ul>
+        <button
+          v-if="anyOpen"
+          type="button"
+          class="btn btn-sm btn-neutral mb-3"
+          :disabled="closeAll.isPending.value"
+          @click="closeAll.mutate()"
+        >
+          Stop accepting reviews
+        </button>
         <ul
           v-if="list.data.value?.pending.length"
           class="space-y-2"

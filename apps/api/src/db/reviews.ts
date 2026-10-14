@@ -6,13 +6,22 @@ import { nowIso } from './database'
 export interface ReviewRecord {
   id: string
   draftId: string
+  snapshotId: string
   reviewerId: string
   state: ReviewState
+}
+
+export interface Snapshot {
+  id: string
+  draftId: string
+  title: string
+  body: string
 }
 
 export interface ReviewInvitationRecord {
   id: string
   draftId: string
+  snapshotId: string
   draftTitle: string
   profileName: string
   invitedBy: string
@@ -25,6 +34,7 @@ export interface ReviewInvitationRecord {
 const toRecord = (r: Record<string, unknown>): ReviewRecord => ({
   id: r.id as string,
   draftId: r.draft_id as string,
+  snapshotId: r.snapshot_id as string,
   reviewerId: r.reviewer_id as string,
   state: r.state as ReviewState,
 })
@@ -36,10 +46,34 @@ const toRecord = (r: Record<string, unknown>): ReviewRecord => ({
 export class ReviewStore {
   constructor(private readonly db: DatabaseSync) {}
 
+  // -- snapshots
+  /** Freezes the draft's words as they are, for a review (ADR 0001). */
+  createSnapshot(draftId: string, title: string, body: string, createdBy: string): Snapshot {
+    const id = randomUUID()
+    this.db
+      .prepare(
+        'INSERT INTO draft_snapshots (id, draft_id, title, body, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run(id, draftId, title, body, createdBy, nowIso())
+    return { id, draftId, title, body }
+  }
+
+  snapshot(id: string): Snapshot | undefined {
+    const r = this.db.prepare('SELECT * FROM draft_snapshots WHERE id = ?').get(id)
+    return (
+      r && { id, draftId: r.draft_id as string, title: r.title as string, body: r.body as string }
+    )
+  }
+
   // -- reviews
-  /** Grants (or, if the reviewer had left or been removed, restores) access to the draft. */
-  grant(draftId: string, reviewerId: string, invitedBy: string | null): ReviewRecord {
-    const existing = this.forReviewer(draftId, reviewerId)
+  /** Starts a review of the snapshot by this person (or, if they somehow have one, reopens it). */
+  grant(
+    snapshotId: string,
+    draftId: string,
+    reviewerId: string,
+    invitedBy: string | null,
+  ): ReviewRecord {
+    const existing = this.forReviewer(snapshotId, reviewerId)
     if (existing) {
       this.db
         .prepare(
@@ -51,17 +85,17 @@ export class ReviewStore {
     const id = randomUUID()
     this.db
       .prepare(
-        `INSERT INTO draft_reviews (id, draft_id, reviewer_id, invited_by, state, created_at)
-         VALUES (?, ?, ?, ?, 'open', ?)`,
+        `INSERT INTO draft_reviews (id, draft_id, snapshot_id, reviewer_id, invited_by, state, created_at)
+         VALUES (?, ?, ?, ?, ?, 'open', ?)`,
       )
-      .run(id, draftId, reviewerId, invitedBy, nowIso())
-    return { id, draftId, reviewerId, state: 'open' }
+      .run(id, draftId, snapshotId, reviewerId, invitedBy, nowIso())
+    return { id, draftId, snapshotId, reviewerId, state: 'open' }
   }
 
-  forReviewer(draftId: string, reviewerId: string): ReviewRecord | undefined {
+  forReviewer(snapshotId: string, reviewerId: string): ReviewRecord | undefined {
     const row = this.db
-      .prepare('SELECT * FROM draft_reviews WHERE draft_id = ? AND reviewer_id = ?')
-      .get(draftId, reviewerId)
+      .prepare('SELECT * FROM draft_reviews WHERE snapshot_id = ? AND reviewer_id = ?')
+      .get(snapshotId, reviewerId)
     return row ? toRecord(row) : undefined
   }
 
@@ -81,19 +115,42 @@ export class ReviewStore {
     return row ? toRecord(row) : undefined
   }
 
-  end(id: string, state: 'left' | 'revoked') {
-    this.db
-      .prepare("UPDATE draft_reviews SET state = ?, ended_at = ? WHERE id = ? AND state = 'open'")
-      .run(state, nowIso(), id)
+  /** Ends an open review; false if it was not open (so the caller does not announce it twice). */
+  end(id: string, state: 'ended' | 'closed'): boolean {
+    return (
+      this.db
+        .prepare("UPDATE draft_reviews SET state = ?, ended_at = ? WHERE id = ? AND state = 'open'")
+        .run(state, nowIso(), id).changes > 0
+    )
+  }
+
+  /** The editor stops accepting reviews of this draft: every open one is closed. Returns how many. */
+  closeAllOpen(draftId: string): number {
+    return Number(
+      this.db
+        .prepare(
+          "UPDATE draft_reviews SET state = 'closed', ended_at = ? WHERE draft_id = ? AND state = 'open'",
+        )
+        .run(nowIso(), draftId).changes,
+    )
+  }
+
+  /** How many comments the reviewer made in this review. */
+  commentCount(reviewId: string): number {
+    const row = this.db
+      .prepare('SELECT count(*) AS n FROM draft_comments WHERE review_id = ?')
+      .get(reviewId) as { n: number }
+    return row.n
   }
 
   /** The reviewer's own reviews, newest first. */
   listFor(reviewerId: string): ReviewSummary[] {
     return this.db
       .prepare(
-        `SELECT r.id, r.state, r.created_at, d.title AS draft_title, p.name AS profile_name,
+        `SELECT r.id, r.state, r.created_at, s.title AS draft_title, p.name AS profile_name,
                 inviter.name AS inviter_name
          FROM draft_reviews r
+         JOIN draft_snapshots s ON s.id = r.snapshot_id
          JOIN drafts d ON d.id = r.draft_id
          JOIN profiles p ON p.id = d.profile_id
          LEFT JOIN users inviter ON inviter.id = r.invited_by
@@ -115,9 +172,12 @@ export class ReviewStore {
   listForDraft(draftId: string) {
     return this.db
       .prepare(
-        `SELECT r.id, r.state, r.created_at, u.name, u.email FROM draft_reviews r
+        `SELECT r.id, r.state, s.created_at, u.name, u.email,
+                (SELECT count(*) FROM draft_comments c WHERE c.review_id = r.id) AS comment_count
+         FROM draft_reviews r
          JOIN users u ON u.id = r.reviewer_id
-         WHERE r.draft_id = ? ORDER BY r.created_at, r.rowid`,
+         JOIN draft_snapshots s ON s.id = r.snapshot_id
+         WHERE r.draft_id = ? ORDER BY s.created_at, r.rowid`,
       )
       .all(draftId)
       .map((r) => ({
@@ -125,13 +185,15 @@ export class ReviewStore {
         name: r.name as string,
         email: r.email as string,
         state: r.state as ReviewState,
-        createdAt: r.created_at as string,
+        sentAt: r.created_at as string,
+        commentCount: r.comment_count as number,
       }))
   }
 
   // -- invitations (callers pass the hash of the secret token)
   replacePending(input: {
     draftId: string
+    snapshotId: string
     invitedBy: string
     email: string
     tokenHash: string
@@ -145,12 +207,13 @@ export class ReviewStore {
       .run(input.draftId, input.email)
     this.db
       .prepare(
-        `INSERT INTO review_invitations (id, draft_id, invited_by, email, token_hash, created_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO review_invitations (id, draft_id, snapshot_id, invited_by, email, token_hash, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
         input.draftId,
+        input.snapshotId,
         input.invitedBy,
         input.email,
         input.tokenHash,
@@ -163,8 +226,9 @@ export class ReviewStore {
   findInvitation(tokenHash: string): ReviewInvitationRecord | undefined {
     const row = this.db
       .prepare(
-        `SELECT i.*, d.title AS draft_title, p.name AS profile_name, u.name AS inviter_name
+        `SELECT i.*, s.title AS draft_title, p.name AS profile_name, u.name AS inviter_name
          FROM review_invitations i
+         JOIN draft_snapshots s ON s.id = i.snapshot_id
          JOIN drafts d ON d.id = i.draft_id
          JOIN profiles p ON p.id = d.profile_id
          JOIN users u ON u.id = i.invited_by
@@ -175,6 +239,7 @@ export class ReviewStore {
       row && {
         id: row.id as string,
         draftId: row.draft_id as string,
+        snapshotId: row.snapshot_id as string,
         draftTitle: row.draft_title as string,
         profileName: row.profile_name as string,
         invitedBy: row.invited_by as string,

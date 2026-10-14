@@ -16,6 +16,7 @@ import {
   ReviewInvitationPreviewSchema,
   ReviewSummarySchema,
   type ReviewerRegisterInput,
+  type SendForReviewInput,
   HandleAvailabilitySchema,
   IdeaLinkSchema,
   IdeaNoteSchema,
@@ -193,10 +194,14 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // reviewers: people outside the profile asked to read one draft and comment on it
     listReviewers: (profileId: string, draftId: string) =>
       get(DraftReviewersSchema, 'GET', `${drafts(profileId)}/${draftId}/reviewers`),
-    inviteReviewer: (profileId: string, draftId: string, email: string) =>
-      act('POST', `${drafts(profileId)}/${draftId}/reviewers`, { email }),
-    revokeReviewer: (profileId: string, draftId: string, reviewId: string) =>
+    /** Freezes the draft as a snapshot and asks people (by email, or members) to review it. */
+    sendForReview: (profileId: string, draftId: string, input: SendForReviewInput) =>
+      act('POST', `${drafts(profileId)}/${draftId}/send-for-review`, input),
+    /** Stops accepting one review: it becomes read-only, and the comments stay. */
+    closeReview: (profileId: string, draftId: string, reviewId: string) =>
       act('DELETE', `${drafts(profileId)}/${draftId}/reviewers/${reviewId}`),
+    closeAllReviews: (profileId: string, draftId: string) =>
+      act('POST', `${drafts(profileId)}/${draftId}/reviewers/close`),
     withdrawReviewInvitation: (profileId: string, draftId: string, invitationId: string) =>
       act('DELETE', `${drafts(profileId)}/${draftId}/reviewers/invitations/${invitationId}`),
     previewReviewInvitation: (token: string) =>
@@ -213,7 +218,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     getReview: (id: string) => get(ReviewDetailSchema, 'GET', `/reviews/${id}`),
     commentOnReview: (id: string, input: CommentInput) =>
       get(CommentSchema, 'POST', `/reviews/${id}/comments`, input),
-    leaveReview: (id: string) => act('POST', `/reviews/${id}/leave`),
+    endReview: (id: string) => act('POST', `/reviews/${id}/end`),
     /** Chooses a username and becomes a full account. */
     startWriting: (handle: string) => get(UserSchema, 'POST', '/reviews/start-writing', { handle }),
     removeMember: (id: string, userId: string) =>

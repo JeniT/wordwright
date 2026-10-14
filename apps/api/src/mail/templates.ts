@@ -152,6 +152,50 @@ If you weren't expecting this, ignore this email and nothing will happen. The sa
   }
 }
 
+/** Asks a member of the profile to review a frozen copy of a draft. They sign in to read it. */
+export function reviewRequestEmail(input: {
+  inviterName: string
+  draftTitle: string
+  profileName: string
+  link: string
+}): Content {
+  const { inviterName, draftTitle, profileName, link } = input
+  const title = draftTitle.trim() || 'an untitled draft'
+  return {
+    subject: `${inviterName} asked you to review a draft`,
+    text: `${inviterName} would like your comments on "${title}", a draft in "${profileName}" on Wordwright.
+
+You'll read a copy of the draft as it is now, so later edits won't move under you, and only ${inviterName} will see what you write. Sign in to open it:
+
+${link}`,
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(profileName)} on Wordwright.</p>
+<p>You'll read a copy of the draft as it is now, so later edits won't move under you, and only ${escapeHtml(inviterName)} will see what you write.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Read the draft</a></p>`),
+  }
+}
+
+/** Tells the editor, once, that a reviewer has finished. No comment text: it is read in the app. */
+export function reviewFinishedEmail(input: {
+  reviewerName: string
+  draftTitle: string
+  commentCount: number
+  link: string
+}): Content {
+  const { reviewerName, draftTitle, commentCount, link } = input
+  const title = draftTitle.trim() || 'an untitled draft'
+  const said = `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`
+  return {
+    subject: `${reviewerName} has finished reviewing ${title}`,
+    text: `${reviewerName} has finished reviewing "${title}" and left ${said}.
+
+Read them on the draft:
+
+${link}`,
+    html: layout(`<p><strong>${escapeHtml(reviewerName)}</strong> has finished reviewing <strong>${escapeHtml(title)}</strong> and left ${said}.</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Read the comments</a></p>`),
+  }
+}
+
 /** Tells a member the draft's editor wants to hand the draft to them. The link opens the draft, where they answer. */
 export function handoverOfferEmail(input: {
   fromName: string

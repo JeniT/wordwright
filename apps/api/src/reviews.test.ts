@@ -26,7 +26,7 @@ describe('reviewers (#157)', () => {
   /** Invites `email`, and answers with the token from the email. */
   async function invite(email: string, by: TestClient = ada) {
     const before = ctx.mailer.outbox.length
-    const res = await by.post(`${draftUrl()}/reviewers`, { email })
+    const res = await by.post(`${draftUrl()}/send-for-review`, { emails: [email] })
     expect(res.status).toBe(202)
     await settle()
     return ctx.mailer.outbox.length > before ? lastReviewToken(ctx.mailer) : null
@@ -67,29 +67,43 @@ describe('reviewers (#157)', () => {
       expect(mail.text).toContain('/review-invite?token=')
     })
 
-    it('lets the editor and an owner invite, and nobody else', async () => {
-      ctx.store.drafts.setEditor(draftId, (await (await bob.get('/api/auth/me')).json()).id)
-      expect((await bob.post(`${draftUrl()}/reviewers`, { email: 'x@example.com' })).status).toBe(
-        202,
-      )
-      expect((await ada.post(`${draftUrl()}/reviewers`, { email: 'y@example.com' })).status).toBe(
-        202,
-      ) // owner
+    it('lets only the editor send; an owner can see who is reviewing; other members see nothing', async () => {
+      const adaId = (await (await ada.get('/api/auth/me')).json()).id
+      const bobId = (await (await bob.get('/api/auth/me')).json()).id
+      ctx.store.drafts.setEditor(draftId, bobId)
+      expect(
+        (await bob.post(`${draftUrl()}/send-for-review`, { emails: ['x@example.com'] })).status,
+      ).toBe(202)
+      // Ada is an owner but not the editor: she cannot send, though she can see and close reviews.
+      const refused = await ada.post(`${draftUrl()}/send-for-review`, { emails: ['y@example.com'] })
+      expect(refused.status).toBe(403)
+      expect((await refused.json()).error).toContain('Bob')
+      expect((await ada.get(`${draftUrl()}/reviewers`)).status).toBe(200)
       const cy = ctx.client()
       await register(cy, 'cy@example.com', 'Cy')
       await shareProfile(ctx, ada, profile, cy, 'cy@example.com')
-      expect((await cy.post(`${draftUrl()}/reviewers`, { email: 'z@example.com' })).status).toBe(
-        403,
-      )
+      expect(
+        (await cy.post(`${draftUrl()}/send-for-review`, { emails: ['z@example.com'] })).status,
+      ).toBe(403)
       expect((await cy.get(`${draftUrl()}/reviewers`)).status).toBe(403)
+      expect(adaId).toBeTruthy()
+    })
+
+    it('needs someone to ask', async () => {
+      expect(
+        (await ada.post(`${draftUrl()}/send-for-review`, { emails: [], memberIds: [] })).status,
+      ).toBe(400)
+      expect(
+        (await ada.post(`${draftUrl()}/send-for-review`, { emails: ['not an email'] })).status,
+      ).toBe(400)
     })
 
     it('needs a confirmed address, and is private to the profile', async () => {
       const dan = ctx.client()
       await register(dan, 'dan@example.com', 'Dan')
-      expect((await dan.post(`${draftUrl()}/reviewers`, { email: 'x@example.com' })).status).toBe(
-        404,
-      )
+      expect(
+        (await dan.post(`${draftUrl()}/send-for-review`, { emails: ['x@example.com'] })).status,
+      ).toBe(404)
       ctx.store.users.markEmailVerified((await (await bob.get('/api/auth/me')).json()).id)
       ctx.store.drafts.setEditor(draftId, (await (await bob.get('/api/auth/me')).json()).id)
       // Ada is verified; make a fresh unverified owner-editor to see the refusal.
@@ -97,15 +111,14 @@ describe('reviewers (#157)', () => {
       await register(eve, 'eve@example.com', 'Eve')
       const eveProfile = (await (await eve.get('/api/profiles')).json())[0].id
       const d = await createDraft(eve, eveProfile, { title: 'T', body: 'x' })
-      const res = await eve.post(`/api/profiles/${eveProfile}/drafts/${d.id}/reviewers`, {
-        email: 'x@example.com',
+      const res = await eve.post(`/api/profiles/${eveProfile}/drafts/${d.id}/send-for-review`, {
+        emails: ['x@example.com'],
       })
       expect(res.status).toBe(403)
     })
 
     it('answers the same, and sends nothing, for blocked, existing and over-limit addresses', async () => {
       const { rae } = await joinAsReviewer()
-      expect(await invite('rev@example.com')).toBeNull() // already reviewing
       expect(await invite('bob@example.com')).toBeNull() // already a member
       const adaId = (await (await ada.get('/api/auth/me')).json()).id
       ctx.store.invitations.addBlock('blocked@example.com', adaId)
@@ -160,8 +173,6 @@ describe('reviewers (#157)', () => {
       )
       const again = await invite('bob@example.com')
       expect(again).toBeNull()
-      const second = await invite('rev@example.com')
-      expect(second).toBeNull() // already reviewing
     })
 
     it('adds the review to an existing account signed in with that address, but not to another', async () => {
@@ -231,16 +242,19 @@ describe('reviewers (#157)', () => {
       expect(
         (await other.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'x' })).status,
       ).toBe(404)
-      expect((await other.post(`/api/reviews/${id}/leave`, {})).status).toBe(404)
+      expect((await other.post(`/api/reviews/${id}/end`, {})).status).toBe(404)
     })
 
-    it('lets the reviewer leave, and the editor revoke, keeping the comments and withdrawing the draft', async () => {
+    it('lets the reviewer end the review, and the editor close it: read-only, with the snapshot and the comments kept', async () => {
       const { rae } = await joinAsReviewer()
       const id = (await reviewsOf(rae))[0]!.id
       await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'A thought' })
-      expect((await rae.post(`/api/reviews/${id}/leave`, {})).status).toBe(204)
+      expect((await rae.post(`/api/reviews/${id}/end`, {})).status).toBe(204)
       const left = await (await rae.get(`/api/reviews/${id}`)).json()
-      expect(left).toMatchObject({ state: 'left', draft: null })
+      expect(left).toMatchObject({
+        state: 'ended',
+        draft: { title: 'Meanders', body: 'Rivers bend.' },
+      })
       expect(left.comments).toHaveLength(1)
       expect(
         (await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'more' })).status,
@@ -254,10 +268,7 @@ describe('reviewers (#157)', () => {
       expect((await ada.delete(`${draftUrl()}/reviewers/${rid}`)).status).toBe(204)
       expect(
         await (await ray.get(`/api/reviews/${(await reviewsOf(ray))[0]!.id}`)).json(),
-      ).toMatchObject({
-        state: 'revoked',
-        draft: null,
-      })
+      ).toMatchObject({ state: 'closed', draft: { title: 'Meanders' } })
       // The editor still sees both reviewers' comments, with names.
       expect(
         (await ada.get(`${draftUrl()}/comments`).then((r) => r.json())).map(
@@ -266,13 +277,15 @@ describe('reviewers (#157)', () => {
       ).toContain('Rae')
     })
 
-    it('can be invited again after leaving', async () => {
+    it('can be asked again after finishing: that is a new snapshot and a new review', async () => {
       const { rae } = await joinAsReviewer()
-      const id = (await reviewsOf(rae))[0]!.id
-      await rae.post(`/api/reviews/${id}/leave`, {})
+      const first = (await reviewsOf(rae))[0]!.id
+      await rae.post(`/api/reviews/${first}/end`, {})
       const token = (await invite('rev@example.com'))!
       expect((await rae.post('/api/review-invitations/accept', { token })).status).toBe(200)
-      expect((await reviewsOf(rae))[0]).toMatchObject({ id, state: 'open' })
+      const all = await reviewsOf(rae)
+      expect(all).toHaveLength(2)
+      expect(all.map((r) => r.state).sort()).toEqual(['ended', 'open'])
     })
   })
 
@@ -386,6 +399,153 @@ describe('reviewers (#157)', () => {
       }
       expect(JSON.stringify(allRows(ctx))).not.toContain('"Dee"')
       expect(JSON.stringify(allRows(ctx))).not.toContain('drop@example.com')
+    })
+  })
+
+  describe('snapshots and states (#158)', () => {
+    const ids = async () => ({
+      ada: (await (await ada.get('/api/auth/me')).json()).id as string,
+      bob: (await (await bob.get('/api/auth/me')).json()).id as string,
+    })
+    const save = (body: string, version: number) =>
+      ada.put(draftUrl(), { title: 'Meanders', body, version })
+
+    it('freezes the draft when it is sent: the reviewer reads that, not later edits', async () => {
+      const { rae } = await joinAsReviewer()
+      expect((await save('Totally rewritten.', 1)).status).toBe(200)
+      const id = (await reviewsOf(rae))[0]!.id
+      const opened = await (await rae.get(`/api/reviews/${id}`)).json()
+      expect(opened.draft).toEqual({ title: 'Meanders', body: 'Rivers bend.' })
+      // Comments are about the paragraph of the snapshot, and the editor sees them found by their text.
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'b1', text: 'Which rivers?' })
+      const seen = (await (await ada.get(`${draftUrl()}/comments`)).json()).find(
+        (c: { text: string }) => c.text === 'Which rivers?',
+      )
+      expect(seen).toMatchObject({ excerpt: 'Rivers bend.', reviewId: id })
+      expect(seen.hash).toEqual(expect.any(String))
+    })
+
+    it('makes a new snapshot each time the draft is sent', async () => {
+      await joinAsReviewer('one@example.com', 'One')
+      await save('Second version.', 1)
+      await invite('two@example.com')
+      const snapshots = ctx.db
+        .prepare('SELECT body FROM draft_snapshots ORDER BY created_at, rowid')
+        .all()
+      expect(snapshots.map((r) => r.body)).toEqual(['Rivers bend.', 'Second version.'])
+    })
+
+    it('can ask members of the profile, who are told by email and review the same snapshot', async () => {
+      const before = ctx.mailer.outbox.length
+      const { bob: bobId } = await ids()
+      const sent = await ada.post(`${draftUrl()}/send-for-review`, { memberIds: [bobId] })
+      expect(sent.status).toBe(202)
+      await settle()
+      expect(ctx.mailer.outbox.slice(before)).toMatchObject([
+        { to: 'bob@example.com', subject: 'Ada asked you to review a draft' },
+      ])
+      expect(ctx.mailer.outbox.at(-1)!.text).toMatch(/\/reviews\/[\w-]+/)
+      const mine = await reviewsOf(bob)
+      expect(mine).toMatchObject([{ draftTitle: 'Meanders', state: 'open' }])
+      await save('Edited later.', 1)
+      const opened = await (await bob.get(`/api/reviews/${mine[0]!.id}`)).json()
+      expect(opened.draft.body).toBe('Rivers bend.')
+      // The member's review comment stays out of their own live-draft list.
+      await bob.post(`/api/reviews/${mine[0]!.id}/comments`, {
+        block: 'whole',
+        text: 'In the review',
+      })
+      expect(await (await bob.get(`${draftUrl()}/comments`)).json()).toEqual([])
+    })
+
+    it('refuses to ask yourself or someone outside the profile as a member', async () => {
+      const { ada: adaId } = await ids()
+      expect((await ada.post(`${draftUrl()}/send-for-review`, { memberIds: [adaId] })).status).toBe(
+        400,
+      )
+      expect(
+        (await ada.post(`${draftUrl()}/send-for-review`, { memberIds: ['nobody'] })).status,
+      ).toBe(400)
+    })
+
+    it('emails the editor once when a reviewer ends, with the number of comments and no text', async () => {
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'Secret remark' })
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'b1', text: 'Another' })
+      const before = ctx.mailer.outbox.length
+      expect((await rae.post(`/api/reviews/${id}/end`, {})).status).toBe(204)
+      expect((await rae.post(`/api/reviews/${id}/end`, {})).status).toBe(204) // again: nothing more is sent
+      await settle()
+      const sent = ctx.mailer.outbox.slice(before)
+      expect(sent).toHaveLength(1)
+      expect(sent[0]).toMatchObject({
+        to: 'ada@example.com',
+        subject: 'Rae has finished reviewing Meanders',
+      })
+      expect(sent[0]!.text).toContain('has finished reviewing "Meanders" and left 2 comments')
+      expect(sent[0]!.text).not.toContain('Secret remark')
+      expect(sent[0]!.text).toContain(`/p/${profile}/drafts/${draftId}`)
+    })
+
+    it('sends nothing when a comment is made, and nothing when the editor closes a review', async () => {
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      const before = ctx.mailer.outbox.length
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'x' })
+      const listed = await (await ada.get(`${draftUrl()}/reviewers`)).json()
+      await ada.delete(`${draftUrl()}/reviewers/${listed.reviewers[0].id}`)
+      await settle()
+      expect(ctx.mailer.outbox).toHaveLength(before)
+    })
+
+    it('shows the editor each reviewer’s state and how many comments, as they are made', async () => {
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      const count = async () =>
+        (await (await ada.get(`${draftUrl()}/reviewers`)).json()).reviewers[0]
+      expect(await count()).toMatchObject({ name: 'Rae', state: 'open', commentCount: 0 })
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'One' })
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'Two' })
+      expect(await count()).toMatchObject({ state: 'open', commentCount: 2 })
+      await rae.post(`/api/reviews/${id}/end`, {})
+      expect(await count()).toMatchObject({ state: 'ended', commentCount: 2 })
+    })
+
+    it('lets the editor stop accepting all reviews at once, and no more comments get in', async () => {
+      const { rae } = await joinAsReviewer()
+      const { rae: ray } = await joinAsReviewer('ray@example.com', 'Ray')
+      await rae.post(`/api/reviews/${(await reviewsOf(rae))[0]!.id}/end`, {})
+      expect(await (await ada.post(`${draftUrl()}/reviewers/close`, {})).json()).toEqual({
+        closed: 1,
+      })
+      const id = (await reviewsOf(ray))[0]!.id
+      expect(await (await ray.get(`/api/reviews/${id}`)).json()).toMatchObject({ state: 'closed' })
+      expect(
+        (await ray.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'x' })).status,
+      ).toBe(409)
+      expect((await bob.post(`${draftUrl()}/reviewers/close`, {})).status).toBe(403)
+    })
+
+    it('keeps an ended review final: a second reviewer-side end does not reopen it', async () => {
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      await rae.post(`/api/reviews/${id}/end`, {})
+      await ada.delete(`${draftUrl()}/reviewers/${id}`)
+      expect(await (await rae.get(`/api/reviews/${id}`)).json()).toMatchObject({ state: 'ended' })
+    })
+
+    it('never sends a human comment to the AI: a critique carries only the title and body', async () => {
+      await saveKey(ada)
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      await bob.post(`${draftUrl()}/comments`, { block: 'whole', text: 'MEMBER-REMARK' })
+      await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'REVIEWER-REMARK' })
+      await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId })
+      const sent = JSON.stringify(ctx.llmCalls.at(-1)!.request)
+      expect(sent).toContain('Rivers bend.')
+      expect(sent).not.toContain('MEMBER-REMARK')
+      expect(sent).not.toContain('REVIEWER-REMARK')
     })
   })
 })

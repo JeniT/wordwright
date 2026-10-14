@@ -168,14 +168,18 @@ tests inject fakes and nothing hits the network.
   members read it, with a banner naming the editor, and see changes on reload or when the window regains focus.
   Notes stay open to every member. When
   the editor leaves, is removed or deletes their account, their drafts go to the profile's longest-standing owner.
-  **Reviewers** (#157): the editor or an owner can invite someone outside the profile to read one draft and comment
-  on it (`POST …/drafts/:draft/reviewers`, `{email}`; `GET` lists them, `DELETE …/reviewers/:review` ends a review).
-  They are emailed a 7-day link (`/review-invite`) bound to that address, with the same quiet `202`, throttles and
-  blocks as profile invitations. A new person makes a **reviewer-only account** with just a name and password: no
-  username and no profile, and every route outside `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation
-  and deleting the account) answers 404. Their page lists only their reviews; each opens the draft read-only with
-  their own comments, and they can add comments or stop reviewing. **Start writing** (`POST /reviews/start-writing`)
-  or an invitation to a profile makes it a full account.
+  **Reviews** (#157, #158): the editor **sends the draft for review** (`POST …/drafts/:draft/send-for-review`,
+  `{emails, memberIds}`), which freezes its title and body as a **snapshot**; everyone asked reviews that copy, not later
+  edits, and the dialog says so (sending again makes a new copy). People by email get a 7-day link (`/review-invite`)
+  bound to that address, with the same quiet `202`, throttles and blocks as profile invitations; a new person makes a
+  **reviewer-only account** with just a name and password (no username, no profile), and every route outside
+  `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. Members of the
+  profile can be asked directly and find the review on their home page. A review is _open_, _ended_ (the reviewer
+  pressed **End review**: the editor is emailed once, "X has finished reviewing Y and left N comments") or _closed_
+  (the editor or an owner stopped accepting, `DELETE …/reviewers/:review` or `POST …/reviewers/close`); the last two are
+  read-only but still show the snapshot and the reviewer's own comments. The editor sees each reviewer's state and comment
+  count (`GET …/reviewers`) and their comments, placed on the live draft where the passage still exists. **Start writing**
+  (`POST /reviews/start-writing`) or an invitation to a profile makes a reviewer-only account a full one.
   **Handover** (#155), on the draft page itself (`/api/profiles/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other
