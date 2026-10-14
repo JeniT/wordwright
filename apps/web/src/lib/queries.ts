@@ -16,6 +16,7 @@ export const queryKeys = {
     ['notes', profileId, ideaId ?? 'profile'] as const,
   sources: (profileId: string) => ['sources', profileId] as const,
   draft: (profileId: string, id: string) => ['draft', profileId, id] as const,
+  attention: (profileId: string) => ['attention', profileId] as const,
   reviews: () => ['reviews'] as const,
   review: (id: string) => ['review', id] as const,
   reviewers: (profileId: string, id: string) => ['draft-reviewers', profileId, id] as const,
@@ -29,6 +30,7 @@ export const queryKeys = {
 }
 
 export type QueryRoot =
+  | 'attention'
   | 'comments'
   | 'critique'
   | 'conversation'
@@ -157,7 +159,11 @@ export function useResolveComment(
   return useMutation({
     mutationFn: (v: { commentId: string; resolved: boolean }) =>
       api.setCommentResolved(profileId(), draftId(), v.commentId, v.resolved),
-    onSuccess: (all) => queryClient.setQueryData(queryKeys.comments(profileId(), draftId()), all),
+    onSuccess: (all) => {
+      queryClient.setQueryData(queryKeys.comments(profileId(), draftId()), all)
+      // Resolving can clear what the landing page and the reviews summary say is waiting.
+      void invalidateRoots(queryClient, 'attention', 'draft-reviewers')
+    },
     onError: (err, v) => onError(err, v.commentId),
   })
 }

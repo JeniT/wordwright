@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { ReviewState, ReviewSummary } from '@lfwa/core'
+import type { ReviewState, ReviewSummary, SnapshotReviews } from '@lfwa/core'
 import { nowIso } from './database'
 
 export interface ReviewRecord {
@@ -165,6 +165,29 @@ export class ReviewStore {
         inviterName: (r.inviter_name as string | null) ?? null,
         state: r.state as ReviewState,
         createdAt: r.created_at as string,
+      }))
+  }
+
+  /** Per snapshot with reviews: how many are reading, finished or closed, and the comments still unresolved. */
+  snapshotSummaries(draftId: string): SnapshotReviews[] {
+    return this.db
+      .prepare(
+        `SELECT s.id, s.created_at,
+                sum(r.state = 'open') AS open, sum(r.state = 'ended') AS ended, sum(r.state = 'closed') AS closed,
+                (SELECT count(*) FROM draft_comments c
+                 WHERE c.resolved_at IS NULL AND c.review_id IN (SELECT id FROM draft_reviews WHERE snapshot_id = s.id))
+                  AS unresolved
+         FROM draft_snapshots s JOIN draft_reviews r ON r.snapshot_id = s.id
+         WHERE s.draft_id = ? GROUP BY s.id ORDER BY s.created_at, s.rowid`,
+      )
+      .all(draftId)
+      .map((r) => ({
+        id: r.id as string,
+        sentAt: r.created_at as string,
+        open: r.open as number,
+        ended: r.ended as number,
+        closed: r.closed as number,
+        unresolved: r.unresolved as number,
       }))
   }
 

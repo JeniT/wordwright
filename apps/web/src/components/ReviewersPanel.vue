@@ -132,6 +132,18 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
       <p v-if="problem" role="alert" class="mb-3 text-danger">{{ problem }}</p>
 
       <QueryState :query="list" what="who is reviewing">
+        <ul
+          v-if="list.data.value?.snapshots.length"
+          class="mb-3 space-y-1 text-ink-soft"
+          aria-label="Copies sent for review"
+        >
+          <li v-for="s in list.data.value.snapshots" :key="s.id" data-testid="snapshot-line">
+            Copy sent {{ when(s.sentAt) }}: {{ s.open }} reading, {{ s.ended }} finished<template
+              v-if="s.closed"
+              >, {{ s.closed }} closed</template
+            >, {{ s.unresolved }} {{ s.unresolved === 1 ? 'comment' : 'comments' }} to answer
+          </li>
+        </ul>
         <ul v-if="list.data.value?.reviewers.length" class="mb-3 space-y-2" aria-label="Reviewers">
           <li
             v-for="r in list.data.value.reviewers"

@@ -1239,6 +1239,18 @@ export const ReviewerRegisterInputSchema = z.object({
 })
 export type ReviewerRegisterInput = z.infer<typeof ReviewerRegisterInputSchema>
 
+/** How one snapshot's reviews stand, for the editor: who is still reading, who has finished, and what is unanswered. */
+export const SnapshotReviewsSchema = z.object({
+  id: z.string(),
+  sentAt: z.string(),
+  open: z.number().int(),
+  ended: z.number().int(),
+  closed: z.number().int(),
+  /** Reviewers' comments on this snapshot that the editor has not resolved. */
+  unresolved: z.number().int(),
+})
+export type SnapshotReviews = z.infer<typeof SnapshotReviewsSchema>
+
 /** Who has been invited to review a draft, as its editor or an owner sees it. */
 export const DraftReviewersSchema = z.object({
   reviewers: z.array(
@@ -1254,8 +1266,33 @@ export const DraftReviewersSchema = z.object({
     }),
   ),
   pending: z.array(z.object({ id: z.string(), email: z.string(), expiresAt: z.string() })),
+  /** Per snapshot sent, oldest first. */
+  snapshots: z.array(SnapshotReviewsSchema),
 })
 export type DraftReviewers = z.infer<typeof DraftReviewersSchema>
+
+/**
+ * What is waiting on this person in a profile, for its landing page: drafts offered to them, their own offers still
+ * open, and, for drafts they edit, how the reviews they sent stand. Nothing here is a count shown anywhere else.
+ */
+export const ProfileAttentionSchema = z.object({
+  offered: z.array(
+    z.object({ draftId: z.string(), title: z.string(), fromName: z.string().nullable() }),
+  ),
+  waiting: z.array(
+    z.object({ draftId: z.string(), title: z.string(), toName: z.string().nullable() }),
+  ),
+  reviews: z.array(
+    z.object({
+      draftId: z.string(),
+      title: z.string(),
+      snapshots: z.array(SnapshotReviewsSchema),
+      /** Every review of a snapshot is over, at least one was finished, and comments are still unresolved. */
+      needsAttention: z.boolean(),
+    }),
+  ),
+})
+export type ProfileAttention = z.infer<typeof ProfileAttentionSchema>
 
 // ---- Bring-your-own LLM credentials ------------------------------------
 

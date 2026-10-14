@@ -29,6 +29,7 @@ import type { IdeaLinkService } from '../services/idea-links'
 import { handDraftsToOwner } from '../services/draft-editor'
 import { profileInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
+import { profileAttention } from '../services/attention'
 import type { HandoverService } from '../services/handover'
 import type { ReviewService } from '../services/reviews'
 import type { InvitationService } from '../services/invitations'
@@ -89,6 +90,11 @@ export function profileRoutes({
         const id = store.profiles.create(name, user.id, siteUrl ?? null)
         return c.json(store.profiles.get(id, user.id), 201)
       })
+
+      // What is waiting on this person, for the landing page.
+      .get('/:profileId/attention', member, (c) =>
+        c.json(profileAttention(store, param(c, 'profileId'), c.get('user').id)),
+      )
 
       .get('/:profileId', member, (c) =>
         c.json(store.profiles.get(param(c, 'profileId'), c.get('user').id)),

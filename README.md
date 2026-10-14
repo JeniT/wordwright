@@ -180,6 +180,10 @@ tests inject fakes and nothing hits the network.
   read-only but still show the snapshot and the reviewer's own comments. The editor sees each reviewer's state and comment
   count (`GET …/reviewers`) and their comments, placed on the live draft where the passage still exists. **Start writing**
   (`POST /reviews/start-writing`) or an invitation to a profile makes a reviewer-only account a full one.
+  **What is waiting on you** (#159): `GET /api/profiles/:id/attention` feeds a block at the top of the profile's landing
+  page: a draft offered to you (Accept / Decline there), your own offer still waiting (Withdraw), and for drafts you edit
+  how each copy sent for review stands, flagged when every review is over, some finished and comments are unresolved.
+  Nothing is shown when nothing waits, and nothing is emailed or counted elsewhere.
   **Handover** (#155), on the draft page itself (`/api/profiles/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other

@@ -37,7 +37,7 @@ const reassignTarget = ref('')
 /** Every action answers with the handover as it now is; a change of editor also changes what the page may do. */
 function settle(state: HandoverState) {
   queryClient.setQueryData(queryKeys.handover(props.profileId, props.draftId), state)
-  void invalidateRoots(queryClient, 'draft', 'critique')
+  void invalidateRoots(queryClient, 'draft', 'critique', 'attention')
 }
 const run = <A,>(fn: (arg: A) => Promise<HandoverState>) =>
   useMutation({ mutationFn: fn, onSuccess: settle })

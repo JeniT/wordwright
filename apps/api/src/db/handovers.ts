@@ -115,6 +115,31 @@ export class HandoverStore {
     close('withdrawn', "kind = 'ask' AND actor_id = ?")
   }
 
+  /** Open offers in the profile that are made to this person, or (`by`) that this person has made. */
+  openOffers(profileId: string, userId: string, side: 'to' | 'by') {
+    const mine = side === 'to' ? 'h.member_id' : 'h.actor_id'
+    const other = side === 'to' ? 'h.actor_id' : 'h.member_id'
+    const otherName =
+      side === 'to' ? 'coalesce(a.name, h.kept_actor_name)' : 'coalesce(m.name, h.kept_member_name)'
+    return this.db
+      .prepare(
+        `SELECT h.draft_id, d.title, ${otherName} AS other_name
+         FROM draft_handovers h
+         JOIN drafts d ON d.id = h.draft_id
+         LEFT JOIN users a ON a.id = h.actor_id
+         LEFT JOIN users m ON m.id = h.member_id
+         WHERE d.profile_id = ? AND h.kind = 'offer' AND h.status = 'pending' AND ${mine} = ?
+           AND ${other} IS NOT NULL
+         ORDER BY h.created_at, h.rowid`,
+      )
+      .all(profileId, userId)
+      .map((r) => ({
+        draftId: r.draft_id as string,
+        title: r.title as string,
+        otherName: (r.other_name as string | null) ?? null,
+      }))
+  }
+
   /** What the page shows: the open offer, the open asks and the history, with names as they are now. */
   state(draftId: string, editorId: string, editorName: string): HandoverState {
     const rows = this.db

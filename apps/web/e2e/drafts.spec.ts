@@ -761,6 +761,111 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   expect(raeProblems, "Rae's browser problems").toEqual([])
 })
 
+test('the profile’s landing page says what is waiting: an offer, a wait, and finished reviews', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  await openFirstProfile(page)
+  const profileUrl = page.url()
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  const draftUrl = page.url()
+  const bob = await joinFrom(page, browser, 'Bob')
+  const bobProblems = watchForProblems(bob)
+
+  // Nothing is waiting yet.
+  await bob.goto(profileUrl)
+  await expect(bob.getByRole('heading', { name: /writing$/ })).toBeVisible()
+  await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
+
+  // Ada offers the draft to Bob: she is told she is waiting, he is told it was offered.
+  await page.goto(draftUrl)
+  await page.getByText('Hand this draft to someone').click()
+  await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
+  await page.getByRole('button', { name: 'Offer the draft' }).click()
+  await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
+  await page.goto(profileUrl)
+  await expect(page.getByRole('region', { name: 'Waiting for you' })).toContainText(
+    'Waiting for Bob to answer your offer of Meanders',
+  )
+  await bob.goto(profileUrl)
+  const offered = bob.getByRole('region', { name: 'Waiting for you' })
+  await expect(offered).toContainText('Ada has offered you the draft Meanders')
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
+
+  // Ada withdraws from the landing page, and then offers again; Bob accepts there too.
+  await page.getByRole('button', { name: 'Withdraw the offer of Meanders' }).click()
+  await expect(page.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
+  await bob.reload()
+  await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
+  await page.goto(draftUrl)
+  await page.getByText('Hand this draft to someone').click()
+  await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
+  await page.getByRole('button', { name: 'Offer the draft' }).click()
+  await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
+  await bob.reload()
+  await bob.getByRole('button', { name: 'Accept Meanders' }).click()
+  await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
+
+  // Bob, now the editor, sends it for review; the reviewer finishes with a comment.
+  const reviewerEmail = `rae-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await bob.goto(draftUrl)
+  await bob.getByText('Send this draft for review').click()
+  await bob.getByLabel('Email addresses').fill(reviewerEmail)
+  await bob.getByRole('button', { name: 'Send for review' }).click()
+  await expect(bob.getByText(/Sent a snapshot of the draft/)).toBeVisible()
+  const link = linkIn(
+    await waitForEmail(reviewerEmail, 'Bob asked you to review a draft'),
+    '/review-invite',
+  )
+  const rae = await (await browser.newContext()).newPage()
+  await rae.goto(link!)
+  await rae.getByLabel('What should we call you?').fill('Rae')
+  await rae.getByLabel('Choose a password').fill(PASSWORD)
+  await rae.getByRole('button', { name: 'Read the draft' }).click()
+  await rae.getByRole('link', { name: 'Meanders' }).click()
+  await rae.getByRole('textbox', { name: 'Your comment' }).fill('Which rivers?')
+  await rae.getByRole('button', { name: 'Add comment' }).click()
+  await expect(rae.getByText('Which rivers?')).toBeVisible()
+
+  // While Rae is reading, Bob's landing page lists the copy; once she ends, it flags the draft.
+  await bob.goto(profileUrl)
+  const reviews = bob.getByRole('list', { name: 'Drafts sent for review' })
+  await expect(reviews).toContainText('1 reading, 1 comment to answer')
+  await expect(reviews).not.toContainText('Reviews finished')
+  await rae.getByRole('button', { name: 'End review' }).click()
+  await expect(rae.getByTestId('review-ended')).toBeVisible()
+  await bob.reload()
+  await expect(reviews).toContainText('Reviews finished, comments to answer')
+  await expect(reviews).toContainText('1 finished, 1 comment to answer')
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
+
+  // The draft page says the same per copy; resolving the comment clears the flag.
+  await bob.goto(draftUrl)
+  await bob.getByText(/Send this draft for review/).click()
+  await expect(bob.getByTestId('snapshot-line')).toContainText('0 reading, 1 finished')
+  await bob.getByRole('tab', { name: /^Comments/ }).click()
+  await bob
+    .getByRole('switch', { name: /Resolved/ })
+    .first()
+    .click()
+  await bob.goto(profileUrl)
+  await expect(bob.getByRole('list', { name: 'Drafts sent for review' })).not.toContainText(
+    'Reviews finished',
+  )
+  expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
 test('declining and blocking an inviter from the email, then lifting the block', async ({
   page,
   browser,

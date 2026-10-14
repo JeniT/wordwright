@@ -144,6 +144,7 @@ export class ReviewService {
     this.requireManager(draft, userId)
     const { reviews } = this.d.store
     return {
+      snapshots: reviews.snapshotSummaries(draft.id),
       reviewers: reviews.listForDraft(draft.id),
       pending: reviews.pendingForDraft(draft.id, this.now()),
     }

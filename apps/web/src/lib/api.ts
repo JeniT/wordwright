@@ -11,6 +11,7 @@ import {
   DraftSchema,
   HandoverStateSchema,
   DraftReviewersSchema,
+  ProfileAttentionSchema,
   ReviewAcceptedSchema,
   ReviewDetailSchema,
   ReviewInvitationPreviewSchema,
@@ -191,6 +192,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     unblockInviter: (senderId: string) => act('DELETE', `/invitations/blocks/senders/${senderId}`),
     acceptInvitation: (token: string) =>
       get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
+    /** What is waiting on this person in the profile: offers, and the reviews of drafts they edit. */
+    getProfileAttention: (profileId: string) =>
+      get(ProfileAttentionSchema, 'GET', `/profiles/${profileId}/attention`),
     // reviewers: people outside the profile asked to read one draft and comment on it
     listReviewers: (profileId: string, draftId: string) =>
       get(DraftReviewersSchema, 'GET', `${drafts(profileId)}/${draftId}/reviewers`),

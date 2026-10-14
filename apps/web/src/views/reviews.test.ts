@@ -352,6 +352,16 @@ describe('asking someone to review a draft', () => {
             },
           ],
           pending: [{ id: 'i9', email: 'later@example.com', expiresAt: 'x' }],
+          snapshots: [
+            {
+              id: 's1',
+              sentAt: '2026-02-01T00:00:00Z',
+              open: 1,
+              ended: 2,
+              closed: 0,
+              unresolved: 3,
+            },
+          ],
         }),
       ),
       http.post('*/api/profiles/p1/drafts/d1/send-for-review', async ({ request }) => {
@@ -383,6 +393,9 @@ describe('asking someone to review a draft', () => {
     )
     expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
       'Sending again makes a new copy',
+    )
+    expect(await screen.findByTestId('snapshot-line')).toHaveTextContent(
+      '1 reading, 2 finished, 3 comments to answer',
     )
     expect(screen.getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
     await fireEvent.update(

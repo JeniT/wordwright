@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import LandingSection from '../components/LandingSection.vue'
+import ProfileAttention from '../components/ProfileAttention.vue'
 import ProfileDescription from '../components/ProfileDescription.vue'
 import ProfileGate from '../components/ProfileGate.vue'
 import ProfileImage from '../components/ProfileImage.vue'
@@ -33,6 +34,8 @@ const ideas = useIdeas(() => props.profileId)
         </p>
       </div>
     </div>
+
+    <ProfileAttention :profile-id="profileId" />
 
     <ProfileDescription :profile="profile" />
 
