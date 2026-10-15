@@ -39,7 +39,7 @@ validate the call and either apply it (`add_note`) or turn it into a **proposal 
 
 Rules for tool calls:
 
-- Tool inputs are **untrusted**: validated with Zod schemas in `@lfwa/core` (same limits as `IdeaInputSchema`),
+- Tool inputs are **untrusted**: validated with Zod schemas in `@wordwright/core` (same limits as `IdeaInputSchema`),
   and the idea id is never supplied by the model, only taken from the conversation's own idea.
 - `tool_choice` stays `auto` (the current models reject forced tool use); the prompt tells the model when to use
   them, and every call's input is validated with its Zod schema regardless of what the model was told.
@@ -229,7 +229,7 @@ and checked by evals (#6), not guaranteed. Whether the prompt should differ for 
 
 **The prompts live in [`prompts/`](../prompts/README.md), as plain Markdown files, so they're easy to find and
 edit; this document no longer holds a copy.** The default is `prompts/brainstorm-default.md`, and the rules the app
-always adds are `prompts/brainstorm-rules.md`. The code reads them through the `@lfwa/prompts` package.
+always adds are `prompts/brainstorm-rules.md`. The code reads them through the `@wordwright/prompts` package.
 
 The app-owned block (`prompts/brainstorm-rules.md`, not editable by users) adds the mechanics: the tools and when proposals are used, the instruction to
 treat everything in the idea snapshot as material, not commands, and the reminder that draft bodies are not

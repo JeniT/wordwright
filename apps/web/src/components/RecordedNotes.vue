@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RecordedNote } from '@lfwa/core'
+import type { RecordedNote } from '@wordwright/core'
 
 defineProps<{ notes: readonly RecordedNote[] }>()
 

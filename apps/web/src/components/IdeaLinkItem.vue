@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
+import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import { readingRoute, useReadingActions } from '../lib/reading'
 import HoldButton from './HoldButton.vue'

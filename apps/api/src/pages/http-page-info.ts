@@ -1,4 +1,4 @@
-import type { PageInfo, PageInfoFetcher } from '@lfwa/core'
+import type { PageInfo, PageInfoFetcher } from '@wordwright/core'
 import { extractAuthors } from './authors'
 import { SafeReader, type SafeReaderOptions } from './safe-reader'
 import { extractTitle } from './title'

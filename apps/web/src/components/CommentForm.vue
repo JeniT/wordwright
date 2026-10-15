@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
-import { COMMENT_MAX_LENGTH, WHOLE_DRAFT, excerptOf, type CommentInput } from '@lfwa/core'
+import { COMMENT_MAX_LENGTH, WHOLE_DRAFT, excerptOf, type CommentInput } from '@wordwright/core'
 import SaveStatus from './SaveStatus.vue'
 
 /**

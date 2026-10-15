@@ -1,4 +1,4 @@
-import type { Draft } from '@lfwa/core'
+import type { Draft } from '@wordwright/core'
 import type { Store } from '../db/store'
 import { fail } from '../errors'
 

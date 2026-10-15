@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { COMMENT_MAX_LENGTH, blockHash } from '@lfwa/core'
+import { COMMENT_MAX_LENGTH, blockHash } from '@wordwright/core'
 import {
   PASSWORD,
   allRows,

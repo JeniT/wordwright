@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import type { Idea } from '@lfwa/core'
+import type { Idea } from '@wordwright/core'
 import { useIdea } from '../lib/queries'
 
 /** Loading and error states for any page about one idea; the page itself is the slot. */

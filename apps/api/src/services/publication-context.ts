@@ -1,4 +1,4 @@
-import type { Publication } from '@lfwa/core'
+import type { Publication } from '@wordwright/core'
 
 /** Keeps text we insert from closing or imitating the tags it sits in. */
 export const escapeTags = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')

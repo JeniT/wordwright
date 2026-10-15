@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
-import { MAX_NOTE_TAGS } from '@lfwa/core'
+import { MAX_NOTE_TAGS } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import Icon from './Icon.vue'
 import TagEntry from './TagEntry.vue'

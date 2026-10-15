@@ -53,7 +53,7 @@ describe('purging unconfirmed, unused accounts', () => {
 
     const abandoned = ctx.client()
     const user = await register(abandoned, 'typo@example.com', 'Typo')
-    const sessionToken = abandoned.cookies.get('lfwa_session')!
+    const sessionToken = abandoned.cookies.get('wordwright_session')!
     const verifyToken = lastVerificationToken(ctx.mailer)
     const theirPublication = (await (await abandoned.get('/api/publications')).json())[0].id
 

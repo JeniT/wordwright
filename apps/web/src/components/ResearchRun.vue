@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, useId } from 'vue'
-import type { ResearchItem, ResearchRun } from '@lfwa/core'
+import type { ResearchItem, ResearchRun } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 import HoldButton from './HoldButton.vue'

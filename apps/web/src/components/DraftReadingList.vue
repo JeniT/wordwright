@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
-import type { IdeaLink } from '@lfwa/core'
+import type { IdeaLink } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 
 const props = defineProps<{

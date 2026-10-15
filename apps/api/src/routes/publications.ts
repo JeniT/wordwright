@@ -9,7 +9,7 @@ import {
   PublicationDescriptionInputSchema,
   PublicationInputSchema,
   PublicationUpdateSchema,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { requireMember, type AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import { validateJson } from '../validate'

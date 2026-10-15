@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import type { Editor } from '@tiptap/vue-3'
-import { ONE_PARAGRAPH } from '@lfwa/core'
+import { ONE_PARAGRAPH } from '@wordwright/core'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer({ warm: ['draft'] })

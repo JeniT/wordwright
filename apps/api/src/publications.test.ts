@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { FakeFeedFetcher, MAX_IMAGE_BYTES, MAX_OWNED_PUBLICATIONS } from '@lfwa/core'
+import { FakeFeedFetcher, MAX_IMAGE_BYTES, MAX_OWNED_PUBLICATIONS } from '@wordwright/core'
 import { exampleFeeds } from './feeds/factory'
 import {
   PASSWORD,

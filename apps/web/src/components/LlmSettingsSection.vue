@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@lfwa/core'
+import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { api } from '../lib/api'

@@ -2,7 +2,7 @@ import { CASES } from './cases'
 import { buildAdapter, buildResearch, choiceFromEnv } from './factory'
 import { brainstormRequest, critiqueRequest, rephraseRequest, researchRequest } from './request'
 import { renderReply } from './render'
-import type { LLMChatEvent } from '@lfwa/core'
+import type { LLMChatEvent } from '@wordwright/core'
 
 /**
  * A promptfoo provider that calls our own `LLMProvider` port, so the cases test the adapter and the way the

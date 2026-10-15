@@ -8,7 +8,7 @@ import {
   wordingProblem,
   type RephraseRequest,
   type RephraseSize,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { fail } from '../errors'
 import { escapeTags, publicationDescriptionBlock } from './publication-context'
 

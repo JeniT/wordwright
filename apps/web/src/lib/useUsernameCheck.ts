@@ -1,4 +1,4 @@
-import { UsernameInputSchema } from '@lfwa/core'
+import { UsernameInputSchema } from '@wordwright/core'
 import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import { api } from './api'
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RecentPost } from '@lfwa/core'
+import type { RecentPost } from '@wordwright/core'
 import type { PostDecision } from '../lib/recent-posts'
 import Icon from './Icon.vue'
 import PublicationImage from './PublicationImage.vue'

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { LLMAuthError, REPHRASE, type RephraseRequest } from '@lfwa/core'
-import { OPTIONS_PROMPT } from '@lfwa/prompts'
+import { LLMAuthError, REPHRASE, type RephraseRequest } from '@wordwright/core'
+import { OPTIONS_PROMPT } from '@wordwright/prompts'
 import { formatRephraseMessage, parseOptions } from './services/rephrase'
 import {
   allRows,

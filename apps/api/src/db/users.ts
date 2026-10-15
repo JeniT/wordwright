@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import { firstAvailable, suggestHandle, type User } from '@lfwa/core'
+import { firstAvailable, suggestHandle, type User } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface UserRecord {

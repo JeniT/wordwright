@@ -1,4 +1,4 @@
-import type { FeedFetcher, FetchedIcon } from '@lfwa/core'
+import type { FeedFetcher, FetchedIcon } from '@wordwright/core'
 
 /** A slow site must not hold up saving a publication; the icon is a nicety. */
 const SITE_ICON_TIMEOUT_MS = 5000

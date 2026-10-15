@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PUBLICATION_DESCRIPTION_MAX, type Publication } from '@lfwa/core'
+import { PUBLICATION_DESCRIPTION_MAX, type Publication } from '@wordwright/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api } from '../lib/api'

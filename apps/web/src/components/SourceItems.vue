@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { Source } from '@lfwa/core'
+import type { Source } from '@wordwright/core'
 import { ref, watch } from 'vue'
 import { api } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'

@@ -7,7 +7,7 @@ import {
   type LLMFactory,
   type LLMRequest,
   type ResearchFactory,
-} from '@lfwa/core'
+} from '@wordwright/core'
 
 /** Builds a real client from a user's own credentials. */
 export const realLlmFactory: LLMFactory = ({ provider, apiKey, model }) => {

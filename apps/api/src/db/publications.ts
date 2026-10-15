@@ -7,7 +7,7 @@ import {
   type Publication,
   type PublicationMember,
   type PublicationRole,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface PublicationImage {

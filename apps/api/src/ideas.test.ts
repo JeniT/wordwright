@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_IDEA_LINKS } from '@lfwa/core'
+import { MAX_IDEA_LINKS } from '@wordwright/core'
 import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('ideas', () => {

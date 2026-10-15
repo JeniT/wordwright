@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
-import { RECENT_DAYS_DEFAULT } from '@lfwa/core'
+import { RECENT_DAYS_DEFAULT } from '@wordwright/core'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Idea } from '@lfwa/core'
+import type { Idea } from '@wordwright/core'
 import { formatSnapshot } from './services/brainstorm'
 import { formatDraftForCritique } from './services/critique'
 import { formatResearchBrief } from './services/research'

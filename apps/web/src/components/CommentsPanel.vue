@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { WHOLE_DRAFT, type CommentInput, type CritiqueRound, type DraftComment } from '@lfwa/core'
+import {
+  WHOLE_DRAFT,
+  type CommentInput,
+  type CritiqueRound,
+  type DraftComment,
+} from '@wordwright/core'
 import { ApiError, errorMessage } from '../lib/api'
 import type { QueryStatus } from '../lib/queries'
 import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'

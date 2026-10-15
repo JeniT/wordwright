@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { IdeaLink, IdeaNote } from '@lfwa/core'
+import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { noteMarkdown } from './note-insert'
 
 const note = (extra: Partial<IdeaNote> = {}): IdeaNote => ({

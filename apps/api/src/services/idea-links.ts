@@ -4,7 +4,7 @@ import {
   type IdeaLink,
   type IdeaLinkInput,
   type PageInfoFetcher,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { hereOf, ownerOf, subjectOf, touch, type ListScope } from './scope'

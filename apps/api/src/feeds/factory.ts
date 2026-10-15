@@ -1,4 +1,4 @@
-import { FakeFeedFetcher, type FeedFetcher } from '@lfwa/core'
+import { FakeFeedFetcher, type FeedFetcher } from '@wordwright/core'
 import type { Config } from '../config'
 import { HttpFeedFetcher } from './http-feed-fetcher'
 

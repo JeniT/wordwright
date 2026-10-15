@@ -85,7 +85,7 @@ describe('registration', () => {
       password: PASSWORD,
       handle: 'aaa',
     })
-    const cookie = res.setCookies.find((c) => c.startsWith('lfwa_session='))!
+    const cookie = res.setCookies.find((c) => c.startsWith('wordwright_session='))!
     expect(cookie).toMatch(/HttpOnly/i)
     expect(cookie).toMatch(/SameSite=Lax/i)
   })
@@ -188,13 +188,13 @@ describe('login and sessions', () => {
     const { client } = setup()
     const c = client()
     await register(c)
-    const stolen = c.cookies.get('lfwa_session')!
+    const stolen = c.cookies.get('wordwright_session')!
     expect((await c.post('/api/auth/logout')).status).toBe(204)
     expect((await c.get('/api/auth/me')).status).toBe(401)
 
     // The old token is dead server-side too, not just removed from the browser.
     const other = client()
-    other.cookies.set('lfwa_session', stolen)
+    other.cookies.set('wordwright_session', stolen)
     expect((await other.get('/api/auth/me')).status).toBe(401)
   })
 

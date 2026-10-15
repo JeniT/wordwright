@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { Invitation, InvitationBlocks } from '@lfwa/core'
+import type { Invitation, InvitationBlocks } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface InvitationRecord {

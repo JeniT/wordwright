@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
-import type { ReviewState } from '@lfwa/core'
+import type { ReviewState } from '@wordwright/core'
 import QueryState from '../components/QueryState.vue'
 import { api } from '../lib/api'
 import { queryKeys } from '../lib/queries'

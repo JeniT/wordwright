@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { LLMChatRequest } from '@lfwa/core'
+import type { LLMChatRequest } from '@wordwright/core'
 import { fakeLlmFactory, realLlmFactory } from './llm-factory'
 
 describe('LLM factories', () => {

@@ -1,4 +1,4 @@
-import { WHOLE_DRAFT, locateBlock } from '@lfwa/core'
+import { WHOLE_DRAFT, locateBlock } from '@wordwright/core'
 import { Extension } from '@tiptap/vue-3'
 import type { Node as ProseNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'

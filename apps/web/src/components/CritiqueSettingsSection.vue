@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CRITIQUE_ROUNDS_DEFAULT, CRITIQUE_ROUNDS_MAX, CRITIQUE_ROUNDS_MIN } from '@lfwa/core'
+import { CRITIQUE_ROUNDS_DEFAULT, CRITIQUE_ROUNDS_MAX, CRITIQUE_ROUNDS_MIN } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api, errorMessage } from '../lib/api'
 import SaveStatus from './SaveStatus.vue'

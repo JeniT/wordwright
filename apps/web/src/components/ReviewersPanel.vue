@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
-import type { ReviewState } from '@lfwa/core'
+import type { ReviewState } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { queryKeys } from '../lib/queries'
 import { usePublication } from '../lib/usePublications'

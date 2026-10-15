@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '@lfwa/core'
+import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '@wordwright/core'
 import { ref, useId } from 'vue'
 
 defineProps<{ label: string; hint?: string }>()

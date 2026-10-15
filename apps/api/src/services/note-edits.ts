@@ -1,4 +1,4 @@
-import { MAX_IDEA_NOTES, MAX_NOTE_TAGS, NOTE_TEXT_MAX, type IdeaNote } from '@lfwa/core'
+import { MAX_IDEA_NOTES, MAX_NOTE_TAGS, NOTE_TEXT_MAX, type IdeaNote } from '@wordwright/core'
 import type { Store } from '../db/store'
 import { ownerOf, subjectOf, touch, type ListScope } from './scope'
 import { fail } from '../errors'

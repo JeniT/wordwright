@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { ReadingCheck, ResearchItem, ResearchRun } from '@lfwa/core'
+import type { ReadingCheck, ResearchItem, ResearchRun } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface NewResearchItem {

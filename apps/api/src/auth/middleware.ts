@@ -1,12 +1,12 @@
 import type { MiddlewareHandler } from 'hono'
 import { getCookie } from 'hono/cookie'
-import type { PublicationRole } from '@lfwa/core'
+import type { PublicationRole } from '@wordwright/core'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import type { AccountService } from '../services/accounts'
 import { fail } from '../errors'
 
-export const SESSION_COOKIE = 'lfwa_session'
+export const SESSION_COOKIE = 'wordwright_session'
 
 export type AppEnv = {
   Variables: {

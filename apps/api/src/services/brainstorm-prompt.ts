@@ -1,5 +1,5 @@
-import type { BrainstormPrompt } from '@lfwa/core'
-import { DEFAULT_BRAINSTORM_PROMPT } from '@lfwa/prompts'
+import type { BrainstormPrompt } from '@wordwright/core'
+import { DEFAULT_BRAINSTORM_PROMPT } from '@wordwright/prompts'
 import type { Store } from '../db/store'
 
 /**

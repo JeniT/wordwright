@@ -1,4 +1,4 @@
-import type { Idea } from '@lfwa/core'
+import type { Idea } from '@wordwright/core'
 
 /**
  * What the brainstorm snapshot is built from (see `formatSnapshot`); the critique and research cases take the publication's

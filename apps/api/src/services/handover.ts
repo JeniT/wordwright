@@ -1,4 +1,4 @@
-import type { Draft, HandoverState } from '@lfwa/core'
+import type { Draft, HandoverState } from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'

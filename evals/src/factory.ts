@@ -4,7 +4,7 @@ import {
   type LLMProvider,
   type LLMProviderId,
   type ResearchProvider,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import {
   fakeLlmFactory,
   fakeResearchFactory,

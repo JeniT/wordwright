@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
 import { RouterLink } from 'vue-router'
-import { RESEARCH_AREAS_MAX } from '@lfwa/core'
+import { RESEARCH_AREAS_MAX } from '@wordwright/core'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 import AiButton from './AiButton.vue'

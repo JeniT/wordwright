@@ -2,7 +2,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import type { ConversationMessage, Proposal, RecordedNote, SendMessageInput } from '@lfwa/core'
+import type {
+  ConversationMessage,
+  Proposal,
+  RecordedNote,
+  SendMessageInput,
+} from '@wordwright/core'
 import AiButton from '../components/AiButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Markdown from '../components/Markdown.vue'

@@ -7,7 +7,7 @@ import type {
   FetchedIcon,
   IconType,
   Source,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { nowIso } from './database'
 import { renumber, reorder } from './ordering'
 

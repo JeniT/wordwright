@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query'
-import type { CommentInput, IdeaNote } from '@lfwa/core'
+import type { CommentInput, IdeaNote } from '@wordwright/core'
 import { computed, type Ref } from 'vue'
 import { api } from './api'
 

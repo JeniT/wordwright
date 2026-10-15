@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { ReviewState, ReviewSummary, SnapshotReviews } from '@lfwa/core'
+import type { ReviewState, ReviewSummary, SnapshotReviews } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface ReviewRecord {

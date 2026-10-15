@@ -21,7 +21,7 @@ import {
   wordingProblem,
   type IdeaLink,
   type IdeaNote,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import {

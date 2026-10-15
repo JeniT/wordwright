@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_AUTHORS } from '@lfwa/core'
+import { MAX_AUTHORS } from '@wordwright/core'
 import { extractAuthors } from './authors'
 
 const head = (inner: string) => `<html><head>${inner}</head><body></body></html>`

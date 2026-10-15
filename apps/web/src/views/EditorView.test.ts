@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { blockHash } from '@lfwa/core'
+import { blockHash } from '@wordwright/core'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 

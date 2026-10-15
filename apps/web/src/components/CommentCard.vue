@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from 'vue'
-import type { DraftComment } from '@lfwa/core'
+import type { DraftComment } from '@wordwright/core'
 import SwitchField from './SwitchField.vue'
 
 /**

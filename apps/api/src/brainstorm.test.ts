@@ -10,8 +10,8 @@ import {
   MAX_PROPOSALS_PER_REPLY,
   type BrainstormEvent,
   type LLMContentBlock,
-} from '@lfwa/core'
-import { BRAINSTORM_RULES_PROMPT, DEFAULT_BRAINSTORM_PROMPT } from '@lfwa/prompts'
+} from '@wordwright/core'
+import { BRAINSTORM_RULES_PROMPT, DEFAULT_BRAINSTORM_PROMPT } from '@wordwright/prompts'
 import { RateLimiter } from './auth/rate-limit'
 import { BrainstormService, formatSnapshot, REPLY_TIMEOUT_MS } from './services/brainstorm'
 import { BrainstormPromptService } from './services/brainstorm-prompt'

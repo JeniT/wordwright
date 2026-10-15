@@ -1,5 +1,5 @@
 import { serve } from '@hono/node-server'
-import { FakePageInfoFetcher, type Providers } from '@lfwa/core'
+import { FakePageInfoFetcher, type Providers } from '@wordwright/core'
 import { createApp } from './app'
 import { googleProvider, type IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'

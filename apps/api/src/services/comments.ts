@@ -5,7 +5,7 @@ import {
   type CommentInput,
   type Draft,
   type DraftComment,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { Store } from '../db/store'
 import { fail } from '../errors'
 

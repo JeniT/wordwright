@@ -17,12 +17,12 @@ Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writi
    in `packages/core`), never on a vendor SDK. Each external service (LLM, search/news/scholarly sources,
    email, identity providers) is an adapter behind a port, with a fake for tests, and is injected, not imported.
    A new service means: implement the interface → run the shared contract suite against it
-   (`@lfwa/core/testing`) → register it in `apps/api/src/server.ts`. For an LLM, also run the behaviour evals
+   (`@wordwright/core/testing`) → register it in `apps/api/src/server.ts`. For an LLM, also run the behaviour evals
    against it (`pnpm eval:adapter -- --provider <id> --model <model>`, which asks for a key; a smoke test, not proof)
    and paste the summary in the issue for the owner. Never type a key into a chat with an agent.
    Never hard-code a provider into a route.
 3. **Robust engineering practices.** Tests with every change (see Definition of done), strict TypeScript,
-   validated inputs at every boundary (Zod schemas shared via `@lfwa/core`), secrets never logged or returned,
+   validated inputs at every boundary (Zod schemas shared via `@wordwright/core`), secrets never logged or returned,
    migrations append-only, failures that explain themselves. Prefer boring, well-tested solutions.
 4. **Augment the writer; never substitute for them.** The AI helps people think and judge their own writing. It
    does not write what they publish, and the service must not add AI-generated text to the information environment,
@@ -54,9 +54,9 @@ Don't kill another session's processes.
 Several sessions share one machine, and the full suites take minutes. While developing, run only what you changed
 (from the worktree root):
 
-- **One unit/component test file:** `pnpm --filter @lfwa/web exec vitest run src/views/ideas.test.ts` (same with
-  `@lfwa/api` or `@lfwa/core`). Add `-t "part of the title"` for one test, or use `vitest related <changed files>`.
-- **One e2e file or test:** `pnpm --filter @lfwa/web exec playwright test e2e/ideas.spec.ts -g "part of the title"`.
+- **One unit/component test file:** `pnpm --filter @wordwright/web exec vitest run src/views/ideas.test.ts` (same with
+  `@wordwright/api` or `@wordwright/core`). Add `-t "part of the title"` for one test, or use `vitest related <changed files>`.
+- **One e2e file or test:** `pnpm --filter @wordwright/web exec playwright test e2e/ideas.spec.ts -g "part of the title"`.
 - **Format and lint only what you touched:** `pnpm exec prettier --write <files>` and `pnpm exec eslint <files>`.
 - **Types:** `pnpm typecheck` (about 30s) once the code compiles in your head, not after every edit.
 
@@ -69,7 +69,7 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
 ## Layout
 
 - `packages/core`: Zod schemas, provider ports + adapters + fakes, contract test suites. Shared by web and api.
-- `prompts/`: the instructions given to the AI, as plain Markdown files (`@lfwa/prompts`). **Edit prompts there**, never
+- `prompts/`: the instructions given to the AI, as plain Markdown files (`@wordwright/prompts`). **Edit prompts there**, never
   inline in code; see `prompts/README.md`.
 - `apps/api`: Hono API. `routes/` (HTTP only) → `services/` (business rules) → `db/` (SQLite stores).
   `createApp(deps)` takes every dependency as an argument; tests inject fakes and never touch the network.

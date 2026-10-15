@@ -57,7 +57,7 @@ import {
   type RegisterInput,
   type RephraseRequest,
   type SendMessageInput,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { z } from 'zod'
 import { readSse } from './sse'
 
@@ -76,7 +76,7 @@ export interface ApiOptions {
 
 /**
  * Thin typed client. Authentication is an HttpOnly session cookie managed by the browser, so
- * there are no tokens in JS. Responses are validated with the schemas shared from @lfwa/core.
+ * there are no tokens in JS. Responses are validated with the schemas shared from @wordwright/core.
  */
 export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptions = {}) {
   async function send(method: string, path: string, body?: unknown): Promise<Response> {

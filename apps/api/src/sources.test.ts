@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { FakeFeedFetcher, MAX_SOURCES_PER_PUBLICATION, TINY_PNG } from '@lfwa/core'
+import { FakeFeedFetcher, MAX_SOURCES_PER_PUBLICATION, TINY_PNG } from '@wordwright/core'
 import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('idea sources', () => {

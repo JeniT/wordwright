@@ -7,7 +7,7 @@ import {
   type ResearchFactory,
   type PageInfoFetcher,
   type Providers,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { IdentityProvider } from './auth/identity'
 import { requireUser, sameOriginOnly, type AppEnv } from './auth/middleware'
 import { createScryptHasher, type PasswordHasher } from './auth/password'

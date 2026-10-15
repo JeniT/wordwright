@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { CritiqueRequestSchema, LLMAuthError, RephraseRequestSchema } from '@lfwa/core'
-import { CRITIQUE_PROMPT, OPTIONS_PROMPT } from '@lfwa/prompts'
+import { CritiqueRequestSchema, LLMAuthError, RephraseRequestSchema } from '@wordwright/core'
+import { CRITIQUE_PROMPT, OPTIONS_PROMPT } from '@wordwright/prompts'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { LlmKeyService } from '../services/llm'

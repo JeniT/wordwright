@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FakeFeedFetcher, MAX_IDEA_LINKS, MAX_IDEA_NOTES } from '@lfwa/core'
+import { FakeFeedFetcher, MAX_IDEA_LINKS, MAX_IDEA_NOTES } from '@wordwright/core'
 import { register, setup, sharePublication, verifyAccounts } from './test-helpers'
 
 type Link = {

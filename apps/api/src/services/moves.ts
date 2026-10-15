@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { linkKey, MAX_IDEA_LINKS, MAX_IDEA_NOTES, MAX_NOTE_TAGS, type MoveResult } from '@lfwa/core'
+import {
+  linkKey,
+  MAX_IDEA_LINKS,
+  MAX_IDEA_NOTES,
+  MAX_NOTE_TAGS,
+  type MoveResult,
+} from '@wordwright/core'
 import type { Owner } from '../db/owner'
 import type { Store } from '../db/store'
 import { fail } from '../errors'

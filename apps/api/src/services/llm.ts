@@ -9,7 +9,7 @@ import {
   type LlmSettingsInput,
   type ResearchFactory,
   type ResearchProvider,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { SecretBox } from '../auth/secret-box'
 import type { Store } from '../db/store'
 

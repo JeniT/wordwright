@@ -1,4 +1,4 @@
-import type { PublicationRole } from '@lfwa/core'
+import type { PublicationRole } from '@wordwright/core'
 import type { Store } from '../db/store'
 import { fail } from '../errors'
 

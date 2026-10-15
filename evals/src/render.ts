@@ -1,4 +1,4 @@
-import type { LLMChatEvent } from '@lfwa/core'
+import type { LLMChatEvent } from '@wordwright/core'
 
 /**
  * A reply as text for the assertions: what was said, then one line per tool call, as

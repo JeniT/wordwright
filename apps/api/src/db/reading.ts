@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite'
-import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
+import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@wordwright/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
 import { owned, type Owner } from './owner'

@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { LlmSettingsInputSchema } from '@lfwa/core'
+import { LlmSettingsInputSchema } from '@wordwright/core'
 import type { AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { LlmError, type LlmKeyService } from '../services/llm'

@@ -6,8 +6,8 @@ import {
   SuggestReadingToolInputSchema,
   UpdateIdeaToolInputSchema,
   type Idea,
-} from '@lfwa/core'
-import { BRAINSTORM_RULES_PROMPT } from '@lfwa/prompts'
+} from '@wordwright/core'
+import { BRAINSTORM_RULES_PROMPT } from '@wordwright/prompts'
 import { BRAINSTORM_TOOLS, brainstormSystem, formatSnapshot } from './services/brainstorm'
 
 /**

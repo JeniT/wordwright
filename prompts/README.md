@@ -39,5 +39,5 @@ prompt changes.
 
 ## How they're loaded
 
-`index.ts` reads each file at startup (the `@lfwa/prompts` package). If the API is ever compiled rather than run
+`index.ts` reads each file at startup (the `@wordwright/prompts` package). If the API is ever compiled rather than run
 with `tsx`, these `.md` files must be copied alongside it.

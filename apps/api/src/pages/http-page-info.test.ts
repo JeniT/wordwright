@@ -1,7 +1,7 @@
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, describe, expect, it } from 'vitest'
-import { pageInfoFetcherContract } from '@lfwa/core/testing'
+import { pageInfoFetcherContract } from '@wordwright/core/testing'
 import { HttpPageInfoFetcher, type HttpPageInfoOptions } from './http-page-info'
 
 const requests: { path: string; headers: http.IncomingHttpHeaders }[] = []

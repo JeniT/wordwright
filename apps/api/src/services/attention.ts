@@ -1,4 +1,4 @@
-import type { PublicationAttention, SnapshotReviews } from '@lfwa/core'
+import type { PublicationAttention, SnapshotReviews } from '@wordwright/core'
 import type { Store } from '../db/store'
 
 /** A snapshot whose reviews are all over, with some finished, and comments still waiting for the editor. */

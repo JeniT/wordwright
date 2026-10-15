@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_CRITIQUE_POINTS, blockHash, splitBlocks } from '@lfwa/core'
+import { MAX_CRITIQUE_POINTS, blockHash, splitBlocks } from '@wordwright/core'
 import { formatDraftForCritique, parseCritique } from './services/critique'
 import {
   PASSWORD,

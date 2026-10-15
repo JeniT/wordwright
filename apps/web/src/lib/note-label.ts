@@ -1,4 +1,4 @@
-import type { IdeaLink, IdeaNote, NoteOrigin } from '@lfwa/core'
+import type { IdeaLink, IdeaNote, NoteOrigin } from '@wordwright/core'
 
 /** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
 export function nameList(names: readonly string[]): string {

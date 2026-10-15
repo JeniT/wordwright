@@ -13,7 +13,7 @@ import {
   type FeedItemsResult,
   type FeedValidators,
   type FetchedIcon,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { isPublicAddress } from './addresses'
 import { parseFeed, parseFeedItems, parseHtmlLinks, webUrl } from './parse-feed'
 

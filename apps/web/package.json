@@ -1,5 +1,5 @@
 {
-  "name": "@lfwa/web",
+  "name": "@wordwright/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@lfwa/core": "workspace:*",
+    "@wordwright/core": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/vue-query": "^5.104.1",
     "@tiptap/extension-placeholder": "^3.31.4",

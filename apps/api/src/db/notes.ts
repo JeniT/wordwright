@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite'
-import type { IdeaNote, NoteOrigin } from '@lfwa/core'
+import type { IdeaNote, NoteOrigin } from '@wordwright/core'
 import { nowIso } from './database'
 import { owned, type Owner } from './owner'
 import { renumber, reorder } from './ordering'

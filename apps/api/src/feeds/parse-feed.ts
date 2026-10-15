@@ -1,5 +1,5 @@
 import { XMLParser } from 'fast-xml-parser'
-import { FeedError, MAX_FEED_ITEMS, type FeedDetails, type FeedItem } from '@lfwa/core'
+import { FeedError, MAX_FEED_ITEMS, type FeedDetails, type FeedItem } from '@wordwright/core'
 
 const TITLE_MAX = 200
 const DESCRIPTION_MAX = 500

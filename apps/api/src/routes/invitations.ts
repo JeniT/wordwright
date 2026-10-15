@@ -4,7 +4,7 @@ import {
   InviteInputSchema,
   InvitationTokenInputSchema,
   SetBlockAllInputSchema,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { requireUser, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { InvitationError, type InvitationService } from '../services/invitations'

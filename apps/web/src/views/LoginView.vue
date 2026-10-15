@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { safeNextPath } from '@lfwa/core'
+import { safeNextPath } from '@wordwright/core'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'

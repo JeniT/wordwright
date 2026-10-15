@@ -25,7 +25,7 @@ import {
   type PageInfoFetcher,
   type Proposal,
   type SendMessageInput,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import {
   ADD_NOTE_TOOL_PROMPT,
   BRAINSTORM_KICKOFF_PROMPT,
@@ -33,7 +33,7 @@ import {
   CREATE_IDEA_TOOL_PROMPT,
   SUGGEST_READING_TOOL_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
-} from '@lfwa/prompts'
+} from '@wordwright/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/conversations'
 import type { Store } from '../db/store'

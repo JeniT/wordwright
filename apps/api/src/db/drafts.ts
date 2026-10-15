@@ -7,7 +7,7 @@ import type {
   InsertionOrigin,
   NoteOrigin,
   OptionUseInput,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
 import { reorder } from './ordering'

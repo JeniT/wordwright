@@ -4,7 +4,7 @@ import {
   CommentInputSchema,
   DeclineInvitationInputSchema,
   InvitationTokenInputSchema,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { requireUser, type AppEnv } from '../auth/middleware'
 import type { AccountService } from '../services/accounts'
 import { AccountError } from '../services/accounts'

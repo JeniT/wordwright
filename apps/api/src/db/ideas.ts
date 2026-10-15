@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import { markdownToNotes, notesToMarkdown } from '@lfwa/core'
+import { markdownToNotes, notesToMarkdown } from '@wordwright/core'
 import type {
   Idea,
   IdeaInput,
@@ -9,7 +9,7 @@ import type {
   IdeaUpdate,
   NoteOrigin,
   ReadingOrigin,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
 import { ReadingStore, type LinkWrite } from './reading'

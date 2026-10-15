@@ -6,7 +6,7 @@ import type {
   ReviewInvitationPreview,
   ReviewSummary,
   SendForReviewInput,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'

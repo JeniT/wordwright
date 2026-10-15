@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { LLMProviderId } from '@lfwa/core'
+import type { LLMProviderId } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface StoredLlmCredential {

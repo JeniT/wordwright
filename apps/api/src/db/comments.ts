@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { CritiquePoint, DraftComment } from '@lfwa/core'
+import type { CritiquePoint, DraftComment } from '@wordwright/core'
 import { nowIso } from './database'
 
 /** What a person writes, once the service has worked out which paragraph it is about. */

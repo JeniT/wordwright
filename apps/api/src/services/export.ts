@@ -1,4 +1,4 @@
-import { firstAvailable, slugify, type Draft, type IdeaLink, type IdeaNote } from '@lfwa/core'
+import { firstAvailable, slugify, type Draft, type IdeaLink, type IdeaNote } from '@wordwright/core'
 import type { Store } from '../db/store'
 import { zip, type ZipFile } from '../export/zip'
 

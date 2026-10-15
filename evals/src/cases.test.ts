@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FakeLLMProvider } from '@lfwa/core'
+import { FakeLLMProvider } from '@wordwright/core'
 import {
   BRAINSTORM_KICKOFF_PROMPT,
   CRITIQUE_PROMPT,
@@ -7,7 +7,7 @@ import {
   DEFAULT_BRAINSTORM_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   RESEARCH_PROMPT,
-} from '@lfwa/prompts'
+} from '@wordwright/prompts'
 import { BRAINSTORM_TOOLS } from '../../apps/api/src/services/brainstorm'
 import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import AdapterProvider from './adapter-provider'

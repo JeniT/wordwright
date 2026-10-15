@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import type { Publication } from '@lfwa/core'
+import type { Publication } from '@wordwright/core'
 import { usePublication } from '../lib/usePublications'
 
 /** Loading, error and not-found states for any page about one publication; the page itself is the slot. */

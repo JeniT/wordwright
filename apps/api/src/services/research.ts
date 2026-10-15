@@ -10,8 +10,8 @@ import {
   type ResearchInput,
   type ResearchProvider,
   type ResearchRun,
-} from '@lfwa/core'
-import { RESEARCH_PROMPT } from '@lfwa/prompts'
+} from '@wordwright/core'
+import { RESEARCH_PROMPT } from '@wordwright/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { ReadingChecker } from './reading-suggestions'

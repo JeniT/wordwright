@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { IdeaLink, IdeaNote } from '@lfwa/core'
+import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { noteOriginPhrase } from '../lib/note-label'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteTags from './NoteTags.vue'

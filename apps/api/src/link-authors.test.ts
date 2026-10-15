@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_AUTHORS } from '@lfwa/core'
+import { MAX_AUTHORS } from '@wordwright/core'
 import { parseNames } from './db/names'
 import { register, setup, type TestClient } from './test-helpers'
 

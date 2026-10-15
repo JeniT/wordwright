@@ -6,7 +6,7 @@ import {
   type RecentPosts,
   type Source,
   type SourceItems,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { SourceFetch } from '../db/sources'
 import { postStates } from './feed-posts'

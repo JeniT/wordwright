@@ -7,7 +7,7 @@ import {
   NoteTagsInputSchema,
   ReadingItemKeptSchema,
   ReadingItemReadSchema,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { IdeaLinkService } from '../services/idea-links'

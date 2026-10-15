@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { BRAINSTORM_PROMPT_MAX } from '@lfwa/core'
-import { DEFAULT_BRAINSTORM_PROMPT } from '@lfwa/prompts'
+import { BRAINSTORM_PROMPT_MAX } from '@wordwright/core'
+import { DEFAULT_BRAINSTORM_PROMPT } from '@wordwright/prompts'
 import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { PASSWORD, register, setup, type TestClient } from './test-helpers'
 

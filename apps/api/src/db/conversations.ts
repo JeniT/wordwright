@@ -7,7 +7,7 @@ import type {
   ProposalTool,
   ReadingCheck,
   RecordedNote,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface MessageRecord {

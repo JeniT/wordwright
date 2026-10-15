@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { HandoverEvent, HandoverState } from '@lfwa/core'
+import type { HandoverEvent, HandoverState } from '@wordwright/core'
 import { nowIso } from './database'
 
 type Kind = HandoverEvent['kind']

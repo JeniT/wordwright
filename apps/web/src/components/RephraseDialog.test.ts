@@ -2,7 +2,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { REPHRASE } from '@lfwa/core'
+import { REPHRASE } from '@wordwright/core'
 import { llmSettings, server, useMockServer } from '../test-utils'
 import RephraseDialog from './RephraseDialog.vue'
 

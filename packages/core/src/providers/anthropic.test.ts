@@ -312,7 +312,7 @@ describe('AnthropicProvider.chat', () => {
 })
 
 // The shared contract against the real service. Skipped unless a key is set, since it spends a few tokens:
-//   ANTHROPIC_API_KEY=sk-ant-... pnpm --filter @lfwa/core test
+//   ANTHROPIC_API_KEY=sk-ant-... pnpm --filter @wordwright/core test
 if (process.env.ANTHROPIC_API_KEY) {
   llmProviderContract(
     'anthropic (live)',

@@ -456,7 +456,7 @@ same cards, callouts and chips as everywhere else.
 ## Changing the design
 
 - **Swap the palette:** copy `palette-ember.css`, change the values (keep every name), point the import in
-  `style.css` at it, and run `pnpm --filter @lfwa/web test`. `palette.test.ts` reads `palette-ember.css`; change its
+  `style.css` at it, and run `pnpm --filter @wordwright/web test`. `palette.test.ts` reads `palette-ember.css`; change its
   path when you rename. The `docs/design-concepts/` folder shows teal and purple variants built the same way.
 - **Change the look** (corners, fonts, weights): edit `theme.css`. Components pick it up everywhere.
 - **Change the shell or the menu's shape:** `App.vue` (the frame) and `components/SideMenu.vue` / `lib/nav.ts` (what it lists).

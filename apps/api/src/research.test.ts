@@ -9,8 +9,8 @@ import {
   RESEARCH_AREAS_MAX,
   type ResearchFinding,
   type ResearchRun,
-} from '@lfwa/core'
-import { RESEARCH_PROMPT } from '@lfwa/prompts'
+} from '@wordwright/core'
+import { RESEARCH_PROMPT } from '@wordwright/prompts'
 import { formatResearchBrief } from './services/research'
 import {
   register,

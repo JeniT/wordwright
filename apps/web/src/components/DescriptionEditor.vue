@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PUBLICATION_DESCRIPTION_MAX } from '@lfwa/core'
+import { PUBLICATION_DESCRIPTION_MAX } from '@wordwright/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'

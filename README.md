@@ -80,12 +80,12 @@ To use Claude: `LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... pnpm dev`.
 
 ## Scripts
 
-| Command         | What it does                                                                                                                                                                                                                |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`    | Format check, lint, typecheck, unit/component/API tests (what CI runs first)                                                                                                                                                |
-| `pnpm test`     | Vitest in every package                                                                                                                                                                                                     |
-| `pnpm test:e2e` | Playwright against the web app + API (real SQLite file, fake LLM); fails on any uncaught exception, `console.error`, failed request or 5xx in the browser (`pnpm --filter @lfwa/web exec playwright install chromium` once) |
-| `pnpm build`    | Typecheck and production-build everything                                                                                                                                                                                   |
+| Command         | What it does                                                                                                                                                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`    | Format check, lint, typecheck, unit/component/API tests (what CI runs first)                                                                                                                                                      |
+| `pnpm test`     | Vitest in every package                                                                                                                                                                                                           |
+| `pnpm test:e2e` | Playwright against the web app + API (real SQLite file, fake LLM); fails on any uncaught exception, `console.error`, failed request or 5xx in the browser (`pnpm --filter @wordwright/web exec playwright install chromium` once) |
+| `pnpm build`    | Typecheck and production-build everything                                                                                                                                                                                         |
 
 ## Architecture: pluggable external services
 
@@ -94,13 +94,13 @@ Application code depends on **ports** in `packages/core/src/providers`, never on
 - `LLMProvider` — `complete()` and `stream()` for single prompts, and `chat()` for conversations in which the model may
   call tools (streamed `text` / `tool_call` / `done` events; no sampling options). Adapters: `AnthropicProvider`,
   `FakeLLMProvider` (scriptable). The contract suite can also be run against the real service:
-  `ANTHROPIC_API_KEY=... pnpm --filter @lfwa/core test`.
+  `ANTHROPIC_API_KEY=... pnpm --filter @wordwright/core test`.
 - `SearchProvider` — for news, web and scholarly sources (Crossref, OpenAlex, ...). Only a fake exists so far.
 
 **Prompts** (the instructions given to the AI) are not in code: they are Markdown files in [`prompts/`](prompts/README.md).
 
 To add a service: implement the interface, run the shared contract suite from
-`@lfwa/core/testing` against it (see `packages/core/src/providers.test.ts`), then register it where
+`@wordwright/core/testing` against it (see `packages/core/src/providers.test.ts`), then register it where
 `apps/api/src/server.ts` builds `Providers`. `createApp()` takes its dependencies as arguments, so
 tests inject fakes and nothing hits the network.
 
@@ -375,8 +375,8 @@ a new request, a description of the areas to look into. `GET`/`POST /api/publica
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
 `/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the
 reading list); `DELETE …/research/:run` forgets a run. The search
-looks for several points of view. It works through the `ResearchProvider` port (`@lfwa/core`: `AnthropicResearchProvider`,
-`FakeResearchProvider`, and `researchProviderContract` in `@lfwa/core/testing` for any new one), which may only return addresses that
+looks for several points of view. It works through the `ResearchProvider` port (`@wordwright/core`: `AnthropicResearchProvider`,
+`FakeResearchProvider`, and `researchProviderContract` in `@wordwright/core/testing` for any new one), which may only return addresses that
 appeared in a search result. Web search must be enabled for the Anthropic account whose key is used. The server looks at each address
 with the same SSRF-safe page fetcher as typed links and shows the page's real title beside the search's, flagging an address that
 doesn't resolve (it can't be added). Nothing joins the reading list until a person adds it; it is marked "Found by

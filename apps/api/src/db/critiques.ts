@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { Critique, CritiqueRound } from '@lfwa/core'
+import type { Critique, CritiqueRound } from '@wordwright/core'
 import { nowIso } from './database'
 
 /**

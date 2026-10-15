@@ -9,7 +9,7 @@ import {
   ChangeEmailInputSchema,
   ChangePasswordInputSchema,
   DeleteAccountInputSchema,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { AccountService } from '../services/accounts'

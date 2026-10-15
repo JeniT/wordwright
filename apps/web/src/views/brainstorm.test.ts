@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import type { BrainstormEvent, ConversationMessage, Proposal, RecordedNote } from '@lfwa/core'
+import type { BrainstormEvent, ConversationMessage, Proposal, RecordedNote } from '@wordwright/core'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()

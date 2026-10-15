@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { splitBlocks, type CommentInput } from '@lfwa/core'
+import { splitBlocks, type CommentInput } from '@wordwright/core'
 import CommentCard from '../components/CommentCard.vue'
 import CommentForm from '../components/CommentForm.vue'
 import QueryState from '../components/QueryState.vue'

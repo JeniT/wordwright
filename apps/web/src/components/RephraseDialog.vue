@@ -9,7 +9,7 @@ import {
   wordingProblem,
   type RephraseResult,
   type RephraseRound,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { useModal } from '../lib/modal'
 import AiButton from './AiButton.vue'

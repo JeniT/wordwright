@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BRAINSTORM_PROMPT_MAX } from '@lfwa/core'
+import { BRAINSTORM_PROMPT_MAX } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { api } from '../lib/api'

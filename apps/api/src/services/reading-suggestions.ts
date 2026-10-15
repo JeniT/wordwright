@@ -4,7 +4,7 @@ import {
   type Idea,
   type PageInfoFetcher,
   type ReadingCheck,
-} from '@lfwa/core'
+} from '@wordwright/core'
 
 /** A suggested reading-list item once its address has been looked at. */
 export interface CheckedReading {

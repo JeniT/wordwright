@@ -773,7 +773,7 @@ is dropped**, by the same path as the **Add to draft** button: its words (with t
 for a quotation) as their own paragraph(s), the draft saved first, then the origin recorded and the note set aside.
 The editor's drop cursor (a line in the accent colour) shows where it will land.
 
-- **What travels** is only the note's id, under a custom type (`application/x-lfwa-note`); the drop handler looks the
+- **What travels** is only the note's id, under a custom type (`application/x-wordwright-note`); the drop handler looks the
   note up (so nothing else can be smuggled into the draft by a crafted drag), and refuses one that is already in a
   draft or isn't found, with a message. Anything else dropped on the draft (a file, some text) is left to the editor.
 - **At the drop point** means a paragraph is split to make room, if the note is dropped in the middle of one; at the
@@ -813,7 +813,7 @@ dropped) so the same feed can't be listed twice.
 
 ## Feeds are read through a port, with the address checked at connection time
 
-When a source is added the server reads the feed (`FeedFetcher` in `@lfwa/core`; fake and shared contract tests
+When a source is added the server reads the feed (`FeedFetcher` in `@wordwright/core`; fake and shared contract tests
 as for other adapters) to refuse things that aren't feeds and to keep the title, description, website and a
 picture. The address is typed by a user, so the fetch is an SSRF risk: `HttpFeedFetcher` uses `node:http(s)` with its
 own DNS `lookup` that refuses loopback, private, link-local (cloud metadata), carrier-grade NAT, multicast and
@@ -1055,7 +1055,7 @@ own copy on the account page.
 
 The AI's instructions are prose the owner wants to read and change, so they live in `prompts/` as plain `.md`
 files (one per prompt, the whole file is the prompt, with a README saying what each is) rather than inside TypeScript
-strings or config. They are read at startup by a small `@lfwa/prompts` workspace package, and the evals read the
+strings or config. They are read at startup by a small `@wordwright/prompts` workspace package, and the evals read the
 same files, so what is tested is what is sent. (If the API is ever compiled instead of run with `tsx`, the `.md`
 files must travel with it.)
 
@@ -1122,7 +1122,7 @@ are spot-checked against the real model. **This is a smoke test, not assurance.*
 scenario, the model's reply varies from run to run, and a second model call grades it; showing that a model reliably
 behaves a given way would take many runs over many scenarios, which is not feasible here. What the evals can do is
 catch an obvious break after a prompt edit, show a gross difference between models, and give planned work a concrete
-description. The guarantees are the structural tests (below), which are deterministic and free. The harness (`evals/`, `@lfwa/evals`) is built so that what is tested is what is
+description. The guarantees are the structural tests (below), which are deterministic and free. The harness (`evals/`, `@wordwright/evals`) is built so that what is tested is what is
 sent: it imports the app's own prompt files, tool list (`BRAINSTORM_TOOLS`), system-prompt assembly
 (`brainstormSystem`) and snapshot builder (`formatSnapshot`), and calls the model through our `LLMProvider` port, built
 by the app's `realLlmFactory`. So it evaluates the adapter and the way the app drives it, not a vendor SDK, and a new
@@ -1306,7 +1306,7 @@ block of the draft or about the piece as a whole, plus a one-line summary and a 
 extension is a paid cloud feature (and would limit how many documents we can have), and we do not need real-time
 collaboration on drafts, so comments are our own: the server numbers the draft's blocks and the model points at them.
 
-- **Blocks.** `splitBlocks` (`@lfwa/core`) splits the saved Markdown into headings, paragraphs, quotes, code fences
+- **Blocks.** `splitBlocks` (`@wordwright/core`) splits the saved Markdown into headings, paragraphs, quotes, code fences
   and top-level list items, numbered `b1`, `b2`, ... Each has a hash of its words (case, spacing and punctuation
   ignored). The draft goes to the model as `[b3] text`.
 - **No anchors in the Markdown.** Putting ids in the writer's text would reach Copy Markdown and be published, the
@@ -1321,7 +1321,7 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
 - **Kept, and found again (T9b, #91).** Each critique is saved as a round (`critique_rounds`, `critique_points`,
   both `ON DELETE CASCADE` from the draft, so they go with it and with its publication). Only the latest round is shown
   and nothing counts rounds yet (T9c). A point stores its block id, the block's hash and the start of its text.
-  The editor places each point again whenever the text changes (`locateBlock`, `@lfwa/core`): first a paragraph with
+  The editor places each point again whenever the text changes (`locateBlock`, `@wordwright/core`): first a paragraph with
   the same words (nearest to where it was, if two are alike), then one that still starts with the same words, and
   otherwise none, so a point is never put on the wrong paragraph; it shows under "This passage has changed" instead.
   The hash ignores case, spacing, punctuation, list markers and link addresses, so a paragraph reads the same from
@@ -1637,3 +1637,10 @@ identity provider's word and is unchanged. Archives (`docs/design-concepts/`, `T
   `apps/api/data/wordwright.sqlite` (it was `lfwa.sqlite`), so a new one is simply started beside the old.
 - **Prompts changed.** The wording of the AI's context changed from "venue" to "publication" (the instructions already
   said "publication" in most places); behaviour is meant to be the same, but the owner should review `prompts/`.
+
+## The working name "lfwa" is gone (#178)
+
+The package scope is `@wordwright/*`, the cookies are `wordwright_session` and `wordwright_oauth`, the theme choice is stored
+under `wordwright-theme`, notes are dragged as `application/x-wordwright-note`, and the key used to encrypt saved API keys is
+derived with the context `wordwright-secret-box`. With nothing live, the cost is that existing sessions, saved API keys
+(encrypted under the old context) and theme choices reset; development databases were already being deleted for #174.

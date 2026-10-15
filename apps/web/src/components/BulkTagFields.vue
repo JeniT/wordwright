@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MAX_NOTE_TAGS } from '@lfwa/core'
+import { MAX_NOTE_TAGS } from '@wordwright/core'
 import Icon from './Icon.vue'
 import InfoTip from './InfoTip.vue'
 import TagEntry from './TagEntry.vue'

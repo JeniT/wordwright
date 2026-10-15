@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { RephraseSize } from '@lfwa/core'
+import type { RephraseSize } from '@wordwright/core'
 
 /**
  * The options from one round. Short wording gets a list, where the options can be read side by side; longer wording

@@ -1,5 +1,5 @@
 {
-  "name": "@lfwa/prompts",
+  "name": "@wordwright/prompts",
   "version": "0.0.0",
   "private": true,
   "type": "module",

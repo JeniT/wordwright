@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_IDEA_NOTES, NOTE_TEXT_MAX } from '@lfwa/core'
+import { MAX_IDEA_NOTES, NOTE_TEXT_MAX } from '@wordwright/core'
 import { migrate } from './db/database'
 import {
   allRows,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { Publication } from '@lfwa/core'
+import type { Publication } from '@wordwright/core'
 import Markdown from './Markdown.vue'
 
 /**

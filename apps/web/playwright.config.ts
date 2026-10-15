@@ -41,7 +41,7 @@ export default defineConfig({
   webServer: [
     {
       // API with fake providers and an in-memory database.
-      command: `rm -rf "${e2eDb}" "${e2eDb}-wal" "${e2eDb}-shm" "${e2eOutbox}" && pnpm --filter @lfwa/api start`,
+      command: `rm -rf "${e2eDb}" "${e2eDb}-wal" "${e2eDb}-shm" "${e2eOutbox}" && pnpm --filter @wordwright/api start`,
       env: {
         PORT: apiPort,
         DATABASE_PATH: e2eDb,

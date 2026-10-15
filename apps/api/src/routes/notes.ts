@@ -9,7 +9,7 @@ import {
   NoteMergeInputSchema,
   NoteSplitInputSchema,
   NoteTagsInputSchema,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { NoteEditService } from '../services/note-edits'

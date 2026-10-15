@@ -4,7 +4,7 @@ import {
   type PostDecision,
   type PostRefs,
   type PostStatus,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { Store } from '../db/store'
 import { fail } from '../errors'
 

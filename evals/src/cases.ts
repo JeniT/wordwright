@@ -1,4 +1,4 @@
-import { REPHRASE, maxOptionWords } from '@lfwa/core'
+import { REPHRASE, maxOptionWords } from '@wordwright/core'
 import type { ScenarioName } from './scenarios'
 
 /** An assertion in promptfoo's own vocabulary; see https://www.promptfoo.dev/docs/configuration/expected-outputs/ */

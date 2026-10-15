@@ -8,7 +8,7 @@ import {
   SourceInputSchema,
   SourceOrderSchema,
   type FeedFetcher,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { FeedItemService } from '../services/feed-items'
 import type { FeedPostService } from '../services/feed-posts'
 import type { AppEnv } from '../auth/middleware'

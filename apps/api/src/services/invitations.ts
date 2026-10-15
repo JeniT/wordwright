@@ -1,5 +1,5 @@
-import { firstAvailable, suggestHandle } from '@lfwa/core'
-import type { Invitation, InvitationBlocks, InvitationPreview } from '@lfwa/core'
+import { firstAvailable, suggestHandle } from '@wordwright/core'
+import type { Invitation, InvitationBlocks, InvitationPreview } from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'

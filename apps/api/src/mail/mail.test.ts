@@ -44,7 +44,7 @@ mailerContract('memory', async () => {
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
 const tempDir = () => {
-  const dir = mkdtempSync(join(tmpdir(), 'lfwa-mail-'))
+  const dir = mkdtempSync(join(tmpdir(), 'wordwright-mail-'))
   dirs.push(dir)
   return dir
 }

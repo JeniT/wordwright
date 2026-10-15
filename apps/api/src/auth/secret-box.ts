@@ -15,7 +15,7 @@ export interface SecretBox {
  * version prefix leaves room for key rotation.
  */
 export function createSecretBox(secret: string): SecretBox {
-  const key = Buffer.from(hkdfSync('sha256', secret, 'lfwa-secret-box', 'v1', 32))
+  const key = Buffer.from(hkdfSync('sha256', secret, 'wordwright-secret-box', 'v1', 32))
   return {
     encrypt(plaintext, context) {
       const iv = randomBytes(12)

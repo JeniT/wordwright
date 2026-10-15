@@ -1,4 +1,4 @@
-import type { User } from '@lfwa/core'
+import type { User } from '@wordwright/core'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { ApiError, api } from '../lib/api'

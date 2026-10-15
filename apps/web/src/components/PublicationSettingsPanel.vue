@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Publication } from '@lfwa/core'
+import type { Publication } from '@wordwright/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'

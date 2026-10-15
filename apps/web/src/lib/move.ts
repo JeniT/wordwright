@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import type { MoveResult } from '@lfwa/core'
+import type { MoveResult } from '@wordwright/core'
 import { computed, reactive, ref } from 'vue'
 import { api } from './api'
 import { invalidateRoots, useIdeas } from './queries'

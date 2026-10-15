@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { IdeaNote } from '@lfwa/core'
+import type { IdeaNote } from '@wordwright/core'
 
 defineProps<{ note: Pick<IdeaNote, 'text' | 'quote'> }>()
 </script>

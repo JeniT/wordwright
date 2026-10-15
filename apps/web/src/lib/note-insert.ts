@@ -1,4 +1,4 @@
-import type { IdeaLink, IdeaNote } from '@lfwa/core'
+import type { IdeaLink, IdeaNote } from '@wordwright/core'
 
 /**
  * The Markdown that goes into a draft for a note: its words, and, if it was taken from a reading-list item, a link

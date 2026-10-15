@@ -12,7 +12,7 @@ import {
   safeNextPath,
   VerifyEmailInputSchema,
   type AuthConfig,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { IdentityProvider } from '../auth/identity'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
@@ -24,7 +24,7 @@ import type { ReviewService } from '../services/reviews'
 import { fail } from '../errors'
 import { param } from './params'
 
-const OAUTH_COOKIE = 'lfwa_oauth'
+const OAUTH_COOKIE = 'wordwright_oauth'
 const OAUTH_TTL_SECONDS = 600
 
 export interface AuthRouteDeps {

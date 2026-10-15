@@ -1,4 +1,4 @@
-import { AUTHOR_NAME_MAX, MAX_AUTHORS } from '@lfwa/core'
+import { AUTHOR_NAME_MAX, MAX_AUTHORS } from '@wordwright/core'
 
 const NAMED: Record<string, string> = {
   amp: '&',

@@ -4,14 +4,14 @@ import type {
   LLMContentBlock,
   LLMRequest,
   ResearchRequest,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import {
   BRAINSTORM_KICKOFF_PROMPT,
   CRITIQUE_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
   OPTIONS_PROMPT,
   RESEARCH_PROMPT,
-} from '@lfwa/prompts'
+} from '@wordwright/prompts'
 import {
   BRAINSTORM_TOOLS,
   brainstormSystem,
@@ -20,7 +20,7 @@ import {
 import { formatDraftForCritique } from '../../apps/api/src/services/critique'
 import { formatRephraseMessage } from '../../apps/api/src/services/rephrase'
 import { formatResearchBrief } from '../../apps/api/src/services/research'
-import { MAX_RESEARCH_RESULTS } from '@lfwa/core'
+import { MAX_RESEARCH_RESULTS } from '@wordwright/core'
 import type { BrainstormCase, CritiqueCase, RephraseCase, ResearchCase } from './cases'
 import { SCENARIOS } from './scenarios'
 

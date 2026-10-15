@@ -1,4 +1,4 @@
-import { MAX_NOTE_TAGS } from '@lfwa/core'
+import { MAX_NOTE_TAGS } from '@wordwright/core'
 import { fail } from '../errors'
 
 /**

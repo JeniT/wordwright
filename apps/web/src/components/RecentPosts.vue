@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { RECENT_DAYS_DEFAULT, type Source } from '@lfwa/core'
+import { RECENT_DAYS_DEFAULT, type Source } from '@wordwright/core'
 import { computed, ref, watch } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useSources } from '../lib/queries'

@@ -11,7 +11,7 @@ import {
   type LLMRequest,
   type ResearchFinding,
   type ResearchRequest,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { crc32, inflateRawSync } from 'node:zlib'
 import { createApp } from './app'
 import { exampleFeeds } from './feeds/factory'

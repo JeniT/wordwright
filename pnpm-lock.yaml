@@ -199,10 +199,10 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.9.1
         version: 0.9.1(hono@4.13.13)(zod@4.6.5)
-      '@lfwa/core':
+      '@wordwright/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@lfwa/prompts':
+      '@wordwright/prompts':
         specifier: workspace:*
         version: link:../../prompts
       fast-xml-parser:
@@ -248,7 +248,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@lfwa/core':
+      '@wordwright/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@tailwindcss/vite':
@@ -330,10 +330,10 @@ importers:
 
   evals:
     dependencies:
-      '@lfwa/core':
+      '@wordwright/core':
         specifier: workspace:*
         version: link:../packages/core
-      '@lfwa/prompts':
+      '@wordwright/prompts':
         specifier: workspace:*
         version: link:../prompts
     devDependencies:

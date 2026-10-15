@@ -9,7 +9,7 @@ import {
   WHOLE_DRAFT,
   type Block,
   type Critique,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import type { Store } from '../db/store'
 import { publicationDescriptionBlock } from './publication-context'
 

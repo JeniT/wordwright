@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { Idea, IdeaLink } from '@lfwa/core'
+import type { Idea, IdeaLink } from '@wordwright/core'
 import { computed } from 'vue'
 import { api } from './api'
 import { invalidateRoots, queryKeys, useIdea } from './queries'

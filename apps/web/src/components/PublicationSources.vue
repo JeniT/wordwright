@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import type { Source, SourceChoices } from '@lfwa/core'
+import type { Source, SourceChoices } from '@wordwright/core'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useSources } from '../lib/queries'

@@ -1,4 +1,4 @@
-import type { RegisterInput, User } from '@lfwa/core'
+import type { RegisterInput, User } from '@wordwright/core'
 import type { IdentityClaims } from '../auth/identity'
 import type { PasswordHasher } from '../auth/password'
 import { generateToken, hashToken } from '../auth/secrets'

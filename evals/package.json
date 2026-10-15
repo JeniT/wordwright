@@ -1,5 +1,5 @@
 {
-  "name": "@lfwa/evals",
+  "name": "@wordwright/evals",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "eval:adapter": "tsx src/run.ts all"
   },
   "dependencies": {
-    "@lfwa/core": "workspace:*",
-    "@lfwa/prompts": "workspace:*"
+    "@wordwright/core": "workspace:*",
+    "@wordwright/prompts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

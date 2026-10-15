@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, useId } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { Idea, Proposal } from '@lfwa/core'
+import type { Idea, Proposal } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 

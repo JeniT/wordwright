@@ -3,7 +3,7 @@ import {
   FakePageInfoFetcher,
   MAX_READING_SUGGESTIONS_PER_REPLY,
   type BrainstormEvent,
-} from '@lfwa/core'
+} from '@wordwright/core'
 import { addressesWrittenBy } from './services/brainstorm'
 import { ReadingChecker } from './services/reading-suggestions'
 import { register, saveKey, setup, type TestClient } from './test-helpers'
