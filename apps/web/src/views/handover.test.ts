@@ -11,7 +11,7 @@ const cy = { userId: 'u3', name: 'Cy Young', email: 'cy@example.com' }
 
 const draft = {
   id: 'd1',
-  profileId: 'p1',
+  publicationId: 'p1',
   ideaId: 'i1',
   title: 'T',
   body: 'Some text',
@@ -30,7 +30,7 @@ const state = (over: object = {}) => ({
   ...over,
 })
 
-/** The draft page as `me` sees it: `role` in the profile, `editor` as the draft's editor, `handover` as the server has it. */
+/** The draft page as `me` sees it: `role` in the publication, `editor` as the draft's editor, `handover` as the server has it. */
 function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = state() } = {}) {
   const calls: { method: string; path: string; body?: unknown }[] = []
   const record =
@@ -44,11 +44,11 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
     }
   server.use(
     signedInAs({ ...testUser, id: me.userId, name: me.name }),
-    http.get('*/api/profiles', () =>
+    http.get('*/api/publications', () =>
       HttpResponse.json([
         {
           id: 'p1',
-          name: 'A profile',
+          name: 'A publication',
           siteUrl: null,
           imageUrl: null,
           siteIconUrl: null,
@@ -62,10 +62,10 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
         },
       ]),
     ),
-    http.get('*/api/profiles/p1/ideas/i1', () =>
+    http.get('*/api/publications/p1/ideas/i1', () =>
       HttpResponse.json({
         id: 'i1',
-        profileId: 'p1',
+        publicationId: 'p1',
         name: 'An idea',
         notes: '',
         links: [],
@@ -74,17 +74,17 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
         updatedAt: '2026-01-01T00:00:00Z',
       }),
     ),
-    http.get('*/api/profiles/p1/ideas/i1/notes', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/drafts/d1', () =>
+    http.get('*/api/publications/p1/ideas/i1/notes', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/drafts/d1', () =>
       HttpResponse.json({ ...draft, editorId: editor, editorName: 'Ada Lovelace' }),
     ),
-    http.get('*/api/profiles/p1/drafts/d1/critique', () =>
+    http.get('*/api/publications/p1/drafts/d1/critique', () =>
       HttpResponse.json({ round: null, used: 0, allowed: 3 }),
     ),
-    http.get('*/api/profiles/p1/drafts/d1/insertions', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/drafts/d1/handover', () => HttpResponse.json(handover)),
-    http.post('*/api/profiles/p1/drafts/d1/handover/*', record('POST')),
-    http.delete('*/api/profiles/p1/drafts/d1/handover/*', record('DELETE')),
+    http.get('*/api/publications/p1/drafts/d1/insertions', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/drafts/d1/handover', () => HttpResponse.json(handover)),
+    http.post('*/api/publications/p1/drafts/d1/handover/*', record('POST')),
+    http.delete('*/api/publications/p1/drafts/d1/handover/*', record('DELETE')),
   )
   return calls
 }
@@ -239,7 +239,7 @@ describe('handing a draft over (#155)', () => {
   it('says why when an action is refused', async () => {
     mockPage(cy)
     server.use(
-      http.post('*/api/profiles/p1/drafts/d1/handover/asks', () =>
+      http.post('*/api/publications/p1/drafts/d1/handover/asks', () =>
         HttpResponse.json(
           { error: 'You have already asked Ada Lovelace for this draft.' },
           { status: 409 },

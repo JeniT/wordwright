@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FakeFeedFetcher, MAX_IDEA_LINKS, MAX_IDEA_NOTES } from '@lfwa/core'
-import { register, setup, shareProfile, verifyAccounts } from './test-helpers'
+import { register, setup, sharePublication, verifyAccounts } from './test-helpers'
 
 type Link = {
   id: string
@@ -19,22 +19,22 @@ type Note = {
   addedAt: string | null
 }
 
-/** A profile with an idea, as Ada; Bob can be added as a member. */
+/** A publication with an idea, as Ada; Bob can be added as a member. */
 async function start(feeds?: FakeFeedFetcher) {
   const ctx = setup(feeds ? { feeds } : {})
   const ada = ctx.client()
   await register(ada, 'ada@example.com', 'Ada')
-  const profile = (await (await ada.get('/api/profiles')).json())[0].id as string
-  const api = `/api/profiles/${profile}`
+  const publication = (await (await ada.get('/api/publications')).json())[0].id as string
+  const api = `/api/publications/${publication}`
   const newIdea = async (name = 'Rivers') =>
     (await (await ada.post(`${api}/ideas`, { name })).json()).id as string
   return {
     ctx,
     ada,
-    profile,
+    publication,
     api,
     newIdea,
-    // the profile's own lists
+    // the publication's own lists
     reading: () => `${api}/reading`,
     notes: () => `${api}/notes`,
     // an idea's lists
@@ -49,7 +49,7 @@ async function start(feeds?: FakeFeedFetcher) {
   }
 }
 
-describe('the profile’s own reading list', () => {
+describe('the publication’s own reading list', () => {
   let s: Awaited<ReturnType<typeof start>>
   beforeEach(async () => {
     s = await start()
@@ -73,22 +73,22 @@ describe('the profile’s own reading list', () => {
     expect((await s.links(idea)).map((l) => l.url)).toEqual(['https://b.example/post'])
   })
 
-  it('allows the same address on the profile list and on an idea’s, but not twice in one', async () => {
+  it('allows the same address on the publication list and on an idea’s, but not twice in one', async () => {
     const idea = await s.newIdea()
     await s.ada.post(s.reading(), { url: 'https://a.example/post' })
     const again = await s.ada.post(s.reading(), { url: 'a.example/post#top' })
     expect(again.status).toBe(409)
-    expect((await again.json()).error).toContain('already in this profile')
+    expect((await again.json()).error).toContain('already in this publication')
     expect((await s.ada.post(s.ideaLinks(idea), { url: 'https://a.example/post' })).status).toBe(
       201,
     )
   })
 
-  it('has no maximum on the profile’s own list, though an idea’s keeps its limit', async () => {
+  it('has no maximum on the publication’s own list, though an idea’s keeps its limit', async () => {
     const idea = await s.newIdea()
     for (let i = 0; i < MAX_IDEA_LINKS; i++) {
-      s.ctx.store.reading.add(s.profile, null, { url: `https://s${i}.example/`, title: 't' })
-      s.ctx.store.reading.add(s.profile, idea, { url: `https://i${i}.example/`, title: 't' })
+      s.ctx.store.reading.add(s.publication, null, { url: `https://s${i}.example/`, title: 't' })
+      s.ctx.store.reading.add(s.publication, idea, { url: `https://i${i}.example/`, title: 't' })
     }
     expect((await s.ada.post(s.reading(), { url: 'https://one-more.example/' })).status).toBe(201)
     expect(await s.links()).toHaveLength(MAX_IDEA_LINKS + 1)
@@ -119,7 +119,7 @@ describe('the profile’s own reading list', () => {
     expect((await s.ada.delete(`${s.reading()}/${item.id}`)).status).toBe(404)
   })
 
-  it('cannot touch an idea’s item through the profile list, or the other way round', async () => {
+  it('cannot touch an idea’s item through the publication list, or the other way round', async () => {
     const idea = await s.newIdea()
     const withIdea = await (
       await s.ada.post(s.ideaLinks(idea), { url: 'https://b.example/post' })
@@ -137,13 +137,13 @@ describe('the profile’s own reading list', () => {
     verifyAccounts(s.ctx, 'ada@example.com')
     expect((await bob.get(s.reading())).status).toBe(404)
     expect((await bob.post(s.reading(), { url: 'https://a.example/' })).status).toBe(404)
-    await shareProfile(s.ctx, s.ada, s.profile, bob, 'bob@example.com')
+    await sharePublication(s.ctx, s.ada, s.publication, bob, 'bob@example.com')
     expect((await bob.post(s.reading(), { url: 'https://a.example/' })).status).toBe(201)
     expect(await s.links()).toHaveLength(1)
   })
 })
 
-describe('the profile’s own notes', () => {
+describe('the publication’s own notes', () => {
   let s: Awaited<ReturnType<typeof start>>
   const add = async (text: string, extra: object = {}): Promise<Note> =>
     (await s.ada.post(s.notes(), { text, ...extra })).json()
@@ -166,7 +166,7 @@ describe('the profile’s own notes', () => {
     expect((await s.ada.patch(`${s.ideaNotes(idea)}/${first.id}`, { text: 'x' })).status).toBe(404)
   })
 
-  it('has its own order: reordering the profile’s notes leaves an idea’s alone, and a stale order is refused', async () => {
+  it('has its own order: reordering the publication’s notes leaves an idea’s alone, and a stale order is refused', async () => {
     const idea = await s.newIdea()
     const a = await add('A')
     const b = await add('B')
@@ -186,7 +186,7 @@ describe('the profile’s own notes', () => {
     expect((await s.noteList()).map((n) => n.text)).toEqual(['C', 'A', 'B'])
   })
 
-  it('takes notes from an item of the profile’s reading list, which then counts as read', async () => {
+  it('takes notes from an item of the publication’s reading list, which then counts as read', async () => {
     const [item] = await (await s.ada.post(s.reading(), { url: 'https://a.example/post' })).json()
     const note = await add('Said this', { readingItemId: item.id })
     expect(note).toMatchObject({ readingItemId: item.id })
@@ -196,14 +196,14 @@ describe('the profile’s own notes', () => {
     expect((await s.ada.patch(`${s.notes()}/${quote.id}`, { text: 'changed' })).status).toBe(409)
   })
 
-  it('refuses a source that is not on the profile’s list (including one on an idea’s), and a quote with none', async () => {
+  it('refuses a source that is not on the publication’s list (including one on an idea’s), and a quote with none', async () => {
     const idea = await s.newIdea()
     const withItem = await (
       await s.ada.post(s.ideaLinks(idea), { url: 'https://b.example/post' })
     ).json()
     const res = await s.ada.post(s.notes(), { text: 'x', readingItemId: withItem.links[0].id })
     expect(res.status).toBe(400)
-    expect((await res.json()).error).toContain("isn't on this profile's reading list")
+    expect((await res.json()).error).toContain("isn't on this publication's reading list")
     expect((await s.ada.post(s.notes(), { text: 'x', quote: true })).status).toBe(400)
   })
 
@@ -219,13 +219,13 @@ describe('the profile’s own notes', () => {
     expect((await split.json()).map((n: Note) => n.text)).toEqual(['One', 'Two'])
   })
 
-  it('limits the notes, in words that name the profile, and has no “added to a draft” state', async () => {
+  it('limits the notes, in words that name the publication, and has no “added to a draft” state', async () => {
     for (let i = 0; i < MAX_IDEA_NOTES; i++) {
-      s.ctx.store.notes.append(s.profile, null, null, `n${i}`)
+      s.ctx.store.notes.append(s.publication, null, null, `n${i}`)
     }
     const res = await s.ada.post(s.notes(), { text: 'one more' })
     expect(res.status).toBe(409)
-    expect((await res.json()).error).toContain('A profile can have up to')
+    expect((await res.json()).error).toContain('A publication can have up to')
     const [first] = await s.noteList()
     expect((await s.ada.put(`${s.notes()}/${first!.id}/added`, { added: true })).status).toBe(404)
   })
@@ -250,12 +250,12 @@ describe('moving reading items', () => {
     s = await start()
   })
 
-  it('moves an item from the profile to an idea with its notes, read date, authors, why and origin', async () => {
+  it('moves an item from the publication to an idea with its notes, read date, authors, why and origin', async () => {
     const idea = await s.newIdea()
     const a = await item('https://a.example/post', { authors: ['Ada'] })
     await s.ada.put(`${s.reading()}/${a.id}/read`, { read: true })
     s.ctx.store.reading.add(
-      s.profile,
+      s.publication,
       null,
       { url: 'https://r.example/', title: 'R', why: 'Because', authors: ['Bo'] },
       'research',
@@ -280,7 +280,7 @@ describe('moving reading items', () => {
     expect(note.id).toBeTruthy()
   })
 
-  it('moves an idea’s item to the profile, and between ideas', async () => {
+  it('moves an idea’s item to the publication, and between ideas', async () => {
     const one = await s.newIdea('One')
     const two = await s.newIdea('Two')
     const withItem = await (
@@ -339,14 +339,14 @@ describe('moving reading items', () => {
     ])
   })
 
-  it('refuses things outside this profile, changing nothing', async () => {
+  it('refuses things outside this publication, changing nothing', async () => {
     const idea = await s.newIdea()
     const bob = s.ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
-    const bobProfile = (await (await bob.get('/api/profiles')).json())[0].id
+    const bobPublication = (await (await bob.get('/api/publications')).json())[0].id
     const bobItem = (
       await (
-        await bob.post(`/api/profiles/${bobProfile}/reading`, { url: 'https://x.example/' })
+        await bob.post(`/api/publications/${bobPublication}/reading`, { url: 'https://x.example/' })
       ).json()
     )[0]
     const mine = await item('https://a.example/post')
@@ -354,9 +354,9 @@ describe('moving reading items', () => {
     expect((await move([mine.id, bobItem.id], idea)).status).toBe(404)
     expect(await s.links(idea)).toEqual([])
     expect((await s.links()).map((l) => l.id)).toEqual([mine.id])
-    // An idea of someone else's profile is not a destination.
+    // An idea of someone else's publication is not a destination.
     const bobIdea = (
-      await (await bob.post(`/api/profiles/${bobProfile}/ideas`, { name: 'Theirs' })).json()
+      await (await bob.post(`/api/publications/${bobPublication}/ideas`, { name: 'Theirs' })).json()
     ).id
     expect((await move([mine.id], bobIdea)).status).toBe(404)
     expect(
@@ -375,7 +375,7 @@ describe('moving reading items', () => {
   it('refuses, changing nothing, when the destination would have too many items or notes', async () => {
     const idea = await s.newIdea()
     for (let i = 0; i < MAX_IDEA_LINKS; i++) {
-      s.ctx.store.reading.add(s.profile, idea, { url: `https://f${i}.example/`, title: 't' })
+      s.ctx.store.reading.add(s.publication, idea, { url: `https://f${i}.example/`, title: 't' })
     }
     const a = await item('https://a.example/post')
     await s.ada.post(s.notes(), { text: 'n', readingItemId: a.id })
@@ -387,7 +387,7 @@ describe('moving reading items', () => {
 
     const roomy = await s.newIdea('Notes full')
     for (let i = 0; i < MAX_IDEA_NOTES; i++)
-      s.ctx.store.notes.append(s.profile, roomy, null, `n${i}`)
+      s.ctx.store.notes.append(s.publication, roomy, null, `n${i}`)
     const tooMany = await move([a.id], roomy)
     expect(tooMany.status).toBe(409)
     expect((await tooMany.json()).error).toContain('notes')
@@ -419,7 +419,7 @@ describe('moving reading items', () => {
     const a = await item('https://a.example/post')
     const note = await (await s.ada.post(s.notes(), { text: 'x', readingItemId: a.id })).json()
     const { batchId } = await (await move([a.id], idea)).json()
-    const log = s.ctx.store.moves.list(s.profile)
+    const log = s.ctx.store.moves.list(s.publication)
     expect(log.map((m) => [m.kind, m.itemId, m.fromIdeaId, m.toIdeaId, m.batchId]).sort()).toEqual(
       [
         ['note', note.id, null, idea, batchId],
@@ -479,7 +479,7 @@ describe('moving notes', () => {
   it('copies the source into the idea’s reading list (read state, authors and why kept) and leaves the original', async () => {
     const idea = await s.newIdea()
     s.ctx.store.reading.add(
-      s.profile,
+      s.publication,
       null,
       { url: 'https://a.example/post', title: 'A post', authors: ['Ada'], why: 'Because' },
       'research',
@@ -494,7 +494,7 @@ describe('moving notes', () => {
     expect(copy).toMatchObject({ url: 'https://a.example/post', title: 'A post', authors: ['Ada'] })
     expect(copy.readAt).toBeTruthy() // taking a note from it marked the original read
     expect((await s.noteList(idea))[0]!.readingItemId).toBe(copy.id)
-    // The original is still on the profile's list, and the note left behind still points at it.
+    // The original is still on the publication's list, and the note left behind still points at it.
     expect((await s.links()).map((l) => l.id)).toEqual([src!.id])
     expect((await s.noteList())[0]!.readingItemId).toBe(src!.id)
   })
@@ -526,7 +526,7 @@ describe('moving notes', () => {
     expect(moved.filter((n) => n.readingItemId === there.id)).toHaveLength(2)
   })
 
-  it('moves notes between ideas and back to the profile, putting them at the end', async () => {
+  it('moves notes between ideas and back to the publication, putting them at the end', async () => {
     const one = await s.newIdea('One')
     const two = await s.newIdea('Two')
     const a = (await (await s.ada.post(s.ideaNotes(one), { text: 'A' })).json()) as Note
@@ -558,13 +558,13 @@ describe('moving notes', () => {
     expect((await s.noteList(two))[0]!.addedAt).toBeNull()
   })
 
-  it('refuses notes from elsewhere or an idea of another profile, and a full destination, changing nothing', async () => {
+  it('refuses notes from elsewhere or an idea of another publication, and a full destination, changing nothing', async () => {
     const idea = await s.newIdea()
     const bob = s.ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
-    const bobProfile = (await (await bob.get('/api/profiles')).json())[0].id
+    const bobPublication = (await (await bob.get('/api/publications')).json())[0].id
     const bobNote = await (
-      await bob.post(`/api/profiles/${bobProfile}/notes`, { text: 'Bob’s' })
+      await bob.post(`/api/publications/${bobPublication}/notes`, { text: 'Bob’s' })
     ).json()
     const mine = await note('Mine')
     expect((await move([mine.id, bobNote.id], idea)).status).toBe(404)
@@ -573,13 +573,13 @@ describe('moving notes', () => {
 
     const full = await s.newIdea('Full')
     for (let i = 0; i < MAX_IDEA_NOTES; i++)
-      s.ctx.store.notes.append(s.profile, full, null, `n${i}`)
+      s.ctx.store.notes.append(s.publication, full, null, `n${i}`)
     expect((await move([mine.id], full)).status).toBe(409)
     expect((await s.noteList()).map((n) => n.id)).toEqual([mine.id])
 
     const tight = await s.newIdea('Tight')
     for (let i = 0; i < MAX_IDEA_LINKS; i++)
-      s.ctx.store.reading.add(s.profile, tight, { url: `https://f${i}.example/`, title: 't' })
+      s.ctx.store.reading.add(s.publication, tight, { url: `https://f${i}.example/`, title: 't' })
     const [src] = await (await s.ada.post(s.reading(), { url: 'https://new.example/' })).json()
     const withSrc = await note('From a new source', { readingItemId: src.id })
     expect((await move([withSrc.id], tight)).status).toBe(409)
@@ -602,7 +602,7 @@ describe('moving notes', () => {
     const n = await note('A')
     expect((await move([n.id], null)).status).toBe(400)
     const { batchId } = await (await move([n.id], idea)).json()
-    expect(s.ctx.store.moves.list(s.profile)).toEqual([
+    expect(s.ctx.store.moves.list(s.publication)).toEqual([
       expect.objectContaining({
         kind: 'note',
         itemId: n.id,
@@ -619,7 +619,7 @@ describe('moving notes', () => {
   })
 })
 
-describe('items dropping off the profile’s reading list after a month', () => {
+describe('items dropping off the publication’s reading list after a month', () => {
   let s: Awaited<ReturnType<typeof start>>
   const DAY = 86_400_000
   const start0 = new Date('2026-05-01T12:00:00Z').getTime()
@@ -692,7 +692,7 @@ describe('items dropping off the profile’s reading list after a month', () => 
     expect(await s.noteList(idea)).toHaveLength(1)
   })
 
-  it('starts the month again when an item is moved onto the profile’s list, unkept', async () => {
+  it('starts the month again when an item is moved onto the publication’s list, unkept', async () => {
     const idea = await s.newIdea()
     const withItem = await (
       await s.ada.post(s.ideaLinks(idea), { url: 'https://moved.example/' })
@@ -701,7 +701,7 @@ describe('items dropping off the profile’s reading list after a month', () => 
     at(100) // long enough that anything made at the start would be gone
     await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: null } })
     at(120)
-    expect(await urls()).toEqual(['https://moved.example/']) // 20 days on the profile's list
+    expect(await urls()).toEqual(['https://moved.example/']) // 20 days on the publication's list
     await s.ada.put(`${s.reading()}/${id}/kept`, { kept: true })
     await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: idea } })
     await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: null } })

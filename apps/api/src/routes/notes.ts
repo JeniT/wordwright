@@ -19,8 +19,8 @@ import { fail, notFound } from '../errors'
 import { param } from './params'
 
 /**
- * Notes, in the order the person arranged them: the routes for an idea's notes and for a profile's own are one
- * set, mounted twice. `resolve` says whose they are (and answers 404 if that doesn't exist). A profile has no
+ * Notes, in the order the person arranged them: the routes for an idea's notes and for a publication's own are one
+ * set, mounted twice. `resolve` says whose they are (and answers 404 if that doesn't exist). A publication has no
  * drafts, so it has no "added to a draft" state (`drafts: false` leaves that route out).
  */
 export function noteRoutes(
@@ -51,12 +51,12 @@ export function noteRoutes(
             400,
             scope.ideaId
               ? "That item isn't on this idea's reading list."
-              : "That item isn't on this profile's reading list.",
+              : "That item isn't on this publication's reading list.",
           )
         }
         // A note taken from an item of the reading list is a note from reading.
         const note = notes.append(
-          scope.profileId,
+          scope.publicationId,
           scope.ideaId,
           c.get('user').id,
           text,

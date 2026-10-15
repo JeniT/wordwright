@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } fr
 
 useMockServer()
 
-const profile = (role: 'owner' | 'member') => ({
+const publication = (role: 'owner' | 'member') => ({
   id: 'p1',
   name: "Ada's writing",
   siteUrl: null,
@@ -42,7 +42,7 @@ describe('downloading your writing', () => {
   it('from the account page: shows it working, saves the file the server names, and says so', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile('owner')])),
+      http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
       http.get('*/api/account/export', async () => {
         await delay(50)
         return zipReply('wordwright-export-2026-10-14.zip')
@@ -64,7 +64,7 @@ describe('downloading your writing', () => {
   it('is mentioned beside deleting the account, with a link to it', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([])),
+      http.get('*/api/publications', () => HttpResponse.json([])),
     )
     await renderAt('/account')
     const link = await screen.findByRole('link', { name: /download your writing first/i })
@@ -75,7 +75,7 @@ describe('downloading your writing', () => {
   it('explains in words why it could not be made, and lets you try again', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile('owner')])),
+      http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
       http.get('*/api/account/export', () =>
         HttpResponse.json(
           { error: 'You have downloaded a lot of exports. Try again in a little while.' },
@@ -90,12 +90,12 @@ describe('downloading your writing', () => {
     expect(screen.getByRole('button', { name: 'Download as a zip' })).toBeEnabled()
   })
 
-  it("from a profile's settings: says what a member gets, and downloads just that profile", async () => {
+  it("from a publication's settings: says what a member gets, and downloads just that publication", async () => {
     server.use(
       signedInAs(testUser),
       sourcesList(),
-      http.get('*/api/profiles', () => HttpResponse.json([profile('member')])),
-      http.get('*/api/profiles/p1/export', () => zipReply('wordwright-p1-2026-10-14.zip')),
+      http.get('*/api/publications', () => HttpResponse.json([publication('member')])),
+      http.get('*/api/publications/p1/export', () => zipReply('wordwright-p1-2026-10-14.zip')),
     )
     await renderAt('/p/p1/settings')
     expect(
@@ -106,14 +106,14 @@ describe('downloading your writing', () => {
     await waitFor(() => expect(saved).toEqual(['wordwright-p1-2026-10-14.zip']))
   })
 
-  it('tells an owner they get every draft in the profile', async () => {
+  it('tells an owner they get every draft in the publication', async () => {
     server.use(
       signedInAs(testUser),
       sourcesList(),
-      http.get('*/api/profiles', () => HttpResponse.json([profile('owner')])),
+      http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
     )
     await renderAt('/p/p1/settings')
     await screen.findByRole('heading', { name: 'Download your writing' })
-    expect(screen.getByText(/every draft in this profile/i)).toBeInTheDocument()
+    expect(screen.getByText(/every draft in this publication/i)).toBeInTheDocument()
   })
 })

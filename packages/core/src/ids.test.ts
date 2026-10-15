@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ProfileInputSchema,
-  ProfileUpdateSchema,
+  PublicationInputSchema,
+  PublicationUpdateSchema,
   SiteUrlSchema,
   UsernameInputSchema,
 } from './domain'
-import { firstAvailable, profileIdFor, slugify, suggestHandle } from './ids'
+import { firstAvailable, publicationIdFor, slugify, suggestHandle } from './ids'
 import { detectImageType } from './images'
 
 describe('slugify', () => {
@@ -40,17 +40,17 @@ describe('suggestHandle', () => {
   })
 })
 
-describe('profile ids', () => {
+describe('publication ids', () => {
   it('join handle and slug', () => {
-    expect(profileIdFor('jenit', 'Substack')).toBe('jenit-substack')
-    expect(profileIdFor('jenit', '日本語')).toBe('jenit-profile')
+    expect(publicationIdFor('jenit', 'Substack')).toBe('jenit-substack')
+    expect(publicationIdFor('jenit', '日本語')).toBe('jenit-publication')
   })
 
   it('cannot collide across different (handle, slug) pairs', () => {
     // "jen" + "it-substack" would clash with "jenit" + "substack" if handles could hold "-"
-    expect(profileIdFor('jen', 'it substack')).toBe('jen-it-substack')
-    expect(profileIdFor('jenit', 'substack')).toBe('jenit-substack')
-    expect(profileIdFor('jen', 'it substack')).not.toBe(profileIdFor('jenit', 'substack'))
+    expect(publicationIdFor('jen', 'it substack')).toBe('jen-it-substack')
+    expect(publicationIdFor('jenit', 'substack')).toBe('jenit-substack')
+    expect(publicationIdFor('jen', 'it substack')).not.toBe(publicationIdFor('jenit', 'substack'))
   })
 })
 
@@ -102,9 +102,9 @@ describe('SiteUrlSchema', () => {
   })
 
   it('is optional on create and clearable on update', () => {
-    expect(ProfileInputSchema.parse({ name: 'A' })).toEqual({ name: 'A' })
-    expect(ProfileUpdateSchema.parse({ siteUrl: null })).toEqual({ siteUrl: null })
-    expect(ProfileUpdateSchema.parse({})).toEqual({})
+    expect(PublicationInputSchema.parse({ name: 'A' })).toEqual({ name: 'A' })
+    expect(PublicationUpdateSchema.parse({ siteUrl: null })).toEqual({ siteUrl: null })
+    expect(PublicationUpdateSchema.parse({})).toEqual({})
   })
 })
 

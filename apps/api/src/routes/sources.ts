@@ -1,7 +1,7 @@
 import { Hono, type MiddlewareHandler } from 'hono'
 import {
   FeedError,
-  MAX_SOURCES_PER_PROFILE,
+  MAX_SOURCES_PER_PUBLICATION,
   RECENT_DAYS_DEFAULT,
   PostRefsSchema,
   RECENT_DAYS_MAX,
@@ -23,7 +23,7 @@ import { param } from './params'
 const ADD_TIMEOUT_MS = 20_000
 
 /**
- * Mounted under `/profiles/:profileId`. Any member can read and change the list: it is shared
+ * Mounted under `/publications/:publicationId`. Any member can read and change the list: it is shared
  * working material, like the drafts.
  */
 export function sourceRoutes(
@@ -38,7 +38,7 @@ export function sourceRoutes(
   const tooMany = () =>
     fail(
       409,
-      `A profile can have up to ${MAX_SOURCES_PER_PROFILE} sources. Remove one you no longer read to make room.`,
+      `A publication can have up to ${MAX_SOURCES_PER_PUBLICATION} sources. Remove one you no longer read to make room.`,
     )
   const tooManyAdds = () => fail(429, 'You have added a lot of sources. Try again later.')
   const readFeed = (url: string, signal = AbortSignal.timeout(ADD_TIMEOUT_MS)) =>
@@ -56,13 +56,13 @@ export function sourceRoutes(
   return (
     new Hono<AppEnv>()
       .use(member)
-      .get('/', (c) => c.json(sources.list(param(c, 'profileId'))))
+      .get('/', (c) => c.json(sources.list(param(c, 'publicationId'))))
 
       .post('/', validateJson(SourceInputSchema), async (c) => {
-        const profileId = param(c, 'profileId')
+        const publicationId = param(c, 'publicationId')
         const { url } = c.req.valid('json')
-        if (sources.has(profileId, url)) throw duplicate()
-        if (sources.count(profileId) >= MAX_SOURCES_PER_PROFILE) throw tooMany()
+        if (sources.has(publicationId, url)) throw duplicate()
+        if (sources.count(publicationId) >= MAX_SOURCES_PER_PUBLICATION) throw tooMany()
         // Each add makes our server fetch pages from the internet, so cap how many one person can start.
         if (!addLimiter.allow(c.get('user').id)) throw tooManyAdds()
 
@@ -72,7 +72,10 @@ export function sourceRoutes(
         const offered = await discover(url, signal)
         if (offered.length > 1) {
           return c.json({
-            choices: offered.map((o) => ({ ...o, alreadyAdded: sources.has(profileId, o.url) })),
+            choices: offered.map((o) => ({
+              ...o,
+              alreadyAdded: sources.has(publicationId, o.url),
+            })),
           })
         }
 
@@ -84,16 +87,16 @@ export function sourceRoutes(
         // `feed.url` can differ from `url` (a website address led to its feed).
         return c.json(
           store.transaction(() => {
-            if (sources.has(profileId, feed.url)) throw duplicate()
-            if (sources.count(profileId) >= MAX_SOURCES_PER_PROFILE) throw tooMany()
-            return sources.add(profileId, feed.url, feed, icon)
+            if (sources.has(publicationId, feed.url)) throw duplicate()
+            if (sources.count(publicationId) >= MAX_SOURCES_PER_PUBLICATION) throw tooMany()
+            return sources.add(publicationId, feed.url, feed, icon)
           }),
           201,
         )
       })
 
       .get('/:id/icon', (c) => {
-        const icon = sources.getIcon(param(c, 'profileId'), param(c, 'id'))
+        const icon = sources.getIcon(param(c, 'publicationId'), param(c, 'id'))
         if (!icon) throw fail(404, 'Not found')
         return imageResponse(c, icon)
       })
@@ -107,30 +110,32 @@ export function sourceRoutes(
         return c.json(
           await feedItems.recent(
             c.get('user').id,
-            param(c, 'profileId'),
-            sources.list(param(c, 'profileId')),
+            param(c, 'publicationId'),
+            sources.list(param(c, 'publicationId')),
             days,
             { refresh: c.req.query('refresh') === 'true' },
           ),
         )
       })
 
-      // Deciding about posts of the combined list: put on the profile's reading list, ignore, or take back.
+      // Deciding about posts of the combined list: put on the publication's reading list, ignore, or take back.
       .post('/recent/add', validateJson(PostRefsSchema), (c) =>
-        c.json(feedPosts.add(param(c, 'profileId'), c.get('user').id, c.req.valid('json').posts)),
+        c.json(
+          feedPosts.add(param(c, 'publicationId'), c.get('user').id, c.req.valid('json').posts),
+        ),
       )
       .post('/recent/ignore', validateJson(PostRefsSchema), (c) =>
         c.json(
-          feedPosts.ignore(param(c, 'profileId'), c.get('user').id, c.req.valid('json').posts),
+          feedPosts.ignore(param(c, 'publicationId'), c.get('user').id, c.req.valid('json').posts),
         ),
       )
       .post('/recent/reconsider', validateJson(PostRefsSchema), (c) =>
-        c.json(feedPosts.reconsider(param(c, 'profileId'), c.req.valid('json').posts)),
+        c.json(feedPosts.reconsider(param(c, 'publicationId'), c.req.valid('json').posts)),
       )
 
       // The feed's recent posts: the kept copy if it is recent, else the feed is asked again.
       .get('/:id/items', async (c) => {
-        const source = sources.find(param(c, 'profileId'), param(c, 'id'))
+        const source = sources.find(param(c, 'publicationId'), param(c, 'id'))
         if (!source) throw fail(404, 'Not found')
         return c.json(
           await feedItems.items(c.get('user').id, source, {
@@ -141,20 +146,20 @@ export function sourceRoutes(
 
       // Registered before `/:id` so that "order" is not taken for an id.
       .put('/order', validateJson(SourceOrderSchema), (c) => {
-        const profileId = param(c, 'profileId')
-        const ok = store.transaction(() => sources.reorder(profileId, c.req.valid('json').ids))
+        const publicationId = param(c, 'publicationId')
+        const ok = store.transaction(() => sources.reorder(publicationId, c.req.valid('json').ids))
         if (!ok) {
           throw fail(
             409,
             'The list has changed since you opened it. Reload the page and try again.',
           )
         }
-        return c.json(sources.list(profileId))
+        return c.json(sources.list(publicationId))
       })
 
       .delete('/:id', (c) => {
         const removed = store.transaction(() =>
-          sources.remove(param(c, 'profileId'), param(c, 'id')),
+          sources.remove(param(c, 'publicationId'), param(c, 'id')),
         )
         if (!removed) throw fail(404, 'Not found')
         return c.body(null, 204)

@@ -5,7 +5,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
@@ -16,11 +16,11 @@ describe('a draft has one editor (#154)', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
   let bob: TestClient
-  let profile: string
+  let publication: string
   let draft: Draft
   let adaId: string
   let bobId: string
-  const base = () => `/api/profiles/${profile}`
+  const base = () => `/api/publications/${publication}`
   const url = () => `${base()}/drafts/${draft.id}`
   const idOf = async (c: TestClient) => (await (await c.get('/api/auth/me')).json()).id as string
   const open = async (c: TestClient): Promise<Draft> => (await c.get(url())).json()
@@ -32,9 +32,9 @@ describe('a draft has one editor (#154)', () => {
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
-    draft = await createDraft(ada, profile, { title: 'T', body: 'First.' })
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+    draft = await createDraft(ada, publication, { title: 'T', body: 'First.' })
     adaId = await idOf(ada)
     bobId = await idOf(bob)
   })
@@ -89,8 +89,8 @@ describe('a draft has one editor (#154)', () => {
   })
 
   describe('when the editor goes', () => {
-    it('hands their drafts to the owner when they are removed from the profile', async () => {
-      ctx.store.drafts.reassignEditor(profile, adaId, bobId) // Bob edits this one
+    it('hands their drafts to the owner when they are removed from the publication', async () => {
+      ctx.store.drafts.reassignEditor(publication, adaId, bobId) // Bob edits this one
       expect((await open(ada)).editorId).toBe(bobId)
       const removed = await ada.delete(`${base()}/members/${bobId}`)
       expect(removed.status).toBe(204)
@@ -98,13 +98,13 @@ describe('a draft has one editor (#154)', () => {
     })
 
     it('hands their drafts to the owner when they leave', async () => {
-      ctx.store.drafts.reassignEditor(profile, adaId, bobId)
+      ctx.store.drafts.reassignEditor(publication, adaId, bobId)
       expect((await bob.delete(`${base()}/members/${bobId}`)).status).toBe(204)
       expect((await open(ada)).editorId).toBe(adaId)
     })
 
     it('hands their drafts to the owner when they delete their account', async () => {
-      ctx.store.drafts.reassignEditor(profile, adaId, bobId)
+      ctx.store.drafts.reassignEditor(publication, adaId, bobId)
       const gone = await bob.delete('/api/account', {
         confirmEmail: 'bob@example.com',
         password: PASSWORD,

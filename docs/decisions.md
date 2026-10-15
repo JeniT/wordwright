@@ -26,7 +26,7 @@ shared contract suite. Dependencies are injected into `createApp`.
 Why: the service shouldn't carry users' LLM costs. OpenAI offers "Sign in with ChatGPT" (partner-led); Anthropic's
 terms (Feb 2026) disallow subscription OAuth in third-party apps and point to API keys, so API keys are the common
 baseline. Keys are AES-256-GCM encrypted, bound to the user id, write-only in the UI. Losing `KEY_ENCRYPTION_SECRET`
-loses all stored keys. In a shared profile, each request spends the requester's own key.
+loses all stored keys. In a shared publication, each request spends the requester's own key.
 
 ## Sessions: opaque cookie, hashed in the database
 
@@ -45,24 +45,24 @@ the unverified local account's password and sessions are **discarded** and the i
 
 ## Account deletion semantics
 
-Removes the user and everything only they own (including profiles where they're the sole member). In shared profiles
-they're removed; drafts they wrote there remain. A person who is the **only owner** of a profile others belong to is
-refused (409) until they make someone else an owner or delete the profile (#166), so nobody is handed a profile they
+Removes the user and everything only they own (including publications where they're the sole member). In shared publications
+they're removed; drafts they wrote there remain. A person who is the **only owner** of a publication others belong to is
+refused (409) until they make someone else an owner or delete the publication (#166), so nobody is handed a publication they
 didn't agree to run. The cleanup of never-confirmed accounts still passes ownership on to the longest-standing member:
 there is no one to ask, and those accounts are unused. Immediate, no grace period; the account page offers a download of the person's writing first (#167, below).
 
-**Several owners (#166).** A profile can have several owners but never none. Any owner can make a member an owner or
-remove another owner (`PUT /api/profiles/:id/members/:userId/role`, `{role}`), and an owner can step down if another
+**Several owners (#166).** A publication can have several owners but never none. Any owner can make a member an owner or
+remove another owner (`PUT /api/publications/:id/members/:userId/role`, `{role}`), and an owner can step down if another
 owner exists; the last owner can't be demoted, can't leave and can't delete their account while others are in the
-profile. The count is checked inside the transaction that changes the role, so two owners removing each other at once
+publication. The count is checked inside the transaction that changes the role, so two owners removing each other at once
 can't leave none. Draft editors are a separate thing and don't change with the role; nobody is emailed. The buttons ask
-first, in a dialog that lists what the person will or won't be able to do (`lib/profile-roles.ts` holds that wording
+first, in a dialog that lists what the person will or won't be able to do (`lib/publication-roles.ts` holds that wording
 once, for the invitation form to reuse in #168). We kept multiple owners rather than a single "transfer ownership" so
 that handing over is two ordinary steps and never leaves a gap. Rejected: owners promoting with a switch (a role
 change is a bigger step than a setting, so it gets a button and a dialog).
 
 **Names stay if the person chooses (#153).** Deletion asks whether to keep the display name on what they contributed
-to profiles that continue (default yes) or show "a former member". On "keep", the name alone (never the email or
+to publications that continue (default yes) or show "a former member". On "keep", the name alone (never the email or
 handle) is copied into `kept_name` columns on the rows that would lose their author (`idea_notes`, `idea_messages`,
 `idea_research`, `draft_insertions`) just before the user row goes; reads use `COALESCE(users.name, kept_name)`, so
 while the account exists the live name wins (renames still follow). On "don't keep" nothing is copied, so no row
@@ -71,7 +71,7 @@ same rule: add its column to `UserStore.keepNameOnContributions`. Accounts purge
 
 ## Sharing is by emailed invitation, addressed to an email rather than an account
 
-People join a profile only by accepting an invitation, so nobody can be added unilaterally and inviting someone
+People join a publication only by accepting an invitation, so nobody can be added unilaterally and inviting someone
 who hasn't signed up yet just works. The owner's response is always the same `202`, whether the address has an
 account, is unknown, or is already a member, so the endpoint can't be used to look people up (this replaced the
 old "No account with that email" answer). Links are 7-day, hashed at rest, and bound to the invited address: the
@@ -101,61 +101,63 @@ The first version of the e2e suite passed while the dev server was broken, becau
 `apps/web/e2e/fixtures.ts` now fails any test on uncaught exceptions, `console.error`, failed requests or 5xx.
 The e2e API also runs on a real SQLite file so migrations are exercised.
 
-## Profiles are venues, and ids are `<handle>-<slug>`
+## Publications, and their ids `<handle>-<slug>`
 
-The existing profile (a container with members and drafts) _is_ the publishing venue the owner described, so it
-was extended rather than adding a second concept. Profile URLs get shared, so ids are readable: users get a
-`handle`, and a profile's id is `<creator's handle>-<slug of name>`. **Handles contain no `-`**, which makes the
-split unambiguous: otherwise handle `jen` + profile `it-substack` and handle `jenit` + profile `substack` would
-both be `jenit-substack`. The id follows the name: renaming a profile gives it a new id, and the old id stays in
-`profile_aliases` forever. The API answers the old id with a 301 (308 for writes, which keeps the method and body)
+A publication is where a writer publishes (a Substack, a blog, a magazine, a newsletter). It started as a container with
+members and drafts called a "profile", and was also called a "venue" in places; #174 settled on **publication** everywhere
+(code, database, API, prompts and screens). The container _is_ the publishing place, so it was extended rather than adding
+a second concept. Publication URLs get shared, so ids are readable: users get a
+`handle`, and a publication's id is `<creator's handle>-<slug of name>`. **Handles contain no `-`**, which makes the
+split unambiguous: otherwise handle `jen` + publication `it-substack` and handle `jenit` + publication `substack` would
+both be `jenit-substack`. The id follows the name: renaming a publication gives it a new id, and the old id stays in
+`publication_aliases` forever. The API answers the old id with a 301 (308 for writes, which keeps the method and body)
 to the new one, but only for members, so a stranger gets the same 404 as for an unknown id and can't learn that a
-profile was renamed. Retired ids are never reused for another profile (a new "Blog" gets `-2`), but renaming back to
+publication was renamed. Retired ids are never reused for another publication (a new "Blog" gets `-2`), but renaming back to
 an earlier name reclaims its id. The web app moves the address bar when it meets an id that isn't in the person's
-list (`useProfileAddressRedirect`). The id belongs to the creator's handle even if ownership later moves (T11). Handles are chosen at sign-up (checked live for availability); only sign-ups through an identity provider
+list (`usePublicationAddressRedirect`). The id belongs to the creator's handle even if ownership later moves (T11). Handles are chosen at sign-up (checked live for availability); only sign-ups through an identity provider
 get a generated one, and are asked once whether to keep it (`users.handle_chosen`). They can be changed later (T18,
-below); the migration also rewrote old UUID ids to this form. Alternatives rejected: per-user
+below). Alternatives rejected: per-user
 uniqueness on the name alone (URLs would need the user in the path anyway), and globally unique names (squatting,
 and the `substack` clash the owner wanted to avoid).
 
-## Profile pictures live in SQLite, are raster-only, and are sniffed
+## Publication pictures live in SQLite, are raster-only, and are sniffed
 
-A picture is up to 1 MB, in its own table (so listing profiles never reads image bytes), served by an authenticated
+A picture is up to 1 MB, in its own table (so listing publications never reads image bytes), served by an authenticated
 route with `nosniff`. The type comes from the file's leading bytes, not the declared Content-Type, and SVG is not
 accepted (script, same origin). No object-storage port yet: nothing else needs one, and moving it behind a port is
-easy when it does (hosting is D3). The per-user cap on owned profiles (25) bounds storage.
+easy when it does (hosting is D3). The per-user cap on owned publications (25) bounds storage.
 
-## A profile's website icon is a guest, stored apart from the picture (#177)
+## A publication's website icon is a guest, stored apart from the picture (#177)
 
-When a profile has a website and no picture of its own, the website's icon stands in. It is fetched with the same
+When a publication has a website and no picture of its own, the website's icon stands in. It is fetched with the same
 `FeedFetcher.fetchIcon` the reading list uses (SSRF-guarded; PNG, JPEG, GIF, WebP or ICO, never SVG, 256 KB), once
-when the profile is created or its website changes, and stored in `profile_site_icons`, apart from the owner's
+when the publication is created or its website changes, and stored in `publication_site_icons`, apart from the owner's
 upload (1 MB, raster only, no ICO). Browsers get it from our own origin, so the other site never learns who looks.
-It is drawn as any other site's image (`ProfileImage kind="source"`, on a plate, contained), never cropped into the
+It is drawn as any other site's image (`PublicationImage kind="source"`, on a plate, contained), never cropped into the
 slot for the person's own picture; the owner's picture always wins, and removing it shows the icon again.
 
 Best effort: the fetch has a 5 second limit and is throttled with the feed limiter. A failure, a timeout or a throttle
-never stops the profile being saved; it just means no icon (and a changed website drops the old site's icon). It is
+never stops the publication being saved; it just means no icon (and a changed website drops the old site's icon). It is
 fetched inside the request, not afterwards, so the page the person lands on already has it.
 
-## One profile description, not audience personas (#131, part of #27)
+## One publication description, not audience personas (#131, part of #27)
 
-A profile has one Markdown description of the venue: what it is, who reads it and what kinds of writing go there. The
+A publication has one Markdown description of the publication: what it is, who reads it and what kinds of writing go there. The
 earlier plan (T16, #2) was a table of reader personas, but some writing has no audience (weeknotes to think in public,
 #25), and a free-text description covers that case without a special state. It is Markdown so it can carry links;
 it is rendered by the same safe renderer as the AI's messages (no raw HTML, only web and email links). It is up to
 5000 characters, because it will go into prompts.
 
-Everyone who works in the profile can edit it, so it has its own route (`PUT /api/profiles/:id/description`, members)
+Everyone who works in the publication can edit it, so it has its own route (`PUT /api/publications/:id/description`, members)
 instead of the owner-only `PATCH`. (It also once stored where the words came from and whether a person had accepted them, for AI drafts; those columns were
 dropped in #151, see the last decision below.)
 
 ## The description is written in a rich-text editor, stored as Markdown (#147, part of #27)
 
-People shouldn't need to know Markdown to describe their venue, so the description (describe page and profile settings) is written in
+People shouldn't need to know Markdown to describe their publication, so the description (describe page and publication settings) is written in
 `DescriptionEditor`: a small Tiptap editor, using the packages the draft editor already has (no new dependency), with a toolbar
 of **Bold, Italic, Bulleted list, Numbered list and Link**, and the usual shortcuts. It reads and writes **Markdown**, so the stored
-format, the API, the AI context and the rendering on the profile page are unchanged.
+format, the API, the AI context and the rendering on the publication page are unchanged.
 
 - **Only what the description can show.** Headings, quotes, code, rules, strike-through and underline are switched off: underline would be
   saved as HTML, which the renderer escapes, and pasted headings or tables are flattened to paragraphs. The trailing empty paragraph Tiptap keeps
@@ -169,51 +171,51 @@ format, the API, the AI context and the rendering on the profile page are unchan
 - **Tests.** jsdom can't type into a rich-text editor, so `DescriptionEditor.test.ts` drives the real editor through its selection and the
   toolbar, and page tests swap in a plain-textarea stand-in (`src/testing/description-editor-stub.ts`); the e2e tests type in the real one.
 
-## Prompts do not vary by an explicit profile mode (#137, #25)
+## Prompts do not vary by an explicit publication mode (#137, #25)
 
-Decided by the owner: **no "writing mode" on the profile** ("for readers" or "to think in public") choosing between
-brainstorm and critique prompt variants, and no per-profile prompt editing. How the AI treats a venue comes from the
-writer's own description of it (#131, #133): the prompts tell the model to read it, so a venue described as personal
+Decided by the owner: **no "writing mode" on the publication** ("for readers" or "to think in public") choosing between
+brainstorm and critique prompt variants, and no per-publication prompt editing. How the AI treats a publication comes from the
+writer's own description of it (#131, #133): the prompts tell the model to read it, so a publication described as personal
 thinking is coached rather than edited, and is not asked for an audience or a wider appeal.
 
-- **Why.** A mode is one more thing to set and to get wrong, a venue is often both kinds of writing, and the free-text
-  description already carries the distinction, in the writer's words and visible to everyone in the profile. One set of
+- **Why.** A mode is one more thing to set and to get wrong, a publication is often both kinds of writing, and the free-text
+  description already carries the distinction, in the writer's words and visible to everyone in the publication. One set of
   prompts is also one set to evaluate and keep within `docs/responsible-ai.md`.
-- **What this settles.** #25's open question (prompts that vary by profile) is answered: they don't, beyond the
-  description. Per-profile prompt customisation ("a house style for each venue", `docs/brainstorming.md`) is not planned.
-  The distress-handling rules (principle 9) are not a profile mode either: they apply to every conversation.
-- **If it stops being enough.** The boundary evals added in #133 (a personal venue is not asked for an audience, a venue with
+- **What this settles.** #25's open question (prompts that vary by publication) is answered: they don't, beyond the
+  description. Per-publication prompt customisation ("a house style for each publication", `docs/brainstorming.md`) is not planned.
+  The distress-handling rules (principle 9) are not a publication mode either: they apply to every conversation.
+- **If it stops being enough.** The boundary evals added in #133 (a personal publication is not asked for an audience, a publication with
   readers is weighed against them) are what to watch; if real use shows the description alone is unreliable, the fix is
   to improve those prompts and cases first, and a mode would need a new decision.
 
-## The venue description is context for brainstorm, critique and research (#133, part of #27)
+## The publication description is context for brainstorm, critique and research (#133, part of #27)
 
-Every AI call that knows which venue it is for puts the profile description (#131) in a `<venue_description>` block:
+Every AI call that knows which publication it is for puts the publication description (#131) in a `<publication_description>` block:
 in the brainstorm snapshot (where it replaced the placeholder for audience personas), at the top of the critique
 message (before the draft, so block ids and anchors are unaffected), and in the research brief (after the idea).
 Brainstorm's own prompt (`brainstorm-default.md`) and the three fixed prompts say what it is and how to use it.
 
 - **Data, not instructions.** It is the writer's own text, so like their notes it is escaped (it cannot close the
   block) and every prompt says never to follow instructions found in it. Evals plant instructions in it for all three.
-- **No block when there is nothing to tell.** A blank description is not sent (`usableVenueDescription`; it once also
+- **No block when there is nothing to tell.** A blank description is not sent (`usablePublicationDescription`; it once also
   left out an AI draft nobody had confirmed); requests are then byte-for-byte what they were before. The brainstorm snapshot
   still says "(not described yet)", which is what makes the coach ask who the readers are.
-- **Adapt, not a mode.** Whether a venue is for readers or for writing to think in public (#25) is not a setting: the
-  prompts tell the model to read the description, so a venue that says "personal, mostly for me" is not asked for an
-  audience or a wider appeal, and critique then reads as a coach would. Whether that is enough, or the profile needs
+- **Adapt, not a mode.** Whether a publication is for readers or for writing to think in public (#25) is not a setting: the
+  prompts tell the model to read the description, so a publication that says "personal, mostly for me" is not asked for an
+  audience or a wider appeal, and critique then reads as a coach would. Whether that is enough, or the publication needs
   an explicit mode, was decision #137: it does not (see above); the evals added here are what to watch.
-- **Shared by the profile.** The description belongs to the profile, so everyone in it sends the same block through
+- **Shared by the publication.** The description belongs to the publication, so everyone in it sends the same block through
   their own key, model and (for brainstorm) prompt. People who saved their own brainstorm prompt keep it; the rules that
   are added after it carry the instructions about the description either way.
 
-## An AI draft of the venue description: reflect, label, confirm (#135, part of #27)
+## An AI draft of the publication description: reflect, label, confirm (#135, part of #27)
 
-> **Removed in #150** (see _Venue descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
+> **Removed in #150** (see _Publication descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
 
-`POST /api/profiles/:id/venue/description` (`{ urls, replace? }`, any member, with their own key) drafts the venue
+`POST /api/publications/:id/publication/description` (`{ urls, replace? }`, any member, with their own key) drafts the publication
 description from 1 to 5 sample posts (#134). **Rung 2: it reflects** what the posts show and the writer then reads,
-edits and confirms it; it never writes what will be published (`prompts/venue-description.md` forbids slogans,
-taglines, bios, advice and writing for the venue). Nothing is spent until the button is pressed.
+edits and confirms it; it never writes what will be published (`prompts/publication-description.md` forbids slogans,
+taglines, bios, advice and writing for the publication). Nothing is spent until the button is pressed.
 
 - **The server reads the posts itself** from the addresses, rather than being sent text: the evidence stored with the
   draft (`description_sources`) is then exactly what the model saw, and a client can't attach a claim to a link it
@@ -222,56 +224,56 @@ taglines, bios, advice and writing for the venue). Nothing is spent until the bu
   (`POST …/description/confirm`) it is shown to the writer but never sent to any model (#133: a test proves the
   brainstorm snapshot omits it, then includes it after confirming). Confirming keeps `inferred` and the sources, so the
   AI origin stays visible. (Changed in #136: a person's changes to a draft no longer make it "theirs"; see below.)
-- **Not overwriting** someone's own words: a venue whose description was written by a person answers 409 unless
+- **Not overwriting** someone's own words: a publication whose description was written by a person answers 409 unless
   `replace: true`. A draft over an earlier draft needs no confirmation.
-- **Capped**: 5 drafts an hour per profile, on top of the shared per-person allowance for fetching posts, so the way
+- **Capped**: 5 drafts an hour per publication, on top of the shared per-person allowance for fetching posts, so the way
   to a better description is to edit it, not to re-roll. A reply that is empty or over 5000 characters is refused and
   nothing is saved.
 - **What leaves the system**: the fetched text of the chosen posts (up to 8000 characters each), to the writer's own
   provider. **Boundary evals** (`evals/`): describes only what the posts show; says when evidence is thin; no
   demographic guesses about readers; says when posts differ; ignores instructions planted in a post.
 
-## Describing a venue: an optional page, and the origin follows the words (#136, part of #27)
+## Describing a publication: an optional page, and the origin follows the words (#136, part of #27)
 
-> **Removed in #150** (see _Venue descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
+> **Removed in #150** (see _Publication descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
 
-The flow is its own page, `/p/:profileId/describe` ("Describe this venue"). **The first thing on it is the box to write the
+The flow is its own page, `/p/:publicationId/describe` ("Describe this publication"). **The first thing on it is the box to write the
 description in** (#146: the first version opened on a two-step flow that led with the post picker, which made drafting look like the
-main path). Under the box is a **collapsed** section, "Draft from a few posts": the picker from #134 (the venue's recent posts
-and/or pasted links, from this venue or similar ones), what is sent, and **Draft a description**. A draft fills the box, closes the
+main path). Under the box is a **collapsed** section, "Draft from a few posts": the picker from #134 (the publication's recent posts
+and/or pasted links, from this publication or similar ones), what is sent, and **Draft a description**. A draft fills the box, closes the
 section and moves focus to the box, to read, change and use. A note says a draft replaces what is in the box when there is
-something there. The page is reached from the new-profile form (**Create and describe it**), from the profile page's
-invitation, and from the profile settings, so it can be done later.
+something there. The page is reached from the new-publication form (**Create and describe it**), from the publication page's
+invitation, and from the publication settings, so it can be done later.
 
-- **Opt-in beside "Create profile", not a step in the way.** The first plan put it between creating and arriving. It
+- **Opt-in beside "Create publication", not a step in the way.** The first plan put it between creating and arriving. It
   is a second button instead: describing is optional, and a forced extra screen would have been the default for every
-  profile (and for 25 existing tests). Making it the default later is a one-line change.
+  publication (and for 25 existing tests). Making it the default later is a one-line change.
 - **Plain words about what is sent** sit above the picker: the text of the chosen posts goes to the writer's own
   provider, with their own key, only when **Draft a description** is pressed. Visiting costs nothing.
 - **Marked as the AI's, with evidence, until accepted.** `DescriptionOrigin` shows the "AI draft" mark (the highlighter,
   which is for exactly this), the posts it was drawn from, and what has happened to it: not accepted yet (the assistant
-  does not see it), accepted as it was, or edited. It appears on the draft review, the profile page and the settings.
+  does not see it), accepted as it was, or edited. It appears on the draft review, the publication page and the settings.
   **Use this description** on an untouched draft calls `…/description/confirm`; with changes it saves them.
 - **Origin follows the text, so edits keep the mark.** A person's changes to an AI draft no longer turn it into "their
   own words" (the #131/#135 behaviour): the origin stays `inferred`, the sources stay, and `description_edited` becomes
   true. Saving counts as accepting it. Clearing the description starts again from nothing (entered, no sources, not
   edited), and a new draft resets "edited". A description written from scratch is never marked.
-- **Leaving without accepting** keeps the draft, unused. The profile page invites the writer to read it and decide.
+- **Leaving without accepting** keeps the draft, unused. The publication page invites the writer to read it and decide.
 
-## Sample posts for describing a venue: found and read without AI, kept nowhere (#134, part of #27)
+## Sample posts for describing a publication: found and read without AI, kept nowhere (#134, part of #27)
 
-> **Removed in #150** (see _Venue descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
+> **Removed in #150** (see _Publication descriptions are written by the writer_, at the end of this file). Kept as the record of why it was built.
 
-To draft a venue description (#135, #136) the writer chooses 3 to 5 sample posts: ticked from the newest ten of the
-venue's own feed, and/or pasted as links. Finding and reading them is a chore, not writing, so no LLM is involved
-and the routes are `POST /api/profiles/:id/venue/posts` (`{ siteUrl? }`, defaulting to the profile's website) and
-`POST /api/profiles/:id/venue/samples` (`{ urls }`, one to five), open to every member. Both are `POST` because they make
+To draft a publication description (#135, #136) the writer chooses 3 to 5 sample posts: ticked from the newest ten of the
+publication's own feed, and/or pasted as links. Finding and reading them is a chore, not writing, so no LLM is involved
+and the routes are `POST /api/publications/:id/publication/posts` (`{ siteUrl? }`, defaulting to the publication's website) and
+`POST /api/publications/:id/publication/samples` (`{ urls }`, one to five), open to every member. Both are `POST` because they make
 the server fetch other people's pages; neither saves anything, so a post's text exists only in the answer to the
 request that read it.
 
 - **The feed** is found with the existing `FeedFetcher` (`discover`, which puts feeds of comments last, then
   `readItems`); the first feed is used, because choosing between feeds is what #68 is for and a description needs
-  only an idea of the venue. No feed, an unreachable site or an empty feed is not an error: the answer is
+  only an idea of the publication. No feed, an unreachable site or an empty feed is not an error: the answer is
   `{ posts: [], notice }` with a sentence that ends "Paste links to a few of its posts instead", so the writer is never stuck.
 - **The text** comes through a new `PageTextFetcher` port (title, plain text, `truncated`), with a fake and a contract
   suite. Its HTTP adapter shares everything that makes `HttpPageInfoFetcher` SSRF-safe by using one class,
@@ -339,7 +341,7 @@ use" is revealed, as at registration, because the person has to be told; it is b
 ## Abandoned unconfirmed accounts are deleted after 14 days of no use
 
 A typo'd or abandoned signup otherwise squats on an address forever (the real owner then can't register).
-"Unused" means no drafts, no saved API key and no other people in their profiles, so nobody who has started
+"Unused" means no drafts, no saved API key and no other people in their publications, so nobody who has started
 using the product loses work; the 14 days is configurable and 0 disables it. It runs as a simple in-process
 interval (every 6 hours, 10 s after start, never overlapping, errors logged and retried), not a job queue,
 because it's idempotent and cheap, and running on several instances at once is harmless. Deletion uses the same
@@ -357,7 +359,7 @@ An idea is a name, notes, links to related work and its drafts. Drafts first gai
 ones that already existed stayed standalone (T20); T20c then finished the job: a migration wraps each leftover
 draft in an idea of its own, named after the draft (or "Untitled idea") and dated like it, so nothing is lost and
 people can regroup them later. Drafts can only be created through an idea (`POST /ideas/:id/drafts`); the
-standalone create and list routes are gone, and the profile page lists ideas. `drafts.idea_id` is still nullable
+standalone create and list routes are gone, and the publication page lists ideas. `drafts.idea_id` is still nullable
 in the schema because SQLite can't add NOT NULL afterwards; the store always sets it and the API schema requires
 it. An idea's drafts are listed with it in an order the person sets, which is also the reading order for a linked
 set of posts (T20e). New drafts go last; `drafts.position` holds the order and `PUT .../ideas/:id/drafts/order`
@@ -365,8 +367,8 @@ changes it the same way as idea sources (the complete list of ids, refused with 
 idea's drafts), and counts as a change to the idea. Deleting an idea deletes its drafts, which the page says before it asks for confirmation.
 Links are plain web addresses (http/https only, with `https://` assumed when someone types `example.org`); the
 field is a text input, because `type="url"` makes the browser refuse that. Having an idea counts as "using" an
-account, so the unconfirmed-account cleanup never deletes someone's ideas. Renaming a profile rewrites its id in
-every table that points at it; `ideas` was missing from that list at first, which broke renaming any profile
+account, so the unconfirmed-account cleanup never deletes someone's ideas. Renaming a publication rewrites its id in
+every table that points at it; `ideas` was missing from that list at first, which broke renaming any publication
 that had one, so the rename test now creates an idea.
 
 ## Notes are separate cards, with an origin (T28)
@@ -377,8 +379,8 @@ sending the whole list of ids, with a 409 if it is stale, as for feed sources; a
 `origin` is `entered`, `brainstorm` or `reading`; notes made through the API are always `entered`, and later
 tasks set the others on the server. `added_at` is for the drafting drawer (T33) and has no route yet.
 
-- **`profile_id` always, `idea_id` nullable.** A note can later belong to a profile before it has an idea
-  (starting an idea from notes, T37), so the table does not assume an idea. `profile_id` is in the profile-rename list.
+- **`publication_id` always, `idea_id` nullable.** A note can later belong to a publication before it has an idea
+  (starting an idea from notes, T37), so the table does not assume an idea. `publication_id` is in the publication-rename list.
 - **No tags or reading-item column yet.** Migrations are append-only and `ALTER TABLE ADD COLUMN` is cheap, so
   T35 and T31 add theirs when they need them.
 - **Existing text becomes one note.** The migration copies each non-blank `ideas.notes` into a single `entered`
@@ -446,7 +448,7 @@ tabbing away cancels; finishing the hold deletes.
 ## Notes name their author (T42)
 
 A note's origin line names the person (see "Who took a note is a chip" below). It is
-a trusted space (the owner's call), and in a shared profile "added by hand" wouldn't say whose hand. `IdeaNote.authorName`
+a trusted space (the owner's call), and in a shared publication "added by hand" wouldn't say whose hand. `IdeaNote.authorName`
 is joined from `users` when notes are read, so it is always the person's current name; it is null once their
 account is gone (the note stays, `created_by` is set null) unless they chose to keep their name (see Account deletion semantics), and the label then says "a former member". For a note
 the AI recorded, the author is the person whose message led to it. Notes written through the old single-text
@@ -467,8 +469,8 @@ and "hold your position"); the full set, with evals, is still open work.
 ## Changing your display name
 
 The name asked for at sign-up ("What should we call you?") is what other people see: on notes and brainstorm
-messages, in a profile's list of people, and in invitations. It can be changed on the Account page
-(`PUT /api/account/name`, validated by the same `NameSchema` as sign-up and profile names: trimmed, 1 to 100
+messages, in a publication's list of people, and in invitations. It can be changed on the Account page
+(`PUT /api/account/name`, validated by the same `NameSchema` as sign-up and publication names: trimmed, 1 to 100
 characters). **Nothing keeps a copy**, so a change shows everywhere at once with no migration: note authors, thread
 messages, members and a waiting invitation's sender are all read from `users.name` when shown, and tests prove it
 for each. The old name is not kept anywhere on purpose. There are two copies that cannot follow a change: emails
@@ -479,9 +481,9 @@ changes share. Names are not unique, as before.
 
 ## An idea's links are its reading list, and can be marked read (T31)
 
-What the idea page called "Related work" is now the idea's **Reading list**, and the profile's RSS feeds are
+What the idea page called "Related work" is now the idea's **Reading list**, and the publication's RSS feeds are
 **Reading list sources**: the two are still separate tables and routes (an idea's items are links someone chose; the
-profile's sources are feeds that will later fill a profile-level list, T37). The code keeps its old names (`idea_links`, `IdeaLink`, `ProfileSources`): renaming them is churn for no gain.
+publication's sources are feeds that will later fill a publication-level list, T37). The code keeps its old names (`idea_links`, `IdeaLink`, `PublicationSources`): renaming them is churn for no gain.
 
 - **Read is the writer's say-so.** Each item has `read_at` (null until marked), set by a plain checkbox, because the
   app can't know that a page was read, and people read things offline. Marking read twice keeps the first date;
@@ -558,8 +560,8 @@ taken from this item, and a box to add another. A note added here is sent with `
 - **Other pages found while reading** (#56) are added from the same page: a web-address box (the idea page's checks
   and title lookup, same call) puts the page on the reading list as `entered`, the page stays open, and a link offers
   to read the new item next. Nothing is read or noted for the writer.
-- **Profile level.** Only an idea has a reading list so far (the profile's feeds are sources, not items), so this page
-  is for an idea's items. A profile-level list (T37) would reuse the page.
+- **Publication level.** Only an idea has a reading list so far (the publication's feeds are sources, not items), so this page
+  is for an idea's items. A publication-level list (T37) would reuse the page.
 
 ## Flat tags on notes (T35)
 
@@ -662,7 +664,7 @@ other notes. Merged-away notes held nothing in a draft (those can't be merged), 
 a **name chip**: a rounded pill like a tag but blue, so it can't be mistaken for one, with a neutral "A former member"
 chip once their account is gone. Screen readers hear ", recorded by Ada". The same component is used on the idea's
 Notes, the reading page, the notes beside the draft and the draft's record of where words came from. "By" is kept for
-the author of a piece (#63). Users have no pictures yet (only profiles do), so the chip is their name; a picture can go
+the author of a piece (#63). Users have no pictures yet (only publications do), so the chip is their name; a picture can go
 inside it when accounts get one.
 
 ## Who wrote a reading-list item (#63)
@@ -673,7 +675,7 @@ each). They are what the page says, found with the title, and the writer can cor
 - **Detection.** `PageInfo` has an optional `authors`; it is absent when the page names no one, so the port's other
   results are unchanged. The HTTP adapter now reads to the end of the `<head>` (it used to stop at `</title>`, before
   the meta tags) and takes the first of these that names anyone: `<meta>` `author`, `article:author` (only when it
-  holds a name: it is often a profile address, which is skipped), `dc.creator`, `citation_author`, then schema.org
+  holds a name: it is often a publication address, which is skipped), `dc.creator`, `citation_author`, then schema.org
   JSON-LD `author`. The first source that names anyone wins, so a page isn't credited twice. Text only: names are
   decoded, tidied, de-duplicated and capped, and never treated as HTML. The fake names two authors for any address
   containing `authored`; the shared contract suite covers it.
@@ -700,11 +702,11 @@ them first), the AI only suggests, and a person decides on every page. The desig
 a first version built research into the brainstorm conversation was set aside.
 
 - **Separate from brainstorming, one prompt.** A **Research** button on the idea page opens
-  `/p/:profile/ideas/:idea/research`, which lists the idea's earlier research and takes a new request: one text box,
+  `/p/:publication/ideas/:idea/research`, which lists the idea's earlier research and takes a new request: one text box,
   _the areas to research_, however early the idea is (it may have no notes yet). The app writes the rest of the
   prompt (`prompts/research.md`). There is no dialogue, and any number of requests can be made for one idea, on
   different topics. Each is saved as a **run** (`idea_research`, with its pages in `idea_research_items`), shared with
-  the profile's members, and can be deleted (pages already added stay on the reading list).
+  the publication's members, and can be deleted (pages already added stay on the reading list).
 - **A range of perspectives, unlabelled.** The prompt tells the researcher to look for sources that support the
   direction the writer seems to be taking _and_ ones that challenge or complicate it, best effort. It must not say
   which is which: a label could change how the writer reads the source, and they might not take a page seriously that
@@ -752,7 +754,7 @@ a first version built research into the brainstorm conversation was set aside.
 - **Prompts changed (for the owner to review):** `prompts/research.md` and `prompts/tool-suggest-reading.md` (new),
   `prompts/brainstorm-rules.md` (fourth tool; only addresses the writer gave; point to Research).
 - **Not done:** re-fetching on add; the friction before citing an unread AI-found page is T34, unchanged; a
-  profile-level reading list (T37); idea generation (T6) can reuse the item list with its own origin.
+  publication-level reading list (T37); idea generation (T6) can reuse the item list with its own origin.
 
 ## Links in the draft look like links (#78)
 
@@ -788,10 +790,10 @@ The editor's drop cursor (a line in the accent colour) shows where it will land.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 
-Idea generation will scan RSS feeds, so each profile holds a list of feed URLs (D2: RSS first). Order is the
+Idea generation will scan RSS feeds, so each publication holds a list of feed URLs (D2: RSS first). Order is the
 priority later used to rank posts, so it is stored as a dense `position` and changed by sending the whole list of
 ids (`PUT .../sources/order`) rather than "move X to N": the server refuses (409) unless the ids are exactly the
-profile's current sources, so a stale screen can't drop or resurrect a feed, and drag, buttons and two editors
+publication's current sources, so a stale screen can't drop or resurrect a feed, and drag, buttons and two editors
 all use the one operation. The UI offers drag and drop (HTML5, grip handle, a small label as the drag image, a
 line shows where it will land) and, as the keyboard and touch route, up/down buttons; native drag and drop does not work on
 most touch screens, and a library for it wasn't worth a dependency. That interaction lives in one component,
@@ -831,7 +833,7 @@ one as ordinary addresses, so each is read, checked and rate-limited like any ot
 page with exactly one feed, is added at once as before, at the cost of reading it twice (once to discover, once to
 add). Choices are not pre-ticked: which feed to follow is the writer's call.
 
-A feed's recent posts are read by `FeedFetcher.readItems` and kept (`profile_source_fetches`, the posts as a JSON
+A feed's recent posts are read by `FeedFetcher.readItems` and kept (`publication_source_fetches`, the posts as a JSON
 list) so that opening a page never asks the feed. The rules, in `FeedItemService`: a read is used for 3 hours; a read
 sends `If-None-Match`/`If-Modified-Since` from the last one, and a `304` only renews the time; after a failure the feed
 is left alone for 30 minutes and the old posts keep being shown, with the error and when it last worked; an explicit
@@ -859,13 +861,13 @@ AI or the service deciding what the writer should write about (docs/responsible-
 **Adding posts to the reading list reuses the research review's decisions** (Add, Ignore, Reconsider; a decided
 post stays in the list, collapsed and marked, with a way back), applied to the combined list. The server adds a post
 from its own kept copy of the feed, named by feed and post id, never from what the browser sends, so only what a
-feed really said can be added, and nothing is fetched. A post becomes a profile-level reading item with origin
+feed really said can be added, and nothing is fetched. A post becomes a publication-level reading item with origin
 `feed` and the feed it came from. What is stored is only what was **ignored** (`feed_post_ignores`, by the post's
-address as links are compared, shared by the whole profile): whether a post was **added** is read from the reading
+address as links are compared, shared by the whole publication): whether a post was **added** is read from the reading
 lists themselves, so a post added by hand, or since moved to an idea, shows as added, and one whose item is removed by
-hand is offered again. Reconsidering an add takes the profile-level item off (notes taken from it stay but lose their
+hand is offered again. Reconsidering an add takes the publication-level item off (notes taken from it stay but lose their
 link to it, as when any item is removed); if the post is only on an idea's list, that has to be taken off there. Adding
-several at once is all or nothing, the profile's list has the same limit as an idea's, and a post already on a list
+several at once is all or nothing, the publication's list has the same limit as an idea's, and a post already on a list
 refuses the add with the reason. Posts still waiting are shown in date order only, as before: nothing ranks them. A post that has been added or
 ignored goes to the **end** of the list (the server sorts, so the cap and the pages see the same order), after every
 post still waiting, and decided posts follow in the order they were decided (an ignore's time, or when the item went on a
@@ -873,15 +875,15 @@ list), so the latest decision is last. Deciding keeps you on the same page, wher
 
 Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
-served from our own origin like profile pictures. Pointing browsers at the other site's image directly would tell
+served from our own origin like publication pictures. Pointing browsers at the other site's image directly would tell
 that site who is looking at the list and when. Failure to get a picture never blocks adding: a lettered tile
 stands in. Feed details are read only at the time of adding, so they can go stale and sources added before this
 existed have none (they show their address); refreshing is a follow-up (T19c).
 
 ## Inspiration is its own page (now Search and Read)
 
-The profile's feeds moved out of Settings onto an **Inspiration** page (`/p/:profileId/inspiration`, linked from the
-profile page): they are where ideas start, not a setting, and the posts they bring (T6c) and the reading list will
+The publication's feeds moved out of Settings onto an **Inspiration** page (`/p/:publicationId/inspiration`, linked from the
+publication page): they are where ideas start, not a setting, and the posts they bring (T6c) and the reading list will
 live nearby. Same component, same API.
 
 A "Find a feed" helper (build a feed address from a service and a topic, from recipes for the Guardian, arXiv,
@@ -890,24 +892,24 @@ upkeep, since the address patterns change without warning and each one needs che
 in the history (commit 393ca10) if the idea comes back, and `docs/research/idea-source-feeds.md` still records the
 patterns. Pasting a site's address, which finds the feed it advertises, remains the way to add one.
 
-**Split (#96).** Inspiration mixed two jobs, so it became two steps: **Search** (`/p/:profileId/search`: the recent
-posts and the feeds) and **Read** (`/p/:profileId/read`: the profile's reading list, and its reading pages). The old
+**Split (#96).** Inspiration mixed two jobs, so it became two steps: **Search** (`/p/:publicationId/search`: the recent
+posts and the feeds) and **Read** (`/p/:publicationId/read`: the publication's reading list, and its reading pages). The old
 `/inspiration` address leads to Search (to Read when it has `#reading-list`), and `/reading` to Read. Notes and Ideas
 moved to 03 and 04.
 
-**Landing pages (#98).** Opening a profile used to redirect to its Ideas step. `/p/:profileId` is now a page of its
-own, titled "Overview", that summarises the profile: its five latest notes with a form to add one, and its ideas. It is
+**Landing pages (#98).** Opening a publication used to redirect to its Ideas step. `/p/:publicationId` is now a page of its
+own, titled "Overview", that summarises the publication: its five latest notes with a form to add one, and its ideas. It is
 none of the numbered steps, so the menu marks nothing current, like the settings pages. "Latest" notes means newest
 made, not the writer's own order on the Notes step. The idea level gets the same treatment (#99), under umbrella #95.
 
-**Search and Read panels (#100).** The profile's page also summarises Search (the five newest posts still waiting for a
+**Search and Read panels (#100).** The publication's page also summarises Search (the five newest posts still waiting for a
 decision, newest first, each opening in a new tab, with "See more and set up feeds") and Read (the first five items not
 yet read, each opening its reading page, a box to add a web address, and "See the reading list"). The posts panel
 asks for the same lists under the same keys as the Search page, at its default period, so they share what has been
 fetched; opening the page never asks the feeds to check again. It has no Add or Ignore buttons: deciding is on Search.
 The add-a-link form is shared with the Read page (`AddLinkForm`).
 
-**Idea landing page (#99).** `/p/:profileId/ideas/:id` used to redirect to Notes; it is now the idea's landing page,
+**Idea landing page (#99).** `/p/:publicationId/ideas/:id` used to redirect to Notes; it is now the idea's landing page,
 none of the numbered steps. Research: the number of sources with a link to the reading list, and the same research box
 as the Research page (`ResearchForm`). Pressing **Research** is what spends, as ever; it stays on the page while
 searching (up to a minute), then opens the results. The box sits beside a plain statement of what is sent to the
@@ -915,7 +917,7 @@ provider. Notes: the shared `RecentNotes` panel. Draft: the idea's drafts in the
 step) and **Start a draft** (`StartDraftButton`, shared with the Draft step). A place is left for Refine (#101).
 
 **Idea landing page, second round (#130, #101, #102).** Creating an idea opens its landing page. Research shows the
-unread reading list (the profile's `RecentReading`, filed under Research) while there is anything unread, and the
+unread reading list (the publication's `RecentReading`, filed under Research) while there is anything unread, and the
 research box only when there is not, so the page offers the next likely move. Notes use `NoteCard`, shared with the Notes
 step, so tags and origin show in both. Refine shows the latest AI message (cut at a paragraph after about 600
 characters, with "Read in full") and a reply box. Sending from there is the same path as the Refine page: the text is
@@ -924,7 +926,7 @@ loaded, so the reply streams there and the missing-key message appears there. Wi
 "Talk it through" invitation and **Start brainstorming** opens Refine, which starts it (`?start=1`). Visiting sends
 nothing. The idea's name in the menu and above each step's title links to the landing page.
 
-**Landing page look (#111).** The title is the profile's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The profile's name in the menu, and above a step's title, links to the landing page; so does "← profile" in the idea menu.
+**Landing page look (#111).** The title is the publication's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The publication's name in the menu, and above a step's title, links to the landing page; so does "← publication" in the idea menu.
 
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
 
@@ -946,33 +948,33 @@ but nothing is rendered as HTML). Each person may trigger 30 lookups a minute. I
 contract suite like our other external services; `PAGE_FETCHER=fake` is refused in production. The lookup happens
 inside the request that adds the link (up to the 5 s deadline) rather than in the background, so the person sees
 the title, or the reason it was refused, straight away. Not done: a per-site politeness delay or caching.
-The profile's own website field (`SiteUrlSchema`) applies the same `WebAddressSchema` check, with a 300-character
+The publication's own website field (`SiteUrlSchema`) applies the same `WebAddressSchema` check, with a 300-character
 cap. It is checked only when saved, so a site stored earlier that wouldn't pass still displays, but must be
-corrected or cleared the next time the profile settings are saved.
+corrected or cleared the next time the publication settings are saved.
 
-## Reading items and notes can belong to a profile; moving them
+## Reading items and notes can belong to a publication; moving them
 
-The profile's feeds will fill a reading list that belongs to the profile as a whole (T37), worked through like an
+The publication's feeds will fill a reading list that belongs to the publication as a whole (T37), worked through like an
 idea's, and notes made there can later be gathered into an idea. So both kinds of thing need an owner that is either
-an idea or the profile.
+an idea or the publication.
 
-- **Ownership.** `idea_notes` already had `profile_id` (always) and `idea_id` (null for the profile's own). Reading items
-  (`idea_links`) now have the same: `profile_id` is always set and `idea_id` is null for the profile's own. This differs
-  from "exactly one of the two" in the task text on purpose: always carrying the profile makes "everything in this
-  profile" one query, cascades the profile's deletion directly, and matches notes. The code names an owner with the
-  one `Owner` type (`db/owner.ts`: an idea id, or `{ profileId }`), and every store method that used to take an idea id
-  takes an `Owner`, so an idea's lists and the profile's are the same code with a different `WHERE`.
+- **Ownership.** `idea_notes` already had `publication_id` (always) and `idea_id` (null for the publication's own). Reading items
+  (`idea_links`) now have the same: `publication_id` is always set and `idea_id` is null for the publication's own. This differs
+  from "exactly one of the two" in the task text on purpose: always carrying the publication makes "everything in this
+  publication" one query, cascades the publication's deletion directly, and matches notes. The code names an owner with the
+  one `Owner` type (`db/owner.ts`: an idea id, or `{ publicationId }`), and every store method that used to take an idea id
+  takes an `Owner`, so an idea's lists and the publication's are the same code with a different `WHERE`.
 - **A rebuild, with foreign keys off.** SQLite can't make `idea_id` nullable in place. Rebuilding a table other tables
   refer to (notes and research pages point at reading items) would, with foreign keys on, clear those references when
   the old table is dropped. The migration runner therefore takes `{ foreignKeysOff: true, run }` steps: foreign keys
   are off only for that step, the database is checked with `PRAGMA foreign_key_check` before it commits (a failure
   rolls back), and they are switched back on afterwards. Existing rows keep their ids, so nothing that refers to them
-  breaks, and `profile_id` is filled in from the idea they were in.
-- **Same rules, one set of routes.** The profile's notes use the idea notes' routes (`routes/notes.ts`, mounted twice;
-  the profile has no drafts, so no "added" state), and the reading list uses `IdeaLinkService` with a `ListScope`
-  (`{profileId, ideaId}`). Limits are the same numbers, worded for what is full ("A profile can have up to ..."). A
-  profile's order is its own list: reordering it never touches an idea's.
-- **What "move" keeps** (`MoveService`, all in one transaction, refusing anything outside the profile): _A reading item_
+  breaks, and `publication_id` is filled in from the idea they were in.
+- **Same rules, one set of routes.** The publication's notes use the idea notes' routes (`routes/notes.ts`, mounted twice;
+  the publication has no drafts, so no "added" state), and the reading list uses `IdeaLinkService` with a `ListScope`
+  (`{publicationId, ideaId}`). Limits are the same numbers, worded for what is full ("A publication can have up to ..."). A
+  publication's order is its own list: reordering it never touches an idea's.
+- **What "move" keeps** (`MoveService`, all in one transaction, refusing anything outside the publication): _A reading item_
   moves as it is (read date, authors, title, why, origin, feed) and **its notes go with it**, to the end of the
   destination's notes. If the destination already has an item with the same address (compared as links are everywhere),
   the two become one: the one already there stays, counts as read if the moved one was, and the moved item's notes now
@@ -983,47 +985,47 @@ an idea or the profile.
   be moving. A note that had been put into a draft is no longer "added", because it hasn't been put into any of the
   new owner's drafts. A move that would pass the limits (links or notes) is refused whole, and moving to where
   something already is is refused ("already there") rather than silently doing nothing.
-- **The pages are the idea's pages, parametrised by owner.** `lib/reading.ts` has `Owner` (`{profileId, ideaId}`; null
-  idea is the profile) and two composables: `useReadingList` (the list, from the idea's own query or the profile's) and
+- **The pages are the idea's pages, parametrised by owner.** `lib/reading.ts` has `Owner` (`{publicationId, ideaId}`; null
+  idea is the publication) and two composables: `useReadingList` (the list, from the idea's own query or the publication's) and
   `useReadingActions` (add, mark read, edit, remove, each keeping the server's answer in the right cache). `ReadingList`,
   `IdeaLinkItem`, `IdeaNotes` and the reading page each take an owner instead of an idea, and the web client's note
-  functions take `ideaId: string | null`. The idea pages behave as before (their tests are unchanged); the profile's are
+  functions take `ideaId: string | null`. The idea pages behave as before (their tests are unchanged); the publication's are
   `/p/:id/reading`, `/p/:id/reading/:item` and `/p/:id/notes`. Items from a feed (origin `feed`) are labelled "From a
   feed" without the highlighter, which stays for what the AI suggested.
-- **The profile's own reading list has no maximum, and forgets (#84).** It is a stream filled from the feeds, so a
+- **The publication's own reading list has no maximum, and forgets (#84).** It is a stream filled from the feeds, so a
   fixed limit would only make people clear space by hand. Instead an item **not marked Keep is dropped a month after it
-  was put on the profile's list** (`PROFILE_READING_DAYS`, in `ReadingStore.dropOld`): quietly, with no notice when it
+  was put on the publication's list** (`PUBLICATION_READING_DAYS`, in `ReadingStore.dropOld`): quietly, with no notice when it
   happens, since a notice about the thing you didn't choose to keep is more noise. The age is since the item was put on
   _this_ list, so an item moved back from an idea starts afresh and unkept (`setOwner`), and keeping is the writer's
   tick and nothing else. Two guards: an item **notes were taken from is never dropped** (a note with no source is worse
   than a stale list; the page says so, and it is one clause in `dropOld` to remove), and an idea's reading list and
-  notes are never swept (only the profile's own list, `idea_id` null). There is no background job: the sweep runs
-  whenever the profile's list is read, counted or checked for what is on it (so the Recent posts list is consistent
+  notes are never swept (only the publication's own list, `idea_id` null). There is no background job: the sweep runs
+  whenever the publication's list is read, counted or checked for what is on it (so the Recent posts list is consistent
   with it), using the real clock, like the time items are stamped with. A dropped item's feed post is offered again,
   as any post not on a list is. The limit of 50 stays for an idea's list, which is part of the work on one idea.
 - **Reading lists hide read items by default (#85).** An item that has been read is finished with, and the list is for
-  what is still to read. The page's `ReadingList` (idea's and profile's alike) shows only unread items, a **Show read
+  what is still to read. The page's `ReadingList` (idea's and publication's alike) shows only unread items, a **Show read
   items (N)** tick when there are any, and "N read items are hidden" (or "Everything on the list has been read" when
   nothing else is left, which is not the same as an empty list). An item ticked read _during this visit_ stays in
   view until the list is shown again or the tick is changed, so it doesn't disappear under the finger and can be
   unticked. The choice isn't saved: each visit starts tidy. This is purely what is shown: read items are still on the
-  list (and, on the profile's, still subject to the month and Keep). The drafting side bar's reading list is a
+  list (and, on the publication's, still subject to the month and Keep). The drafting side bar's reading list is a
   different list, for linking while writing, and is unchanged.
 - **Moving reading items on the page (#72).** Each reading list has a **Move items** mode: ticks on the items and one
-  picker, **Move to** (the profile's list, another idea, and, from the profile's own list only, **A new idea…**, which
+  picker, **Move to** (the publication's list, another idea, and, from the publication's own list only, **A new idea…**, which
   asks for the core idea in the writer's own words, nothing prefilled). It works with a keyboard and on a phone, and
   needs no drag and drop. A new idea is made first and then moved to; if the move fails the idea stays, empty, like
   any idea. The result is said in words ("Moved 2 items and 5 notes to “Rivers”.", plus how many items were joined to
   ones already there) with **Undo** (`lib/move.ts`, which #73 will reuse for notes). **Undo moves the same items back
   through the same operation**, which puts items and their notes back exactly when nothing was joined; when items
   were joined to ones already there, the moved item no longer exists on its own, so no Undo is offered and the message
-  says why. Undo onto the profile's list also starts the item's month again and unticks Keep (see above), as any move
+  says why. Undo onto the publication's list also starts the item's month again and unticks Keep (see above), as any move
   onto it does. Every list showing the moved things is refreshed afterwards.
 - **Gathering notes into an idea (#73).** The step where the writer decides what the idea is: the notes of the
-  profile (or of an idea) are ticked, a **new idea is made from them** with its core idea typed by the writer (nothing
-  suggested or prefilled; the AI is not involved), or they go to an existing idea or back to the profile. `MoveTo` and
-  `useMoveDestination` are the one picker for reading items and notes (the profile's own list as a choice only from
-  inside an idea; a new idea for notes from anywhere, for items only from the profile's list). Before confirming,
+  publication (or of an idea) are ticked, a **new idea is made from them** with its core idea typed by the writer (nothing
+  suggested or prefilled; the AI is not involved), or they go to an existing idea or back to the publication. `MoveTo` and
+  `useMoveDestination` are the one picker for reading items and notes (the publication's own list as a choice only from
+  inside an idea; a new idea for notes from anywhere, for items only from the publication's list). Before confirming,
   the page says in words how many notes will move and that **the pages they were taken from are copied** to the
   destination's reading list (or the copy there is used) while the originals stay: copying rather than moving the
   source is what lets other notes from the same page stay behind without losing theirs. A tick offers **"also bring
@@ -1033,7 +1035,7 @@ an idea or the profile.
   copied to the destination stay there, which the message says. Moves are in the `moves` log either way.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
-  with the profile.
+  with the publication.
 - **A new origin, `feed`,** is allowed for reading items (with `source_id`, the feed it came from, set to null if
   the feed is removed) for the "Add to reading list" page (T6c). Nothing creates one yet.
 
@@ -1044,7 +1046,7 @@ title or notes for an idea, or a new idea, as **proposals the person accepts**; 
 is both the owner's rule that the author's voice and decisions stay theirs and the main defence against prompt
 injection (idea notes and fetched page titles go into the prompt): the model has no way to change, fetch or send
 anything. It deliberately cannot touch drafts, and draft bodies are not sent to it. One thread per idea is shared
-by all members of the profile; each message is sent with its sender's own key, model and prompt, so the thread is
+by all members of the publication; each message is sent with its sender's own key, model and prompt, so the thread is
 stored in our own neutral format (text and tool calls, no provider "thinking" blocks) to replay across providers.
 The default prompt makes the model a sceptical commissioning editor and lives in code; each user can edit their
 own copy on the account page.
@@ -1144,7 +1146,7 @@ provider.
   cases define work that is planned (#45 critique, #46 brainstorm wrap-up, #49 distress and flattery) and may fail
   until it lands; that issue promotes its cases. Writing them first makes the issue's definition of done concrete.
 - **Structural boundaries are ordinary tests.** `brainstorm-boundaries.test.ts` fails if a tool gains a field that
-  could name a draft, an id or a profile, if a planted field survives validation, if a draft could carry text into the
+  could name a draft, an id or a publication, if a planted field survives validation, if a draft could carry text into the
   snapshot, or if the person's prompt could displace the app's rules. Adding to a tool is allowed, but must be a
   decision: the allowed-inputs list in the test has to be edited with it.
 - **Adapters.** Looking at a new LLM adapter now includes the contract suite (which must pass) and a run of
@@ -1212,8 +1214,8 @@ distinct heading typeface.
 
 ## Navigation: the menu follows you
 
-**Decision.** The side menu **follows you** through three levels: Home (Profiles, Account settings), a profile (**01
-Search**, **02 Read**, **03 Notes**, **04 Ideas**, Profile settings) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
+**Decision.** The side menu **follows you** through three levels: Home (Publications, Account settings), a publication (**01
+Search**, **02 Read**, **03 Notes**, **04 Ideas**, Publication settings) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
 **04 Draft**, Idea settings; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
 works and how to extend it is in [design.md](design.md#navigation-the-menu-follows-you); the mock-ups we compared, with
 screenshots, are in [design-concepts/navigation/](design-concepts/navigation/README.md).
@@ -1227,13 +1229,13 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
 | ----------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **A. The menu follows you** (taken) | The left menu changes with the level and lists its numbered steps, with a "← parent" link on top. | The owner leaned this way and it won: the calmest, the numerals are never ambiguous (only one level's numbers on screen), it needs no second navigation on the page, and on a phone the menu _is_ the step list. |
 | B. Steady menu, steps on the page   | The menu never changes; a breadcrumb and a numbered step strip sit under each page title.         | Rejected: two navigation systems at once, taller page chrome, tab-like (the owner leaned away from tabs), and on a phone the strip scrolls sideways so later steps can be off-screen.                            |
-| C. The menu is a map                | One tree shows profiles, steps, ideas and the idea's steps together.                              | Rejected: the busiest and least calm, grows with the number of ideas, repeats "01, 02…" at two levels in one list, and is a long scroll on a phone. It solves rapid switching, which no one has asked for.       |
+| C. The menu is a map                | One tree shows publications, steps, ideas and the idea's steps together.                          | Rejected: the busiest and least calm, grows with the number of ideas, repeats "01, 02…" at two levels in one list, and is a long scroll on a phone. It solves rapid switching, which no one has asked for.       |
 
 **Choices the owner made along the way.**
 
-- **Notes** at profile level are gathered and, when a group becomes an idea, they **appear in** the idea (moved, not
-  copied). That arrived with T37d (**Move notes** on the profile's Notes step); the menu needed no change for it.
-- **The idea's reading list is separate from the profile's** (as the data already was). The profile's reading list lives
+- **Notes** at publication level are gathered and, when a group becomes an idea, they **appear in** the idea (moved, not
+  copied). That arrived with T37d (**Move notes** on the publication's Notes step); the menu needed no change for it.
+- **The idea's reading list is separate from the publication's** (as the data already was). The publication's reading list lives
   in Read (step 02); the idea's in Research (step 01).
 - **Publish** was for getting a finished draft out; see _Publishing moved to the Draft page_ below (#97).
 - **The menu stays on the editor** on a laptop or desktop, but **folds away on the reading and note-taking page**, where
@@ -1245,7 +1247,7 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
   Brainstorm button); now Refine opens a page with **Start brainstorming**, as Research has **Start research**.
 - **No "complete" ticks and no locked steps.** State is shown as counts (sources, drafts, ideas). We have no way to
   know a step is "done", and claiming so would be prescriptive.
-- **A profile opens on Ideas, and an idea on Notes**, the choice of what to work on next, and the thing a new idea
+- **A publication opens on Ideas, and an idea on Notes**, the choice of what to work on next, and the thing a new idea
   starts with. Old addresses (`/p/<id>`, `/p/<id>/ideas/<idea>`, `/p/<id>/reading`, `…/brainstorm`) redirect.
 - **The numbers are decoration for screen readers** (an ordered list says the order), so the step names are the
   accessible names and tests find links by them.
@@ -1317,7 +1319,7 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   (the writer sees "something we could not read, try again"). Points carry no replacement text by design: there is no
   field for it. The prompt also forbids it, and an eval checks that.
 - **Kept, and found again (T9b, #91).** Each critique is saved as a round (`critique_rounds`, `critique_points`,
-  both `ON DELETE CASCADE` from the draft, so they go with it and with its profile). Only the latest round is shown
+  both `ON DELETE CASCADE` from the draft, so they go with it and with its publication). Only the latest round is shown
   and nothing counts rounds yet (T9c). A point stores its block id, the block's hash and the start of its text.
   The editor places each point again whenever the text changes (`locateBlock`, `@lfwa/core`): first a paragraph with
   the same words (nearest to where it was, if two are alike), then one that still starts with the same words, and
@@ -1336,7 +1338,7 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   3 looks used"); when it is used up the button is disabled and the page says kindly that the next step is to
   publish. The server enforces it (409, before anything is sent to the AI), and a failed critique is not saved, so it
   costs no look. Editing a draft does not reset the count. The count belongs to the draft, but the limit is the
-  **requester's own**: in a shared profile, rounds made by anyone count against the draft, and each person is held to
+  **requester's own**: in a shared publication, rounds made by anyone count against the draft, and each person is held to
   the limit they chose for themselves. Whether a heavy rewrite should earn more looks is for the owner to decide (#103); until then a writer who starts over adds a new draft.
 - **Comments beside the draft (#106).** After trying critique in use, the owner moved the comments from under the
   draft to the side area, which is now three tabs: **Notes, Reading list, Comments** (`TabPanels`, WAI-ARIA tabs;
@@ -1358,7 +1360,7 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
 **Revisit if** models often send JSON we cannot read (move to a forced tool call, which needs a tool choice on the
 `chat()` port), or points need to be about a sentence rather than a paragraph.
 
-**Applied to notes, drafts and feeds (#89).** The notes list (idea and profile) has the same toolbar: select-all and the
+**Applied to notes, drafts and feeds (#89).** The notes list (idea and publication) has the same toolbar: select-all and the
 tag filter on the left; Merge, Move to… and Delete on the right (Delete is a held bulk action). The "Merge notes" and
 "Move notes" modes are gone: every note has a select checkbox in its rail, above its grip. Merge is disabled, with a
 reason in its tooltip, while a quotation is selected (it must stay as written); the merged note goes where the first
@@ -1380,9 +1382,9 @@ nothing jumping when the pointer arrives. They are 28px, solid when disabled, an
 
 **Bulk tagging (#139, under #87).** Tags are set on several notes in one request (`POST …/notes/tags` with `ids`, `add`, `remove`), not a loop of per-note saves, so the change is atomic: if any note would end with more than `MAX_NOTE_TAGS` tags, none is changed and the reply names the note. Tags are compared ignoring case; adds keep a note's existing order and go last; removes win over nothing (a tag asked to be removed and added in one request ends up added). Quotations can be tagged, since tagging does not touch their words. The panel (`BulkTagPanel`) is shared with the reading list, which gets tags and the same action next (#140, #141). A new tag filter clears the selection, as every filter does.
 
-**Tags on reading-list items (#140, under #87).** Reading items carry flat tags like notes do (same rules: tidied, case-insensitive, at most `MAX_NOTE_TAGS`, kept in the order given), in their own table (`idea_link_tags`, deleted with the item). They are set as a whole (`PUT …/links/:id/tags` on an idea, `…/reading/:id/tags` on the profile), edited in the item's edit form, and the list has the same tag filter as notes (a new filter clears the selection). A moved item keeps its tags. When a moved item joins one already at the destination (same address), its tags are added to that item's, each once ignoring case, up to the limit (extras beyond it are dropped rather than refusing the move). The copy of a source item that a moved _note_ takes along does not get the tags: tags describe how a writer groups things in one place, not the source itself.
+**Tags on reading-list items (#140, under #87).** Reading items carry flat tags like notes do (same rules: tidied, case-insensitive, at most `MAX_NOTE_TAGS`, kept in the order given), in their own table (`idea_link_tags`, deleted with the item). They are set as a whole (`PUT …/links/:id/tags` on an idea, `…/reading/:id/tags` on the publication), edited in the item's edit form, and the list has the same tag filter as notes (a new filter clears the selection). A moved item keeps its tags. When a moved item joins one already at the destination (same address), its tags are added to that item's, each once ignoring case, up to the limit (extras beyond it are dropped rather than refusing the move). The copy of a source item that a moved _note_ takes along does not get the tags: tags describe how a writer groups things in one place, not the source itself.
 
-**Bulk tagging reading items (#141, under #87).** Reading lists get the same **Tag…** action as notes, through the shared `BulkTagPanel` and one atomic request (`POST …/reading/tags` on the profile, `…/links/tags` on an idea: `ids`, `add`, `remove`). The add/remove rules and the refusal when an item would pass `MAX_NOTE_TAGS` live in one place (`services/tag-change.ts`) for both notes and items, so they cannot drift apart. With #139, #140 and this, #87 is complete.
+**Bulk tagging reading items (#141, under #87).** Reading lists get the same **Tag…** action as notes, through the shared `BulkTagPanel` and one atomic request (`POST …/reading/tags` on the publication, `…/links/tags` on an idea: `ids`, `add`, `remove`). The add/remove rules and the refusal when an item would pass `MAX_NOTE_TAGS` live in one place (`services/tag-change.ts`) for both notes and items, so they cannot drift apart. With #139, #140 and this, #87 is complete.
 
 **Tags one at a time (#143).** The comma-separated Tags field is gone from the note and link edit forms. Tags are entered under the item, one per Enter (`TagEntry`), saved as soon as each is added, with the whole set sent each time (so the API is unchanged and a failed save puts the tag back off). That also lets quotations be tagged one by one, which the edit form could not offer because quotations cannot be edited. Bulk tagging uses the same entry so single and bulk behave alike. Suggestions are a native `<datalist>` (no extra buttons). A save chain per item keeps rapid Enters in order.
 
@@ -1390,7 +1392,7 @@ nothing jumping when the pointer arrives. They are 28px, solid when disabled, an
 
 **Bulk actions in the header (#145).** Actions that do something to a selection are hidden until something is selected. An action that needs input takes over the header instead of opening a panel under it (Tag… and Move to…): the rest of the header is its form, ending in a tick and a cross as icon buttons, with the explanation behind an info icon (`InfoTip`) so the form stays on one line where it can. Merge and Delete/Remove N stay one-click (Delete asks in a dialog). The header's form closes if the selection empties. The old `BulkTagPanel` (a panel under the header, with switches) became `BulkTagFields`, with press-to-remove chips; `MoveTo` is now an inline row. Tooltips are CSS (hover or focus within), not a JS popover.
 
-## Venue descriptions are written by the writer; AI drafting was removed (#150)
+## Publication descriptions are written by the writer; AI drafting was removed (#150)
 
 The owner removed "Draft from a few posts" (#134, #135, #136, and the later #149 plan to fetch whole posts and page back
 through a site's feed). Drafting a description from sample posts spent the writer's tokens on a text that, under our own
@@ -1398,25 +1400,25 @@ responsible-AI rules (reflect only what the posts show, say when the evidence is
 what is published), was not worth what it cost, and fetching whole posts would have cost more. So nothing now creates an
 AI-inferred description.
 
-- **Removed:** the sample-posts picker, `POST /profiles/:id/venue/{posts,samples,description}`, the venue-description prompt
+- **Removed:** the sample-posts picker, `POST /publications/:id/publication/{posts,samples,description}`, the publication-description prompt
   and its evals, `PageTextFetcher` (its port, HTTP adapter, fake, contract and readable-text extraction: nothing else used
   it), and the rate limiters that went with them. `PAGE_FETCHER` remains: it still chooses the page _title_ fetcher.
 - **Instead, guidance.** The describe page opens on "What makes a useful description" (also folded above the editor in the
-  profile settings): what it is, what it covers, who reads it (by interests and knowledge, never by who they are; say so
+  publication settings): what it is, what it covers, who reads it (by interests and knowledge, never by who they are; say so
   when the writing is personal, so the assistants don't ask for an audience), how it is written, and what feedback the
-  writer wants, with an example, and a note that it is the writer's account of the venue and is never read as
+  writer wants, with an example, and a note that it is the writer's account of the publication and is never read as
   instructions. The points follow how the prompts use the description (`prompts/brainstorm-rules.md`, `critique.md`,
   `research.md`).
 - **Origin handling removed too (#151).** With nothing live to keep, a migration dropped `description_origin`,
   `description_confirmed`, `description_sources` and `description_edited`; the "AI draft" mark (`DescriptionOrigin`),
-  `POST /profiles/:id/description/confirm`, the unconfirmed check in `usableVenueDescription` and the profile fields that
+  `POST /publications/:id/description/confirm`, the unconfirmed check in `usablePublicationDescription` and the publication fields that
   carried them went with it. A description is always the writer's own words, and every saved one reaches the assistants.
 
 ## What is waiting on you: reminders without nagging (#159)
 
-One read, shown in one place. `GET /api/profiles/:id/attention` answers, for the person asking: drafts offered to them,
+One read, shown in one place. `GET /api/publications/:id/attention` answers, for the person asking: drafts offered to them,
 their own offers still unanswered, and, for drafts they edit, how the reviews they sent stand per snapshot (reading,
-finished, closed, and reviewers' comments not yet resolved). The profile's landing page shows it above everything else
+finished, closed, and reviewers' comments not yet resolved). The publication's landing page shows it above everything else
 and shows nothing when nothing waits; the draft page already carries its own offer controls, and gains the same per-copy
 summary beside the reviewers. A draft is flagged ("Reviews finished, comments to answer") only when every review of a
 snapshot is over, at least one was finished and comments remain unresolved: closed-only reviews and reviews still
@@ -1433,7 +1435,7 @@ ADR 0002 is the decision; these are the details.
 - **A reviewer-only account** is `users.reviewer_only = 1` with a null `handle`. The one place that enforces what it
   may reach is `requireUser` (`reviewerMayReach`): who it is, sign-out, `/reviews/*`, accepting an invitation and
   deleting itself; everything else is 404, as for a stranger. A test walks every route the app registers as a reviewer.
-  The web app mirrors it (the router sends such an account to its reviews, and the profile list is never requested).
+  The web app mirrors it (the router sends such an account to its reviews, and the publication list is never requested).
 - **A review is of a snapshot** (#158, ADR 0001): when the editor sends the draft, its title and body are frozen in
   `draft_snapshots` and every person asked reviews that copy (`draft_reviews`: open, ended, closed; one per snapshot and
   reviewer). The editor keeps writing; sending again makes a new snapshot, and more from the same person is a new
@@ -1447,13 +1449,13 @@ ADR 0002 is the decision; these are the details.
 - **Members can be asked too** (`memberIds`): they get a review of the same snapshot at `/reviews/:id`, an email with that
   link, and a "Drafts to review" list on their home page. Only the editor sends; owners can still close reviews.
 - **Who may send and close:** only the editor sends (with a confirmed address); the editor or an owner can close; capped per person (shares the
-  profile invitation cap of 20 a day) and per recipient (5 a day). The answer is the same `202` whatever the address,
+  publication invitation cap of 20 a day) and per recipient (5 a day). The answer is the same `202` whatever the address,
   and nothing is sent to an address that is blocked, already reviewing, or already a member.
 - **Only a name and password** make a new reviewer account (the link proves the inbox, so the address is confirmed).
   Someone who follows the link with an existing account signs in and the review is added to it. A new person who would
   rather use Google gets a full account through the ordinary sign-up and then follows the link again; reviewer-only
   accounts are not made through an identity provider (a gap in the issue's wording, kept simple on purpose).
-- **Upgrading:** accepting a profile invitation as a reviewer-only account gives it a generated username (the app asks
+- **Upgrading:** accepting a publication invitation as a reviewer-only account gives it a generated username (the app asks
   once whether they'd like another) and keeps its reviews; **Start writing** chooses a username and does the same.
 - **Comments** are the ones from #156: a reviewer's are visible to them and the editor only, and follow the keep-my-name
   choice at account deletion like members' do.
@@ -1466,7 +1468,7 @@ ADR 0002 is the decision; these are the details.
   unsaved would be lost. Non-editors pick up changes through the ordinary refetch on focus, so no new dependency.
 - **A draft always has an editor.** `editor_id` is `SET NULL` on user deletion as a backstop, but removing a member
   and deleting an account hand their drafts to the longest-standing remaining owner first (`handDraftsToOwner`).
-  Existing drafts went to their creator, or the profile's oldest owner if the creator was gone.
+  Existing drafts went to their creator, or the publication's oldest owner if the creator was gone.
 - **Non-editors see no AI comments.** `GET …/critique` returns `round: null` for them, following independent review
   (below). Setting a comment aside is the editor's too. (#156 gave everyone a Comments tab for their own comments, and
   `used` is now 0 for non-editors so the route does not tell them how many critiques were made.)
@@ -1493,13 +1495,13 @@ ADR 0002 is the decision; these are the details.
 
 Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse choices are `docs/adr/0001-reviews-are-of-snapshots.md` and `docs/adr/0002-reviewer-only-accounts.md`. Built as #152–#159.
 
-- **One editor per draft.** The member currently responsible for its title and body; the creator at first. Only the editor saves, uses Add to draft, publishes, invites reviewers or asks for an AI critique. Saves are version-checked (409 on a stale save); no live collaboration. The profile role `editor` is renamed `member` (#152) so the word means one thing.
+- **One editor per draft.** The member currently responsible for its title and body; the creator at first. Only the editor saves, uses Add to draft, publishes, invites reviewers or asks for an AI critique. Saves are version-checked (409 on a stale save); no live collaboration. The publication role `editor` is renamed `member` (#152) so the word means one thing.
 - **Handover is explicit.** The editor offers the draft to a named member, who accepts; until then the offerer stays editor and can withdraw. Any member can ask, which only prompts the editor. An owner can reassign an absent editor's draft, and it passes to an owner when the editor leaves or deletes their account.
 - **One comment model; independent review.** AI critique points and people's comments are one kind of thing (anchored to a paragraph or the whole draft, never carrying replacement text). The editor sees all of them with authors, the AI's marked; every other person, including reviewers and owners who are not the editor, sees only their own. This keeps reviewers independent and leaves resolving disagreement to the editor. No replies for now. **Resolved** (editor only) hides a comment; nothing is deleted.
 - **Humans are not capped.** The rationing exists because an LLM always finds something to tweak. Human comments do not count against critique rounds.
 - **Reviewers.** Invited by email to a draft, they review a snapshot (ADR 0001) with a reviewer-only account (ADR 0002). A review is open, ended (the reviewer pressed End review, which emails the editor once with a comment count) or closed (the editor stopped accepting); ended and closed reviews are read-only and still show the snapshot and the reviewer's comments.
 - **Emails** only for a handover offer, a reviewer invitation and a finished review. Comments send none. In-app reminders for open handovers and reviews come last (#159).
-- **Names outlive accounts, by choice.** People get credit for their notes and comments in profiles that continue. Deleting an account asks whether to keep the display name on them (default yes) or show "a former member"; the email and handle are never kept (#153).
+- **Names outlive accounts, by choice.** People get credit for their notes and comments in publications that continue. Deleting an account asks whether to keep the display name on them (default yes) or show "a former member"; the email and handle are never kept (#153).
 - **Not built:** human "suggested change" text (a later issue if wanted), replies, real-time editing.
 
 ## Comments: how they were built (#156)
@@ -1508,7 +1510,7 @@ Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse
   `dismissed_at` became `resolved_at`); `critique_rounds` stays and holds only the summary and the ready verdict. A comment
   with a `round_id` is the AI's, so there is no `is_ai` flag to disagree with it. `author_id` is `SET NULL` on account
   deletion, and `kept_name` follows the other contributions (#153): copied at deletion only if the person chose to keep
-  their name, read as `coalesce(users.name, kept_name)`. A member who merely leaves a profile keeps their name for free
+  their name, read as `coalesce(users.name, kept_name)`. A member who merely leaves a publication keeps their name for free
   because the account still exists.
 - **Visibility is decided in one function.** `visibleComments` (editor: everything including resolved; anyone else: their
   own open comments) is the only way a route returns comments, and the store has no per-person query to misuse. The
@@ -1523,7 +1525,7 @@ Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse
   what the server finds the block in; a stale choice gets a 400 saying to reload.
 - **People's marks are not highlighter-coloured.** The highlighter is only for what the AI suggested, so a person's comment
   gets a plain edge and mark in the text, and a plain number chip in the list.
-- **The AI boundary is structural.** `formatDraftForCritique` takes only the draft's title and body (and the venue
+- **The AI boundary is structural.** `formatDraftForCritique` takes only the draft's title and body (and the publication
   description); a test writes comments from two people and checks the request sent to the model contains none of them.
   No prompt changed.
 
@@ -1552,13 +1554,13 @@ assistance ladder. This task is the service; the window is #162, the title entry
   is a 502 telling the writer to try the aim another way. A title needs a draft of about 300 words to work from, since
   titles are best made when the piece is nearly done. **All of these numbers are in `REPHRASE`
   (`packages/core/src/rephrase.ts`)**, to tune in one place. A heading counts by its words; there is no special case.
-- **What is sent, and who may ask.** The Aim, the wording, the draft's title and body, the venue description and any
+- **What is sent, and who may ask.** The Aim, the wording, the draft's title and body, the publication description and any
   earlier options in the window, to the writer's own provider. Never notes, brainstorm threads or comments (a test
   fails if they appear). Only the draft's editor can ask, as with critique.
 - **Structural and prompt-level.** Structural: the AI has no tool that writes to a draft; the server checks counts,
   lengths and the changed Aim; text enters a draft only by the writer's "Use this". Prompt-level, eval-tested and not
   guaranteed (`prompts/options.md`, `evals/`): options differ in approach, reword without adding facts or quotations,
-  say what they cannot supply if the Aim asks for new material, and treat the draft, wording, Aim and venue description
+  say what they cannot supply if the Aim asks for new material, and treat the draft, wording, Aim and publication description
   as data. A prompt change is a product change: the owner reviews it.
 - **Not built yet:** the title button (#163); social posts (#164). The window and the record on use are #162, below.
 
@@ -1590,15 +1592,15 @@ assistance ladder. This task is the service; the window is #162, the title entry
 ## Exporting your writing: Markdown only, by role, built on request (#167)
 
 A zip of Markdown files, nothing else, so a writer can open their words anywhere (priority 4: no lock-in). Chosen with
-the owner: **no JSON** ("I don't think JSON will be useful generally"), **one file per profile, idea and draft**, with
-the idea and profile files holding bullet lists of notes and the reading list and relative links to what belongs to
-them. Layout: `README.md` at the top (what is in, who gets what, what is left out), then `<profile-id>/` with
-`<profile-id>.md`, `ideas/<slug>.md` and `drafts/<slug>.md`. File names are slugs of titles (letters, digits and
+the owner: **no JSON** ("I don't think JSON will be useful generally"), **one file per publication, idea and draft**, with
+the idea and publication files holding bullet lists of notes and the reading list and relative links to what belongs to
+them. Layout: `README.md` at the top (what is in, who gets what, what is left out), then `<publication-id>/` with
+`<publication-id>.md`, `ideas/<slug>.md` and `drafts/<slug>.md`. File names are slugs of titles (letters, digits and
 hyphens, numbered when two collide), so a title can never name a path; the zip writer refuses any other path. The
-profile's folder and file use its id (`<handle>-<name>`), not its name, for the same reason. An idea has no separate
+publication's folder and file use its id (`<handle>-<name>`), not its name, for the same reason. An idea has no separate
 aim: its name is the writer's own statement of the core idea, so that is its heading.
 
-- **Who gets which drafts.** An **owner** gets every draft in the profile, including other members'. A **member** gets
+- **Who gets which drafts.** An **owner** gets every draft in the publication, including other members'. A **member** gets
   the drafts they are the editor of or started (a draft they started and handed away is still listed, marked "now edited
   by someone else"); the idea file says how many drafts by other members aren't included. Notes and reading-list
   items are everyone's and are all included. Members can read every draft in the app, so this is a rule about what
@@ -1609,9 +1611,29 @@ aim: its name is the writer's own statement of the core idea, so that is its hea
 - **Left out.** Comments (human and AI), critiques, snapshots and reviews, brainstorm conversations (anything worth
   keeping should already be a note), API keys, and every email address. The AI's `why` on a suggested reading item is
   left out too: it is the AI's claim, not the writer's words.
-- **Built on request, downloaded at once** (`GET /api/account/export`, all the person's profiles, and
-  `GET /api/profiles/:id/export`, one), with no job queue or emailed link: it is a few seconds of text. Throttled to 5
+- **Built on request, downloaded at once** (`GET /api/account/export`, all the person's publications, and
+  `GET /api/publications/:id/export`, one), with no job queue or emailed link: it is a few seconds of text. Throttled to 5
   an hour per person because it costs the server work, shared by both routes. A reviewer-only account has neither
   route (404 like the rest). The zip is written by hand in `apps/api/src/export/zip.ts` (about sixty lines on
   `node:zlib`) rather than adding a dependency for small UTF-8 text files.
-- **Where.** The account page (above the delete-account section, which links to it) and each profile's settings.
+- **Where.** The account page (above the delete-account section, which links to it) and each publication's settings.
+
+## One word, "publication", and a reset schema (#174)
+
+"Profile" and "venue" named the same thing in different places, and neither says what it is. A **publication** is where a
+writer publishes: a Substack, a blog, a magazine, a newsletter or similar. The word is used in the code (`publicationId`,
+`PublicationStore`, `/api/publications`), the database (`publications`, `publication_members`, `publication_id`
+columns), the prompts (`<publication_description>`), the screens and the docs. The OAuth `profile` scope is the
+identity provider's word and is unchanged. Archives (`docs/design-concepts/`, `TODO.md`) keep the old words.
+
+- **Why reset the migrations.** There are no live deployments, so renaming tables through appended migrations would have
+  kept a history nobody needs: sixty steps, a handle backfill, two data-rewriting migrations and several table rebuilds.
+  `MIGRATIONS` is now one entry, the whole schema, and later changes append as before.
+- **Vestigial structure dropped.** `ideas.notes` (no longer read since notes became rows; the store assembles
+  `Idea.notes` from them), the nullable `drafts.idea_id` (every draft has an idea), and the migration helpers that backfilled
+  them. `users.handle` stays nullable because reviewer-only accounts have none.
+- **Existing development databases are refused.** A file from before this has a higher schema version than the build
+  knows, and the app says to upgrade rather than downgrade. Delete it. The default file is now
+  `apps/api/data/wordwright.sqlite` (it was `lfwa.sqlite`), so a new one is simply started beside the old.
+- **Prompts changed.** The wording of the AI's context changed from "venue" to "publication" (the instructions already
+  said "publication" in most places); behaviour is meant to be the same, but the owner should review `prompts/`.

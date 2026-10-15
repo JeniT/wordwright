@@ -8,7 +8,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
@@ -89,7 +89,7 @@ describe('formatRephraseMessage', () => {
     expect(message).toContain(`<wording kind="passage">\n${wording}\n</wording>`)
     expect(message).toContain('<aim>\nPunchier, for a general reader\n</aim>')
     expect(message).toContain(`Offer ${REPHRASE.short.ask} options.`)
-    expect(message).not.toContain('venue_description')
+    expect(message).not.toContain('publication_description')
   })
 
   it('asks for fewer on long text', () => {
@@ -99,13 +99,13 @@ describe('formatRephraseMessage', () => {
     )
   })
 
-  it('includes the venue description, and earlier rounds with a reminder to differ', () => {
+  it('includes the publication description, and earlier rounds with a reminder to differ', () => {
     const message = formatRephraseMessage(
       { ...passage([{ aim: 'Shorter', options: ['One.', 'Two.'] }]), aim: 'Warmer' },
       draft,
       'A quiet blog about rivers.',
     )
-    expect(message).toContain('<venue_description>\nA quiet blog about rivers.')
+    expect(message).toContain('<publication_description>\nA quiet blog about rivers.')
     expect(message).toContain(
       '<earlier_round>\n<aim>Shorter</aim>\n<option>One.</option>\n<option>Two.</option>\n</earlier_round>',
     )
@@ -143,9 +143,9 @@ describe('POST /assist/rephrase', () => {
     await register(client, 'ada@example.com', 'Ada')
     verifyAccounts(ctx, 'ada@example.com')
     await saveKey(client)
-    const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
-    const base = `/api/profiles/${profileId}`
-    const draft = await createDraft(client, profileId, { title: 'Why rivers bend', body })
+    const publicationId = (await (await client.get('/api/publications')).json())[0].id as string
+    const base = `/api/publications/${publicationId}`
+    const draft = await createDraft(client, publicationId, { title: 'Why rivers bend', body })
     ctx.llmCalls.length = 0 // saving the key tested it
     ctx.setCompletion(() => reply(many(8)))
     const ask = (extra: Partial<RephraseRequest> = {}, c: TestClient = client) =>
@@ -156,7 +156,7 @@ describe('POST /assist/rephrase', () => {
         aim: 'Make it clearer for a general reader',
         ...extra,
       })
-    return { ctx, client, profileId, base, draft, ask }
+    return { ctx, client, publicationId, base, draft, ask }
   }
 
   it('returns options for a passage with their size, using the requesting user’s key', async () => {
@@ -185,9 +185,9 @@ describe('POST /assist/rephrase', () => {
   })
 
   it('declines a title for a draft that is too short, before spending anything', async () => {
-    const { ctx, client, profileId } = await ada()
-    const thin = await createDraft(client, profileId, { title: 'T', body: 'Not much yet.' })
-    const res = await client.post(`/api/profiles/${profileId}/assist/rephrase`, {
+    const { ctx, client, publicationId } = await ada()
+    const thin = await createDraft(client, publicationId, { title: 'T', body: 'Not much yet.' })
+    const res = await client.post(`/api/publications/${publicationId}/assist/rephrase`, {
       draftId: thin.id,
       kind: 'title',
       wording: 'T',
@@ -264,9 +264,9 @@ describe('POST /assist/rephrase', () => {
     const client = ctx.client()
     await register(client, 'ada@example.com', 'Ada')
     verifyAccounts(ctx, 'ada@example.com')
-    const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
-    const draft = await createDraft(client, profileId, { title: 'T', body })
-    const res = await client.post(`/api/profiles/${profileId}/assist/rephrase`, {
+    const publicationId = (await (await client.get('/api/publications')).json())[0].id as string
+    const draft = await createDraft(client, publicationId, { title: 'T', body })
+    const res = await client.post(`/api/publications/${publicationId}/assist/rephrase`, {
       draftId: draft.id,
       kind: 'passage',
       wording,
@@ -277,12 +277,12 @@ describe('POST /assist/rephrase', () => {
   })
 
   it('is only for the draft’s editor, and for signed-in members', async () => {
-    const { ctx, client, profileId, ask, base, draft } = await ada()
+    const { ctx, client, publicationId, ask, base, draft } = await ada()
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     await saveKey(bob)
     ctx.llmCalls.length = 0
-    await shareProfile(ctx, client, profileId, bob, 'bob@example.com')
+    await sharePublication(ctx, client, publicationId, bob, 'bob@example.com')
     const refused = await ask({}, bob)
     expect(refused.status).toBe(403)
     expect((await refused.json()).error).toContain('Ada')
@@ -293,10 +293,10 @@ describe('POST /assist/rephrase', () => {
   })
 
   it('never sends notes, brainstorm threads or comments, only the draft, wording and aim', async () => {
-    const { ctx, client, profileId, base, draft, ask } = await ada()
+    const { ctx, client, publicationId, base, draft, ask } = await ada()
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
-    await shareProfile(ctx, client, profileId, bob, 'bob@example.com')
+    await sharePublication(ctx, client, publicationId, bob, 'bob@example.com')
     await client.post(`${base}/ideas/${draft.ideaId}/notes`, { text: 'SECRET-NOTE-TEXT' })
     await bob.post(`${base}/drafts/${draft.id}/comments`, { block: 'b1', text: 'SECRET-COMMENT' })
     await client.post(`${base}/assist/critique`, { draftId: draft.id }) // an AI comment too

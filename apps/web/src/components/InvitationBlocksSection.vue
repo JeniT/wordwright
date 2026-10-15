@@ -34,7 +34,7 @@ const unblock = useMutation({
     </h2>
 
     <p v-if="!session.user.emailVerified" class="text-sm text-ink-soft">
-      Confirm your email address to choose who can invite you to share a profile.
+      Confirm your email address to choose who can invite you to share a publication.
     </p>
     <QueryState v-else :query="blocks" what="your invitation settings" detail>
       <template v-if="blocks.data.value">

@@ -4,7 +4,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   createDraft,
 } from './test-helpers'
@@ -13,8 +13,8 @@ async function signedInUser(ctx = setup(), email = 'ada@example.com', name = 'Ad
   const client = ctx.client()
   await register(client, email, name)
   verifyAccounts(ctx, email) // these tests aren't about email verification
-  const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
-  return { ctx, client, profileId }
+  const publicationId = (await (await client.get('/api/publications')).json())[0].id as string
+  return { ctx, client, publicationId }
 }
 
 describe('LLM settings', () => {
@@ -182,9 +182,9 @@ describe('LLM settings', () => {
 
 describe('using the key', () => {
   it('asks for a key before running AI features', async () => {
-    const { client, profileId } = await signedInUser()
-    const draft = await createDraft(client, profileId, { title: 'T', body: 'B' })
-    const res = await client.post(`/api/profiles/${profileId}/assist/critique`, {
+    const { client, publicationId } = await signedInUser()
+    const draft = await createDraft(client, publicationId, { title: 'T', body: 'B' })
+    const res = await client.post(`/api/publications/${publicationId}/assist/critique`, {
       draftId: draft.id,
     })
     expect(res.status).toBe(409)
@@ -192,10 +192,10 @@ describe('using the key', () => {
   })
 
   it('runs on the stored key and chosen model', async () => {
-    const { ctx, client, profileId } = await signedInUser()
+    const { ctx, client, publicationId } = await signedInUser()
     await saveKey(client, 'sk-ant-ada-key-1111111111', 'claude-opus-5-5')
-    const draft = await createDraft(client, profileId, { title: 'T', body: 'B' })
-    const res = await client.post(`/api/profiles/${profileId}/assist/critique`, {
+    const draft = await createDraft(client, publicationId, { title: 'T', body: 'B' })
+    const res = await client.post(`/api/publications/${publicationId}/assist/critique`, {
       draftId: draft.id,
     })
     expect((await res.json()).round.summary).toContain('claude-opus-5-5')
@@ -205,18 +205,22 @@ describe('using the key', () => {
     })
   })
 
-  it('charges whoever makes the request, even in a shared profile', async () => {
+  it('charges whoever makes the request, even in a shared publication', async () => {
     const ctx = setup()
     const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
     const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
     await saveKey(ada.client, 'sk-ant-ada-key-1111111111')
     await saveKey(bob.client, 'sk-ant-bob-key-2222222222')
-    await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
-    const draft = await createDraft(ada.client, ada.profileId, { title: 'T', body: 'B' })
+    await sharePublication(ctx, ada.client, ada.publicationId, bob.client, 'bob@example.com')
+    const draft = await createDraft(ada.client, ada.publicationId, { title: 'T', body: 'B' })
 
-    await bob.client.post(`/api/profiles/${ada.profileId}/assist/critique`, { draftId: draft.id })
+    await bob.client.post(`/api/publications/${ada.publicationId}/assist/critique`, {
+      draftId: draft.id,
+    })
     expect(ctx.llmCalls.at(-1)!.config.apiKey).toBe('sk-ant-bob-key-2222222222')
-    await ada.client.post(`/api/profiles/${ada.profileId}/assist/critique`, { draftId: draft.id })
+    await ada.client.post(`/api/publications/${ada.publicationId}/assist/critique`, {
+      draftId: draft.id,
+    })
     expect(ctx.llmCalls.at(-1)!.config.apiKey).toBe('sk-ant-ada-key-1111111111')
   })
 
@@ -225,12 +229,12 @@ describe('using the key', () => {
     const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
     const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
     await saveKey(ada.client)
-    await shareProfile(ctx, ada.client, ada.profileId, bob.client, 'bob@example.com')
-    const draft = await createDraft(ada.client, ada.profileId, { title: 'T', body: 'B' })
+    await sharePublication(ctx, ada.client, ada.publicationId, bob.client, 'bob@example.com')
+    const draft = await createDraft(ada.client, ada.publicationId, { title: 'T', body: 'B' })
     // Bob must be the editor for his request to get as far as a key.
     const bobId = (await (await bob.client.get('/api/auth/me')).json()).id
-    ctx.store.drafts.reassignEditor(ada.profileId, draft.editorId, bobId)
-    const res = await bob.client.post(`/api/profiles/${ada.profileId}/assist/critique`, {
+    ctx.store.drafts.reassignEditor(ada.publicationId, draft.editorId, bobId)
+    const res = await bob.client.post(`/api/publications/${ada.publicationId}/assist/critique`, {
       draftId: draft.id,
     })
     expect(res.status).toBe(409)
@@ -238,9 +242,9 @@ describe('using the key', () => {
 
   it('tells the user when their key stops working, and when the provider fails', async () => {
     const ctx = setup()
-    const { client, profileId } = await signedInUser(ctx)
+    const { client, publicationId } = await signedInUser(ctx)
     await saveKey(client)
-    const draft = await createDraft(client, profileId, { title: 'T', body: 'B' })
+    const draft = await createDraft(client, publicationId, { title: 'T', body: 'B' })
 
     // Simulate the stored key being revoked later by swapping in one the fake provider refuses.
     const me = (await (await client.get('/api/auth/me')).json()).id
@@ -255,7 +259,7 @@ describe('using the key', () => {
         ...stored,
         encryptedKey: box.encrypt(key, `llm-key:${me}:anthropic`),
       })
-      const res = await client.post(`/api/profiles/${profileId}/assist/critique`, {
+      const res = await client.post(`/api/publications/${publicationId}/assist/critique`, {
         draftId: draft.id,
       })
       expect(res.status).toBe(status)
@@ -271,8 +275,8 @@ describe('using the key', () => {
     const adaId = (await (await ada.client.get('/api/auth/me')).json()).id
     const bobId = (await (await bob.client.get('/api/auth/me')).json()).id
     ctx.store.credentials.save(bobId, ctx.store.credentials.get(adaId)!)
-    const draft = await createDraft(bob.client, bob.profileId, { title: 'T', body: 'B' })
-    const res = await bob.client.post(`/api/profiles/${bob.profileId}/assist/critique`, {
+    const draft = await createDraft(bob.client, bob.publicationId, { title: 'T', body: 'B' })
+    const res = await bob.client.post(`/api/publications/${bob.publicationId}/assist/critique`, {
       draftId: draft.id,
     })
     expect(res.status).toBe(500)

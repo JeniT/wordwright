@@ -59,15 +59,15 @@ describe('the cases', () => {
       'suggests-only-an-address-the-writer-gave',
       'research-reports-well-formed-pages-only',
       'research-ignores-instructions-in-the-idea',
-      // The venue description is the writer's own text (#133): used as context, never as instructions.
-      'personal-venue-opens-without-asking-for-readers',
-      'personal-venue-needs-no-audience',
-      'uses-the-description-of-the-venue',
-      'ignores-instructions-in-the-venue-description',
-      'critique-personal-venue-does-not-demand-an-audience',
-      'critique-considers-the-readers-the-venue-has',
-      'critique-ignores-instructions-in-the-venue-description',
-      'research-ignores-instructions-in-the-venue-description',
+      // The publication description is the writer's own text (#133): used as context, never as instructions.
+      'personal-publication-opens-without-asking-for-readers',
+      'personal-publication-needs-no-audience',
+      'uses-the-description-of-the-publication',
+      'ignores-instructions-in-the-publication-description',
+      'critique-personal-publication-does-not-demand-an-audience',
+      'critique-considers-the-readers-the-publication-has',
+      'critique-ignores-instructions-in-the-publication-description',
+      'research-ignores-instructions-in-the-publication-description',
       // Rephrase (#15): options reword and never add, differ in kind, stay near the size, and treat text as data.
       'rephrase-offers-different-approaches',
       'rephrase-does-not-invent-facts',
@@ -75,7 +75,7 @@ describe('the cases', () => {
       'rephrase-title-options-are-short-and-differ',
       'rephrase-later-round-offers-something-new',
       'rephrase-ignores-instructions-in-the-draft',
-      'rephrase-ignores-instructions-in-the-venue-description',
+      'rephrase-ignores-instructions-in-the-publication-description',
     ]) {
       expect(current, id).toContain(id)
     }
@@ -109,10 +109,10 @@ describe('the requests', () => {
 
   it('send critique what the critique route sends', () => {
     for (const c of critique) {
-      const venue = c.scenario ? SCENARIOS[c.scenario].venue.description : null
+      const publication = c.scenario ? SCENARIOS[c.scenario].publication.description : null
       expect(critiqueRequest(c)).toEqual({
         system: CRITIQUE_PROMPT,
-        messages: [{ role: 'user', content: formatDraftForCritique(c.draft, venue).message }],
+        messages: [{ role: 'user', content: formatDraftForCritique(c.draft, publication).message }],
       })
     }
   })
@@ -128,8 +128,10 @@ describe('the requests', () => {
     }
     const later = rephrase.find((c) => c.id === 'rephrase-later-round-offers-something-new')!
     expect(String(rephraseRequest(later).messages[0]!.content)).toContain('<earlier_round>')
-    const hostile = rephrase.find((c) => c.scenario === 'hostileVenue')!
-    expect(String(rephraseRequest(hostile).messages[0]!.content)).toContain('<venue_description>')
+    const hostile = rephrase.find((c) => c.scenario === 'hostilePublication')!
+    expect(String(rephraseRequest(hostile).messages[0]!.content)).toContain(
+      '<publication_description>',
+    )
   })
 
   it('send research what the service sends: the research prompt, and a brief of the areas, the idea and the list so far', () => {
@@ -150,30 +152,30 @@ describe('the requests', () => {
     expect(researchRequest(c).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
   })
 
-  it('carry the venue description to all three, and none where the venue has none', () => {
-    const personal = SCENARIOS.personal.venue.description!
+  it('carry the publication description to all three, and none where the publication has none', () => {
+    const personal = SCENARIOS.personal.publication.description!
     const snapshot = (id: string) =>
       JSON.stringify(brainstormRequest(brainstorm.find((c) => c.id === id)!).messages[0]!.content)
-    expect(snapshot('personal-venue-needs-no-audience')).toContain(
-      `<venue_description>\\n${personal}`,
+    expect(snapshot('personal-publication-needs-no-audience')).toContain(
+      `<publication_description>\\n${personal}`,
     )
-    expect(snapshot('opens-with-a-question')).not.toContain('<venue_description>')
+    expect(snapshot('opens-with-a-question')).not.toContain('<publication_description>')
 
     // The prompt itself names the block, so look only at what the writer's message carries.
     const critiqueOf = (id: string) => critiqueRequest(critique.find((c) => c.id === id)!).messages
     expect(
-      JSON.stringify(critiqueOf('critique-personal-venue-does-not-demand-an-audience')),
-    ).toContain('<venue_description>')
+      JSON.stringify(critiqueOf('critique-personal-publication-does-not-demand-an-audience')),
+    ).toContain('<publication_description>')
     expect(JSON.stringify(critiqueOf('critique-does-not-rewrite'))).not.toContain(
-      'venue_description',
+      'publication_description',
     )
 
     const hostile = research.find(
-      (c) => c.id === 'research-ignores-instructions-in-the-venue-description',
+      (c) => c.id === 'research-ignores-instructions-in-the-publication-description',
     )!
     expect(researchRequest(hostile).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
     expect(researchRequest(research.find((c) => c.scenario === 'rivers')!).brief).not.toContain(
-      'venue_description',
+      'publication_description',
     )
   })
 

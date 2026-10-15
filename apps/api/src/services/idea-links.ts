@@ -12,7 +12,7 @@ import { fail } from '../errors'
 import { changeTags, sameTagList } from './tag-change'
 
 /**
- * Adding and editing the items of an idea's reading list, or of the profile's. Looking a page up costs a request to someone
+ * Adding and editing the items of an idea's reading list, or of the publication's. Looking a page up costs a request to someone
  * else's server, so it's rate-limited per person, and a link is only saved once the lookup has
  * said the address is a real, public site. A page that merely can't be read (blocked, slow, no
  * title) is fine: the link is kept and shows its address.
@@ -65,7 +65,7 @@ export class IdeaLinkService {
     const fresh = this.current(scope)
     this.checkRoom(scope, fresh)
     this.checkNotDuplicate(scope, fresh, input.url)
-    store.reading.add(scope.profileId, scope.ideaId, { url: input.url, title, authors })
+    store.reading.add(scope.publicationId, scope.ideaId, { url: input.url, title, authors })
     touch(store, scope)
     return this.current(scope)
   }
@@ -116,7 +116,7 @@ export class IdeaLinkService {
   }
 
   private checkRoom(scope: ListScope, links: IdeaLink[]) {
-    // The profile's own list has no maximum: what isn't kept drops off after a month instead.
+    // The publication's own list has no maximum: what isn't kept drops off after a month instead.
     if (scope.ideaId && links.length >= MAX_IDEA_LINKS) {
       throw fail(
         409,

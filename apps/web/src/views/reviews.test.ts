@@ -9,7 +9,7 @@ const reviewer = { ...testUser, id: 'u9', name: 'Rae', handle: null, reviewerOnl
 const summary = (over: object = {}) => ({
   id: 'r1',
   draftTitle: 'Meanders',
-  profileName: 'Ada’s writing',
+  publicationName: 'Ada’s writing',
   inviterName: 'Ada Lovelace',
   state: 'open',
   createdAt: '2026-02-01T00:00:00Z',
@@ -49,7 +49,7 @@ describe('a reviewer’s landing page', () => {
     expect(within(list).getAllByText(/asked by Ada Lovelace/)).toHaveLength(2)
     expect(within(list).getByText('You ended this review')).toBeTruthy()
     // Nothing of the rest of the app is offered.
-    expect(screen.queryByRole('link', { name: /Account|Profiles|Ideas/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Account|Publications|Ideas/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Start writing' })).toBeTruthy()
   })
@@ -173,7 +173,7 @@ describe('following the emailed link', () => {
   const preview = http.post('*/api/review-invitations/preview', () =>
     HttpResponse.json({
       draftTitle: 'Meanders',
-      profileName: 'Ada’s writing',
+      publicationName: 'Ada’s writing',
       inviterName: 'Ada Lovelace',
       email: 'rae@example.com',
     }),
@@ -267,7 +267,7 @@ describe('starting to write', () => {
           reviewerOnly: false,
         })
       }),
-      http.get('*/api/profiles', () => HttpResponse.json([])),
+      http.get('*/api/publications', () => HttpResponse.json([])),
     )
     const { router } = await renderAt('/reviews/start')
     await fireEvent.update(await screen.findByLabelText('Username'), 'raewrites')
@@ -281,7 +281,7 @@ describe('starting to write', () => {
 describe('asking someone to review a draft', () => {
   const draft = {
     id: 'd1',
-    profileId: 'p1',
+    publicationId: 'p1',
     ideaId: 'i1',
     title: 'T',
     body: 'Some text',
@@ -295,7 +295,7 @@ describe('asking someone to review a draft', () => {
     const calls: string[] = []
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () =>
+      http.get('*/api/publications', () =>
         HttpResponse.json([
           {
             id: 'p1',
@@ -312,10 +312,10 @@ describe('asking someone to review a draft', () => {
           },
         ]),
       ),
-      http.get('*/api/profiles/p1/ideas/i1', () =>
+      http.get('*/api/publications/p1/ideas/i1', () =>
         HttpResponse.json({
           id: 'i1',
-          profileId: 'p1',
+          publicationId: 'p1',
           name: 'I',
           notes: '',
           links: [],
@@ -324,14 +324,14 @@ describe('asking someone to review a draft', () => {
           updatedAt: 'x',
         }),
       ),
-      http.get('*/api/profiles/p1/ideas/i1/notes', () => HttpResponse.json([])),
-      http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json({ ...draft, editorId })),
-      http.get('*/api/profiles/p1/drafts/d1/critique', () =>
+      http.get('*/api/publications/p1/ideas/i1/notes', () => HttpResponse.json([])),
+      http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json({ ...draft, editorId })),
+      http.get('*/api/publications/p1/drafts/d1/critique', () =>
         HttpResponse.json({ round: null, used: 0, allowed: 3 }),
       ),
-      http.get('*/api/profiles/p1/drafts/d1/comments', () => HttpResponse.json([])),
-      http.get('*/api/profiles/p1/drafts/d1/insertions', () => HttpResponse.json([])),
-      http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+      http.get('*/api/publications/p1/drafts/d1/comments', () => HttpResponse.json([])),
+      http.get('*/api/publications/p1/drafts/d1/insertions', () => HttpResponse.json([])),
+      http.get('*/api/publications/p1/drafts/d1/handover', () =>
         HttpResponse.json({
           editorId,
           editorName: 'Ada Lovelace',
@@ -340,7 +340,7 @@ describe('asking someone to review a draft', () => {
           history: [],
         }),
       ),
-      http.get('*/api/profiles/p1/drafts/d1/reviewers', () =>
+      http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
         HttpResponse.json({
           reviewers: [
             {
@@ -365,19 +365,19 @@ describe('asking someone to review a draft', () => {
           ],
         }),
       ),
-      http.post('*/api/profiles/p1/drafts/d1/send-for-review', async ({ request }) => {
+      http.post('*/api/publications/p1/drafts/d1/send-for-review', async ({ request }) => {
         calls.push(`send ${JSON.stringify(await request.json())}`)
         return HttpResponse.json({ ok: true }, { status: 202 })
       }),
-      http.post('*/api/profiles/p1/drafts/d1/reviewers/close', () => {
+      http.post('*/api/publications/p1/drafts/d1/reviewers/close', () => {
         calls.push('close all')
         return HttpResponse.json({ closed: 1 })
       }),
-      http.delete('*/api/profiles/p1/drafts/d1/reviewers/v1', () => {
+      http.delete('*/api/publications/p1/drafts/d1/reviewers/v1', () => {
         calls.push('close v1')
         return new HttpResponse(null, { status: 204 })
       }),
-      http.delete('*/api/profiles/p1/drafts/d1/reviewers/invitations/i9', () => {
+      http.delete('*/api/publications/p1/drafts/d1/reviewers/invitations/i9', () => {
         calls.push('withdraw i9')
         return new HttpResponse(null, { status: 204 })
       }),
@@ -441,7 +441,7 @@ describe('a member asked to review', () => {
   it('finds the draft on the home page', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([])),
+      http.get('*/api/publications', () => HttpResponse.json([])),
       http.get('*/api/llm', () =>
         HttpResponse.json({
           provider: 'anthropic',

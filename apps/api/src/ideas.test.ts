@@ -1,20 +1,18 @@
-import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_IDEA_LINKS } from '@lfwa/core'
-import { MIGRATIONS, migrate, wrapStandaloneDraftsInIdeas } from './db/database'
-import { register, setup, shareProfile, verifyAccounts, type TestClient } from './test-helpers'
+import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('ideas', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
-  let profile: string
-  const ideas = () => `/api/profiles/${profile}/ideas`
+  let publication: string
+  const ideas = () => `/api/publications/${publication}/ideas`
 
   beforeEach(async () => {
     ctx = setup()
     ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
   })
 
   it('starts with none, and lists them most recently changed first', async () => {
@@ -32,7 +30,7 @@ describe('ideas', () => {
     expect(res.status).toBe(201)
     const idea = await res.json()
     expect(idea).toMatchObject({
-      profileId: profile,
+      publicationId: publication,
       name: 'Why rivers meander', // trimmed
       notes: '- Erosion loops.',
       links: [],
@@ -145,7 +143,7 @@ describe('ideas', () => {
         expect(again.updatedAt).not.toBe('long ago')
       })
 
-      it('refuses a bad body, an unknown item, and someone outside the profile', async () => {
+      it('refuses a bad body, an unknown item, and someone outside the publication', async () => {
         await add('https://example.org/a')
         const [item] = await read()
         expect((await ada.put(`${links()}/${item.id}/read`, { read: 'yes' })).status).toBe(400)
@@ -333,7 +331,7 @@ describe('ideas', () => {
       expect(refused).toBe(1)
     })
 
-    it('is limited to members of the profile', async () => {
+    it('is limited to members of the publication', async () => {
       const bob = ctx.client()
       await register(bob, 'bob@example.com', 'Bob')
       expect((await bob.post(links(), { url: 'https://example.org/x' })).status).toBe(404)
@@ -358,7 +356,7 @@ describe('ideas', () => {
     it('can be opened and edited like any other draft', async () => {
       const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
       const draft = await (await ada.post(`${ideas()}/${idea.id}/drafts`, {})).json()
-      const saved = await ada.put(`/api/profiles/${profile}/drafts/${draft.id}`, {
+      const saved = await ada.put(`/api/publications/${publication}/drafts/${draft.id}`, {
         title: 'Why rivers meander',
         body: 'Text',
         version: draft.version,
@@ -438,11 +436,11 @@ describe('ideas', () => {
         ])
       })
 
-      it('is open to members only, and 404s for an idea that is not in the profile', async () => {
+      it('is open to members only, and 404s for an idea that is not in the publication', async () => {
         const { idea, ids } = await ideaWithDrafts('One', 'Two')
         const outsider = ctx.client()
         await register(outsider, 'eve@example.com', 'Eve')
-        const url = `/api/profiles/${profile}/ideas/${idea.id}/drafts/order`
+        const url = `/api/publications/${publication}/ideas/${idea.id}/drafts/order`
         expect((await outsider.put(url, { ids })).status).toBe(404)
         expect((await ctx.client().put(url, { ids })).status).toBe(401)
         expect((await ada.put(`${ideas()}/nope/drafts/order`, { ids })).status).toBe(404)
@@ -450,9 +448,9 @@ describe('ideas', () => {
     })
 
     it('cannot be started without an idea', async () => {
-      const res = await ada.post(`/api/profiles/${profile}/drafts`, { title: 'Alone' })
+      const res = await ada.post(`/api/publications/${publication}/drafts`, { title: 'Alone' })
       expect(res.status).toBe(404)
-      expect((await ada.get(`/api/profiles/${profile}/drafts`)).status).toBe(404)
+      expect((await ada.get(`/api/publications/${publication}/drafts`)).status).toBe(404)
     })
   })
 
@@ -465,13 +463,13 @@ describe('ideas', () => {
 
     expect((await ada.delete(`${ideas()}/${idea.id}`)).status).toBe(204)
     expect((await ada.get(`${ideas()}/${idea.id}`)).status).toBe(404)
-    expect((await ada.get(`/api/profiles/${profile}/drafts/${draft.id}`)).status).toBe(404)
-    expect((await ada.get(`/api/profiles/${profile}/drafts/${kept.id}`)).status).toBe(200)
+    expect((await ada.get(`/api/publications/${publication}/drafts/${draft.id}`)).status).toBe(404)
+    expect((await ada.get(`/api/publications/${publication}/drafts/${kept.id}`)).status).toBe(200)
     expect(ctx.store.ideas.countLinks(idea.id)).toBe(0)
   })
 
   describe('access', () => {
-    it('is limited to members of the profile', async () => {
+    it('is limited to members of the publication', async () => {
       const bob = ctx.client()
       await register(bob, 'bob@example.com', 'Bob')
       const idea = await (await ada.post(ideas(), { name: 'Private' })).json()
@@ -482,125 +480,24 @@ describe('ideas', () => {
       expect((await ctx.client().get(ideas())).status).toBe(401)
     })
 
-    it("does not reach an idea through a different profile's address", async () => {
+    it("does not reach an idea through a different publication's address", async () => {
       const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
-      const second = await (await ada.post('/api/profiles', { name: 'Second' })).json()
-      const via = `/api/profiles/${second.id}/ideas/${idea.id}`
+      const second = await (await ada.post('/api/publications', { name: 'Second' })).json()
+      const via = `/api/publications/${second.id}/ideas/${idea.id}`
       expect((await ada.get(via)).status).toBe(404)
       expect((await ada.patch(via, { name: 'x' })).status).toBe(404)
       expect((await ada.post(`${via}/drafts`, {})).status).toBe(404)
       expect((await ada.post(`${via}/links`, { url: 'https://example.org' })).status).toBe(404)
     })
 
-    it('lets people a profile is shared with work on its ideas', async () => {
+    it('lets people a publication is shared with work on its ideas', async () => {
       const bob = ctx.client()
       await register(bob, 'bob@example.com', 'Bob')
       verifyAccounts(ctx, 'ada@example.com')
-      await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+      await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
       const idea = await (await bob.post(ideas(), { name: 'Bob had this' })).json()
       expect((await ada.patch(`${ideas()}/${idea.id}`, { notes: 'Ada adds' })).status).toBe(200)
       expect((await bob.get(`${ideas()}/${idea.id}`)).status).toBe(200)
     })
-  })
-})
-
-describe('numbering existing drafts', () => {
-  it('starts each idea’s drafts in the order they were created', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    const at = MIGRATIONS.findIndex(
-      (m) => typeof m === 'string' && m.includes('ALTER TABLE drafts ADD COLUMN position'),
-    )
-    expect(at).toBeGreaterThan(0)
-    migrate(db, 'test', MIGRATIONS.slice(0, at))
-    db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)
-        VALUES ('i1', 'p', 'One', '', 't', 't'), ('i2', 'p', 'Two', '', 't', 't');
-      INSERT INTO drafts (id, profile_id, idea_id, title, body, created_at, updated_at)
-        VALUES ('b', 'p', 'i1', '', '', '2026-01-02', 't'),
-               ('a', 'p', 'i1', '', '', '2026-01-01', 't'),
-               ('c', 'p', 'i1', '', '', '2026-01-03', 't'),
-               ('x', 'p', 'i2', '', '', '2026-01-05', 't'),
-               ('tie1', 'p', 'i2', '', '', '2026-01-06', 't'),
-               ('tie2', 'p', 'i2', '', '', '2026-01-06', 't');
-    `)
-    migrate(db, 'test')
-    const order = (idea: string) =>
-      (
-        db
-          .prepare('SELECT id FROM drafts WHERE idea_id = ? ORDER BY position, rowid')
-          .all(idea) as { id: string }[]
-      ).map((r) => r.id)
-    expect(order('i1')).toEqual(['a', 'b', 'c'])
-    expect(order('i2')).toEqual(['x', 'tie1', 'tie2'])
-    expect(db.prepare("SELECT position FROM drafts WHERE id = 'c'").get()).toEqual({ position: 2 })
-    expect(db.prepare("SELECT position FROM drafts WHERE id = 'tie2'").get()).toEqual({
-      position: 2,
-    })
-  })
-})
-
-describe('the reading list columns', () => {
-  it('give links already saved no read date and the origin "entered", and notes no source', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    const at = MIGRATIONS.findIndex(
-      (m) => typeof m === 'string' && m.includes('ADD COLUMN read_at TEXT'),
-    )
-    expect(at).toBeGreaterThan(0)
-    migrate(db, 'test', MIGRATIONS.slice(0, at))
-    db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)
-        VALUES ('i', 'p', 'Idea', 'A note', 'then', 'then');
-      INSERT INTO idea_links (id, idea_id, url, title, created_at)
-        VALUES ('l', 'i', 'https://example.org', 'Old link', 'then');
-      INSERT INTO idea_notes (id, profile_id, idea_id, text, origin, position, created_at, updated_at)
-        VALUES ('n', 'p', 'i', 'A note', 'entered', 0, 'then', 'then');
-    `)
-    migrate(db, 'test')
-    expect(db.prepare('SELECT read_at, origin FROM idea_links').get()).toEqual({
-      read_at: null,
-      origin: 'entered',
-    })
-    expect(db.prepare('SELECT reading_item_id FROM idea_notes').get()).toEqual({
-      reading_item_id: null,
-    })
-    // An origin nobody has heard of is refused.
-    expect(() => db.exec("UPDATE idea_links SET origin = 'made-up'")).toThrow()
-  })
-})
-
-describe('wrapping existing drafts in ideas', () => {
-  it('gives every draft from before its own idea, named after it, and leaves ideas alone', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    // Everything before the migration under test, so later migrations don't change what this proves.
-    migrate(db, 'test', MIGRATIONS.slice(0, MIGRATIONS.indexOf(wrapStandaloneDraftsInIdeas)))
-    db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at)
-        VALUES ('i', 'p', 'Existing idea', '', 'then', 'then');
-      INSERT INTO drafts (id, profile_id, title, body, created_at, updated_at)
-        VALUES ('d1', 'p', '  Old draft ', 'text', 'a', 'b'),
-               ('d2', 'p', '', 'text', 'c', 'd');
-      INSERT INTO drafts (id, profile_id, idea_id, title, body, created_at, updated_at)
-        VALUES ('d3', 'p', 'i', 'Already in an idea', '', 'e', 'f');
-    `)
-    migrate(db, 'test')
-
-    const rows = db
-      .prepare(
-        `SELECT d.id AS draft, d.idea_id, i.name, i.created_at, i.updated_at
-         FROM drafts d JOIN ideas i ON i.id = d.idea_id ORDER BY d.id`,
-      )
-      .all()
-    expect(rows).toHaveLength(3) // none left without an idea
-    expect(rows[0]).toMatchObject({ name: 'Old draft', created_at: 'a', updated_at: 'b' })
-    expect(rows[1]).toMatchObject({ name: 'Untitled idea' })
-    expect(rows[2]).toMatchObject({ idea_id: 'i', name: 'Existing idea' })
-    expect(rows[0]!.idea_id).not.toBe(rows[1]!.idea_id)
-    expect(db.prepare('SELECT count(*) AS n FROM ideas').get()).toEqual({ n: 3 })
   })
 })

@@ -4,15 +4,15 @@ import { NEW_IDEA, type useMoveDestination } from '../lib/move'
 import InfoTip from './InfoTip.vue'
 
 /**
- * The picker for where to move reading items or notes: the profile's own list (when moving from an idea), the other
+ * The picker for where to move reading items or notes: the publication's own list (when moving from an idea), the other
  * ideas, or a new idea named in the writer's own words. `dest` comes from `useMoveDestination`.
  */
 defineProps<{
   dest: ReturnType<typeof useMoveDestination>
-  /** The inside of an idea moves to the profile; the profile's own list has nowhere "up" to go. */
+  /** The inside of an idea moves to the publication; the publication's own list has nowhere "up" to go. */
   fromIdea: boolean
-  /** "The profile’s reading list" or "The profile’s notes". */
-  profileLabel: string
+  /** "The publication’s reading list" or "The publication’s notes". */
+  publicationLabel: string
   /** Whether a new idea can be made to move into. */
   allowNew: boolean
   /** What happens to the new idea ("The items you move become its reading list."). */
@@ -32,7 +32,7 @@ const newIdeaName = defineModel<string>('newIdeaName', { required: true })
     <label for="move-to" class="text-sm font-medium">Move to</label>
     <select id="move-to" v-model="destination" class="field field-compact max-w-full !w-auto">
       <option value="" disabled>Choose where…</option>
-      <option v-if="fromIdea" value="profile">{{ profileLabel }}</option>
+      <option v-if="fromIdea" value="publication">{{ publicationLabel }}</option>
       <option v-for="idea in dest.others" :key="idea.id" :value="idea.id">{{ idea.name }}</option>
       <option v-if="allowNew" :value="NEW_IDEA">A new idea…</option>
     </select>

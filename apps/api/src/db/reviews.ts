@@ -23,7 +23,7 @@ export interface ReviewInvitationRecord {
   draftId: string
   snapshotId: string
   draftTitle: string
-  profileName: string
+  publicationName: string
   invitedBy: string
   inviterName: string
   email: string
@@ -147,12 +147,12 @@ export class ReviewStore {
   listFor(reviewerId: string): ReviewSummary[] {
     return this.db
       .prepare(
-        `SELECT r.id, r.state, r.created_at, s.title AS draft_title, p.name AS profile_name,
+        `SELECT r.id, r.state, r.created_at, s.title AS draft_title, p.name AS publication_name,
                 inviter.name AS inviter_name
          FROM draft_reviews r
          JOIN draft_snapshots s ON s.id = r.snapshot_id
          JOIN drafts d ON d.id = r.draft_id
-         JOIN profiles p ON p.id = d.profile_id
+         JOIN publications p ON p.id = d.publication_id
          LEFT JOIN users inviter ON inviter.id = r.invited_by
          WHERE r.reviewer_id = ?
          ORDER BY r.created_at DESC, r.rowid DESC`,
@@ -161,7 +161,7 @@ export class ReviewStore {
       .map((r) => ({
         id: r.id as string,
         draftTitle: r.draft_title as string,
-        profileName: r.profile_name as string,
+        publicationName: r.publication_name as string,
         inviterName: (r.inviter_name as string | null) ?? null,
         state: r.state as ReviewState,
         createdAt: r.created_at as string,
@@ -249,11 +249,11 @@ export class ReviewStore {
   findInvitation(tokenHash: string): ReviewInvitationRecord | undefined {
     const row = this.db
       .prepare(
-        `SELECT i.*, s.title AS draft_title, p.name AS profile_name, u.name AS inviter_name
+        `SELECT i.*, s.title AS draft_title, p.name AS publication_name, u.name AS inviter_name
          FROM review_invitations i
          JOIN draft_snapshots s ON s.id = i.snapshot_id
          JOIN drafts d ON d.id = i.draft_id
-         JOIN profiles p ON p.id = d.profile_id
+         JOIN publications p ON p.id = d.publication_id
          JOIN users u ON u.id = i.invited_by
          WHERE i.token_hash = ?`,
       )
@@ -264,7 +264,7 @@ export class ReviewStore {
         draftId: row.draft_id as string,
         snapshotId: row.snapshot_id as string,
         draftTitle: row.draft_title as string,
-        profileName: row.profile_name as string,
+        publicationName: row.publication_name as string,
         invitedBy: row.invited_by as string,
         inviterName: row.inviter_name as string,
         email: row.email as string,

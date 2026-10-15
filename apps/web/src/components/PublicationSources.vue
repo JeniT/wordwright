@@ -7,17 +7,17 @@ import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
 import SourceItems from './SourceItems.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
-import ProfileImage from './ProfileImage.vue'
+import PublicationImage from './PublicationImage.vue'
 import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
 import QueryState from './QueryState.vue'
 
-const props = defineProps<{ profileId: string }>()
+const props = defineProps<{ publicationId: string }>()
 
 const queryClient = useQueryClient()
-const sources = useSources(() => props.profileId)
+const sources = useSources(() => props.publicationId)
 const setList = (list: Source[]) =>
-  queryClient.setQueryData(queryKeys.sources(props.profileId), list)
+  queryClient.setQueryData(queryKeys.sources(props.publicationId), list)
 
 const url = ref('')
 const notice = ref('') // announced politely to screen readers after each change
@@ -31,7 +31,7 @@ const chosen = ref<string[]>([])
 const choiceName = (c: SourceChoices['choices'][number]) => c.title ?? shortName(c.url)
 
 const add = useMutation({
-  mutationFn: (address: string) => api.addSource(props.profileId, address),
+  mutationFn: (address: string) => api.addSource(props.publicationId, address),
   onSuccess: async (result) => {
     if ('choices' in result) {
       choices.value = result.choices
@@ -53,7 +53,7 @@ const addChosen = useMutation({
     const failed: { url: string; reason: string }[] = []
     for (const address of addresses) {
       try {
-        const result = await api.addSource(props.profileId, address)
+        const result = await api.addSource(props.publicationId, address)
         if ('choices' in result) throw new Error('That address offers more than one feed.')
         added.push(nameOf(result))
       } catch (err) {
@@ -81,7 +81,7 @@ function cancelChoice() {
 }
 
 const remove = useMutation({
-  mutationFn: (source: Source) => api.removeSource(props.profileId, source.id),
+  mutationFn: (source: Source) => api.removeSource(props.publicationId, source.id),
   onSuccess: async (_data, source) => {
     notice.value = `Removed ${nameOf(source)}`
     await invalidateRoots(queryClient, 'sources')
@@ -89,7 +89,7 @@ const remove = useMutation({
 })
 
 const move = useMutation({
-  mutationFn: (ids: string[]) => api.reorderSources(props.profileId, ids),
+  mutationFn: (ids: string[]) => api.reorderSources(props.publicationId, ids),
   onSuccess: setList,
   // The list on screen may be out of date (the 409 says so); show the server's.
   onError: () => invalidateRoots(queryClient, 'sources'),
@@ -138,7 +138,7 @@ function shortName(address: string) {
         :save="(ids) => saveOrder(ids)"
       >
         <template #default="{ item: source, index }">
-          <ProfileImage
+          <PublicationImage
             :id="source.id"
             :name="nameOf(source)"
             :image-url="source.iconUrl"
@@ -159,7 +159,7 @@ function shortName(address: string) {
               We couldn’t read this feed on the last try. Open its recent posts for details, or
               remove it.
             </p>
-            <SourceItems :profile-id="profileId" :source="source" :name="nameOf(source)" />
+            <SourceItems :publication-id="publicationId" :source="source" :name="nameOf(source)" />
           </div>
         </template>
         <template #actions="{ item: source }">

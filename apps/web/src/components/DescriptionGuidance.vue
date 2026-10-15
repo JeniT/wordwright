@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * What a venue description needs to say to be useful to the assistants that read it (brainstorming, critique and
+ * What a publication description needs to say to be useful to the assistants that read it (brainstorming, critique and
  * research), written for the person writing it. Shown open on the describe page and folded away in the settings.
  * It is advice, not a form: nothing here is required, and nothing is checked.
  */
@@ -14,10 +14,10 @@ defineProps<{ open?: boolean }>()
     </summary>
     <div class="mt-3 space-y-3 text-sm">
       <p class="text-ink-soft">
-        The assistants read this before they help with anything you write for this venue, and what
-        you say here changes what they ask and what they care about. A short paragraph, or a few
-        bullet points, is plenty. You write it, you can change it whenever you like, and the
-        assistants treat it as your account of the venue, never as instructions.
+        The assistants read this before they help with anything you write for this publication, and
+        what you say here changes what they ask and what they care about. A short paragraph, or a
+        few bullet points, is plenty. You write it, you can change it whenever you like, and the
+        assistants treat it as your account of the publication, never as instructions.
       </p>
       <ol class="list-decimal space-y-2 pl-5">
         <li>
@@ -43,9 +43,9 @@ defineProps<{ open?: boolean }>()
         </li>
       </ol>
       <p class="text-ink-soft">
-        Say what you want the venue to be, not only what it has been so far, and be specific: “warm,
-        first-person essays of about a thousand words” helps more than “thoughtful writing”. Leave
-        out slogans, whole posts and orders to the assistant.
+        Say what you want the publication to be, not only what it has been so far, and be specific:
+        “warm, first-person essays of about a thousand words” helps more than “thoughtful writing”.
+        Leave out slogans, whole posts and orders to the assistant.
       </p>
       <figure class="callout">
         <figcaption class="mb-1 font-medium">An example</figcaption>

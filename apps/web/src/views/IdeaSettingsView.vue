@@ -13,12 +13,12 @@ import SaveStatus from '../components/SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
 
 /** An idea's settings: its name, and deleting it. */
-const props = defineProps<{ profileId: string; id: string }>()
+const props = defineProps<{ publicationId: string; id: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
 const idea = useIdea(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 
@@ -32,27 +32,27 @@ const name = useSavedValue(
 const refreshLists = () => invalidateRoots(queryClient, 'ideas')
 
 const save = useMutation({
-  mutationFn: () => api.updateIdea(props.profileId, props.id, { name: name.value }),
+  mutationFn: () => api.updateIdea(props.publicationId, props.id, { name: name.value }),
   onSuccess: (saved) => {
-    queryClient.setQueryData(queryKeys.idea(props.profileId, props.id), saved)
+    queryClient.setQueryData(queryKeys.idea(props.publicationId, props.id), saved)
     return refreshLists()
   },
 })
 
 const confirmingDelete = ref(false)
 const remove = useMutation({
-  mutationFn: () => api.deleteIdea(props.profileId, props.id),
+  mutationFn: () => api.deleteIdea(props.publicationId, props.id),
   onSuccess: async () => {
-    queryClient.removeQueries({ queryKey: queryKeys.idea(props.profileId, props.id) })
+    queryClient.removeQueries({ queryKey: queryKeys.idea(props.publicationId, props.id) })
     await refreshLists()
-    await router.push({ name: 'profile-ideas', params: { profileId: props.profileId } })
+    await router.push({ name: 'publication-ideas', params: { publicationId: props.publicationId } })
   },
   onSettled: () => (confirmingDelete.value = false),
 })
 </script>
 
 <template>
-  <IdeaGate :id="id" v-slot="{ idea: loaded }" :profile-id="profileId">
+  <IdeaGate :id="id" v-slot="{ idea: loaded }" :publication-id="publicationId">
     <StepHeading>Idea settings</StepHeading>
 
     <form class="mb-10" @submit.prevent="save.mutate()">

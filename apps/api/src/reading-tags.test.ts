@@ -5,18 +5,18 @@ import { register, setup } from './test-helpers'
 
 type Link = { id: string; url: string; title: string; tags: string[] }
 
-/** A profile with an idea, as Ada. */
+/** A publication with an idea, as Ada. */
 async function start() {
   const ctx = setup()
   const ada = ctx.client()
   await register(ada, 'ada@example.com', 'Ada')
-  const profile = (await (await ada.get('/api/profiles')).json())[0].id as string
-  const api = `/api/profiles/${profile}`
+  const publication = (await (await ada.get('/api/publications')).json())[0].id as string
+  const api = `/api/publications/${publication}`
   const idea = (await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()).id as string
-  return { ctx, ada, profile, api, idea }
+  return { ctx, ada, publication, api, idea }
 }
 
-describe('tags on the profile’s reading list', () => {
+describe('tags on the publication’s reading list', () => {
   let s: Awaited<ReturnType<typeof start>>
   let item: Link
   const tag = (id: string, tags: unknown) => s.ada.put(`${s.api}/reading/${id}/tags`, { tags })
@@ -57,7 +57,7 @@ describe('tags on the profile’s reading list', () => {
         await s.ada.post(`${s.api}/ideas/${s.idea}/links`, { url: 'https://b.example/p' })
       ).json()
     ).links[0] as Link
-    expect((await tag(onIdea.id, ['a'])).status).toBe(404) // an idea's item, through the profile's list
+    expect((await tag(onIdea.id, ['a'])).status).toBe(404) // an idea's item, through the publication's list
     const eve = s.ctx.client()
     await register(eve, 'eve@example.com', 'Eve')
     expect((await eve.put(`${s.api}/reading/${item.id}/tags`, { tags: ['x'] })).status).toBe(404)
@@ -109,14 +109,14 @@ describe('tagging several reading items at once', () => {
     s = await start()
   })
 
-  for (const kind of ['profile', 'idea'] as const) {
+  for (const kind of ['publication', 'idea'] as const) {
     describe(`on the ${kind}'s list`, () => {
       const base = () =>
-        kind === 'profile' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}/links`
+        kind === 'publication' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}/links`
       const bulk = (body: object) => s.ada.post(`${base()}/tags`, body)
       const tagsOf = async (): Promise<string[][]> => {
         const res = await (
-          await s.ada.get(kind === 'profile' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}`)
+          await s.ada.get(kind === 'publication' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}`)
         ).json()
         return (Array.isArray(res) ? res : res.links).map((l: Link) => l.tags)
       }
@@ -181,7 +181,7 @@ describe('tagging several reading items at once', () => {
         expect((await eve.post(`${base()}/tags`, { ids: [a.id], add: ['x'] })).status).toBe(404)
         // The other list's item is not this list's.
         const elsewhere = await add(
-          kind === 'profile' ? `${s.api}/ideas/${s.idea}/links` : `${s.api}/reading`,
+          kind === 'publication' ? `${s.api}/ideas/${s.idea}/links` : `${s.api}/reading`,
           'https://z.example/p',
         )
         expect((await bulk({ ids: [elsewhere.id], add: ['x'] })).status).toBe(404)
@@ -194,7 +194,7 @@ describe('tagging several reading items at once', () => {
     const a = await add(base, 'https://a.example/p')
     s.ctx.store.ideas.touch(s.idea, 'long ago')
     await s.ada.post(`${base}/tags`, { ids: [a.id], add: ['y'] })
-    expect(s.ctx.store.ideas.get(s.profile, s.idea)!.updatedAt).not.toBe('long ago')
+    expect(s.ctx.store.ideas.get(s.publication, s.idea)!.updatedAt).not.toBe('long ago')
   })
 })
 
@@ -261,7 +261,7 @@ describe('tags when reading items move', () => {
     const item = (
       await (await s.ada.post(`${s.api}/reading`, { url: 'https://a.example/p' })).json()
     )[0] as Link
-    await s.ada.put(`${s.api}/reading/${item.id}/tags`, { tags: ['profile only'] })
+    await s.ada.put(`${s.api}/reading/${item.id}/tags`, { tags: ['publication only'] })
     const note = await (
       await s.ada.post(`${s.api}/notes`, { text: 'About it', readingItemId: item.id })
     ).json()
@@ -270,7 +270,7 @@ describe('tags when reading items move', () => {
     expect(copy.url).toBe('https://a.example/p')
     expect(copy.tags).toEqual([])
     expect(((await (await s.ada.get(`${s.api}/reading`)).json()) as Link[])[0]!.tags).toEqual([
-      'profile only',
+      'publication only',
     ])
   })
 })
@@ -281,21 +281,21 @@ describe('the reading-item tags table', () => {
     db.exec('PRAGMA foreign_keys = ON')
     migrate(db, 'test')
     db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at) VALUES ('i', 'p', 'I', '', 't', 't');
-      INSERT INTO idea_links (id, profile_id, idea_id, url, title, created_at) VALUES ('l', 'p', 'i', 'https://x.example', 'X', 't');
+      INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
+      INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', 'i', 'https://x.example', 'X', 't');
       INSERT INTO idea_link_tags (link_id, tag) VALUES ('l', 'Intro');
     `)
     expect(() =>
       db.exec("INSERT INTO idea_link_tags (link_id, tag) VALUES ('l', 'intro')"),
     ).toThrow()
-    // Deleting the idea (which deletes its items) leaves no tags behind, and neither does deleting the profile.
+    // Deleting the idea (which deletes its items) leaves no tags behind, and neither does deleting the publication.
     db.exec("DELETE FROM ideas WHERE id = 'i'")
     expect(db.prepare('SELECT count(*) AS n FROM idea_link_tags').get()).toEqual({ n: 0 })
     db.exec(`
-      INSERT INTO idea_links (id, profile_id, idea_id, url, title, created_at) VALUES ('m', 'p', NULL, 'https://y.example', 'Y', 't');
+      INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('m', 'p', NULL, 'https://y.example', 'Y', 't');
       INSERT INTO idea_link_tags (link_id, tag) VALUES ('m', 'Own');
-      DELETE FROM profiles WHERE id = 'p';
+      DELETE FROM publications WHERE id = 'p';
     `)
     expect(db.prepare('SELECT count(*) AS n FROM idea_link_tags').get()).toEqual({ n: 0 })
   })

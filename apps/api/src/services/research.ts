@@ -15,7 +15,7 @@ import { RESEARCH_PROMPT } from '@lfwa/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import { ReadingChecker } from './reading-suggestions'
-import { usableVenueDescription, venueDescriptionBlock } from './venue-context'
+import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
 import { fail } from '../errors'
 
 /** A search that takes longer than this is abandoned. */
@@ -26,14 +26,14 @@ const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;'
 
 /**
  * What the researcher is given: what the writer wants to look into (the main thing), the idea's title and notes for
- * context, the writer's description of the venue if they have written one, and the addresses already on the reading
+ * context, the writer's description of the publication if they have written one, and the addresses already on the reading
  * list. All of it is the writer's own words, so it is escaped,
  * and `prompts/research.md` tells the researcher to treat it as material. Never the text of a draft.
  */
 export function formatResearchBrief(
   idea: Idea,
   areas: string,
-  venueDescription: string | null = null,
+  publicationDescription: string | null = null,
 ): string {
   return [
     '<areas_to_research>',
@@ -44,7 +44,7 @@ export function formatResearchBrief(
     'Notes:',
     idea.notes.trim() ? escape(idea.notes) : '(none yet)',
     '</idea>',
-    ...[venueDescriptionBlock(venueDescription)].filter((block) => block !== null),
+    ...[publicationDescriptionBlock(publicationDescription)].filter((block) => block !== null),
     '<already_on_the_reading_list>',
     ...(idea.links.length ? idea.links.map((l) => `- ${escape(l.url)}`) : ['(nothing yet)']),
     '</already_on_the_reading_list>',
@@ -103,7 +103,7 @@ export class ResearchService {
         brief: formatResearchBrief(
           idea,
           input.areas,
-          usableVenueDescription(store.profiles.get(idea.profileId, user.id)),
+          usablePublicationDescription(store.publications.get(idea.publicationId, user.id)),
         ),
         maxResults: MAX_RESEARCH_RESULTS,
         signal: stop,
@@ -151,7 +151,7 @@ export class ResearchService {
         if (!item) throw fail(404, 'Not found')
         return item
       })
-      const current = store.ideas.get(idea.profileId, idea.id) ?? idea
+      const current = store.ideas.get(idea.publicationId, idea.id) ?? idea
       const listed = new Set(current.links.map((l) => linkKey(l.url)))
       if (current.links.length + chosen.length > MAX_IDEA_LINKS) {
         throw fail(

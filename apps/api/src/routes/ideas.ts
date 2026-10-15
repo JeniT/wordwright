@@ -29,7 +29,7 @@ import { param } from './params'
 
 type Ctx = Context<AppEnv>
 
-/** Mounted under `/profiles/:profileId`, after membership has been checked. */
+/** Mounted under `/publications/:publicationId`, after membership has been checked. */
 export function ideaRoutes(
   store: Store,
   links: IdeaLinkService,
@@ -38,19 +38,19 @@ export function ideaRoutes(
 ) {
   const { ideas, drafts, notes } = store
   const noteEdits = new NoteEditService(store)
-  const profileOf = (c: Ctx) => param(c, 'profileId')
-  /** The idea named in the URL, or a 404 (also when it belongs to a different profile). */
+  const publicationOf = (c: Ctx) => param(c, 'publicationId')
+  /** The idea named in the URL, or a 404 (also when it belongs to a different publication). */
   const find = (c: Ctx) => {
-    const idea = ideas.get(profileOf(c), param(c, 'id'))
+    const idea = ideas.get(publicationOf(c), param(c, 'id'))
     if (!idea) throw notFound()
     return idea
   }
 
   return (
     new Hono<AppEnv>()
-      .get('/', (c) => c.json(ideas.list(profileOf(c))))
+      .get('/', (c) => c.json(ideas.list(publicationOf(c))))
       .post('/', validateJson(IdeaInputSchema), (c) =>
-        c.json(ideas.create(profileOf(c), c.get('user').id, c.req.valid('json')), 201),
+        c.json(ideas.create(publicationOf(c), c.get('user').id, c.req.valid('json')), 201),
       )
       .get('/:id', (c) => c.json(find(c)))
       .patch('/:id', validateJson(IdeaUpdateSchema), (c) => {
@@ -68,18 +68,18 @@ export function ideaRoutes(
             "This idea has quotations, which can't be edited. Change the other notes one at a time in the Notes list.",
           )
         }
-        return c.json(ideas.update(idea.profileId, idea.id, changes))
+        return c.json(ideas.update(idea.publicationId, idea.id, changes))
       })
       .delete('/:id', (c) => {
         const idea = find(c)
-        ideas.delete(idea.profileId, idea.id)
+        ideas.delete(idea.publicationId, idea.id)
         return c.body(null, 204)
       })
 
       .post('/:id/links', validateJson(IdeaLinkInputSchema), async (c) => {
         const idea = find(c)
         await links.add(
-          { profileId: idea.profileId, ideaId: idea.id },
+          { publicationId: idea.publicationId, ideaId: idea.id },
           c.get('user').id,
           c.req.valid('json'),
           c.req.raw.signal,
@@ -89,7 +89,7 @@ export function ideaRoutes(
       .patch('/:id/links/:linkId', validateJson(IdeaLinkInputSchema), async (c) => {
         const idea = find(c)
         await links.update(
-          { profileId: idea.profileId, ideaId: idea.id },
+          { publicationId: idea.publicationId, ideaId: idea.id },
           param(c, 'linkId'),
           c.get('user').id,
           c.req.valid('json'),
@@ -108,7 +108,7 @@ export function ideaRoutes(
       .post('/:id/links/tags', validateJson(BulkTagInputSchema), (c) => {
         const idea = find(c)
         const { ids, add, remove } = c.req.valid('json')
-        links.tagMany({ profileId: idea.profileId, ideaId: idea.id }, ids, add, remove)
+        links.tagMany({ publicationId: idea.publicationId, ideaId: idea.id }, ids, add, remove)
         return c.json(find(c))
       })
       // The item's tags, replaced as a whole (like a note's).
@@ -129,15 +129,25 @@ export function ideaRoutes(
       // ---- notes: index cards, in the order the person arranged them ----
       .route(
         '/:id/notes',
-        noteRoutes(store, noteEdits, (c) => ({ profileId: profileOf(c), ideaId: find(c).id }), {
-          drafts: true,
-        }),
+        noteRoutes(
+          store,
+          noteEdits,
+          (c) => ({ publicationId: publicationOf(c), ideaId: find(c).id }),
+          {
+            drafts: true,
+          },
+        ),
       )
 
       // Starts a draft that develops this idea. Open the draft itself at `/drafts/:id`.
       .post('/:id/drafts', validateJson(DraftInputSchema), (c) => {
         const idea = find(c)
-        const draft = drafts.create(idea.profileId, c.get('user').id, c.req.valid('json'), idea.id)
+        const draft = drafts.create(
+          idea.publicationId,
+          c.get('user').id,
+          c.req.valid('json'),
+          idea.id,
+        )
         ideas.touch(idea.id)
         return c.json(draft, 201)
       })
@@ -153,7 +163,7 @@ export function ideaRoutes(
         ideas.touch(idea.id)
         return c.json(find(c))
       })
-      // ---- brainstorming: one thread per idea, shared by the profile's members ----
+      // ---- brainstorming: one thread per idea, shared by the publication's members ----
       .get('/:id/conversation', (c) => c.json(brainstorm.conversation(find(c))))
       .post('/:id/conversation/messages', validateJson(SendMessageInputSchema), (c) => {
         const idea = find(c)

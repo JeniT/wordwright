@@ -7,7 +7,7 @@ import { invalidateRoots } from '../lib/queries'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 
-const props = defineProps<{ profileId: string; ideaId: string; run: ResearchRun }>()
+const props = defineProps<{ publicationId: string; ideaId: string; run: ResearchRun }>()
 
 const queryClient = useQueryClient()
 const headingId = useId()
@@ -19,17 +19,18 @@ const name = (item: ResearchItem) => item.fetchedTitle || item.title || item.url
 // Whatever happens, the run and the reading list may have changed (someone else may have decided first).
 const refresh = () => invalidateRoots(queryClient, 'research', 'idea', 'ideas')
 const add = useMutation({
-  mutationFn: (id: string) => api.addResearchItem(props.profileId, props.ideaId, props.run.id, id),
+  mutationFn: (id: string) =>
+    api.addResearchItem(props.publicationId, props.ideaId, props.run.id, id),
   onSettled: refresh,
 })
 const ignore = useMutation({
   mutationFn: (id: string) =>
-    api.ignoreResearchItem(props.profileId, props.ideaId, props.run.id, id),
+    api.ignoreResearchItem(props.publicationId, props.ideaId, props.run.id, id),
   onSettled: refresh,
 })
 const reconsider = useMutation({
   mutationFn: (id: string) =>
-    api.reconsiderResearchItem(props.profileId, props.ideaId, props.run.id, id),
+    api.reconsiderResearchItem(props.publicationId, props.ideaId, props.run.id, id),
   onSettled: refresh,
 })
 const busy = computed(
@@ -43,7 +44,7 @@ function clearProblem() {
 }
 
 const remove = useMutation({
-  mutationFn: () => api.deleteResearch(props.profileId, props.ideaId, props.run.id),
+  mutationFn: () => api.deleteResearch(props.publicationId, props.ideaId, props.run.id),
   onSettled: async () => {
     await refresh()
   },

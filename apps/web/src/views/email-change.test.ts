@@ -5,14 +5,14 @@ import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } fr
 
 useMockServer()
 
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
 
 describe('changing your email on the account page', () => {
   it('asks for the new address and password, then says where the link went', async () => {
     let sent: unknown
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       llmSettings(false),
       http.post('*/api/account/email', async ({ request }) => {
         sent = await request.json()
@@ -35,7 +35,7 @@ describe('changing your email on the account page', () => {
   it('shows what went wrong, e.g. an address already in use', async () => {
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       llmSettings(false),
       http.post('*/api/account/email', () =>
         HttpResponse.json({ error: 'An account with this email already exists' }, { status: 409 }),
@@ -53,7 +53,7 @@ describe('changing your email on the account page', () => {
   it('disables the button while sending', async () => {
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       llmSettings(false),
       http.post('*/api/account/email', async () => {
         await new Promise((r) => setTimeout(r, 50))
@@ -74,7 +74,7 @@ describe('changing your email on the account page', () => {
   it('explains, instead of showing a form, when there is no password yet', async () => {
     server.use(
       signedInAs({ ...testUser, hasPassword: false, linkedProviders: ['google'] }),
-      noProfiles,
+      noPublications,
       llmSettings(false),
     )
     await renderAt('/account')
@@ -108,7 +108,7 @@ describe('confirm-new-email page', () => {
       http.get('*/api/auth/me', () =>
         HttpResponse.json(changed ? { ...testUser, email: 'new@example.com' } : testUser),
       ),
-      noProfiles,
+      noPublications,
       http.post('*/api/auth/confirm-email-change', () => {
         changed = true
         return HttpResponse.json({ ok: true })
@@ -122,7 +122,7 @@ describe('confirm-new-email page', () => {
   it('explains an expired link and what to do next', async () => {
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       http.post('*/api/auth/confirm-email-change', () =>
         HttpResponse.json({ error: 'This link is invalid or has expired' }, { status: 400 }),
       ),

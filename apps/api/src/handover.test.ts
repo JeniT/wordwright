@@ -5,7 +5,7 @@ import {
   createDraft,
   register,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
@@ -26,13 +26,13 @@ type State = {
 
 describe('handing over a draft (#155)', () => {
   let ctx: ReturnType<typeof setup>
-  let ada: TestClient // the profile's owner and the draft's editor
+  let ada: TestClient // the publication's owner and the draft's editor
   let bob: TestClient // a member
   let cy: TestClient // another member
-  let profile: string
+  let publication: string
   let draftId: string
   let ids: Record<'ada' | 'bob' | 'cy', string>
-  const url = (tail = '') => `/api/profiles/${profile}/drafts/${draftId}/handover${tail}`
+  const url = (tail = '') => `/api/publications/${publication}/drafts/${draftId}/handover${tail}`
   const state = async (c: TestClient): Promise<State> => (await c.get(url())).json()
   const editor = async () => (await state(ada)).editorId
   const idOf = async (c: TestClient) => (await (await c.get('/api/auth/me')).json()).id as string
@@ -47,10 +47,10 @@ describe('handing over a draft (#155)', () => {
     await register(bob, 'bob@example.com', 'Bob')
     await register(cy, 'cy@example.com', 'Cy')
     verifyAccounts(ctx, 'ada@example.com')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
-    await shareProfile(ctx, ada, profile, cy, 'cy@example.com')
-    draftId = (await createDraft(ada, profile, { title: 'Meanders', body: 'x' })).id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, cy, 'cy@example.com')
+    draftId = (await createDraft(ada, publication, { title: 'Meanders', body: 'x' })).id
     ids = { ada: await idOf(ada), bob: await idOf(bob), cy: await idOf(cy) }
   })
 
@@ -63,7 +63,7 @@ describe('handing over a draft (#155)', () => {
         offer: { toId: ids.bob, toName: 'Bob' },
       })
       // Ada keeps the pen until Bob accepts.
-      const draftUrl = `/api/profiles/${profile}/drafts/${draftId}`
+      const draftUrl = `/api/publications/${publication}/drafts/${draftId}`
       const saved = await ada.put(draftUrl, { title: 'T', body: 'Still mine', version: 1 })
       expect(saved.status).toBe(200)
 
@@ -110,7 +110,7 @@ describe('handing over a draft (#155)', () => {
       expect(await editor()).toBe(ids.ada)
     })
 
-    it('offers only to another member of the profile', async () => {
+    it('offers only to another member of the publication', async () => {
       expect((await ada.post(url('/offer'), { userId: ids.ada })).status).toBe(400)
       const eve = ctx.client()
       await register(eve, 'eve@example.com', 'Eve')
@@ -118,7 +118,7 @@ describe('handing over a draft (#155)', () => {
       expect((await ada.post(url('/offer'), {})).status).toBe(400)
     })
 
-    it('is private to the profile', async () => {
+    it('is private to the publication', async () => {
       const eve = ctx.client()
       await register(eve, 'eve@example.com', 'Eve')
       expect((await eve.get(url())).status).toBe(404)
@@ -135,7 +135,7 @@ describe('handing over a draft (#155)', () => {
         to: 'bob@example.com',
         subject: 'Ada has offered you a draft',
       })
-      expect(sent[0]!.text).toContain(`/p/${profile}/drafts/${draftId}`)
+      expect(sent[0]!.text).toContain(`/p/${publication}/drafts/${draftId}`)
 
       await bob.post(url('/offer/decline'), {})
       await ada.post(url('/offer'), { userId: ids.cy })
@@ -192,7 +192,7 @@ describe('handing over a draft (#155)', () => {
 
   describe('reassigning', () => {
     it('lets an owner move the role without the editor, and records it', async () => {
-      ctx.store.profiles.setRole(profile, ids.bob, 'owner')
+      ctx.store.publications.setRole(publication, ids.bob, 'owner')
       ctx.store.drafts.setEditor(draftId, ids.cy) // Cy is the (absent) editor
       await cy.post(url('/offer'), { userId: ids.ada })
       const done = await bob.post(url('/reassign'), { userId: ids.bob })
@@ -248,9 +248,9 @@ describe('handing over a draft (#155)', () => {
       expect(JSON.stringify(allRows(ctx))).not.toContain('"Bob"')
     })
 
-    it('logs the hand-over when an editor is removed from the profile', async () => {
+    it('logs the hand-over when an editor is removed from the publication', async () => {
       ctx.store.drafts.setEditor(draftId, ids.bob)
-      await ada.delete(`/api/profiles/${profile}/members/${ids.bob}`)
+      await ada.delete(`/api/publications/${publication}/members/${ids.bob}`)
       expect((await state(ada)).history[0]).toMatchObject({
         kind: 'reassign',
         automatic: true,
@@ -260,7 +260,9 @@ describe('handing over a draft (#155)', () => {
 
     it('declines an offer to someone who leaves', async () => {
       await ada.post(url('/offer'), { userId: ids.cy })
-      expect((await cy.delete(`/api/profiles/${profile}/members/${ids.cy}`)).status).toBe(204)
+      expect((await cy.delete(`/api/publications/${publication}/members/${ids.cy}`)).status).toBe(
+        204,
+      )
       expect(await state(ada)).toMatchObject({
         offer: null,
         history: [{ kind: 'offer', status: 'declined' }],

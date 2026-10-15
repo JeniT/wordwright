@@ -4,7 +4,7 @@ A web app to support the writer's journey: idea generation, research, argument a
 critique that preserves your voice, and supplementary material (titles, openings, social posts).
 
 Currently implemented: accounts and login (email + password, optional Google), password recovery,
-account deletion, multiple profiles per user with sharing, drafts (Markdown-backed rich text editor)
+account deletion, multiple publications per user with sharing, drafts (Markdown-backed rich text editor)
 and an LLM-powered critique. The rest is built on the same provider architecture.
 
 > **Contributing or picking this up in a new session?** Start with [AGENTS.md](AGENTS.md), then
@@ -41,13 +41,13 @@ request goes to a font service.
 
 The side menu **follows you**: what it lists depends on where you are, with a link back up and the name of the thing you
 are in. Numbers on the steps orient; they never lock anything, so every step is always a link, and each page ends with a
-gentle "Next: …" suggestion. Home → profile → idea:
+gentle "Next: …" suggestion. Home → publication → idea:
 
-| Level   | Menu lists                                                                                                                              | Front door                     |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Home    | Profiles, Account settings (`/`, `/account`)                                                                                            | `/`                            |
-| Profile | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; Profile settings                           | `/p/<id>` → its landing page   |
-| Idea    | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); Idea settings | `/p/<id>/ideas/<idea>` → Notes |
+| Level       | Menu lists                                                                                                                              | Front door                     |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Home        | Publications, Account settings (`/`, `/account`)                                                                                        | `/`                            |
+| Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; Publication settings                       | `/p/<id>` → its landing page   |
+| Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); Idea settings | `/p/<id>/ideas/<idea>` → Notes |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
@@ -69,7 +69,10 @@ To use Claude: `LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... pnpm dev`.
 
 ## Troubleshooting
 
-- **"Cannot start: … is from an early development version"**: your `apps/api/data/lfwa.sqlite` predates
+- **"… was created by a newer version of this app"**: your database is from before the schema was reset (#174).
+  Delete it (and its `-wal`/`-shm` files). The default file is now `apps/api/data/wordwright.sqlite`; the old
+  `lfwa.sqlite` is no longer used and can go.
+- **"Cannot start: … is from an early development version"**: your `apps/api/data/wordwright.sqlite` predates
   schema versioning. If you don't need it, move or delete it (and its `-wal`/`-shm` files) and restart.
 - **Console full of `http proxy error … ECONNREFUSED`**: the API isn't running. Look at the `apps/api`
   lines at the top of the `pnpm dev` output for the reason; the web app shows "We can't reach the
@@ -103,63 +106,63 @@ tests inject fakes and nothing hits the network.
 
 ## Accounts and sign-in
 
-- **Model:** a user has any number of _profiles_; ideas belong to a profile, and every draft belongs to an idea. Profiles are shared by
-  adding members (`owner` or `member`; a profile can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a profile: the landing page invites the new user to create (and set up) their own.
-- **Profiles are publishing venues** (a Substack, a blog): each has a name, an optional website, and an
+- **Model:** a user has any number of _publications_; ideas belong to a publication, and every draft belongs to an idea. Publications are shared by
+  adding members (`owner` or `member`; a publication can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a publication: the landing page invites the new user to create (and set up) their own.
+- **A publication is a place you publish** (a Substack, a blog, a magazine, a newsletter): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
-  `/profiles/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) followed by its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);
-  `/p/<id>/settings` edits it, shares it and deletes it. A profile also has a **description** (stored as Markdown, up to 5000 characters, but written in a small rich-text editor with bold, italic, lists and links, so nobody needs to know Markdown: what the venue is, who reads it, what kinds of writing go there), which anyone who shares the profile can edit (`PUT /api/profiles/:id/description`); the name and website stay the owner's. The writer always writes it themselves: **Describe this venue** (`/p/<id>/describe`, from **Create and describe it**, the profile page or the settings) opens on guidance about what a description needs to say to be useful to the assistants (what the venue is, what it covers, who reads it by interests and knowledge, how it is written, what feedback is wanted, with an example), then the editor. The same guidance, folded away, sits above the editor in the settings. Nothing drafts a description with AI any more (#150).
+  `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) followed by its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);
+  `/p/<id>/settings` edits it, shares it and deletes it. A publication also has a **description** (stored as Markdown, up to 5000 characters, but written in a small rich-text editor with bold, italic, lists and links, so nobody needs to know Markdown: what the publication is, who reads it, what kinds of writing go there), which anyone who shares the publication can edit (`PUT /api/publications/:id/description`); the name and website stay the owner's. The writer always writes it themselves: **Describe this publication** (`/p/<id>/describe`, from **Create and describe it**, the publication page or the settings) opens on guidance about what a description needs to say to be useful to the assistants (what the publication is, what it covers, who reads it by interests and knowledge, how it is written, what feedback is wanted, with an example), then the editor. The same guidance, folded away, sits above the editor in the settings. Nothing drafts a description with AI any more (#150).
 - **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were
-  added) for a linked set of posts. Anyone a profile is shared with can work on its ideas. Deleting an idea
+  added) for a linked set of posts. Anyone a publication is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. API:
-  `/api/profiles/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
+  `/api/publications/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
   **Reading list (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
   and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
   item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
-  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a direct quotation, which can't be edited and goes into a draft as a blockquote); each item has a **Take notes** page (`/p/:profile/ideas/:idea/reading/:item`) that opens the page in a new tab and keeps a notes box beside it. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
+  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a direct quotation, which can't be edited and goes into a draft as a blockquote); each item has a **Take notes** page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab and keeps a notes box beside it. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
-  **Moving reading items:** on any reading list, **Move items** lets you tick items and choose **Move to** the profile's
-  reading list, another idea, or (from the profile's list) a new idea named in your own words. The items go with the
+  **Moving reading items:** on any reading list, **Move items** lets you tick items and choose **Move to** the publication's
+  reading list, another idea, or (from the publication's list) a new idea named in your own words. The items go with the
   notes taken from them and keep whether they are read; the page says what moved ("Moved 2 items and 5 notes to
   “Rivers”.") with an **Undo**, except when items were joined to ones already there, which can't be unpicked.
-  **Moving notes:** on the profile's Notes, or an idea's, **Move notes** lets you tick notes (quotations too; **Select all the
-  notes shown** follows the tag being shown) and choose **Move to** another idea, the profile's own notes (from an
+  **Moving notes:** on the publication's Notes, or an idea's, **Move notes** lets you tick notes (quotations too; **Select all the
+  notes shown** follows the tag being shown) and choose **Move to** another idea, the publication's own notes (from an
   idea), or **a new idea named in your own words**. Before you confirm, the page says how many notes will move and
   that the pages they were taken from are copied to the destination's reading list (the originals stay); a tick
   offers to bring the other notes taken from those pages too. Notes are moved, not copied, in the order you arranged
   them, with their tags and quotation marks. **Undo** moves them back (to the end of where they were).
-  **Read items are hidden by default** on every reading list (an idea's and the profile's), with a **Show read items**
+  **Read items are hidden by default** on every reading list (an idea's and the publication's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.
   **Linking to the reading list while drafting:** the drawer's Reading list inserts a link to an item; if it isn't marked
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
   **Dragging notes into a draft:** the drafting side bar's notes can be dragged by their grip onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor).
-  **The profile's own reading list and notes** have their own places: the reading list is the profile's
+  **The publication's own reading list and notes** have their own places: the reading list is the publication's
   **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each item opens its own reading page at
-  `/p/<id>/reading/<item>`) and **Notes** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the profile's. They are the idea's screens with a different owner (reading list, reading page, notes with
+  `/p/<id>/reading/<item>`) and **Notes** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the publication's. They are the idea's screens with a different owner (reading list, reading page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
-  profile as a whole, to be gathered before there is an idea. `GET/POST /api/profiles/:id/reading`, `PATCH|DELETE
+  publication as a whole, to be gathered before there is an idea. `GET/POST /api/publications/:id/reading`, `PATCH|DELETE
 …/reading/:item`, `PUT …/reading/:item/read` mirror an idea's links (answering with the list), and
-  `/api/profiles/:id/notes` (with `/order`, `/merge`, `/:note/split`, `/:note/tags`) mirrors an idea's notes, without
-  "added to a draft". **Moving:** `POST /api/profiles/:id/move/reading` and `…/move/notes`, each `{ids, to: {ideaId}}`
-  (`ideaId: null` is the profile itself), answer `{batchId, readingItems, merged, copied, notes}`; all or nothing.
-  **Merging and splitting notes:** `POST /api/profiles/:id/ideas/:idea/notes/merge` (`{ids}`) joins notes of the same
+  `/api/publications/:id/notes` (with `/order`, `/merge`, `/:note/split`, `/:note/tags`) mirrors an idea's notes, without
+  "added to a draft". **Moving:** `POST /api/publications/:id/move/reading` and `…/move/notes`, each `{ids, to: {ideaId}}`
+  (`ideaId: null` is the publication itself), answer `{batchId, readingItems, merged, copied, notes}`; all or nothing.
+  **Merging and splitting notes:** `POST /api/publications/:id/ideas/:idea/notes/merge` (`{ids}`) joins notes of the same
   origin into the first; `POST …/notes/:note/split` (`{before, after}`) cuts one in two. Both answer with all the notes.
-  **Tags on notes:** `PUT /api/profiles/:id/ideas/:idea/notes/:note/tags` (`{tags}`) replaces a note's flat tags; the notes
+  **Tags on notes:** `PUT /api/publications/:id/ideas/:idea/notes/:note/tags` (`{tags}`) replaces a note's flat tags; the notes
   list and the drafting drawer can show only one tag's notes.
   **Notes while drafting:** the drafting page lists the idea's notes beside the editor (a slide-over on a phone);
-  `POST /api/profiles/:id/drafts/:draft/insertions` (`{noteId, text}`) records that a note's words were put into the
+  `POST /api/publications/:id/drafts/:draft/insertions` (`{noteId, text}`) records that a note's words were put into the
   draft (origin and source come from the note) and sets the note aside, `GET` lists them, and
   `PUT …/ideas/:idea/notes/:note/added` (`{added}`) puts a note back.
-  **Every draft belongs to an idea**: there is no standalone "new draft"; the profile page lists ideas, and drafts
-  are added from an idea. A draft is opened, saved and deleted by id at `/api/profiles/:id/drafts/:draft`
+  **Every draft belongs to an idea**: there is no standalone "new draft"; the publication page lists ideas, and drafts
+  are added from an idea. A draft is opened, saved and deleted by id at `/api/publications/:id/drafts/:draft`
   (`/p/<id>/drafts/<draft>` in the app), which links back to its idea's Draft step.
   **Each draft has one editor** (#154): the member responsible for its title and body, its creator at first
   (`editorId`, `editorName`). Only the editor can save (`PUT` needs the `version` it was made from; a stale one is
@@ -167,24 +170,24 @@ tests inject fakes and nothing hits the network.
   draft, resolve comments, or ask for a critique (403 before anything is sent or counted). Other
   members read it, with a banner naming the editor, and see changes on reload or when the window regains focus.
   Notes stay open to every member. When
-  the editor leaves, is removed or deletes their account, their drafts go to the profile's longest-standing owner.
+  the editor leaves, is removed or deletes their account, their drafts go to the publication's longest-standing owner.
   **Reviews** (#157, #158): the editor **sends the draft for review** (`POST …/drafts/:draft/send-for-review`,
   `{emails, memberIds}`), which freezes its title and body as a **snapshot**; everyone asked reviews that copy, not later
   edits, and the dialog says so (sending again makes a new copy). People by email get a 7-day link (`/review-invite`)
-  bound to that address, with the same quiet `202`, throttles and blocks as profile invitations; a new person makes a
-  **reviewer-only account** with just a name and password (no username, no profile), and every route outside
+  bound to that address, with the same quiet `202`, throttles and blocks as publication invitations; a new person makes a
+  **reviewer-only account** with just a name and password (no username, no publication), and every route outside
   `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. Members of the
-  profile can be asked directly and find the review on their home page. A review is _open_, _ended_ (the reviewer
+  publication can be asked directly and find the review on their home page. A review is _open_, _ended_ (the reviewer
   pressed **End review**: the editor is emailed once, "X has finished reviewing Y and left N comments") or _closed_
   (the editor or an owner stopped accepting, `DELETE …/reviewers/:review` or `POST …/reviewers/close`); the last two are
   read-only but still show the snapshot and the reviewer's own comments. The editor sees each reviewer's state and comment
   count (`GET …/reviewers`) and their comments, placed on the live draft where the passage still exists. **Start writing**
-  (`POST /reviews/start-writing`) or an invitation to a profile makes a reviewer-only account a full one.
-  **What is waiting on you** (#159): `GET /api/profiles/:id/attention` feeds a block at the top of the profile's landing
+  (`POST /reviews/start-writing`) or an invitation to a publication makes a reviewer-only account a full one.
+  **What is waiting on you** (#159): `GET /api/publications/:id/attention` feeds a block at the top of the publication's landing
   page: a draft offered to you (Accept / Decline there), your own offer still waiting (Withdraw), and for drafts you edit
   how each copy sent for review stands, flagged when every review is over, some finished and comments are unresolved.
   Nothing is shown when nothing waits, and nothing is emailed or counted elsewhere.
-  **Handover** (#155), on the draft page itself (`/api/profiles/:id/drafts/:draft/handover`): the editor **offers** the
+  **Handover** (#155), on the draft page itself (`/api/publications/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other
   member can **ask** (`POST …/asks`), which only shows the editor a request to offer or set aside. An owner can
@@ -201,30 +204,30 @@ tests inject fakes and nothing hits the network.
   non-editors nothing, not even how many looks are used). Only the editor resolves (`PUT …/comments/:id`,
   `{resolved}`): the comment is hidden, never deleted, and the editor can show it again. A comment carries words about
   the writing and no replacement text, has no cap, does not count against the critique looks, and is never sent to the AI.
-  A commenter's name stays after they leave the profile, and after they delete their account if they chose to keep it.
-- **Handles and profile ids:** every user has a unique `handle` (letters and digits only), shown to people as their
+  A commenter's name stays after they leave the publication, and after they delete their account if they chose to keep it.
+- **Handles and publication ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
   identity provider have no form to choose it on, so they get one derived from their name, e.g. `jenit`, and the
   landing page asks once whether they'd like another or want to keep it. Anyone can change theirs on the Account page
-  (`PUT /api/account/handle`, up to 5 changes a day). Profiles already created keep their address; new ones use the
+  (`PUT /api/account/handle`, up to 5 changes a day). Publications already created keep their address; new ones use the
   new username. The old one is kept for its owner: nobody else can take it, but they can switch back. A few names
-  that look like the service itself (`admin`, `support`...) are reserved. A profile's id is `<creator's handle>-<slug of its name>`, such as
+  that look like the service itself (`admin`, `support`...) are reserved. A publication's id is `<creator's handle>-<slug of its name>`, such as
   `jenit-substack`; if that's taken by the same person a number is added (`jenit-substack-2`). Renaming a
-  profile renames its id too; the old id permanently redirects to the new one, so shared links keep working. Two people can each have a
+  publication renames its id too; the old id permanently redirects to the new one, so shared links keep working. Two people can each have a
   `substack` because their handles differ.
 - **Sign-up and first steps:** the form asks "What should we call you?" (`autocomplete="given-name"`, so
   browsers fill in a first name rather than a full one), a username, an email and a password. The landing
   page shows step-by-step instructions for getting an Anthropic API key, with a field to paste it into, until
-  a key is saved (new users have to do this before the AI features work); a new user with no profile is also
+  a key is saved (new users have to do this before the AI features work); a new user with no publication is also
   prompted to create one.
 - **Your name:** the name from sign-up is what other people see on notes, brainstorm messages, member lists and
   invitations. It can be changed on the Account page (`PUT /api/account/name`) and changes everywhere at once, since
   nothing stores a copy; emails already sent keep the old one.
-- **Profile pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
-  `/api/profiles/:id/image` to members only. The type is decided by the file's bytes (not what the browser
-  claims); SVG is refused because it can carry script. Each person can own up to 25 profiles.
-- **Search: the profile's feeds**: each profile keeps an ordered list of RSS/Atom feeds (up to 50), managed on the profile's
+- **Publication pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
+  `/api/publications/:id/image` to members only. The type is decided by the file's bytes (not what the browser
+  claims); SVG is refused because it can carry script. Each person can own up to 25 publications.
+- **Search: the publication's feeds**: each publication keeps an ordered list of RSS/Atom feeds (up to 50), managed on the publication's
   **Search** page (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
   its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
@@ -234,15 +237,15 @@ tests inject fakes and nothing hits the network.
   first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
   posts twice a year doesn't clutter it. It shows five posts at a time (Previous / Next above and below the list; the bottom ones scroll back to the top) out of at most 100, counts posts that carry no date (they can't be
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
-  Each post has **Add** and **Ignore** (as in the research review): Add puts it on the profile's reading list
+  Each post has **Add** and **Ignore** (as in the research review): Add puts it on the publication's reading list
   (marked "From a feed"; `POST …/sources/recent/add`, `…/ignore`, `…/reconsider`, each `{posts: [{sourceId, postId}]}`);
   an ignored post stays in the list, marked, and **Reconsider** takes either back. A post that has been added or
   ignored moves to the **end** of the list (the latest decision last), so the posts still waiting stay together at
   the top, in date order. A post is "on a reading list" if it
-  is on any of the profile's lists, however it got there. The reading list is on the same page, below the posts. **The profile's own reading list has no maximum** (an idea's keeps 50), but an item
+  is on any of the publication's lists, however it got there. The reading list is on the same page, below the posts. **The publication's own reading list has no maximum** (an idea's keeps 50), but an item
   that isn't ticked **Keep** is dropped, silently, a month after it was put on that list (`PUT
-/api/profiles/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
-  item onto the profile starts its month again.
+/api/publications/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
+  item onto the publication starts its month again.
   Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
   hours, asks again with `ETag`/`If-Modified-Since` so an unchanged feed costs little, leaves a feed that failed
@@ -250,7 +253,7 @@ tests inject fakes and nothing hits the network.
   Nothing yet turns these posts into ideas; that is the "Add to reading list" page (T6c).
   If a pasted website offers several feeds, the person is shown them (posts first, feeds of comments last and
   labelled, at most 10) and ticks which to add; `POST` then answers `200 {choices}` instead of `201`.
-  API: `GET/POST /api/profiles/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]`, `PUT .../sources/order`
+  API: `GET/POST /api/publications/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]`, `PUT .../sources/order`
   (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
@@ -258,7 +261,7 @@ tests inject fakes and nothing hits the network.
 - **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after
   an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
   an address has an account (except at registration, which has to say so), and that includes
-  inviting someone to a profile.
+  inviting someone to a publication.
 - **Changing your password** (Account page) needs the current one, signs out every _other_ device, cancels any
   reset link already out, and emails a "your password was changed" notice with a link to reset if it wasn't
   you. Google-only accounts can **add** a password: instead of typing one on the page, they're emailed a link
@@ -280,8 +283,8 @@ tests inject fakes and nothing hits the network.
   whether or not the address has an account or is already in (so it can't be used to look people up), and
   accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
   resend or revoke them, and make members owners (or remove other owners, or step down) from the people list in
-  the profile's settings (the invitation form says first what members and owners can do, from the wording in
-  `apps/web/src/lib/profile-roles.ts`; invitees always join as members); each person can send 20 a day since every one emails a stranger, and any one address
+  the publication's settings (the invitation form says first what members and owners can do, from the wording in
+  `apps/web/src/lib/publication-roles.ts`; invitees always join as members); each person can send 20 a day since every one emails a stranger, and any one address
   receives at most 5 a day from everyone together.
 - **Declining and blocking invitations:** every invitation email links to a page where the invitee (signed in or
   not) can decline and, optionally, stop invitations from that sender or from everyone. The sender is never
@@ -296,23 +299,23 @@ tests inject fakes and nothing hits the network.
   each proves ownership of it.
 - **Abandoned signups are cleaned up.** Every 6 hours the server deletes accounts that never confirmed their
   email, are older than `UNCONFIRMED_ACCOUNT_TTL_DAYS` (default 14; 0 turns it off) and show no sign of use:
-  no drafts or ideas, no saved API key, nobody else in their profiles. That frees addresses taken by typos. The signup
+  no drafts or ideas, no saved API key, nobody else in their publications. That frees addresses taken by typos. The signup
   email says so, and one reminder (with a fresh confirmation link) is sent 3 days before deletion. The same pass removes expired sessions, used/expired links and old invitations. It logs
   counts only, never who.
-- **Exporting your writing** (#167): the account page (all your profiles, `GET /api/account/export`) and each profile's
-  settings (`GET /api/profiles/:id/export`) download a zip of Markdown only: a README, then per profile a file for the
-  profile, one per idea (notes, reading list, links to drafts) and one per draft. Owners get every draft, members
+- **Exporting your writing** (#167): the account page (all your publications, `GET /api/account/export`) and each publication's
+  settings (`GET /api/publications/:id/export`) download a zip of Markdown only: a README, then per publication a file for the
+  publication, one per idea (notes, reading list, links to drafts) and one per draft. Owners get every draft, members
   the drafts they edit or started; notes and reading items are everyone's, with names. Comments, reviews, brainstorm
   chats, API keys and email addresses are never included. Built on request, throttled to 5 an hour per person; see
   `docs/decisions.md`.
-- **Deleting an account** removes the user, credentials, sessions and memberships, and every profile
-  (with its drafts) where they are the only member. In shared profiles they are removed and drafts they wrote
-  there stay; the only owner of a shared profile must first make someone else an owner (or delete the profile),
+- **Deleting an account** removes the user, credentials, sessions and memberships, and every publication
+  (with its drafts) where they are the only member. In shared publications they are removed and drafts they wrote
+  there stay; the only owner of a shared publication must first make someone else an owner (or delete the publication),
   and the request answers 409 until they do. The page asks
   whether to **keep their name** on their notes, brainstorming messages, research runs and draft insertions in
-  profiles that continue (the default; `keepName` in `DELETE /api/account`) or show them as "a former member".
+  publications that continue (the default; `keepName` in `DELETE /api/account`) or show them as "a former member".
   Only the display name is copied (into `kept_name` columns, at deletion; never the email or username), and
-  choosing not to leaves no trace of it on any row. Leaving or being removed from a profile keeps the name anyway.
+  choosing not to leaves no trace of it on any row. Leaving or being removed from a publication keeps the name anyway.
 - **Email:** see below.
 
 ## Email
@@ -337,7 +340,7 @@ logged (user id and error code only, never the link).
 There is deliberately **no server-wide LLM key**: each user saves their own Anthropic API key under
 _Account → AI assistant_, so usage is billed to them. Keys are checked with a 1-token call before
 being saved, encrypted with AES-256-GCM (bound to the user, so a copied ciphertext won't decrypt for
-anyone else), shown back only as `…1234`, and deleted with the account. Requests in a shared profile
+anyone else), shown back only as `…1234`, and deleted with the account. Requests in a shared publication
 run on the _requester's_ key.
 
 - `KEY_ENCRYPTION_SECRET` (32+ chars, required in production) encrypts the keys. **Back it up**: if it's
@@ -355,20 +358,20 @@ idea are the Markdown file `prompts/brainstorm-default.md`. Each person can edit
 that equals the default isn't stored, so changes to the default reach everyone who hasn't customised theirs. The app
 adds its own fixed rules after it (`prompts/brainstorm-rules.md`).
 
-**Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/profiles/:id/ideas/:idea/conversation`
-holds one thread per idea, shared by the profile's members. `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
+**Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/publications/:id/ideas/:idea/conversation`
+holds one thread per idea, shared by the publication's members. `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
 AI's suggestions (a new title for the idea, a new idea, or a page for the idea's reading list that the writer gave it: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` starts
 again. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
-person accepts it, except the notes it records. The page is `/p/<profile>/ideas/<idea>/refine` (the idea's **Refine** step: visiting it spends nothing; **Start brainstorming** begins): the editor's reply
+person accepts it, except the notes it records. The page is `/p/<publication>/ideas/<idea>/refine` (the idea's **Refine** step: visiting it spends nothing; **Start brainstorming** begins): the editor's reply
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
 never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
 "suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
 
 **Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step's **Start research**
-button opens `/p/<profile>/ideas/<idea>/research/find`, a page apart from brainstorming that lists the idea's earlier research and takes
-a new request, a description of the areas to look into. `GET`/`POST /api/profiles/:id/ideas/:idea/research` (`{areas}`) list and run
+button opens `/p/<publication>/ideas/<idea>/research/find`, a page apart from brainstorming that lists the idea's earlier research and takes
+a new request, a description of the areas to look into. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
 `/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the
 reading list); `DELETE …/research/:run` forgets a run. The search
@@ -391,7 +394,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   (the design is in [docs/decisions.md](docs/decisions.md#comment-marks-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
   The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
   gets 3 critiques by default (each person can choose 1 to 5 on their account page), counted per draft.
-- **Rephrase** (`POST /api/profiles/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage
+- **Rephrase** (`POST /api/publications/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage
   or the title: `{draftId, kind: 'title'|'passage', wording, aim, earlier}` gives `{size, options}`. `earlier` holds the
   rounds already asked in this window, so the AI is told what it has offered and a later round needs a different aim.
   The server keeps nothing (the window holds the state; the record on use comes with #162). It refuses a selection that
@@ -399,7 +402,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   words, before spending anything. Short wording (a title, or up to 25 words) gets 5 to 10 options, longer gets 3 to 5, and the
   AI is told to make them differ in approach. Every number is in one place, `packages/core/src/rephrase.ts`. The prompt is
   `prompts/options.md`. The round limit in a window is the critique-looks setting (account page). Only the draft, wording,
-  aim and venue description are sent: never notes, threads or comments.
+  aim and publication description are sent: never notes, threads or comments.
   **The Rephrase window** (#162): in the draft editor, select words inside one paragraph and press **Rephrase**. A dialog
   shows the wording (editable), asks "What should it do?" (the Aim), and **Generate options** (saving the draft first, since
   the AI reads the saved draft) brings a list (short wording) or carousel (longer) with a **Replace wording** button on

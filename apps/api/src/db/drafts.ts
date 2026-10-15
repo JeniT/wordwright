@@ -12,19 +12,21 @@ import { nowIso } from './database'
 import { parseNames } from './names'
 import { reorder } from './ordering'
 
-/** Drafts are always accessed through their profile; callers check membership first. Each develops an idea. */
+/** Drafts are always accessed through their publication; callers check membership first. Each develops an idea. */
 export class DraftStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  list(profileId: string): Draft[] {
+  list(publicationId: string): Draft[] {
     return this.db
-      .prepare(`${SELECT} WHERE d.profile_id = ? ORDER BY d.updated_at DESC`)
-      .all(profileId)
+      .prepare(`${SELECT} WHERE d.publication_id = ? ORDER BY d.updated_at DESC`)
+      .all(publicationId)
       .map(toDraft)
   }
 
-  get(profileId: string, id: string): Draft | undefined {
-    const row = this.db.prepare(`${SELECT} WHERE d.profile_id = ? AND d.id = ?`).get(profileId, id)
+  get(publicationId: string, id: string): Draft | undefined {
+    const row = this.db
+      .prepare(`${SELECT} WHERE d.publication_id = ? AND d.id = ?`)
+      .get(publicationId, id)
     return row ? toDraft(row) : undefined
   }
 
@@ -34,52 +36,63 @@ export class DraftStore {
     return row ? toDraft(row) : undefined
   }
 
-  create(profileId: string, createdBy: string, input: DraftInput, ideaId: string): Draft {
+  create(publicationId: string, createdBy: string, input: DraftInput, ideaId: string): Draft {
     const id = randomUUID()
     const now = nowIso()
     this.db
       .prepare(
-        `INSERT INTO drafts (id, profile_id, idea_id, created_by, editor_id, title, body, position, created_at, updated_at)
+        `INSERT INTO drafts (id, publication_id, idea_id, created_by, editor_id, title, body, position, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?,
                  (SELECT coalesce(max(position) + 1, 0) FROM drafts WHERE idea_id = ?), ?, ?)`,
       )
-      .run(id, profileId, ideaId, createdBy, createdBy, input.title, input.body, ideaId, now, now)
-    return this.get(profileId, id)!
+      .run(
+        id,
+        publicationId,
+        ideaId,
+        createdBy,
+        createdBy,
+        input.title,
+        input.body,
+        ideaId,
+        now,
+        now,
+      )
+    return this.get(publicationId, id)!
   }
 
   /**
    * Saves the words if `version` is still the draft's current one. Undefined means nothing was saved: the draft
    * is missing or has been saved since (the caller tells which by looking it up).
    */
-  update(profileId: string, id: string, input: DraftInput, version: number): Draft | undefined {
+  update(publicationId: string, id: string, input: DraftInput, version: number): Draft | undefined {
     const result = this.db
       .prepare(
         `UPDATE drafts SET title = ?, body = ?, version = version + 1, updated_at = ?
-         WHERE profile_id = ? AND id = ? AND version = ?`,
+         WHERE publication_id = ? AND id = ? AND version = ?`,
       )
-      .run(input.title, input.body, nowIso(), profileId, id, version)
-    return result.changes ? this.get(profileId, id) : undefined
+      .run(input.title, input.body, nowIso(), publicationId, id, version)
+    return result.changes ? this.get(publicationId, id) : undefined
   }
 
-  /** The drafts in the profile that this person is editor of. */
-  editedBy(profileId: string, userId: string): string[] {
+  /** The drafts in the publication that this person is editor of. */
+  editedBy(publicationId: string, userId: string): string[] {
     return (
       this.db
         .prepare(
-          'SELECT id FROM drafts WHERE profile_id = ? AND editor_id = ? ORDER BY position, id',
+          'SELECT id FROM drafts WHERE publication_id = ? AND editor_id = ? ORDER BY position, id',
         )
-        .all(profileId, userId) as { id: string }[]
+        .all(publicationId, userId) as { id: string }[]
     ).map((r) => r.id)
   }
 
-  /** The drafts in the profile that this person started, whoever edits them now. */
-  startedBy(profileId: string, userId: string): string[] {
+  /** The drafts in the publication that this person started, whoever edits them now. */
+  startedBy(publicationId: string, userId: string): string[] {
     return (
       this.db
         .prepare(
-          'SELECT id FROM drafts WHERE profile_id = ? AND created_by = ? ORDER BY position, id',
+          'SELECT id FROM drafts WHERE publication_id = ? AND created_by = ? ORDER BY position, id',
         )
-        .all(profileId, userId) as { id: string }[]
+        .all(publicationId, userId) as { id: string }[]
     ).map((r) => r.id)
   }
 
@@ -88,11 +101,11 @@ export class DraftStore {
     this.db.prepare('UPDATE drafts SET editor_id = ? WHERE id = ?').run(userId, id)
   }
 
-  /** Makes `toUserId` the editor of every draft in the profile that `fromUserId` is editor of. */
-  reassignEditor(profileId: string, fromUserId: string, toUserId: string) {
+  /** Makes `toUserId` the editor of every draft in the publication that `fromUserId` is editor of. */
+  reassignEditor(publicationId: string, fromUserId: string, toUserId: string) {
     this.db
-      .prepare('UPDATE drafts SET editor_id = ? WHERE profile_id = ? AND editor_id = ?')
-      .run(toUserId, profileId, fromUserId)
+      .prepare('UPDATE drafts SET editor_id = ? WHERE publication_id = ? AND editor_id = ?')
+      .run(toUserId, publicationId, fromUserId)
   }
 
   /** What was pulled into a draft from notes, oldest first. */
@@ -190,10 +203,11 @@ export class DraftStore {
     return reorder(this.db, 'drafts', { sql: 'idea_id = ?', args: [ideaId] }, current, ids)
   }
 
-  delete(profileId: string, id: string): boolean {
+  delete(publicationId: string, id: string): boolean {
     return (
-      this.db.prepare('DELETE FROM drafts WHERE profile_id = ? AND id = ?').run(profileId, id)
-        .changes > 0
+      this.db
+        .prepare('DELETE FROM drafts WHERE publication_id = ? AND id = ?')
+        .run(publicationId, id).changes > 0
     )
   }
 }
@@ -203,7 +217,7 @@ const SELECT = `SELECT d.*, u.name AS editor_name FROM drafts d LEFT JOIN users 
 function toDraft(row: Record<string, unknown>): Draft {
   return {
     id: row.id as string,
-    profileId: row.profile_id as string,
+    publicationId: row.publication_id as string,
     ideaId: row.idea_id as string,
     title: row.title as string,
     body: row.body as string,

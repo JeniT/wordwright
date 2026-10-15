@@ -20,31 +20,31 @@ async function fillSignUp(page: Page, name: string, username = uniqueUsername())
   return email
 }
 
-/** From the landing page, creates a profile named "<name>'s writing" and opens it. */
-async function createFirstProfile(page: Page, name: string) {
-  await page.getByRole('link', { name: 'New profile' }).click()
+/** From the landing page, creates a publication named "<name>'s writing" and opens it. */
+async function createFirstPublication(page: Page, name: string) {
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill(`${name}'s writing`)
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Wordwright' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 }
 
 /**
  * Each test registers its own user, so tests are independent and can run in parallel. Most tests
- * are about what happens after set-up, so this also creates a first profile, "<name>'s writing".
+ * are about what happens after set-up, so this also creates a first publication, "<name>'s writing".
  */
-async function registerUser(page: Page, name = 'Ada Lovelace', { withProfile = true } = {}) {
+async function registerUser(page: Page, name = 'Ada Lovelace', { withPublication = true } = {}) {
   await page.goto('/register')
   const email = await fillSignUp(page, name)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
-  if (withProfile) await createFirstProfile(page, name)
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+  if (withPublication) await createFirstPublication(page, name)
   return email
 }
 
-/** From the profile list, opens the first profile ("<name>'s writing"). */
-async function openFirstProfile(page: Page) {
+/** From the publication list, opens the first publication ("<name>'s writing"). */
+async function openFirstPublication(page: Page) {
   await page
     .getByRole('main')
     .getByRole('link', { name: /writing/ })
@@ -52,12 +52,12 @@ async function openFirstProfile(page: Page) {
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
 
-/** The first profile's settings page, where it is shared. */
+/** The first publication's settings page, where it is shared. */
 async function openSettings(page: Page) {
   await page.getByRole('link', { name: 'Wordwright' }).click()
-  await openFirstProfile(page)
-  await page.getByRole('link', { name: 'Profile settings' }).click()
-  await expect(page.getByRole('heading', { name: 'Profile settings' })).toBeVisible()
+  await openFirstPublication(page)
+  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Publication settings' })).toBeVisible()
 }
 
 type Mail = { to: string; subject: string; text: string }
@@ -91,7 +91,7 @@ async function confirmEmail(page: Page, email: string) {
   await page.goto(link!)
   await expect(page.getByText('your email address is confirmed')).toBeVisible()
   await page.getByRole('link', { name: 'Continue writing' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 }
 
 test('redirects signed-out visitors to sign in', async ({ page }) => {
@@ -102,7 +102,7 @@ test('redirects signed-out visitors to sign in', async ({ page }) => {
 test('register, write, save and request a critique', async ({ page }) => {
   test.setTimeout(90_000) // a long flow: a long draft, a critique, the limit, a phone
   await registerUser(page)
-  await openFirstProfile(page)
+  await openFirstPublication(page)
 
   // Every draft develops an idea, so writing starts from one.
   await page.getByRole('link', { name: 'New idea' }).click()
@@ -139,7 +139,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "Replace…"
 
   await page.getByRole('link', { name: 'Wordwright' }).click()
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await goTo(page, 'Draft')
   await page.getByRole('link', { name: /^Why rivers meander \d/ }).click()
@@ -282,7 +282,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
     page.getByRole('status').filter({ hasText: 'Anthropic key saved (…5678)' }),
   ).toBeVisible()
   await page.getByRole('link', { name: 'Wordwright' }).click()
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers bend')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -374,7 +374,7 @@ test('closing the Rephrase window with Escape changes nothing and returns to the
   page,
 }) => {
   await registerUser(page)
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers bend')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -396,7 +396,7 @@ test('closing the Rephrase window with Escape changes nothing and returns to the
 test('sign out and back in, and the session survives a reload', async ({ page }) => {
   const email = await registerUser(page)
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
@@ -408,7 +408,7 @@ test('sign out and back in, and the session survives a reload', async ({ page })
 
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 })
 
 test('recovers a forgotten password from the emailed link', async ({ page }) => {
@@ -437,7 +437,7 @@ test('recovers a forgotten password from the emailed link', async ({ page }) => 
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
   await page.getByLabel('Password').fill('my brand new password')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await page.goto(link!)
@@ -482,7 +482,7 @@ test('changes the email address once the new one is confirmed', async ({ page })
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
   await page.getByLabel('Email').fill(newEmail)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 })
 
 test('"this wasn\'t me" puts the old address back and forces a new password', async ({ page }) => {
@@ -519,7 +519,7 @@ test('"this wasn\'t me" puts the old address back and forces a new password', as
   await page.getByLabel('Email').fill(oldEmail)
   await page.getByLabel('Password').fill('my brand new password')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 })
 
 test('confirms an email address from the signup email', async ({ page }) => {
@@ -655,9 +655,9 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
   await dialog.getByRole('button', { name: 'Make Bob an owner' }).click()
   await expect(page.getByText('Bob is now an owner.')).toBeVisible()
 
-  // Bob can now change the profile's details.
+  // Bob can now change the publication's details.
   await bob.reload()
-  await bob.getByRole('link', { name: 'Profile settings' }).click()
+  await bob.getByRole('link', { name: 'Publication settings' }).click()
   await expect(bob.getByRole('button', { name: 'Save details' })).toBeVisible()
 
   // Ada steps down and loses the owner-only parts of the page.
@@ -674,7 +674,7 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
-test('removing a member and leaving a profile each ask first, saying what happens', async ({
+test('removing a member and leaving a publication each ask first, saying what happens', async ({
   page,
   browser,
 }) => {
@@ -702,16 +702,16 @@ test('removing a member and leaving a profile each ask first, saying what happen
 
   // Cara leaves from her own page, after being told she needs a new invitation to come back.
   await cara.reload()
-  await cara.getByRole('link', { name: 'Profile settings' }).click()
+  await cara.getByRole('link', { name: 'Publication settings' }).click()
   await cara.getByRole('button', { name: 'Leave', exact: true }).click()
   const leaving = cara.getByRole('dialog', { name: /^Leave / })
   await expect(leaving).toContainText('only if an owner invites you again')
   await leaving.getByRole('button', { name: 'Leave', exact: true }).click()
-  await expect(cara.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(cara.getByRole('heading', { name: 'Your publications' })).toBeVisible()
   expect(caraProblems, "Cara's browser problems").toEqual([])
 })
 
-test('the only owner of a shared profile cannot delete their account until another owner is chosen', async ({
+test('the only owner of a shared publication cannot delete their account until another owner is chosen', async ({
   page,
   browser,
 }) => {
@@ -735,7 +735,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
 }) => {
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -811,7 +811,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
 }) => {
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -868,7 +868,7 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
 }) => {
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -980,14 +980,14 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   expect(raeProblems, "Rae's browser problems").toEqual([])
 })
 
-test('the profile’s landing page says what is waiting: an offer, a wait, and finished reviews', async ({
+test('the publication’s landing page says what is waiting: an offer, a wait, and finished reviews', async ({
   page,
   browser,
 }) => {
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
-  await openFirstProfile(page)
-  const profileUrl = page.url()
+  await openFirstPublication(page)
+  const publicationUrl = page.url()
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -1003,7 +1003,7 @@ test('the profile’s landing page says what is waiting: an offer, a wait, and f
   const bobProblems = watchForProblems(bob)
 
   // Nothing is waiting yet.
-  await bob.goto(profileUrl)
+  await bob.goto(publicationUrl)
   await expect(bob.getByRole('heading', { name: /writing$/ })).toBeVisible()
   await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
 
@@ -1013,11 +1013,11 @@ test('the profile’s landing page says what is waiting: an offer, a wait, and f
   await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
   await page.getByRole('button', { name: 'Offer the draft' }).click()
   await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
-  await page.goto(profileUrl)
+  await page.goto(publicationUrl)
   await expect(page.getByRole('region', { name: 'Waiting for you' })).toContainText(
     'Waiting for Bob to answer your offer of Meanders',
   )
-  await bob.goto(profileUrl)
+  await bob.goto(publicationUrl)
   const offered = bob.getByRole('region', { name: 'Waiting for you' })
   await expect(offered).toContainText('Ada has offered you the draft Meanders')
   expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
@@ -1058,7 +1058,7 @@ test('the profile’s landing page says what is waiting: an offer, a wait, and f
   await expect(rae.getByText('Which rivers?')).toBeVisible()
 
   // While Rae is reading, Bob's landing page lists the copy; once she ends, it flags the draft.
-  await bob.goto(profileUrl)
+  await bob.goto(publicationUrl)
   const reviews = bob.getByRole('list', { name: 'Drafts sent for review' })
   await expect(reviews).toContainText('1 reading, 1 comment to answer')
   await expect(reviews).not.toContainText('Reviews finished')
@@ -1078,7 +1078,7 @@ test('the profile’s landing page says what is waiting: an offer, a wait, and f
     .getByRole('switch', { name: /Resolved/ })
     .first()
     .click()
-  await bob.goto(profileUrl)
+  await bob.goto(publicationUrl)
   await expect(bob.getByRole('list', { name: 'Drafts sent for review' })).not.toContainText(
     'Reviews finished',
   )
@@ -1132,7 +1132,7 @@ test('declining and blocking an inviter from the email, then lifting the block',
   await bob.getByLabel('Email').fill(bobEmail)
   await bob.getByLabel('Password').fill(PASSWORD)
   await bob.getByRole('button', { name: 'Create account' }).click()
-  await expect(bob.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(bob.getByRole('heading', { name: 'Your publications' })).toBeVisible()
   await bob.goto(
     linkIn(await waitForEmail(bobEmail, 'Confirm your email address'), '/verify-email')!,
   )
@@ -1214,7 +1214,7 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await phone.getByLabel('Email').fill(email)
   await phone.getByLabel('Password').fill(PASSWORD)
   await phone.getByRole('button', { name: 'Sign in' }).click()
-  await expect(phone.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(phone.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
   // A wrong current password is explained and changes nothing.
@@ -1243,16 +1243,16 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password')
   await page.getByLabel('Password').fill('my brand new password')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
   expect(phoneProblems, "The phone's browser problems").toEqual([])
 })
 
-test('a new account chooses a username, connects an API key, then creates its first profile', async ({
+test('a new account chooses a username, connects an API key, then creates its first publication', async ({
   page,
   browser,
 }) => {
   const taken = uniqueUsername()
-  await registerUser(page, 'Grace', { withProfile: false })
+  await registerUser(page, 'Grace', { withPublication: false })
 
   // Sign-up asks what to call them, and checks the username against everyone else's.
   const other = await (await browser.newContext()).newPage()
@@ -1268,7 +1268,7 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await other.getByLabel('Email').fill(`dup-${Date.now()}@example.com`)
   await other.getByLabel('Password').fill(PASSWORD)
   await other.getByRole('button', { name: 'Create account' }).click()
-  await expect(other.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(other.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 
   const third = await (await browser.newContext()).newPage()
   await third.goto('/register')
@@ -1276,13 +1276,13 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await expect(third.getByText('That username is already taken. Try another.')).toBeVisible()
   await expect(third.getByRole('button', { name: 'Create account' })).toBeDisabled()
 
-  // No profile was made for them. The landing page explains how to get a key, with a field for it.
+  // No publication was made for them. The landing page explains how to get a key, with a field for it.
   await expect(page.getByText('Welcome, Grace')).toBeVisible()
   await expect(
     page.getByRole('heading', { name: 'First, connect your AI assistant' }),
   ).toBeVisible()
   await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(5)
-  await expect(page.getByText('Next, create your first profile')).toBeVisible()
+  await expect(page.getByText('Next, create your first publication')).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'landing page').toEqual([])
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-onboarding-key-4321')
@@ -1290,10 +1290,10 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
   await expect(page.getByLabel('Anthropic API key')).toHaveCount(0)
 
-  // Then they create (and set up) their first profile.
-  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  // Then they create (and set up) their first publication.
+  await page.getByRole('link', { name: 'Create your first publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Grace letters')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Grace letters').filter({ visible: true }).first(),
   ).toBeVisible()
@@ -1308,11 +1308,11 @@ test('the sign-up form explains a problem the server finds, in words', async ({ 
   await expect(page.getByText('[object Object]')).toHaveCount(0)
 })
 
-test('downloads your writing as a zip from the account page and from a profile', async ({
+test('downloads your writing as a zip from the account page and from a publication', async ({
   page,
 }) => {
   await registerUser(page, 'Ada')
-  await openFirstProfile(page)
+  await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -1343,11 +1343,11 @@ test('downloads your writing as a zip from the account page and from a profile',
   await expect(page.getByText('Downloaded')).toBeVisible()
 
   await openSettings(page)
-  const profile = await downloaded(page, () =>
+  const publication = await downloaded(page, () =>
     page.getByRole('button', { name: 'Download as a zip' }).click(),
   )
-  expect(profile.name).toMatch(/^wordwright-.+-\d{4}-\d{2}-\d{2}\.zip$/)
-  expect(profile.names).toContain('ideas/why-rivers-meander.md')
+  expect(publication.name).toMatch(/^wordwright-.+-\d{4}-\d{2}-\d{2}\.zip$/)
+  expect(publication.names).toContain('ideas/why-rivers-meander.md')
 })
 
 test('deletes an account', async ({ page }) => {

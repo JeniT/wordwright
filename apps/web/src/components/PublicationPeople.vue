@@ -1,33 +1,33 @@
 <script setup lang="ts">
-import type { Profile, ProfileMember, ProfileRole } from '@lfwa/core'
+import type { Publication, PublicationMember, PublicationRole } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
-import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES } from '../lib/profile-roles'
+import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES } from '../lib/publication-roles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
 import SaveStatus from './SaveStatus.vue'
 
-const props = defineProps<{ profile: Profile }>()
+const props = defineProps<{ publication: Publication }>()
 const session = useSessionStore()
 const router = useRouter()
 const queryClient = useQueryClient()
-const refresh = () => queryClient.invalidateQueries({ queryKey: ['profiles'] })
+const refresh = () => queryClient.invalidateQueries({ queryKey: ['publications'] })
 
-const isOwner = computed(() => props.profile.role === 'owner')
+const isOwner = computed(() => props.publication.role === 'owner')
 const onlyOwner = computed(
-  () => props.profile.members.filter((m) => m.role === 'owner').length === 1,
+  () => props.publication.members.filter((m) => m.role === 'owner').length === 1,
 )
-const isMe = (m: ProfileMember) => m.userId === session.user?.id
+const isMe = (m: PublicationMember) => m.userId === session.user?.id
 const hintId = useId()
 
 // ---- leaving and removing
 // Asks first: the person's drafts move to an owner and they lose access, which only an invitation brings back.
-const removing = ref<ProfileMember | null>(null)
+const removing = ref<PublicationMember | null>(null)
 const removingSelf = computed(() => !!removing.value && isMe(removing.value))
 const removeMember = useMutation({
-  mutationFn: (userId: string) => api.removeMember(props.profile.id, userId),
+  mutationFn: (userId: string) => api.removeMember(props.publication.id, userId),
   onSuccess: async (_, userId) => {
     removing.value = null // before the refresh, so the dialog never lingers over the updated list
     await refresh()
@@ -35,16 +35,16 @@ const removeMember = useMutation({
   },
   onSettled: () => (removing.value = null), // a failure shows in the status line below the list
 })
-const canRemove = (m: ProfileMember) =>
+const canRemove = (m: PublicationMember) =>
   (isOwner.value && m.role !== 'owner') || (!isOwner.value && isMe(m))
 
 // ---- owners
 // A role changes what someone can do, so it asks first and says what changes.
-const pending = ref<{ member: ProfileMember; role: ProfileRole } | null>(null)
+const pending = ref<{ member: PublicationMember; role: PublicationRole } | null>(null)
 const changed = ref('')
 const setRole = useMutation({
-  mutationFn: (change: { member: ProfileMember; role: ProfileRole }) =>
-    api.setMemberRole(props.profile.id, change.member.userId, change.role),
+  mutationFn: (change: { member: PublicationMember; role: PublicationRole }) =>
+    api.setMemberRole(props.publication.id, change.member.userId, change.role),
   onSuccess: (_, { member, role }) => {
     pending.value = null // before the refresh, so the dialog never lingers over the updated list
     changed.value = isMe(member)
@@ -61,9 +61,9 @@ const stepping = computed(() => !!pending.value && isMe(pending.value.member))
 const promoting = computed(() => pending.value?.role === 'owner')
 const title = computed(() => {
   const who = pending.value?.member.name
-  if (stepping.value) return `Step down as owner of ${props.profile.name}?`
+  if (stepping.value) return `Step down as owner of ${props.publication.name}?`
   return promoting.value
-    ? `Make ${who} an owner of ${props.profile.name}?`
+    ? `Make ${who} an owner of ${props.publication.name}?`
     : `Remove ${who} as an owner?`
 })
 const confirmLabel = computed(() => {
@@ -75,7 +75,7 @@ const confirmLabel = computed(() => {
 <template>
   <ul class="text-sm">
     <li
-      v-for="m in profile.members"
+      v-for="m in publication.members"
       :key="m.userId"
       class="flex flex-wrap items-center justify-between gap-2 py-1"
     >
@@ -103,7 +103,7 @@ const confirmLabel = computed(() => {
           Remove as owner
         </button>
         <button
-          v-if="isOwner && isMe(m) && profile.members.length > 1"
+          v-if="isOwner && isMe(m) && publication.members.length > 1"
           type="button"
           class="btn btn-sm btn-outline"
           :disabled="onlyOwner"
@@ -125,11 +125,11 @@ const confirmLabel = computed(() => {
     </li>
   </ul>
   <p
-    v-if="isOwner && onlyOwner && profile.members.length > 1"
+    v-if="isOwner && onlyOwner && publication.members.length > 1"
     :id="hintId"
     class="mt-2 text-sm text-ink-soft"
   >
-    You are the only owner. Make someone else an owner first, or delete the profile.
+    You are the only owner. Make someone else an owner first, or delete the publication.
   </p>
   <SaveStatus :mutation="setRole" class="mt-2"
     ><span>{{ changed }}</span></SaveStatus
@@ -139,7 +139,9 @@ const confirmLabel = computed(() => {
   <ConfirmDialog
     :open="removing !== null"
     :title="
-      removingSelf ? `Leave ${profile.name}?` : `Remove ${removing?.name} from ${profile.name}?`
+      removingSelf
+        ? `Leave ${publication.name}?`
+        : `Remove ${removing?.name} from ${publication.name}?`
     "
     :confirm-label="removingSelf ? 'Leave' : `Remove ${removing?.name}`"
     busy-label="Removing…"
@@ -149,14 +151,14 @@ const confirmLabel = computed(() => {
   >
     <template v-if="removing">
       <p v-if="removingSelf">
-        You will lose access to its ideas, notes and drafts. Drafts you edit go to the profile's
+        You will lose access to its ideas, notes and drafts. Drafts you edit go to the publication's
         longest-standing owner, any handover you had open is closed, and what you wrote stays with
         your name. You can come back only if an owner invites you again.
       </p>
       <p v-else>
         {{ removing.name }} will lose access to its ideas, notes and drafts. Drafts they edit go to
-        the profile's longest-standing owner, any handover they had open is closed, and what they
-        wrote stays with their name. You can invite them again later.
+        the publication's longest-standing owner, any handover they had open is closed, and what
+        they wrote stays with their name. You can invite them again later.
       </p>
     </template>
   </ConfirmDialog>

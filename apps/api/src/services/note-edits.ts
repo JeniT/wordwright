@@ -14,7 +14,7 @@ export class NoteEditService {
 
   /**
    * Adds and removes tags on the chosen notes in one go. All or nothing: if any note would end with more tags than a
-   * note can hold, none is changed. Answers with all the notes of the idea or profile.
+   * note can hold, none is changed. Answers with all the notes of the idea or publication.
    */
   tag(scope: ListScope, ids: string[], add: string[], remove: string[]): IdeaNote[] {
     const { notes } = this.store
@@ -33,7 +33,7 @@ export class NoteEditService {
     })
   }
 
-  /** Merges the notes into the first of them (in the order they are arranged). Answers with all the notes of the idea or profile. */
+  /** Merges the notes into the first of them (in the order they are arranged). Answers with all the notes of the idea or publication. */
   merge(scope: ListScope, userId: string, ids: string[]): IdeaNote[] {
     const { notes } = this.store
     const owner = ownerOf(scope)
@@ -93,7 +93,7 @@ export class NoteEditService {
     })
   }
 
-  /** Cuts a note into two, the second just after the first. Answers with all the notes of the idea or profile. */
+  /** Cuts a note into two, the second just after the first. Answers with all the notes of the idea or publication. */
   split(scope: ListScope, noteId: string, before: string, after: string): IdeaNote[] {
     const { notes } = this.store
     const owner = ownerOf(scope)
@@ -115,7 +115,7 @@ export class NoteEditService {
           `${subjectOf(scope)} can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
         )
       }
-      notes.split(scope.profileId, owner, note.id, before, after)
+      notes.split(scope.publicationId, owner, note.id, before, after)
       touch(this.store, scope)
       return notes.list(owner)
     })

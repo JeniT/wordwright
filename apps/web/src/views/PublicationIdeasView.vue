@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import ProfileGate from '../components/ProfileGate.vue'
+import PublicationGate from '../components/PublicationGate.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { useIdeas } from '../lib/queries'
 import QueryState from '../components/QueryState.vue'
 
-/** Step 03 of a profile: choose which idea to work on next. */
-const props = defineProps<{ profileId: string }>()
-const ideas = useIdeas(() => props.profileId)
+/** Step 03 of a publication: choose which idea to work on next. */
+const props = defineProps<{ publicationId: string }>()
+const ideas = useIdeas(() => props.publicationId)
 </script>
 
 <template>
-  <ProfileGate :profile-id="profileId">
+  <PublicationGate :publication-id="publicationId">
     <StepHeading>Ideas</StepHeading>
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <p class="max-w-prose text-ink-soft">Choose what to work on next.</p>
-      <RouterLink :to="{ name: 'new-idea', params: { profileId } }" class="btn btn-primary">
+      <RouterLink :to="{ name: 'new-idea', params: { publicationId } }" class="btn btn-primary">
         New idea
       </RouterLink>
     </div>
@@ -26,7 +26,7 @@ const ideas = useIdeas(() => props.profileId)
       <ul v-else class="panel divide-y divide-line">
         <li v-for="idea in ideas.data.value" :key="idea.id">
           <RouterLink
-            :to="{ name: 'idea', params: { profileId, id: idea.id } }"
+            :to="{ name: 'idea', params: { publicationId, id: idea.id } }"
             class="flex items-baseline justify-between gap-3 px-4 py-3 no-underline hover:bg-sunken"
           >
             <span class="text-lg font-semibold">{{ idea.name }}</span>
@@ -37,5 +37,5 @@ const ideas = useIdeas(() => props.profileId)
         </li>
       </ul>
     </QueryState>
-  </ProfileGate>
+  </PublicationGate>
 </template>

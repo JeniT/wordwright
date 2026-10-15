@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer()
 
-const profile = {
+const publication = {
   id: 'p1',
   name: "Ada's writing",
   siteUrl: null,
@@ -21,7 +21,7 @@ describe('AccountView', () => {
     let body: unknown
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.delete('*/api/account', async ({ request }) => {
         body = await request.json()
         return new HttpResponse(null, { status: 204 })
@@ -49,7 +49,7 @@ describe('AccountView', () => {
     let body: { keepName?: boolean } = {}
     server.use(
       signedInAs({ ...testUser, hasPassword: false }),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.delete('*/api/account', async ({ request }) => {
         body = (await request.json()) as typeof body
         return new HttpResponse(null, { status: 204 })
@@ -71,7 +71,7 @@ describe('AccountView', () => {
     let deleted = false
     server.use(
       signedInAs({ ...testUser, hasPassword: false }),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.delete('*/api/account', () => {
         deleted = true
         return new HttpResponse(null, { status: 204 })
@@ -95,7 +95,7 @@ describe('AccountView', () => {
   it('closes the confirmation and shows the problem if the deletion is refused', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.delete('*/api/account', () =>
         HttpResponse.json({ error: 'That password is not right.' }, { status: 400 }),
       ),
@@ -112,7 +112,7 @@ describe('AccountView', () => {
   it('does not ask for a password if the account has none', async () => {
     server.use(
       signedInAs({ ...testUser, hasPassword: false, linkedProviders: ['google'] }),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/account')
     await screen.findByLabelText(/Type your email/)
@@ -120,15 +120,17 @@ describe('AccountView', () => {
     expect(screen.getByText(/Linked sign-in: google/)).toBeInTheDocument()
   })
 
-  it('shows the handle that profile addresses start with, and links to the profiles', async () => {
+  it('shows the handle that publication addresses start with, and links to the publications', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/account')
-    const section = (await screen.findByRole('heading', { name: 'Profiles' })).closest('section')!
+    const section = (await screen.findByRole('heading', { name: 'Publications' })).closest(
+      'section',
+    )!
     expect(section).toHaveTextContent('adalovelace')
-    expect(within(section).getByRole('link', { name: 'your profiles' })).toHaveAttribute(
+    expect(within(section).getByRole('link', { name: 'your publications' })).toHaveAttribute(
       'href',
       '/',
     )
@@ -142,7 +144,7 @@ describe('AccountView: AI assistant key', () => {
     let sent: unknown
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/llm', () => HttpResponse.json(noKey)),
       http.put('*/api/llm', async ({ request }) => {
         sent = await request.json()
@@ -175,7 +177,7 @@ describe('AccountView: AI assistant key', () => {
     let sent: { model?: string } | undefined
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/llm', async () => {
         await delay(150)
         return HttpResponse.json(noKey)
@@ -199,7 +201,7 @@ describe('AccountView: AI assistant key', () => {
   it('shows why a key was refused', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/llm', () => HttpResponse.json(noKey)),
       http.put('*/api/llm', () =>
         HttpResponse.json(
@@ -221,7 +223,7 @@ describe('AccountView: AI assistant key', () => {
     const saved = { ...noKey, hasKey: true, keyHint: '…7890' }
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/llm', () => HttpResponse.json(removed ? noKey : saved)),
       http.put('*/api/llm', async ({ request }) => {
         sent = await request.json()
@@ -249,7 +251,7 @@ describe('AccountView: critiques of a draft', () => {
   const mock = (saved: number[] = [], rounds = 3) =>
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds })),
       http.put('*/api/account/critique-settings', async ({ request }) => {
         const body = (await request.json()) as { rounds: number }

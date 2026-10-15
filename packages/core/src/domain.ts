@@ -47,7 +47,7 @@ export const UsernameInputSchema = z
 export const ChangeHandleInputSchema = z.object({ handle: UsernameInputSchema })
 export type ChangeHandleInput = z.infer<typeof ChangeHandleInputSchema>
 
-/** A profile's website: a plausible web address (see `WebAddressSchema`), kept short. */
+/** A publication's website: a plausible web address (see `WebAddressSchema`), kept short. */
 export const SiteUrlSchema = z
   .string()
   .trim()
@@ -58,9 +58,9 @@ export const SiteUrlSchema = z
 
 export const UserSchema = z.object({
   id: z.string(),
-  /** Short, unique, lower-case name that prefixes the ids of profiles this person creates. */
+  /** Short, unique, lower-case name that prefixes the ids of publications this person creates. */
   handle: HandleSchema.nullable(),
-  /** A reviewer-only account (#157): reaches only the reviews it was invited to, and has no username or profile yet. */
+  /** A reviewer-only account (#157): reaches only the reviews it was invited to, and has no username or publication yet. */
   reviewerOnly: z.boolean(),
   /** False for a username we generated (sign-up through an identity provider) until the person answers. */
   handleChosen: z.boolean(),
@@ -120,7 +120,7 @@ export type ChangeEmailInput = z.infer<typeof ChangeEmailInputSchema>
 export const DeleteAccountInputSchema = z.object({
   confirmEmail: EmailSchema,
   password: z.string().max(128, 'That password is too long').optional(),
-  /** Leave the display name on notes and messages in profiles that continue (otherwise "a former member"). */
+  /** Leave the display name on notes and messages in publications that continue (otherwise "a former member"). */
   keepName: z.boolean().default(true),
 })
 
@@ -129,79 +129,82 @@ export const AuthConfigSchema = z.object({
 })
 export type AuthConfig = z.infer<typeof AuthConfigSchema>
 
-// ---- Profiles -----------------------------------------------------------
+// ---- Publications -----------------------------------------------------------
 
-export const ProfileRoleSchema = z.enum(['owner', 'member'])
-export type ProfileRole = z.infer<typeof ProfileRoleSchema>
+export const PublicationRoleSchema = z.enum(['owner', 'member'])
+export type PublicationRole = z.infer<typeof PublicationRoleSchema>
 
-export const ProfileMemberSchema = z.object({
+export const PublicationMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
   email: z.string(),
-  role: ProfileRoleSchema,
+  role: PublicationRoleSchema,
 })
-export type ProfileMember = z.infer<typeof ProfileMemberSchema>
+export type PublicationMember = z.infer<typeof PublicationMemberSchema>
 
 /** An owner makes a member an owner, or an owner a member. */
-export const MemberRoleInputSchema = z.object({ role: ProfileRoleSchema })
+export const MemberRoleInputSchema = z.object({ role: PublicationRoleSchema })
 export type MemberRoleInput = z.infer<typeof MemberRoleInputSchema>
 
-/** Long enough for a few paragraphs about the venue; short enough to put in every prompt. */
-export const PROFILE_DESCRIPTION_MAX = 5000
+/** Long enough for a few paragraphs about the publication; short enough to put in every prompt. */
+export const PUBLICATION_DESCRIPTION_MAX = 5000
 
-export const ProfileSchema = z.object({
+export const PublicationSchema = z.object({
   /** Human-readable and shareable, e.g. `jenit-substack`. Follows the name; old ids redirect to the current one. */
   id: z.string(),
   name: z.string(),
-  /** Where content for this profile gets published. */
+  /** Where content for this publication gets published. */
   siteUrl: z.string().nullable(),
   /** Same-origin URL of the uploaded image, or null (the UI then draws a placeholder). */
   imageUrl: z.string().nullable(),
   /**
-   * Same-origin URL of the icon of the profile's website, or null. It is another site's image, so the UI shows it as a
-   * guest (`ProfileImage kind="source"`), and only when there is no uploaded picture.
+   * Same-origin URL of the icon of the publication's website, or null. It is another site's image, so the UI shows it as a
+   * guest (`PublicationImage kind="source"`), and only when there is no uploaded picture.
    */
   siteIconUrl: z.string().nullable(),
   /**
-   * What the venue is, who reads it and what kinds of writing go there, in Markdown, in the writer's own words. It is
-   * context for the AI and shown on the profile page. Null when nobody has written one.
+   * What the publication is, who reads it and what kinds of writing go there, in Markdown, in the writer's own words. It is
+   * context for the AI and shown on the publication page. Null when nobody has written one.
    */
   description: z.string().nullable(),
-  /** The current user's role in this profile. */
-  role: ProfileRoleSchema,
-  members: z.array(ProfileMemberSchema),
+  /** The current user's role in this publication. */
+  role: PublicationRoleSchema,
+  members: z.array(PublicationMemberSchema),
 })
-export type Profile = z.infer<typeof ProfileSchema>
+export type Publication = z.infer<typeof PublicationSchema>
 
-/** Bounds how much one account can store (each profile may hold an image). */
-export const MAX_OWNED_PROFILES = 25
+/** Bounds how much one account can store (each publication may hold an image). */
+export const MAX_OWNED_PUBLICATIONS = 25
 
-export const ProfileInputSchema = z.object({ name: NameSchema, siteUrl: SiteUrlSchema.nullish() })
-export type ProfileInput = z.infer<typeof ProfileInputSchema>
+export const PublicationInputSchema = z.object({
+  name: NameSchema,
+  siteUrl: SiteUrlSchema.nullish(),
+})
+export type PublicationInput = z.infer<typeof PublicationInputSchema>
 /** Omitted fields are left alone; `siteUrl: null` clears it. */
-export const ProfileUpdateSchema = z.object({
+export const PublicationUpdateSchema = z.object({
   name: NameSchema.optional(),
   siteUrl: SiteUrlSchema.nullable().optional(),
 })
-export type ProfileUpdate = z.infer<typeof ProfileUpdateSchema>
+export type PublicationUpdate = z.infer<typeof PublicationUpdateSchema>
 
 /** Blank text clears the description. Only a person's own words come through here; drafts have their own route. */
-export const ProfileDescriptionInputSchema = z.object({
+export const PublicationDescriptionInputSchema = z.object({
   description: z
     .string()
     .max(
-      PROFILE_DESCRIPTION_MAX,
-      `Keep the description under ${PROFILE_DESCRIPTION_MAX} characters, or shorten it`,
+      PUBLICATION_DESCRIPTION_MAX,
+      `Keep the description under ${PUBLICATION_DESCRIPTION_MAX} characters, or shorten it`,
     )
     .nullable()
     .transform((text) => (text?.trim() ? text.trim() : null)),
 })
-export type ProfileDescriptionInput = z.input<typeof ProfileDescriptionInputSchema>
+export type PublicationDescriptionInput = z.input<typeof PublicationDescriptionInputSchema>
 
 // ---- Idea sources (feeds scanned for articles that could spark ideas) ---
 
-/** Bounds how much one profile can store, and how many feeds a later scan has to fetch. */
-export const MAX_SOURCES_PER_PROFILE = 50
+/** Bounds how much one publication can store, and how many feeds a later scan has to fetch. */
+export const MAX_SOURCES_PER_PUBLICATION = 50
 
 /** An RSS/Atom address. People paste "example.com/feed"; assume https, and drop any #fragment. */
 export const FeedUrlSchema = z
@@ -287,14 +290,14 @@ export const SourceChoicesSchema = z.object({
       title: z.string().nullable(),
       /** A feed of comments rather than of posts. */
       comments: z.boolean(),
-      /** Already in this profile's list. */
+      /** Already in this publication's list. */
       alreadyAdded: z.boolean(),
     }),
   ),
 })
 export type SourceChoices = z.infer<typeof SourceChoicesSchema>
 
-/** How far back the profile's recent posts reach, in days. */
+/** How far back the publication's recent posts reach, in days. */
 export const RECENT_DAYS_DEFAULT = 30
 export const RECENT_DAYS_MAX = 365
 /** The most posts one recent-posts answer carries. */
@@ -302,13 +305,13 @@ export const MAX_RECENT_POSTS = 100
 
 /**
  * What has become of a post: `added` to a reading list (here, or by hand: it is on one), `ignored` by someone in
- * the profile, or still `new`. A decision is shared by everyone in the profile and is about the post's address, so
+ * the publication, or still `new`. A decision is shared by everyone in the publication and is about the post's address, so
  * the same post carried by two feeds is one decision.
  */
 export const PostStatusSchema = z.enum(['new', 'added', 'ignored'])
 export type PostStatus = z.infer<typeof PostStatusSchema>
 
-/** One post from any of the profile's feeds, with the feed it came from. */
+/** One post from any of the publication's feeds, with the feed it came from. */
 export const RecentPostSchema = FeedItemSchema.extend({
   sourceId: z.string(),
   status: PostStatusSchema.default('new'),
@@ -316,7 +319,7 @@ export const RecentPostSchema = FeedItemSchema.extend({
 export type RecentPost = z.infer<typeof RecentPostSchema>
 
 /**
- * The newest posts across all the profile's feeds, newest first. `publishedAt` is always set here:
+ * The newest posts across all the publication's feeds, newest first. `publishedAt` is always set here:
  * a post whose date we can't read can't be placed in time, so it is counted in `undated` instead.
  */
 export const RecentPostsSchema = z.object({
@@ -348,15 +351,17 @@ export const PostDecisionSchema = z.object({
 })
 export type PostDecision = z.infer<typeof PostDecisionSchema>
 
-/** Every source id, in the new order. Must name exactly the sources the profile has. */
-export const SourceOrderSchema = z.object({ ids: z.array(z.string()).max(MAX_SOURCES_PER_PROFILE) })
+/** Every source id, in the new order. Must name exactly the sources the publication has. */
+export const SourceOrderSchema = z.object({
+  ids: z.array(z.string()).max(MAX_SOURCES_PER_PUBLICATION),
+})
 export type SourceOrder = z.infer<typeof SourceOrderSchema>
 
-// ---- Invitations (how people join a shared profile) ---------------------
+// ---- Invitations (how people join a shared publication) ---------------------
 
 export const InviteInputSchema = z.object({ email: EmailSchema })
 
-/** A pending invitation, as the profile's owner sees it. */
+/** A pending invitation, as the publication's owner sees it. */
 export const InvitationSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -366,7 +371,7 @@ export type Invitation = z.infer<typeof InvitationSchema>
 
 /** What someone holding an invitation link may see before deciding to accept. */
 export const InvitationPreviewSchema = z.object({
-  profileName: z.string(),
+  publicationName: z.string(),
   inviterName: z.string(),
   /** The address the invitation was sent to; the invitee must use an account with this email. */
   email: z.string(),
@@ -389,13 +394,13 @@ export const InvitationBlocksSchema = z.object({
 export type InvitationBlocks = z.infer<typeof InvitationBlocksSchema>
 export const SetBlockAllInputSchema = z.object({ blocked: z.boolean() })
 
-export const AcceptInvitationResultSchema = z.object({ profileId: z.string() })
+export const AcceptInvitationResultSchema = z.object({ publicationId: z.string() })
 
-// ---- Drafts (each develops an idea in a profile) --------------------------------------
+// ---- Drafts (each develops an idea in a publication) --------------------------------------
 
 export const DraftSchema = z.object({
   id: z.string(),
-  profileId: z.string(),
+  publicationId: z.string(),
   /** The idea this draft develops. */
   ideaId: z.string(),
   title: z.string(),
@@ -449,7 +454,7 @@ export const HandoverEventSchema = z.object({
   memberName: z.string().nullable(),
   createdAt: z.string(),
   resolvedAt: z.string().nullable(),
-  /** True for a reassignment the system made because the previous editor left the profile. */
+  /** True for a reassignment the system made because the previous editor left the publication. */
   automatic: z.boolean(),
 })
 export type HandoverEvent = z.infer<typeof HandoverEventSchema>
@@ -470,7 +475,7 @@ export const HandoverStateSchema = z.object({
 })
 export type HandoverState = z.infer<typeof HandoverStateSchema>
 
-// ---- Ideas (belong to a profile; drafts develop them) -------------------
+// ---- Ideas (belong to a publication; drafts develop them) -------------------
 
 export const IDEA_NAME_MAX = 200
 export const IDEA_NOTES_MAX = 20_000
@@ -492,7 +497,7 @@ export const IdeaNotesSchema = z
     `Use ${IDEA_NOTES_MAX.toLocaleString('en')} characters or fewer in the notes`,
   )
 
-/** Who or what put an item on a reading list: the writer, the AI (brainstorm, research), or a post from the profile's feeds. */
+/** Who or what put an item on a reading list: the writer, the AI (brainstorm, research), or a post from the publication's feeds. */
 export const ReadingOriginSchema = z.enum([
   'entered',
   'brainstorm',
@@ -536,8 +541,8 @@ export const IdeaLinkSchema = z.object({
    */
   why: z.string().nullish(),
   /**
-   * Only on the profile's own reading list: the writer asked for it to be kept. Items that aren't are dropped a
-   * month after they were put there (`PROFILE_READING_DAYS`). Always false on an idea's list, which isn't swept.
+   * Only on the publication's own reading list: the writer asked for it to be kept. Items that aren't are dropped a
+   * month after they were put there (`PUBLICATION_READING_DAYS`). Always false on an idea's list, which isn't swept.
    */
   kept: z.boolean().optional(),
   /** Flat labels the writer has put on it, in the order given: the same rules as a note's (`NoteTagsInputSchema`). */
@@ -547,8 +552,8 @@ export const IdeaLinkSchema = z.object({
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 
-/** How long an item stays on the profile's own reading list unless it is kept. */
-export const PROFILE_READING_DAYS = 30
+/** How long an item stays on the publication's own reading list unless it is kept. */
+export const PUBLICATION_READING_DAYS = 30
 
 /**
  * `title` may be left empty: the server then looks the page's title up. When editing, an empty
@@ -613,7 +618,7 @@ export const IdeaNoteInputSchema = z.object({
 })
 
 /**
- * Where to move reading items or notes: to an idea of the same profile, or (`null`) to the profile itself, where
+ * Where to move reading items or notes: to an idea of the same publication, or (`null`) to the publication itself, where
  * they are kept before there is an idea.
  */
 export const MoveTargetSchema = z.object({ ideaId: z.string().nullable() })
@@ -788,7 +793,7 @@ export type IdeaDraft = z.infer<typeof IdeaDraftSchema>
 export const DraftOrderSchema = z.object({ ids: z.array(z.string()).max(1000) })
 export type DraftOrder = z.infer<typeof DraftOrderSchema>
 
-/** What the list of a profile's ideas shows. */
+/** What the list of a publication's ideas shows. */
 export const IdeaSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -799,7 +804,7 @@ export type IdeaSummary = z.infer<typeof IdeaSummarySchema>
 
 export const IdeaSchema = z.object({
   id: z.string(),
-  profileId: z.string(),
+  publicationId: z.string(),
   name: z.string(),
   /**
    * The notes as Markdown bullets, one per note (see `notesToMarkdown`). Transitional: the idea page and
@@ -1180,7 +1185,7 @@ export const CommentSchema = z.object({
   byAi: z.boolean(),
   /** The member who wrote it; null for the AI, and for someone whose account has gone. */
   authorId: z.string().nullable(),
-  /** Their name: still theirs after they leave the profile; null when the AI wrote it, or the account was deleted without keeping it. */
+  /** Their name: still theirs after they leave the publication; null when the AI wrote it, or the account was deleted without keeping it. */
   authorName: z.string().nullable(),
   /** The review it was made in, when a reviewer wrote it about the snapshot they were sent; null otherwise. */
   reviewId: z.string().nullable(),
@@ -1220,7 +1225,7 @@ export type ReviewState = z.infer<typeof ReviewStateSchema>
 export const ReviewSummarySchema = z.object({
   id: z.string(),
   draftTitle: z.string(),
-  profileName: z.string(),
+  publicationName: z.string(),
   /** Null once the inviter's account has gone. */
   inviterName: z.string().nullable(),
   state: ReviewStateSchema,
@@ -1241,14 +1246,14 @@ export type ReviewDetail = z.infer<typeof ReviewDetailSchema>
 /** What the holder of a review invitation link sees before answering. */
 export const ReviewInvitationPreviewSchema = z.object({
   draftTitle: z.string(),
-  profileName: z.string(),
+  publicationName: z.string(),
   inviterName: z.string(),
   email: z.string(),
 })
 export type ReviewInvitationPreview = z.infer<typeof ReviewInvitationPreviewSchema>
 
 /**
- * Sending a draft for review: people to ask by email, and members of the profile. The server freezes the draft's title
+ * Sending a draft for review: people to ask by email, and members of the publication. The server freezes the draft's title
  * and body as a snapshot, which is what they all review.
  */
 export const SendForReviewInputSchema = z
@@ -1302,10 +1307,10 @@ export const DraftReviewersSchema = z.object({
 export type DraftReviewers = z.infer<typeof DraftReviewersSchema>
 
 /**
- * What is waiting on this person in a profile, for its landing page: drafts offered to them, their own offers still
+ * What is waiting on this person in a publication, for its landing page: drafts offered to them, their own offers still
  * open, and, for drafts they edit, how the reviews they sent stand. Nothing here is a count shown anywhere else.
  */
-export const ProfileAttentionSchema = z.object({
+export const PublicationAttentionSchema = z.object({
   offered: z.array(
     z.object({ draftId: z.string(), title: z.string(), fromName: z.string().nullable() }),
   ),
@@ -1322,7 +1327,7 @@ export const ProfileAttentionSchema = z.object({
     }),
   ),
 })
-export type ProfileAttention = z.infer<typeof ProfileAttentionSchema>
+export type PublicationAttention = z.infer<typeof PublicationAttentionSchema>
 
 // ---- Bring-your-own LLM credentials ------------------------------------
 

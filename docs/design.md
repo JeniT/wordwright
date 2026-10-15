@@ -124,13 +124,13 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `list-rail`                                                       | The left zone of a list row: select checkbox; for reorderable lists it is the drag handle (`list-rail-grab`, with a `list-rail-grip` glyph) and holds the arrows                                                                                                                |
 | `field`, `field-compact`                                          | Text inputs, selects, textareas. `aria-invalid="true"` gives the error style. Use `TextField`/`TextAreaField` for labelled ones                                                                                                                                                 |
 | `panel`, `panel-sunken`                                           | A grouped container. Put `divide-y divide-line` on a list inside it                                                                                                                                                                                                             |
-| `card`                                                            | A whole-area link or button that lifts on hover (e.g. a profile). Add layout classes yourself                                                                                                                                                                                   |
+| `card`                                                            | A whole-area link or button that lifts on hover (e.g. a publication). Add layout classes yourself                                                                                                                                                                               |
 | `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)                                                                                                                                                            |
 | `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                                                                                                                                                                     |
 | `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                                                                                                                                                                        |
 | `tab` (+ `TabPanels`)                                             | Tabs for areas that share one place (beside the draft: Notes, Reading list, Comments). Selected is bold with a heavy underline and `aria-selected`; arrow keys move; panels stay mounted. The tab names its panel, so a heading inside repeats nothing visibly: it is `sr-only` |
 | `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                                                                                                                                                                     |
-| `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `ProfileImage` rather than by hand                                                                                                                                                                                             |
+| `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `PublicationImage` rather than by hand                                                                                                                                                                                         |
 
 ### AI buttons
 
@@ -155,7 +155,7 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
 
 ### The description editor
 
-`DescriptionEditor` is a small rich-text field for short, formatted text (today the venue description), so people don't have to know
+`DescriptionEditor` is a small rich-text field for short, formatted text (today the publication description), so people don't have to know
 Markdown: a toolbar of five worded buttons (Bold, Italic, Bulleted list, Numbered list, Link; `aria-pressed` shows what is on) above a
 `field`-styled text box that looks like the text it makes (it uses the `markdown` reading styles), with the app's own focus outline. The link
 address is a small form that takes focus and gives it back. It reads and writes Markdown. Use it for any other short formatted text; the draft
@@ -254,7 +254,7 @@ row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
-**Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a profile's landing page
+**Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
 ("Add to the reading list: {title}") and a **cross** ("Ignore: {title}"), each with a `title`; a decided post shows ✓ or ✗
 and a single **undo** button ("Reconsider: {title}"). A decision made in either place updates both (they share query keys),
@@ -297,15 +297,15 @@ hold-to-confirm button's tooltip says where to find the item again ("It stays in
 
 One rule decides which control confirms, so the same kind of act always feels the same:
 
-- **Deleting something from the server that takes other information with it** (an account, a profile, an idea, a
+- **Deleting something from the server that takes other information with it** (an account, a publication, an idea, a
   draft; also clearing a whole conversation) asks in a **modal dialog** (`ConfirmDialog`). The dialog names what will
   go with it. Focus starts on Cancel. A whole-thing delete lives in a `DangerZone` at the bottom of its settings page,
   and its button opens the dialog. Never use the browser's `confirm()`.
 - **Deleting or removing several at once** (the bulk Delete or Remove N in a list toolbar) also asks in a dialog that
   says how many, and is a text button, because more than one thing is at stake.
-- **Removing a person from a profile, or leaving one, and changing someone's role** (making or removing an owner)
+- **Removing a person from a publication, or leaving one, and changing someone's role** (making or removing an owner)
   affect what another person can do and where their drafts go, so each asks in a **dialog** that says what changes
-  (the people list in profile settings; what each role can do is worded once, in `lib/profile-roles.ts`). They are text buttons, not icons.
+  (the people list in publication settings; what each role can do is worded once, in `lib/publication-roles.ts`). They are text buttons, not icons.
 - **Removing one thing with no consequences beyond it** (a note, a reading-list item, a feed, an invitation, a picture,
   an API key, a research run) takes a **press-and-hold** (`HoldButton`), with no dialog.
 - **How they look:** a delete with a dialog is a **text button that says "Delete …"**; a hold-to-confirm is a **trash
@@ -325,15 +325,15 @@ steps back one. No page controls when everything fits on one page.
 ## Pictures and logos from other sites
 
 We can't control a favicon: it may be transparent, dark on transparent, full-bleed colour, white-backed, tiny or
-the wrong shape. So it is never shown bare. `ProfileImage` with `kind="source"` puts it on a fixed-size **plate**: a
+the wrong shape. So it is never shown bare. `PublicationImage` with `kind="source"` puts it on a fixed-size **plate**: a
 square, 1px `line-strong` frame, 4px corners, white background in both light and dark (so dark marks stay legible),
 `object-fit: contain` (never cropped), `alt=""` (the name is always beside it). When there is no usable picture a
 **lettered tile** in one of six palette tints stands in. The plate is square and barely rounded on purpose: the app's
 own rounded corners stop at its edge and never wrap someone else's artwork. The plate's white is the only
 hard-coded colour in the system, deliberately.
 
-The person's own profile picture (`kind="profile"`, the default) is cropped to fill the same frame, since the writer
-chose it. When a profile has no picture but has a website whose icon we could fetch, `ProfileImage` is given
+The person's own publication picture (`kind="publication"`, the default) is cropped to fill the same frame, since the writer
+chose it. When a publication has no picture but has a website whose icon we could fetch, `PublicationImage` is given
 `site-icon-url` and draws that icon as a guest (on the plate, as above); the person's picture always wins. Pictures are still fetched once and served from our own origin ([decisions.md](decisions.md)); this is only
 how they are framed. Identity-provider buttons ("Continue with Google") should use the same plate for their logo.
 
@@ -351,11 +351,11 @@ How people are led through the app. The side menu **follows you**: what it lists
 back up and the name of the thing you are in. (We drew three approaches, a steady menu with steps on the page and a
 menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#navigation-the-menu-follows-you).)
 
-| Level   | You are choosing…               | The menu lists                                                                                                                  | Settings         |
-| ------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Home    | which **profile** to work on    | Profiles, Account settings                                                                                                      | Account settings |
-| Profile | what to gather, then which idea | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Profile settings |
-| Idea    | how to develop it               | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Idea settings    |
+| Level       | You are choosing…                | The menu lists                                                                                                                  | Settings             |
+| ----------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| Home        | which **publication** to work on | Publications, Account settings                                                                                                  | Account settings     |
+| Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Publication settings |
+| Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Idea settings        |
 
 The principles (they are the point of the pattern; keep them when you add a page):
 
@@ -363,34 +363,34 @@ The principles (they are the point of the pattern; keep them when you add a page
    "completed for you". The numbers are decoration (`aria-hidden`); an ordered list conveys the order.
 2. **State is a count, not progress**: "2 sources", "1 draft" under a step, where we already know it. No progress bars.
 3. **See where you are in two places**: the current step is marked in the menu (`aria-current`, a filled badge and an
-   edge) and in the page title, with the profile or idea name above it (`StepHeading`).
+   edge) and in the page title, with the publication or idea name above it (`StepHeading`).
 4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 03 Refine →"), an outline button, never the
    primary one. A step where the next move is a choice (Ideas), or the last (Draft), has none.
 5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Start brainstorming**,
    Research's **Start research**); arriving by the menu must never cost the writer money.
-6. **Always a way up**: "← All profiles", "← {profile}".
+6. **Always a way up**: "← All publications", "← {publication}".
 7. **Settings sit apart from the steps**, at their own level, with no step current.
-8. **A level has a landing page** (a profile's, at `/p/:profileId`; an idea's, at `/p/:profileId/ideas/:id`) that is none of the numbered steps: a summary of
+8. **A level has a landing page** (a publication's, at `/p/:publicationId`; an idea's, at `/p/:publicationId/ideas/:id`) that is none of the numbered steps: a summary of
    each step with its quick action (the newest feed posts; the reading list and a form to add to it; the latest notes and a form to add one; the ideas). Nothing in the menu is current there.
-   The profile's description comes first.
+   The publication's description comes first.
    Panels reuse the step pages' components, and, like the steps, visiting spends nothing. The page is titled with the
-   profile's name (`h1`) beside its picture and website link, then the profile's description (Markdown, clamped to about eight lines with a
+   publication's name (`h1`) beside its picture and website link, then the publication's description (Markdown, clamped to about eight lines with a
    **Show more…** / **Show less** button that appears only when text is hidden; an invitation to add one when empty); each section is a `LandingSection`: the step's number
    (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
-   actions on the right of the heading. An idea's page is titled with the idea's name (the profile above it, as a way
+   actions on the right of the heading. An idea's page is titled with the idea's name (the publication above it, as a way
    up) and summarises Research (the unread reading list while there is any; otherwise the box to ask the AI, which waits for
    its button), Notes (shown by the same `NoteCard` as the Notes step), Refine (the AI's latest message and a box to
    reply, or the invitation to start) and Draft (its drafts, and **Start a draft**).
-9. **The name leads back up to the landing page**: the profile's or idea's name in the menu, and the small name above
+9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above
    a step's title, are links to it (current on the landing page itself, where the title is not a link).
 
-|                                                           |                                                           |
-| --------------------------------------------------------- | --------------------------------------------------------- |
-| ![Idea, Research step](screenshots/nav-idea-research.png) | ![Profile, Ideas step](screenshots/nav-profile-ideas.png) |
-| ![Phone, menu open](screenshots/nav-phone-menu-open.png)  |                                                           |
+|                                                           |                                                                   |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![Idea, Research step](screenshots/nav-idea-research.png) | ![Publication, Ideas step](screenshots/nav-publication-ideas.png) |
+| ![Phone, menu open](screenshots/nav-phone-menu-open.png)  |                                                                   |
 
-**How a page joins the menu.** Give its route `meta: { level: 'profile' | 'idea', step: '<key>' }` in `router.ts`
-(`step` is a key from `PROFILE_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
+**How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea', step: '<key>' }` in `router.ts`
+(`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
 (the research tool, reading one source) use their step's key, so it stays current. The title is
 `<StepHeading>Name</StepHeading>`; end the page with `<NextStep :to label>why this is next</NextStep>`. A page that is
 read beside another window (reading a source, taking notes) adds `compact: true`, which folds the menu behind the
@@ -438,8 +438,8 @@ same cards, callouts and chips as everywhere else.
 - **Loading a list or section:** wrap it in `QueryState` (`:query`, `what="the notes"`). It shows a quiet "Loading…",
   or "We couldn't load the notes." with a **Try again** button, and the content only once it has arrived; the empty
   state ("No notes yet.") belongs inside it. Pass `loading` to say what is loading ("Reading your feeds…") and
-  `detail` when the server's reason helps ("Too many requests…"). A page about one idea or profile uses `IdeaGate` or
-  `ProfileGate`, which also handle "not found".
+  `detail` when the server's reason helps ("Too many requests…"). A page about one idea or publication uses `IdeaGate` or
+  `PublicationGate`, which also handle "not found".
 - The e2e suite runs axe over the main pages. A new screen needs to be in it.
 
 ## Applying the design to a change
@@ -449,7 +449,7 @@ same cards, callouts and chips as everywhere else.
 3. Headings `h1` (once per page, `StepHeading` on a step) / `h2` / `h3` (no skipped levels); the primary action is the only `btn-primary` in its area.
    A new page in the app declares its level and step (see _Navigation_) and ends with `NextStep` where one fits.
 4. Add the highlighter only if the AI produced it. Add a text label next to it.
-5. External pictures go through `ProfileImage kind="source"`.
+5. External pictures go through `PublicationImage kind="source"`.
 6. Look at it in light **and dark** and at 390px. Run `pnpm check` (palette test), `pnpm test:e2e` (axe).
 7. If you needed a new colour, component or rule, add it to the palette/theme and **update this file**.
 

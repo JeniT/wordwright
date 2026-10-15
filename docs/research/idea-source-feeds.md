@@ -25,7 +25,7 @@ not RSS.
 | WordPress   | `/feed`; per category `/category/<name>/feed`; **search** `/?s=term&feed=rss2`                         | Search-as-feed is built in. Sites can disable feeds.                                                            |
 | Ghost       | `/rss/`; per tag `/tag/<slug>/rss/`                                                                    | `/feed` does _not_ work on Ghost.                                                                               |
 | Medium      | `medium.com/feed/@user`, `/feed/<publication>`, `/feed/tag/<tag>`                                      | 10 items; tag feeds have no body text; paywalled stories are not in full. **Live:** tag feed worked.            |
-| Bluesky     | `bsky.app/profile/<handle>/rss` (since Jan 2024)                                                       | Per person only; no keyword or hashtag feeds. **Live:** worked.                                                 |
+| Bluesky     | `bsky.app/publication/<handle>/rss` (since Jan 2024)                                                   | Per person only; no keyword or hashtag feeds. **Live:** worked.                                                 |
 | Hacker News | official `news.ycombinator.com/rss` (front page); **search** via third-party `hnrss.org/newest?q=term` | The search feed is a volunteer service. **Live:** worked.                                                       |
 | Reddit      | `/r/<sub>/.rss`, search `/search.rss?q=term&sort=new`                                                  | Undocumented; **Live:** answered 429 (rate limited) to our server. Reddit is reported to block data-centre IPs. |
 
@@ -58,7 +58,7 @@ subscribe and take everything.
   coverage) bars charging for access and requires attribution; the NYT objected to a paid reader in 2010. Our use is the writer's private research list, but this
   matters if we ever redistribute or sell anything built on feed content. See "Terms" below.
 
-## 3. Academic sources: lots of RSS, organised by venue and subject, not by query
+## 3. Academic sources: lots of RSS, organised by publication and subject, not by query
 
 | Source                           | What you can subscribe to                                                                                                                                                                                                                                                 | Items include                                                             |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |

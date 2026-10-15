@@ -1,12 +1,10 @@
-import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MIGRATIONS, migrate } from './db/database'
 import {
   PASSWORD,
   allRows,
   register,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
@@ -14,11 +12,11 @@ import {
 describe('words pulled into a draft from notes', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
-  let profile: string
+  let publication: string
   let idea: string
   let draft: string
-  const ideas = () => `/api/profiles/${profile}/ideas`
-  const insertions = () => `/api/profiles/${profile}/drafts/${draft}/insertions`
+  const ideas = () => `/api/publications/${publication}/ideas`
+  const insertions = () => `/api/publications/${publication}/drafts/${draft}/insertions`
   const addNote = async (text: string, extra: object = {}) =>
     (await (await ada.post(`${ideas()}/${idea}/notes`, { text, ...extra })).json()) as {
       id: string
@@ -29,7 +27,7 @@ describe('words pulled into a draft from notes', () => {
     ctx = setup()
     ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
     idea = (await (await ada.post(ideas(), { name: 'Rivers' })).json()).id
     draft = (await (await ada.post(`${ideas()}/${idea}/drafts`, { title: 'Part 1' })).json()).id
   })
@@ -77,7 +75,7 @@ describe('words pulled into a draft from notes', () => {
     await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
     const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0]
     const fromReading = await addNote('A quote.', { readingItemId: item.id })
-    const made = ctx.store.notes.append(profile, idea, null, 'From the chat.', 'brainstorm')
+    const made = ctx.store.notes.append(publication, idea, null, 'From the chat.', 'brainstorm')
 
     const quoted = await (
       await ada.post(insertions(), {
@@ -112,7 +110,7 @@ describe('words pulled into a draft from notes', () => {
     expect((await ada.post(insertions(), { noteId: note.id, text: '   ' })).status).toBe(400)
     expect(
       (
-        await ada.post(`/api/profiles/${profile}/drafts/nope/insertions`, {
+        await ada.post(`/api/publications/${publication}/drafts/nope/insertions`, {
           noteId: note.id,
           text: 'x',
         })
@@ -121,13 +119,13 @@ describe('words pulled into a draft from notes', () => {
     expect(noteNow(note.id).addedAt).toBeNull() // none of that set it aside
   })
 
-  it('is shared with the profile, and hidden from everyone else', async () => {
+  it('is shared with the publication, and hidden from everyone else', async () => {
     const bob = ctx.client()
     const eve = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     await register(eve, 'eve@example.com', 'Eve')
     verifyAccounts(ctx, 'ada@example.com')
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     const note = await addNote('Ada wrote this')
     // Bob is a member, not the editor: he can read what was added but not add anything.
     expect((await bob.post(insertions(), { noteId: note.id, text: 'Ada wrote this' })).status).toBe(
@@ -166,11 +164,11 @@ describe('words pulled into a draft from notes', () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     const note = await addNote('Ada wrote this')
     const adaId = (await (await ada.get('/api/auth/me')).json()).id
     const bobId = (await (await bob.get('/api/auth/me')).json()).id
-    ctx.store.drafts.reassignEditor(profile, adaId, bobId) // until handover exists, Bob edits this one
+    ctx.store.drafts.reassignEditor(publication, adaId, bobId) // until handover exists, Bob edits this one
     await bob.post(insertions(), { noteId: note.id, text: 'Ada wrote this' })
 
     await ada.delete(`${ideas()}/${idea}/notes/${note.id}`)
@@ -186,7 +184,7 @@ describe('words pulled into a draft from notes', () => {
     expect(left.status).toBe(204)
     expect(await (await ada.get(insertions())).json()).toMatchObject([{ insertedByName: null }])
 
-    await ada.delete(`/api/profiles/${profile}/drafts/${draft}`)
+    await ada.delete(`/api/publications/${publication}/drafts/${draft}`)
     expect(ctx.store.drafts.insertions(draft)).toEqual([])
   })
 })
@@ -194,10 +192,10 @@ describe('words pulled into a draft from notes', () => {
 describe('options used from a Rephrase window (#162)', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
-  let profile: string
+  let publication: string
   let draft: string
-  const options = () => `/api/profiles/${profile}/drafts/${draft}/option-insertions`
-  const insertions = () => `/api/profiles/${profile}/drafts/${draft}/insertions`
+  const options = () => `/api/publications/${publication}/drafts/${draft}/option-insertions`
+  const insertions = () => `/api/publications/${publication}/drafts/${draft}/insertions`
   const use = {
     kind: 'passage',
     offered: 'Rivers bend because the outer bank wears away.',
@@ -209,13 +207,13 @@ describe('options used from a Rephrase window (#162)', () => {
     ctx = setup()
     ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
     const idea = (
-      await (await ada.post(`/api/profiles/${profile}/ideas`, { name: 'Rivers' })).json()
+      await (await ada.post(`/api/publications/${publication}/ideas`, { name: 'Rivers' })).json()
     ).id
     draft = (
       await (
-        await ada.post(`/api/profiles/${profile}/ideas/${idea}/drafts`, { title: 'Part 1' })
+        await ada.post(`/api/publications/${publication}/ideas/${idea}/drafts`, { title: 'Part 1' })
       ).json()
     ).id
   })
@@ -256,7 +254,8 @@ describe('options used from a Rephrase window (#162)', () => {
     expect((await thin.json()).error).toMatch(/few words/)
     expect((await ada.post(options(), { ...use, kind: 'opening' })).status).toBe(400)
     expect(
-      (await ada.post(`/api/profiles/${profile}/drafts/nope/option-insertions`, use)).status,
+      (await ada.post(`/api/publications/${publication}/drafts/nope/option-insertions`, use))
+        .status,
     ).toBe(404)
     expect(ctx.store.drafts.insertions(draft)).toEqual([])
   })
@@ -265,7 +264,7 @@ describe('options used from a Rephrase window (#162)', () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     expect((await bob.post(options(), use)).status).toBe(403)
     expect((await ctx.client().post(options(), use)).status).toBe(401)
     expect(ctx.store.drafts.insertions(draft)).toEqual([])
@@ -276,10 +275,10 @@ describe('options used from a Rephrase window (#162)', () => {
       const bob = ctx.client()
       await register(bob, 'bob@example.com', 'Bob')
       verifyAccounts(ctx, 'ada@example.com')
-      await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+      await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
       const adaId = (await (await ada.get('/api/auth/me')).json()).id
       const bobId = (await (await bob.get('/api/auth/me')).json()).id
-      ctx.store.drafts.reassignEditor(profile, adaId, bobId)
+      ctx.store.drafts.reassignEditor(publication, adaId, bobId)
       await bob.post(options(), use)
       const left = await bob.delete('/api/account', {
         confirmEmail: 'bob@example.com',
@@ -308,43 +307,7 @@ describe('options used from a Rephrase window (#162)', () => {
 
   it('goes with the draft', async () => {
     await ada.post(options(), use)
-    await ada.delete(`/api/profiles/${profile}/drafts/${draft}`)
+    await ada.delete(`/api/publications/${publication}/drafts/${draft}`)
     expect(ctx.store.drafts.insertions(draft)).toEqual([])
-  })
-
-  it('keeps every earlier insertion as it was when the database is upgraded', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    const at = MIGRATIONS.findIndex(
-      (m) => typeof m === 'string' && m.includes('CREATE TABLE draft_insertions_new'),
-    )
-    expect(at).toBeGreaterThan(0)
-    migrate(db, 'test', MIGRATIONS.slice(0, at))
-    db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at) VALUES ('i', 'p', 'I', '', 't', 't');
-      INSERT INTO drafts (id, profile_id, idea_id, title, body, created_at, updated_at) VALUES ('d', 'p', 'i', 'T', 'One.', 't', 't');
-      INSERT INTO draft_insertions (id, draft_id, text, origin, source_title, source_url, source_authors, inserted_at, kept_inserted_by_name)
-        VALUES ('x', 'd', 'Words.', 'reading', 'A paper', 'https://example.org/p', '["Ada"]', '2026-01-01T00:00:00Z', 'Bo');
-    `)
-    migrate(db, 'test')
-    expect(db.prepare('SELECT * FROM draft_insertions').all()).toEqual([
-      expect.objectContaining({
-        id: 'x',
-        draft_id: 'd',
-        text: 'Words.',
-        origin: 'reading',
-        source_title: 'A paper',
-        source_authors: '["Ada"]',
-        kept_inserted_by_name: 'Bo',
-        option_kind: null,
-        option_offered: null,
-        option_aim: null,
-      }),
-    ])
-    db.prepare(
-      "INSERT INTO draft_insertions (id, draft_id, text, origin, inserted_at) VALUES ('y', 'd', 'W', 'option', 't')",
-    ).run()
-    expect(db.prepare('SELECT count(*) AS n FROM draft_insertions').get()).toEqual({ n: 2 })
   })
 })

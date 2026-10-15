@@ -35,7 +35,7 @@ const invalidLink = () => fail(400, 'This invitation is invalid or has expired')
 
 /**
  * Reviewers read one draft and comment on it, with an account that reaches nothing else (ADR 0002). They are invited
- * the way profile members are: an emailed link that lasts 7 days and is bound to the address, the same quiet answer
+ * the way publication members are: an emailed link that lasts 7 days and is bound to the address, the same quiet answer
  * whatever the address, and the same blocks. The editor or an owner invites and can end a review at any time.
  */
 export class ReviewService {
@@ -49,7 +49,7 @@ export class ReviewService {
 
   /** The editor or an owner may invite and end reviews. */
   requireManager(draft: Draft, userId: string) {
-    const role = this.d.store.profiles.roleOf(draft.profileId, userId)
+    const role = this.d.store.publications.roleOf(draft.publicationId, userId)
     if (draft.editorId !== userId && role !== 'owner') {
       throw fail(403, 'Only the draft’s editor or an owner can do that.')
     }
@@ -57,8 +57,8 @@ export class ReviewService {
 
   /**
    * Sends the draft for review: freezes its title and body as a snapshot (ADR 0001) and asks each person to review
-   * that. Only the editor sends. People by email are invited as profile members are (a quiet outcome whatever the
-   * address); members of the profile are asked directly and told by email.
+   * that. Only the editor sends. People by email are invited as publication members are (a quiet outcome whatever the
+   * address); members of the publication are asked directly and told by email.
    */
   send(editor: UserRecord, draft: Draft, input: SendForReviewInput): void {
     const { store } = this.d
@@ -70,18 +70,20 @@ export class ReviewService {
     if (emails.length && !editor.emailVerified) {
       throw fail(403, 'Please confirm your email address before inviting someone')
     }
-    const members = new Map(store.profiles.members(draft.profileId).map((m) => [m.userId, m]))
+    const members = new Map(
+      store.publications.members(draft.publicationId).map((m) => [m.userId, m]),
+    )
     for (const id of memberIds) {
       if (id === editor.id || !members.has(id)) {
         throw fail(
           400,
-          'You can ask other members of this profile, but not yourself or anyone else.',
+          'You can ask other members of this publication, but not yourself or anyone else.',
         )
       }
     }
 
-    const profile = store.profiles.get(draft.profileId, editor.id)
-    const profileName = profile?.name ?? 'a profile'
+    const publication = store.publications.get(draft.publicationId, editor.id)
+    const publicationName = publication?.name ?? 'a publication'
     const snapshot = store.transaction(() => {
       const made = store.reviews.createSnapshot(draft.id, draft.title, draft.body, editor.id)
       for (const id of memberIds) store.reviews.grant(made.id, draft.id, id, editor.id)
@@ -101,7 +103,7 @@ export class ReviewService {
           ...reviewRequestEmail({
             inviterName: editor.name,
             draftTitle: snapshot.title,
-            profileName,
+            publicationName,
             link: `${this.d.publicUrl}/reviews/${review.id}`,
           }),
         },
@@ -110,7 +112,7 @@ export class ReviewService {
     for (const email of emails) {
       // Quiet outcomes, so the editor learns nothing about the address: a member (asked above), blocked, or too many emails.
       const existing = store.users.findByEmail(email)
-      if (existing && store.profiles.roleOf(draft.profileId, existing.id)) continue
+      if (existing && store.publications.roleOf(draft.publicationId, existing.id)) continue
       if (store.invitations.isBlocked(email, editor.id)) continue
       if (!this.d.recipientLimiter.allow(email)) continue
       const token = generateToken()
@@ -131,7 +133,7 @@ export class ReviewService {
           ...reviewInvitationEmail({
             inviterName: editor.name,
             draftTitle: snapshot.title,
-            profileName,
+            publicationName,
             link: `${this.d.publicUrl}/review-invite?token=${token}`,
             ttlDays: REVIEW_INVITE_TTL_MS / 86_400_000,
           }),
@@ -175,7 +177,7 @@ export class ReviewService {
     const inv = this.usable(token)
     return {
       draftTitle: inv.draftTitle,
-      profileName: inv.profileName,
+      publicationName: inv.publicationName,
       inviterName: inv.inviterName,
       email: inv.email,
     }
@@ -277,7 +279,7 @@ export class ReviewService {
           reviewerName: user.name,
           draftTitle: snapshot?.title ?? draft.title,
           commentCount: store.reviews.commentCount(review.id),
-          link: `${this.d.publicUrl}/p/${draft.profileId}/drafts/${draft.id}`,
+          link: `${this.d.publicUrl}/p/${draft.publicationId}/drafts/${draft.id}`,
         }),
       },
     )

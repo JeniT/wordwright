@@ -10,7 +10,7 @@ const ConfigSchema = z.object({
   SESSION_SECRET: z.string().default(''),
   /** Encrypts users' stored API keys. Required in production. Losing it makes stored keys unreadable. */
   KEY_ENCRYPTION_SECRET: z.string().default(''),
-  DATABASE_PATH: z.string().default('./data/lfwa.sqlite'),
+  DATABASE_PATH: z.string().default('./data/wordwright.sqlite'),
   /** Replace all LLM calls with a canned fake that accepts any key (development and e2e tests only). */
   FAKE_LLM: z
     .enum(['true', 'false'])

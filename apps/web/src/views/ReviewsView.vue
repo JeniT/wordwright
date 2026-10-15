@@ -9,7 +9,7 @@ import { useSessionStore } from '../stores/session'
 
 /**
  * Where a reviewer lands: the drafts they were asked to read and comment on, and nothing else. An account made only
- * to review has no profiles, so this is the whole of the app to it (ADR 0002).
+ * to review has no publications, so this is the whole of the app to it (ADR 0002).
  */
 const session = useSessionStore()
 const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
@@ -39,7 +39,7 @@ const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { date
             }}</RouterLink>
           </h2>
           <p class="meta mt-1">
-            In {{ r.profileName }}
+            In {{ r.publicationName }}
             <template v-if="r.inviterName"> · asked by {{ r.inviterName }}</template>
             · {{ when(r.createdAt) }}
           </p>
@@ -55,8 +55,8 @@ const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { date
     <section v-if="session.user" class="mt-10 border-t border-line pt-6" aria-labelledby="write">
       <h2 id="write" class="mb-1 font-display text-xl font-semibold">Want to write your own?</h2>
       <p class="mb-3 text-sm text-ink-soft">
-        You can turn this into a full account, with your own profiles and ideas. Your reviews stay
-        as they are.
+        You can turn this into a full account, with your own publications and ideas. Your reviews
+        stay as they are.
       </p>
       <RouterLink :to="{ name: 'start-writing' }" class="btn btn-outline">Start writing</RouterLink>
     </section>

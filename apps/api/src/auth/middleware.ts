@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from 'hono'
 import { getCookie } from 'hono/cookie'
-import type { ProfileRole } from '@lfwa/core'
+import type { PublicationRole } from '@lfwa/core'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import type { AccountService } from '../services/accounts'
@@ -11,7 +11,7 @@ export const SESSION_COOKIE = 'lfwa_session'
 export type AppEnv = {
   Variables: {
     user: UserRecord
-    role: ProfileRole
+    role: PublicationRole
   }
 }
 
@@ -23,7 +23,7 @@ export function reviewerMayReach(method: string, path: string): boolean {
   const p = path.replace(/^\/api/, '')
   if (p === '/auth/me' || p === '/auth/logout') return true
   if (p === '/account' && method === 'DELETE') return true
-  // Accepting an invitation (to another review, or to a profile, which makes the account a full one).
+  // Accepting an invitation (to another review, or to a publication, which makes the account a full one).
   if (method === 'POST' && (p === '/review-invitations/accept' || p === '/invitations/accept'))
     return true
   return p === '/reviews' || p.startsWith('/reviews/')
@@ -41,27 +41,27 @@ export const requireUser =
     await next()
   }
 
-/** Requires the signed-in user to belong to `:profileId` (and, optionally, to be its owner). */
+/** Requires the signed-in user to belong to `:publicationId` (and, optionally, to be its owner). */
 export const requireMember =
   (store: Store, ownerOnly = false): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
-    const requested = c.req.param('profileId') ?? ''
-    const role = store.profiles.roleOf(requested, c.get('user').id)
+    const requested = c.req.param('publicationId') ?? ''
+    const role = store.publications.roleOf(requested, c.get('user').id)
     if (!role) {
-      // A renamed profile: send members to its new address (everyone else gets the same 404).
-      const current = store.profiles.currentIdFor(requested)
-      if (current && store.profiles.roleOf(current, c.get('user').id)) {
+      // A renamed publication: send members to its new address (everyone else gets the same 404).
+      const current = store.publications.currentIdFor(requested)
+      if (current && store.publications.roleOf(current, c.get('user').id)) {
         const url = new URL(c.req.url)
         url.pathname = url.pathname.replace(
-          `/profiles/${encodeURIComponent(requested)}`,
-          `/profiles/${encodeURIComponent(current)}`,
+          `/publications/${encodeURIComponent(requested)}`,
+          `/publications/${encodeURIComponent(current)}`,
         )
         // 308 keeps the method and body of writes; 301 is the permanent redirect for reads.
         const safe = c.req.method === 'GET' || c.req.method === 'HEAD'
         return c.redirect(url.pathname + url.search, safe ? 301 : 308)
       }
     }
-    // 404 rather than 403, so profile ids can't be probed.
+    // 404 rather than 403, so publication ids can't be probed.
     if (!role) throw fail(404, 'Not found')
     if (ownerOnly && role !== 'owner') throw fail(403, 'Owner only')
     c.set('role', role)

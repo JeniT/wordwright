@@ -14,7 +14,7 @@ import {
   verifyEmailEmail,
 } from '../mail/templates'
 import { removeUserAndOwnedData } from './remove-user'
-import { isSoleOwnerOfSharedProfile, NEEDS_ANOTHER_OWNER } from './owners'
+import { isSoleOwnerOfSharedPublication, NEEDS_ANOTHER_OWNER } from './owners'
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
@@ -100,7 +100,7 @@ export class AccountService {
   }
 
   /**
-   * A new person following a review link: an account that can only review (no username, no profile), with the
+   * A new person following a review link: an account that can only review (no username, no publication), with the
    * address confirmed because the link only ever reached that inbox. `enroll` runs in the same transaction, so the
    * account never exists without the review it was made for.
    */
@@ -157,7 +157,7 @@ export class AccountService {
 
   /**
    * Sets the person's username (which may be the one they have, to say they're happy with it).
-   * Profile ids that already exist keep the old one; only new profiles, and renamed ones, use it.
+   * Publication ids that already exist keep the old one; only new publications, and renamed ones, use it.
    */
   changeHandle(user: UserRecord, handle: string): UserRecord {
     const { store } = this.d
@@ -410,10 +410,10 @@ export class AccountService {
 
   /**
    * Deletes the account and everything that belongs only to it:
-   * credentials, identities, sessions, reset tokens, memberships, and every profile (with its
-   * drafts) of which this user is the sole member. In shared profiles the user is removed, unless they are the only
+   * credentials, identities, sessions, reset tokens, memberships, and every publication (with its
+   * drafts) of which this user is the sole member. In shared publications the user is removed, unless they are the only
    * owner, which is refused (`sole_owner`) until they make someone else an owner. Drafts the
-   * user wrote in shared profiles stay with the profile (their author reference is cleared; their name stays on
+   * user wrote in shared publications stay with the publication (their author reference is cleared; their name stays on
    * their notes and the like if `keepName`).
    */
   async deleteAccount(
@@ -432,12 +432,12 @@ export class AccountService {
     }
 
     store.transaction(() => {
-      // Never hand a profile to someone who didn't agree to run it: the owner chooses a successor first.
-      const stranded = store.profiles
+      // Never hand a publication to someone who didn't agree to run it: the owner chooses a successor first.
+      const stranded = store.publications
         .listIdsForUser(user.id)
-        .find((id) => isSoleOwnerOfSharedProfile(store, id, user.id))
+        .find((id) => isSoleOwnerOfSharedPublication(store, id, user.id))
       if (stranded) {
-        const name = store.profiles.get(stranded, user.id)?.name
+        const name = store.publications.get(stranded, user.id)?.name
         throw new AccountError(
           'sole_owner',
           `You are the only owner of “${name}”. ${NEEDS_ANOTHER_OWNER}`,

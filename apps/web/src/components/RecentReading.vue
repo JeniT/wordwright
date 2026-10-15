@@ -12,8 +12,8 @@ import QueryState from './QueryState.vue'
  * to the whole list. It shares the list's query, so an item added here is on the Read page at once.
  */
 const props = defineProps<{
-  profileId: string
-  /** The idea whose list this is, or null for the profile's own. */
+  publicationId: string
+  /** The idea whose list this is, or null for the publication's own. */
   ideaId: string | null
   /** The page this summarises. */
   to: RouteLocationRaw
@@ -23,7 +23,7 @@ const props = defineProps<{
 }>()
 const SHOWN = 5
 
-const list = useReadingList(() => ({ profileId: props.profileId, ideaId: props.ideaId }))
+const list = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 // Read items are out of the way on the full list by default, and so they are here.
 const unread = computed(() => (list.links.value ?? []).filter((l) => !l.readAt))
 const top = computed(() => unread.value.slice(0, SHOWN))
@@ -38,7 +38,7 @@ const host = (url: string) => {
 
 <template>
   <LandingSection
-    :level="ideaId ? 'idea' : 'profile'"
+    :level="ideaId ? 'idea' : 'publication'"
     :step="step ?? 'read'"
     :title="title ?? 'Read'"
   >
@@ -58,7 +58,7 @@ const host = (url: string) => {
       <ul v-else class="panel mb-4 divide-y divide-line" aria-label="To read">
         <li v-for="link in top" :key="link.id">
           <RouterLink
-            :to="readingRoute({ profileId, ideaId }, link.id)"
+            :to="readingRoute({ publicationId, ideaId }, link.id)"
             class="block px-4 py-3 no-underline hover:bg-sunken"
           >
             <span class="block font-medium break-words">{{ link.title || link.url }}</span>
@@ -70,6 +70,6 @@ const host = (url: string) => {
         </li>
       </ul>
     </QueryState>
-    <AddLinkForm :profile-id="profileId" :idea-id="ideaId" />
+    <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" />
   </LandingSection>
 </template>

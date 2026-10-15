@@ -62,12 +62,12 @@ Welcome to Wordwright. Please confirm this is your email address (the link expir
 
 ${link}
 
-Confirming lets you share profiles with co-writers and keeps your account safe.${cleanup} If you didn't sign up, you can ignore this email.`,
+Confirming lets you share publications with co-writers and keeps your account safe.${cleanup} If you didn't sign up, you can ignore this email.`,
     html: layout(`<p>Hi ${escapeHtml(name)},</p>
 <p>Welcome to Wordwright. Please confirm this is your email address.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Confirm my email</a></p>
 <p style="font-size:14px">The link expires in ${ttlHours} hours. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
-<p style="font-size:14px">Confirming lets you share profiles with co-writers and keeps your account safe.${escapeHtml(cleanup)} If you didn't sign up, you can ignore this email.</p>`),
+<p style="font-size:14px">Confirming lets you share publications with co-writers and keeps your account safe.${escapeHtml(cleanup)} If you didn't sign up, you can ignore this email.</p>`),
   }
 }
 
@@ -99,15 +99,15 @@ Or sign in at ${signInLink} and start using it: saving a draft, an idea or your 
 
 export function invitationEmail(input: {
   inviterName: string
-  profileName: string
+  publicationName: string
   link: string
   declineLink: string
   ttlDays: number
 }): Content {
-  const { inviterName, profileName, link, declineLink, ttlDays } = input
+  const { inviterName, publicationName, link, declineLink, ttlDays } = input
   return {
     subject: `${inviterName} invited you to write together`,
-    text: `${inviterName} has invited you to join "${profileName}" on Wordwright, so you can work on pieces together.
+    text: `${inviterName} has invited you to join "${publicationName}" on Wordwright, so you can work on pieces together.
 
 Accept the invitation here (you'll sign in or create an account with this email address; the link expires in ${ttlDays} days):
 
@@ -116,59 +116,59 @@ ${link}
 If you weren't expecting this, you can ignore this email and nothing will happen. To decline, or to stop invitations from ${inviterName} or from everyone, use this page:
 
 ${declineLink}`,
-    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(profileName)}</strong> on Wordwright, so you can work on pieces together.</p>
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(publicationName)}</strong> on Wordwright, so you can work on pieces together.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Accept the invitation</a></p>
 <p style="font-size:14px">You'll sign in or create an account with this email address. The link expires in ${ttlDays} days. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">If you weren't expecting this, you can ignore this email and nothing will happen. You can also <a href="${escapeHtml(declineLink)}">decline, or stop invitations</a> from ${escapeHtml(inviterName)} or from everyone.</p>`),
   }
 }
 
-/** Asks someone outside the profile to read one draft and comment on it. They will see only that draft. */
+/** Asks someone outside the publication to read one draft and comment on it. They will see only that draft. */
 export function reviewInvitationEmail(input: {
   inviterName: string
   draftTitle: string
-  profileName: string
+  publicationName: string
   link: string
   ttlDays: number
 }): Content {
-  const { inviterName, draftTitle, profileName, link, ttlDays } = input
+  const { inviterName, draftTitle, publicationName, link, ttlDays } = input
   const title = draftTitle.trim() || 'an untitled draft'
   return {
     subject: `${inviterName} asked you to review a draft`,
-    text: `${inviterName} would like your comments on "${title}", a draft in "${profileName}" on Wordwright.
+    text: `${inviterName} would like your comments on "${title}", a draft in "${publicationName}" on Wordwright.
 
-You'll be able to read that one draft and write comments on it, and nothing else: you won't see the rest of the profile, and no one else's comments. You can stop reviewing whenever you like.
+You'll be able to read that one draft and write comments on it, and nothing else: you won't see the rest of the publication, and no one else's comments. You can stop reviewing whenever you like.
 
 Open it here (you'll create a reviewer account or sign in with this email address; the link expires in ${ttlDays} days):
 
 ${link}
 
 If you weren't expecting this, ignore this email and nothing will happen. The same page lets you decline, or stop invitations from ${inviterName} or from everyone.`,
-    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(profileName)} on Wordwright.</p>
-<p>You'll be able to read that one draft and write comments on it, and nothing else: you won't see the rest of the profile, and no one else's comments. You can stop reviewing whenever you like.</p>
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(publicationName)} on Wordwright.</p>
+<p>You'll be able to read that one draft and write comments on it, and nothing else: you won't see the rest of the publication, and no one else's comments. You can stop reviewing whenever you like.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Read the draft</a></p>
 <p style="font-size:14px">You'll create a reviewer account or sign in with this email address. The link expires in ${ttlDays} days. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
 <p style="font-size:14px">If you weren't expecting this, ignore this email and nothing will happen. The same page lets you decline, or stop invitations from ${escapeHtml(inviterName)} or from everyone.</p>`),
   }
 }
 
-/** Asks a member of the profile to review a frozen copy of a draft. They sign in to read it. */
+/** Asks a member of the publication to review a frozen copy of a draft. They sign in to read it. */
 export function reviewRequestEmail(input: {
   inviterName: string
   draftTitle: string
-  profileName: string
+  publicationName: string
   link: string
 }): Content {
-  const { inviterName, draftTitle, profileName, link } = input
+  const { inviterName, draftTitle, publicationName, link } = input
   const title = draftTitle.trim() || 'an untitled draft'
   return {
     subject: `${inviterName} asked you to review a draft`,
-    text: `${inviterName} would like your comments on "${title}", a draft in "${profileName}" on Wordwright.
+    text: `${inviterName} would like your comments on "${title}", a draft in "${publicationName}" on Wordwright.
 
 You'll read a copy of the draft as it is now, so later edits won't move under you, and only ${inviterName} will see what you write. Sign in to open it:
 
 ${link}`,
-    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(profileName)} on Wordwright.</p>
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(publicationName)} on Wordwright.</p>
 <p>You'll read a copy of the draft as it is now, so later edits won't move under you, and only ${escapeHtml(inviterName)} will see what you write.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Read the draft</a></p>`),
   }
@@ -200,19 +200,19 @@ ${link}`,
 export function handoverOfferEmail(input: {
   fromName: string
   draftTitle: string
-  profileName: string
+  publicationName: string
   link: string
 }): Content {
-  const { fromName, draftTitle, profileName, link } = input
+  const { fromName, draftTitle, publicationName, link } = input
   const title = draftTitle.trim() || 'an untitled draft'
   return {
     subject: `${fromName} has offered you a draft`,
-    text: `${fromName} has offered to hand you "${title}" in "${profileName}" on Wordwright, so you become the editor, the one person who changes its words.
+    text: `${fromName} has offered to hand you "${title}" in "${publicationName}" on Wordwright, so you become the editor, the one person who changes its words.
 
 Open the draft to accept or decline. Nothing changes until you accept, and ${fromName} can keep working on it until then:
 
 ${link}`,
-    html: layout(`<p><strong>${escapeHtml(fromName)}</strong> has offered to hand you <strong>${escapeHtml(title)}</strong> in ${escapeHtml(profileName)}, so you become its editor, the one person who changes its words.</p>
+    html: layout(`<p><strong>${escapeHtml(fromName)}</strong> has offered to hand you <strong>${escapeHtml(title)}</strong> in ${escapeHtml(publicationName)}, so you become its editor, the one person who changes its words.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Open the draft</a></p>
 <p style="font-size:14px">Nothing changes until you accept, and ${escapeHtml(fromName)} can keep working on it until then. If the button doesn't work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>`),
   }

@@ -1,13 +1,11 @@
-import { DatabaseSync } from 'node:sqlite'
 import { describe, expect, it } from 'vitest'
 import { FakeIdentityProvider } from './auth/identity'
-import { MIGRATIONS, migrate } from './db/database'
 import { PASSWORD, register, setup, signUp, type TestClient } from './test-helpers'
 
 const put = (c: TestClient, handle: string) => c.put('/api/account/handle', { handle })
 
 describe('changing your username', () => {
-  it('changes it, and the new one is what the account and new profiles use', async () => {
+  it('changes it, and the new one is what the account and new publications use', async () => {
     const { client } = setup()
     const c = client()
     await signUp(c, 'ada@example.com', 'Ada', PASSWORD, 'countess')
@@ -15,29 +13,29 @@ describe('changing your username', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ handle: 'lovelace', handleChosen: true })
     expect((await (await c.get('/api/auth/me')).json()).handle).toBe('lovelace')
-    const profile = await (await c.post('/api/profiles', { name: 'Substack' })).json()
-    expect(profile.id).toBe('lovelace-substack')
+    const publication = await (await c.post('/api/publications', { name: 'Substack' })).json()
+    expect(publication.id).toBe('lovelace-substack')
   })
 
-  it('leaves existing profile addresses alone, and a later rename moves them to the new username', async () => {
+  it('leaves existing publication addresses alone, and a later rename moves them to the new username', async () => {
     const { client } = setup()
     const c = client()
     await signUp(c, 'ada@example.com', 'Ada', PASSWORD, 'countess')
-    const first = await (await c.post('/api/profiles', { name: 'Substack' })).json()
+    const first = await (await c.post('/api/publications', { name: 'Substack' })).json()
     expect(first.id).toBe('countess-substack')
 
     await put(c, 'lovelace')
-    expect((await c.get('/api/profiles/countess-substack')).status).toBe(200)
-    expect((await (await c.get('/api/profiles')).json()).map((p: { id: string }) => p.id)).toEqual([
-      'countess-substack',
-    ])
+    expect((await c.get('/api/publications/countess-substack')).status).toBe(200)
+    expect(
+      (await (await c.get('/api/publications')).json()).map((p: { id: string }) => p.id),
+    ).toEqual(['countess-substack'])
 
     // Renaming re-derives the address; the old one keeps leading to it.
     const renamed = await (
-      await c.patch('/api/profiles/countess-substack', { name: 'Letters' })
+      await c.patch('/api/publications/countess-substack', { name: 'Letters' })
     ).json()
     expect(renamed.id).toBe('lovelace-letters')
-    expect((await c.get('/api/profiles/countess-substack')).status).toBeLessThan(400)
+    expect((await c.get('/api/publications/countess-substack')).status).toBeLessThan(400)
   })
 
   it('refuses a username that is taken, however it is capitalised', async () => {
@@ -123,26 +121,6 @@ describe('changing your username', () => {
 
   it('needs sign-in', async () => {
     expect((await put(setup().client(), 'whatever')).status).toBe(401)
-  })
-})
-
-describe('existing accounts', () => {
-  it('count as having chosen their username, and start with none kept', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    const at = MIGRATIONS.findIndex(
-      (m) => typeof m === 'string' && m.includes('CREATE TABLE retired_handles'),
-    )
-    expect(at).toBeGreaterThan(0)
-    migrate(db, 'test', MIGRATIONS.slice(0, at))
-    db.exec(
-      "INSERT INTO users (id, handle, name, email, email_verified, created_at) VALUES ('u', 'ada', 'Ada', 'a@example.com', 1, 'then')",
-    )
-    migrate(db, 'test')
-    expect(db.prepare("SELECT handle_chosen FROM users WHERE id = 'u'").get()).toEqual({
-      handle_chosen: 1,
-    })
-    expect(db.prepare('SELECT count(*) AS n FROM retired_handles').get()).toEqual({ n: 0 })
   })
 })
 

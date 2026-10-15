@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { useNav } from '../lib/nav'
-import { displayHost } from '../lib/useProfiles'
-import ProfileImage from './ProfileImage.vue'
+import { displayHost } from '../lib/usePublications'
+import PublicationImage from './PublicationImage.vue'
 
 /**
- * The menu that follows you. At home it lists Profiles and Account settings; inside a profile, that profile's
+ * The menu that follows you. At home it lists Publications and Account settings; inside a publication, that publication's
  * numbered steps; inside an idea, the idea's. A "back up" link and the thing's name sit at the top. The numbers
  * orient and never lock: every step is a link. docs/design.md explains the pattern.
  */
-const { level, profile, idea, steps, stepKey, loading } = useNav()
+const { level, publication, idea, steps, stepKey, loading } = useNav()
 
 const sharedWith = () => {
-  const others = (profile.value?.members.length ?? 1) - 1
+  const others = (publication.value?.members.length ?? 1) - 1
   return others > 0 ? `Shared with ${others} ${others === 1 ? 'person' : 'people'}` : ''
 }
 
@@ -21,28 +21,28 @@ const itemClass =
 </script>
 
 <template>
-  <!-- Where you are: a way back up, and the name of the profile or idea. -->
-  <div v-if="level === 'profile'" class="px-5 pb-4">
-    <RouterLink :to="{ name: 'home' }" class="link text-sm">← All profiles</RouterLink>
-    <div v-if="profile" class="mt-3 flex items-center gap-3">
-      <ProfileImage
-        :id="profile.id"
-        :name="profile.name"
-        :image-url="profile.imageUrl"
-        :site-icon-url="profile.siteIconUrl"
+  <!-- Where you are: a way back up, and the name of the publication or idea. -->
+  <div v-if="level === 'publication'" class="px-5 pb-4">
+    <RouterLink :to="{ name: 'home' }" class="link text-sm">← All publications</RouterLink>
+    <div v-if="publication" class="mt-3 flex items-center gap-3">
+      <PublicationImage
+        :id="publication.id"
+        :name="publication.name"
+        :image-url="publication.imageUrl"
+        :site-icon-url="publication.siteIconUrl"
         size="xs"
       />
       <div class="min-w-0">
         <p class="leading-tight font-semibold break-words">
           <RouterLink
-            :to="{ name: 'profile', params: { profileId: profile.id } }"
+            :to="{ name: 'publication', params: { publicationId: publication.id } }"
             class="no-underline hover:underline aria-[current=page]:underline"
-            >{{ profile.name }}</RouterLink
+            >{{ publication.name }}</RouterLink
           >
         </p>
-        <p v-if="profile.siteUrl" class="meta truncate">
-          <a :href="profile.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
-            {{ displayHost(profile.siteUrl) }}
+        <p v-if="publication.siteUrl" class="meta truncate">
+          <a :href="publication.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
+            {{ displayHost(publication.siteUrl) }}
             <span class="sr-only">(opens in a new tab)</span>
           </a>
         </p>
@@ -52,18 +52,18 @@ const itemClass =
   </div>
   <div v-else-if="level === 'idea'" class="px-5 pb-4">
     <RouterLink
-      v-if="profile"
-      :to="{ name: 'profile', params: { profileId: profile.id } }"
+      v-if="publication"
+      :to="{ name: 'publication', params: { publicationId: publication.id } }"
       class="link text-sm break-words"
     >
-      ← {{ profile.name }}
+      ← {{ publication.name }}
     </RouterLink>
     <p class="meta mt-3">Idea</p>
     <p v-if="idea.data.value" class="leading-snug font-semibold break-words">
       <RouterLink
         :to="{
           name: 'idea',
-          params: { profileId: idea.data.value.profileId, id: idea.data.value.id },
+          params: { publicationId: idea.data.value.publicationId, id: idea.data.value.id },
         }"
         class="no-underline hover:underline aria-[current=page]:underline"
         >{{ idea.data.value.name }}</RouterLink
@@ -75,7 +75,7 @@ const itemClass =
   <nav v-if="level === 'home'" aria-label="Main" class="px-3 pb-3">
     <ul>
       <li>
-        <RouterLink :to="{ name: 'home' }" :class="itemClass">Profiles</RouterLink>
+        <RouterLink :to="{ name: 'home' }" :class="itemClass">Publications</RouterLink>
       </li>
       <li>
         <RouterLink :to="{ name: 'account' }" :class="itemClass">Account settings</RouterLink>
@@ -83,7 +83,7 @@ const itemClass =
     </ul>
   </nav>
 
-  <nav v-else :aria-label="level === 'idea' ? 'Idea' : 'Profile'" class="px-3 pb-3">
+  <nav v-else :aria-label="level === 'idea' ? 'Idea' : 'Publication'" class="px-3 pb-3">
     <!-- An ordered list: that these come in an order is conveyed by the list, so the numbers are decoration. -->
     <ol v-if="!loading">
       <li v-for="step in steps" :key="step.key">
@@ -116,17 +116,20 @@ const itemClass =
         </RouterLink>
       </li>
     </ol>
-    <ul v-if="profile" class="mt-3 border-t border-line pt-3">
-      <li v-if="level === 'profile'">
+    <ul v-if="publication" class="mt-3 border-t border-line pt-3">
+      <li v-if="level === 'publication'">
         <RouterLink
-          :to="{ name: 'profile-settings', params: { profileId: profile.id } }"
+          :to="{ name: 'publication-settings', params: { publicationId: publication.id } }"
           :class="itemClass"
-          >Profile settings</RouterLink
+          >Publication settings</RouterLink
         >
       </li>
       <li v-else-if="idea.data.value">
         <RouterLink
-          :to="{ name: 'idea-settings', params: { profileId: profile.id, id: idea.data.value.id } }"
+          :to="{
+            name: 'idea-settings',
+            params: { publicationId: publication.id, id: idea.data.value.id },
+          }"
           :class="itemClass"
           >Idea settings</RouterLink
         >

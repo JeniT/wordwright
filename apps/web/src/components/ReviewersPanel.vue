@@ -4,34 +4,36 @@ import { computed, ref } from 'vue'
 import type { ReviewState } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { queryKeys } from '../lib/queries'
-import { useProfile } from '../lib/useProfiles'
+import { usePublication } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
 
 /**
  * Sending the draft for review. The draft's title and body are frozen as a snapshot, and the people asked (by email, or
- * members of the profile) read and comment on that, not on later edits (ADR 0001). Only the editor sends; the editor
+ * members of the publication) read and comment on that, not on later edits (ADR 0001). Only the editor sends; the editor
  * and owners see who is reviewing, how far they have got, and can stop accepting reviews. Others don't see this.
  */
-const props = defineProps<{ profileId: string; draftId: string; editorId: string }>()
+const props = defineProps<{ publicationId: string; draftId: string; editorId: string }>()
 const queryClient = useQueryClient()
 const session = useSessionStore()
-const { profile } = useProfile(() => props.profileId)
+const { publication } = usePublication(() => props.publicationId)
 const isEditor = computed(() => session.user?.id === props.editorId)
-const mayManage = computed(() => isEditor.value || profile.value?.role === 'owner')
+const mayManage = computed(() => isEditor.value || publication.value?.role === 'owner')
 const others = computed(() =>
-  (profile.value?.members ?? []).filter((m) => m.userId !== props.editorId),
+  (publication.value?.members ?? []).filter((m) => m.userId !== props.editorId),
 )
 
 const list = useQuery({
-  queryKey: computed(() => queryKeys.reviewers(props.profileId, props.draftId)),
-  queryFn: () => api.listReviewers(props.profileId, props.draftId),
+  queryKey: computed(() => queryKeys.reviewers(props.publicationId, props.draftId)),
+  queryFn: () => api.listReviewers(props.publicationId, props.draftId),
   enabled: mayManage,
   // Comments appear for the editor as they are made.
   refetchInterval: 30_000,
 })
 const refresh = () =>
-  queryClient.invalidateQueries({ queryKey: queryKeys.reviewers(props.profileId, props.draftId) })
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.reviewers(props.publicationId, props.draftId),
+  })
 
 const emails = ref('')
 const chosen = ref<string[]>([])
@@ -39,7 +41,7 @@ const sentSummary = ref('')
 const addresses = computed(() => [...new Set(emails.value.split(/[\s,;]+/).filter(Boolean))])
 const send = useMutation({
   mutationFn: () =>
-    api.sendForReview(props.profileId, props.draftId, {
+    api.sendForReview(props.publicationId, props.draftId, {
       emails: addresses.value,
       memberIds: chosen.value,
     }),
@@ -52,15 +54,15 @@ const send = useMutation({
   },
 })
 const close = useMutation({
-  mutationFn: (id: string) => api.closeReview(props.profileId, props.draftId, id),
+  mutationFn: (id: string) => api.closeReview(props.publicationId, props.draftId, id),
   onSuccess: refresh,
 })
 const closeAll = useMutation({
-  mutationFn: () => api.closeAllReviews(props.profileId, props.draftId),
+  mutationFn: () => api.closeAllReviews(props.publicationId, props.draftId),
   onSuccess: refresh,
 })
 const withdraw = useMutation({
-  mutationFn: (id: string) => api.withdrawReviewInvitation(props.profileId, props.draftId, id),
+  mutationFn: (id: string) => api.withdrawReviewInvitation(props.publicationId, props.draftId, id),
   onSuccess: refresh,
 })
 const problem = computed(() => {
@@ -105,7 +107,7 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
           </p>
         </div>
         <fieldset v-if="others.length" class="mb-3">
-          <legend class="mb-1 font-medium">Members of this profile</legend>
+          <legend class="mb-1 font-medium">Members of this publication</legend>
           <label v-for="m in others" :key="m.userId" class="mb-1 flex items-center gap-2">
             <input
               v-model="chosen"

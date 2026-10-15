@@ -2,7 +2,7 @@
 import { useId } from 'vue'
 
 /**
- * The box at the bottom of a page for deleting a whole thing (account, profile, idea) and what belongs to it.
+ * The box at the bottom of a page for deleting a whole thing (account, publication, idea) and what belongs to it.
  * The slot holds the explanation and the button that opens a `ConfirmDialog`; `error` shows why a delete failed.
  */
 defineProps<{ title: string; error?: string }>()

@@ -12,9 +12,9 @@ import {
   expectOrigin,
 } from '../test-utils'
 
-useMockServer({ warm: ['profile-ideas'] })
+useMockServer({ warm: ['publication-ideas'] })
 
-const profile = {
+const publication = {
   id: 'ada-substack',
   name: 'Substack',
   siteUrl: null,
@@ -24,11 +24,11 @@ const profile = {
   role: 'owner',
   members: [{ userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' }],
 }
-const listProfiles = http.get('*/api/profiles', () => HttpResponse.json([profile]))
+const listPublications = http.get('*/api/publications', () => HttpResponse.json([publication]))
 
 const idea = {
   id: 'i1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.',
   links: [
@@ -44,14 +44,14 @@ const idea = {
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
-const ideaUrl = '*/api/profiles/ada-substack/ideas/i1'
+const ideaUrl = '*/api/publications/ada-substack/ideas/i1'
 
-describe('ideas on the profile page', () => {
+describe('ideas on the publication page', () => {
   it('lists them with their draft counts and links to each', async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
-      http.get('*/api/profiles/ada-substack/ideas', () =>
+      listPublications,
+      http.get('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json([
           {
             id: 'i1',
@@ -77,8 +77,8 @@ describe('ideas on the profile page', () => {
   it('has an empty state', async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
-      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+      listPublications,
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
     )
     await renderAt('/p/ada-substack')
     await screen.findByText(/No ideas yet/)
@@ -87,8 +87,8 @@ describe('ideas on the profile page', () => {
   it('says what to do when they cannot be loaded', async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
-      http.get('*/api/profiles/ada-substack/ideas', () =>
+      listPublications,
+      http.get('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json({ error: 'boom' }, { status: 500 }),
       ),
     )
@@ -102,13 +102,13 @@ describe('new idea page', () => {
     let sent: unknown
     server.use(
       signedInAs(testUser),
-      listProfiles,
-      http.post('*/api/profiles/ada-substack/ideas', async ({ request }) => {
+      listPublications,
+      http.post('*/api/publications/ada-substack/ideas', async ({ request }) => {
         sent = await request.json()
         return HttpResponse.json(idea, { status: 201 })
       }),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
-      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
     )
     const { router } = await renderAt('/p/ada-substack/ideas/new')
     await fireEvent.update(
@@ -125,8 +125,8 @@ describe('new idea page', () => {
   it("shows the server's explanation and keeps what was typed", async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
-      http.post('*/api/profiles/ada-substack/ideas', () =>
+      listPublications,
+      http.post('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json({ error: 'Describe your idea in a few words' }, { status: 400 }),
       ),
     )
@@ -143,9 +143,9 @@ describe('idea page', () => {
   const openAt = (path: string, extra: Parameters<typeof server.use> = []) => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
+      listPublications,
       http.get(ideaUrl, () => HttpResponse.json(idea)),
-      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
       ...extra,
     )
     return renderAt(`/p/ada-substack/ideas/i1${path}`)
@@ -170,7 +170,7 @@ describe('idea page', () => {
   it('explains when the idea cannot be opened', async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
+      listPublications,
       http.get(ideaUrl, () => HttpResponse.json({ error: 'Not found' }, { status: 404 })),
     )
     await renderAt('/p/ada-substack/ideas/i1')
@@ -206,7 +206,7 @@ describe('idea page', () => {
   it('shows a link by its title, with just its host beneath (one link per item), and by its address when it has no title', async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
+      listPublications,
       http.get(ideaUrl, () =>
         HttpResponse.json({
           ...idea,
@@ -247,7 +247,7 @@ describe('idea page', () => {
     it('shows which items are read, and where an item that was not added by hand came from', async () => {
       server.use(
         signedInAs(testUser),
-        listProfiles,
+        listPublications,
         http.get(ideaUrl, () =>
           HttpResponse.json({
             ...idea,
@@ -432,9 +432,9 @@ describe('idea page', () => {
       server.use(
         ...extra,
         signedInAs(testUser),
-        listProfiles,
+        listPublications,
         http.get(ideaUrl, () => HttpResponse.json(tagged)),
-        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+        http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
       )
       return renderAt('/p/ada-substack/ideas/i1/research')
     }
@@ -588,9 +588,9 @@ describe('idea page', () => {
       server.use(
         ...extra,
         signedInAs(testUser),
-        listProfiles,
+        listPublications,
         http.get(ideaUrl, () => HttpResponse.json(data)),
-        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+        http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
       )
       return renderAt('/p/ada-substack/ideas/i1/research')
     }
@@ -664,14 +664,14 @@ describe('idea page', () => {
       expect(screen.getByRole('list', { name: 'Tags to add' })).toHaveTextContent('x')
     })
 
-    it('works for the profile’s own list too, and one form replaces the other', async () => {
+    it('works for the publication’s own list too, and one form replaces the other', async () => {
       const sent: unknown[] = []
       server.use(
         signedInAs(testUser),
-        listProfiles,
-        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
-        http.get('*/api/profiles/ada-substack/reading', () => HttpResponse.json(two.links)),
-        http.post('*/api/profiles/ada-substack/reading/tags', async ({ request }) => {
+        listPublications,
+        http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+        http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(two.links)),
+        http.post('*/api/publications/ada-substack/reading/tags', async ({ request }) => {
           sent.push(await request.json())
           return HttpResponse.json(two.links)
         }),
@@ -806,7 +806,7 @@ describe('idea page', () => {
         return HttpResponse.json(
           {
             id: 'd2',
-            profileId: 'ada-substack',
+            publicationId: 'ada-substack',
             ideaId: 'i1',
             title: 'Untitled',
             body: '',
@@ -819,10 +819,10 @@ describe('idea page', () => {
           { status: 201 },
         )
       }),
-      http.get('*/api/profiles/ada-substack/drafts/d2', () =>
+      http.get('*/api/publications/ada-substack/drafts/d2', () =>
         HttpResponse.json({
           id: 'd2',
-          profileId: 'ada-substack',
+          publicationId: 'ada-substack',
           ideaId: 'i1',
           title: 'Untitled',
           body: '',
@@ -1763,8 +1763,8 @@ describe('idea page', () => {
       const state = { current: three, orders: [] as string[][] }
       server.use(
         signedInAs(testUser),
-        listProfiles,
-        http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+        listPublications,
+        http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
         http.get(ideaUrl, () => HttpResponse.json(state.current)),
         http.put(`${ideaUrl}/drafts/order`, async ({ request }) => {
           const { ids } = (await request.json()) as { ids: string[] }
@@ -1863,7 +1863,7 @@ describe('idea page', () => {
     it('has no arrows when there are no drafts', async () => {
       server.use(
         signedInAs(testUser),
-        listProfiles,
+        listPublications,
         http.get(ideaUrl, () => HttpResponse.json({ ...idea, drafts: [] })),
       )
       await renderAt('/p/ada-substack/ideas/i1/drafts')
@@ -1875,14 +1875,14 @@ describe('idea page', () => {
   it('says so when there are no drafts yet', async () => {
     server.use(
       signedInAs(testUser),
-      listProfiles,
+      listPublications,
       http.get(ideaUrl, () => HttpResponse.json({ ...idea, links: [], drafts: [] })),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
     expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
   })
 
-  it('asks before deleting, then returns to the profile', async () => {
+  it('asks before deleting, then returns to the publication', async () => {
     let deleted = false
     await openAt('/settings', [
       http.delete(ideaUrl, () => {

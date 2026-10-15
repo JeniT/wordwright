@@ -68,7 +68,7 @@ export interface RecordedNoteRecord extends RecordedNote {
   toolCallId: string
 }
 
-/** The brainstorming thread of each idea. Callers check that the person belongs to the idea's profile first. */
+/** The brainstorming thread of each idea. Callers check that the person belongs to the idea's publication first. */
 export class ConversationStore {
   constructor(private readonly db: DatabaseSync) {}
 

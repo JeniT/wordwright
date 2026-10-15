@@ -8,7 +8,7 @@ useMockServer()
 const DEFAULT = 'You are a writing coach.\n\nBe curious.'
 const url = '*/api/account/brainstorm-prompt'
 
-const signedIn = [signedInAs(testUser), http.get('*/api/profiles', () => HttpResponse.json([]))]
+const signedIn = [signedInAs(testUser), http.get('*/api/publications', () => HttpResponse.json([]))]
 
 /** The account page has other Save buttons and statuses, so look only inside this section. */
 async function renderSection() {

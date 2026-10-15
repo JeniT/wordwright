@@ -14,10 +14,10 @@ import { readingBackRoute, readingRoute, useReadingList } from '../lib/reading'
 import QueryState from '../components/QueryState.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
-/** Reading one item of an idea's reading list, or (no `id`) of the profile's own, and taking notes from it. */
-const props = defineProps<{ profileId: string; id?: string; linkId: string }>()
+/** Reading one item of an idea's reading list, or (no `id`) of the publication's own, and taking notes from it. */
+const props = defineProps<{ publicationId: string; id?: string; linkId: string }>()
 const queryClient = useQueryClient()
-const owner = computed(() => ({ profileId: props.profileId, ideaId: props.id ?? null }))
+const owner = computed(() => ({ publicationId: props.publicationId, ideaId: props.id ?? null }))
 
 const list = useReadingList(() => owner.value)
 const item = computed(() => list.links.value?.find((l) => l.id === props.linkId))
@@ -29,7 +29,7 @@ const {
   append: appendNote,
   refreshIdea,
 } = useIdeaNotes(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 /**
@@ -132,7 +132,7 @@ function onPaste(event: ClipboardEvent) {
 const addBox = ref<HTMLElement>()
 const add = useMutation({
   mutationFn: () =>
-    api.addIdeaNote(props.profileId, props.id ?? null, text.value, {
+    api.addIdeaNote(props.publicationId, props.id ?? null, text.value, {
       readingItemId: props.linkId,
       quote: isQuote.value || undefined,
     }),
@@ -302,7 +302,7 @@ const add = useMutation({
       </h2>
       <p class="mb-3 text-sm text-ink-soft">
         Paste a quote, or put it in your own words. Each note keeps a link back to this page, and
-        joins the rest of {{ id ? 'the idea’s' : 'the profile’s' }} notes. The newest is listed
+        joins the rest of {{ id ? 'the idea’s' : 'the publication’s' }} notes. The newest is listed
         first. Say when something is a direct quote, so it can't be mistaken for your own words
         later.
       </p>

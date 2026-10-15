@@ -47,28 +47,28 @@ describe('purging unconfirmed, unused accounts', () => {
     const ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
     verifyAccounts(ctx, 'ada@example.com')
-    const adaProfile = (await (await ada.get('/api/profiles')).json())[0].id
-    await ada.post(`/api/profiles/${adaProfile}/invitations`, { email: 'typo@example.com' })
+    const adaPublication = (await (await ada.get('/api/publications')).json())[0].id
+    await ada.post(`/api/publications/${adaPublication}/invitations`, { email: 'typo@example.com' })
     const inviteToken = lastInvitationToken(ctx.mailer)
 
     const abandoned = ctx.client()
     const user = await register(abandoned, 'typo@example.com', 'Typo')
     const sessionToken = abandoned.cookies.get('lfwa_session')!
     const verifyToken = lastVerificationToken(ctx.mailer)
-    const theirProfile = (await (await abandoned.get('/api/profiles')).json())[0].id
+    const theirPublication = (await (await abandoned.get('/api/publications')).json())[0].id
 
     daysLater(15)
     expect(maintenance().purgeUnconfirmedAccounts()).toBe(1)
 
     expect(ctx.store.users.findById(user.id)).toBeUndefined()
     expect(ctx.store.users.findByEmail('typo@example.com')).toBeUndefined()
-    expect(ctx.store.profiles.members(theirProfile)).toEqual([])
+    expect(ctx.store.publications.members(theirPublication)).toEqual([])
     expect(ctx.store.tokens.findSessionUser(hashToken(sessionToken), ctx.clock.now)).toBeUndefined()
     expect(ctx.store.tokens.findVerification(hashToken(verifyToken))).toBeUndefined()
     expect(ctx.store.invitations.findByTokenHash(hashToken(inviteToken))).toBeUndefined()
-    // Ada and her profile are untouched, and the address can sign up again.
+    // Ada and her publication are untouched, and the address can sign up again.
     expect(ctx.store.users.findByEmail('ada@example.com')).toBeDefined()
-    expect(ctx.store.profiles.members(adaProfile)).toHaveLength(1)
+    expect(ctx.store.publications.members(adaPublication)).toHaveLength(1)
     const again = await ctx.client().post('/api/auth/register', {
       name: 'Typo Fixed',
       email: 'typo@example.com',
@@ -100,15 +100,15 @@ describe('purging unconfirmed, unused accounts', () => {
     [
       'has written a draft',
       async (ctx: ReturnType<typeof setup>, c: ReturnType<ReturnType<typeof setup>['client']>) => {
-        const pid = (await (await c.get('/api/profiles')).json())[0].id
+        const pid = (await (await c.get('/api/publications')).json())[0].id
         await createDraft(c, pid, { title: 'My piece', body: 'text' })
       },
     ],
     [
       'has noted down an idea',
       async (_ctx: ReturnType<typeof setup>, c: ReturnType<ReturnType<typeof setup>['client']>) => {
-        const pid = (await (await c.get('/api/profiles')).json())[0].id
-        await c.post(`/api/profiles/${pid}/ideas`, { name: 'Rivers' })
+        const pid = (await (await c.get('/api/publications')).json())[0].id
+        await c.post(`/api/publications/${pid}/ideas`, { name: 'Rivers' })
       },
     ],
     [
@@ -118,16 +118,16 @@ describe('purging unconfirmed, unused accounts', () => {
       },
     ],
     [
-      'shares a profile with someone',
+      'shares a publication with someone',
       async (ctx: ReturnType<typeof setup>, c: ReturnType<ReturnType<typeof setup>['client']>) => {
         const me = (await (await c.get('/api/auth/me')).json()).id
-        const pid = ctx.store.profiles.listIdsForUser(me)[0]!
+        const pid = ctx.store.publications.listIdsForUser(me)[0]!
         const other = ctx.store.users.create({
           name: 'O',
           email: 'o@example.com',
           emailVerified: true,
         })
-        ctx.store.profiles.addMember(pid, other.id, 'member')
+        ctx.store.publications.addMember(pid, other.id, 'member')
       },
     ],
   ])('keeps an unconfirmed account that %s', async (_label, makeUsed) => {
@@ -156,7 +156,7 @@ describe('purging unconfirmed, unused accounts', () => {
         email: `u${i}@example.com`,
         emailVerified: false,
       })
-      ctx.store.profiles.create(`U${i}'s writing`, u.id)
+      ctx.store.publications.create(`U${i}'s writing`, u.id)
     }
     daysLater(20)
     expect(maintenance().purgeUnconfirmedAccounts()).toBe(230)
@@ -291,10 +291,10 @@ describe('pruning expired sessions and links', () => {
     const ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
     verifyAccounts(ctx, 'ada@example.com')
-    const pid = (await (await ada.get('/api/profiles')).json())[0].id
-    await ada.post(`/api/profiles/${pid}/invitations`, { email: 'bob@example.com' })
+    const pid = (await (await ada.get('/api/publications')).json())[0].id
+    await ada.post(`/api/publications/${pid}/invitations`, { email: 'bob@example.com' })
     const bobToken = lastInvitationToken(ctx.mailer)
-    await ada.post(`/api/profiles/${pid}/invitations`, { email: 'carol@example.com' })
+    await ada.post(`/api/publications/${pid}/invitations`, { email: 'carol@example.com' })
     const carolToken = lastInvitationToken(ctx.mailer)
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')

@@ -1,22 +1,22 @@
 import { fireEvent, screen, waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/profile-roles'
+import { MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/publication-roles'
 import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
-// Profile settings also lists the profile's idea sources.
+// Publication settings also lists the publication's idea sources.
 beforeEach(() => server.use(sourcesList()))
 
 const preview = {
-  profileName: 'Joint piece',
+  publicationName: 'Joint piece',
   inviterName: 'Ada Lovelace',
   email: 'bob@example.com',
 }
 const bob = { ...testUser, id: 'u2', name: 'Bob', email: 'bob@example.com' }
 const previewOk = http.post('*/api/invitations/preview', () => HttpResponse.json(preview))
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
-const profile = {
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
+const publication = {
   id: 'p1',
   name: 'Joint piece',
   siteUrl: null,
@@ -45,17 +45,17 @@ describe('accept-invitation page', () => {
     )
   })
 
-  it('signed in as the invitee: joins and lands in the profile', async () => {
+  it('signed in as the invitee: joins and lands in the publication', async () => {
     let accepted: unknown
     server.use(
       signedInAs(bob),
       previewOk,
-      noProfiles,
+      noPublications,
       http.post('*/api/invitations/accept', async ({ request }) => {
         accepted = await request.json()
-        return HttpResponse.json({ profileId: 'p1' })
+        return HttpResponse.json({ publicationId: 'p1' })
       }),
-      http.get('*/api/profiles/p1/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/p1/ideas', () => HttpResponse.json([])),
     )
     const { router } = await renderAt('/accept-invite?token=abc')
     await fireEvent.click(await screen.findByRole('button', { name: 'Join Joint piece' }))
@@ -64,7 +64,7 @@ describe('accept-invitation page', () => {
   })
 
   it('signed in as someone else: explains rather than offering to join', async () => {
-    server.use(signedInAs(testUser), previewOk, noProfiles)
+    server.use(signedInAs(testUser), previewOk, noPublications)
     await renderAt('/accept-invite?token=abc')
     expect(await screen.findByRole('alert')).toHaveTextContent(/sent to bob@example.com/)
     expect(screen.queryByRole('button', { name: /^Join/ })).toBeNull()
@@ -74,7 +74,7 @@ describe('accept-invitation page', () => {
     server.use(
       signedInAs(bob),
       previewOk,
-      noProfiles,
+      noPublications,
       http.post('*/api/invitations/accept', () =>
         HttpResponse.json({ error: 'This invitation is invalid or has expired' }, { status: 400 }),
       ),
@@ -120,7 +120,7 @@ describe('sign-up and sign-in from an invitation', () => {
         return HttpResponse.json(bob, { status: 201 })
       }),
       previewOk,
-      noProfiles,
+      noPublications,
     )
     const { router } = await renderAt(
       '/register?email=bob%40example.com&next=%2Faccept-invite%3Ftoken%3Dabc',
@@ -144,7 +144,7 @@ describe('sign-up and sign-in from an invitation', () => {
         return HttpResponse.json(bob)
       }),
       http.get('*/api/auth/config', () => HttpResponse.json({ providers: [] })),
-      noProfiles,
+      noPublications,
     )
     const { router } = await renderAt('/login?next=%2F%2Fevil.example')
     await fireEvent.update(await screen.findByLabelText('Email'), 'bob@example.com')
@@ -169,15 +169,15 @@ describe('sign-up and sign-in from an invitation', () => {
   })
 })
 
-describe('inviting from the profile settings page', () => {
+describe('inviting from the publication settings page', () => {
   it('sends an invitation, shows a reply that reveals nothing about the address, and lists it as pending', async () => {
     let sent: unknown
     const pending: { id: string; email: string; expiresAt: string }[] = []
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
-      http.get('*/api/profiles/p1/invitations', () => HttpResponse.json(pending)),
-      http.post('*/api/profiles/p1/invitations', async ({ request }) => {
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/p1/invitations', () => HttpResponse.json(pending)),
+      http.post('*/api/publications/p1/invitations', async ({ request }) => {
         sent = await request.json()
         pending.push({ id: 'i1', email: 'bob@example.com', expiresAt: '2030-01-08T00:00:00Z' })
         return HttpResponse.json({ ok: true }, { status: 202 })
@@ -198,17 +198,17 @@ describe('inviting from the profile settings page', () => {
     let resent: unknown
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
-      http.get('*/api/profiles/p1/invitations', () =>
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/p1/invitations', () =>
         HttpResponse.json([
           { id: 'i1', email: 'bob@example.com', expiresAt: '2030-01-08T00:00:00Z' },
         ]),
       ),
-      http.post('*/api/profiles/p1/invitations', async ({ request }) => {
+      http.post('*/api/publications/p1/invitations', async ({ request }) => {
         resent = await request.json()
         return HttpResponse.json({ ok: true }, { status: 202 })
       }),
-      http.delete('*/api/profiles/p1/invitations/i1', () => {
+      http.delete('*/api/publications/p1/invitations/i1', () => {
         revoked = 'i1'
         return new HttpResponse(null, { status: 204 })
       }),
@@ -228,9 +228,9 @@ describe('inviting from the profile settings page', () => {
   it('shows why sending failed (e.g. rate limited)', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
-      http.get('*/api/profiles/p1/invitations', () => HttpResponse.json([])),
-      http.post('*/api/profiles/p1/invitations', () =>
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
+      http.post('*/api/publications/p1/invitations', () =>
         HttpResponse.json(
           { error: 'You have sent a lot of invitations. Try again later.' },
           { status: 429 },
@@ -246,8 +246,8 @@ describe('inviting from the profile settings page', () => {
   it('says what members and owners can do before you invite, using the shared wording', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
-      http.get('*/api/profiles/p1/invitations', () => HttpResponse.json([])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/p/p1/settings')
     const note = await screen.findByTestId('invite-roles')
@@ -261,7 +261,7 @@ describe('inviting from the profile settings page', () => {
   it('does not show it to someone who has not confirmed their address (no form to explain)', async () => {
     server.use(
       signedInAs({ ...testUser, emailVerified: false }),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/p/p1/settings')
     await screen.findByText(/Confirm your email address to invite people/)

@@ -14,14 +14,14 @@ tool: it never writes or edits drafts.
 
 ## Decisions (owner)
 
-| Question                             | Decision                                                                                                                                                                                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.                      |
-| What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same profile. It cannot edit or remove notes. **Never** edit or create drafts.                                      |
-| Who sees the conversation?           | **One thread per idea, visible to every member of the profile.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                                         |
-| How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                                          |
-| What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **venue** (name, website and the writer's own **description** of it, when they have written one). See _Context_ for what is deliberately left out. |
-| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a writing coach. In a shared profile, the person sending the message supplies the prompt, key and model.                                                    |
+| Question                             | Decision                                                                                                                                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.                            |
+| What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same publication. It cannot edit or remove notes. **Never** edit or create drafts.                                        |
+| Who sees the conversation?           | **One thread per idea, visible to every member of the publication.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                                           |
+| How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                                                |
+| What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **publication** (name, website and the writer's own **description** of it, when they have written one). See _Context_ for what is deliberately left out. |
+| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a writing coach. In a shared publication, the person sending the message supplies the prompt, key and model.                                                      |
 
 ## How it works
 
@@ -34,7 +34,7 @@ validate the call and either apply it (`add_note`) or turn it into a **proposal 
 | ----------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `add_note`        | `text`                | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.                                                                                                                                                                                                  |
 | `update_idea`     | `name`                | A proposal: replaces the idea's title when accepted.                                                                                                                                                                                                                                    |
-| `create_idea`     | `name`, `notes`       | A proposal: creates a new idea in the same profile (no drafts, no links) when accepted.                                                                                                                                                                                                 |
+| `create_idea`     | `name`, `notes`       | A proposal: creates a new idea in the same publication (no drafts, no links) when accepted.                                                                                                                                                                                             |
 | `suggest_reading` | `url`, `title`, `why` | A proposal: adds a page to the idea's reading list when accepted. Only an address a person wrote in the thread is kept (the coach can't search); the address is checked and shown beside the page's real title (T38). Research proper is a separate tool, not part of the conversation. |
 
 Rules for tool calls:
@@ -75,10 +75,10 @@ Built by the server on every turn, never by the client.
 
 - **System prompt**, in two parts, in this order: (1) the **user's brainstorming prompt** (or the default), then
   (2) an **app-owned block** that the user can't edit: how tools work (including that `add_note` takes effect at once), what the model must not do (draft, claim
-  facts about the venue it wasn't given), and how to treat the context (below). Keeping them apart means editing
+  facts about the publication it wasn't given), and how to treat the context (below). Keeping them apart means editing
   your prompt can't break the tool protocol.
 - **Idea snapshot**, sent as the start of a user turn: the idea's title and notes, the related links (address and
-  title), the venue's name, website and the writer's description of it, in a `<venue_description>` block (or a line saying
+  title), the publication's name, website and the writer's description of it, in a `<publication_description>` block (or a line saying
   it has not been described yet, so the model asks who the readers are, unless the description says the writing is
   personal), and the _titles_ of existing drafts so it knows what's already been written.
   - A fresh snapshot is attached to a user turn **only when it differs from the last one sent**, since the person
@@ -86,7 +86,7 @@ Built by the server on every turn, never by the client.
   - Why not in the system prompt: it would change every turn and defeat prompt caching of the history.
 - **Not included:** draft **bodies** (this isn't a drafting tool, and it keeps cost and exposure down), page
   contents behind the links (the model sees what the person sees: address and title; it can't fetch anything),
-  other ideas, and any other profile.
+  other ideas, and any other publication.
 - All third-party text in the snapshot (fetched page titles, anything pasted into notes) is **untrusted data**.
   The app block says to treat it as material to discuss, never as instructions.
 
@@ -152,14 +152,14 @@ threads get long enough to matter.
   never put into the page as HTML.
 - **Per-user custom prompt:** length-capped (8,000 characters), only ever used for that person's own calls, never
   shown to other members. It can't change the app-owned block.
-- **Privacy:** the idea, notes, links and venue description go to the person's LLM provider under their own key.
-  The brainstorm page says so. In a shared profile, a message from a member is sent through _that_ member's
+- **Privacy:** the idea, notes, links and publication description go to the person's LLM provider under their own key.
+  The brainstorm page says so. In a shared publication, a message from a member is sent through _that_ member's
   provider.
 - **No content in logs:** conversations, prompts and keys are never logged; errors log a code and ids only
   (AGENTS.md).
 - **Throttling:** per-person limit on messages (it spends their money and our server time), one in flight per idea,
   and requests abort the provider call when the browser disconnects.
-- **Deletion:** the thread belongs to its idea (`ON DELETE CASCADE`), so deleting an idea, a profile or the last
+- **Deletion:** the thread belongs to its idea (`ON DELETE CASCADE`), so deleting an idea, a publication or the last
   member's account removes it; messages keep the author as `SET NULL` so a leaving member's messages stay.
 
 ## Data
@@ -175,11 +175,11 @@ status pending|accepted|dismissed, decided_by, decided_at, created_idea_id, chec
 - A per-user brainstorming prompt: `user_prompts(user_id PK → users ON DELETE CASCADE, brainstorm TEXT, updated_at)`,
   with no row (or null) meaning "use the default".
 
-The profile-rename list needs no change (these tables hang off ideas and users, not profiles).
+The publication-rename list needs no change (these tables hang off ideas and users, not publications).
 
 ## API
 
-All under `/api/profiles/:profileId/ideas/:id/conversation` (members only):
+All under `/api/publications/:publicationId/ideas/:id/conversation` (members only):
 
 - `GET`: the thread, with proposals and their states.
 - `POST /messages`: body `{ text }`, or `{ start: true }` for the kick-off or `{ retry: true }` for a retry (exactly
@@ -200,7 +200,7 @@ All under `/api/profiles/:profileId/ideas/:id/conversation` (members only):
 
 ## UI
 
-- **Idea page:** the disabled button becomes **Brainstorm**, opening `/p/:profile/ideas/:idea/brainstorm`. The idea
+- **Idea page:** the disabled button becomes **Brainstorm**, opening `/p/:publication/ideas/:idea/brainstorm`. The idea
   page itself shows nothing of the conversation but a "Brainstorm" link (with "Continue" once a thread exists).
 - **Brainstorm page:** the thread (names, markdown, the notes recorded under each reply, title/new-idea proposal cards with Accept/Dismiss), a message box, a
   Stop button while streaming, and a collapsed summary of the idea being discussed. Keyboard-usable; the thread is
@@ -238,7 +238,7 @@ available and not wanted.
 ## Testing
 
 - **Unit/API:** the fake provider drives the whole flow: kick-off, streaming, proposals (accept, dismiss, stale),
-  retry, cancel, one-in-flight, access control, cascade on idea/profile/account deletion, prompt save/reset.
+  retry, cancel, one-in-flight, access control, cascade on idea/publication/account deletion, prompt save/reset.
 - **Contract:** the extended port against the fake and (opt-in, with a key) the Anthropic adapter.
 - **Component:** the chat states (loading, empty, streaming, error, proposals), the rendered Markdown (no HTML,
   no images), the account prompt section.
@@ -247,7 +247,7 @@ available and not wanted.
 - **Evals** (`evals/src/cases.ts`, `pnpm eval`, run with a real key; see
   [decisions.md](decisions.md#behaviour-evals-a-smoke-test-that-sends-what-the-app-sends)): the default prompt, given an idea snapshot, should
   open with probing questions and not a lecture; push back on a vague idea; not draft text; not invent facts about
-  the venue; use the venue description when given, ask for the readers when it is absent, and not ask for an audience when it says the writing is for the writer's own thinking; not propose after every turn.
+  the publication; use the publication description when given, ask for the readers when it is absent, and not ask for an audience when it says the writing is for the writer's own thinking; not propose after every turn.
 
 ## Build order
 
@@ -257,13 +257,13 @@ available and not wanted.
 4. **T20b4**: the brainstorm page (chat, proposals, Markdown rendering) and the idea-page link.
 5. **T20b5**: evals and tuning the default prompt.
 
-**The venue description** (#131, used as context in #133; it replaced the planned audience personas, T16) is not a
-hard dependency, but brainstorming is better with it: the model is told what the venue is and who reads it instead of
+**The publication description** (#131, used as context in #133; it replaced the planned audience personas, T16) is not a
+hard dependency, but brainstorming is better with it: the model is told what the publication is and who reads it instead of
 asking every time. The critique and the researcher get the same block (see `docs/decisions.md`).
 
 ## Open questions (not blocking)
 
 - Whether new ideas created by the model should record which idea they came from.
-- Per-profile prompts (a house style for each venue), later.
+- Per-publication prompts (a house style for each publication), later.
 - Offering an effort setting, or a cheaper model for brainstorming only.
 - Trimming or summarising long threads, when they get long enough to matter.

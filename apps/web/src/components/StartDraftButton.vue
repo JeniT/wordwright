@@ -5,15 +5,18 @@ import { api } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 
 /** Adds an untitled draft to an idea and opens it, for the Draft page and the idea's landing page. */
-const props = defineProps<{ profileId: string; ideaId: string; label?: string }>()
+const props = defineProps<{ publicationId: string; ideaId: string; label?: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
 const addDraft = useMutation({
-  mutationFn: () => api.createIdeaDraft(props.profileId, props.ideaId, { title: 'Untitled' }),
+  mutationFn: () => api.createIdeaDraft(props.publicationId, props.ideaId, { title: 'Untitled' }),
   onSuccess: async (draft) => {
     await Promise.all([invalidateRoots(queryClient, 'idea'), invalidateRoots(queryClient, 'ideas')])
-    await router.push({ name: 'draft', params: { profileId: props.profileId, id: draft.id } })
+    await router.push({
+      name: 'draft',
+      params: { publicationId: props.publicationId, id: draft.id },
+    })
   },
 })
 </script>

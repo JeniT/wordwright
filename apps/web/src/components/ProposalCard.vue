@@ -7,7 +7,7 @@ import { api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 
 const props = defineProps<{
-  profileId: string
+  publicationId: string
   ideaId: string
   proposal: Proposal
   /** The idea as it is now, so a suggestion can be shown against what it would replace. */
@@ -39,11 +39,11 @@ const what = computed(() => {
 const refresh = () => invalidateRoots(queryClient, 'conversation', 'idea', 'ideas')
 const accept = useMutation({
   mutationFn: () =>
-    api.acceptProposal(props.profileId, props.ideaId, props.proposal.id, props.proposal.stale),
+    api.acceptProposal(props.publicationId, props.ideaId, props.proposal.id, props.proposal.stale),
   onSettled: refresh,
 })
 const dismiss = useMutation({
-  mutationFn: () => api.dismissProposal(props.profileId, props.ideaId, props.proposal.id),
+  mutationFn: () => api.dismissProposal(props.publicationId, props.ideaId, props.proposal.id),
   onSettled: refresh,
 })
 const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
@@ -180,7 +180,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       }}{{ proposal.decidedByName ? ` by ${proposal.decidedByName}` : '' }}.
       <RouterLink
         v-if="proposal.createdIdeaId"
-        :to="{ name: 'idea-notes', params: { profileId, id: proposal.createdIdeaId } }"
+        :to="{ name: 'idea-notes', params: { publicationId, id: proposal.createdIdeaId } }"
         class="underline"
       >
         Open the new idea

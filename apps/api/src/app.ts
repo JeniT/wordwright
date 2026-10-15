@@ -19,7 +19,7 @@ import { accountRoutes } from './routes/account'
 import { authRoutes } from './routes/auth'
 import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
-import { profileRoutes } from './routes/profiles'
+import { publicationRoutes } from './routes/publications'
 import { AccountService } from './services/accounts'
 import { BrainstormService } from './services/brainstorm'
 import { FeedItemService } from './services/feed-items'
@@ -104,7 +104,7 @@ export function createApp(deps: AppDeps) {
     mailer: deps.mailer,
     accounts,
     publicUrl,
-    // 5 a day to any one address, whoever sends them (the same cap as profile invitations).
+    // 5 a day to any one address, whoever sends them (the same cap as publication invitations).
     recipientLimiter: limiter(5, DAY),
     now: deps.now,
     logger: deps.logger,
@@ -196,9 +196,9 @@ export function createApp(deps: AppDeps) {
   api.route('/review-invitations', reviewInvitationRoutes(reviews, accounts))
   api.route('/reviews', signedIn(reviewRoutes(reviews, accounts)))
   api.route(
-    '/profiles',
+    '/publications',
     signedIn(
-      profileRoutes({
+      publicationRoutes({
         store,
         llmKeys,
         invitations,

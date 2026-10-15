@@ -18,16 +18,16 @@ import {
   parseOptions,
 } from '../services/rephrase'
 import { validateJson } from '../validate'
-import { usableVenueDescription } from '../services/venue-context'
+import { usablePublicationDescription } from '../services/publication-context'
 import { toLlmHttpError } from './llm'
 import { DomainError, fail } from '../errors'
 import { param } from './params'
 
-/** Every request runs on the *requesting user's* credentials, even inside a shared profile. */
+/** Every request runs on the *requesting user's* credentials, even inside a shared publication. */
 export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
   return new Hono<AppEnv>()
     .post('/critique', validateJson(CritiqueRequestSchema), async (c) => {
-      const draft = store.drafts.get(param(c, 'profileId'), c.req.valid('json').draftId)
+      const draft = store.drafts.get(param(c, 'publicationId'), c.req.valid('json').draftId)
       if (!draft) return c.json({ error: 'Not found' }, 404)
       // Before anything is counted or sent: only the editor spends their key and a look on the draft.
       requireEditor(draft, c.get('user').id)
@@ -50,8 +50,10 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
       }
 
       try {
-        const venue = usableVenueDescription(store.profiles.get(param(c, 'profileId'), userId))
-        const { message, blocks } = formatDraftForCritique(draft, venue)
+        const publication = usablePublicationDescription(
+          store.publications.get(param(c, 'publicationId'), userId),
+        )
+        const { message, blocks } = formatDraftForCritique(draft, publication)
         const reply = await llm.complete({
           system: CRITIQUE_PROMPT,
           messages: [{ role: 'user', content: message }],
@@ -79,9 +81,9 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
     })
     .post('/rephrase', validateJson(RephraseRequestSchema), async (c) => {
       const req = c.req.valid('json')
-      const profileId = param(c, 'profileId')
+      const publicationId = param(c, 'publicationId')
       const userId = c.get('user').id
-      const draft = store.drafts.get(profileId, req.draftId)
+      const draft = store.drafts.get(publicationId, req.draftId)
       if (!draft) return c.json({ error: 'Not found' }, 404)
       // Before anything is sent: only the editor spends their key on the draft, and only on what can be rephrased.
       requireEditor(draft, userId)
@@ -95,10 +97,12 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
       }
 
       try {
-        const venue = usableVenueDescription(store.profiles.get(profileId, userId))
+        const publication = usablePublicationDescription(
+          store.publications.get(publicationId, userId),
+        )
         const reply = await llm.complete({
           system: OPTIONS_PROMPT,
-          messages: [{ role: 'user', content: formatRephraseMessage(req, draft, venue) }],
+          messages: [{ role: 'user', content: formatRephraseMessage(req, draft, publication) }],
           signal: c.req.raw.signal,
         })
         const result = parseOptions(reply, req)

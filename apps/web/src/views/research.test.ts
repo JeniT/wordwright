@@ -8,7 +8,7 @@ useMockServer()
 
 const idea = {
   id: 'i1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.',
   links: [],
@@ -16,7 +16,7 @@ const idea = {
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
-const base = '*/api/profiles/ada-substack/ideas/i1/research'
+const base = '*/api/publications/ada-substack/ideas/i1/research'
 const page = '/p/ada-substack/ideas/i1/research/find'
 
 let counter = 0
@@ -53,8 +53,8 @@ function mockResearch(initial: ResearchRun[] = [], extra: Parameters<typeof serv
   server.use(
     signedInAs(testUser),
     ...extra,
-    http.get('*/api/profiles', () => HttpResponse.json([])),
-    http.get('*/api/profiles/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
+    http.get('*/api/publications', () => HttpResponse.json([])),
+    http.get('*/api/publications/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
     http.get(base, () => HttpResponse.json(state.runs)),
     http.post(base, async ({ request }) => {
       const body = (await request.json()) as { areas: string }
@@ -105,7 +105,7 @@ describe('the research page', () => {
     )
     expect(screen.getByText(/including some that may not agree with you/)).toBeInTheDocument()
     expect(screen.getByText(/the text of your drafts never is/)).toBeInTheDocument()
-    expect(screen.getByText(/Everyone in this profile sees the research/)).toBeInTheDocument()
+    expect(screen.getByText(/Everyone in this publication sees the research/)).toBeInTheDocument()
     expect(await screen.findByText(/Nothing yet/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Research' })).toBeDisabled() // nothing described yet
   })
@@ -195,8 +195,8 @@ describe('the research page', () => {
   it('says so when the idea cannot be opened', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([])),
-      http.get('*/api/profiles/ada-substack/ideas/i1', () =>
+      http.get('*/api/publications', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/ideas/i1', () =>
         HttpResponse.json({ error: 'no' }, { status: 404 }),
       ),
       http.get(base, () => HttpResponse.json([])),

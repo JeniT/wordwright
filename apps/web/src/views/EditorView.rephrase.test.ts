@@ -11,7 +11,7 @@ const BODY =
   'The river bends because the outside bank erodes faster.\n\nIt drifts across the valley.'
 const draft = {
   id: 'd1',
-  profileId: 'p1',
+  publicationId: 'p1',
   ideaId: 'i1',
   title: 'T',
   body: BODY,
@@ -29,8 +29,8 @@ function mockDraft(viewer = testUser) {
   const asked: Record<string, unknown>[] = []
   server.use(
     signedInAs(viewer),
-    http.get('*/api/profiles', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+    http.get('*/api/publications', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/drafts/d1/handover', () =>
       HttpResponse.json({
         editorId: 'u1',
         editorName: 'Ada Lovelace',
@@ -39,10 +39,10 @@ function mockDraft(viewer = testUser) {
         history: [],
       }),
     ),
-    http.get('*/api/profiles/p1/ideas/i1', () =>
+    http.get('*/api/publications/p1/ideas/i1', () =>
       HttpResponse.json({
         id: 'i1',
-        profileId: 'p1',
+        publicationId: 'p1',
         name: 'An idea',
         notes: '',
         links: [],
@@ -51,13 +51,13 @@ function mockDraft(viewer = testUser) {
         updatedAt: '2026-01-01T00:00:00Z',
       }),
     ),
-    http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
-    http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
+    http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
       const body = (await request.json()) as { title: string; body: string; version: number }
       saved.push(body)
       return HttpResponse.json({ ...draft, ...body, version: body.version + 1 })
     }),
-    http.post('*/api/profiles/p1/assist/rephrase', async ({ request }) => {
+    http.post('*/api/publications/p1/assist/rephrase', async ({ request }) => {
       asked.push((await request.json()) as Record<string, unknown>)
       return HttpResponse.json({
         size: 'short',
@@ -70,7 +70,7 @@ function mockDraft(viewer = testUser) {
         ],
       })
     }),
-    http.post('*/api/profiles/p1/drafts/d1/option-insertions', async ({ request }) => {
+    http.post('*/api/publications/p1/drafts/d1/option-insertions', async ({ request }) => {
       recorded.push((await request.json()) as Record<string, unknown>)
       return HttpResponse.json(
         {

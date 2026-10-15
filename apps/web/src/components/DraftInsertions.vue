@@ -6,11 +6,11 @@ import { originPhrase } from '../lib/note-label'
 import NoteOrigin from './NoteOrigin.vue'
 import { stillInDraft } from '../lib/note-insert'
 
-const props = defineProps<{ profileId: string; draftId: string; body: string }>()
+const props = defineProps<{ publicationId: string; draftId: string; body: string }>()
 
 const insertions = useQuery({
-  queryKey: ['draft-insertions', () => props.profileId, () => props.draftId],
-  queryFn: () => api.listDraftInsertions(props.profileId, props.draftId),
+  queryKey: ['draft-insertions', () => props.publicationId, () => props.draftId],
+  queryFn: () => api.listDraftInsertions(props.publicationId, props.draftId),
 })
 /** An option the writer used says what they asked for; the chip is who used it, not who wrote a note. */
 const rows = computed(() =>

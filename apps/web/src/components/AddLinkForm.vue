@@ -4,9 +4,12 @@ import { errorMessage } from '../lib/api'
 import { useReadingActions } from '../lib/reading'
 import TextField from './TextField.vue'
 
-/** The box that adds a web address to the reading list of an idea, or (no `ideaId`) of the profile. */
-const props = defineProps<{ profileId: string; ideaId: string | null }>()
-const { add } = useReadingActions(() => ({ profileId: props.profileId, ideaId: props.ideaId }))
+/** The box that adds a web address to the reading list of an idea, or (no `ideaId`) of the publication. */
+const props = defineProps<{ publicationId: string; ideaId: string | null }>()
+const { add } = useReadingActions(() => ({
+  publicationId: props.publicationId,
+  ideaId: props.ideaId,
+}))
 
 const linkUrl = ref('')
 // On failure what was typed stays in the field, with the reason shown under it.

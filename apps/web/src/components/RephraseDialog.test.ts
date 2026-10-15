@@ -22,7 +22,7 @@ function mockRephrase(
   const asked: Record<string, unknown>[] = []
   server.use(
     llmSettings(true),
-    http.post('*/api/profiles/p1/assist/rephrase', async ({ request }) => {
+    http.post('*/api/publications/p1/assist/rephrase', async ({ request }) => {
       asked.push((await request.json()) as Record<string, unknown>)
       const res = answer(asked.length)
       return res instanceof Response ? res : HttpResponse.json(res)
@@ -37,7 +37,7 @@ function show(props: Record<string, unknown> = {}) {
       open: true,
       kind: 'passage',
       wording: WORDING,
-      profileId: 'p1',
+      publicationId: 'p1',
       draftId: 'd1',
       ...props,
     },
@@ -259,7 +259,7 @@ describe('RephraseDialog', () => {
     const held = new Promise<void>((resolve) => (release = resolve))
     server.use(
       llmSettings(true),
-      http.post('*/api/profiles/p1/assist/rephrase', async () => {
+      http.post('*/api/publications/p1/assist/rephrase', async () => {
         await held
         return HttpResponse.json({ size: 'short', options: options(5) })
       }),

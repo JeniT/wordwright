@@ -5,8 +5,8 @@ import { nowIso } from './database'
 
 export interface InvitationRecord {
   id: string
-  profileId: string
-  profileName: string
+  publicationId: string
+  publicationName: string
   invitedBy: string
   inviterName: string
   email: string
@@ -18,9 +18,9 @@ export interface InvitationRecord {
 export class InvitationStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  /** One pending invitation per (profile, email): inviting again replaces the earlier link. */
+  /** One pending invitation per (publication, email): inviting again replaces the earlier link. */
   replacePending(input: {
-    profileId: string
+    publicationId: string
     invitedBy: string
     email: string
     tokenHash: string
@@ -28,16 +28,18 @@ export class InvitationStore {
   }): string {
     const id = randomUUID()
     this.db
-      .prepare('DELETE FROM invitations WHERE profile_id = ? AND email = ? AND accepted_at IS NULL')
-      .run(input.profileId, input.email)
+      .prepare(
+        'DELETE FROM invitations WHERE publication_id = ? AND email = ? AND accepted_at IS NULL',
+      )
+      .run(input.publicationId, input.email)
     this.db
       .prepare(
-        `INSERT INTO invitations (id, profile_id, invited_by, email, token_hash, created_at, expires_at)
+        `INSERT INTO invitations (id, publication_id, invited_by, email, token_hash, created_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
-        input.profileId,
+        input.publicationId,
         input.invitedBy,
         input.email,
         input.tokenHash,
@@ -50,10 +52,10 @@ export class InvitationStore {
   findByTokenHash(tokenHash: string): InvitationRecord | undefined {
     const row = this.db
       .prepare(
-        `SELECT i.id, i.profile_id, i.invited_by, i.email, i.expires_at, i.accepted_by,
-                p.name AS profile_name, u.name AS inviter_name
+        `SELECT i.id, i.publication_id, i.invited_by, i.email, i.expires_at, i.accepted_by,
+                p.name AS publication_name, u.name AS inviter_name
          FROM invitations i
-         JOIN profiles p ON p.id = i.profile_id
+         JOIN publications p ON p.id = i.publication_id
          JOIN users u ON u.id = i.invited_by
          WHERE i.token_hash = ?`,
       )
@@ -61,8 +63,8 @@ export class InvitationStore {
     return (
       row && {
         id: row.id!,
-        profileId: row.profile_id!,
-        profileName: row.profile_name!,
+        publicationId: row.publication_id!,
+        publicationName: row.publication_name!,
         invitedBy: row.invited_by!,
         inviterName: row.inviter_name!,
         email: row.email!,
@@ -72,16 +74,20 @@ export class InvitationStore {
     )
   }
 
-  /** Pending (unaccepted, unexpired) invitations for a profile, newest first. */
-  listPending(profileId: string, now: Date): Invitation[] {
+  /** Pending (unaccepted, unexpired) invitations for a publication, newest first. */
+  listPending(publicationId: string, now: Date): Invitation[] {
     return (
       this.db
         .prepare(
           `SELECT id, email, expires_at FROM invitations
-           WHERE profile_id = ? AND accepted_at IS NULL AND expires_at > ?
+           WHERE publication_id = ? AND accepted_at IS NULL AND expires_at > ?
            ORDER BY created_at DESC, rowid DESC`,
         )
-        .all(profileId, now.toISOString()) as { id: string; email: string; expires_at: string }[]
+        .all(publicationId, now.toISOString()) as {
+        id: string
+        email: string
+        expires_at: string
+      }[]
     ).map((r) => ({ id: r.id, email: r.email, expiresAt: r.expires_at }))
   }
 
@@ -91,11 +97,13 @@ export class InvitationStore {
       .run(userId, nowIso(), id)
   }
 
-  revoke(profileId: string, id: string): boolean {
+  revoke(publicationId: string, id: string): boolean {
     return (
       this.db
-        .prepare('DELETE FROM invitations WHERE profile_id = ? AND id = ? AND accepted_at IS NULL')
-        .run(profileId, id).changes > 0
+        .prepare(
+          'DELETE FROM invitations WHERE publication_id = ? AND id = ? AND accepted_at IS NULL',
+        )
+        .run(publicationId, id).changes > 0
     )
   }
 

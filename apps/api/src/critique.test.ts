@@ -7,7 +7,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
 } from './test-helpers'
 
@@ -87,13 +87,13 @@ describe('kept critiques', () => {
     await register(client, 'ada@example.com', 'Ada')
     verifyAccounts(ctx, 'ada@example.com')
     await saveKey(client)
-    const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
-    const draft = await createDraft(client, profileId, {
+    const publicationId = (await (await client.get('/api/publications')).json())[0].id as string
+    const draft = await createDraft(client, publicationId, {
       title: 'T',
       body: 'First paragraph.\n\nSecond paragraph.',
     })
-    const base = `/api/profiles/${profileId}`
-    return { ctx, client, profileId, draft, base }
+    const base = `/api/publications/${publicationId}`
+    return { ctx, client, publicationId, draft, base }
   }
 
   it('has none until the draft is critiqued, then returns the latest round and its points as comments with their anchors', async () => {
@@ -137,7 +137,7 @@ describe('kept critiques', () => {
     expect(await (await client.get(`${base}/drafts/${draft.id}/comments`)).json()).toHaveLength(1)
   })
 
-  it('is private to the profile and needs sign-in', async () => {
+  it('is private to the publication and needs sign-in', async () => {
     const { ctx, base, draft } = await ada()
     expect((await ctx.client().get(`${base}/drafts/${draft.id}/critique`)).status).toBe(401)
     const eve = ctx.client()
@@ -147,8 +147,8 @@ describe('kept critiques', () => {
     )
   })
 
-  it('goes with the draft, and with the profile', async () => {
-    const { ctx, client, base, draft, profileId } = await ada()
+  it('goes with the draft, and with the publication', async () => {
+    const { ctx, client, base, draft, publicationId } = await ada()
     await client.post(`${base}/assist/critique`, { draftId: draft.id })
     expect(ctx.store.critiques.latest(draft.id)).toBeDefined()
     expect(ctx.store.comments.all(draft.id)).toHaveLength(1)
@@ -156,7 +156,7 @@ describe('kept critiques', () => {
     expect(ctx.store.critiques.latest(draft.id)).toBeUndefined()
     expect(ctx.store.comments.all(draft.id)).toEqual([])
 
-    const second = await createDraft(client, profileId, { title: 'V', body: 'Again.' })
+    const second = await createDraft(client, publicationId, { title: 'V', body: 'Again.' })
     await client.post(`${base}/assist/critique`, { draftId: second.id })
     expect((await client.delete(base)).status).toBe(204)
     expect(ctx.store.critiques.latest(second.id)).toBeUndefined()
@@ -173,11 +173,11 @@ describe('critique rounds per draft', () => {
     await register(client, 'ada@example.com', 'Ada')
     verifyAccounts(ctx, 'ada@example.com')
     await saveKey(client)
-    const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
-    const base = `/api/profiles/${profileId}`
-    const draft = await createDraft(client, profileId, { title: 'T', body: 'First paragraph.' })
+    const publicationId = (await (await client.get('/api/publications')).json())[0].id as string
+    const base = `/api/publications/${publicationId}`
+    const draft = await createDraft(client, publicationId, { title: 'T', body: 'First paragraph.' })
     const ask = (draftId = draft.id) => client.post(`${base}/assist/critique`, { draftId })
-    return { ctx, client, profileId, base, draft, ask }
+    return { ctx, client, publicationId, base, draft, ask }
   }
 
   it('gives a draft three looks by default, counted as they are used', async () => {
@@ -200,7 +200,7 @@ describe('critique rounds per draft', () => {
   })
 
   it('counts per draft, and editing the draft does not earn more looks', async () => {
-    const { client, base, profileId, draft, ask } = await ada()
+    const { client, base, publicationId, draft, ask } = await ada()
     for (let i = 0; i < 3; i++) await ask()
     await client.put(`${base}/drafts/${draft.id}`, {
       title: 'T',
@@ -208,7 +208,7 @@ describe('critique rounds per draft', () => {
       version: draft.version,
     })
     expect((await ask()).status).toBe(409)
-    const other = await createDraft(client, profileId, { title: 'U', body: 'Another.' })
+    const other = await createDraft(client, publicationId, { title: 'U', body: 'Another.' })
     expect((await ask(other.id)).status).toBe(200)
   })
 
@@ -243,19 +243,21 @@ describe('critique rounds per draft', () => {
   })
 
   it('uses the limit of whoever asks, but the draft’s count is shared', async () => {
-    const { ctx, client, profileId, draft, ask } = await ada()
+    const { ctx, client, publicationId, draft, ask } = await ada()
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'bob@example.com')
     await saveKey(bob)
-    await shareProfile(ctx, client, profileId, bob, 'bob@example.com')
+    await sharePublication(ctx, client, publicationId, bob, 'bob@example.com')
     await bob.put('/api/account/critique-settings', { rounds: 4 })
     for (let i = 0; i < 3; i++) await ask()
     expect((await ask()).status).toBe(409) // Ada's limit is 3
     // The editor is whoever asks, so Bob becomes the editor to ask with his own limit.
     const bobId = (await (await bob.get('/api/auth/me')).json()).id
-    ctx.store.drafts.reassignEditor(profileId, draft.editorId, bobId)
-    const res = await bob.post(`/api/profiles/${profileId}/assist/critique`, { draftId: draft.id })
+    ctx.store.drafts.reassignEditor(publicationId, draft.editorId, bobId)
+    const res = await bob.post(`/api/publications/${publicationId}/assist/critique`, {
+      draftId: draft.id,
+    })
     expect(res.status).toBe(200) // Bob's is 4
     expect(await res.json()).toMatchObject({ used: 4, allowed: 4 })
   })

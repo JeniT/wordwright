@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, goTo, test } from './fixtures'
 
-// The side menu follows you: home, then a profile's three steps, then an idea's four. See docs/design.md.
+// The side menu follows you: home, then a publication's three steps, then an idea's four. See docs/design.md.
 
 async function signUpWithIdea(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -12,9 +12,9 @@ async function signUpWithIdea(page: Page) {
   await page.getByLabel('Email').fill(`nia-${id}@example.com`)
   await page.getByLabel('Password').fill('a perfectly good password')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Garden notes')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('What pruning teaches')
   await page.getByLabel('Expand on your idea here').fill('A cut is a question.')
@@ -30,7 +30,7 @@ const noViolations = async (page: Page, what: string) =>
 const next = (page: Page, label: RegExp) =>
   page.getByRole('navigation', { name: 'Next step' }).getByRole('link', { name: label })
 
-test('leads through a profile and an idea step by step, without ever locking one', async ({
+test('leads through a publication and an idea step by step, without ever locking one', async ({
   page,
 }) => {
   await signUpWithIdea(page)
@@ -95,18 +95,18 @@ test('leads through a profile and an idea step by step, without ever locking one
   await expect(page.getByRole('heading', { level: 1, name: 'Idea settings' })).toBeVisible()
   await noViolations(page, 'Idea settings')
 
-  // Up a level: the profile's own page, then its steps, Ideas being the choice of what to work on next.
+  // Up a level: the publication's own page, then its steps, Ideas being the choice of what to work on next.
   await page.getByRole('link', { name: '← Garden notes' }).click()
-  const profile = page.getByRole('navigation', { name: 'Profile' })
+  const publication = page.getByRole('navigation', { name: 'Publication' })
   await expect(page.getByRole('heading', { level: 1, name: 'Garden notes' })).toBeVisible()
   await goTo(page, 'Ideas')
-  await expect(profile.getByRole('link', { name: /^Ideas/ })).toHaveAttribute(
+  await expect(publication.getByRole('link', { name: /^Ideas/ })).toHaveAttribute(
     'aria-current',
     'page',
   )
   await expect(page.getByRole('heading', { level: 1, name: 'Ideas' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Next step' })).toHaveCount(0) // a choice, not a next
-  await expect(profile.getByText('1 idea')).toBeVisible()
+  await expect(publication.getByText('1 idea')).toBeVisible()
   await noViolations(page, 'Ideas step')
   await goTo(page, 'Search')
   await noViolations(page, 'Search step')
@@ -115,19 +115,19 @@ test('leads through a profile and an idea step by step, without ever locking one
   await noViolations(page, 'Read step')
   await next(page, /Next: 03 Notes/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
-  await noViolations(page, 'Profile notes step')
+  await noViolations(page, 'Publication notes step')
 
-  // Home: profiles and account settings.
-  await page.getByRole('link', { name: '← All profiles' }).click()
+  // Home: publications and account settings.
+  await page.getByRole('link', { name: '← All publications' }).click()
   await expect(
     page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Account settings' }),
   ).toBeVisible()
 
-  // Opening a profile lands on its own page, which is none of the steps.
+  // Opening a publication lands on its own page, which is none of the steps.
   await page.getByRole('link', { name: /Garden notes/ }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Garden notes' })).toBeVisible()
-  await expect(profile.locator('[aria-current="page"]')).toHaveCount(0)
-  await noViolations(page, 'Profile landing page')
+  await expect(publication.locator('[aria-current="page"]')).toHaveCount(0)
+  await noViolations(page, 'Publication landing page')
 
   // A note can be jotted down there, and shows at once, and on the Notes step too.
   await page.getByLabel('Add a note').fill('Prune in late winter.')

@@ -6,15 +6,15 @@ import { api } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 import QueryState from './QueryState.vue'
 
-const props = defineProps<{ profileId: string; source: Source; name: string }>()
+const props = defineProps<{ publicationId: string; source: Source; name: string }>()
 const SHOWN = 5
 
 // A feed is only asked about once someone looks, so a long list of sources isn't a long list of requests.
 const opened = ref(false)
 const queryClient = useQueryClient()
 const posts = useQuery({
-  queryKey: ['source-items', () => props.profileId, () => props.source.id],
-  queryFn: () => api.sourceItems(props.profileId, props.source.id),
+  queryKey: ['source-items', () => props.publicationId, () => props.source.id],
+  queryFn: () => api.sourceItems(props.publicationId, props.source.id),
   enabled: opened,
   staleTime: 5 * 60_000,
 })

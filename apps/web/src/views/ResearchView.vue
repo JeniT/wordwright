@@ -10,24 +10,24 @@ import { queryKeys, useIdea } from '../lib/queries'
 import QueryState from '../components/QueryState.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 
-const props = defineProps<{ profileId: string; id: string }>()
+const props = defineProps<{ publicationId: string; id: string }>()
 
 const idea = useIdea(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 const runs = useQuery({
-  queryKey: computed(() => queryKeys.research(props.profileId, props.id)),
-  queryFn: () => api.getResearch(props.profileId, props.id),
+  queryKey: computed(() => queryKeys.research(props.publicationId, props.id)),
+  queryFn: () => api.getResearch(props.publicationId, props.id),
 })
 </script>
 
 <template>
-  <IdeaGate :id="id" :profile-id="profileId">
+  <IdeaGate :id="id" :publication-id="publicationId">
     <article v-if="idea.data.value" class="max-w-2xl">
       <StepHeading>Research</StepHeading>
       <p class="mb-4 text-sm">
-        <RouterLink :to="{ name: 'idea-research', params: { profileId, id } }" class="link">
+        <RouterLink :to="{ name: 'idea-research', params: { publicationId, id } }" class="link">
           ← Back to the reading list
         </RouterLink>
       </p>
@@ -36,11 +36,11 @@ const runs = useQuery({
         reading, including some that may not agree with you. It only suggests: you review what it
         finds, and nothing joins the reading list until you add it. The idea's title and notes, the
         addresses already on its reading list and what you write here are sent to your AI provider,
-        which does the searching; the text of your drafts never is. Everyone in this profile sees
-        the research.
+        which does the searching; the text of your drafts never is. Everyone in this publication
+        sees the research.
       </p>
 
-      <ResearchForm class="mb-8" :profile-id="profileId" :idea-id="id" />
+      <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" />
 
       <section aria-labelledby="previous-heading">
         <h2 id="previous-heading" class="mb-3 font-display text-xl font-semibold">
@@ -52,7 +52,7 @@ const runs = useQuery({
           </p>
           <ul v-else class="space-y-5">
             <li v-for="run in runs.data.value" :key="run.id">
-              <ResearchRun :profile-id="profileId" :idea-id="id" :run="run" />
+              <ResearchRun :publication-id="publicationId" :idea-id="id" :run="run" />
             </li>
           </ul>
         </QueryState>

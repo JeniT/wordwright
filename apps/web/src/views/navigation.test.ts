@@ -7,7 +7,7 @@ useMockServer()
 
 // The side menu follows you: what it lists depends on where you are. See docs/design.md.
 
-const profile = {
+const publication = {
   id: 'ada-substack',
   name: 'Substack',
   siteUrl: null,
@@ -22,7 +22,7 @@ const profile = {
 }
 const idea = {
   id: 'i1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: '',
   links: [
@@ -35,7 +35,7 @@ const idea = {
 }
 const draft = {
   id: 'd1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   ideaId: 'i1',
   title: 'Part 1',
   body: 'Erosion loops.\n\nBends migrate.',
@@ -49,35 +49,35 @@ const draft = {
 function mockApp() {
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile])),
-    http.get('*/api/profiles/ada-substack/ideas', () =>
+    http.get('*/api/publications', () => HttpResponse.json([publication])),
+    http.get('*/api/publications/ada-substack/ideas', () =>
       HttpResponse.json([
         { id: 'i1', name: idea.name, draftCount: 1, updatedAt: idea.updatedAt },
         { id: 'i2', name: 'Tides', draftCount: 0, updatedAt: idea.updatedAt },
       ]),
     ),
-    http.get('*/api/profiles/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
-    http.get('*/api/profiles/ada-substack/drafts/d1', () => HttpResponse.json(draft)),
+    http.get('*/api/publications/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
+    http.get('*/api/publications/ada-substack/drafts/d1', () => HttpResponse.json(draft)),
   )
 }
 
 const menu = async () => within(await screen.findByRole('banner'))
 
 describe('the menu at home', () => {
-  it('lists the profiles page and the account settings', async () => {
+  it('lists the publications page and the account settings', async () => {
     mockApp()
     await renderAt('/')
     const nav = within(await screen.findByRole('navigation', { name: 'Main' }))
-    expect(nav.getByRole('link', { name: 'Profiles' })).toHaveAttribute('href', '/')
+    expect(nav.getByRole('link', { name: 'Publications' })).toHaveAttribute('href', '/')
     expect(nav.getByRole('link', { name: 'Account settings' })).toHaveAttribute('href', '/account')
   })
 })
 
-describe('the menu in a profile', () => {
+describe('the menu in a publication', () => {
   it('lists its four steps in order, marks the current one, and says how to get back up', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
-    const nav = await screen.findByRole('navigation', { name: 'Profile' })
+    const nav = await screen.findByRole('navigation', { name: 'Publication' })
     const steps = within(nav).getAllByRole('listitem')
     // An ordered list conveys the order; the numbers are decoration, so the names are just the names.
     expect(within(nav).getAllByRole('list')[0]!.tagName).toBe('OL')
@@ -88,12 +88,12 @@ describe('the menu in a profile', () => {
     expect(text(steps[3]!)).toMatch(/^04Ideas/)
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current')
-    expect(await within(nav).findByRole('link', { name: 'Profile settings' })).toHaveAttribute(
+    expect(await within(nav).findByRole('link', { name: 'Publication settings' })).toHaveAttribute(
       'href',
       '/p/ada-substack/settings',
     )
     const header = await menu()
-    expect(header.getByRole('link', { name: '← All profiles' })).toHaveAttribute('href', '/')
+    expect(header.getByRole('link', { name: '← All publications' })).toHaveAttribute('href', '/')
     expect(header.getByText('Shared with 1 person')).toBeInTheDocument()
   })
 
@@ -101,13 +101,13 @@ describe('the menu in a profile', () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas')
     expect(
-      await within(await screen.findByRole('navigation', { name: 'Profile' })).findByText(
+      await within(await screen.findByRole('navigation', { name: 'Publication' })).findByText(
         '2 ideas',
       ),
     ).toBeInTheDocument()
   })
 
-  it('links the profile’s name, in the menu and above a step’s title, to its own page', async () => {
+  it('links the publication’s name, in the menu and above a step’s title, to its own page', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
     const header = await menu()
@@ -122,17 +122,17 @@ describe('the menu in a profile', () => {
     )
   })
 
-  it('opens at the profile’s own page, which is not one of the steps', async () => {
+  it('opens at the publication’s own page, which is not one of the steps', async () => {
     mockApp()
     const { router } = await renderAt('/p/ada-substack')
-    expect(router.currentRoute.value.name).toBe('profile')
-    const nav = await screen.findByRole('navigation', { name: 'Profile' })
+    expect(router.currentRoute.value.name).toBe('publication')
+    const nav = await screen.findByRole('navigation', { name: 'Publication' })
     expect(within(nav).queryByRole('link', { current: 'page' })).not.toBeInTheDocument()
   })
 })
 
 describe('the menu in an idea', () => {
-  it('names the idea, lists four steps with counts, and leads back up to the profile', async () => {
+  it('names the idea, lists four steps with counts, and leads back up to the publication', async () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas/i1/notes')
     const nav = await screen.findByRole('navigation', { name: 'Idea' })
@@ -172,7 +172,7 @@ describe('the menu in an idea', () => {
   it('keeps a step current on its sub-pages (the research tool)', async () => {
     mockApp()
     server.use(
-      http.get('*/api/profiles/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
     )
     await renderAt('/p/ada-substack/ideas/i1/research/find')
     const nav = await screen.findByRole('navigation', { name: 'Idea' })
@@ -197,7 +197,7 @@ describe('step pages', () => {
   it('end with a suggestion for what often comes next, except where the next move is a choice', async () => {
     mockApp()
     server.use(
-      http.get('*/api/profiles/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
     const next = within(await screen.findByRole('navigation', { name: 'Next step' }))
@@ -251,7 +251,9 @@ describe('the menu folds away on pages read beside another window', () => {
 
   it('but at every width when reading a source and taking notes', async () => {
     mockApp()
-    server.use(http.get('*/api/profiles/ada-substack/ideas/i1/notes', () => HttpResponse.json([])))
+    server.use(
+      http.get('*/api/publications/ada-substack/ideas/i1/notes', () => HttpResponse.json([])),
+    )
     await renderAt('/p/ada-substack/ideas/i1/reading/l1')
     const button = await screen.findByRole('button', { name: 'Menu' })
     expect(button).not.toHaveClass('md:hidden')

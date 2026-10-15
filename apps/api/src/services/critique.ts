@@ -11,22 +11,22 @@ import {
   type Critique,
 } from '@lfwa/core'
 import type { Store } from '../db/store'
-import { venueDescriptionBlock } from './venue-context'
+import { publicationDescriptionBlock } from './publication-context'
 
 /**
- * What the model sees: the writer's description of the venue if there is one (see `venue-context.ts`), then the
+ * What the model sees: the writer's description of the publication if there is one (see `publication-context.ts`), then the
  * title, then the draft as blocks, each with the id it must use to point at it.
  */
 export function formatDraftForCritique(
   draft: { title: string; body: string },
-  venueDescription: string | null = null,
+  publicationDescription: string | null = null,
 ): {
   message: string
   blocks: Block[]
 } {
   const blocks = splitBlocks(draft.body)
   const message = [
-    venueDescriptionBlock(venueDescription),
+    publicationDescriptionBlock(publicationDescription),
     `# ${draft.title}`,
     ...blocks.map((b) => `[${b.id}] ${b.text}`),
   ]

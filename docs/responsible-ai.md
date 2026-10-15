@@ -126,8 +126,8 @@ specific or left out, and it holds its position (with reasons) when a writer pus
 Reflective writing (weeknotes, journalling in public: issue #25) is where reliance and disclosure risks are highest.
 For these the assistant reflects and asks; it does not interpret feelings, give life advice, or act as a confidant.
 If a writer discloses distress or risk, the assistant drops the editorial persona for a short, warm, non-clinical
-reply that points to appropriate support, and does not probe. Because profile threads are visible to members, the
-reply also does not invite further disclosure there. The prompt for this mode is set at profile level, not user level
+reply that points to appropriate support, and does not probe. Because publication threads are visible to members, the
+reply also does not invite further disclosure there. The prompt for this mode is set at publication level, not user level
 (see #25).
 
 ### 10. Minimum data, and honest limits
@@ -151,15 +151,15 @@ that are guaranteed are the structural ones (principle 10).
 
 ## Privacy: shared threads and the writer's provider
 
-**Threads are shared with every member of a profile.** That is a deliberate choice: someone who wants a private space
-makes a profile with no other members. The product must say so where it matters:
+**Threads are shared with every member of a publication.** That is a deliberate choice: someone who wants a private space
+makes a publication with no other members. The product must say so where it matters:
 
-- **Before the first brainstorm** in a profile with other members, and on the brainstorm page whenever there are:
-  "Everyone in this profile can read this conversation, and what you write here is sent to the AI provider of
-  whoever is sending the message. If you want to think privately, use a profile with no other members."
+- **Before the first brainstorm** in a publication with other members, and on the brainstorm page whenever there are:
+  "Everyone in this publication can read this conversation, and what you write here is sent to the AI provider of
+  whoever is sending the message. If you want to think privately, use a publication with no other members."
 - When a member sends a message, **earlier messages and notes by other members go to that member's provider** (the
   whole thread is replayed). Say so in the same notice.
-- The brainstorm page and the account page say what is sent: the idea (title, notes, links, venue description) and
+- The brainstorm page and the account page say what is sent: the idea (title, notes, links, publication description) and
   the thread; not draft text.
 
 ### Advice for people using their own key
@@ -192,17 +192,17 @@ read the two pages above and quote what they say today.)
 
 ## Applying this to the roadmap
 
-| Item                                 | Rung | What to do                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Brainstorm (shipped)                 | 1–2  | Stop pressing on: fewer questions, a way to end (principle 1). Add distress and persona rules (8, 9).                                                                                                                                                                                                                                                                                                                                  |
-| T9 Critique (#14)                    | 3    | Ranked, paragraph-anchored points with a ready verdict (#90), kept and marked in the draft (#91), capped per draft with a writer-set limit of 1 to 5, 3 by default (#92: done); rank and stop; say when it is done; point at problems with reasons, not replacement text (1, 2).                                                                                                                                                       |
-| #26 Suggestions/comments on drafts   | 3    | A comment mechanism is fine. A tracked "suggested change" with replacement text is rung 4–5: not for the AI. Built as #156: AI and people's comments share one model, but people's comments, including reviewers' (#157, #158; tested in `reviews.test.ts`), are never sent to the AI (structural invariant, with a test in `comments.test.ts`), are marked apart from the AI's (the highlighter is the AI's alone), and are uncapped. |
-| T10 Titles, openings, etc. (#15)     | 4    | As principle 4, built as **Rephrase** (#161 the service, #162 the window and the record on use, #163 titles): select a passage or the title, state an Aim, get options that differ in kind, pick then edit; a changed aim for another round, with a window limit; no shortcut out; origin kept on use. Social posts are parked (#164).                                                                                                 |
-| T6 Idea generation (#11)             | 3–4  | Surface items and ask the writer what they notice; do not write pitches. Reshape as T38 was: AI adds to a reading list, the writer makes the idea (2, 3).                                                                                                                                                                                                                                                                              |
-| T7/T38 Research (#12, #38)           | —    | AI adds to the reading list only; its "why relevant" is labelled unverified (5, 10). Friction for unread sources (T34) stays.                                                                                                                                                                                                                                                                                                          |
-| T16 Audiences (#2), #27 Profile gen. | 2–4  | Not built: AI-drafted descriptions were removed (#150, #151). A venue description is the writer's own words, which would have needed an origin, visible evidence and explicit confirmation before becoming context (5, 6).                                                                                                                                                                                                             |
-| T33 Notes drawer (#33)               | —    | Inserted passages keep the note's origin (5).                                                                                                                                                                                                                                                                                                                                                                                          |
-| #25 Writing to think                 | 1–2  | No profile mode (#137): the writer's venue description steers brainstorm and critique; reflect and ask only; principle 9.                                                                                                                                                                                                                                                                                                              |
+| Item                                     | Rung | What to do                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brainstorm (shipped)                     | 1–2  | Stop pressing on: fewer questions, a way to end (principle 1). Add distress and persona rules (8, 9).                                                                                                                                                                                                                                                                                                                                  |
+| T9 Critique (#14)                        | 3    | Ranked, paragraph-anchored points with a ready verdict (#90), kept and marked in the draft (#91), capped per draft with a writer-set limit of 1 to 5, 3 by default (#92: done); rank and stop; say when it is done; point at problems with reasons, not replacement text (1, 2).                                                                                                                                                       |
+| #26 Suggestions/comments on drafts       | 3    | A comment mechanism is fine. A tracked "suggested change" with replacement text is rung 4–5: not for the AI. Built as #156: AI and people's comments share one model, but people's comments, including reviewers' (#157, #158; tested in `reviews.test.ts`), are never sent to the AI (structural invariant, with a test in `comments.test.ts`), are marked apart from the AI's (the highlighter is the AI's alone), and are uncapped. |
+| T10 Titles, openings, etc. (#15)         | 4    | As principle 4, built as **Rephrase** (#161 the service, #162 the window and the record on use, #163 titles): select a passage or the title, state an Aim, get options that differ in kind, pick then edit; a changed aim for another round, with a window limit; no shortcut out; origin kept on use. Social posts are parked (#164).                                                                                                 |
+| T6 Idea generation (#11)                 | 3–4  | Surface items and ask the writer what they notice; do not write pitches. Reshape as T38 was: AI adds to a reading list, the writer makes the idea (2, 3).                                                                                                                                                                                                                                                                              |
+| T7/T38 Research (#12, #38)               | —    | AI adds to the reading list only; its "why relevant" is labelled unverified (5, 10). Friction for unread sources (T34) stays.                                                                                                                                                                                                                                                                                                          |
+| T16 Audiences (#2), #27 Publication gen. | 2–4  | Not built: AI-drafted descriptions were removed (#150, #151). A publication description is the writer's own words, which would have needed an origin, visible evidence and explicit confirmation before becoming context (5, 6).                                                                                                                                                                                                       |
+| T33 Notes drawer (#33)                   | —    | Inserted passages keep the note's origin (5).                                                                                                                                                                                                                                                                                                                                                                                          |
+| #25 Writing to think                     | 1–2  | No publication mode (#137): the writer's publication description steers brainstorm and critique; reflect and ask only; principle 9.                                                                                                                                                                                                                                                                                                    |
 
 ## How this is checked
 
@@ -219,8 +219,8 @@ read the two pages above and quote what they say today.)
   - ends or hands back ("you have enough") instead of asking another question, when the idea is clear;
   - critique stays under a small number of points, never rewrites, and says when nothing important remains;
   - a distress disclosure gets the short, warm reply of principle 9, not more questions;
-  - an injection in notes, a page title, a sample post or the writer's description of their venue is not followed;
-  - the venue description is used but never as a standard to hold the writer's voice to: a venue described as
+  - an injection in notes, a page title, a sample post or the writer's description of their publication is not followed;
+  - the publication description is used but never as a standard to hold the writer's voice to: a publication described as
     personal thinking gets no demand for an audience or wider appeal (brainstorm and critique), and one with
     described readers is not given invented facts about them (#133);
   - does not make up or reconstruct a source's web address, declines to do research and points to the Research tool, and the researcher reports only pages a search found, with a range of views (#38);
@@ -230,7 +230,7 @@ read the two pages above and quote what they say today.)
   trials say more than one), with the summary pasted into the issue for the owner to judge. It is a checklist step and
   a script, not a CI gate: the evals cost money, need a key, and rubric grading can flake.
 - **Structural boundaries are tests in `pnpm check`** (`apps/api/src/brainstorm-boundaries.test.ts`, and the
-  draft-text test in `brainstorm.test.ts`): the AI has exactly four tools; none can name a draft, an id, a profile or
+  draft-text test in `brainstorm.test.ts`): the AI has exactly four tools; none can name a draft, an id, a publication or
   a body; planted fields are dropped; a draft has nowhere to carry its text into the snapshot; the app's rules come
   after the person's prompt. Adding a tool or a field to one fails them on purpose: it is a decision about what the AI
   may change.
@@ -249,4 +249,4 @@ These come out of this page; each is an `inbox` issue to triage.
 - Privacy notices (shared threads; provider advice above) in the app.
 - Distress, persona-honesty and no-flattery rules in the AI's instructions, with evals.
 - Behaviour evals as part of accepting an adapter, plus invariant tests for the structural boundaries.
-- Provenance in drafts (#33). Venue descriptions are written by the writer; AI drafting of them was removed (#150).
+- Provenance in drafts (#33). Publication descriptions are written by the writer; AI drafting of them was removed (#150).

@@ -5,7 +5,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
@@ -14,13 +14,13 @@ describe('exporting writing as Markdown', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
   let bob: TestClient
-  let profile: string
+  let publication: string
   let ideaId: string
   let adaDraft: { id: string }
   let handedDraft: { id: string }
   let adaId: string
   let bobId: string
-  const base = () => `/api/profiles/${profile}`
+  const base = () => `/api/publications/${publication}`
 
   const download = async (client: TestClient, path: string) => {
     const res = await client.get(path)
@@ -40,9 +40,9 @@ describe('exporting writing as Markdown', () => {
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com', 'bob@example.com')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
     await ada.put(`${base()}/description`, { description: 'A blog about **rivers**.' })
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     adaId = (await (await ada.get('/api/auth/me')).json()).id
     bobId = (await (await bob.get('/api/auth/me')).json()).id
 
@@ -65,11 +65,11 @@ describe('exporting writing as Markdown', () => {
     ctx.store.drafts.setEditor(handedDraft.id, adaId) // Bob started it, Ada now edits it
   })
 
-  it('gives an owner every draft in the profile, with the rule explained in the README', async () => {
+  it('gives an owner every draft in the publication, with the rule explained in the README', async () => {
     const { res, files } = await download(ada, `${base()}/export`)
     expect(res.headers.get('content-type')).toBe('application/zip')
     expect(res.headers.get('content-disposition')).toMatch(
-      new RegExp(`attachment; filename="wordwright-${profile}-\\d{4}-\\d{2}-\\d{2}\\.zip"`),
+      new RegExp(`attachment; filename="wordwright-${publication}-\\d{4}-\\d{2}-\\d{2}\\.zip"`),
     )
     const drafts = Object.keys(files).filter((p) => p.includes('/drafts/'))
     expect(drafts).toHaveLength(3)
@@ -96,7 +96,7 @@ describe('exporting writing as Markdown', () => {
     expect(readme).not.toMatch(/As an owner/)
   })
 
-  it('lists notes and reading items with credits, in the profile, idea and loose lists', async () => {
+  it('lists notes and reading items with credits, in the publication, idea and loose lists', async () => {
     const { files } = await download(bob, `${base()}/export`)
     const idea = only(files, /ideas\/why-rivers-meander\.md$/)
     expect(idea).toMatch(/- Erosion is faster on the outside bend\. \(Ada, \d+ \w+ \d{4}\)/)
@@ -104,7 +104,7 @@ describe('exporting writing as Markdown', () => {
     expect(idea).toMatch(
       /- \[How meanders form\]\(https:\/\/example\.org\/meanders\).*added \d+ \w+ \d{4}/,
     )
-    const home = only(files, new RegExp(`^[^/]+/${profile}/${profile}\\.md$`))
+    const home = only(files, new RegExp(`^[^/]+/${publication}/${publication}\\.md$`))
     expect(home).toContain('# ')
     expect(home).toContain('A blog about **rivers**.')
     expect(home).toContain('- [Why rivers meander](ideas/why-rivers-meander.md)')
@@ -155,18 +155,18 @@ describe('exporting writing as Markdown', () => {
     expect(idea.split('\n').filter((line) => line.startsWith('- fake'))).toEqual([])
   })
 
-  it('exports every profile the person belongs to from the account page, one folder each', async () => {
-    const second = await (await ada.post('/api/profiles', { name: 'Newsletter' })).json()
+  it('exports every publication the person belongs to from the account page, one folder each', async () => {
+    const second = await (await ada.post('/api/publications', { name: 'Newsletter' })).json()
     const { res, files } = await download(ada, '/api/account/export')
     expect(res.headers.get('content-disposition')).toMatch(
       /filename="wordwright-export-\d{4}-\d{2}-\d{2}\.zip"/,
     )
     const folders = new Set(Object.keys(files).map((p) => p.split('/')[1]))
-    expect(folders).toEqual(new Set(['README.md', profile, second.id]))
-    // As a member of someone else's profile, Bob gets only his own drafts there, and Ada's profile is the one profile.
+    expect(folders).toEqual(new Set(['README.md', publication, second.id]))
+    // As a member of someone else's publication, Bob gets only his own drafts there, and Ada's publication is the one publication.
     const bobFiles = (await download(bob, '/api/account/export')).files
     expect(JSON.stringify(bobFiles)).not.toContain('Rivers rarely flow straight.')
-    expect(Object.keys(bobFiles).some((p) => p.includes(`/${profile}/`))).toBe(true)
+    expect(Object.keys(bobFiles).some((p) => p.includes(`/${publication}/`))).toBe(true)
   })
 
   it('is for members only, and for signed-in people only', async () => {

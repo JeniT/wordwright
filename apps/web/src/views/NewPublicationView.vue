@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { profileIdFor } from '@lfwa/core'
+import { publicationIdFor } from '@lfwa/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ImageField from '../components/ImageField.vue'
-import ProfileImage from '../components/ProfileImage.vue'
+import PublicationImage from '../components/PublicationImage.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { useSessionStore } from '../stores/session'
@@ -17,10 +17,10 @@ const name = ref('')
 const siteUrl = ref('')
 const image = ref<File>()
 const preview = ref<string>()
-/** Set once the profile exists, so a failed picture upload doesn't lead to a duplicate profile. */
+/** Set once the publication exists, so a failed picture upload doesn't lead to a duplicate publication. */
 const createdId = ref<string>()
 /** Where to go once it exists: its page, or on to describing it (an optional step, so it is a choice). */
-const next = ref<'profile' | 'describe'>('profile')
+const next = ref<'publication' | 'describe'>('publication')
 
 function pick(file: File) {
   if (preview.value) URL.revokeObjectURL(preview.value)
@@ -32,42 +32,44 @@ onBeforeUnmount(() => preview.value && URL.revokeObjectURL(preview.value))
 // The address people will share. The server adds a number if you already have one like it.
 const address = computed(() =>
   name.value.trim() && session.user?.handle
-    ? `/p/${profileIdFor(session.user.handle, name.value)}`
+    ? `/p/${publicationIdFor(session.user.handle, name.value)}`
     : '',
 )
 
 const create = useMutation({
   mutationFn: async () => {
     if (!createdId.value) {
-      const profile = await api.createProfile({
+      const publication = await api.createPublication({
         name: name.value,
         siteUrl: siteUrl.value.trim() || null,
       })
-      createdId.value = profile.id
+      createdId.value = publication.id
     }
-    if (image.value) await api.setProfileImage(createdId.value, image.value)
+    if (image.value) await api.setPublicationImage(createdId.value, image.value)
     return createdId.value
   },
   onSuccess: async (id) => {
-    await queryClient.invalidateQueries({ queryKey: ['profiles'] })
+    await queryClient.invalidateQueries({ queryKey: ['publications'] })
     await router.push({
-      name: next.value === 'describe' ? 'describe-venue' : 'profile',
-      params: { profileId: id },
+      name: next.value === 'describe' ? 'describe-publication' : 'publication',
+      params: { publicationId: id },
     })
   },
-  // Even if the picture failed, the profile now exists and should appear in lists.
-  onError: () => queryClient.invalidateQueries({ queryKey: ['profiles'] }),
+  // Even if the picture failed, the publication now exists and should appear in lists.
+  onError: () => queryClient.invalidateQueries({ queryKey: ['publications'] }),
 })
 </script>
 
 <template>
-  <section aria-labelledby="new-profile-heading" class="max-w-xl">
+  <section aria-labelledby="new-publication-heading" class="max-w-xl">
     <p class="mb-2 text-sm">
-      <RouterLink to="/" class="underline">← Your profiles</RouterLink>
+      <RouterLink to="/" class="underline">← Your publications</RouterLink>
     </p>
-    <h1 id="new-profile-heading" class="mb-1 font-display text-2xl font-semibold">New profile</h1>
+    <h1 id="new-publication-heading" class="mb-1 font-display text-2xl font-semibold">
+      New publication
+    </h1>
     <p class="mb-6 text-ink-soft">
-      A profile is a place you publish, like a Substack or a blog. Its ideas, readers and drafts
+      A publication is a place you publish, like a Substack or a blog. Its ideas, readers and drafts
       live together. You can describe it as you create it, or later.
     </p>
 
@@ -90,7 +92,7 @@ const create = useMutation({
       />
 
       <div class="flex items-center gap-4">
-        <ProfileImage id="preview" :name="name || '?'" :image-url="preview" size="lg" />
+        <PublicationImage id="preview" :name="name || '?'" :image-url="preview" size="lg" />
         <div class="flex-1">
           <ImageField label="Picture (optional)" @select="pick" />
         </div>
@@ -98,10 +100,13 @@ const create = useMutation({
 
       <p v-if="create.isError.value" role="alert" class="mb-3 text-danger">
         <template v-if="createdId">
-          Your profile was created, but its picture couldn't be uploaded:
+          Your publication was created, but its picture couldn't be uploaded:
           {{ errorMessage(create.error.value) }}
-          <RouterLink :to="{ name: 'profile', params: { profileId: createdId } }" class="underline">
-            Go to your profile
+          <RouterLink
+            :to="{ name: 'publication', params: { publicationId: createdId } }"
+            class="underline"
+          >
+            Go to your publication
           </RouterLink>
           or try the picture again.
         </template>
@@ -112,9 +117,11 @@ const create = useMutation({
           type="submit"
           class="btn btn-primary"
           :disabled="create.isPending.value"
-          @click="next = 'profile'"
+          @click="next = 'publication'"
         >
-          {{ create.isPending.value && next === 'profile' ? 'Creating…' : 'Create profile' }}
+          {{
+            create.isPending.value && next === 'publication' ? 'Creating…' : 'Create publication'
+          }}
         </button>
         <button
           type="submit"

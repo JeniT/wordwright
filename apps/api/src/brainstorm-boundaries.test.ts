@@ -35,12 +35,12 @@ describe('what the brainstorm AI can touch', () => {
         [...ALLOWED_INPUTS[tool.name as keyof typeof ALLOWED_INPUTS]].sort(),
       )
       for (const name of properties)
-        expect(name, tool.name).not.toMatch(/id$|draft|body|content|profile/i)
+        expect(name, tool.name).not.toMatch(/id$|draft|body|content|publication/i)
     }
   })
 
-  it('never takes the idea, a draft or a profile from what the AI sends', () => {
-    const planted = { ideaId: 'other', draftId: 'd-1', profileId: 'p-2', body: 'x', id: 'y' }
+  it('never takes the idea, a draft or a publication from what the AI sends', () => {
+    const planted = { ideaId: 'other', draftId: 'd-1', publicationId: 'p-2', body: 'x', id: 'y' }
     for (const [schema, input] of [
       [AddNoteToolInputSchema, { text: 'A point' }],
       [UpdateIdeaToolInputSchema, { name: 'A title' }],
@@ -64,7 +64,7 @@ describe('what the brainstorm AI is shown', () => {
   it('lists drafts by title only, even if one were handed more', () => {
     const idea = {
       id: 'i',
-      profileId: 'p',
+      publicationId: 'p',
       name: 'Idea',
       notes: '',
       links: [],
@@ -75,7 +75,7 @@ describe('what the brainstorm AI is shown', () => {
     } as unknown as Idea
     const snapshot = formatSnapshot({
       idea,
-      venue: { name: 'V', siteUrl: null, description: null },
+      publication: { name: 'V', siteUrl: null, description: null },
     })
     expect(snapshot).toContain('- Part 1')
     expect(snapshot).not.toContain('SECRET DRAFT BODY')

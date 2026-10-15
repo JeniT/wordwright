@@ -12,24 +12,24 @@ import {
   type TestClient,
 } from './test-helpers'
 
-/** Ada (confirmed) owns a profile and can invite; Bob is the invitee. */
+/** Ada (confirmed) owns a publication and can invite; Bob is the invitee. */
 async function world() {
   const ctx = setup()
   const ada = ctx.client()
   await register(ada, 'ada@example.com', 'Ada Lovelace')
   verifyAccounts(ctx, 'ada@example.com')
-  const profileId = (await (await ada.get('/api/profiles')).json())[0].id as string
-  const invite = (email = 'bob@example.com', client: TestClient = ada, id = profileId) =>
-    client.post(`/api/profiles/${id}/invitations`, { email })
-  const pending = async (client = ada, id = profileId) =>
-    (await (await client.get(`/api/profiles/${id}/invitations`)).json()) as { email: string }[]
+  const publicationId = (await (await ada.get('/api/publications')).json())[0].id as string
+  const invite = (email = 'bob@example.com', client: TestClient = ada, id = publicationId) =>
+    client.post(`/api/publications/${id}/invitations`, { email })
+  const pending = async (client = ada, id = publicationId) =>
+    (await (await client.get(`/api/publications/${id}/invitations`)).json()) as { email: string }[]
   const decline = (token: string, block?: 'none' | 'sender' | 'all') =>
     ctx.client().post('/api/invitations/decline', { token, block })
   const invitationsSent = () => ctx.mailer.outbox.filter((m) => /invited you/.test(m.subject))
-  return { ctx, ada, profileId, invite, pending, decline, invitationsSent }
+  return { ctx, ada, publicationId, invite, pending, decline, invitationsSent }
 }
 
-/** A second confirmed owner with their own profile. */
+/** A second confirmed owner with their own publication. */
 async function secondOwner(
   ctx: Awaited<ReturnType<typeof world>>['ctx'],
   email = 'cy@example.com',
@@ -38,8 +38,8 @@ async function secondOwner(
   const client = ctx.client()
   await register(client, email, name)
   verifyAccounts(ctx, email)
-  const profileId = (await (await client.get('/api/profiles')).json())[0].id as string
-  return { client, profileId }
+  const publicationId = (await (await client.get('/api/publications')).json())[0].id as string
+  return { client, publicationId }
 }
 
 describe('declining an invitation', () => {
@@ -81,7 +81,7 @@ describe('declining an invitation', () => {
     await signUp(bob, 'bob@example.com', 'Bob Byte')
     await bob.post('/api/invitations/accept', { token: accept })
     expect((await decline(declineToken, 'all')).status).toBe(400)
-    expect((await bob.get('/api/profiles')).status).toBe(200)
+    expect((await bob.get('/api/publications')).status).toBe(200)
   })
 
   it('rejects a made-up token', async () => {
@@ -93,7 +93,7 @@ describe('declining an invitation', () => {
 describe('blocking a sender', () => {
   it('stops further invitations from them, silently, and withdraws their pending ones', async () => {
     const { ctx, ada, invite, pending, decline, invitationsSent } = await world()
-    const second = await ada.post('/api/profiles', { name: 'Second' })
+    const second = await ada.post('/api/publications', { name: 'Second' })
     const secondId = (await second.json()).id as string
     await invite()
     await invite('bob@example.com', ada, secondId)
@@ -114,7 +114,7 @@ describe('blocking a sender', () => {
     await decline(lastDeclineToken(ctx.mailer), 'sender')
     const cy = await secondOwner(ctx)
     const sent = invitationsSent().length
-    await invite('bob@example.com', cy.client, cy.profileId)
+    await invite('bob@example.com', cy.client, cy.publicationId)
     expect(invitationsSent()).toHaveLength(sent + 1)
   })
 
@@ -133,14 +133,14 @@ describe('blocking everyone', () => {
     const { ctx, invite, pending, decline, invitationsSent } = await world()
     const cy = await secondOwner(ctx)
     await invite()
-    await invite('bob@example.com', cy.client, cy.profileId)
+    await invite('bob@example.com', cy.client, cy.publicationId)
     await decline(lastDeclineToken(ctx.mailer), 'all')
 
     expect(await pending()).toEqual([])
-    expect(await pending(cy.client, cy.profileId)).toEqual([])
+    expect(await pending(cy.client, cy.publicationId)).toEqual([])
     const sent = invitationsSent().length
     await invite()
-    await invite('bob@example.com', cy.client, cy.profileId)
+    await invite('bob@example.com', cy.client, cy.publicationId)
     expect(invitationsSent()).toHaveLength(sent)
   })
 
@@ -219,7 +219,7 @@ describe('the per-address cap', () => {
     const names = ['Beth Bale', 'Cara Cole', 'Dina Dunn', 'Edna Eyre', 'Fay Finch']
     for (const name of names) {
       const owner = await secondOwner(ctx, `${name.split(' ')[0]!.toLowerCase()}@example.com`, name)
-      expect((await invite('bob@example.com', owner.client, owner.profileId)).status).toBe(202)
+      expect((await invite('bob@example.com', owner.client, owner.publicationId)).status).toBe(202)
     }
     expect(invitationsSent()).toHaveLength(5)
     const res = await invite('bob@example.com')

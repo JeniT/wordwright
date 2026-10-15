@@ -61,7 +61,7 @@ function submit() {
       </p>
       <p class="mt-4 text-sm">
         <RouterLink :to="session.user ? '/' : '/login'" class="text-accent underline">
-          {{ session.user ? 'Back to your profiles' : 'Sign in' }}
+          {{ session.user ? 'Back to your publications' : 'Sign in' }}
         </RouterLink>
       </p>
     </template>
@@ -71,7 +71,7 @@ function submit() {
     <form v-else-if="preview.data.value" @submit.prevent="submit">
       <p>
         <strong>{{ preview.data.value.inviterName }}</strong> invited you to write together on
-        <strong>{{ preview.data.value.profileName }}</strong
+        <strong>{{ preview.data.value.publicationName }}</strong
         >. They won't be told that you declined.
       </p>
       <fieldset class="mt-4">

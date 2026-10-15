@@ -18,7 +18,7 @@ export function reviewRoutes(reviews: ReviewService, accounts: AccountService) {
   return (
     new Hono<AppEnv>()
       .get('/', (c) => c.json(reviews.list(c.get('user'))))
-      // "Start writing": choose a username and become a full account. The app then goes on to a first profile.
+      // "Start writing": choose a username and become a full account. The app then goes on to a first publication.
       .post('/start-writing', validateJson(ChangeHandleInputSchema), (c) => {
         try {
           const user = reviews.startWriting(c.get('user'), c.req.valid('json').handle)

@@ -35,7 +35,7 @@ export interface InvitationServiceDeps {
 }
 
 /**
- * People join a shared profile by accepting an emailed invitation. Invitations are addressed to an
+ * People join a shared publication by accepting an emailed invitation. Invitations are addressed to an
  * email (so the invitee needn't have an account yet) and the reply to the owner is identical whether
  * or not that address has one, so this can't be used to find out who is registered.
  */
@@ -47,7 +47,7 @@ export class InvitationService {
   }
 
   /** Emails an invitation (replacing any earlier pending one for the same address). */
-  invite(owner: UserRecord, profileId: string, email: string): void {
+  invite(owner: UserRecord, publicationId: string, email: string): void {
     const { store } = this.d
     // Inviting gives access to someone's work, so the inviter's own address must be confirmed first.
     if (!owner.emailVerified) {
@@ -56,12 +56,12 @@ export class InvitationService {
         'Please confirm your email address before inviting someone',
       )
     }
-    const profile = store.profiles.get(profileId, owner.id)
-    if (!profile) throw new InvitationError('not_found', 'Not found')
+    const publication = store.publications.get(publicationId, owner.id)
+    if (!publication) throw new InvitationError('not_found', 'Not found')
 
     // Already in? Say nothing different: no email, same answer.
     const existing = store.users.findByEmail(email)
-    if (existing && store.profiles.roleOf(profileId, existing.id)) return
+    if (existing && store.publications.roleOf(publicationId, existing.id)) return
 
     // Blocked, or the address has had enough: the same quiet answer as any other outcome, so the sender
     // learns nothing about the recipient (not even that they have an account).
@@ -70,7 +70,7 @@ export class InvitationService {
 
     const token = generateToken()
     store.invitations.replacePending({
-      profileId,
+      publicationId,
       invitedBy: owner.id,
       email,
       tokenHash: hashToken(token),
@@ -79,12 +79,12 @@ export class InvitationService {
     sendInBackground(
       this.d.mailer,
       this.d.logger ?? console,
-      `invitation email for profile ${profileId}`,
+      `invitation email for publication ${publicationId}`,
       {
         to: email,
         ...invitationEmail({
           inviterName: owner.name,
-          profileName: profile.name,
+          publicationName: publication.name,
           link: `${this.d.publicUrl}/accept-invite?token=${token}`,
           declineLink: `${this.d.publicUrl}/decline-invite?token=${token}`,
           ttlDays: INVITE_TTL_MS / 86_400_000,
@@ -93,12 +93,12 @@ export class InvitationService {
     )
   }
 
-  listPending(profileId: string): Invitation[] {
-    return this.d.store.invitations.listPending(profileId, this.now())
+  listPending(publicationId: string): Invitation[] {
+    return this.d.store.invitations.listPending(publicationId, this.now())
   }
 
-  revoke(profileId: string, invitationId: string): void {
-    if (!this.d.store.invitations.revoke(profileId, invitationId)) {
+  revoke(publicationId: string, invitationId: string): void {
+    if (!this.d.store.invitations.revoke(publicationId, invitationId)) {
       throw new InvitationError('not_found', 'Not found')
     }
   }
@@ -106,19 +106,19 @@ export class InvitationService {
   /** What a link holder may see before accepting. Anyone with the link already got it by email. */
   preview(token: string): InvitationPreview {
     const inv = this.usable(token)
-    return { profileName: inv.profileName, inviterName: inv.inviterName, email: inv.email }
+    return { publicationName: inv.publicationName, inviterName: inv.inviterName, email: inv.email }
   }
 
   /**
-   * Joins the signed-in user to the profile, if they are the person the invitation was sent to.
+   * Joins the signed-in user to the publication, if they are the person the invitation was sent to.
    * Because the link only ever reached that inbox, accepting also confirms the address.
    * Re-opening an already-accepted link as the same person is a harmless success.
    */
-  accept(user: UserRecord, token: string): { profileId: string } {
+  accept(user: UserRecord, token: string): { publicationId: string } {
     const { store } = this.d
     const inv = store.invitations.findByTokenHash(hashToken(token))
-    if (inv?.acceptedBy === user.id && store.profiles.roleOf(inv.profileId, user.id)) {
-      return { profileId: inv.profileId }
+    if (inv?.acceptedBy === user.id && store.publications.roleOf(inv.publicationId, user.id)) {
+      return { publicationId: inv.publicationId }
     }
     const usable = this.usable(token)
     if (user.email !== usable.email) {
@@ -128,12 +128,12 @@ export class InvitationService {
       )
     }
     store.transaction(() => {
-      if (!store.profiles.roleOf(usable.profileId, user.id)) {
-        store.profiles.addMember(usable.profileId, user.id, 'member')
+      if (!store.publications.roleOf(usable.publicationId, user.id)) {
+        store.publications.addMember(usable.publicationId, user.id, 'member')
       }
       store.invitations.markAccepted(usable.id, user.id)
       if (!user.emailVerified) store.users.markEmailVerified(user.id)
-      // A reviewer invited into a profile becomes a full account: it gets a username now (the app asks once if
+      // A reviewer invited into a publication becomes a full account: it gets a username now (the app asks once if
       // they would like another) and keeps the reviews it already has.
       if (user.reviewerOnly) {
         store.users.setHandle(
@@ -144,7 +144,7 @@ export class InvitationService {
         store.users.clearHandleChosen(user.id)
       }
     })
-    return { profileId: usable.profileId }
+    return { publicationId: usable.publicationId }
   }
 
   /**

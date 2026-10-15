@@ -5,7 +5,7 @@ import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } fr
 
 useMockServer()
 
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
 
 /** Answers the availability check from `taken`, and remembers what the save was sent. */
 function fakeUsernames(taken: string[] = ['bobby']) {
@@ -26,11 +26,13 @@ function fakeUsernames(taken: string[] = ['bobby']) {
 
 describe('username on the account page', () => {
   it('explains what it is for, checks the new one as it is typed, and saves it', async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(true))
+    server.use(signedInAs(testUser), noPublications, llmSettings(true))
     const fake = fakeUsernames()
     await renderAt('/account')
     expect(await screen.findByText(/Your username is/)).toHaveTextContent('adalovelace')
-    expect(screen.getByText(/Profiles you already have keep their addresses/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Publications you already have keep their addresses/),
+    ).toBeInTheDocument()
 
     const field = screen.getByLabelText('New username')
     const save = screen.getByRole('button', { name: 'Change username' })
@@ -48,7 +50,7 @@ describe('username on the account page', () => {
   })
 
   it('explains a badly formed or reserved username, and will not save it', async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(true))
+    server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames()
     await renderAt('/account')
     const field = await screen.findByLabelText('New username')
@@ -60,7 +62,7 @@ describe('username on the account page', () => {
   })
 
   it('will not offer the username they already have as a change', async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(true))
+    server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames()
     await renderAt('/account')
     await fireEvent.update(await screen.findByLabelText('New username'), 'AdaLovelace')
@@ -69,7 +71,7 @@ describe('username on the account page', () => {
   })
 
   it("shows the server's reason when saving fails", async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(true))
+    server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames([])
     server.use(
       http.put('*/api/account/handle', () =>
@@ -92,7 +94,7 @@ describe('the one-time prompt for a generated username', () => {
   const generated = { ...testUser, handle: 'adal', handleChosen: false }
 
   it('asks on the landing page, and lets them pick their own', async () => {
-    server.use(signedInAs(generated), noProfiles, llmSettings(true))
+    server.use(signedInAs(generated), noPublications, llmSettings(true))
     const fake = fakeUsernames()
     await renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Choose your username' })).toBeVisible()
@@ -107,7 +109,7 @@ describe('the one-time prompt for a generated username', () => {
   })
 
   it('lets them keep the one they were given', async () => {
-    server.use(signedInAs(generated), noProfiles, llmSettings(true))
+    server.use(signedInAs(generated), noPublications, llmSettings(true))
     const fake = fakeUsernames()
     await renderAt('/')
     await fireEvent.click(await screen.findByRole('button', { name: 'Keep adal' }))
@@ -118,9 +120,9 @@ describe('the one-time prompt for a generated username', () => {
   })
 
   it('does not ask people who chose their username', async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(true))
+    server.use(signedInAs(testUser), noPublications, llmSettings(true))
     await renderAt('/')
-    await screen.findByRole('heading', { name: 'Your profiles' })
+    await screen.findByRole('heading', { name: 'Your publications' })
     expect(screen.queryByRole('heading', { name: 'Choose your username' })).toBeNull()
   })
 })

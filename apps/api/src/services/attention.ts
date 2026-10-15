@@ -1,4 +1,4 @@
-import type { ProfileAttention, SnapshotReviews } from '@lfwa/core'
+import type { PublicationAttention, SnapshotReviews } from '@lfwa/core'
 import type { Store } from '../db/store'
 
 /** A snapshot whose reviews are all over, with some finished, and comments still waiting for the editor. */
@@ -6,17 +6,17 @@ export const needsAttention = (snapshots: readonly SnapshotReviews[]) =>
   snapshots.some((s) => s.open === 0 && s.ended > 0 && s.unresolved > 0)
 
 /**
- * What is waiting on this person in the profile, once, for its landing page (#159): offers to them, their own open
+ * What is waiting on this person in the publication, once, for its landing page (#159): offers to them, their own open
  * offers, and how the reviews of drafts they edit stand. It is read when the page is opened and nothing more:
  * no emails, no counts elsewhere, nothing that asks to be come back to.
  */
-export function profileAttention(
+export function publicationAttention(
   store: Store,
-  profileId: string,
+  publicationId: string,
   userId: string,
-): ProfileAttention {
+): PublicationAttention {
   const reviews = store.drafts
-    .list(profileId)
+    .list(publicationId)
     .filter((d) => d.editorId === userId)
     .flatMap((d) => {
       const snapshots = store.reviews.snapshotSummaries(d.id)
@@ -26,10 +26,10 @@ export function profileAttention(
     })
   return {
     offered: store.handovers
-      .openOffers(profileId, userId, 'to')
+      .openOffers(publicationId, userId, 'to')
       .map((o) => ({ draftId: o.draftId, title: o.title, fromName: o.otherName })),
     waiting: store.handovers
-      .openOffers(profileId, userId, 'by')
+      .openOffers(publicationId, userId, 'by')
       .map((o) => ({ draftId: o.draftId, title: o.title, toName: o.otherName })),
     reviews,
   }

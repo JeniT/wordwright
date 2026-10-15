@@ -13,7 +13,7 @@ import { useSessionStore } from '../stores/session'
 
 /**
  * One review: the copy of the draft that was sent (a snapshot, not the editor's latest words) and the comments this
- * person has made on it. Nobody else's comments are here and nothing else of the profile is. While the review is open
+ * person has made on it. Nobody else's comments are here and nothing else of the publication is. While the review is open
  * they can add comments or end it; an ended or closed review is read-only but still shows both.
  */
 const props = defineProps<{ id: string }>()
@@ -51,7 +51,7 @@ const end = useMutation({
           {{ review.data.value.draft.title || 'Untitled draft' }}
         </h1>
         <p class="meta mb-4">
-          In {{ review.data.value.profileName }}
+          In {{ review.data.value.publicationName }}
           <template v-if="review.data.value.inviterName">
             · asked by {{ review.data.value.inviterName }}</template
           >

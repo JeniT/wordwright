@@ -143,7 +143,7 @@
   text-decoration: underline;
 }
 
-/* The venue description editor: a field that looks like the text it makes (see DescriptionEditor). */
+/* The publication description editor: a field that looks like the text it makes (see DescriptionEditor). */
 .description-field {
   cursor: text;
 }

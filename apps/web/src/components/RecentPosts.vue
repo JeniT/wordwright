@@ -10,7 +10,7 @@ import PageNav from './PageNav.vue'
 import RecentPostRow from './RecentPostRow.vue'
 import QueryState from './QueryState.vue'
 
-const props = defineProps<{ profileId: string }>()
+const props = defineProps<{ publicationId: string }>()
 const queryClient = useQueryClient()
 
 const WINDOWS = [
@@ -25,7 +25,7 @@ const windowName = computed(
 )
 
 // The same list the feeds section shows; it supplies each post's feed name and logo.
-const sources = useSources(() => props.profileId)
+const sources = useSources(() => props.publicationId)
 const byId = computed(() => new Map((sources.data.value ?? []).map((s) => [s.id, s])))
 const nameOf = (s: Source | undefined) => s?.title ?? s?.url.replace(/^https?:\/\//, '') ?? 'a feed'
 
@@ -33,17 +33,17 @@ const nameOf = (s: Source | undefined) => s?.title ?? s?.url.replace(/^https?:\/
 // answers from what it has kept).
 const feedKey = computed(() => (sources.data.value ?? []).map((s) => s.id).join(','))
 const posts = useQuery({
-  queryKey: computed(() => queryKeys.recentPosts(props.profileId, days.value, feedKey.value)),
-  queryFn: () => api.recentPosts(props.profileId, days.value),
+  queryKey: computed(() => queryKeys.recentPosts(props.publicationId, days.value, feedKey.value)),
+  queryFn: () => api.recentPosts(props.publicationId, days.value),
   enabled: computed(() => sources.isSuccess.value && (sources.data.value?.length ?? 0) > 0),
   staleTime: 5 * 60_000,
 })
 
 const refresh = useMutation({
-  mutationFn: () => api.recentPosts(props.profileId, days.value, true),
+  mutationFn: () => api.recentPosts(props.publicationId, days.value, true),
   onSuccess: (fresh) => {
     queryClient.setQueryData(
-      queryKeys.recentPosts(props.profileId, days.value, feedKey.value),
+      queryKeys.recentPosts(props.publicationId, days.value, feedKey.value),
       fresh,
     )
     page.value = 1
@@ -91,8 +91,8 @@ function goFromBottom(step: -1 | 1) {
   heading.value?.focus({ preventScroll: true }) // keyboard users continue from the top too
 }
 
-// ---- deciding: Add to the reading list, Ignore, or take either back (shared with the profile's landing page)
-const { decide, notice, busy } = useDecidePosts(() => props.profileId)
+// ---- deciding: Add to the reading list, Ignore, or take either back (shared with the publication's landing page)
+const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
 
 const failedNames = computed(() =>
   (shown.value?.failed ?? []).map((f) => nameOf(byId.value.get(f.sourceId))),

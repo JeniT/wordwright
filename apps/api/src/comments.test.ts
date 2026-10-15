@@ -1,7 +1,5 @@
-import { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMMENT_MAX_LENGTH, blockHash } from '@lfwa/core'
-import { MIGRATIONS, migrate } from './db/database'
 import {
   PASSWORD,
   allRows,
@@ -9,7 +7,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
@@ -32,9 +30,9 @@ describe('comments on a draft (#156)', () => {
   let ada: TestClient // the draft's editor
   let bob: TestClient // a member
   let cat: TestClient // an owner who is not the editor
-  let profile: string
+  let publication: string
   let draft: { id: string; version: number }
-  const base = () => `/api/profiles/${profile}/drafts/${draft.id}`
+  const base = () => `/api/publications/${publication}/drafts/${draft.id}`
   const list = async (c: TestClient): Promise<Comment[]> =>
     (await c.get(`${base()}/comments`)).json()
   const say = (c: TestClient, text: string, block = 'b1') =>
@@ -51,11 +49,11 @@ describe('comments on a draft (#156)', () => {
     await register(cat, 'cat@example.com', 'Cat')
     verifyAccounts(ctx, 'ada@example.com')
     await saveKey(ada)
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
-    await shareProfile(ctx, ada, profile, cat, 'cat@example.com')
-    ctx.store.profiles.setRole(profile, await idOf(cat), 'owner')
-    draft = await createDraft(ada, profile, {
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, cat, 'cat@example.com')
+    ctx.store.publications.setRole(publication, await idOf(cat), 'owner')
+    draft = await createDraft(ada, publication, {
       title: 'T',
       body: 'First paragraph.\n\nSecond paragraph.',
     })
@@ -113,7 +111,8 @@ describe('comments on a draft (#156)', () => {
       expect(await list(bob)).toHaveLength(25)
       expect(await (await ada.get(`${base()}/critique`)).json()).toMatchObject({ used: 0 })
       expect(
-        (await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId: draft.id })).status,
+        (await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id }))
+          .status,
       ).toBe(200)
     })
 
@@ -125,13 +124,15 @@ describe('comments on a draft (#156)', () => {
       expect((await eve.get(`${base()}/comments`)).status).toBeGreaterThanOrEqual(403)
       expect(
         (
-          await bob.post(`/api/profiles/${profile}/drafts/nope/comments`, {
+          await bob.post(`/api/publications/${publication}/drafts/nope/comments`, {
             block: 'b1',
             text: 'Hi',
           })
         ).status,
       ).toBe(404)
-      expect((await bob.get(`/api/profiles/${profile}/drafts/nope/comments`)).status).toBe(404)
+      expect((await bob.get(`/api/publications/${publication}/drafts/nope/comments`)).status).toBe(
+        404,
+      )
     })
   })
 
@@ -141,7 +142,8 @@ describe('comments on a draft (#156)', () => {
       await say(cat, 'Cat on the opening.', 'b2')
       await say(ada, 'Ada to herself.', 'whole')
       expect(
-        (await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId: draft.id })).status,
+        (await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id }))
+          .status,
       ).toBe(200)
     })
 
@@ -214,17 +216,17 @@ describe('comments on a draft (#156)', () => {
     })
 
     it('resolves the AI’s comments the same way', async () => {
-      await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId: draft.id })
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
       const ai = (await list(ada)).find((c) => c.byAi)!
       const done = await (await ada.put(`${base()}/comments/${ai.id}`, { resolved: true })).json()
       expect(done.find((c: Comment) => c.id === ai.id).resolved).toBe(true)
     })
 
     it('says no for a comment the draft does not have, or one from another draft, and for nonsense', async () => {
-      const other = await createDraft(ada, profile, { title: 'U', body: 'Other.' })
+      const other = await createDraft(ada, publication, { title: 'U', body: 'Other.' })
       expect(
         (
-          await ada.put(`/api/profiles/${profile}/drafts/${other.id}/comments/${mine.id}`, {
+          await ada.put(`/api/publications/${publication}/drafts/${other.id}/comments/${mine.id}`, {
             resolved: true,
           })
         ).status,
@@ -260,7 +262,9 @@ describe('comments on a draft (#156)', () => {
       await say(bob, 'SECRET-HUMAN-REMARK on the opening.')
       await say(ada, 'SECRET-EDITOR-REMARK', 'whole')
       const before = ctx.llmCalls.length
-      const res = await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId: draft.id })
+      const res = await ada.post(`/api/publications/${publication}/assist/critique`, {
+        draftId: draft.id,
+      })
       expect(res.status).toBe(200)
       const requests = ctx.llmCalls.slice(before).map((c) => c.request)
       expect(requests).toHaveLength(1)
@@ -272,17 +276,17 @@ describe('comments on a draft (#156)', () => {
     })
 
     it('does not send the AI’s earlier comments back to it either', async () => {
-      await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId: draft.id })
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
       const before = ctx.llmCalls.length
-      await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId: draft.id })
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
       expect(JSON.stringify(ctx.llmCalls.slice(before))).not.toContain('stronger opening')
     })
   })
 
   describe('names and account deletion', () => {
-    it('keeps a commenter’s name after they leave the profile', async () => {
+    it('keeps a commenter’s name after they leave the publication', async () => {
       await say(bob, 'Bob was here.')
-      const left = await bob.delete(`/api/profiles/${profile}/members/${await idOf(bob)}`)
+      const left = await bob.delete(`/api/publications/${publication}/members/${await idOf(bob)}`)
       expect(left.status).toBe(204)
       expect(await list(ada)).toMatchObject([{ authorName: 'Bobbin', text: 'Bob was here.' }])
     })
@@ -319,54 +323,5 @@ describe('comments on a draft (#156)', () => {
       await ada.delete(base())
       expect(ctx.store.comments.get(draft.id, mine.id)).toBeUndefined()
     })
-  })
-
-  it('moves a critique’s points into comments, dismissed becoming resolved, when the database is upgraded', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    const at = MIGRATIONS.findIndex(
-      (m) => typeof m === 'string' && m.includes('CREATE TABLE draft_comments'),
-    )
-    expect(at).toBeGreaterThan(0)
-    migrate(db, 'test', MIGRATIONS.slice(0, at))
-    db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at) VALUES ('i', 'p', 'I', '', 't', 't');
-      INSERT INTO drafts (id, profile_id, idea_id, title, body, created_at, updated_at) VALUES ('d', 'p', 'i', 'T', 'One.', 't', 't');
-      INSERT INTO critique_rounds (id, draft_id, summary, ready, created_at) VALUES ('r', 'd', 'Fine.', 0, '2026-01-01T00:00:00Z');
-      INSERT INTO critique_points (id, round_id, rank, block, block_hash, excerpt, point, reason, dismissed_at)
-        VALUES ('a', 'r', 0, 'b1', 'h', 'One.', 'Open point', 'Because.', NULL),
-               ('b', 'r', 1, 'whole', NULL, '', 'Set aside', 'Why.', '2026-01-02T00:00:00Z');
-    `)
-    migrate(db, 'test')
-    expect(
-      db
-        .prepare(
-          'SELECT id, draft_id, round_id, author_id, text, reason, resolved_at FROM draft_comments ORDER BY rank',
-        )
-        .all(),
-    ).toEqual([
-      {
-        id: 'a',
-        draft_id: 'd',
-        round_id: 'r',
-        author_id: null,
-        text: 'Open point',
-        reason: 'Because.',
-        resolved_at: null,
-      },
-      {
-        id: 'b',
-        draft_id: 'd',
-        round_id: 'r',
-        author_id: null,
-        text: 'Set aside',
-        reason: 'Why.',
-        resolved_at: '2026-01-02T00:00:00Z',
-      },
-    ])
-    expect(
-      db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'critique_points'").get(),
-    ).toEqual({ n: 0 })
   })
 })

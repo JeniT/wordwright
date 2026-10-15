@@ -38,12 +38,12 @@ const save = useMutation({
       ><template v-else>
         Your username is <strong>{{ session.user.handle }}</strong
         >. </template
-      >It starts the address of each profile you create, for example
+      >It starts the address of each publication you create, for example
       <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}-substack</code>.
       <template v-if="prompt">Pick your own, or keep this one.</template>
       <template v-else>
-        Profiles you already have keep their addresses; new ones use your new username. A username
-        you stop using can't be taken by anyone else.
+        Publications you already have keep their addresses; new ones use your new username. A
+        username you stop using can't be taken by anyone else.
       </template>
     </p>
     <form @submit.prevent="save.mutate(handle)">

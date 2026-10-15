@@ -27,12 +27,12 @@ function toHttpError(err: unknown): never {
 }
 
 /**
- * Owner-facing routes, mounted at `/profiles/:profileId/invitations` behind sign-in and an
+ * Owner-facing routes, mounted at `/publications/:publicationId/invitations` behind sign-in and an
  * owner-only membership check.
  */
-export function profileInvitationRoutes(invitations: InvitationService, limiter: RateLimiter) {
+export function publicationInvitationRoutes(invitations: InvitationService, limiter: RateLimiter) {
   return new Hono<AppEnv>()
-    .get('/', (c) => c.json(invitations.listPending(param(c, 'profileId'))))
+    .get('/', (c) => c.json(invitations.listPending(param(c, 'publicationId'))))
 
     .post('/', validateJson(InviteInputSchema), (c) => {
       const owner = c.get('user')
@@ -41,7 +41,7 @@ export function profileInvitationRoutes(invitations: InvitationService, limiter:
         throw fail(429, 'You have sent a lot of invitations. Try again later.')
       }
       try {
-        invitations.invite(owner, param(c, 'profileId'), c.req.valid('json').email)
+        invitations.invite(owner, param(c, 'publicationId'), c.req.valid('json').email)
       } catch (err) {
         toHttpError(err)
       }
@@ -51,7 +51,7 @@ export function profileInvitationRoutes(invitations: InvitationService, limiter:
 
     .delete('/:invitationId', (c) => {
       try {
-        invitations.revoke(param(c, 'profileId'), param(c, 'invitationId'))
+        invitations.revoke(param(c, 'publicationId'), param(c, 'invitationId'))
       } catch (err) {
         toHttpError(err)
       }

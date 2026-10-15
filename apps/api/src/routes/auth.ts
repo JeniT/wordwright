@@ -99,7 +99,7 @@ export function authRoutes(d: AuthRouteDeps) {
       .get('/me', requireUser(d.accounts), (c) => c.json(d.accounts.toPublic(c.get('user'))))
 
       // Unauthenticated so it works on the sign-up form. Usernames are already public (they start
-      // every profile address), so this reveals nothing new, but it is throttled all the same.
+      // every publication address), so this reveals nothing new, but it is throttled all the same.
       .get('/handle-available', (c) => {
         throttle(d.handleCheckLimiter, 'handle-check')
         const parsed = UsernameInputSchema.safeParse(c.req.query('handle') ?? '')

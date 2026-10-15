@@ -198,22 +198,22 @@ describe('after the address changes', () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob Byte')
     verifyAccounts(ctx, 'bob@example.com')
-    const profileId = (await (await bob.get('/api/profiles')).json())[0].id as string
-    await bob.post(`/api/profiles/${profileId}/invitations`, { email: 'ada@example.com' })
-    expect(ctx.store.invitations.listPending(profileId, ctx.clock.now)).toHaveLength(1)
+    const publicationId = (await (await bob.get('/api/publications')).json())[0].id as string
+    await bob.post(`/api/publications/${publicationId}/invitations`, { email: 'ada@example.com' })
+    expect(ctx.store.invitations.listPending(publicationId, ctx.clock.now)).toHaveLength(1)
 
     await request()
     await confirm(lastEmailChangeToken(ctx.mailer))
-    expect(ctx.store.invitations.listPending(profileId, ctx.clock.now)).toHaveLength(0)
+    expect(ctx.store.invitations.listPending(publicationId, ctx.clock.now)).toHaveLength(0)
   })
 
-  it('keeps profiles and memberships', async () => {
+  it('keeps publications and memberships', async () => {
     const { ctx, request, confirm } = await world()
     await request()
     await confirm(lastEmailChangeToken(ctx.mailer))
     const signedIn = ctx.client()
     await signedIn.post('/api/auth/login', { email: NEW, password: PASSWORD })
-    expect(await (await signedIn.get('/api/profiles')).json()).toHaveLength(1)
+    expect(await (await signedIn.get('/api/publications')).json()).toHaveLength(1)
   })
 })
 

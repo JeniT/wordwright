@@ -18,16 +18,16 @@ import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
 
 /**
- * The reading list of an idea, or (no `ideaId`) of the profile: the items, with a box to add one. The items open
+ * The reading list of an idea, or (no `ideaId`) of the publication: the items, with a box to add one. The items open
  * on a page of their own (`Take notes`) where notes are taken from them.
  */
 const props = defineProps<{
-  profileId: string
+  publicationId: string
   ideaId: string | null
   /** The page already has this as its title; keep the heading for screen readers only. */
   quietHeading?: boolean
 }>()
-const list = useReadingList(() => ({ profileId: props.profileId, ideaId: props.ideaId }))
+const list = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 
 // Read items are out of the way by default. One marked read during this visit stays in view (so it doesn't vanish
 // under the finger, and can be switched back), until the list is shown again or the switch below is changed.
@@ -137,12 +137,12 @@ function toggleTagging() {
   list.tagMany.reset()
 }
 
-// ---- moving the selected items between the profile's own list and its ideas
-const mover = useMove(() => props.profileId)
+// ---- moving the selected items between the publication's own list and its ideas
+const mover = useMove(() => props.publicationId)
 const dest = useMoveDestination(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.ideaId,
-  'the profile’s reading list',
+  'the publication’s reading list',
 )
 const moving = ref(false)
 function toggleMoving() {
@@ -229,7 +229,7 @@ function removeChosen() {
         Read when you have read it, even if you read it somewhere else.
       </template>
       <template v-else>
-        Things to read for this profile, before any one idea: read them, take notes, and later
+        Things to read for this publication, before any one idea: read them, take notes, and later
         gather the notes into an idea. Links you add stay; links from your feeds go after a month
         unless you switch Keep on.
       </template>
@@ -327,7 +327,7 @@ function removeChosen() {
                   v-model:new-idea-name="dest.newIdeaName"
                   :dest="dest"
                   :from-idea="!!ideaId"
-                  profile-label="The profile’s reading list"
+                  publication-label="The publication’s reading list"
                   :allow-new="!ideaId"
                   new-idea-hint="In your own words. The items you move become its reading list."
                 />
@@ -350,7 +350,7 @@ function removeChosen() {
             <IdeaLinkItem
               v-for="link in paging.pageItems.value"
               :key="link.id"
-              :profile-id="profileId"
+              :publication-id="publicationId"
               :idea-id="ideaId"
               :link="link"
               :selected="selected.includes(link.id)"
@@ -377,7 +377,7 @@ function removeChosen() {
         try again.
       </p>
 
-      <AddLinkForm :profile-id="profileId" :idea-id="ideaId" />
+      <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" />
     </QueryState>
     <ConfirmDialog
       :open="confirmingRemoveChosen"

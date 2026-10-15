@@ -22,10 +22,10 @@ export function moveSummary(result: MoveResult, destination: string): string {
 }
 
 /**
- * Moving reading items (and, later, notes) between the profile's own lists and its ideas, saying what happened
+ * Moving reading items (and, later, notes) between the publication's own lists and its ideas, saying what happened
  * and, where it can, offering to put it back. Everything that shows a list is refreshed afterwards.
  */
-export function useMove(profileId: () => string) {
+export function useMove(publicationId: () => string) {
   const queryClient = useQueryClient()
   /** What the last move did, and whether it can be undone (not when items were joined: that can't be unpicked). */
   const outcome = ref<{ text: string; undo: (() => void) | null } | null>(null)
@@ -34,17 +34,17 @@ export function useMove(profileId: () => string) {
 
   const undoMove = useMutation({
     mutationFn: ({ ids, ideaId }: { ids: string[]; ideaId: string | null }) =>
-      api.moveReadingItems(profileId(), ids, ideaId),
+      api.moveReadingItems(publicationId(), ids, ideaId),
     onSuccess: () => {
       outcome.value = { text: 'Moved back.', undo: null }
     },
     onSettled: refresh,
   })
 
-  /** `from` is where the items are now (an idea, or null for the profile's list); `to` names where they go. */
+  /** `from` is where the items are now (an idea, or null for the publication's list); `to` names where they go. */
   const moveReading = useMutation({
     mutationFn: (v: { ids: string[]; from: string | null; to: string | null; toName: string }) =>
-      api.moveReadingItems(profileId(), v.ids, v.to),
+      api.moveReadingItems(publicationId(), v.ids, v.to),
     onSuccess: (result, v) => {
       outcome.value = {
         text: moveSummary(result, v.toName),
@@ -56,7 +56,7 @@ export function useMove(profileId: () => string) {
 
   const undoNotes = useMutation({
     mutationFn: ({ ids, ideaId }: { ids: string[]; ideaId: string | null; note: string }) =>
-      api.moveNotes(profileId(), ids, ideaId),
+      api.moveNotes(publicationId(), ids, ideaId),
     onSuccess: (_, v) => {
       outcome.value = { text: `Moved back.${v.note}`, undo: null }
     },
@@ -69,7 +69,7 @@ export function useMove(profileId: () => string) {
    */
   const moveNotes = useMutation({
     mutationFn: (v: { ids: string[]; from: string | null; to: string | null; toName: string }) =>
-      api.moveNotes(profileId(), v.ids, v.to),
+      api.moveNotes(publicationId(), v.ids, v.to),
     onSuccess: (result, v) => {
       const note = result.copied
         ? result.copied === 1
@@ -97,41 +97,41 @@ export function useMove(profileId: () => string) {
 export const NEW_IDEA = '__new'
 
 /**
- * Where to move to: the profile's own list (when moving from an idea), one of the other ideas, or a new idea named
- * in the writer's own words (nothing prefilled). `profileName` is how the profile's own list is called in the
- * message ("the profile's reading list", "the profile's notes"). Returned reactive, so it can be handed to
+ * Where to move to: the publication's own list (when moving from an idea), one of the other ideas, or a new idea named
+ * in the writer's own words (nothing prefilled). `publicationName` is how the publication's own list is called in the
+ * message ("the publication's reading list", "the publication's notes"). Returned reactive, so it can be handed to
  * `MoveTo` and read in templates without `.value`.
  */
 export function useMoveDestination(
-  profileId: () => string,
+  publicationId: () => string,
   currentIdeaId: () => string | null,
-  profileName: string,
+  publicationName: string,
 ) {
-  const ideas = useIdeas(profileId)
-  const destination = ref('') // 'profile', an idea's id, or NEW_IDEA
+  const ideas = useIdeas(publicationId)
+  const destination = ref('') // 'publication', an idea's id, or NEW_IDEA
   const newIdeaName = ref('')
   const others = computed(() => (ideas.data.value ?? []).filter((i) => i.id !== currentIdeaId()))
   const name = computed(() => {
-    if (destination.value === 'profile') return profileName
+    if (destination.value === 'publication') return publicationName
     if (destination.value === NEW_IDEA) return `“${newIdeaName.value.trim()}”`
     const idea = ideas.data.value?.find((i) => i.id === destination.value)
     return idea ? `“${idea.name}”` : ''
   })
   // A new idea is made first; if the move then fails it stays, empty, as any idea.
   const makeIdea = useMutation({
-    mutationFn: () => api.createIdea(profileId(), { name: newIdeaName.value.trim() }),
+    mutationFn: () => api.createIdea(publicationId(), { name: newIdeaName.value.trim() }),
   })
   const chosen = computed(
     () => !!destination.value && (destination.value !== NEW_IDEA || !!newIdeaName.value.trim()),
   )
-  /** The idea to move to (null: the profile's own list), making the new idea first; null result if that failed. */
+  /** The idea to move to (null: the publication's own list), making the new idea first; null result if that failed. */
   async function resolve(): Promise<{ to: string | null; name: string } | null> {
     const label = name.value
     if (destination.value === NEW_IDEA) {
       const idea = await makeIdea.mutateAsync().catch(() => null)
       return idea ? { to: idea.id, name: label } : null
     }
-    return { to: destination.value === 'profile' ? null : destination.value, name: label }
+    return { to: destination.value === 'publication' ? null : destination.value, name: label }
   }
   function reset() {
     destination.value = ''

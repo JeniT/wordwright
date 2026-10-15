@@ -7,7 +7,7 @@ import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 
-const props = defineProps<{ profileId: string }>()
+const props = defineProps<{ publicationId: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
@@ -15,10 +15,10 @@ const name = ref('')
 const notes = ref('')
 
 const create = useMutation({
-  mutationFn: () => api.createIdea(props.profileId, { name: name.value, notes: notes.value }),
+  mutationFn: () => api.createIdea(props.publicationId, { name: name.value, notes: notes.value }),
   onSuccess: async (idea) => {
     await invalidateRoots(queryClient, 'ideas')
-    await router.push({ name: 'idea', params: { profileId: props.profileId, id: idea.id } })
+    await router.push({ name: 'idea', params: { publicationId: props.publicationId, id: idea.id } })
   },
 })
 </script>
@@ -41,7 +41,10 @@ const create = useMutation({
         <button type="submit" class="btn btn-primary" :disabled="create.isPending.value">
           {{ create.isPending.value ? 'Saving…' : 'Save idea' }}
         </button>
-        <RouterLink :to="{ name: 'profile-ideas', params: { profileId } }" class="link text-sm">
+        <RouterLink
+          :to="{ name: 'publication-ideas', params: { publicationId } }"
+          class="link text-sm"
+        >
           Cancel
         </RouterLink>
       </div>

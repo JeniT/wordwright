@@ -12,7 +12,7 @@ import { MoveStore } from './moves'
 import { NoteStore } from './notes'
 import { ReadingStore } from './reading'
 import { InvitationStore } from './invitations'
-import { ProfileStore } from './profiles'
+import { PublicationStore } from './publications'
 import { ResearchStore } from './research'
 import { ReviewStore } from './reviews'
 import { SourceStore } from './sources'
@@ -24,7 +24,7 @@ import { UserStore } from './users'
 export interface Store {
   users: UserStore
   tokens: TokenStore
-  profiles: ProfileStore
+  publications: PublicationStore
   drafts: DraftStore
   handovers: HandoverStore
   critiques: CritiqueStore
@@ -50,7 +50,7 @@ export function createStore(db: DatabaseSync): Store {
   return {
     users: new UserStore(db),
     tokens: new TokenStore(db),
-    profiles: new ProfileStore(db),
+    publications: new PublicationStore(db),
     drafts: new DraftStore(db),
     handovers: new HandoverStore(db),
     critiques: new CritiqueStore(db),

@@ -10,8 +10,8 @@ declare module 'vue-router' {
     /** Pages that need more room than a column of text (the drafting page has a side column). */
     wide?: boolean
     /** Which level of the app the page belongs to, which decides what the side menu lists (see lib/nav.ts). */
-    level?: 'profile' | 'idea'
-    /** The numbered step the page belongs to (a key from PROFILE_STEPS or IDEA_STEPS); none for settings. */
+    level?: 'publication' | 'idea'
+    /** The numbered step the page belongs to (a key from PUBLICATION_STEPS or IDEA_STEPS); none for settings. */
     step?: string
     /** For the drafting page: the idea it belongs to is found from the draft, not from the address. */
     ideaFromDraft?: boolean
@@ -100,35 +100,35 @@ export const routes: RouteRecordRaw[] = [
   },
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue') },
   {
-    path: '/profiles/new',
-    name: 'new-profile',
-    component: () => import('./views/NewProfileView.vue'),
+    path: '/publications/new',
+    name: 'new-publication',
+    component: () => import('./views/NewPublicationView.vue'),
   },
-  // ——— A profile: its landing page, its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
+  // ——— A publication: its landing page, its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
   {
-    path: '/p/:profileId',
-    name: 'profile',
-    component: () => import('./views/ProfileHomeView.vue'),
+    path: '/p/:publicationId',
+    name: 'publication',
+    component: () => import('./views/PublicationHomeView.vue'),
     props: true,
-    meta: { level: 'profile' },
+    meta: { level: 'publication' },
   },
   {
-    path: '/p/:profileId/search',
+    path: '/p/:publicationId/search',
     name: 'search',
     component: () => import('./views/SearchView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'search' },
+    meta: { level: 'publication', step: 'search' },
   },
   {
-    path: '/p/:profileId/read',
+    path: '/p/:publicationId/read',
     name: 'read',
     component: () => import('./views/ReadView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'read' },
+    meta: { level: 'publication', step: 'read' },
   },
   // Inspiration was split into Search and Read; the old addresses still land on the right one.
   {
-    path: '/p/:profileId/inspiration',
+    path: '/p/:publicationId/inspiration',
     name: 'inspiration',
     redirect: (to) => ({
       name: to.hash === '#reading-list' ? 'read' : 'search',
@@ -136,102 +136,102 @@ export const routes: RouteRecordRaw[] = [
     }),
   },
   {
-    path: '/p/:profileId/reading',
-    name: 'profile-reading',
+    path: '/p/:publicationId/reading',
+    name: 'publication-reading',
     redirect: (to) => ({ name: 'read', params: to.params }),
   },
   {
-    path: '/p/:profileId/reading/:linkId',
-    name: 'profile-reading-item',
+    path: '/p/:publicationId/reading/:linkId',
+    name: 'publication-reading-item',
     component: () => import('./views/ReadingView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'read', compact: true },
+    meta: { level: 'publication', step: 'read', compact: true },
   },
   {
-    path: '/p/:profileId/notes',
-    name: 'profile-notes',
-    component: () => import('./views/ProfileNotesView.vue'),
+    path: '/p/:publicationId/notes',
+    name: 'publication-notes',
+    component: () => import('./views/PublicationNotesView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'notes' },
+    meta: { level: 'publication', step: 'notes' },
   },
   {
-    path: '/p/:profileId/ideas',
-    name: 'profile-ideas',
-    component: () => import('./views/ProfileIdeasView.vue'),
+    path: '/p/:publicationId/ideas',
+    name: 'publication-ideas',
+    component: () => import('./views/PublicationIdeasView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'ideas' },
+    meta: { level: 'publication', step: 'ideas' },
   },
   {
-    path: '/p/:profileId/ideas/new',
+    path: '/p/:publicationId/ideas/new',
     name: 'new-idea',
     component: () => import('./views/NewIdeaView.vue'),
     props: true,
-    meta: { level: 'profile', step: 'ideas' },
+    meta: { level: 'publication', step: 'ideas' },
   },
   {
-    path: '/p/:profileId/describe',
-    name: 'describe-venue',
-    component: () => import('./views/VenueDescribeView.vue'),
+    path: '/p/:publicationId/describe',
+    name: 'describe-publication',
+    component: () => import('./views/PublicationDescribeView.vue'),
     props: true,
-    meta: { level: 'profile' },
+    meta: { level: 'publication' },
   },
   {
-    path: '/p/:profileId/settings',
-    name: 'profile-settings',
-    component: () => import('./views/ProfileSettingsView.vue'),
+    path: '/p/:publicationId/settings',
+    name: 'publication-settings',
+    component: () => import('./views/PublicationSettingsView.vue'),
     props: true,
-    meta: { level: 'profile' },
+    meta: { level: 'publication' },
   },
 
   // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, and its settings ———
   {
-    path: '/p/:profileId/ideas/:id',
+    path: '/p/:publicationId/ideas/:id',
     name: 'idea',
     component: () => import('./views/IdeaHomeView.vue'),
     props: true,
     meta: { level: 'idea' },
   },
   {
-    path: '/p/:profileId/ideas/:id/research',
+    path: '/p/:publicationId/ideas/:id/research',
     name: 'idea-research',
     component: () => import('./views/IdeaResearchView.vue'),
     props: true,
     meta: { level: 'idea', step: 'research' },
   },
   {
-    path: '/p/:profileId/ideas/:id/research/find',
+    path: '/p/:publicationId/ideas/:id/research/find',
     name: 'research',
     component: () => import('./views/ResearchView.vue'),
     props: true,
     meta: { level: 'idea', step: 'research' },
   },
   {
-    path: '/p/:profileId/ideas/:id/reading/:linkId',
+    path: '/p/:publicationId/ideas/:id/reading/:linkId',
     name: 'reading',
     component: () => import('./views/ReadingView.vue'),
     props: true,
     meta: { level: 'idea', step: 'research', compact: true },
   },
   {
-    path: '/p/:profileId/ideas/:id/notes',
+    path: '/p/:publicationId/ideas/:id/notes',
     name: 'idea-notes',
     component: () => import('./views/IdeaNotesView.vue'),
     props: true,
     meta: { level: 'idea', step: 'notes' },
   },
   {
-    path: '/p/:profileId/ideas/:id/refine',
+    path: '/p/:publicationId/ideas/:id/refine',
     name: 'brainstorm',
     component: () => import('./views/BrainstormView.vue'),
     props: true,
     meta: { level: 'idea', step: 'refine' },
   },
   {
-    path: '/p/:profileId/ideas/:id/brainstorm',
+    path: '/p/:publicationId/ideas/:id/brainstorm',
     redirect: (to) => ({ name: 'brainstorm', params: to.params, query: to.query }),
   },
   {
-    path: '/p/:profileId/ideas/:id/drafts',
+    path: '/p/:publicationId/ideas/:id/drafts',
     name: 'idea-drafts',
     component: () => import('./views/IdeaDraftsView.vue'),
     props: true,
@@ -239,18 +239,18 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     // Publishing is done to one draft, at the bottom of its page; old links land on the idea's drafts.
-    path: '/p/:profileId/ideas/:id/publish',
+    path: '/p/:publicationId/ideas/:id/publish',
     redirect: (to) => ({ name: 'idea-drafts', params: to.params, query: to.query }),
   },
   {
-    path: '/p/:profileId/ideas/:id/settings',
+    path: '/p/:publicationId/ideas/:id/settings',
     name: 'idea-settings',
     component: () => import('./views/IdeaSettingsView.vue'),
     props: true,
     meta: { level: 'idea' },
   },
   {
-    path: '/p/:profileId/drafts/:id',
+    path: '/p/:publicationId/drafts/:id',
     name: 'draft',
     component: () => import('./views/EditorView.vue'),
     props: true,

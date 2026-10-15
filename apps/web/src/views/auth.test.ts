@@ -6,7 +6,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 useMockServer()
 
 const noProviders = http.get('*/api/auth/config', () => HttpResponse.json({ providers: [] }))
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
 
 describe('route guards', () => {
   it('sends signed-out visitors to the sign-in page, remembering where they were going', async () => {
@@ -17,7 +17,7 @@ describe('route guards', () => {
   })
 
   it('keeps signed-in users away from the sign-in page', async () => {
-    server.use(signedInAs(testUser), noProfiles)
+    server.use(signedInAs(testUser), noPublications)
     const { router } = await renderAt('/login')
     await waitFor(() => expect(router.currentRoute.value.name).not.toBe('login'))
   })
@@ -57,7 +57,7 @@ describe('sign in', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/not verified/)
   })
 
-  it('signs in and lands on the list of profiles', async () => {
+  it('signs in and lands on the list of publications', async () => {
     let signedIn = false
     server.use(
       http.get('*/api/auth/me', () =>
@@ -68,7 +68,7 @@ describe('sign in', () => {
         signedIn = true
         return HttpResponse.json(testUser)
       }),
-      http.get('*/api/profiles', () =>
+      http.get('*/api/publications', () =>
         HttpResponse.json([
           {
             id: 'p1',
@@ -87,7 +87,7 @@ describe('sign in', () => {
     await fireEvent.update(await screen.findByLabelText('Email'), 'ada@example.com')
     await fireEvent.update(screen.getByLabelText('Password'), 'a good password')
     await fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-    await screen.findByRole('heading', { name: 'Your profiles' })
+    await screen.findByRole('heading', { name: 'Your publications' })
     expect(await screen.findByRole('link', { name: /Ada's writing/ })).toHaveAttribute(
       'href',
       '/p/p1',

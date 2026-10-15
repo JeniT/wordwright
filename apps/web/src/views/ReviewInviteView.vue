@@ -74,7 +74,7 @@ const decline = useMutation({
       <p>
         <strong>{{ preview.data.value.inviterName }}</strong> would like your comments on
         <strong>{{ preview.data.value.draftTitle || 'a draft' }}</strong> in
-        {{ preview.data.value.profileName }}.
+        {{ preview.data.value.publicationName }}.
       </p>
       <p class="mt-2 text-sm text-ink-soft">
         You will see that one draft and can write comments on it, and nothing else. Nobody sees your

@@ -10,7 +10,7 @@ import {
   type RephraseSize,
 } from '@lfwa/core'
 import { fail } from '../errors'
-import { escapeTags, venueDescriptionBlock } from './venue-context'
+import { escapeTags, publicationDescriptionBlock } from './publication-context'
 
 export const NOT_ENOUGH_OPTIONS = `The AI didn't give enough usable options. Try saying your aim a different way, or write it yourself.`
 
@@ -38,18 +38,18 @@ export function checkRephrase(req: RephraseRequest, draft: { body: string }) {
 }
 
 /**
- * What the model sees: the venue's description if there is one, then the draft and the wording, the Aim and anything
+ * What the model sees: the publication's description if there is one, then the draft and the wording, the Aim and anything
  * already offered in this window. Nothing else is ever sent: no notes, brainstorm messages or comments (a test holds
  * that). All of it is the writer's own text, so it is escaped and the prompt says it is material, not instructions.
  */
 export function formatRephraseMessage(
   req: Pick<RephraseRequest, 'kind' | 'wording' | 'aim' | 'earlier'>,
   draft: { title: string; body: string },
-  venueDescription: string | null,
+  publicationDescription: string | null,
 ): string {
   const ask = REPHRASE[rephraseSize(req.kind, req.wording)].ask
   return [
-    venueDescriptionBlock(venueDescription),
+    publicationDescriptionBlock(publicationDescription),
     `<draft_title>${escapeTags(draft.title)}</draft_title>`,
     `<draft>\n${escapeTags(draft.body)}\n</draft>`,
     `<wording kind="${req.kind}">\n${escapeTags(req.wording)}\n</wording>`,

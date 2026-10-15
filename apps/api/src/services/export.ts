@@ -52,9 +52,9 @@ function fileNamer() {
 
 /**
  * Builds the zip of a person's own writing, as Markdown only (#167). What goes in depends on their role in each
- * profile: an owner gets every draft, a member the drafts they edit or started; notes and reading items are everyone's
+ * publication: an owner gets every draft, a member the drafts they edit or started; notes and reading items are everyone's
  * and are credited. Comments, snapshots and reviews, critiques, brainstorm chats, API keys and email addresses never
- * go in. Callers have checked that the person belongs to each profile.
+ * go in. Callers have checked that the person belongs to each publication.
  */
 export class ExportService {
   constructor(
@@ -62,13 +62,13 @@ export class ExportService {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  profile(profileId: string, user: { id: string; name: string }): ExportResult {
+  publication(publicationId: string, user: { id: string; name: string }): ExportResult {
     const day = this.day()
-    return this.build(`wordwright-${profileId}-${day}.zip`, [profileId], user)
+    return this.build(`wordwright-${publicationId}-${day}.zip`, [publicationId], user)
   }
 
   account(user: { id: string; name: string }): ExportResult {
-    const ids = this.store.profiles.listIdsForUser(user.id)
+    const ids = this.store.publications.listIdsForUser(user.id)
     return this.build(`wordwright-export-${this.day()}.zip`, ids, user)
   }
 
@@ -76,29 +76,29 @@ export class ExportService {
     return this.now().toISOString().slice(0, 10)
   }
 
-  private build(filename: string, profileIds: string[], user: { id: string; name: string }) {
+  private build(filename: string, publicationIds: string[], user: { id: string; name: string }) {
     const root = `wordwright-export-${this.day()}`
     const files: ZipFile[] = []
-    const profiles: { name: string; role: 'owner' | 'member' }[] = []
-    for (const id of profileIds) {
-      const role = this.store.profiles.roleOf(id, user.id)
+    const publications: { name: string; role: 'owner' | 'member' }[] = []
+    for (const id of publicationIds) {
+      const role = this.store.publications.roleOf(id, user.id)
       if (!role) continue
-      profiles.push({ name: this.store.profiles.get(id, user.id)!.name, role })
-      files.push(...this.profileFiles(`${root}/${id}`, id, user.id, role))
+      publications.push({ name: this.store.publications.get(id, user.id)!.name, role })
+      files.push(...this.publicationFiles(`${root}/${id}`, id, user.id, role))
     }
-    files.unshift({ path: `${root}/README.md`, content: this.readme(user.name, profiles) })
+    files.unshift({ path: `${root}/README.md`, content: this.readme(user.name, publications) })
     return { filename, bytes: zip(files, this.now()) }
   }
 
-  private readme(name: string, profiles: { name: string; role: 'owner' | 'member' }[]) {
-    const owner = profiles.some((p) => p.role === 'owner')
-    const member = profiles.some((p) => p.role === 'member')
+  private readme(name: string, publications: { name: string; role: 'owner' | 'member' }[]) {
+    const owner = publications.some((p) => p.role === 'owner')
+    const member = publications.some((p) => p.role === 'member')
     const rules = [
       owner &&
-        '- As an owner of a profile, this includes every draft in it, including drafts other members edit.',
+        '- As an owner of a publication, this includes every draft in it, including drafts other members edit.',
       member &&
-        '- As a member of a profile, this includes the drafts you edit or started. Drafts other members edit or started are not included: they are theirs to export.',
-      '- Notes and reading-list items from everyone in a profile are included. Notes name who wrote them; reading-list items show only when they were added, because that is all we record.',
+        '- As a member of a publication, this includes the drafts you edit or started. Drafts other members edit or started are not included: they are theirs to export.',
+      '- Notes and reading-list items from everyone in a publication are included. Notes name who wrote them; reading-list items show only when they were added, because that is all we record.',
     ].filter(Boolean)
     return `# Your writing from Wordwright
 
@@ -106,9 +106,9 @@ Exported on ${longDate(this.now().toISOString())} for ${name}. Everything here i
 
 ## What is in this export
 
-${profiles.map((p) => `- ${p.name} (you are ${p.role === 'owner' ? 'an owner' : 'a member'})`).join('\n')}
+${publications.map((p) => `- ${p.name} (you are ${p.role === 'owner' ? 'an owner' : 'a member'})`).join('\n')}
 
-Each profile has a folder with a file about the profile, one file per idea (its notes, reading list and drafts) and one file per draft.
+Each publication has a folder with a file about the publication, one file per idea (its notes, reading list and drafts) and one file per draft.
 
 ## Who gets what
 
@@ -123,11 +123,16 @@ ${rules.join('\n')}
 `
   }
 
-  private profileFiles(dir: string, profileId: string, userId: string, role: 'owner' | 'member') {
+  private publicationFiles(
+    dir: string,
+    publicationId: string,
+    userId: string,
+    role: 'owner' | 'member',
+  ) {
     const { store } = this
-    const profile = store.profiles.get(profileId, userId)!
-    const started = new Set(store.drafts.startedBy(profileId, userId))
-    const all = new Map(store.drafts.list(profileId).map((d) => [d.id, d]))
+    const publication = store.publications.get(publicationId, userId)!
+    const started = new Set(store.drafts.startedBy(publicationId, userId))
+    const all = new Map(store.drafts.list(publicationId).map((d) => [d.id, d]))
     const included = (d: Draft) => role === 'owner' || d.editorId === userId || started.has(d.id)
 
     const files: ZipFile[] = []
@@ -144,8 +149,8 @@ ${rules.join('\n')}
 
     const ideaName = fileNamer()
     const ideaLines: string[] = []
-    for (const summary of store.ideas.list(profileId)) {
-      const idea = store.ideas.get(profileId, summary.id)!
+    for (const summary of store.ideas.list(publicationId)) {
+      const idea = store.ideas.get(publicationId, summary.id)!
       const name = ideaName(idea.name)
       ideaLines.push(`- [${linkText(idea.name)}](ideas/${name}.md)`)
       const draftLines = idea.drafts.flatMap((d) => {
@@ -164,7 +169,7 @@ ${rules.join('\n')}
       files.push({
         path: `${dir}/ideas/${name}.md`,
         content: [
-          `# ${oneLine(idea.name)}\n\n[← ${linkText(profile.name)}](../${profileId}.md)\n`,
+          `# ${oneLine(idea.name)}\n\n[← ${linkText(publication.name)}](../${publicationId}.md)\n`,
           section('Drafts', draftLines),
           section('Notes', store.notes.list(idea.id).map(noteLine)),
           section('Reading list', idea.links.map(readingLine)),
@@ -174,20 +179,20 @@ ${rules.join('\n')}
       })
     }
 
-    const about = profile.description
-      ? `## About this profile\n\n${profile.description.trim()}\n`
+    const about = publication.description
+      ? `## About this publication\n\n${publication.description.trim()}\n`
       : ''
-    const site = profile.siteUrl ? `${profile.siteUrl}\n` : ''
+    const site = publication.siteUrl ? `${publication.siteUrl}\n` : ''
     files.push({
-      path: `${dir}/${profileId}.md`,
+      path: `${dir}/${publicationId}.md`,
       content: [
-        `# ${oneLine(profile.name)}\n${site ? `\n${site}` : ''}`,
+        `# ${oneLine(publication.name)}\n${site ? `\n${site}` : ''}`,
         about,
         section('Ideas', ideaLines),
-        section('Notes not yet in an idea', store.notes.list({ profileId }).map(noteLine)),
+        section('Notes not yet in an idea', store.notes.list({ publicationId }).map(noteLine)),
         section(
           'Reading list not yet in an idea',
-          store.reading.list({ profileId }).map(readingLine),
+          store.reading.list({ publicationId }).map(readingLine),
         ),
       ]
         .filter(Boolean)

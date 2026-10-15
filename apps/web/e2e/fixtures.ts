@@ -73,12 +73,12 @@ export const test = base.extend<{ problems: string[] }>({
 })
 
 /**
- * Goes to a step of the profile or idea you are in, from the side menu (the menu follows you, so "Notes" means the
+ * Goes to a step of the publication or idea you are in, from the side menu (the menu follows you, so "Notes" means the
  * notes of whichever you are in).
  */
 export async function goTo(page: Page, step: string) {
   const link = page
-    .locator('nav[aria-label="Idea"], nav[aria-label="Profile"]')
+    .locator('nav[aria-label="Idea"], nav[aria-label="Publication"]')
     .getByRole('link', { name: step, exact: true })
   // On a phone (and on pages read beside another window) the menu is folded behind a button. Wait for the page to
   // show either the link or that button first, so a page that is still changing isn't clicked halfway.

@@ -2,11 +2,11 @@
 import type { RecentPost } from '@lfwa/core'
 import type { PostDecision } from '../lib/recent-posts'
 import Icon from './Icon.vue'
-import ProfileImage from './ProfileImage.vue'
+import PublicationImage from './PublicationImage.vue'
 
 /**
  * One post from a feed, with the decision to make about it (or how it was decided, and a way back). Shared by the
- * Search page's list and the profile's landing page so the two can't drift apart.
+ * Search page's list and the publication's landing page so the two can't drift apart.
  */
 defineProps<{
   post: RecentPost
@@ -23,7 +23,7 @@ const when = (iso: string) =>
 
 <template>
   <li class="flex gap-3 px-3 py-2">
-    <ProfileImage
+    <PublicationImage
       :id="post.sourceId"
       :name="feedName"
       :image-url="feedIconUrl"

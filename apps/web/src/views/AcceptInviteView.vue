@@ -21,11 +21,11 @@ const preview = useQuery({
 
 const accept = useMutation({
   mutationFn: () => api.acceptInvitation(token),
-  onSuccess: async ({ profileId }) => {
-    // Their sign-in may have just been confirmed by the invitation, and they have a new profile.
+  onSuccess: async ({ publicationId }) => {
+    // Their sign-in may have just been confirmed by the invitation, and they have a new publication.
     session.set(await api.me())
-    await queryClient.invalidateQueries({ queryKey: ['profiles'] })
-    await router.push({ name: 'profile', params: { profileId } })
+    await queryClient.invalidateQueries({ queryKey: ['publications'] })
+    await router.push({ name: 'publication', params: { publicationId } })
   },
 })
 
@@ -51,7 +51,7 @@ const invalid = computed(
     <template v-else-if="preview.data.value">
       <p>
         <strong>{{ preview.data.value.inviterName }}</strong> has invited you to write together on
-        <strong>{{ preview.data.value.profileName }}</strong
+        <strong>{{ preview.data.value.publicationName }}</strong
         >.
       </p>
 
@@ -92,7 +92,7 @@ const invalid = computed(
           :disabled="accept.isPending.value"
           @click="accept.mutate()"
         >
-          Join {{ preview.data.value.profileName }}
+          Join {{ preview.data.value.publicationName }}
         </button>
         <p v-if="accept.isError.value" role="alert" class="mt-3 text-sm text-danger">
           {{ errorMessage(accept.error.value) }}

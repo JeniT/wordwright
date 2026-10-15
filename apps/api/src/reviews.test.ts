@@ -7,20 +7,20 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
 
-type Review = { id: string; state: string; draftTitle: string; profileName: string }
+type Review = { id: string; state: string; draftTitle: string; publicationName: string }
 
 describe('reviewers (#157)', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient // owner and editor
   let bob: TestClient // another member
-  let profile: string
+  let publication: string
   let draftId: string
-  const draftUrl = () => `/api/profiles/${profile}/drafts/${draftId}`
+  const draftUrl = () => `/api/publications/${publication}/drafts/${draftId}`
   const settle = () => new Promise((r) => setTimeout(r, 0))
 
   /** Invites `email`, and answers with the token from the email. */
@@ -48,9 +48,9 @@ describe('reviewers (#157)', () => {
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
-    draftId = (await createDraft(ada, profile, { title: 'Meanders', body: 'Rivers bend.' })).id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+    draftId = (await createDraft(ada, publication, { title: 'Meanders', body: 'Rivers bend.' })).id
   })
 
   describe('inviting', () => {
@@ -81,7 +81,7 @@ describe('reviewers (#157)', () => {
       expect((await ada.get(`${draftUrl()}/reviewers`)).status).toBe(200)
       const cy = ctx.client()
       await register(cy, 'cy@example.com', 'Cy')
-      await shareProfile(ctx, ada, profile, cy, 'cy@example.com')
+      await sharePublication(ctx, ada, publication, cy, 'cy@example.com')
       expect(
         (await cy.post(`${draftUrl()}/send-for-review`, { emails: ['z@example.com'] })).status,
       ).toBe(403)
@@ -98,7 +98,7 @@ describe('reviewers (#157)', () => {
       ).toBe(400)
     })
 
-    it('needs a confirmed address, and is private to the profile', async () => {
+    it('needs a confirmed address, and is private to the publication', async () => {
       const dan = ctx.client()
       await register(dan, 'dan@example.com', 'Dan')
       expect(
@@ -109,11 +109,14 @@ describe('reviewers (#157)', () => {
       // Ada is verified; make a fresh unverified owner-editor to see the refusal.
       const eve = ctx.client()
       await register(eve, 'eve@example.com', 'Eve')
-      const eveProfile = (await (await eve.get('/api/profiles')).json())[0].id
-      const d = await createDraft(eve, eveProfile, { title: 'T', body: 'x' })
-      const res = await eve.post(`/api/profiles/${eveProfile}/drafts/${d.id}/send-for-review`, {
-        emails: ['x@example.com'],
-      })
+      const evePublication = (await (await eve.get('/api/publications')).json())[0].id
+      const d = await createDraft(eve, evePublication, { title: 'T', body: 'x' })
+      const res = await eve.post(
+        `/api/publications/${evePublication}/drafts/${d.id}/send-for-review`,
+        {
+          emails: ['x@example.com'],
+        },
+      )
       expect(res.status).toBe(403)
     })
 
@@ -143,13 +146,13 @@ describe('reviewers (#157)', () => {
   })
 
   describe('following the link', () => {
-    it('previews, then makes a reviewer-only account with no username and no profile', async () => {
+    it('previews, then makes a reviewer-only account with no username and no publication', async () => {
       const token = (await invite('rev@example.com'))!
       const anon = ctx.client()
       const preview = await (await anon.post('/api/review-invitations/preview', { token })).json()
       expect(preview).toEqual({
         draftTitle: 'Meanders',
-        profileName: expect.any(String),
+        publicationName: expect.any(String),
         inviterName: 'Ada',
         email: 'rev@example.com',
       })
@@ -202,7 +205,7 @@ describe('reviewers (#157)', () => {
   describe('reviewing', () => {
     it('shows the draft and only the reviewer’s own comments, whoever else commented', async () => {
       await saveKey(ada)
-      await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId })
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId })
       await bob.post(`${draftUrl()}/comments`, { block: 'whole', text: 'Bob’s view' })
       const { rae } = await joinAsReviewer()
       const id = (await reviewsOf(rae))[0]!.id
@@ -301,22 +304,24 @@ describe('reviewers (#157)', () => {
       const guarded = ctx.app.routes.filter(
         (r) =>
           r.method !== 'ALL' &&
-          /^\/api\/(profiles|account|llm|invitations\/blocks)/.test(r.path) &&
+          /^\/api\/(publications|account|llm|invitations\/blocks)/.test(r.path) &&
           !allowed(r.method, r.path),
       )
       expect(guarded.length).toBeGreaterThan(50) // a real walk, not an empty one
       const fill = (path: string) =>
-        path.replace(/:([A-Za-z]+)\??/g, (_m, name) => (name === 'profileId' ? profile : 'x'))
+        path.replace(/:([A-Za-z]+)\??/g, (_m, name) =>
+          name === 'publicationId' ? publication : 'x',
+        )
       for (const r of guarded) {
         const res = await rae.request(r.method, fill(r.path), r.method === 'GET' ? undefined : {})
         expect(res.status, `${r.method} ${r.path}`).toBe(404)
       }
     })
 
-    it('can still sign out and delete itself, and cannot create a profile or set an API key', async () => {
+    it('can still sign out and delete itself, and cannot create a publication or set an API key', async () => {
       const { rae } = await joinAsReviewer()
-      expect((await rae.post('/api/profiles', { name: 'Mine' })).status).toBe(404)
-      expect((await rae.get('/api/profiles')).status).toBe(404)
+      expect((await rae.post('/api/publications', { name: 'Mine' })).status).toBe(404)
+      expect((await rae.get('/api/publications')).status).toBe(404)
       expect(
         (await rae.put('/api/llm', { provider: 'anthropic', model: 'm', apiKey: 'k' })).status,
       ).toBe(404)
@@ -326,9 +331,9 @@ describe('reviewers (#157)', () => {
       const { rae } = await joinAsReviewer()
       const d = await (await ada.get(draftUrl())).json()
       for (const path of [
-        `/api/profiles/${profile}/ideas/${d.ideaId}`,
-        `/api/profiles/${profile}/ideas/${d.ideaId}/notes`,
-        `/api/profiles/${profile}`,
+        `/api/publications/${publication}/ideas/${d.ideaId}`,
+        `/api/publications/${publication}/ideas/${d.ideaId}/notes`,
+        `/api/publications/${publication}`,
         `${draftUrl()}`,
         `${draftUrl()}/comments`,
         `${draftUrl()}/handover`,
@@ -344,8 +349,8 @@ describe('reviewers (#157)', () => {
       const res = await rae.post('/api/reviews/start-writing', { handle: 'raewrites' })
       expect(res.status).toBe(200)
       expect(await res.json()).toMatchObject({ handle: 'raewrites', reviewerOnly: false })
-      expect((await rae.get('/api/profiles')).status).toBe(200)
-      expect((await rae.post('/api/profiles', { name: 'Rae’s writing' })).status).toBe(201)
+      expect((await rae.get('/api/publications')).status).toBe(200)
+      expect((await rae.post('/api/publications', { name: 'Rae’s writing' })).status).toBe(201)
       expect((await reviewsOf(rae))[0]).toMatchObject({ state: 'open' }) // keeps the review
     })
 
@@ -360,11 +365,11 @@ describe('reviewers (#157)', () => {
       )
     })
 
-    it('is automatic when a profile invites them as a member', async () => {
+    it('is automatic when a publication invites them as a member', async () => {
       const { rae } = await joinAsReviewer()
       verifyAccounts(ctx, 'ada@example.com')
-      await ada.post(`/api/profiles/${profile}/invitations`, { email: 'rev@example.com' })
-      const accepted = await rae.post('/api/invitations/accept', { token: lastProfileToken() })
+      await ada.post(`/api/publications/${publication}/invitations`, { email: 'rev@example.com' })
+      const accepted = await rae.post('/api/invitations/accept', { token: lastPublicationToken() })
       expect(accepted.status).toBe(200)
       const me = await (await rae.get('/api/auth/me')).json()
       expect(me).toMatchObject({
@@ -372,10 +377,10 @@ describe('reviewers (#157)', () => {
         handle: expect.any(String),
         handleChosen: false,
       })
-      expect((await rae.get('/api/profiles')).status).toBe(200)
+      expect((await rae.get('/api/publications')).status).toBe(200)
       expect(await reviewsOf(rae)).toHaveLength(1)
     })
-    function lastProfileToken() {
+    function lastPublicationToken() {
       const text = ctx.mailer.outbox.at(-1)!.text
       return text.match(/accept-invite\?token=([\w-]+)/)![1]!
     }
@@ -435,7 +440,7 @@ describe('reviewers (#157)', () => {
       expect(snapshots.map((r) => r.body)).toEqual(['Rivers bend.', 'Second version.'])
     })
 
-    it('can ask members of the profile, who are told by email and review the same snapshot', async () => {
+    it('can ask members of the publication, who are told by email and review the same snapshot', async () => {
       const before = ctx.mailer.outbox.length
       const { bob: bobId } = await ids()
       const sent = await ada.post(`${draftUrl()}/send-for-review`, { memberIds: [bobId] })
@@ -458,7 +463,7 @@ describe('reviewers (#157)', () => {
       expect(await (await bob.get(`${draftUrl()}/comments`)).json()).toEqual([])
     })
 
-    it('refuses to ask yourself or someone outside the profile as a member', async () => {
+    it('refuses to ask yourself or someone outside the publication as a member', async () => {
       const { ada: adaId } = await ids()
       expect((await ada.post(`${draftUrl()}/send-for-review`, { memberIds: [adaId] })).status).toBe(
         400,
@@ -485,7 +490,7 @@ describe('reviewers (#157)', () => {
       })
       expect(sent[0]!.text).toContain('has finished reviewing "Meanders" and left 2 comments')
       expect(sent[0]!.text).not.toContain('Secret remark')
-      expect(sent[0]!.text).toContain(`/p/${profile}/drafts/${draftId}`)
+      expect(sent[0]!.text).toContain(`/p/${publication}/drafts/${draftId}`)
     })
 
     it('sends nothing when a comment is made, and nothing when the editor closes a review', async () => {
@@ -541,7 +546,7 @@ describe('reviewers (#157)', () => {
       const id = (await reviewsOf(rae))[0]!.id
       await bob.post(`${draftUrl()}/comments`, { block: 'whole', text: 'MEMBER-REMARK' })
       await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'REVIEWER-REMARK' })
-      await ada.post(`/api/profiles/${profile}/assist/critique`, { draftId })
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId })
       const sent = JSON.stringify(ctx.llmCalls.at(-1)!.request)
       expect(sent).toContain('Rivers bend.')
       expect(sent).not.toContain('MEMBER-REMARK')

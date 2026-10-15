@@ -35,7 +35,7 @@ export function accountRoutes(
   return (
     new Hono<AppEnv>()
       .use(requireUser(accounts))
-      // All their profiles, as Markdown (#167). A reviewer-only account gets 404 from `requireUser`, as for every
+      // All their publications, as Markdown (#167). A reviewer-only account gets 404 from `requireUser`, as for every
       // route outside its reviews.
       .get('/export', (c) => {
         const user = c.get('user')

@@ -9,7 +9,7 @@ useMockServer({ warm: ['draft'] })
 
 const draft = {
   id: 'd1',
-  profileId: 'p1',
+  publicationId: 'p1',
   ideaId: 'i1',
   title: 'T',
   body: 'Some text',
@@ -36,8 +36,8 @@ function mockEditor(
   const state = { comments: split(latest).points as object[] }
   server.use(
     signedInAs(viewer),
-    http.get('*/api/profiles', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+    http.get('*/api/publications', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/drafts/d1/handover', () =>
       HttpResponse.json({
         editorId: draft.editorId,
         editorName: 'Ada Lovelace',
@@ -46,10 +46,10 @@ function mockEditor(
         history: [],
       }),
     ),
-    http.get('*/api/profiles/p1/ideas/i1', () =>
+    http.get('*/api/publications/p1/ideas/i1', () =>
       HttpResponse.json({
         id: 'i1',
-        profileId: 'p1',
+        publicationId: 'p1',
         name: 'An idea',
         notes: '',
         links: [],
@@ -58,13 +58,13 @@ function mockEditor(
         updatedAt: '2026-01-01T00:00:00Z',
       }),
     ),
-    http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
-    http.put('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
-    http.get('*/api/profiles/p1/drafts/d1/critique', () =>
+    http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.put('*/api/publications/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.get('*/api/publications/p1/drafts/d1/critique', () =>
       HttpResponse.json({ round: split(latest).round, ...looks }),
     ),
-    http.get('*/api/profiles/p1/drafts/d1/comments', () => HttpResponse.json(state.comments)),
-    http.post('*/api/profiles/p1/assist/critique', async () => {
+    http.get('*/api/publications/p1/drafts/d1/comments', () => HttpResponse.json(state.comments)),
+    http.post('*/api/publications/p1/assist/critique', async () => {
       const res = await critique()
       if (!res.ok) return res
       const made = (await res.json()) as { round: { points?: object[] } | null }
@@ -277,8 +277,8 @@ describe('EditorView critique', () => {
     let comments = [pointOn('p1'), pointOn('p2')]
     mockEditor(() => new Response(null, { status: 500 }), round(comments))
     server.use(
-      http.get('*/api/profiles/p1/drafts/d1/comments', () => HttpResponse.json(comments)),
-      http.put('*/api/profiles/p1/drafts/d1/comments/p1', async ({ request }) => {
+      http.get('*/api/publications/p1/drafts/d1/comments', () => HttpResponse.json(comments)),
+      http.put('*/api/publications/p1/drafts/d1/comments/p1', async ({ request }) => {
         const { resolved } = (await request.json()) as { resolved: boolean }
         sent.push(resolved)
         comments = [pointOn('p1', { resolved }), pointOn('p2')]
@@ -316,7 +316,7 @@ describe('EditorView critique', () => {
   it('puts the switch back, and says so, when Resolved could not be saved', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
     server.use(
-      http.put('*/api/profiles/p1/drafts/d1/comments/p1', () =>
+      http.put('*/api/publications/p1/drafts/d1/comments/p1', () =>
         HttpResponse.json({ error: 'The server is having a bad day' }, { status: 500 }),
       ),
     )
@@ -433,7 +433,7 @@ describe('EditorView comments from members', () => {
     const sent: unknown[] = []
     const state = mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
     server.use(
-      http.post('*/api/profiles/p1/drafts/d1/comments', async ({ request }) => {
+      http.post('*/api/publications/p1/drafts/d1/comments', async ({ request }) => {
         const input = (await request.json()) as { block: string; text: string }
         sent.push(input)
         state.comments.push(saidBy('c1', 'Bob Byron', { authorId: 'u2', text: input.text }))
@@ -464,7 +464,7 @@ describe('EditorView comments from members', () => {
   it('says why a comment could not be added, and keeps what was written', async () => {
     mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
     server.use(
-      http.post('*/api/profiles/p1/drafts/d1/comments', () =>
+      http.post('*/api/publications/p1/drafts/d1/comments', () =>
         HttpResponse.json(
           { error: "That paragraph isn't in the draft any more." },
           { status: 400 },
@@ -533,7 +533,7 @@ describe('EditorView comments from members', () => {
     mockEditor(() => new Response(null, { status: 500 }))
     let fail = true
     server.use(
-      http.get('*/api/profiles/p1/drafts/d1/comments', () =>
+      http.get('*/api/publications/p1/drafts/d1/comments', () =>
         fail
           ? HttpResponse.json({ error: 'Down' }, { status: 500 })
           : HttpResponse.json([saidBy('p1', 'Bob Byron')]),
@@ -616,7 +616,7 @@ function mockDrafting(
   }
   const ideaNow = () => ({
     id: 'i1',
-    profileId: 'p1',
+    publicationId: 'p1',
     name: 'An idea',
     notes: '',
     links: [
@@ -634,8 +634,8 @@ function mockDrafting(
   })
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/drafts/d1/handover', () =>
+    http.get('*/api/publications', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/drafts/d1/handover', () =>
       HttpResponse.json({
         editorId: draft.editorId,
         editorName: 'Ada Lovelace',
@@ -644,28 +644,30 @@ function mockDrafting(
         history: [],
       }),
     ),
-    http.get('*/api/profiles/p1/ideas/i1', () => HttpResponse.json(ideaNow())),
-    http.put('*/api/profiles/p1/ideas/i1/links/l1/read', async ({ request }) => {
+    http.get('*/api/publications/p1/ideas/i1', () => HttpResponse.json(ideaNow())),
+    http.put('*/api/publications/p1/ideas/i1/links/l1/read', async ({ request }) => {
       const body = (await request.json()) as { read: boolean }
       if (state.markFails) return HttpResponse.json({ error: 'boom' }, { status: 500 })
       state.markedRead.push(body)
       state.readAt = body.read ? '2026-01-04T00:00:00Z' : null
       return HttpResponse.json(ideaNow())
     }),
-    http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(draft)),
-    http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
+    http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
       const body = (await request.json()) as { title: string; body: string }
       if (state.saveFails) return HttpResponse.json({ error: 'boom' }, { status: 500 })
       state.saved.push(body)
       return HttpResponse.json({ ...draft, ...body })
     }),
-    http.get('*/api/profiles/p1/ideas/i1/notes', () =>
+    http.get('*/api/publications/p1/ideas/i1/notes', () =>
       state.notesFail
         ? HttpResponse.json({ error: 'boom' }, { status: 500 })
         : HttpResponse.json(state.notes),
     ),
-    http.get('*/api/profiles/p1/drafts/d1/insertions', () => HttpResponse.json(state.insertions)),
-    http.post('*/api/profiles/p1/drafts/d1/insertions', async ({ request }) => {
+    http.get('*/api/publications/p1/drafts/d1/insertions', () =>
+      HttpResponse.json(state.insertions),
+    ),
+    http.post('*/api/publications/p1/drafts/d1/insertions', async ({ request }) => {
       const body = (await request.json()) as { noteId: string; text: string }
       if (state.postFails) return HttpResponse.json({ error: 'boom' }, { status: 500 })
       state.posted.push(body)
@@ -676,7 +678,7 @@ function mockDrafting(
       state.insertions = [...state.insertions, made]
       return HttpResponse.json(made, { status: 201 })
     }),
-    http.put('*/api/profiles/p1/ideas/i1/notes/:noteId/added', async ({ request, params }) => {
+    http.put('*/api/publications/p1/ideas/i1/notes/:noteId/added', async ({ request, params }) => {
       state.putBack.push({ id: params.noteId, ...((await request.json()) as object) })
       state.notes = state.notes.map((n) => (n.id === params.noteId ? { ...n, addedAt: null } : n))
       return HttpResponse.json(state.notes.find((n) => n.id === params.noteId))
@@ -962,10 +964,10 @@ describe('the notes beside the draft', () => {
     it('says so when there is nothing on the reading list', async () => {
       mockDrafting()
       server.use(
-        http.get('*/api/profiles/p1/ideas/i1', () =>
+        http.get('*/api/publications/p1/ideas/i1', () =>
           HttpResponse.json({
             id: 'i1',
-            profileId: 'p1',
+            publicationId: 'p1',
             name: 'An idea',
             notes: '',
             links: [],
@@ -1317,7 +1319,7 @@ describe('publishing from the draft page', () => {
   async function openDraft() {
     mockEditor(() => new Response(null, { status: 500 }))
     server.use(
-      http.get('*/api/profiles/p1/drafts/d1', () =>
+      http.get('*/api/publications/p1/drafts/d1', () =>
         HttpResponse.json({
           ...draft,
           title: 'Part 1',
@@ -1386,7 +1388,7 @@ describe('a draft has one editor (#154)', () => {
 
   it('shows someone else’s draft read-only, names the editor, and offers no way to change it', async () => {
     mockEditor(() => HttpResponse.json({}))
-    server.use(http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
+    server.use(http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
     await renderAt('/p/p1/drafts/d1')
     const banner = await screen.findByTestId('read-only')
     expect(banner).toHaveTextContent('Bob Jones is this draft’s editor'.replace('’', "'"))
@@ -1403,7 +1405,7 @@ describe('a draft has one editor (#154)', () => {
 
   it('says who can add the notes, instead of offering to', async () => {
     mockDrafting()
-    server.use(http.get('*/api/profiles/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
+    server.use(http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
     await renderAt('/p/p1/drafts/d1')
     const notes = within(await screen.findByRole('complementary'))
     await notes.findByText('Erosion loops.')
@@ -1420,7 +1422,7 @@ describe('a draft has one editor (#154)', () => {
     const sent: { version: number; body: string }[] = []
     mockEditor(() => HttpResponse.json({}))
     server.use(
-      http.put('*/api/profiles/p1/drafts/d1', async ({ request }) => {
+      http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
         const input = (await request.json()) as { version: number; body: string }
         sent.push(input)
         return HttpResponse.json({ ...draft, body: input.body, version: input.version + 1 })
@@ -1438,7 +1440,7 @@ describe('a draft has one editor (#154)', () => {
   it('says to reload when a save is refused as out of date, and keeps what was typed', async () => {
     mockEditor(() => HttpResponse.json({}))
     server.use(
-      http.put('*/api/profiles/p1/drafts/d1', () =>
+      http.put('*/api/publications/p1/drafts/d1', () =>
         HttpResponse.json({ error: 'This draft has been saved somewhere else.' }, { status: 409 }),
       ),
     )

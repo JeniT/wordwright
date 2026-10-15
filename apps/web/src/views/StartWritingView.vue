@@ -33,8 +33,8 @@ const start = useMutation({
     </p>
     <h1 class="mb-2 font-display text-3xl font-semibold">Start writing</h1>
     <p class="mb-4 text-ink-soft">
-      Choose a username and your account becomes a full one, with profiles and ideas of your own.
-      The drafts you were asked to review stay on your reviews page.
+      Choose a username and your account becomes a full one, with publications and ideas of your
+      own. The drafts you were asked to review stay on your reviews page.
     </p>
     <form @submit.prevent="ready && start.mutate()">
       <TextField

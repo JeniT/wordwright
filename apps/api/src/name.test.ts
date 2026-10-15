@@ -4,7 +4,7 @@ import {
   PASSWORD,
   register,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
 } from './test-helpers'
 
@@ -22,15 +22,15 @@ describe('changing your name', () => {
     expect((await (await c.get('/api/auth/me')).json()).name).toBe('Ada King')
   })
 
-  it('leaves the username, email and profiles alone', async () => {
+  it('leaves the username, email and publications alone', async () => {
     const { client } = setup()
     const c = client()
     const before = await register(c, 'ada@example.com', 'Ada')
-    const profile = (await (await c.get('/api/profiles')).json())[0]
+    const publication = (await (await c.get('/api/publications')).json())[0]
     await put(c, 'Someone Else')
     const me = await (await c.get('/api/auth/me')).json()
     expect(me).toMatchObject({ handle: before.handle, email: before.email, id: before.id })
-    expect((await (await c.get('/api/profiles')).json())[0].id).toBe(profile.id)
+    expect((await (await c.get('/api/publications')).json())[0].id).toBe(publication.id)
   })
 
   it('applies the same rules as sign-up, explaining them in plain words', async () => {
@@ -49,23 +49,27 @@ describe('changing your name', () => {
     expect((await put(setup().client(), 'Whoever')).status).toBe(401)
   })
 
-  it('shows the new name to the other people in a profile, and in invitations already sent', async () => {
+  it('shows the new name to the other people in a publication, and in invitations already sent', async () => {
     const ctx = setup()
     const ada = ctx.client()
     const bob = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob', PASSWORD, 'bobby')
     verifyAccounts(ctx, 'ada@example.com')
-    const profile = (await (await ada.get('/api/profiles')).json())[0].id
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    const publication = (await (await ada.get('/api/publications')).json())[0].id
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     const members = async () =>
-      ((await (await bob.get(`/api/profiles/${profile}`)).json()).members as { name: string }[])
+      (
+        (await (await bob.get(`/api/publications/${publication}`)).json()).members as {
+          name: string
+        }[]
+      )
         .map((m) => m.name)
         .sort()
     expect(await members()).toEqual(['Ada', 'Bob'])
 
     // An invitation that is still waiting names its sender as they are called now.
-    await ada.post(`/api/profiles/${profile}/invitations`, { email: 'eve@example.com' })
+    await ada.post(`/api/publications/${publication}/invitations`, { email: 'eve@example.com' })
     const token = lastInvitationToken(ctx.mailer)
     const sender = async () =>
       (await (await ctx.client().post('/api/invitations/preview', { token })).json()).inviterName

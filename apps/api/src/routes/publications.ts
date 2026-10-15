@@ -4,11 +4,11 @@ import {
   detectImageType,
   type FeedFetcher,
   MAX_IMAGE_BYTES,
-  MAX_OWNED_PROFILES,
+  MAX_OWNED_PUBLICATIONS,
   MemberRoleInputSchema,
-  ProfileDescriptionInputSchema,
-  ProfileInputSchema,
-  ProfileUpdateSchema,
+  PublicationDescriptionInputSchema,
+  PublicationInputSchema,
+  PublicationUpdateSchema,
 } from '@lfwa/core'
 import { requireMember, type AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
@@ -18,7 +18,7 @@ import { draftRoutes } from './drafts'
 import { imageResponse } from './image-response'
 import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
-import { moveRoutes, profileReadingRoutes } from './reading'
+import { moveRoutes, publicationReadingRoutes } from './reading'
 import { noteRoutes } from './notes'
 import { NoteEditService } from '../services/note-edits'
 import { MoveService } from '../services/moves'
@@ -28,9 +28,9 @@ import type { ResearchService } from '../services/research'
 import type { FeedItemService } from '../services/feed-items'
 import type { IdeaLinkService } from '../services/idea-links'
 import { handDraftsToOwner } from '../services/draft-editor'
-import { profileInvitationRoutes } from './invitations'
+import { publicationInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
-import { profileAttention } from '../services/attention'
+import { publicationAttention } from '../services/attention'
 import type { HandoverService } from '../services/handover'
 import type { ReviewService } from '../services/reviews'
 import type { InvitationService } from '../services/invitations'
@@ -42,7 +42,7 @@ import { ownerCannotLeaveMessage, setMemberRole } from '../services/owners'
 import { param } from './params'
 import { fetchSiteIcon } from '../services/site-icons'
 
-export interface ProfileRouteDeps {
+export interface PublicationRouteDeps {
   store: Store
   llmKeys: LlmKeyService
   invitations: InvitationService
@@ -62,7 +62,7 @@ export interface ProfileRouteDeps {
   research: ResearchService
 }
 
-export function profileRoutes({
+export function publicationRoutes({
   store,
   llmKeys,
   invitations,
@@ -77,7 +77,7 @@ export function profileRoutes({
   ideaLinks,
   brainstorm,
   research,
-}: ProfileRouteDeps) {
+}: PublicationRouteDeps) {
   const member = requireMember(store)
   const owner = requireMember(store, true)
   const noteEdits = new NoteEditService(store)
@@ -90,87 +90,92 @@ export function profileRoutes({
 
   return (
     new Hono<AppEnv>()
-      .get('/', (c) => c.json(store.profiles.listForUser(c.get('user').id)))
+      .get('/', (c) => c.json(store.publications.listForUser(c.get('user').id)))
 
-      .post('/', validateJson(ProfileInputSchema), async (c) => {
+      .post('/', validateJson(PublicationInputSchema), async (c) => {
         const user = c.get('user')
-        if (store.profiles.countOwnedBy(user.id) >= MAX_OWNED_PROFILES) {
+        if (store.publications.countOwnedBy(user.id) >= MAX_OWNED_PUBLICATIONS) {
           throw fail(
             409,
-            `You can have up to ${MAX_OWNED_PROFILES} profiles. Delete one you no longer use to make room.`,
+            `You can have up to ${MAX_OWNED_PUBLICATIONS} publications. Delete one you no longer use to make room.`,
           )
         }
         const { name, siteUrl } = c.req.valid('json')
         const icon = siteUrl ? await siteIconFor(user.id, siteUrl) : null
         const id = store.transaction(() => {
-          const created = store.profiles.create(name, user.id, siteUrl ?? null)
-          if (icon) store.profiles.setSiteIcon(created, icon)
+          const created = store.publications.create(name, user.id, siteUrl ?? null)
+          if (icon) store.publications.setSiteIcon(created, icon)
           return created
         })
-        return c.json(store.profiles.get(id, user.id), 201)
+        return c.json(store.publications.get(id, user.id), 201)
       })
 
       // What is waiting on this person, for the landing page.
-      .get('/:profileId/attention', member, (c) =>
-        c.json(profileAttention(store, param(c, 'profileId'), c.get('user').id)),
+      .get('/:publicationId/attention', member, (c) =>
+        c.json(publicationAttention(store, param(c, 'publicationId'), c.get('user').id)),
       )
 
-      .get('/:profileId', member, (c) =>
-        c.json(store.profiles.get(param(c, 'profileId'), c.get('user').id)),
+      .get('/:publicationId', member, (c) =>
+        c.json(store.publications.get(param(c, 'publicationId'), c.get('user').id)),
       )
 
-      .patch('/:profileId', owner, validateJson(ProfileUpdateSchema), async (c) => {
+      .patch('/:publicationId', owner, validateJson(PublicationUpdateSchema), async (c) => {
         const user = c.get('user')
         const changes = c.req.valid('json')
-        const current = store.profiles.get(param(c, 'profileId'), user.id)
+        const current = store.publications.get(param(c, 'publicationId'), user.id)
         // The network comes first, outside the transaction. Only a different website has a different icon.
         const websiteChanged = changes.siteUrl !== undefined && changes.siteUrl !== current?.siteUrl
         const icon =
           websiteChanged && changes.siteUrl ? await siteIconFor(user.id, changes.siteUrl) : null
         // One transaction: the name, the website, its icon and the new address change together or not at all.
         const id = store.transaction(() => {
-          const next = store.profiles.update(param(c, 'profileId'), changes)
-          if (websiteChanged) store.profiles.setSiteIcon(next, icon)
+          const next = store.publications.update(param(c, 'publicationId'), changes)
+          if (websiteChanged) store.publications.setSiteIcon(next, icon)
           return next
         })
-        return c.json(store.profiles.get(id, user.id))
+        return c.json(store.publications.get(id, user.id))
       })
 
-      // Anyone who works in the profile can describe it, unlike its name and website, which are the owner's.
-      .put('/:profileId/description', member, validateJson(ProfileDescriptionInputSchema), (c) => {
-        const id = param(c, 'profileId')
-        store.profiles.setDescription(id, c.req.valid('json').description)
-        return c.json(store.profiles.get(id, c.get('user').id))
-      })
+      // Anyone who works in the publication can describe it, unlike its name and website, which are the owner's.
+      .put(
+        '/:publicationId/description',
+        member,
+        validateJson(PublicationDescriptionInputSchema),
+        (c) => {
+          const id = param(c, 'publicationId')
+          store.publications.setDescription(id, c.req.valid('json').description)
+          return c.json(store.publications.get(id, c.get('user').id))
+        },
+      )
 
-      .delete('/:profileId', owner, (c) => {
-        store.profiles.delete(param(c, 'profileId'))
+      .delete('/:publicationId', owner, (c) => {
+        store.publications.delete(param(c, 'publicationId'))
         return c.body(null, 204)
       })
 
-      // Everything of theirs in this profile, as Markdown (#167); which drafts depends on their role.
-      .get('/:profileId/export', member, (c) => {
+      // Everything of theirs in this publication, as Markdown (#167); which drafts depends on their role.
+      .get('/:publicationId/export', member, (c) => {
         const user = c.get('user')
         throttleExport(exportLimiter, user.id)
-        return zipResponse(c, exports.profile(param(c, 'profileId'), user))
+        return zipResponse(c, exports.publication(param(c, 'publicationId'), user))
       })
 
       // The picture is raw bytes in the request body. What it is gets decided by looking at the
       // bytes, never by the Content-Type the client claims.
-      .get('/:profileId/image', member, (c) => {
-        const image = store.profiles.getImage(param(c, 'profileId'))
+      .get('/:publicationId/image', member, (c) => {
+        const image = store.publications.getImage(param(c, 'publicationId'))
         if (!image) throw fail(404, 'Not found')
         return imageResponse(c, image)
       })
 
-      .get('/:profileId/site-icon', member, (c) => {
-        const icon = store.profiles.getSiteIcon(param(c, 'profileId'))
+      .get('/:publicationId/site-icon', member, (c) => {
+        const icon = store.publications.getSiteIcon(param(c, 'publicationId'))
         if (!icon) throw fail(404, 'Not found')
         return imageResponse(c, icon)
       })
 
       .put(
-        '/:profileId/image',
+        '/:publicationId/image',
         owner,
         bodyLimit({
           maxSize: MAX_IMAGE_BYTES,
@@ -182,7 +187,7 @@ export function profileRoutes({
           },
         }),
         async (c) => {
-          const id = param(c, 'profileId')
+          const id = param(c, 'publicationId')
           const data = new Uint8Array(await c.req.arrayBuffer())
           const contentType = detectImageType(data)
           if (!contentType) {
@@ -191,26 +196,31 @@ export function profileRoutes({
               'That file is not a PNG, JPEG, WebP or GIF image. Choose a different one.',
             )
           }
-          store.profiles.setImage(id, { contentType, data })
-          return c.json(store.profiles.get(id, c.get('user').id))
+          store.publications.setImage(id, { contentType, data })
+          return c.json(store.publications.get(id, c.get('user').id))
         },
       )
 
-      .delete('/:profileId/image', owner, (c) => {
-        store.profiles.deleteImage(param(c, 'profileId'))
+      .delete('/:publicationId/image', owner, (c) => {
+        store.publications.deleteImage(param(c, 'publicationId'))
         return c.body(null, 204)
       })
 
-      .put('/:profileId/members/:userId/role', owner, validateJson(MemberRoleInputSchema), (c) => {
-        const id = param(c, 'profileId')
-        setMemberRole(store, id, c.get('user').id, param(c, 'userId'), c.req.valid('json').role)
-        return c.json(store.profiles.get(id, c.get('user').id))
-      })
+      .put(
+        '/:publicationId/members/:userId/role',
+        owner,
+        validateJson(MemberRoleInputSchema),
+        (c) => {
+          const id = param(c, 'publicationId')
+          setMemberRole(store, id, c.get('user').id, param(c, 'userId'), c.req.valid('json').role)
+          return c.json(store.publications.get(id, c.get('user').id))
+        },
+      )
 
       // Owners remove others; anyone can remove themselves, except an owner, who steps down first
-      // (or makes someone else an owner, or deletes the profile).
-      .delete('/:profileId/members/:userId', member, (c) => {
-        const id = param(c, 'profileId')
+      // (or makes someone else an owner, or deletes the publication).
+      .delete('/:publicationId/members/:userId', member, (c) => {
+        const id = param(c, 'publicationId')
         const me = c.get('user').id
         const targetId = param(c, 'userId')
         const isOwner = c.get('role') === 'owner'
@@ -218,58 +228,58 @@ export function profileRoutes({
         if (targetId === me && isOwner) {
           throw fail(400, ownerCannotLeaveMessage(store, id, me))
         }
-        if (!store.profiles.roleOf(id, targetId)) throw fail(404, 'Not found')
+        if (!store.publications.roleOf(id, targetId)) throw fail(404, 'Not found')
         store.transaction(() => {
-          store.profiles.removeMember(id, targetId)
+          store.publications.removeMember(id, targetId)
           handDraftsToOwner(store, id, targetId)
         })
         return c.body(null, 204)
       })
 
       .route(
-        '/:profileId/invitations',
+        '/:publicationId/invitations',
         new Hono<AppEnv>()
           .use(owner)
-          .route('/', profileInvitationRoutes(invitations, inviteLimiter)),
+          .route('/', publicationInvitationRoutes(invitations, inviteLimiter)),
       )
       .route(
-        '/:profileId/drafts',
+        '/:publicationId/drafts',
         new Hono<AppEnv>()
           .use(member)
           .route('/', draftRoutes(store, handover, reviews, inviteLimiter)),
       )
       .route(
-        '/:profileId/ideas',
+        '/:publicationId/ideas',
         new Hono<AppEnv>()
           .use(member)
           .route('/', ideaRoutes(store, ideaLinks, brainstorm, research)),
       )
       .route(
-        '/:profileId/sources',
+        '/:publicationId/sources',
         sourceRoutes(store, feeds, feedLimiter, member, feedItems, feedPosts),
       )
-      // The profile's own reading list and notes, gathered before there is an idea.
+      // The publication's own reading list and notes, gathered before there is an idea.
       .route(
-        '/:profileId/reading',
-        new Hono<AppEnv>().use(member).route('/', profileReadingRoutes(store, ideaLinks)),
+        '/:publicationId/reading',
+        new Hono<AppEnv>().use(member).route('/', publicationReadingRoutes(store, ideaLinks)),
       )
       .route(
-        '/:profileId/notes',
+        '/:publicationId/notes',
         new Hono<AppEnv>().use(member).route(
           '/',
           noteRoutes(
             store,
             noteEdits,
-            (c) => ({ profileId: param(c, 'profileId'), ideaId: null }),
+            (c) => ({ publicationId: param(c, 'publicationId'), ideaId: null }),
             {
               drafts: false,
             },
           ),
         ),
       )
-      .route('/:profileId/move', new Hono<AppEnv>().use(member).route('/', moveRoutes(moves)))
+      .route('/:publicationId/move', new Hono<AppEnv>().use(member).route('/', moveRoutes(moves)))
       .route(
-        '/:profileId/assist',
+        '/:publicationId/assist',
         new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),
       )
   )

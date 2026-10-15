@@ -41,21 +41,25 @@ export const server = setupServer(
     }),
   ),
   // No feeds yet, and so no recent posts.
-  http.get('*/api/profiles/:profileId/sources', () => HttpResponse.json([])),
-  // An empty reading list (the profile's, which the Read page shows).
-  http.get('*/api/profiles/:profileId/reading', () => HttpResponse.json([])),
-  // No notes yet, on the profile or on any idea.
-  http.get('*/api/profiles/:profileId/notes', () => HttpResponse.json([])),
-  http.get('*/api/profiles/:profileId/ideas/:ideaId/notes', () => HttpResponse.json([])),
+  http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json([])),
+  // An empty reading list (the publication's, which the Read page shows).
+  http.get('*/api/publications/:publicationId/reading', () => HttpResponse.json([])),
+  // No notes yet, on the publication or on any idea.
+  http.get('*/api/publications/:publicationId/notes', () => HttpResponse.json([])),
+  http.get('*/api/publications/:publicationId/ideas/:ideaId/notes', () => HttpResponse.json([])),
   // Nothing has been pulled into any draft from notes.
-  http.get('*/api/profiles/:profileId/drafts/:draftId/insertions', () => HttpResponse.json([])),
+  http.get('*/api/publications/:publicationId/drafts/:draftId/insertions', () =>
+    HttpResponse.json([]),
+  ),
   // No comments on any draft, and no critique of it either.
-  http.get('*/api/profiles/:profileId/drafts/:draftId/comments', () => HttpResponse.json([])),
-  http.get('*/api/profiles/:profileId/drafts/:draftId/critique', () =>
+  http.get('*/api/publications/:publicationId/drafts/:draftId/comments', () =>
+    HttpResponse.json([]),
+  ),
+  http.get('*/api/publications/:publicationId/drafts/:draftId/critique', () =>
     HttpResponse.json({ round: null, used: 0, allowed: 3 }),
   ),
   // No brainstorming has happened yet, on any idea.
-  http.get('*/api/profiles/:profileId/ideas/:ideaId/conversation', () =>
+  http.get('*/api/publications/:publicationId/ideas/:ideaId/conversation', () =>
     HttpResponse.json({ messages: [], replyingNow: null }),
   ),
 )
@@ -113,9 +117,9 @@ export const llmSettings = (hasKey: boolean) =>
     }),
   )
 
-/** A profile's reading list sources, for pages (like profile settings) that list them. */
+/** A publication's reading list sources, for pages (like publication settings) that list them. */
 export const sourcesList = (sources: { id: string; url: string }[] = []) =>
-  http.get('*/api/profiles/:profileId/sources', () => HttpResponse.json(sources))
+  http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json(sources))
 
 /** Renders `component` inside the real router (with guards), app plugins and a fresh pinia. */
 export async function renderAt(path: string, component?: Component) {

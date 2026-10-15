@@ -7,14 +7,14 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   signUp,
   verifyAccounts,
   createDraft,
 } from './test-helpers'
 
 describe('registration', () => {
-  it('creates an account with the chosen username and a session, but no profile yet', async () => {
+  it('creates an account with the chosen username and a session, but no publication yet', async () => {
     const { client } = setup()
     const c = client()
     const user = await signUp(c, 'ada@example.com', 'Ada', PASSWORD, 'countess')
@@ -30,8 +30,8 @@ describe('registration', () => {
     expect(me.status).toBe(200)
     expect((await me.json()).email).toBe('ada@example.com')
 
-    // The person creates their first profile themselves, so they can set it up as they like.
-    expect(await (await c.get('/api/profiles')).json()).toEqual([])
+    // The person creates their first publication themselves, so they can set it up as they like.
+    expect(await (await c.get('/api/publications')).json()).toEqual([])
   })
 
   it('lowercases and trims the username', async () => {
@@ -181,7 +181,7 @@ describe('login and sessions', () => {
   })
 
   it('requires a session for protected routes', async () => {
-    expect((await setup().client().get('/api/profiles')).status).toBe(401)
+    expect((await setup().client().get('/api/publications')).status).toBe(401)
   })
 
   it('logs out', async () => {
@@ -406,38 +406,40 @@ describe('account deletion', () => {
     expect(store.users.findByEmail('ada@example.com')).toBeDefined()
   })
 
-  it('removes the user, their sessions, and profiles only they belonged to', async () => {
+  it('removes the user, their sessions, and publications only they belonged to', async () => {
     const { client, store } = setup()
     const c = client()
     const user = await register(c)
     await saveKey(c)
-    const profileId = (await (await c.get('/api/profiles')).json())[0].id
-    await createDraft(c, profileId, { title: 'Mine', body: 'x' })
-    const second = await (await c.post('/api/profiles', { name: 'Second' })).json()
+    const publicationId = (await (await c.get('/api/publications')).json())[0].id
+    await createDraft(c, publicationId, { title: 'Mine', body: 'x' })
+    const second = await (await c.post('/api/publications', { name: 'Second' })).json()
     await createDraft(c, second.id, { title: 'Also mine', body: 'y' })
     const idea = await (
-      await c.post(`/api/profiles/${second.id}/ideas`, { name: 'An idea' })
+      await c.post(`/api/publications/${second.id}/ideas`, { name: 'An idea' })
     ).json()
-    await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/links`, {
+    await c.post(`/api/publications/${second.id}/ideas/${idea.id}/links`, {
       url: 'https://example.org',
     })
-    await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/notes`, { text: 'A note' })
+    await c.post(`/api/publications/${second.id}/ideas/${idea.id}/notes`, { text: 'A note' })
     const ideaDraft = await (
-      await c.post(`/api/profiles/${second.id}/ideas/${idea.id}/drafts`, { title: 'Idea draft' })
+      await c.post(`/api/publications/${second.id}/ideas/${idea.id}/drafts`, {
+        title: 'Idea draft',
+      })
     ).json()
     const noteId = store.notes.list(idea.id)[0]!.id
-    await c.post(`/api/profiles/${second.id}/drafts/${ideaDraft.id}/insertions`, {
+    await c.post(`/api/publications/${second.id}/drafts/${ideaDraft.id}/insertions`, {
       noteId,
       text: 'A note',
     })
     expect(store.drafts.insertions(ideaDraft.id)).toHaveLength(1)
-    await c.putBytes(`/api/profiles/${second.id}/image`, PNG_BYTES)
-    expect(store.profiles.getImage(second.id)).toBeDefined()
-    store.profiles.setSiteIcon(second.id, { contentType: 'image/png', data: PNG_BYTES })
-    expect(store.profiles.getSiteIcon(second.id)).toBeDefined()
-    // The profile's own reading list and notes, and the log of a move, go with it too.
+    await c.putBytes(`/api/publications/${second.id}/image`, PNG_BYTES)
+    expect(store.publications.getImage(second.id)).toBeDefined()
+    store.publications.setSiteIcon(second.id, { contentType: 'image/png', data: PNG_BYTES })
+    expect(store.publications.getSiteIcon(second.id)).toBeDefined()
+    // The publication's own reading list and notes, and the log of a move, go with it too.
     const own = store.reading.add(second.id, null, { url: 'https://own.example/', title: 'Own' })
-    store.notes.append(second.id, null, null, 'A profile-level note', 'reading', own.id)
+    store.notes.append(second.id, null, null, 'A publication-level note', 'reading', own.id)
     store.moves.record(second.id, user.id, 'batch', {
       kind: 'reading',
       itemId: own.id,
@@ -446,7 +448,7 @@ describe('account deletion', () => {
       merged: false,
     })
     store.feedDecisions.ignore(second.id, 'https://x.example/post', user.id)
-    expect(store.reading.list({ profileId: second.id })).toHaveLength(1)
+    expect(store.reading.list({ publicationId: second.id })).toHaveLength(1)
     const feed = store.sources.add(second.id, 'https://news.example/feed')
     store.sources.saveFetch(feed.id, {
       items: [],
@@ -463,18 +465,18 @@ describe('account deletion', () => {
       password: PASSWORD,
     })
     expect(res.status).toBe(204)
-    expect(store.profiles.getImage(second.id)).toBeUndefined()
-    expect(store.profiles.getSiteIcon(second.id)).toBeUndefined()
+    expect(store.publications.getImage(second.id)).toBeUndefined()
+    expect(store.publications.getSiteIcon(second.id)).toBeUndefined()
     expect(store.sources.getFetch(feed.id)).toBeUndefined()
-    expect(store.reading.list({ profileId: second.id })).toEqual([])
-    expect(store.notes.list({ profileId: second.id })).toEqual([])
+    expect(store.reading.list({ publicationId: second.id })).toEqual([])
+    expect(store.notes.list({ publicationId: second.id })).toEqual([])
     expect(store.moves.list(second.id)).toEqual([])
     expect(store.feedDecisions.ignored(second.id).size).toBe(0)
 
     expect(store.users.findById(user.id)).toBeUndefined()
-    expect(store.profiles.listIdsForUser(user.id)).toEqual([])
-    expect(store.profiles.members(profileId)).toEqual([])
-    expect(store.drafts.list(profileId)).toEqual([])
+    expect(store.publications.listIdsForUser(user.id)).toEqual([])
+    expect(store.publications.members(publicationId)).toEqual([])
+    expect(store.drafts.list(publicationId)).toEqual([])
     expect(store.drafts.list(second.id)).toEqual([])
     expect(store.ideas.list(second.id)).toEqual([])
     expect(store.ideas.countLinks(idea.id)).toBe(0)
@@ -490,7 +492,7 @@ describe('account deletion', () => {
     ).toBe(401)
   })
 
-  it('leaves shared profiles intact for the others once another owner has been chosen', async () => {
+  it('leaves shared publications intact for the others once another owner has been chosen', async () => {
     const { client, store, mailer } = setup()
     const ada = client()
     const bob = client()
@@ -500,9 +502,9 @@ describe('account deletion', () => {
     const carolUser = await register(carol, 'carol@example.com', 'Carol')
     verifyAccounts({ store }, 'ada@example.com', 'bob@example.com', 'carol@example.com')
 
-    const shared = await (await ada.post('/api/profiles', { name: 'Joint piece' })).json()
-    await shareProfile({ mailer }, ada, shared.id, bob, 'bob@example.com')
-    await shareProfile({ mailer }, ada, shared.id, carol, 'carol@example.com')
+    const shared = await (await ada.post('/api/publications', { name: 'Joint piece' })).json()
+    await sharePublication({ mailer }, ada, shared.id, bob, 'bob@example.com')
+    await sharePublication({ mailer }, ada, shared.id, carol, 'carol@example.com')
     await createDraft(ada, shared.id, { title: 'Co-written', body: 'text' })
 
     // As the only owner she can't leave the others without one; she chooses Bob first.
@@ -511,16 +513,16 @@ describe('account deletion', () => {
       password: PASSWORD,
     })
     expect(refused.status).toBe(409)
-    await ada.put(`/api/profiles/${shared.id}/members/${bobUser.id}/role`, { role: 'owner' })
+    await ada.put(`/api/publications/${shared.id}/members/${bobUser.id}/role`, { role: 'owner' })
     await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
 
-    const view = await (await bob.get(`/api/profiles/${shared.id}`)).json()
+    const view = await (await bob.get(`/api/publications/${shared.id}`)).json()
     expect(view.members.map((m: { userId: string }) => m.userId)).toEqual([
       bobUser.id,
       carolUser.id,
     ])
     expect(view.members.find((m: { userId: string }) => m.userId === bobUser.id).role).toBe('owner')
-    expect(await (await bob.get(`/api/profiles/${shared.id}/ideas`)).json()).toHaveLength(1)
+    expect(await (await bob.get(`/api/publications/${shared.id}/ideas`)).json()).toHaveLength(1)
     expect(store.users.findByEmail('ada@example.com')).toBeUndefined()
   })
 

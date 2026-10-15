@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { FakeFeedFetcher, MAX_SOURCES_PER_PROFILE, TINY_PNG } from '@lfwa/core'
-import { register, setup, shareProfile, verifyAccounts, type TestClient } from './test-helpers'
+import { FakeFeedFetcher, MAX_SOURCES_PER_PUBLICATION, TINY_PNG } from '@lfwa/core'
+import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('idea sources', () => {
   let ctx: ReturnType<typeof setup>
@@ -19,7 +19,7 @@ describe('idea sources', () => {
     await register(ada, 'ada@example.com', 'Ada')
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
-    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
+    base = `/api/publications/${(await (await ada.get('/api/publications')).json())[0].id}/sources`
   })
 
   it('starts empty, and keeps sources in the order they were added', async () => {
@@ -61,14 +61,14 @@ describe('idea sources', () => {
     expect(await list()).toHaveLength(1)
   })
 
-  it('limits how many sources a profile can have', async () => {
-    const profileId = base.split('/')[3]!
-    for (let i = 0; i < MAX_SOURCES_PER_PROFILE; i++) {
-      ctx.store.sources.add(profileId, `https://s${i}.example/feed`)
+  it('limits how many sources a publication can have', async () => {
+    const publicationId = base.split('/')[3]!
+    for (let i = 0; i < MAX_SOURCES_PER_PUBLICATION; i++) {
+      ctx.store.sources.add(publicationId, `https://s${i}.example/feed`)
     }
     const res = await add('https://one-too-many.example/feed')
     expect(res.status).toBe(409)
-    expect((await res.json()).error).toContain(`${MAX_SOURCES_PER_PROFILE}`)
+    expect((await res.json()).error).toContain(`${MAX_SOURCES_PER_PUBLICATION}`)
   })
 
   it('removes a source and keeps the rest in order, so later additions go last', async () => {
@@ -109,9 +109,9 @@ describe('idea sources', () => {
     expect(await urls()).toEqual(before)
   })
 
-  it('lets any member of the profile read and change the list', async () => {
+  it('lets any member of the publication read and change the list', async () => {
     const { id } = await (await add('https://a.example/f')).json()
-    await shareProfile(ctx, ada, base.split('/')[3]!, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, base.split('/')[3]!, bob, 'bob@example.com')
 
     expect(await list(bob)).toHaveLength(1)
     const added = await (await add('https://b.example/f', bob)).json()
@@ -122,14 +122,14 @@ describe('idea sources', () => {
     expect(await urls()).toEqual(['https://b.example/f'])
   })
 
-  it("hides one profile's sources from people who aren't in it, and can't be reached through another", async () => {
+  it("hides one publication's sources from people who aren't in it, and can't be reached through another", async () => {
     const { id } = await (await add('https://a.example/f')).json()
     expect((await bob.get(base)).status).toBe(404)
     expect((await add('https://x.example/f', bob)).status).toBe(404)
     expect((await bob.delete(`${base}/${id}`)).status).toBe(404)
 
-    // Bob's own profile cannot be used to delete Ada's source by guessing its id.
-    const bobBase = `/api/profiles/${(await (await bob.get('/api/profiles')).json())[0].id}/sources`
+    // Bob's own publication cannot be used to delete Ada's source by guessing its id.
+    const bobBase = `/api/publications/${(await (await bob.get('/api/publications')).json())[0].id}/sources`
     expect((await bob.delete(`${bobBase}/${id}`)).status).toBe(404)
     expect(await list()).toHaveLength(1)
     expect(await list(bob, bobBase)).toEqual([])
@@ -155,7 +155,7 @@ describe('idea sources', () => {
       const c = setup({ feeds: fetcher })
       user = c.client()
       await register(user)
-      path = `/api/profiles/${(await (await user.get('/api/profiles')).json())[0].id}/sources`
+      path = `/api/publications/${(await (await user.get('/api/publications')).json())[0].id}/sources`
     })
     const listed = async () =>
       (await (await user.get(path)).json()).map((s: { url: string }) => s.url)
@@ -227,8 +227,10 @@ describe('idea sources', () => {
     const c = setup({ feeds: fetcher })
     const user = c.client()
     await register(user)
-    const profile = (await (await user.get('/api/profiles')).json())[0].id
-    const res = await user.post(`/api/profiles/${profile}/sources`, { url: 'slow.example/feed' })
+    const publication = (await (await user.get('/api/publications')).json())[0].id
+    const res = await user.post(`/api/publications/${publication}/sources`, {
+      url: 'slow.example/feed',
+    })
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({
       id: expect.any(String),
@@ -252,12 +254,14 @@ describe('idea sources', () => {
     const outsider = c.client()
     await register(user)
     await register(outsider, 'eve@example.com', 'Eve')
-    const profile = (await (await user.get('/api/profiles')).json())[0].id
+    const publication = (await (await user.get('/api/publications')).json())[0].id
     const source = await (
-      await user.post(`/api/profiles/${profile}/sources`, { url: 'https://pic.example/feed' })
+      await user.post(`/api/publications/${publication}/sources`, {
+        url: 'https://pic.example/feed',
+      })
     ).json()
     expect(source.iconUrl).toMatch(
-      new RegExp(`^/api/profiles/${profile}/sources/${source.id}/icon\\?v=\\d+$`),
+      new RegExp(`^/api/publications/${publication}/sources/${source.id}/icon\\?v=\\d+$`),
     )
 
     const image = await user.get(source.iconUrl)
@@ -266,10 +270,10 @@ describe('idea sources', () => {
     expect(image.headers.get('x-content-type-options')).toBe('nosniff')
     expect(await image.bytes()).toEqual(TINY_PNG)
     expect((await outsider.get(source.iconUrl)).status).toBe(404)
-    expect((await user.get(`/api/profiles/${profile}/sources/nope/icon`)).status).toBe(404)
+    expect((await user.get(`/api/publications/${publication}/sources/nope/icon`)).status).toBe(404)
 
     // It goes when the source does.
-    await user.delete(`/api/profiles/${profile}/sources/${source.id}`)
+    await user.delete(`/api/publications/${publication}/sources/${source.id}`)
     expect((await user.get(source.iconUrl)).status).toBe(404)
   })
 
@@ -278,8 +282,8 @@ describe('idea sources', () => {
     const c = setup({ feeds: fetcher })
     const user = c.client()
     await register(user)
-    const profile = (await (await user.get('/api/profiles')).json())[0].id
-    const res = await user.post(`/api/profiles/${profile}/sources`, {
+    const publication = (await (await user.get('/api/publications')).json())[0].id
+    const res = await user.post(`/api/publications/${publication}/sources`, {
       url: 'https://noicon.example/f',
     })
     expect((await res.json()).iconUrl).toBeNull()
@@ -303,8 +307,8 @@ describe('idea sources', () => {
     const c = setup({ feeds: fetcher })
     const user = c.client()
     await register(user)
-    const profile = (await (await user.get('/api/profiles')).json())[0].id
-    const path = `/api/profiles/${profile}/sources`
+    const publication = (await (await user.get('/api/publications')).json())[0].id
+    const path = `/api/publications/${publication}/sources`
     expect((await (await user.post(path, { url: 'https://site.example/' })).json()).url).toBe(
       'https://site.example/feed.xml',
     )
@@ -318,7 +322,7 @@ describe('idea sources', () => {
     const c = setup({ feeds: fetcher })
     const user = c.client()
     await register(user)
-    const path = `/api/profiles/${(await (await user.get('/api/profiles')).json())[0].id}/sources`
+    const path = `/api/publications/${(await (await user.get('/api/publications')).json())[0].id}/sources`
     await user.post(path, { url: 'https://a.example/f' })
     await user.post(path, { url: 'https://a.example/f' })
     await user.post(path, { url: 'ftp://a.example/f' })
@@ -327,11 +331,11 @@ describe('idea sources', () => {
 
   it('limits how fast one person can add sources, since each add reads the internet', async () => {
     const statuses: number[] = []
-    const profileId = base.split('/')[3]!
+    const publicationId = base.split('/')[3]!
     for (let i = 0; i < 32; i++) {
       statuses.push((await add(`https://r${i}.example/f`)).status)
       if (statuses.length === 25)
-        ctx.store.sources.remove(profileId, ctx.store.sources.list(profileId)[0]!.id)
+        ctx.store.sources.remove(publicationId, ctx.store.sources.list(publicationId)[0]!.id)
     }
     expect(statuses.slice(0, 30).every((s) => s === 201)).toBe(true)
     expect(statuses.slice(30)).toEqual([429, 429])
@@ -341,22 +345,22 @@ describe('idea sources', () => {
     expect((await ctx.client().get(base)).status).toBe(401)
   })
 
-  it('goes with the profile when it is renamed, and when it is deleted', async () => {
+  it('goes with the publication when it is renamed, and when it is deleted', async () => {
     await add('https://a.example/f')
-    const profileId = base.split('/')[3]!
+    const publicationId = base.split('/')[3]!
     const renamed = await (
-      await ada.patch(`/api/profiles/${profileId}`, { name: 'Renamed' })
+      await ada.patch(`/api/publications/${publicationId}`, { name: 'Renamed' })
     ).json()
-    expect(renamed.id).not.toBe(profileId)
-    expect(await list(ada, `/api/profiles/${renamed.id}/sources`)).toHaveLength(1)
+    expect(renamed.id).not.toBe(publicationId)
+    expect(await list(ada, `/api/publications/${renamed.id}/sources`)).toHaveLength(1)
 
-    await ada.delete(`/api/profiles/${renamed.id}`)
+    await ada.delete(`/api/publications/${renamed.id}`)
     expect(ctx.store.sources.count(renamed.id)).toBe(0)
   })
 
-  it('is removed with the account of a profile’s only member', async () => {
+  it('is removed with the account of a publication’s only member', async () => {
     await add('https://a.example/f')
-    const profileId = base.split('/')[3]!
+    const publicationId = base.split('/')[3]!
     expect(
       (
         await ada.delete('/api/account', {
@@ -365,7 +369,7 @@ describe('idea sources', () => {
         })
       ).status,
     ).toBe(204)
-    expect(ctx.store.sources.count(profileId)).toBe(0)
+    expect(ctx.store.sources.count(publicationId)).toBe(0)
   })
 })
 
@@ -389,7 +393,7 @@ describe('recent posts of a source', () => {
     ctx = setup({ feeds: fetcher })
     ada = ctx.client()
     await register(ada)
-    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
+    base = `/api/publications/${(await (await ada.get('/api/publications')).json())[0].id}/sources`
     sourceId = (await (await ada.post(base, { url: 'https://news.example/feed' })).json()).id
   }
   const items = (query = '') => ada.get(`${base}/${sourceId}/items${query}`)
@@ -482,10 +486,10 @@ describe('recent posts of a source', () => {
   it('limits how many reads one person can start in an hour, but still shows what is kept', async () => {
     await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
     await items() // now a copy is kept
-    const profileId = base.split('/')[3]!
+    const publicationId = base.split('/')[3]!
     const ids: string[] = []
     for (let i = 0; i < 125; i++) {
-      ids.push(ctx.store.sources.add(profileId, `https://s${i}.example/feed`).id)
+      ids.push(ctx.store.sources.add(publicationId, `https://s${i}.example/feed`).id)
     }
     let refused = 0
     for (const id of ids) {
@@ -496,12 +500,12 @@ describe('recent posts of a source', () => {
     expect((await items()).status).toBe(200) // the kept copy needs no outbound read
   })
 
-  it('is for members only, and a source of another profile cannot be reached through this one', async () => {
+  it('is for members only, and a source of another publication cannot be reached through this one', async () => {
     await start({ 'https://news.example/feed': { title: 'News', items: [post(1)] } })
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     expect((await bob.get(`${base}/${sourceId}/items`)).status).toBe(404)
-    const bobBase = `/api/profiles/${(await (await bob.get('/api/profiles')).json())[0].id}/sources`
+    const bobBase = `/api/publications/${(await (await bob.get('/api/publications')).json())[0].id}/sources`
     expect((await bob.get(`${bobBase}/${sourceId}/items`)).status).toBe(404)
     expect((await ada.get(`${base}/nope/items`)).status).toBe(404)
   })
@@ -538,7 +542,7 @@ describe('recent posts across all the feeds', () => {
     ctx = setup({ feeds: fetcher })
     ada = ctx.client()
     await register(ada)
-    base = `/api/profiles/${(await (await ada.get('/api/profiles')).json())[0].id}/sources`
+    base = `/api/publications/${(await (await ada.get('/api/publications')).json())[0].id}/sources`
     ids = {}
     for (const url of Object.keys(feeds ?? {})) {
       ids[url] = (await (await ada.post(base, { url })).json()).id
@@ -652,7 +656,7 @@ describe('recent posts across all the feeds', () => {
     expect((await bob.get(`${base}/recent`)).status).toBe(404)
   })
 
-  it('is empty, not an error, for a profile with no feeds', async () => {
+  it('is empty, not an error, for a publication with no feeds', async () => {
     await start({})
     expect(await recent()).toEqual({ days: 30, posts: [], omitted: 0, undated: 0, failed: [] })
   })

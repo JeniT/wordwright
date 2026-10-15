@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import { PROFILE_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
+import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@lfwa/core'
 import { errorMessage } from '../lib/api'
 import { readingRoute, useReadingActions } from '../lib/reading'
 import HoldButton from './HoldButton.vue'
@@ -11,9 +11,9 @@ import SwitchField from './SwitchField.vue'
 import TextField from './TextField.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
-/** An item of an idea's reading list, or (no `ideaId`) of the profile's own. */
+/** An item of an idea's reading list, or (no `ideaId`) of the publication's own. */
 const props = defineProps<{
-  profileId: string
+  publicationId: string
   ideaId: string | null
   link: IdeaLink
   /** Chosen for a bulk action in the list's toolbar. */
@@ -22,7 +22,7 @@ const props = defineProps<{
   knownTags?: readonly string[]
 }>()
 const emit = defineEmits<{ remove: []; select: [on: boolean] }>()
-const owner = () => ({ profileId: props.profileId, ideaId: props.ideaId })
+const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
 const { setRead, setKept, setTags, update: save } = useReadingActions(owner)
 const saveTags = (tags: string[]) => setTags.mutateAsync({ linkId: props.link.id, tags })
 
@@ -77,10 +77,10 @@ const host = () => {
     return props.link.url
   }
 }
-/** When an unkept item will drop off the profile's list: a month after it was added. */
+/** When an unkept item will drop off the publication's list: a month after it was added. */
 const dropsOn = () => {
   if (!props.link.addedAt) return null
-  const day = new Date(Date.parse(props.link.addedAt) + PROFILE_READING_DAYS * 86_400_000)
+  const day = new Date(Date.parse(props.link.addedAt) + PUBLICATION_READING_DAYS * 86_400_000)
   return day.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 /** What removing does to the writer's way back, said where they press and hold. */
@@ -215,7 +215,7 @@ function saveLink() {
             :disabled="setRead.isPending.value"
             @update:model-value="toggleRead"
           />
-          <!-- Only the profile's own list drops items after a month; this one is to stay. -->
+          <!-- Only the publication's own list drops items after a month; this one is to stay. -->
           <SwitchField
             v-if="!ideaId"
             ref="keepSwitch"

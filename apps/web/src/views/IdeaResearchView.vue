@@ -5,14 +5,14 @@ import NextStep from '../components/NextStep.vue'
 import ReadingList from '../components/ReadingList.vue'
 import StepHeading from '../components/StepHeading.vue'
 
-/** Step 01 of an idea: gather what it builds on (the idea's own reading list; the profile's is separate). */
-defineProps<{ profileId: string; id: string }>()
+/** Step 01 of an idea: gather what it builds on (the idea's own reading list; the publication's is separate). */
+defineProps<{ publicationId: string; id: string }>()
 </script>
 
 <template>
-  <IdeaGate :id="id" :profile-id="profileId">
+  <IdeaGate :id="id" :publication-id="publicationId">
     <StepHeading>Research</StepHeading>
-    <ReadingList :profile-id="profileId" :idea-id="id" />
+    <ReadingList :publication-id="publicationId" :idea-id="id" />
 
     <section aria-labelledby="find-heading" class="mb-10">
       <h2 id="find-heading" class="mb-1 font-display text-xl font-semibold">
@@ -24,14 +24,14 @@ defineProps<{ profileId: string; id: string }>()
         reading list above. You can research as many areas as you like.
       </p>
       <RouterLink
-        :to="{ name: 'research', params: { profileId, id } }"
+        :to="{ name: 'research', params: { publicationId, id } }"
         class="btn btn-outline inline-block"
       >
         Start research
       </RouterLink>
     </section>
 
-    <NextStep :to="{ name: 'idea-notes', params: { profileId, id } }" label="Next: 02 Notes">
+    <NextStep :to="{ name: 'idea-notes', params: { publicationId, id } }" label="Next: 02 Notes">
       Read your sources and take notes from them, then tidy the notes.
     </NextStep>
   </IdeaGate>

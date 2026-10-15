@@ -3,9 +3,9 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
-useMockServer({ warm: ['profile'] })
+useMockServer({ warm: ['publication'] })
 
-const profile = {
+const publication = {
   id: 'p1',
   name: 'Ada’s writing',
   siteUrl: null,
@@ -28,23 +28,23 @@ const snapshot = (over: object = {}) => ({
 function home(attention: object, calls: string[] = []) {
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile])),
-    http.get('*/api/profiles/p1/attention', () =>
+    http.get('*/api/publications', () => HttpResponse.json([publication])),
+    http.get('*/api/publications/p1/attention', () =>
       HttpResponse.json({ offered: [], waiting: [], reviews: [], ...attention }),
     ),
-    http.get('*/api/profiles/p1/ideas', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/notes', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/sources', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/reading', () => HttpResponse.json([])),
-    http.post('*/api/profiles/p1/drafts/d1/handover/offer/accept', () => {
+    http.get('*/api/publications/p1/ideas', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/notes', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/sources', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/reading', () => HttpResponse.json([])),
+    http.post('*/api/publications/p1/drafts/d1/handover/offer/accept', () => {
       calls.push('accept')
       return HttpResponse.json({})
     }),
-    http.post('*/api/profiles/p1/drafts/d1/handover/offer/decline', () => {
+    http.post('*/api/publications/p1/drafts/d1/handover/offer/decline', () => {
       calls.push('decline')
       return HttpResponse.json({})
     }),
-    http.delete('*/api/profiles/p1/drafts/d1/handover/offer', () => {
+    http.delete('*/api/publications/p1/drafts/d1/handover/offer', () => {
       calls.push('withdraw')
       return HttpResponse.json({})
     }),
@@ -52,7 +52,7 @@ function home(attention: object, calls: string[] = []) {
   return calls
 }
 
-describe('what is waiting, on the profile’s landing page (#159)', () => {
+describe('what is waiting, on the publication’s landing page (#159)', () => {
   it('shows nothing at all when nothing is waiting', async () => {
     home({})
     await renderAt('/p/p1')
@@ -116,7 +116,7 @@ describe('what is waiting, on the profile’s landing page (#159)', () => {
   it('says what went wrong if an answer is refused', async () => {
     home({ offered: [{ draftId: 'd1', title: 'Meanders', fromName: 'Bob Jones' }] })
     server.use(
-      http.post('*/api/profiles/p1/drafts/d1/handover/offer/accept', () =>
+      http.post('*/api/publications/p1/drafts/d1/handover/offer/accept', () =>
         HttpResponse.json({ error: 'There is no offer of this draft for you.' }, { status: 404 }),
       ),
     )

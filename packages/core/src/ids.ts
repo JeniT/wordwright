@@ -1,8 +1,8 @@
 /**
  * Human-readable identifiers.
  *
- * A profile id is `<owner handle>-<slug of its name>`, e.g. `jenit-substack`, so shared links read
- * well and two people can each have a profile called "Substack". Handles contain only letters and
+ * A publication id is `<owner handle>-<slug of its name>`, e.g. `jenit-substack`, so shared links read
+ * well and two people can each have a publication called "Substack". Handles contain only letters and
  * digits (never `-`), which makes the split between handle and slug unambiguous: two different
  * (handle, slug) pairs can never produce the same id.
  */
@@ -11,7 +11,7 @@ export const HANDLE_MIN = 3
 export const HANDLE_MAX = 30
 export const HANDLE_PATTERN = /^[a-z0-9]+$/
 /**
- * Usernames nobody may take, because they would look like the service or its staff in a profile
+ * Usernames nobody may take, because they would look like the service or its staff in a publication
  * address. Only checked when a username is chosen, so an account that already has one keeps it.
  */
 export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
@@ -66,8 +66,8 @@ export function suggestHandle(name: string, email: string): string {
   return base.length >= HANDLE_MIN ? base : `${base}writer`
 }
 
-export const profileIdFor = (handle: string, profileName: string) =>
-  `${handle}-${slugify(profileName) || 'profile'}`
+export const publicationIdFor = (handle: string, publicationName: string) =>
+  `${handle}-${slugify(publicationName) || 'publication'}`
 
 /** `base`, or `base2`, `base3`... (joined by `separator`) until `isTaken` says it's free. */
 export function firstAvailable(

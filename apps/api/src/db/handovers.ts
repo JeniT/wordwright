@@ -40,7 +40,7 @@ export class HandoverStore {
     return this.get(draftId, id)!
   }
 
-  /** The system moved the editor role because the previous editor left the profile. */
+  /** The system moved the editor role because the previous editor left the publication. */
   addAutomaticReassignment(draftId: string, newEditorId: string) {
     const now = nowIso()
     this.db
@@ -99,24 +99,24 @@ export class HandoverStore {
       .run(now, draftId, newEditorId)
   }
 
-  /** A member leaves a profile: whatever they had open there is closed, so nothing waits on someone who is gone. */
-  closeForLeaver(profileId: string, userId: string) {
+  /** A member leaves a publication: whatever they had open there is closed, so nothing waits on someone who is gone. */
+  closeForLeaver(publicationId: string, userId: string) {
     const now = nowIso()
-    const inProfile = '(SELECT id FROM drafts WHERE profile_id = ?)'
+    const inPublication = '(SELECT id FROM drafts WHERE publication_id = ?)'
     const close = (status: Status, where: string) =>
       this.db
         .prepare(
           `UPDATE draft_handovers SET status = ?, resolved_at = ?
-           WHERE status = 'pending' AND draft_id IN ${inProfile} AND ${where}`,
+           WHERE status = 'pending' AND draft_id IN ${inPublication} AND ${where}`,
         )
-        .run(status, now, profileId, userId)
+        .run(status, now, publicationId, userId)
     close('withdrawn', "kind = 'offer' AND actor_id = ?")
     close('declined', "kind = 'offer' AND member_id = ?")
     close('withdrawn', "kind = 'ask' AND actor_id = ?")
   }
 
-  /** Open offers in the profile that are made to this person, or (`by`) that this person has made. */
-  openOffers(profileId: string, userId: string, side: 'to' | 'by') {
+  /** Open offers in the publication that are made to this person, or (`by`) that this person has made. */
+  openOffers(publicationId: string, userId: string, side: 'to' | 'by') {
     const mine = side === 'to' ? 'h.member_id' : 'h.actor_id'
     const other = side === 'to' ? 'h.actor_id' : 'h.member_id'
     const otherName =
@@ -128,11 +128,11 @@ export class HandoverStore {
          JOIN drafts d ON d.id = h.draft_id
          LEFT JOIN users a ON a.id = h.actor_id
          LEFT JOIN users m ON m.id = h.member_id
-         WHERE d.profile_id = ? AND h.kind = 'offer' AND h.status = 'pending' AND ${mine} = ?
+         WHERE d.publication_id = ? AND h.kind = 'offer' AND h.status = 'pending' AND ${mine} = ?
            AND ${other} IS NOT NULL
          ORDER BY h.created_at, h.rowid`,
       )
-      .all(profileId, userId)
+      .all(publicationId, userId)
       .map((r) => ({
         draftId: r.draft_id as string,
         title: r.title as string,

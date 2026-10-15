@@ -41,7 +41,7 @@ describe('login with an external identity provider', () => {
     expect(await (await setup().client().get('/api/auth/config')).json()).toEqual({ providers: [] })
   })
 
-  it('creates a verified account (with a suggested username, and no profile yet) on first login, then reuses it', async () => {
+  it('creates a verified account (with a suggested username, and no publication yet) on first login, then reuses it', async () => {
     const { client, store } = withIdp()
     const c = client()
     const res = await signInWithIdp(c)
@@ -56,12 +56,12 @@ describe('login with an external identity provider', () => {
       linkedProviders: ['google'],
     })
     expect(me.handle).toBe('adalovelace')
-    expect(await (await c.get('/api/profiles')).json()).toEqual([])
+    expect(await (await c.get('/api/publications')).json()).toEqual([])
 
     const again = client()
     await signInWithIdp(again)
     expect((await (await again.get('/api/auth/me')).json()).id).toBe(me.id)
-    expect(store.profiles.listIdsForUser(me.id)).toHaveLength(0)
+    expect(store.publications.listIdsForUser(me.id)).toHaveLength(0)
   })
 
   it('sends a PKCE challenge and uses the matching verifier on exchange', async () => {

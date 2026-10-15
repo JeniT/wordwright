@@ -3,20 +3,20 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
-import ProfileImage from '../components/ProfileImage.vue'
+import PublicationImage from '../components/PublicationImage.vue'
 import UsernameSection from '../components/UsernameSection.vue'
 import { api } from '../lib/api'
 import { queryKeys } from '../lib/queries'
-import { displayHost, useProfiles } from '../lib/useProfiles'
+import { displayHost, usePublications } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
 import QueryState from '../components/QueryState.vue'
 
 const session = useSessionStore()
-const profiles = useProfiles()
+const publications = usePublications()
 // Shares the cache with the setup form, which updates it when a key is saved.
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
 const justConnected = ref(false)
-// Drafts other people have asked this person to read and comment on (a member of a profile may be asked to).
+// Drafts other people have asked this person to read and comment on (a member of a publication may be asked to).
 const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
 const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state === 'open'))
 </script>
@@ -27,7 +27,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
     <UsernameSection prompt />
   </div>
   <div v-if="llm.data.value && !llm.data.value.hasKey" class="mb-10 panel p-5">
-    <p v-if="session.user && !profiles.data.value?.length" class="mb-4 font-display text-lg">
+    <p v-if="session.user && !publications.data.value?.length" class="mb-4 font-display text-lg">
       Welcome, {{ session.user.name }}. Two quick steps and you're ready to write.
     </p>
     <LlmSettingsSection guide @saved="justConnected = true" />
@@ -44,41 +44,45 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
           r.draftTitle || 'Untitled draft'
         }}</RouterLink>
         <span class="meta">
-          · {{ r.profileName
+          · {{ r.publicationName
           }}<template v-if="r.inviterName"> · asked by {{ r.inviterName }}</template></span
         >
       </li>
     </ul>
   </section>
 
-  <section aria-labelledby="profiles-heading">
+  <section aria-labelledby="publications-heading">
     <div class="mb-6 flex items-center justify-between gap-4">
-      <h1 id="profiles-heading" class="font-display text-2xl font-semibold">Your profiles</h1>
-      <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary">New profile</RouterLink>
+      <h1 id="publications-heading" class="font-display text-2xl font-semibold">
+        Your publications
+      </h1>
+      <RouterLink :to="{ name: 'new-publication' }" class="btn btn-primary"
+        >New publication</RouterLink
+      >
     </div>
 
-    <QueryState :query="profiles" what="your profiles">
+    <QueryState :query="publications" what="your publications">
       <div
-        v-if="!profiles.data.value?.length"
+        v-if="!publications.data.value?.length"
         class="rounded-ctl border border-dashed border-line-strong p-8 text-center"
       >
-        <p class="font-display text-lg">Next, create your first profile</p>
+        <p class="font-display text-lg">Next, create your first publication</p>
         <p class="mx-auto mt-2 max-w-md text-ink-soft">
-          A profile is a place you publish, like a Substack or a blog. It keeps its own ideas,
+          A publication is a place you publish, like a Substack or a blog. It keeps its own ideas,
           readers and drafts together. You can give it a name, a website and a picture, and share it
           with others later.
         </p>
-        <RouterLink :to="{ name: 'new-profile' }" class="btn btn-primary mt-4 inline-block">
-          Create your first profile
+        <RouterLink :to="{ name: 'new-publication' }" class="btn btn-primary mt-4 inline-block">
+          Create your first publication
         </RouterLink>
       </div>
       <ul v-else class="grid gap-4 sm:grid-cols-2">
-        <li v-for="p in profiles.data.value" :key="p.id">
+        <li v-for="p in publications.data.value" :key="p.id">
           <RouterLink
-            :to="{ name: 'profile', params: { profileId: p.id } }"
+            :to="{ name: 'publication', params: { publicationId: p.id } }"
             class="flex h-full items-center gap-4 rounded-panel border border-line bg-surface p-4 hover:border-accent"
           >
-            <ProfileImage
+            <PublicationImage
               :id="p.id"
               :name="p.name"
               :image-url="p.imageUrl"

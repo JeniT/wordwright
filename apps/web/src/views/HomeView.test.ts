@@ -5,11 +5,11 @@ import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } fr
 
 useMockServer()
 
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
 
 describe('landing page: connecting an AI key', () => {
   it('walks a new user through getting a key, with a field to paste it into', async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(false))
+    server.use(signedInAs(testUser), noPublications, llmSettings(false))
     await renderAt('/')
     const heading = await screen.findByRole('heading', { name: 'First, connect your AI assistant' })
     const section = heading.closest('section')!
@@ -28,11 +28,11 @@ describe('landing page: connecting an AI key', () => {
     // The model choice can wait for the account page.
     expect(within(section).queryByLabelText('Model')).toBeNull()
 
-    // A brand-new user is also pointed at their first profile.
+    // A brand-new user is also pointed at their first publication.
     expect(screen.getByText(/Welcome, Ada Lovelace/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Create your first profile' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Create your first publication' })).toHaveAttribute(
       'href',
-      '/profiles/new',
+      '/publications/new',
     )
   })
 
@@ -41,7 +41,7 @@ describe('landing page: connecting an AI key', () => {
     let saved = false
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       http.get('*/api/llm', () =>
         HttpResponse.json({
           provider: 'anthropic',
@@ -80,7 +80,7 @@ describe('landing page: connecting an AI key', () => {
   it('shows why a key was refused, and keeps the instructions', async () => {
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       llmSettings(false),
       http.put('*/api/llm', () =>
         HttpResponse.json({ error: 'That API key was rejected by the provider.' }, { status: 400 }),
@@ -96,8 +96,8 @@ describe('landing page: connecting an AI key', () => {
     expect(screen.getByRole('heading', { name: 'First, connect your AI assistant' })).toBeVisible()
   })
 
-  it('also reminds people who already have profiles but no key', async () => {
-    const profile = {
+  it('also reminds people who already have publications but no key', async () => {
+    const publication = {
       id: 'adalovelace-blog',
       name: 'Blog',
       siteUrl: null,
@@ -109,7 +109,7 @@ describe('landing page: connecting an AI key', () => {
     }
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       llmSettings(false),
     )
     await renderAt('/')
@@ -119,9 +119,9 @@ describe('landing page: connecting an AI key', () => {
   })
 
   it('stays out of the way once a key is saved', async () => {
-    server.use(signedInAs(testUser), noProfiles, llmSettings(true))
+    server.use(signedInAs(testUser), noPublications, llmSettings(true))
     await renderAt('/')
-    await screen.findByText('Next, create your first profile')
+    await screen.findByText('Next, create your first publication')
     expect(screen.queryByRole('heading', { name: 'First, connect your AI assistant' })).toBeNull()
     expect(screen.queryByLabelText('Anthropic API key')).toBeNull()
   })

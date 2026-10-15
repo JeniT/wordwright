@@ -11,14 +11,14 @@ import AiButton from './AiButton.vue'
  * The box for asking the AI to research an idea, shared by the Research page and the idea's landing page. Nothing
  * is sent until the button is pressed. `done` fires once the research has been saved, so the page can show it.
  */
-const props = defineProps<{ profileId: string; ideaId: string }>()
+const props = defineProps<{ publicationId: string; ideaId: string }>()
 const emit = defineEmits<{ done: [] }>()
 const queryClient = useQueryClient()
 const fieldId = useId()
 
 const areas = ref('')
 const search = useMutation({
-  mutationFn: (text: string) => api.runResearch(props.profileId, props.ideaId, text),
+  mutationFn: (text: string) => api.runResearch(props.publicationId, props.ideaId, text),
   onSuccess: () => {
     areas.value = ''
     emit('done')

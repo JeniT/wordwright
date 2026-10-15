@@ -7,28 +7,28 @@ import RecentReading from '../components/RecentReading.vue'
 import RecentRefine from '../components/RecentRefine.vue'
 import ResearchForm from '../components/ResearchForm.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
-import { useProfile } from '../lib/useProfiles'
+import { usePublication } from '../lib/usePublications'
 
 /**
  * An idea's landing page: a short summary of each of its steps, with the quick action for each. It is not a
  * numbered step, so nothing in the menu is current here. Visiting spends nothing: the AI is only asked when the
  * writer presses Research.
  */
-const props = defineProps<{ profileId: string; id: string }>()
+const props = defineProps<{ publicationId: string; id: string }>()
 const router = useRouter()
-const { profile } = useProfile(() => props.profileId)
+const { publication } = usePublication(() => props.publicationId)
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const showResearch = () =>
-  router.push({ name: 'research', params: { profileId: props.profileId, id: props.id } })
+  router.push({ name: 'research', params: { publicationId: props.publicationId, id: props.id } })
 </script>
 
 <template>
-  <IdeaGate :id="id" v-slot="{ idea }" :profile-id="profileId">
+  <IdeaGate :id="id" v-slot="{ idea }" :publication-id="publicationId">
     <div class="mb-2">
-      <p v-if="profile" class="meta mb-1 break-words">
-        <RouterLink :to="{ name: 'profile', params: { profileId } }" class="link">
-          {{ profile.name }}
+      <p v-if="publication" class="meta mb-1 break-words">
+        <RouterLink :to="{ name: 'publication', params: { publicationId } }" class="link">
+          {{ publication.name }}
         </RouterLink>
       </p>
       <h1 class="h1 break-words">{{ idea.name }}</h1>
@@ -37,15 +37,18 @@ const showResearch = () =>
     <!-- Unread reading comes first; the AI box is for when there is nothing left to read. -->
     <RecentReading
       v-if="idea.links.some((link) => !link.readAt)"
-      :profile-id="profileId"
+      :publication-id="publicationId"
       :idea-id="id"
       step="research"
       title="Research"
-      :to="{ name: 'idea-research', params: { profileId, id } }"
+      :to="{ name: 'idea-research', params: { publicationId, id } }"
     />
     <LandingSection v-else level="idea" step="research" title="Research">
       <template #actions>
-        <RouterLink :to="{ name: 'idea-research', params: { profileId, id } }" class="link text-sm">
+        <RouterLink
+          :to="{ name: 'idea-research', params: { publicationId, id } }"
+          class="link text-sm"
+        >
           See the reading list<span class="meta">
             ({{ plural(idea.links.length, 'source', 'sources') }})</span
           >
@@ -57,25 +60,33 @@ const showResearch = () =>
         already on its reading list and what you write here are sent to your AI provider; the text
         of your drafts never is.
       </p>
-      <ResearchForm class="max-w-2xl" :profile-id="profileId" :idea-id="id" @done="showResearch" />
+      <ResearchForm
+        class="max-w-2xl"
+        :publication-id="publicationId"
+        :idea-id="id"
+        @done="showResearch"
+      />
     </LandingSection>
 
     <RecentNotes
-      :profile-id="profileId"
+      :publication-id="publicationId"
       :idea-id="id"
-      :to="{ name: 'idea-notes', params: { profileId, id } }"
+      :to="{ name: 'idea-notes', params: { publicationId, id } }"
     />
 
-    <RecentRefine :profile-id="profileId" :idea-id="id" />
+    <RecentRefine :publication-id="publicationId" :idea-id="id" />
 
     <LandingSection level="idea" step="draft" title="Draft">
       <template #actions>
-        <RouterLink :to="{ name: 'idea-drafts', params: { profileId, id } }" class="link text-sm">
+        <RouterLink
+          :to="{ name: 'idea-drafts', params: { publicationId, id } }"
+          class="link text-sm"
+        >
           See all drafts<span v-if="idea.drafts.length" class="meta">
             ({{ idea.drafts.length }})</span
           >
         </RouterLink>
-        <StartDraftButton :profile-id="profileId" :idea-id="id" label="Start a draft" />
+        <StartDraftButton :publication-id="publicationId" :idea-id="id" label="Start a draft" />
       </template>
       <p v-if="!idea.drafts.length" class="text-ink-soft">
         No drafts yet. Start one when you’re ready to write.
@@ -83,7 +94,7 @@ const showResearch = () =>
       <ol v-else class="panel divide-y divide-line" aria-label="Drafts">
         <li v-for="draft in idea.drafts" :key="draft.id">
           <RouterLink
-            :to="{ name: 'draft', params: { profileId, id: draft.id } }"
+            :to="{ name: 'draft', params: { publicationId, id: draft.id } }"
             class="flex items-baseline justify-between gap-3 px-4 py-3 no-underline hover:bg-sunken"
           >
             <span class="font-semibold break-words">{{ draft.title || 'Untitled' }}</span>

@@ -2,12 +2,12 @@ import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { useDraft, useIdea, useIdeas } from './queries'
-import { useProfile } from './useProfiles'
+import { usePublication } from './usePublications'
 
 /**
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
- *   home    -> Profiles, Account settings
- *   profile -> 01 Search, 02 Read, 03 Notes, 04 Ideas, and the profile's settings
+ *   home    -> Publications, Account settings
+ *   publication -> 01 Search, 02 Read, 03 Notes, 04 Ideas, and the publication's settings
  *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, and the idea's settings
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
@@ -19,11 +19,11 @@ export interface Step {
   route: string
 }
 
-export const PROFILE_STEPS: Step[] = [
+export const PUBLICATION_STEPS: Step[] = [
   { key: 'search', label: 'Search', route: 'search' },
   { key: 'read', label: 'Read', route: 'read' },
-  { key: 'notes', label: 'Notes', route: 'profile-notes' },
-  { key: 'ideas', label: 'Ideas', route: 'profile-ideas' },
+  { key: 'notes', label: 'Notes', route: 'publication-notes' },
+  { key: 'ideas', label: 'Ideas', route: 'publication-ideas' },
 ]
 
 export const IDEA_STEPS: Step[] = [
@@ -33,10 +33,10 @@ export const IDEA_STEPS: Step[] = [
   { key: 'draft', label: 'Draft', route: 'idea-drafts' },
 ]
 
-export type NavLevel = 'home' | 'profile' | 'idea'
+export type NavLevel = 'home' | 'publication' | 'idea'
 
 export const stepsFor = (level: NavLevel) =>
-  level === 'idea' ? IDEA_STEPS : level === 'profile' ? PROFILE_STEPS : []
+  level === 'idea' ? IDEA_STEPS : level === 'publication' ? PUBLICATION_STEPS : []
 
 /** "01", "02" ... for a step, or '' when the page isn't a numbered step. */
 export function stepNumber(level: NavLevel, key: string | undefined) {
@@ -48,21 +48,21 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /**
  * What the side menu and step headings need to know about the current page. Reads only what pages already load
- * (the profiles list, the idea, the ideas list), so it adds little: TanStack Query shares them by key.
+ * (the publications list, the idea, the ideas list), so it adds little: TanStack Query shares them by key.
  */
 export function useNav() {
   const route = useRoute()
   const routeId = computed(() => (typeof route.params.id === 'string' ? route.params.id : ''))
-  const profileId = computed(() =>
-    typeof route.params.profileId === 'string' ? route.params.profileId : '',
+  const publicationId = computed(() =>
+    typeof route.params.publicationId === 'string' ? route.params.publicationId : '',
   )
-  const { profile } = useProfile(() => profileId.value)
+  const { publication } = usePublication(() => publicationId.value)
 
   // The drafting page's address names a draft, not its idea: find the idea from the draft.
   const draft = useDraft(
-    () => profileId.value,
+    () => publicationId.value,
     () => routeId.value,
-    () => !!route.meta.ideaFromDraft && !!profileId.value && !!routeId.value,
+    () => !!route.meta.ideaFromDraft && !!publicationId.value && !!routeId.value,
   )
   const draftLoading = computed(() => !!route.meta.ideaFromDraft && draft.isPending.value)
 
@@ -72,27 +72,27 @@ export function useNav() {
   })
   const level = computed<NavLevel>(() => {
     const declared = route.meta.level
-    if (!declared || !profileId.value) return 'home'
-    // A draft that belongs to no idea sits with the profile's ideas.
-    if (declared === 'idea' && !ideaId.value && !draftLoading.value) return 'profile'
+    if (!declared || !publicationId.value) return 'home'
+    // A draft that belongs to no idea sits with the publication's ideas.
+    if (declared === 'idea' && !ideaId.value && !draftLoading.value) return 'publication'
     return declared
   })
   const stepKey = computed(() =>
-    route.meta.level === 'idea' && level.value === 'profile' ? 'ideas' : route.meta.step,
+    route.meta.level === 'idea' && level.value === 'publication' ? 'ideas' : route.meta.step,
   )
 
   const idea = useIdea(
-    () => profileId.value,
+    () => publicationId.value,
     () => ideaId.value,
   )
   const ideas = useIdeas(
-    () => profileId.value,
-    () => level.value === 'profile',
+    () => publicationId.value,
+    () => level.value === 'publication',
   )
 
   /** The quiet line under a step: a count, where we already know one. */
   function metaFor(step: Step) {
-    if (level.value === 'profile' && step.key === 'ideas' && ideas.data.value)
+    if (level.value === 'publication' && step.key === 'ideas' && ideas.data.value)
       return plural(ideas.data.value.length, 'idea', 'ideas')
     if (level.value === 'idea' && idea.data.value) {
       if (step.key === 'research') return plural(idea.data.value.links.length, 'source', 'sources')
@@ -105,36 +105,37 @@ export function useNav() {
     stepsFor(level.value).map((step, index) => {
       const to: RouteLocationRaw =
         level.value === 'idea'
-          ? { name: step.route, params: { profileId: profileId.value, id: ideaId.value } }
-          : { name: step.route, params: { profileId: profileId.value } }
+          ? { name: step.route, params: { publicationId: publicationId.value, id: ideaId.value } }
+          : { name: step.route, params: { publicationId: publicationId.value } }
       return { ...step, number: String(index + 1).padStart(2, '0'), to, meta: metaFor(step) }
     }),
   )
 
-  /** What the page is called above its title: the idea or the profile, depending on level. */
+  /** What the page is called above its title: the idea or the publication, depending on level. */
   const eyebrow = computed(() =>
     level.value === 'idea'
       ? idea.data.value?.name
-      : level.value === 'profile'
-        ? profile.value?.name
+      : level.value === 'publication'
+        ? publication.value?.name
         : undefined,
   )
 
   /** Where the name above a page's title leads: a level's pages lead back to its landing page (not from it). */
   const eyebrowTo = computed<RouteLocationRaw | undefined>(() => {
-    if (route.name === 'profile' || route.name === 'idea' || !profileId.value) return undefined
-    if (level.value === 'profile')
-      return { name: 'profile', params: { profileId: profileId.value } }
+    if (route.name === 'publication' || route.name === 'idea' || !publicationId.value)
+      return undefined
+    if (level.value === 'publication')
+      return { name: 'publication', params: { publicationId: publicationId.value } }
     if (level.value === 'idea' && ideaId.value)
-      return { name: 'idea', params: { profileId: profileId.value, id: ideaId.value } }
+      return { name: 'idea', params: { publicationId: publicationId.value, id: ideaId.value } }
     return undefined
   })
 
   return {
     level,
-    profileId,
+    publicationId,
     ideaId,
-    profile,
+    publication,
     idea,
     steps,
     stepKey,

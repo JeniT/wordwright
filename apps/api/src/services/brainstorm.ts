@@ -39,7 +39,7 @@ import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/co
 import type { Store } from '../db/store'
 import type { BrainstormPromptService } from './brainstorm-prompt'
 import { ReadingChecker, type CheckedReading } from './reading-suggestions'
-import { usableVenueDescription, venueDescriptionBlock } from './venue-context'
+import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
 import { fail } from '../errors'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
@@ -117,10 +117,10 @@ export const brainstormSystem = (personsPrompt: string) =>
 /** Keeps text we insert from closing or imitating the snapshot's own tags. */
 const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-interface Venue {
+interface Publication {
   name: string
   siteUrl: string | null
-  /** The writer's own description of the venue; null when there is none the AI may be told (see `usableVenueDescription`). */
+  /** The writer's own description of the publication; null when there is none the AI may be told (see `usablePublicationDescription`). */
   description: string | null
 }
 
@@ -129,9 +129,9 @@ interface Venue {
  * websites, i.e. untrusted: it is escaped, and `prompts/brainstorm-rules.md` tells the AI to treat it as
  * material to discuss, never as instructions. Only the titles of drafts are included, never their text.
  */
-export function formatSnapshot(input: { idea: Idea; venue: Venue }): string {
-  const { idea, venue } = input
-  const description = venueDescriptionBlock(venue.description)
+export function formatSnapshot(input: { idea: Idea; publication: Publication }): string {
+  const { idea, publication } = input
+  const description = publicationDescriptionBlock(publication.description)
   const list = (items: string[]) => (items.length ? items : ['(none yet)'])
   return [
     '<idea_snapshot>',
@@ -142,7 +142,7 @@ export function formatSnapshot(input: { idea: Idea; venue: Venue }): string {
     'Related links the writer has saved:',
     ...list(idea.links.map((l) => `- ${l.title ? `${escape(l.title)}: ` : ''}${escape(l.url)}`)),
     '',
-    `Publication: ${escape(venue.name)}${venue.siteUrl ? ` (${escape(venue.siteUrl)})` : ''}`,
+    `Publication: ${escape(publication.name)}${publication.siteUrl ? ` (${escape(publication.siteUrl)})` : ''}`,
     'The writer’s own description of the publication (what it is, who reads it, what kinds of writing go there):',
     description ?? '(not described yet)',
     '',
@@ -153,7 +153,7 @@ export function formatSnapshot(input: { idea: Idea; venue: Venue }): string {
 }
 
 /**
- * The brainstorming conversation about an idea: one thread shared by everyone in the profile, in
+ * The brainstorming conversation about an idea: one thread shared by everyone in the publication, in
  * which each person's own AI (key, model and prompt) draws out the writer's points and records them as
  * notes. Anything bigger (a new title, a new idea) it can only propose; accepting is a separate, human step. Design: docs/brainstorming.md.
  */
@@ -281,13 +281,13 @@ export class BrainstormService {
   }
 
   private snapshot(idea: Idea, userId: string): string {
-    const profile = this.d.store.profiles.get(idea.profileId, userId)
+    const publication = this.d.store.publications.get(idea.publicationId, userId)
     return formatSnapshot({
       idea,
-      venue: {
-        name: profile?.name ?? 'this publication',
-        siteUrl: profile?.siteUrl ?? null,
-        description: usableVenueDescription(profile),
+      publication: {
+        name: publication?.name ?? 'this publication',
+        siteUrl: publication?.siteUrl ?? null,
+        description: usablePublicationDescription(publication),
       },
     })
   }
@@ -446,7 +446,7 @@ export class BrainstormService {
       } else if (count >= MAX_IDEA_NOTES) {
         conversations.addRecordedNote(messageId, { toolCallId: call.id, text, outcome: 'full' })
       } else {
-        const note = notes.append(idea.profileId, idea.id, userId, text, 'brainstorm')
+        const note = notes.append(idea.publicationId, idea.id, userId, text, 'brainstorm')
         conversations.addRecordedNote(messageId, {
           toolCallId: call.id,
           text,
@@ -580,7 +580,7 @@ export class BrainstormService {
 
   // ---- deciding on suggestions -------------------------------------------
 
-  /** Applies a suggestion. Anyone in the profile can; the first to decide wins. */
+  /** Applies a suggestion. Anyone in the publication can; the first to decide wins. */
   accept(idea: Idea, proposalId: string, user: BrainstormUser, overwrite = false): Proposal {
     const { store } = this.d
     const proposal = store.conversations.proposal(idea.id, proposalId)
@@ -601,11 +601,11 @@ export class BrainstormService {
         this.addSuggestedReading(idea, proposal)
       } else if (proposal.tool === 'update_idea') {
         // Threads from before notes were recorded directly may carry notes; they are no longer applied.
-        store.ideas.update(idea.profileId, idea.id, { name: proposal.input.name })
+        store.ideas.update(idea.publicationId, idea.id, { name: proposal.input.name })
       } else {
         const { name, notes } = CreateIdeaToolInputSchema.parse(proposal.input)
         createdIdeaId = store.ideas.create(
-          idea.profileId,
+          idea.publicationId,
           user.id,
           { name, notes },
           'brainstorm',
@@ -641,7 +641,7 @@ export class BrainstormService {
         "That address isn't a public website, so it can't be added. Dismiss this suggestion.",
       )
     }
-    const current = store.ideas.get(idea.profileId, idea.id) ?? idea
+    const current = store.ideas.get(idea.publicationId, idea.id) ?? idea
     if (current.links.some((l) => linkKey(l.url) === linkKey(url))) {
       throw fail(409, 'That link is already in this idea. Dismiss this suggestion.')
     }

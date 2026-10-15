@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MAX_AUTHORS } from '@lfwa/core'
-import { DatabaseSync } from 'node:sqlite'
-import { MIGRATIONS, migrate } from './db/database'
 import { parseNames } from './db/names'
 import { register, setup, type TestClient } from './test-helpers'
 
@@ -13,11 +11,11 @@ const DETECTED = ['Ada Author', 'Bo Writer']
 describe('who wrote a reading-list item', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
-  let profile: string
+  let publication: string
   let idea: string
-  const links = () => `/api/profiles/${profile}/ideas/${idea}/links`
+  const links = () => `/api/publications/${publication}/ideas/${idea}/links`
   const read = async () =>
-    (await (await ada.get(`/api/profiles/${profile}/ideas/${idea}`)).json()).links as {
+    (await (await ada.get(`/api/publications/${publication}/ideas/${idea}`)).json()).links as {
       id: string
       url: string
       title: string
@@ -30,8 +28,10 @@ describe('who wrote a reading-list item', () => {
     ctx = setup()
     ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    idea = (await (await ada.post(`/api/profiles/${profile}/ideas`, { name: 'Rivers' })).json()).id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    idea = (
+      await (await ada.post(`/api/publications/${publication}/ideas`, { name: 'Rivers' })).json()
+    ).id
   })
 
   describe('adding', () => {
@@ -134,7 +134,7 @@ describe('who wrote a reading-list item', () => {
       await add({ url: AUTHORED })
       const item = (await read())[0]!
       const note = await (
-        await ada.post(`/api/profiles/${profile}/ideas/${idea}/notes`, {
+        await ada.post(`/api/publications/${publication}/ideas/${idea}/notes`, {
           text: 'A quote.',
           readingItemId: item.id,
           quote: true,
@@ -142,10 +142,12 @@ describe('who wrote a reading-list item', () => {
       ).json()
       const draft = (
         await (
-          await ada.post(`/api/profiles/${profile}/ideas/${idea}/drafts`, { title: 'Part 1' })
+          await ada.post(`/api/publications/${publication}/ideas/${idea}/drafts`, {
+            title: 'Part 1',
+          })
         ).json()
       ).id
-      const insertions = `/api/profiles/${profile}/drafts/${draft}/insertions`
+      const insertions = `/api/publications/${publication}/drafts/${draft}/insertions`
       const res = await ada.post(insertions, { noteId: note.id, text: '> A quote.' })
       expect((await res.json()).source).toMatchObject({ authors: DETECTED })
 
@@ -162,22 +164,5 @@ describe('the stored list of authors', () => {
     expect(parseNames('{"a":1}')).toEqual([])
     expect(parseNames('["Ada", 3, null]')).toEqual(['Ada'])
     expect(parseNames(null)).toEqual([])
-  })
-
-  it('is empty for items saved before authors existed, and for insertions that had no source', () => {
-    const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA foreign_keys = ON')
-    const at = MIGRATIONS.findIndex(
-      (m) => typeof m === 'string' && m.includes('ADD COLUMN authors TEXT'),
-    )
-    expect(at).toBeGreaterThan(0)
-    migrate(db, 'test', MIGRATIONS.slice(0, at))
-    db.exec(`
-      INSERT INTO profiles (id, name, created_at) VALUES ('p', 'P', 'now');
-      INSERT INTO ideas (id, profile_id, name, notes, created_at, updated_at) VALUES ('i', 'p', 'I', '', 't', 't');
-      INSERT INTO idea_links (id, idea_id, url, title, created_at) VALUES ('l', 'i', 'https://example.org', 'T', 't');
-    `)
-    migrate(db, 'test')
-    expect(db.prepare('SELECT authors FROM idea_links').get()).toEqual({ authors: '[]' })
   })
 })

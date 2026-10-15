@@ -47,7 +47,7 @@ export function useUsernameCheck(handle: Ref<string>, current?: Ref<string | und
     if (availability.value === 'taken') return 'That username is already taken. Try another.'
     if (availability.value === 'available') return `“${typed.value}” is available.`
     if (availability.value === 'checking') return 'Checking…'
-    return 'Letters and numbers only. It starts the address of each profile you create.'
+    return 'Letters and numbers only. It starts the address of each publication you create.'
   })
   const invalid = computed(() => !!formatProblem.value || availability.value === 'taken')
   return { hint, invalid, isCurrent, typed }

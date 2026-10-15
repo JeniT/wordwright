@@ -33,18 +33,18 @@ Issue titles keep the old `T<n>` ids so commits and `docs/` references still mak
   with Hono's `Context`, so the `!` assertions are gone. (`41a827a`)
 
 - **T24** · Refactor, no behaviour change: `createApp` builds limiters through one helper with named durations,
-  `profileRoutes` takes an options object, `imageResponse` serves profile pictures and source icons with one set
+  `publicationRoutes` takes an options object, `imageResponse` serves publication pictures and source icons with one set
   of security headers, `AccountService` has `expiresIn` / `isUniqueViolation` and one background-mail path,
   and `TokenStore` shares its one-time-link row mapping. (`4a53595`)
 
-- **T20b4** · The brainstorm page (`/p/:profile/ideas/:idea/brainstorm`): the shared thread with names and models,
+- **T20b4** · The brainstorm page (`/p/:publication/ideas/:idea/brainstorm`): the shared thread with names and models,
   the editor's words streaming in (read over `fetch`, with Stop), Markdown rendered safely (`markdown-it`, HTML and
   images off), suggestion cards with a line diff of the notes and Accept / Dismiss / Apply anyway, Try again,
   "someone is waiting", Start again with confirmation, a message refused before it starts goes back in the box; the
   idea page's Brainstorm button is now a link that starts the conversation at once; `FAKE_LLM` has a scripted editor.
   (`3840a28`)
 - **T20b2** · Brainstorming API: a shared thread per idea (`idea_messages`, `idea_proposals`); the service builds the
-  system prompt (the person's prompt + the app's rules), the idea snapshot (title, notes, related links, venue,
+  system prompt (the person's prompt + the app's rules), the idea snapshot (title, notes, related links, publication,
   draft titles only; sent again only when the idea changes) and replays the thread in a provider-neutral format;
   streams a reply over server-sent events; the AI can only propose (`update_idea`, `create_idea`), proposals are
   accepted (with a stale-text check) or dismissed by any member, and answered to the AI on its next turn; one reply
@@ -62,20 +62,20 @@ Issue titles keep the old `T<n>` ids so commits and `docs/` references still mak
   edited, duplicates refused (the typed address is kept with the error shown under the field), and text that isn't a
   plausible, existing web address is rejected. Page lookup is a `PageInfoFetcher` port with an SSRF-safe HTTP
   adapter, fake and contract suite. (`408579c`)
-- **T20** · Ideas, first step: each profile has ideas with a name, notes, links to related work and one or more
-  drafts (a single post or an ordered, linked set); idea list on the profile page; deletion with confirmation;
+- **T20** · Ideas, first step: each publication has ideas with a name, notes, links to related work and one or more
+  drafts (a single post or an ordered, linked set); idea list on the publication page; deletion with confirmation;
   Brainstorm button present but disabled. Existing drafts stay standalone. (`f954432`)
 - **T19b** · Feed details for idea sources: feeds are read when added (`FeedFetcher` port, fake, contract suite, SSRF-safe
   HTTP adapter); title, description and icon shown; members (not just owners) edit; drag-and-drop reordering (`938463b`)
-- **T19** · Idea sources per profile: ordered list of RSS feed addresses (add, remove, reorder)
-  on the profile settings page (`938463b`)
+- **T19** · Idea sources per publication: ordered list of RSS feed addresses (add, remove, reorder)
+  on the publication settings page (`938463b`)
 - **T20c** · Every draft belongs to an idea: existing drafts wrapped in ideas by a migration, drafts created only
-  through an idea, standalone draft list and "New draft" removed. Also fixed profile rename failing for
-  profiles that have ideas. (`5dccc68`)
+  through an idea, standalone draft list and "New draft" removed. Also fixed publication rename failing for
+  publications that have ideas. (`5dccc68`)
 
 - **T0a** · Monorepo scaffold: Vue + Hono + shared core, provider ports, CI config, Playwright + axe (`fe2857a`)
 - **T0b** · Accounts: register, login, Google OIDC login, password reset (token flow), account deletion,
-  profiles with sharing, CSRF/origin check, rate limiting (`968bc75`)
+  publications with sharing, CSRF/origin check, rate limiting (`968bc75`)
 - **T0c** · Bring-your-own Anthropic key: encrypted storage, validation, per-user LLM resolution (`379ed63`)
 - **T1** · Real email delivery: provider-neutral SMTP adapter, `console` (zero-setup default) / `file` / `smtp`
   transports, HTML+text templates, background sending with logged failures, startup SMTP check, e2e password
@@ -91,12 +91,12 @@ Issue titles keep the old `T<n>` ids so commits and `docs/` references still mak
 - **T5** · Repo pushed to a private GitHub repository (`JeniT/writing-assistant`); CI (checks + browser tests)
   passes on a clean Linux runner; actions updated off Node 20 and runner pinned to `ubuntu-24.04`
 - **Onboarding** · Chosen usernames with live availability check; "What should we call you?" with first-name
-  autofill; no profile created at sign-up (the landing page prompts for one); API-key instructions and field on
+  autofill; no publication created at sign-up (the landing page prompts for one); API-key instructions and field on
   the landing page until a key is saved
-- **T15** · Venue profiles: user handles and readable ids (`jenit-substack`), website link, picture with
-  monogram fallback, profile list on the home page, create page, profile page, settings page (sharing and deletion
+- **T15** · Publication publications: user handles and readable ids (`jenit-substack`), website link, picture with
+  monogram fallback, publication list on the home page, create page, publication page, settings page (sharing and deletion
   moved here from Account), id migration for existing data. Audiences, sources and ideas are T16/T19/T20.
-- **T21** · Renaming a profile renames its readable id; old ids permanently redirect (301/308 from the API for
+- **T21** · Renaming a publication renames its readable id; old ids permanently redirect (301/308 from the API for
   members, address bar updated in the web app); retired ids are never reused
 - **T4** · Change password while signed in (current password required, other devices signed out, notice
   email) and add a password to Google-only accounts via an emailed link (`ecff6ed`)

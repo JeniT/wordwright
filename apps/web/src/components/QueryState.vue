@@ -5,7 +5,7 @@ import type { QueryStatus } from '../lib/queries'
 /**
  * Loading and error states for a query, so every list and section says the same things the same way: a quiet
  * "Loading…", or what could not be loaded with a way to try again. The content (its own empty state included) is
- * the slot, shown once the data is there. Pages about one idea or profile use `IdeaGate` / `ProfileGate`, which
+ * the slot, shown once the data is there. Pages about one idea or publication use `IdeaGate` / `PublicationGate`, which
  * also handle "not found".
  */
 defineProps<{

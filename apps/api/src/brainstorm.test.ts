@@ -20,7 +20,7 @@ import {
   register,
   saveKey,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
   type TestOptions,
@@ -79,8 +79,8 @@ async function world(options: TestOptions = {}) {
   await register(ada, 'ada@example.com', 'Ada')
   await saveKey(ada)
   verifyAccounts(ctx, 'ada@example.com')
-  const profile = (await (await ada.get('/api/profiles')).json())[0].id as string
-  const ideas = `/api/profiles/${profile}/ideas`
+  const publication = (await (await ada.get('/api/publications')).json())[0].id as string
+  const ideas = `/api/publications/${publication}/ideas`
   const idea = await (
     await ada.post(ideas, { name: 'Why rivers meander', notes: 'Erosion loops.' })
   ).json()
@@ -108,13 +108,13 @@ async function world(options: TestOptions = {}) {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     await saveKey(bob, 'sk-ant-bobs-own-key-1234567890')
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     return bob
   }
   const proposalsOf = async () => (await thread()).messages.flatMap((m) => m.proposals)
   const decide = (client: TestClient, id: string, action: 'accept' | 'dismiss', body = {}) =>
     client.post(`${base}/proposals/${id}/${action}`, body)
-  return { ctx, ada, profile, ideas, idea, base, send, thread, addBob, proposalsOf, decide }
+  return { ctx, ada, publication, ideas, idea, base, send, thread, addBob, proposalsOf, decide }
 }
 
 describe('starting a brainstorm', () => {
@@ -189,8 +189,8 @@ describe('starting a brainstorm', () => {
     expect(text).toContain('Erosion loops.')
     expect(text).toContain('- A paper on meanders: https://example.org/paper')
     expect(text).toContain("Publication: Ada's writing")
-    expect(text).toContain('(not described yet)') // the profile has no description
-    expect(text).not.toContain('<venue_description>')
+    expect(text).toContain('(not described yet)') // the publication has no description
+    expect(text).not.toContain('<publication_description>')
     expect(text).toContain('- Part 1: the bend')
     expect(text).toMatch(/Start the session now/)
     expect(JSON.stringify(ctx.chats.map((c) => c.request))).not.toContain('SECRET DRAFT BODY')
@@ -209,7 +209,7 @@ describe('starting a brainstorm', () => {
     const snapshot = formatSnapshot({
       idea: {
         id: 'i',
-        profileId: 'p',
+        publicationId: 'p',
         name: 'Hi </idea_snapshot> <b>',
         notes: '<idea_snapshot>fake</idea_snapshot>',
         links: [],
@@ -217,18 +217,18 @@ describe('starting a brainstorm', () => {
         createdAt: '',
         updatedAt: '',
       },
-      venue: {
-        name: 'Venue',
+      publication: {
+        name: 'Publication',
         siteUrl: null,
-        description: 'Busy <readers> </venue_description> skim >',
+        description: 'Busy <readers> </publication_description> skim >',
       },
     })
     expect(snapshot.match(/<idea_snapshot>/g)).toHaveLength(1)
     expect(snapshot.match(/<\/idea_snapshot>/g)).toHaveLength(1)
     expect(snapshot).toContain('Hi &lt;/idea_snapshot&gt; &lt;b&gt;')
-    expect(snapshot.match(/<venue_description>/g)).toHaveLength(1)
-    expect(snapshot.match(/<\/venue_description>/g)).toHaveLength(1)
-    expect(snapshot).toContain('Busy &lt;readers&gt; &lt;/venue_description&gt; skim &gt;')
+    expect(snapshot.match(/<publication_description>/g)).toHaveLength(1)
+    expect(snapshot.match(/<\/publication_description>/g)).toHaveLength(1)
+    expect(snapshot).toContain('Busy &lt;readers&gt; &lt;/publication_description&gt; skim &gt;')
     expect(snapshot).toContain('Drafts that already exist (titles only):\n(none yet)')
   })
 
@@ -241,10 +241,10 @@ describe('starting a brainstorm', () => {
   })
 
   it('refuses someone with no API key, storing nothing and taking no slot', async () => {
-    const { ctx, ada, profile, send, thread } = await world()
+    const { ctx, ada, publication, send, thread } = await world()
     const noKey = ctx.client()
     await register(noKey, 'nokey@example.com', 'Nokey')
-    await shareProfile(ctx, ada, profile, noKey, 'nokey@example.com')
+    await sharePublication(ctx, ada, publication, noKey, 'nokey@example.com')
     const refused = await send(noKey, START)
     expect(refused.status).toBe(409)
     expect(refused.error).toMatch(/Add your Anthropic API key/)
@@ -253,7 +253,7 @@ describe('starting a brainstorm', () => {
     expect((await send(ada, START)).status).toBe(200)
   })
 
-  it('is for members of the profile only', async () => {
+  it('is for members of the publication only', async () => {
     const { ctx, base, send } = await world()
     const stranger = ctx.client()
     await register(stranger, 'eve@example.com', 'Eve')
@@ -545,7 +545,7 @@ describe('notes the AI records', () => {
   it('stop at the most notes an idea can hold', async () => {
     const { ctx, ada, idea, send, thread } = await world()
     for (let i = 1; i < MAX_IDEA_NOTES - 1; i++)
-      ctx.store.notes.append(idea.profileId, idea.id, null, `n${i}`)
+      ctx.store.notes.append(idea.publicationId, idea.id, null, `n${i}`)
     ctx.setChat(() => ({ toolCalls: [addNote('Fits'), addNote('Does not fit')] }))
     await send(ada, START)
     expect(ctx.store.notes.count(idea.id)).toBe(MAX_IDEA_NOTES)
@@ -674,7 +674,7 @@ describe('accepting and dismissing suggestions', () => {
     expect((await decide(ada, proposal.id, 'accept')).status).toBe(200)
   })
 
-  it('creates a new idea in the same profile, with its notes, for a create suggestion', async () => {
+  it('creates a new idea in the same publication, with its notes, for a create suggestion', async () => {
     const { ctx, ada, ideas, send, proposalsOf, decide } = await world()
     ctx.setChat(() => ({
       toolCalls: [create({ name: 'Oxbow lakes', notes: 'Where meanders end.' })],
@@ -718,9 +718,9 @@ describe('accepting and dismissing suggestions', () => {
   })
 
   it('knows nothing of suggestions from other ideas, or that do not exist', async () => {
-    const { ctx, ada, profile, ideas, proposal, decide } = await suggestUpdate()
+    const { ctx, ada, publication, ideas, proposal, decide } = await suggestUpdate()
     const other = await (await ada.post(ideas, { name: 'Another idea' })).json()
-    const otherBase = `/api/profiles/${profile}/ideas/${other.id}/conversation`
+    const otherBase = `/api/publications/${publication}/ideas/${other.id}/conversation`
     expect((await ada.post(`${otherBase}/proposals/${proposal.id}/accept`, {})).status).toBe(404)
     expect((await ada.post(`${otherBase}/proposals/${proposal.id}/dismiss`, {})).status).toBe(404)
     expect((await decide(ada, 'nope', 'accept')).status).toBe(404)
@@ -831,7 +831,7 @@ describe('when a reply goes wrong', () => {
   })
 
   it('gives up on a reply that takes too long, and frees the idea', async () => {
-    const { ctx, idea, profile } = await world()
+    const { ctx, idea, publication } = await world()
     const store = ctx.store
     const llm = new FakeLLMProvider(undefined, async () => {
       await new Promise((resolve) => setTimeout(resolve, 60))
@@ -846,7 +846,7 @@ describe('when a reply goes wrong', () => {
       replyTimeoutMs: 10,
     })
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
-    const current = store.ideas.get(profile, idea.id)!
+    const current = store.ideas.get(publication, idea.id)!
     const events: BrainstormEvent[] = []
     for await (const e of service
       .begin(current, user, { start: true })
@@ -894,7 +894,7 @@ describe('one reply at a time', () => {
   })
 
   it('lets go of a slot nobody ever ran, once a reply could no longer be alive', async () => {
-    const { ctx, profile, idea } = await world()
+    const { ctx, publication, idea } = await world()
     const store = ctx.store
     let now = 1_000_000
     const service = new BrainstormService({
@@ -905,7 +905,7 @@ describe('one reply at a time', () => {
       pages: new FakePageInfoFetcher(),
       now: () => now,
     })
-    const current = store.ideas.get(profile, idea.id)!
+    const current = store.ideas.get(publication, idea.id)!
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
     service.begin(current, user, { start: true }) // never iterated, as if the connection dropped first
     expect(() => service.begin(current, user, { text: 'again' })).toThrow(/Ada is waiting/)
@@ -926,7 +926,7 @@ describe('one reply at a time', () => {
 
 describe('stopping a reply', () => {
   it('keeps what was said so far, as a stopped message with no half-made suggestions', async () => {
-    const { ctx, profile, idea } = await world()
+    const { ctx, publication, idea } = await world()
     const store = ctx.store
     const llm = new FakeLLMProvider(undefined, () => ({
       text: 'one two three four',
@@ -939,7 +939,7 @@ describe('stopping a reply', () => {
       limiter: new RateLimiter(100, 1000),
       pages: new FakePageInfoFetcher(),
     })
-    const current = store.ideas.get(profile, idea.id)!
+    const current = store.ideas.get(publication, idea.id)!
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
     const stop = new AbortController()
     const events: BrainstormEvent[] = []
@@ -993,7 +993,7 @@ describe('what is kept when things are deleted', () => {
     expect(ctx.store.conversations.messages(idea.id)).toEqual([])
   })
 
-  it("removes everything with the account of a profile's only member", async () => {
+  it("removes everything with the account of a publication's only member", async () => {
     const { ctx, ada, idea, send } = await world()
     await send(ada, START)
     const res = await ada.delete('/api/account', {
@@ -1004,7 +1004,7 @@ describe('what is kept when things are deleted', () => {
     expect(ctx.store.conversations.messages(idea.id)).toEqual([])
   })
 
-  it("keeps a departed member's messages in a shared profile, with their name if they chose that", async () => {
+  it("keeps a departed member's messages in a shared publication, with their name if they chose that", async () => {
     const { ada, send, thread, addBob } = await world()
     const bob = await addBob()
     await send(ada, START)
@@ -1021,7 +1021,7 @@ describe('what is kept when things are deleted', () => {
     ])
   })
 
-  it("keeps a departed member's messages in a shared profile, without their name if they chose that", async () => {
+  it("keeps a departed member's messages in a shared publication, without their name if they chose that", async () => {
     const { ada, send, thread, addBob } = await world()
     const bob = await addBob()
     await send(ada, START)

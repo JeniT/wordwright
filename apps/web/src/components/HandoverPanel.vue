@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import type { HandoverEvent, HandoverState } from '@lfwa/core'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys } from '../lib/queries'
-import { useProfile } from '../lib/useProfiles'
+import { usePublication } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
 
@@ -13,20 +13,20 @@ import QueryState from './QueryState.vue'
  * member, who accepts; until then nothing changes. Any other member can ask, which only prompts the editor. An owner
  * can reassign it when the editor is away. All of it happens here, on the draft page.
  */
-const props = defineProps<{ profileId: string; draftId: string }>()
+const props = defineProps<{ publicationId: string; draftId: string }>()
 const queryClient = useQueryClient()
 const session = useSessionStore()
-const { profile } = useProfile(() => props.profileId)
+const { publication } = usePublication(() => props.publicationId)
 
 const handover = useQuery({
-  queryKey: computed(() => queryKeys.handover(props.profileId, props.draftId)),
-  queryFn: () => api.getHandover(props.profileId, props.draftId),
+  queryKey: computed(() => queryKeys.handover(props.publicationId, props.draftId)),
+  queryFn: () => api.getHandover(props.publicationId, props.draftId),
 })
 const me = computed(() => session.user?.id)
 const isEditor = computed(() => handover.data.value?.editorId === me.value)
-const isOwner = computed(() => profile.value?.role === 'owner')
+const isOwner = computed(() => publication.value?.role === 'owner')
 const others = computed(() =>
-  (profile.value?.members ?? []).filter((m) => m.userId !== handover.data.value?.editorId),
+  (publication.value?.members ?? []).filter((m) => m.userId !== handover.data.value?.editorId),
 )
 const offeredToMe = computed(() => handover.data.value?.offer?.toId === me.value)
 const myAsk = computed(() => handover.data.value?.asks.find((a) => a.byId === me.value))
@@ -36,18 +36,20 @@ const reassignTarget = ref('')
 
 /** Every action answers with the handover as it now is; a change of editor also changes what the page may do. */
 function settle(state: HandoverState) {
-  queryClient.setQueryData(queryKeys.handover(props.profileId, props.draftId), state)
+  queryClient.setQueryData(queryKeys.handover(props.publicationId, props.draftId), state)
   void invalidateRoots(queryClient, 'draft', 'critique', 'attention')
 }
 const run = <A,>(fn: (arg: A) => Promise<HandoverState>) =>
   useMutation({ mutationFn: fn, onSuccess: settle })
-const offer = run((userId: string) => api.offerDraft(props.profileId, props.draftId, userId))
-const withdraw = run(() => api.withdrawOffer(props.profileId, props.draftId))
-const accept = run(() => api.acceptOffer(props.profileId, props.draftId))
-const decline = run(() => api.declineOffer(props.profileId, props.draftId))
-const ask = run(() => api.askForDraft(props.profileId, props.draftId))
-const closeAsk = run((askId: string) => api.closeAsk(props.profileId, props.draftId, askId))
-const reassign = run((userId: string) => api.reassignDraft(props.profileId, props.draftId, userId))
+const offer = run((userId: string) => api.offerDraft(props.publicationId, props.draftId, userId))
+const withdraw = run(() => api.withdrawOffer(props.publicationId, props.draftId))
+const accept = run(() => api.acceptOffer(props.publicationId, props.draftId))
+const decline = run(() => api.declineOffer(props.publicationId, props.draftId))
+const ask = run(() => api.askForDraft(props.publicationId, props.draftId))
+const closeAsk = run((askId: string) => api.closeAsk(props.publicationId, props.draftId, askId))
+const reassign = run((userId: string) =>
+  api.reassignDraft(props.publicationId, props.draftId, userId),
+)
 const all = [offer, withdraw, accept, decline, ask, closeAsk, reassign]
 const problem = computed(() => {
   const failed = all.find((m) => m.isError.value)
@@ -172,7 +174,8 @@ function describe(e: HandoverEvent): string {
               </p>
             </form>
             <p v-else class="mt-2 text-ink-soft">
-              There is nobody else in this profile yet. Invite someone from the profile's settings.
+              There is nobody else in this publication yet. Invite someone from the publication's
+              settings.
             </p>
           </details>
         </template>

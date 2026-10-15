@@ -6,12 +6,12 @@ import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } fr
 useMockServer()
 
 const preview = {
-  profileName: 'Joint piece',
+  publicationName: 'Joint piece',
   inviterName: 'Ada Lovelace',
   email: 'bob@example.com',
 }
 const previewOk = http.post('*/api/invitations/preview', () => HttpResponse.json(preview))
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
 
 describe('decline-invitation page', () => {
   it('explains first and does nothing until Decline is pressed', async () => {
@@ -114,7 +114,7 @@ describe('decline-invitation page', () => {
 describe('"Who can invite you" on the account page', () => {
   const section = async () =>
     (await screen.findByRole('heading', { name: 'Who can invite you' })).closest('section')!
-  const base = [noProfiles, llmSettings(false)]
+  const base = [noPublications, llmSettings(false)]
 
   it('lists blocked people and unblocks one', async () => {
     let blocks = { all: false, senders: [{ id: 's1', name: 'Ada Lovelace' }] }

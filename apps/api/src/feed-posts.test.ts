@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { FakeFeedFetcher, MAX_IDEA_LINKS } from '@lfwa/core'
-import { register, setup, shareProfile, verifyAccounts, type TestClient } from './test-helpers'
+import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 type Post = { id: string; sourceId: string; title: string; url: string; status: string }
 type Link = { id: string; url: string; title: string; authors: string[]; origin: string }
@@ -21,7 +21,7 @@ describe('deciding about posts from the feeds', () => {
   let fetcher: FakeFeedFetcher
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
-  let profile: string
+  let publication: string
   let api: string
   let ids: Record<string, string>
 
@@ -30,8 +30,8 @@ describe('deciding about posts from the feeds', () => {
     ctx = setup({ feeds: fetcher })
     ada = ctx.client()
     await register(ada)
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    api = `/api/profiles/${profile}`
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    api = `/api/publications/${publication}`
     ids = {}
     for (const url of Object.keys(feeds ?? {})) {
       ids[url] = (await (await ada.post(`${api}/sources`, { url })).json()).id
@@ -52,7 +52,7 @@ describe('deciding about posts from the feeds', () => {
   const statuses = async () => Object.fromEntries((await recent()).map((p) => [p.id, p.status]))
   const decide = (what: 'add' | 'ignore' | 'reconsider', posts: object[], c = ada) =>
     c.post(`${api}/sources/recent/${what}`, { posts })
-  const profileList = async (): Promise<Link[]> => (await ada.get(`${api}/reading`)).json()
+  const publicationList = async (): Promise<Link[]> => (await ada.get(`${api}/reading`)).json()
 
   beforeEach(two)
 
@@ -60,13 +60,13 @@ describe('deciding about posts from the feeds', () => {
     expect(await statuses()).toEqual({ a1: 'new', a2: 'new', b1: 'new' })
   })
 
-  it('adds a post to the profile’s reading list as from a feed, with the title and authors the feed gave', async () => {
+  it('adds a post to the publication’s reading list as from a feed, with the title and authors the feed gave', async () => {
     const res = await decide('add', [ref(A, 'a1')])
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       results: [{ sourceId: ids[A], postId: 'a1', status: 'added' }],
     })
-    expect(await profileList()).toEqual([
+    expect(await publicationList()).toEqual([
       expect.objectContaining({
         url: 'https://x.example/a1',
         title: 'Post a1',
@@ -134,13 +134,13 @@ describe('deciding about posts from the feeds', () => {
     const res = await decide('add', [ref(A, 'a1'), ref(A, 'a2')])
     expect(res.status).toBe(409)
     expect((await res.json()).error).toContain('already on a reading list')
-    expect((await profileList()).map((l) => l.url)).toEqual(['https://x.example/a2'])
+    expect((await publicationList()).map((l) => l.url)).toEqual(['https://x.example/a2'])
     const ok = await decide('add', [ref(A, 'a1'), ref(B, 'b1')])
     expect((await ok.json()).results.map((r: { status: string }) => r.status)).toEqual([
       'added',
       'added',
     ])
-    expect(await profileList()).toHaveLength(3)
+    expect(await publicationList()).toHaveLength(3)
   })
 
   it('counts a post put on a reading list by hand, or on an idea’s, as added', async () => {
@@ -155,15 +155,15 @@ describe('deciding about posts from the feeds', () => {
     const res = await decide('ignore', [ref(A, 'a2')])
     expect((await res.json()).results[0].status).toBe('ignored')
     expect(await statuses()).toEqual({ a1: 'new', a2: 'ignored', b1: 'new' })
-    expect(await profileList()).toEqual([])
+    expect(await publicationList()).toEqual([])
     expect((await decide('ignore', [ref(A, 'a2')])).status).toBe(200) // again is fine
   })
 
-  it('shares what was decided with everyone in the profile', async () => {
+  it('shares what was decided with everyone in the publication', async () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(ctx, 'ada@example.com')
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     await decide('ignore', [ref(A, 'a2')], bob)
     expect((await recent(bob)).find((p) => p.id === 'a2')?.status).toBe('ignored')
     expect((await recent()).find((p) => p.id === 'a2')?.status).toBe('ignored')
@@ -183,20 +183,20 @@ describe('deciding about posts from the feeds', () => {
     expect((await statuses()).a2).toBe('new')
   })
 
-  it('takes an add back: the item comes off the profile’s list, and its notes stay without a source', async () => {
+  it('takes an add back: the item comes off the publication’s list, and its notes stay without a source', async () => {
     await decide('add', [ref(A, 'a1')])
-    const [item] = await profileList()
+    const [item] = await publicationList()
     await ada.post(`${api}/notes`, { text: 'A thought', readingItemId: item!.id })
     const res = await decide('reconsider', [ref(A, 'a1')])
     expect((await res.json()).results[0].status).toBe('new')
-    expect(await profileList()).toEqual([])
+    expect(await publicationList()).toEqual([])
     const notes = await (await ada.get(`${api}/notes`)).json()
     expect(notes).toEqual([expect.objectContaining({ text: 'A thought', readingItemId: null })])
   })
 
   it('cannot take back an add that has been moved to an idea: it has to come off there', async () => {
     await decide('add', [ref(A, 'a1')])
-    const [item] = await profileList()
+    const [item] = await publicationList()
     const idea = (await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()).id
     await ada.post(`${api}/move/reading`, { ids: [item!.id], to: { ideaId: idea } })
     const res = await decide('reconsider', [ref(A, 'a1')])
@@ -208,7 +208,7 @@ describe('deciding about posts from the feeds', () => {
   it('offers a post again if its item is removed by hand, even if it was once ignored', async () => {
     await decide('ignore', [ref(A, 'a1')])
     await decide('add', [ref(A, 'a1')])
-    const [item] = await profileList()
+    const [item] = await publicationList()
     await ada.delete(`${api}/reading/${item!.id}`)
     expect((await statuses()).a1).toBe('new') // not "ignored": it was added, after all
   })
@@ -230,16 +230,16 @@ describe('deciding about posts from the feeds', () => {
     expect((await recent())[0]!.status).toBe('added')
   })
 
-  it('has no limit on the profile’s own reading list', async () => {
+  it('has no limit on the publication’s own reading list', async () => {
     for (let i = 0; i < MAX_IDEA_LINKS + 10; i++) {
-      ctx.store.reading.add(profile, null, { url: `https://fill${i}.example/`, title: 't' })
+      ctx.store.reading.add(publication, null, { url: `https://fill${i}.example/`, title: 't' })
     }
     const res = await decide('add', [ref(A, 'a1')])
     expect(res.status).toBe(200)
-    expect(await profileList()).toHaveLength(MAX_IDEA_LINKS + 11)
+    expect(await publicationList()).toHaveLength(MAX_IDEA_LINKS + 11)
   })
 
-  it('says what is wrong with a post that is not there, and what is not the profile’s', async () => {
+  it('says what is wrong with a post that is not there, and what is not the publication’s', async () => {
     const gone = await decide('add', [{ sourceId: ids[A], postId: 'not-in-the-feed' }])
     expect(gone.status).toBe(409)
     expect((await gone.json()).error).toContain('Check for new posts')
@@ -247,7 +247,7 @@ describe('deciding about posts from the feeds', () => {
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     expect((await decide('add', [ref(A, 'a1')], bob)).status).toBe(404)
-    expect(await profileList()).toEqual([])
+    expect(await publicationList()).toEqual([])
   })
 
   it('refuses an empty choice or too many at once', async () => {

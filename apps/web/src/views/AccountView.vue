@@ -68,12 +68,15 @@ const deleteAccount = useMutation({
 
     <CritiqueSettingsSection />
 
-    <section aria-labelledby="profiles-heading">
-      <h2 id="profiles-heading" class="mb-1 font-display text-xl font-semibold">Profiles</h2>
+    <section aria-labelledby="publications-heading">
+      <h2 id="publications-heading" class="mb-1 font-display text-xl font-semibold">
+        Publications
+      </h2>
       <p class="text-sm text-ink-soft">
-        Create, share and manage profiles from
-        <RouterLink to="/" class="underline">your profiles</RouterLink>. Profile addresses start
-        with your handle, <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}</code
+        Create, share and manage publications from
+        <RouterLink to="/" class="underline">your publications</RouterLink>. Publication addresses
+        start with your handle,
+        <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}</code
         >.
       </p>
     </section>
@@ -87,21 +90,21 @@ const deleteAccount = useMutation({
         it.
       </p>
       <p class="mb-4 text-sm">
-        This permanently deletes your account, and every profile (with its drafts) that only you
-        belong to. In profiles you share, you're removed, and the others keep their work. If you're
-        the only owner of a shared profile, make someone else an owner first (in that profile's
-        settings), or delete the profile.
+        This permanently deletes your account, and every publication (with its drafts) that only you
+        belong to. In publications you share, you're removed, and the others keep their work. If
+        you're the only owner of a shared publication, make someone else an owner first (in that
+        publication's settings), or delete the publication.
       </p>
       <form @submit.prevent="confirmingDelete = true">
         <fieldset class="mb-4">
           <legend class="mb-1 text-sm font-medium">Your name on what you wrote</legend>
           <p class="mb-2 text-sm text-ink-soft">
-            In profiles that continue, your notes and brainstorming messages stay. Only your display
-            name can stay with them, never your email address or username.
+            In publications that continue, your notes and brainstorming messages stay. Only your
+            display name can stay with them, never your email address or username.
           </p>
           <label class="mb-2 flex items-start gap-2 text-sm">
             <input v-model="keepName" type="radio" name="keep-name" :value="true" class="mt-1" />
-            <span>Keep my name on my notes (and comments) in profiles that continue</span>
+            <span>Keep my name on my notes (and comments) in publications that continue</span>
           </label>
           <label class="mb-2 flex items-start gap-2 text-sm">
             <input v-model="keepName" type="radio" name="keep-name" :value="false" class="mt-1" />
@@ -137,7 +140,7 @@ const deleteAccount = useMutation({
         @cancel="confirmingDelete = false"
       >
         <p>
-          This can't be undone. Your account and the profiles (with their drafts) that only you
+          This can't be undone. Your account and the publications (with their drafts) that only you
           belong to will be permanently deleted.
         </p>
       </ConfirmDialog>

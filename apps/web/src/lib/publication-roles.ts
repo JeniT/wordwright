@@ -1,16 +1,16 @@
 /**
- * What owners and members can do in a profile, in words, written once so every place that talks about it (the
+ * What owners and members can do in a publication, in words, written once so every place that talks about it (the
  * confirmation before changing someone's role, the invitation form) says the same thing. When a rule changes in
  * the API, change it here too.
  */
 export const OWNER_ABILITIES = [
-  'change the profile’s name, website and picture',
+  'change the publication’s name, website and picture',
   'invite people and remove members',
   'make members owners, or remove owners (you included)',
   'move a draft to another editor when its editor is away',
   'end the review of any draft',
-  'download every draft in the profile',
-  'delete the profile',
+  'download every draft in the publication',
+  'delete the publication',
 ]
 
 export const MEMBER_ABILITIES = [

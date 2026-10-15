@@ -6,7 +6,7 @@ import SideMenu from './components/SideMenu.vue'
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
 import { useNav } from './lib/nav'
-import { useProfileAddressRedirect, useProfiles } from './lib/useProfiles'
+import { usePublicationAddressRedirect, usePublications } from './lib/usePublications'
 import ThemeChoice from './components/ThemeChoice.vue'
 import { useSessionStore } from './stores/session'
 
@@ -15,8 +15,8 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 
-useProfiles() // loaded once for everything that needs the list (the menu, the home page)
-useProfileAddressRedirect()
+usePublications() // loaded once for everything that needs the list (the menu, the home page)
+usePublicationAddressRedirect()
 
 const nav = useNav()
 /** Where you are, for the phone's top bar while the menu is folded: "What the allotment…  02 Notes". */

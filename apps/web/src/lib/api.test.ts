@@ -37,37 +37,37 @@ describe('api client', () => {
     expect(body).toEqual({ email: 'ada@example.com', password: 'pw' })
   })
 
-  it('uploads a profile image as the raw request body, labelled with its own type', async () => {
+  it('uploads a publication image as the raw request body, labelled with its own type', async () => {
     let received: { type: string | null; size: number } | undefined
-    const profile = {
+    const publication = {
       id: 'ada-blog',
       name: 'Blog',
       siteUrl: null,
-      imageUrl: '/api/profiles/ada-blog/image?v=1',
+      imageUrl: '/api/publications/ada-blog/image?v=1',
       siteIconUrl: null,
       description: null,
       role: 'owner',
       members: [],
     }
     server.use(
-      http.put('http://localhost/api/profiles/ada-blog/image', async ({ request }) => {
+      http.put('http://localhost/api/publications/ada-blog/image', async ({ request }) => {
         received = { type: request.headers.get('content-type'), size: (await request.blob()).size }
-        return HttpResponse.json(profile)
+        return HttpResponse.json(publication)
       }),
     )
     const file = new File([new Uint8Array([1, 2, 3, 4])], 'cover.png', { type: 'image/png' })
-    expect(await api.setProfileImage('ada-blog', file)).toEqual(profile)
+    expect(await api.setPublicationImage('ada-blog', file)).toEqual(publication)
     expect(received).toEqual({ type: 'image/png', size: 4 })
   })
 
   it('reports a refused upload using the server message', async () => {
     server.use(
-      http.put('http://localhost/api/profiles/ada-blog/image', () =>
+      http.put('http://localhost/api/publications/ada-blog/image', () =>
         HttpResponse.json({ error: 'That image is too large.' }, { status: 413 }),
       ),
     )
     const file = new File([new Uint8Array([1])], 'big.png', { type: 'image/png' })
-    await expect(api.setProfileImage('ada-blog', file)).rejects.toMatchObject({
+    await expect(api.setPublicationImage('ada-blog', file)).rejects.toMatchObject({
       status: 413,
       message: 'That image is too large.',
     })

@@ -14,7 +14,7 @@ import {
 
 useMockServer()
 
-const profile = {
+const publication = {
   id: 'ada-substack',
   name: 'Substack',
   siteUrl: null,
@@ -61,8 +61,8 @@ const note = (id: string, text: string, readingItemId: string | null = null, ext
   ...extra,
 })
 
-/** A small fake of the profile's own reading list and notes, remembering what it was sent. */
-function fakeProfile(initial: { links?: Link[]; notes?: ReturnType<typeof note>[] } = {}) {
+/** A small fake of the publication's own reading list and notes, remembering what it was sent. */
+function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof note>[] } = {}) {
   const state = {
     links: [...(initial.links ?? [])],
     notes: [...(initial.notes ?? [])],
@@ -70,10 +70,10 @@ function fakeProfile(initial: { links?: Link[]; notes?: ReturnType<typeof note>[
     sentNotes: [] as unknown[],
     orders: [] as string[][],
   }
-  const base = '*/api/profiles/ada-substack'
+  const base = '*/api/publications/ada-substack'
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile])),
+    http.get('*/api/publications', () => HttpResponse.json([publication])),
     http.get(`${base}/ideas`, () => HttpResponse.json([])),
     http.get(`${base}/reading`, () => HttpResponse.json(state.links)),
     http.post(`${base}/reading`, async ({ request }) => {
@@ -126,11 +126,11 @@ function fakeProfile(initial: { links?: Link[]; notes?: ReturnType<typeof note>[
   return state
 }
 
-describe('the profile’s menu', () => {
+describe('the publication’s menu', () => {
   it('leads to its four steps, which include the reading list and the notes', async () => {
-    fakeProfile()
+    fakePublication()
     await renderAt('/p/ada-substack')
-    const menu = within(await screen.findByRole('navigation', { name: 'Profile' }))
+    const menu = within(await screen.findByRole('navigation', { name: 'Publication' }))
     expect(await menu.findByRole('link', { name: 'Search' })).toHaveAttribute(
       'href',
       '/p/ada-substack/search',
@@ -147,8 +147,8 @@ describe('the profile’s menu', () => {
   })
 })
 
-describe('the profile’s reading list', () => {
-  beforeEach(() => fakeProfile())
+describe('the publication’s reading list', () => {
+  beforeEach(() => fakePublication())
 
   it('is the Read page, and the old addresses lead there', async () => {
     const { router } = await renderAt('/p/ada-substack/reading')
@@ -176,9 +176,9 @@ describe('the profile’s reading list', () => {
 
   it('shows loading, and says what went wrong loading, and tries again', async () => {
     let fail = true
-    const state = fakeProfile({ links: [link('l1', 'A paper')] })
+    const state = fakePublication({ links: [link('l1', 'A paper')] })
     server.use(
-      http.get('*/api/profiles/ada-substack/reading', () =>
+      http.get('*/api/publications/ada-substack/reading', () =>
         fail
           ? HttpResponse.json({ error: 'nope' }, { status: 500 })
           : HttpResponse.json(state.links),
@@ -191,8 +191,8 @@ describe('the profile’s reading list', () => {
     expect(await screen.findByText('A paper')).toBeInTheDocument()
   })
 
-  it('lists the items, with a way to take notes on each at the profile’s own reading page', async () => {
-    fakeProfile({ links: [link('l1', 'A paper', { authors: ['Bo'] }), link('l2', '')] })
+  it('lists the items, with a way to take notes on each at the publication’s own reading page', async () => {
+    fakePublication({ links: [link('l1', 'A paper', { authors: ['Bo'] }), link('l2', '')] })
     await renderAt('/p/ada-substack/reading')
     expect(await screen.findByText('A paper')).toBeInTheDocument()
     const [first, second] = await screen.findAllByRole('link', { name: 'Take notes' })
@@ -201,7 +201,7 @@ describe('the profile’s reading list', () => {
   })
 
   it('adds an item by its address, clearing the field, and keeps what was typed when it fails', async () => {
-    const state = fakeProfile()
+    const state = fakePublication()
     await renderAt('/p/ada-substack/reading')
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
     await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
@@ -210,21 +210,21 @@ describe('the profile’s reading list', () => {
     await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
 
     server.use(
-      http.post('*/api/profiles/ada-substack/reading', () =>
+      http.post('*/api/publications/ada-substack/reading', () =>
         HttpResponse.json(
-          { error: 'That link is already in this profile’s reading list.' },
+          { error: 'That link is already in this publication’s reading list.' },
           { status: 409 },
         ),
       ),
     )
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
     await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
-    expect(await screen.findByText(/already in this profile/)).toBeInTheDocument()
+    expect(await screen.findByText(/already in this publication/)).toBeInTheDocument()
     expect(screen.getByLabelText('Web address')).toHaveValue('https://example.org/new')
   })
 
   it('marks an item read and unread, and removes it', async () => {
-    const state = fakeProfile({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
+    const state = fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
     await renderAt('/p/ada-substack/read')
     const box = await screen.findByRole('switch', { name: 'Read: A paper' })
     await fireEvent.click(box)
@@ -250,7 +250,7 @@ describe('the profile’s reading list', () => {
     ]
 
     it('are hidden by default, with how many, and shown with the tick', async () => {
-      fakeProfile({ links: items() })
+      fakePublication({ links: items() })
       await renderAt('/p/ada-substack/reading')
       expect(await screen.findByText('Still to read')).toBeInTheDocument()
       expect(screen.queryByText('Already read')).not.toBeInTheDocument()
@@ -266,21 +266,21 @@ describe('the profile’s reading list', () => {
     })
 
     it('say so, rather than "nothing yet", when everything has been read', async () => {
-      fakeProfile({ links: [link('l2', 'Already read', { readAt: read })] })
+      fakePublication({ links: [link('l2', 'Already read', { readAt: read })] })
       await renderAt('/p/ada-substack/reading')
       expect(await screen.findByText('Everything on the list has been read.')).toBeInTheDocument()
       expect(screen.queryByText('Nothing on the reading list yet.')).not.toBeInTheDocument()
     })
 
     it('offer no tick when none has been read, and a truly empty list says so', async () => {
-      fakeProfile({ links: [link('l1', 'Still to read')] })
+      fakePublication({ links: [link('l1', 'Still to read')] })
       await renderAt('/p/ada-substack/reading')
       await screen.findByText('Still to read')
       expect(screen.queryByRole('switch', { name: /Show read items/ })).not.toBeInTheDocument()
     })
 
     it('stay in view when ticked during this visit, so they can be unticked', async () => {
-      const state = fakeProfile({ links: items() })
+      const state = fakePublication({ links: items() })
       await renderAt('/p/ada-substack/reading')
       await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
       await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
@@ -294,7 +294,7 @@ describe('the profile’s reading list', () => {
     })
 
     it('go out of view once the tick is changed, if they were read this visit', async () => {
-      const state = fakeProfile({ links: items() })
+      const state = fakePublication({ links: items() })
       await renderAt('/p/ada-substack/reading')
       await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
       await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
@@ -314,7 +314,7 @@ describe('the profile’s reading list', () => {
   })
 
   it('has a Keep tick on each item, saved when it is changed', async () => {
-    const state = fakeProfile({
+    const state = fakePublication({
       links: [link('l1', 'A paper'), link('l2', 'Another', { kept: true })],
     })
     await renderAt('/p/ada-substack/reading')
@@ -332,9 +332,9 @@ describe('the profile’s reading list', () => {
   })
 
   it('puts the tick back and says so when keeping could not be saved', async () => {
-    fakeProfile({ links: [link('l1', 'A paper')] })
+    fakePublication({ links: [link('l1', 'A paper')] })
     server.use(
-      http.put('*/api/profiles/ada-substack/reading/l1/kept', () =>
+      http.put('*/api/publications/ada-substack/reading/l1/kept', () =>
         HttpResponse.json({ error: 'nope' }, { status: 500 }),
       ),
     )
@@ -346,7 +346,7 @@ describe('the profile’s reading list', () => {
   })
 
   it('shows where an item came from: the AI’s with the highlighter, a feed’s without', async () => {
-    fakeProfile({
+    fakePublication({
       links: [
         link('l1', 'From research', { origin: 'research', why: 'It argues the opposite' }),
         link('l2', 'From a feed', { origin: 'feed' }),
@@ -365,21 +365,21 @@ describe('moving reading items', () => {
     { id: 'i1', name: 'Rivers', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
     { id: 'i2', name: 'Lakes', draftCount: 1, updatedAt: '2026-01-01T00:00:00Z' },
   ]
-  /** The fake of the profile's lists plus the ideas and the move endpoint, remembering what it was sent. */
+  /** The fake of the publication's lists plus the ideas and the move endpoint, remembering what it was sent. */
   function fake(links: Link[] = [link('l1', 'A paper'), link('l2', 'Another')]) {
-    const state = fakeProfile({ links })
+    const state = fakePublication({ links })
     const moves: { ids: string[]; to: { ideaId: string | null } }[] = []
     const created: string[] = []
     let result = { batchId: 'b', readingItems: 2, merged: 0, copied: 0, notes: 5 }
     server.use(
-      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
-      http.post('*/api/profiles/ada-substack/ideas', async ({ request }) => {
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
+      http.post('*/api/publications/ada-substack/ideas', async ({ request }) => {
         const body = (await request.json()) as { name: string }
         created.push(body.name)
         return HttpResponse.json(
           {
             id: 'new1',
-            profileId: 'ada-substack',
+            publicationId: 'ada-substack',
             name: body.name,
             notes: '',
             links: [],
@@ -390,7 +390,7 @@ describe('moving reading items', () => {
           { status: 201 },
         )
       }),
-      http.post('*/api/profiles/ada-substack/move/reading', async ({ request }) => {
+      http.post('*/api/publications/ada-substack/move/reading', async ({ request }) => {
         const body = (await request.json()) as (typeof moves)[number]
         moves.push(body)
         state.links = state.links.filter((l) => !body.ids.includes(l.id))
@@ -456,7 +456,7 @@ describe('moving reading items', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(f.moves).toHaveLength(2))
-    expect(f.moves[1]).toEqual({ ids: ['l1'], to: { ideaId: null } }) // back to the profile's own list
+    expect(f.moves[1]).toEqual({ ids: ['l1'], to: { ideaId: null } }) // back to the publication's own list
     expect(await screen.findByRole('status')).toHaveTextContent('Moved back.')
     expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
   })
@@ -495,7 +495,7 @@ describe('moving reading items', () => {
   it('says why it could not move, and keeps the choice', async () => {
     fake()
     server.use(
-      http.post('*/api/profiles/ada-substack/move/reading', () =>
+      http.post('*/api/publications/ada-substack/move/reading', () =>
         HttpResponse.json(
           {
             error: 'An idea can have up to 50 links. Remove some you no longer need to make room.',
@@ -518,7 +518,7 @@ describe('moving reading items', () => {
   it('says so, and offers nowhere to move to, when the ideas could not be loaded', async () => {
     fake()
     server.use(
-      http.get('*/api/profiles/ada-substack/ideas', () =>
+      http.get('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json({ error: 'x' }, { status: 500 }),
       ),
     )
@@ -558,7 +558,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   const selectAll = () => screen.getByRole('checkbox', { name: 'Select all links on this page' })
 
   it('pages the list five at a time, with where you are, and keeps the filter ahead of the paging', async () => {
-    fakeProfile({ links: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })] })
+    fakePublication({ links: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })] })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     expect(titles()).toEqual(['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5'])
@@ -573,14 +573,14 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   })
 
   it('shows no page controls for a list that fits on one page', async () => {
-    fakeProfile({ links: seven().slice(0, 3) })
+    fakePublication({ links: seven().slice(0, 3) })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     expect(screen.queryByRole('button', { name: /^Next/ })).not.toBeInTheDocument()
   })
 
   it('selects the page with the box at the top, which shows a partial selection as such', async () => {
-    fakeProfile({ links: seven() })
+    fakePublication({ links: seven() })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     expect(screen.getByText('0 selected')).toBeInTheDocument()
@@ -594,7 +594,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   })
 
   it('offers the rest of the pages once the whole page is selected, and clears the selection on a new page', async () => {
-    fakeProfile({ links: seven() })
+    fakePublication({ links: seven() })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     await fireEvent.click(selectAll())
@@ -606,7 +606,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   })
 
   it('removes the selected links only after the dialog is confirmed, and nothing until something is selected', async () => {
-    const state = fakeProfile({ links: seven().slice(0, 3) })
+    const state = fakePublication({ links: seven().slice(0, 3) })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     expect(screen.queryByRole('button', { name: /^Remove \d+$/ })).toBeNull() // hidden until something is selected
@@ -626,9 +626,9 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   })
 
   it('says so when some of the selected links could not be removed, and keeps those selected', async () => {
-    fakeProfile({ links: seven().slice(0, 2) })
+    fakePublication({ links: seven().slice(0, 2) })
     server.use(
-      http.delete('*/api/profiles/ada-substack/reading/l2', () =>
+      http.delete('*/api/publications/ada-substack/reading/l2', () =>
         HttpResponse.json({ error: 'x' }, { status: 500 }),
       ),
     )
@@ -645,7 +645,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   })
 
   it('puts a link’s facts under it, plain: the host as text, where it came from as a flat chip', async () => {
-    fakeProfile({
+    fakePublication({
       links: [
         link('l1', 'A paper', { url: 'https://www.example.org/a/long/path', origin: 'feed' }),
       ],
@@ -659,8 +659,8 @@ describe('selecting, bulk actions and pages on the reading list', () => {
   })
 })
 
-describe('reading an item of the profile’s own list', () => {
-  const open = (state = fakeProfile({ links: [link('l1', 'A paper')] })) => {
+describe('reading an item of the publication’s own list', () => {
+  const open = (state = fakePublication({ links: [link('l1', 'A paper')] })) => {
     return { state, shown: renderAt('/p/ada-substack/reading/l1') }
   }
 
@@ -678,7 +678,7 @@ describe('reading an item of the profile’s own list', () => {
   })
 
   it('says so when the item is not on the list', async () => {
-    fakeProfile()
+    fakePublication()
     await renderAt('/p/ada-substack/reading/nope')
     expect(await screen.findByRole('alert')).toHaveTextContent(
       "couldn't open that reading-list item",
@@ -686,7 +686,7 @@ describe('reading an item of the profile’s own list', () => {
     expect(screen.getByRole('link', { name: 'Back to the reading list' })).toBeInTheDocument()
   })
 
-  it('takes a note from the item as one of the profile’s notes, and a quote word for word', async () => {
+  it('takes a note from the item as one of the publication’s notes, and a quote word for word', async () => {
     const { state } = open()
     await fireEvent.update(await screen.findByLabelText('Add a note from this page'), 'My thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
@@ -704,7 +704,7 @@ describe('reading an item of the profile’s own list', () => {
     expectOrigin(items[0]!, 'Quoted from “A paper”', 'Ada')
   })
 
-  it('adds another page to the profile’s reading list, and offers to read it', async () => {
+  it('adds another page to the publication’s reading list, and offers to read it', async () => {
     const { state } = open()
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/more')
     await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
@@ -719,7 +719,7 @@ describe('reading an item of the profile’s own list', () => {
     await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
 
     server.use(
-      http.patch('*/api/profiles/ada-substack/reading/l1', async ({ request }) => {
+      http.patch('*/api/publications/ada-substack/reading/l1', async ({ request }) => {
         const body = (await request.json()) as { title: string; authors: string[] }
         state.links[0] = { ...state.links[0]!, title: body.title, authors: body.authors }
         return HttpResponse.json(state.links)
@@ -749,20 +749,20 @@ describe('moving notes', () => {
       note('n4', '“Exact words”', 'l2', { quote: true }),
     ],
   ) {
-    const state = fakeProfile({
+    const state = fakePublication({
       links: [link('l1', 'A paper'), link('l2', 'Another')],
       notes: initial,
     })
     const moves: { ids: string[]; to: { ideaId: string | null } }[] = []
     let result = { batchId: 'b', readingItems: 0, merged: 0, copied: 1, notes: 2 }
     server.use(
-      http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
-      http.post('*/api/profiles/ada-substack/ideas', async ({ request }) => {
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
+      http.post('*/api/publications/ada-substack/ideas', async ({ request }) => {
         const body = (await request.json()) as { name: string }
         return HttpResponse.json(
           {
             id: 'new1',
-            profileId: 'ada-substack',
+            publicationId: 'ada-substack',
             name: body.name,
             notes: '',
             links: [],
@@ -773,7 +773,7 @@ describe('moving notes', () => {
           { status: 201 },
         )
       }),
-      http.post('*/api/profiles/ada-substack/move/notes', async ({ request }) => {
+      http.post('*/api/publications/ada-substack/move/notes', async ({ request }) => {
         const body = (await request.json()) as (typeof moves)[number]
         moves.push(body)
         state.notes = state.notes.filter((n) => !body.ids.includes(n.id))
@@ -911,7 +911,7 @@ describe('moving notes', () => {
   it('says why it could not move, and keeps the choice', async () => {
     fake()
     server.use(
-      http.post('*/api/profiles/ada-substack/move/notes', () =>
+      http.post('*/api/publications/ada-substack/move/notes', () =>
         HttpResponse.json(
           { error: 'An idea can have up to 200 notes. Merge or delete some to make room.' },
           { status: 409 },
@@ -959,7 +959,7 @@ describe('moving notes', () => {
 
 describe('deleting selected notes', () => {
   it('deletes the selected notes only after the dialog is confirmed, and nothing until something is selected', async () => {
-    const state = fakeProfile({
+    const state = fakePublication({
       notes: [note('n1', 'One'), note('n2', 'Two'), note('n3', 'Three')],
     })
     await renderAt('/p/ada-substack/notes')
@@ -981,7 +981,7 @@ describe('deleting selected notes', () => {
   })
 
   it('shows a note’s own actions as icons, with Edit and a held Delete', async () => {
-    fakeProfile({ notes: [note('n1', 'One')] })
+    fakePublication({ notes: [note('n1', 'One')] })
     await renderAt('/p/ada-substack/notes')
     await screen.findByText('One')
     const edit = screen.getByRole('button', { name: /^Edit note “One/ })
@@ -994,17 +994,19 @@ describe('deleting selected notes', () => {
   })
 })
 
-describe('the profile’s notes', () => {
-  it('says there are none yet, and that they belong to the profile', async () => {
-    fakeProfile()
+describe('the publication’s notes', () => {
+  it('says there are none yet, and that they belong to the publication', async () => {
+    fakePublication()
     await renderAt('/p/ada-substack/notes')
     expect(await screen.findByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
     expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
-    expect(screen.getByText(/belong to the profile, not to any one idea yet/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/belong to the publication, not to any one idea yet/),
+    ).toBeInTheDocument()
   })
 
   it('lists them with the reading item each came from', async () => {
-    fakeProfile({
+    fakePublication({
       links: [link('l1', 'A paper')],
       notes: [note('n1', 'Typed thought'), note('n2', 'From the paper', 'l1')],
     })
@@ -1018,9 +1020,9 @@ describe('the profile’s notes', () => {
 
   it('says what went wrong loading them, and tries again', async () => {
     let fail = true
-    const state = fakeProfile({ notes: [note('n1', 'A thought')] })
+    const state = fakePublication({ notes: [note('n1', 'A thought')] })
     server.use(
-      http.get('*/api/profiles/ada-substack/notes', () =>
+      http.get('*/api/publications/ada-substack/notes', () =>
         fail
           ? HttpResponse.json({ error: 'nope' }, { status: 500 })
           : HttpResponse.json(state.notes),
@@ -1033,8 +1035,8 @@ describe('the profile’s notes', () => {
     expect(await screen.findByText('A thought')).toBeInTheDocument()
   })
 
-  it('adds a note of the profile’s own', async () => {
-    const state = fakeProfile()
+  it('adds a note of the publication’s own', async () => {
+    const state = fakePublication()
     await renderAt('/p/ada-substack/notes')
     await fireEvent.update(await screen.findByLabelText('Add a note'), 'Something I noticed')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
@@ -1043,7 +1045,7 @@ describe('the profile’s notes', () => {
   })
 
   it('puts notes in order and deletes them, as an idea’s notes can', async () => {
-    const state = fakeProfile({ notes: [note('n1', 'One'), note('n2', 'Two')] })
+    const state = fakePublication({ notes: [note('n1', 'One'), note('n2', 'Two')] })
     await renderAt('/p/ada-substack/notes')
     await screen.findByText('One')
     await showArrows()

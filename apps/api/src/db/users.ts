@@ -15,15 +15,15 @@ export interface UserRecord {
   emailVerified: boolean
 }
 
-/** No sign of use: no drafts or ideas, no saved API key, and no one else in any of their profiles. */
+/** No sign of use: no drafts or ideas, no saved API key, and no one else in any of their publications. */
 const UNUSED_ACCOUNT = `
-  AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN drafts d ON d.profile_id = m.profile_id
+  AND NOT EXISTS (SELECT 1 FROM publication_members m JOIN drafts d ON d.publication_id = m.publication_id
                   WHERE m.user_id = u.id)
-  AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN ideas i ON i.profile_id = m.profile_id
+  AND NOT EXISTS (SELECT 1 FROM publication_members m JOIN ideas i ON i.publication_id = m.publication_id
                   WHERE m.user_id = u.id)
   AND NOT EXISTS (SELECT 1 FROM llm_credentials c WHERE c.user_id = u.id)
-  AND NOT EXISTS (SELECT 1 FROM profile_members m JOIN profile_members o
-                    ON o.profile_id = m.profile_id AND o.user_id <> m.user_id
+  AND NOT EXISTS (SELECT 1 FROM publication_members m JOIN publication_members o
+                    ON o.publication_id = m.publication_id AND o.user_id <> m.user_id
                   WHERE m.user_id = u.id)`
 
 export class UserStore {
@@ -39,7 +39,7 @@ export class UserStore {
     email: string
     emailVerified: boolean
     handle?: string
-    /** No username and no profile: the account can only review (#157). */
+    /** No username and no publication: the account can only review (#157). */
     reviewerOnly?: boolean
   }): UserRecord {
     const id = randomUUID()
@@ -113,7 +113,7 @@ export class UserStore {
 
   /**
    * Accounts that never confirmed their email, are older than `cutoff`, and show no sign of use: no
-   * drafts or ideas in any of their profiles, no saved API key, and no one else in their profiles.
+   * drafts or ideas in any of their publications, no saved API key, and no one else in their publications.
    */
   findStaleUnconfirmed(cutoff: Date, limit: number): UserRecord[] {
     return this.db
@@ -161,7 +161,7 @@ export class UserStore {
     this.db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, id)
   }
 
-  /** The account becomes a full one (invited to a profile, or the person chose to start writing). */
+  /** The account becomes a full one (invited to a publication, or the person chose to start writing). */
   clearReviewerOnly(id: string) {
     this.db.prepare('UPDATE users SET reviewer_only = 0 WHERE id = ?').run(id)
   }

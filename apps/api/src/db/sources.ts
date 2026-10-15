@@ -38,40 +38,40 @@ export interface SourceFetch {
 }
 
 /**
- * Sources are always accessed through their profile; callers check membership first. `remove` and
+ * Sources are always accessed through their publication; callers check membership first. `remove` and
  * `reorder` make several writes, so routes call them inside `store.transaction`.
  */
 export class SourceStore {
   constructor(private readonly db: DatabaseSync) {}
 
   /** In priority order, highest first. */
-  list(profileId: string): Source[] {
+  list(publicationId: string): Source[] {
     return (
       this.db
         .prepare(
           `SELECT s.id, s.url, s.title, s.description, s.site_url, i.updated_at AS icon_updated_at,
                   f.last_worked_at, f.last_error
-           FROM profile_sources s
-           LEFT JOIN profile_source_icons i ON i.source_id = s.id
-           LEFT JOIN profile_source_fetches f ON f.source_id = s.id
-           WHERE s.profile_id = ? ORDER BY s.position`,
+           FROM publication_sources s
+           LEFT JOIN publication_source_icons i ON i.source_id = s.id
+           LEFT JOIN publication_source_fetches f ON f.source_id = s.id
+           WHERE s.publication_id = ? ORDER BY s.position`,
         )
-        .all(profileId) as unknown as Row[]
-    ).map((r) => toSource(profileId, r))
+        .all(publicationId) as unknown as Row[]
+    ).map((r) => toSource(publicationId, r))
   }
 
-  count(profileId: string): number {
+  count(publicationId: string): number {
     const row = this.db
-      .prepare('SELECT count(*) AS n FROM profile_sources WHERE profile_id = ?')
-      .get(profileId) as { n: number }
+      .prepare('SELECT count(*) AS n FROM publication_sources WHERE publication_id = ?')
+      .get(publicationId) as { n: number }
     return row.n
   }
 
-  has(profileId: string, url: string): boolean {
+  has(publicationId: string, url: string): boolean {
     return (
       this.db
-        .prepare('SELECT 1 FROM profile_sources WHERE profile_id = ? AND url = ?')
-        .get(profileId, url) !== undefined
+        .prepare('SELECT 1 FROM publication_sources WHERE publication_id = ? AND url = ?')
+        .get(publicationId, url) !== undefined
     )
   }
 
@@ -79,57 +79,63 @@ export class SourceStore {
    * Adds to the end of the list (lowest priority). Callers check `has` and `count` first, in the
    * same transaction. `details` is what the feed said about itself; without it only the address is kept.
    */
-  add(profileId: string, url: string, details?: FeedDetails, icon?: FetchedIcon | null): Source {
+  add(
+    publicationId: string,
+    url: string,
+    details?: FeedDetails,
+    icon?: FetchedIcon | null,
+  ): Source {
     const id = randomUUID()
     const now = nowIso()
     this.db
       .prepare(
-        `INSERT INTO profile_sources (id, profile_id, url, title, description, site_url, position, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM profile_sources WHERE profile_id = ?), ?)`,
+        `INSERT INTO publication_sources (id, publication_id, url, title, description, site_url, position, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM publication_sources WHERE publication_id = ?), ?)`,
       )
       .run(
         id,
-        profileId,
+        publicationId,
         url,
         details?.title ?? null,
         details?.description ?? null,
         details?.siteUrl ?? null,
-        profileId,
+        publicationId,
         now,
       )
     if (icon) {
       this.db
         .prepare(
-          'INSERT INTO profile_source_icons (source_id, content_type, data, updated_at) VALUES (?, ?, ?, ?)',
+          'INSERT INTO publication_source_icons (source_id, content_type, data, updated_at) VALUES (?, ?, ?, ?)',
         )
         .run(id, icon.contentType, icon.data, now)
     }
-    return this.list(profileId).find((s) => s.id === id)!
+    return this.list(publicationId).find((s) => s.id === id)!
   }
 
-  getIcon(profileId: string, id: string): SourceIcon | undefined {
+  getIcon(publicationId: string, id: string): SourceIcon | undefined {
     const row = this.db
       .prepare(
-        `SELECT i.content_type, i.data FROM profile_source_icons i
-         JOIN profile_sources s ON s.id = i.source_id WHERE s.profile_id = ? AND s.id = ?`,
+        `SELECT i.content_type, i.data FROM publication_source_icons i
+         JOIN publication_sources s ON s.id = i.source_id WHERE s.publication_id = ? AND s.id = ?`,
       )
-      .get(profileId, id) as { content_type: IconType; data: Uint8Array } | undefined
+      .get(publicationId, id) as { content_type: IconType; data: Uint8Array } | undefined
     return row && { contentType: row.content_type, data: row.data }
   }
 
-  profileOf(id: string): string | undefined {
-    const row = this.db.prepare('SELECT profile_id FROM profile_sources WHERE id = ?').get(id) as
-      { profile_id: string } | undefined
-    return row?.profile_id
+  publicationOf(id: string): string | undefined {
+    const row = this.db
+      .prepare('SELECT publication_id FROM publication_sources WHERE id = ?')
+      .get(id) as { publication_id: string } | undefined
+    return row?.publication_id
   }
 
-  find(profileId: string, id: string): Source | undefined {
-    return this.list(profileId).find((s) => s.id === id)
+  find(publicationId: string, id: string): Source | undefined {
+    return this.list(publicationId).find((s) => s.id === id)
   }
 
   getFetch(sourceId: string): SourceFetch | undefined {
     const r = this.db
-      .prepare('SELECT * FROM profile_source_fetches WHERE source_id = ?')
+      .prepare('SELECT * FROM publication_source_fetches WHERE source_id = ?')
       .get(sourceId) as
       | {
           items: string
@@ -157,7 +163,7 @@ export class SourceStore {
   saveFetch(sourceId: string, f: SourceFetch) {
     this.db
       .prepare(
-        `INSERT OR REPLACE INTO profile_source_fetches
+        `INSERT OR REPLACE INTO publication_source_fetches
            (source_id, items, etag, last_modified, checked_at, last_worked_at, last_error, last_error_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
@@ -173,37 +179,37 @@ export class SourceStore {
       )
   }
 
-  remove(profileId: string, id: string): boolean {
+  remove(publicationId: string, id: string): boolean {
     const removed =
       this.db
-        .prepare('DELETE FROM profile_sources WHERE profile_id = ? AND id = ?')
-        .run(profileId, id).changes > 0
+        .prepare('DELETE FROM publication_sources WHERE publication_id = ? AND id = ?')
+        .run(publicationId, id).changes > 0
     if (removed)
       this.renumber(
-        profileId,
-        this.list(profileId).map((s) => s.id),
+        publicationId,
+        this.list(publicationId).map((s) => s.id),
       )
     return removed
   }
 
   /**
    * Puts the sources in the given order. Returns false, changing nothing, unless `ids` names
-   * exactly the profile's current sources (so a stale screen can't silently drop or resurrect any).
+   * exactly the publication's current sources (so a stale screen can't silently drop or resurrect any).
    */
-  reorder(profileId: string, ids: string[]): boolean {
-    const current = this.list(profileId).map((s) => s.id)
-    return reorder(this.db, TABLE, scopeOf(profileId), current, ids)
+  reorder(publicationId: string, ids: string[]): boolean {
+    const current = this.list(publicationId).map((s) => s.id)
+    return reorder(this.db, TABLE, scopeOf(publicationId), current, ids)
   }
 
-  private renumber(profileId: string, ids: string[]) {
-    renumber(this.db, TABLE, scopeOf(profileId), ids)
+  private renumber(publicationId: string, ids: string[]) {
+    renumber(this.db, TABLE, scopeOf(publicationId), ids)
   }
 }
 
-const TABLE = 'profile_sources'
-const scopeOf = (profileId: string) => ({ sql: 'profile_id = ?', args: [profileId] })
+const TABLE = 'publication_sources'
+const scopeOf = (publicationId: string) => ({ sql: 'publication_id = ?', args: [publicationId] })
 
-function toSource(profileId: string, r: Row): Source {
+function toSource(publicationId: string, r: Row): Source {
   return {
     id: r.id,
     url: r.url,
@@ -212,7 +218,7 @@ function toSource(profileId: string, r: Row): Source {
     siteUrl: r.site_url,
     // The version changes only when the picture does, so browsers can cache it hard.
     iconUrl: r.icon_updated_at
-      ? `/api/profiles/${profileId}/sources/${r.id}/icon?v=${Date.parse(r.icon_updated_at)}`
+      ? `/api/publications/${publicationId}/sources/${r.id}/icon?v=${Date.parse(r.icon_updated_at)}`
       : null,
     lastWorkedAt: r.last_worked_at,
     lastError: r.last_error,

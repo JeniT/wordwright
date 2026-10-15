@@ -16,13 +16,13 @@ import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 import QueryState from '../components/QueryState.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 
-const props = defineProps<{ profileId: string; id: string }>()
+const props = defineProps<{ publicationId: string; id: string }>()
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 
 const idea = useIdea(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 
@@ -37,8 +37,8 @@ const streaming = ref<{
 } | null>(null)
 // While someone else's reply is being written, look again every few seconds to see it arrive.
 const conversation = useQuery({
-  queryKey: computed(() => queryKeys.conversation(props.profileId, props.id)),
-  queryFn: () => api.getConversation(props.profileId, props.id),
+  queryKey: computed(() => queryKeys.conversation(props.publicationId, props.id)),
+  queryFn: () => api.getConversation(props.publicationId, props.id),
   refetchInterval: (query) => (query.state.data?.replyingNow && !streaming.value ? 3000 : false),
 })
 
@@ -87,7 +87,7 @@ async function send(body: SendMessageInput, restore?: string) {
   controller = new AbortController()
   try {
     await api.streamReply(
-      props.profileId,
+      props.publicationId,
       props.id,
       body,
       (event) => {
@@ -156,7 +156,7 @@ watch(
   (data) => {
     if (heldSent || !data) return
     heldSent = true
-    const text = takeHeldMessage(props.profileId, props.id)
+    const text = takeHeldMessage(props.publicationId, props.id)
     if (text && data.messages.length) void send({ text }, text)
   },
   { immediate: true },
@@ -165,7 +165,7 @@ watch(
 // ---- starting again -----------------------------------------------------------
 const confirmingRestart = ref(false)
 const restart = useMutation({
-  mutationFn: () => api.restartConversation(props.profileId, props.id),
+  mutationFn: () => api.restartConversation(props.publicationId, props.id),
   onSuccess: async () => {
     replyProblem.value = null
     await invalidateRoots(queryClient, 'conversation')
@@ -192,15 +192,15 @@ const busyNote = computed(() =>
 </script>
 
 <template>
-  <IdeaGate :id="id" :profile-id="profileId">
+  <IdeaGate :id="id" :publication-id="publicationId">
     <article v-if="idea.data.value" class="max-w-2xl">
       <StepHeading>Refine</StepHeading>
       <p class="mb-4 text-sm text-ink-soft">
         Your AI (with your own key) will talk this idea through with you, and add the points you
         make to its notes as you go. Your idea, its notes and links, and this publication's details
         are sent to your AI provider so it can discuss them; the text of your drafts never is.
-        Everyone in this profile sees this conversation. A new title or a separate idea is only a
-        suggestion until someone accepts it.
+        Everyone in this publication sees this conversation. A new title or a separate idea is only
+        a suggestion until someone accepts it.
       </p>
 
       <details class="mb-6 rounded-ctl border border-line bg-surface p-3 text-sm">
@@ -216,7 +216,7 @@ const busyNote = computed(() =>
           </li>
         </ul>
         <p class="mt-2">
-          <RouterLink :to="{ name: 'idea-notes', params: { profileId, id } }" class="link">
+          <RouterLink :to="{ name: 'idea-notes', params: { publicationId, id } }" class="link">
             Open the notes to edit them
           </RouterLink>
         </p>
@@ -281,7 +281,7 @@ const busyNote = computed(() =>
                 <ProposalCard
                   v-for="proposal in message.proposals"
                   :key="proposal.id"
-                  :profile-id="profileId"
+                  :publication-id="publicationId"
                   :idea-id="id"
                   :proposal="proposal"
                   :idea="idea.data.value"
@@ -380,11 +380,11 @@ const busyNote = computed(() =>
         @confirm="restart.mutate()"
         @cancel="confirmingRestart = false"
       >
-        This deletes the whole conversation for everyone in this profile, including suggestions
+        This deletes the whole conversation for everyone in this publication, including suggestions
         nobody has decided on. Changes you have already accepted stay.
       </ConfirmDialog>
 
-      <NextStep :to="{ name: 'idea-drafts', params: { profileId, id } }" label="Next: 04 Draft">
+      <NextStep :to="{ name: 'idea-drafts', params: { publicationId, id } }" label="Next: 04 Draft">
         When you know what you want to say, start a draft.
       </NextStep>
     </article>

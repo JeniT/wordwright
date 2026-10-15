@@ -8,7 +8,7 @@ useMockServer()
 
 const idea = {
   id: 'i1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.\nSecond line.',
   links: [
@@ -24,7 +24,7 @@ const idea = {
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
-const conversationUrl = '*/api/profiles/ada-substack/ideas/i1/conversation'
+const conversationUrl = '*/api/publications/ada-substack/ideas/i1/conversation'
 const page = '/p/ada-substack/ideas/i1/brainstorm'
 
 let counter = 0
@@ -128,8 +128,8 @@ function mockConversation(
     signedInAs(testUser),
     // Overrides come first: the first matching handler wins.
     ...extra,
-    http.get('*/api/profiles', () => HttpResponse.json([])),
-    http.get('*/api/profiles/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
+    http.get('*/api/publications', () => HttpResponse.json([])),
+    http.get('*/api/publications/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
     http.get(conversationUrl, () =>
       HttpResponse.json({ messages: state.messages, replyingNow: state.replyingNow }),
     ),
@@ -154,7 +154,9 @@ describe('the brainstorm page', () => {
     await renderAt(page)
     expect(await screen.findByRole('heading', { name: 'Refine' })).toBeInTheDocument()
     expect(screen.getByText(/the text of your\s+drafts never is/)).toBeInTheDocument()
-    expect(screen.getByText(/Everyone in this profile sees this conversation/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Everyone in this publication sees this conversation/),
+    ).toBeInTheDocument()
 
     const summary = screen.getByText('The idea being discussed').closest('details')!
     expect(within(summary).getByText(/Erosion loops/)).toBeInTheDocument()
@@ -197,7 +199,7 @@ describe('the brainstorm page', () => {
     mockConversation(
       [kickoff(), aiMessage('What is the claim?')],
       [
-        http.get('*/api/profiles/ada-substack/ideas/i1', async () => {
+        http.get('*/api/publications/ada-substack/ideas/i1', async () => {
           if (hold) await held
           return HttpResponse.json(idea)
         }),
@@ -449,7 +451,7 @@ describe('the brainstorm page', () => {
       const api = mockConversation([kickoff(), aiMessage('Go on.')])
       let ideaReads = 0
       server.use(
-        http.get('*/api/profiles/ada-substack/ideas/i1', () => {
+        http.get('*/api/publications/ada-substack/ideas/i1', () => {
           ideaReads++
           return HttpResponse.json(idea)
         }),
@@ -614,7 +616,7 @@ describe('the brainstorm page', () => {
     await screen.findByText('Go on.')
     await fireEvent.click(screen.getByRole('button', { name: 'Start again' }))
     const dialog = screen.getByRole('dialog', { name: 'Start the conversation again?' })
-    expect(dialog).toHaveTextContent('for everyone in this profile')
+    expect(dialog).toHaveTextContent('for everyone in this publication')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(wiped).toBe(false)
 
@@ -629,8 +631,8 @@ describe('the brainstorm page', () => {
   it('says so when the idea or the conversation cannot be loaded', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([])),
-      http.get('*/api/profiles/ada-substack/ideas/i1', () =>
+      http.get('*/api/publications', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/ideas/i1', () =>
         HttpResponse.json({ error: 'Not found' }, { status: 404 }),
       ),
     )

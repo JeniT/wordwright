@@ -10,7 +10,7 @@ import {
   test,
 } from './fixtures'
 
-async function signUpWithProfile(page: Page) {
+async function signUpWithPublication(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
   await page.goto('/register')
   await page.getByLabel('What should we call you?').fill('Ida')
@@ -18,9 +18,9 @@ async function signUpWithProfile(page: Page) {
   await page.getByLabel('Email').fill(`ida-${id}@example.com`)
   await page.getByLabel('Password').fill('a perfectly good password')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Weekly letters')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
 
@@ -34,9 +34,9 @@ async function startDraft(page: Page) {
 const noViolations = async (page: Page, what: string) =>
   expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
 
-/** Signs up with a profile and creates the idea "Why rivers meander" (with its first note), ending on the idea's page. */
+/** Signs up with a publication and creates the idea "Why rivers meander" (with its first note), ending on the idea's page. */
 async function startIdea(page: Page) {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -45,9 +45,9 @@ async function startIdea(page: Page) {
 }
 
 test('captures an idea, and its first note is kept as a note', async ({ page }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await expect(page.getByText('No ideas yet')).toBeVisible()
-  await noViolations(page, 'profile page')
+  await noViolations(page, 'publication page')
 
   await page.getByRole('link', { name: 'New idea' }).click()
   await noViolations(page, 'new idea page')
@@ -186,7 +186,7 @@ test('develops an idea into a linked set of drafts, in an order that can be chan
   await page.reload()
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
 
-  // The profile lists the idea with its drafts.
+  // The publication lists the idea with its drafts.
   await page.getByRole('link', { name: '← Weekly letters' }).click()
   await expect(
     page.getByRole('main').getByRole('link', { name: /Why rivers meander.*drafts/ }),
@@ -275,7 +275,7 @@ test('removes links and deletes an idea, which asks first', async ({ page }) => 
 test('pulls notes into a draft from the side, keeping where the words came from', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -337,7 +337,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
 
 test('on a phone the notes slide in over the draft', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 })
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Tides')
   await page.getByLabel('Expand on your idea here').fill('The moon pulls the sea.')
@@ -360,7 +360,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
 
 test('reads a reading-list item and takes notes from it, on a phone too', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 })
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -451,7 +451,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
 test('tags reading-list items, one or several at once, and filters the list by a tag', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -512,7 +512,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
 })
 
 test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -572,7 +572,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
 test('tags group notes by draft or section, and filter them on the idea page and beside the draft', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -638,7 +638,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
 test('a direct quote cannot be edited, and goes into a draft as a blockquote with its source', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -701,7 +701,7 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
 test('a link to something on the reading list goes in only once it has been read', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -758,7 +758,7 @@ test('a link to something on the reading list goes in only once it has been read
 })
 
 test('notes can be merged into one, and one note cut in two', async ({ page }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
@@ -806,7 +806,7 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
 test('a note taken from a source goes into the draft with a real link to it, which looks like one', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -844,7 +844,7 @@ test('a note taken from a source goes into the draft with a real link to it, whi
 test('a note dragged from the side bar lands in the draft where it is dropped', async ({
   page,
 }) => {
-  await signUpWithProfile(page)
+  await signUpWithPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')

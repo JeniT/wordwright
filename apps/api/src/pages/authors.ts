@@ -20,7 +20,7 @@ function decode(text: string): string {
   })
 }
 
-/** A name, tidied; null if it is empty or isn't a name (a profile address, which `article:author` often holds). */
+/** A name, tidied; null if it is empty or isn't a name (a publication address, which `article:author` often holds). */
 function tidyName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const name = decode(raw)

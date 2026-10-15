@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { Profile } from '@lfwa/core'
+import type { Publication } from '@lfwa/core'
 import Markdown from './Markdown.vue'
 
 /**
- * The profile's description at the top of its landing page. Long ones show their first lines, with a button to
+ * The publication's description at the top of its landing page. Long ones show their first lines, with a button to
  * read the rest; the button is only there when something is hidden, which is measured, not guessed from the length.
  */
-const props = defineProps<{ profile: Profile }>()
-const description = computed(() => props.profile.description)
+const props = defineProps<{ publication: Publication }>()
+const description = computed(() => props.publication.description)
 const bodyId = useId()
 const body = ref<HTMLElement>()
 const expanded = ref(false)
@@ -30,7 +30,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => observer?.disconnect())
 watch(
-  () => props.profile.description,
+  () => props.publication.description,
   async () => {
     expanded.value = false
     await nextTick()
@@ -40,7 +40,7 @@ watch(
 </script>
 
 <template>
-  <section aria-label="About this profile" class="mt-4">
+  <section aria-label="About this publication" class="mt-4">
     <template v-if="description">
       <div :id="bodyId" ref="body" class="description" :class="{ clamped: !expanded }">
         <Markdown :text="description" />
@@ -57,8 +57,11 @@ watch(
       </button>
     </template>
     <p v-else class="text-sm text-ink-soft">
-      Say what this venue is for, who reads it and what kinds of writing go here.
-      <RouterLink :to="{ name: 'describe-venue', params: { profileId: profile.id } }" class="link">
+      Say what this publication is for, who reads it and what kinds of writing go here.
+      <RouterLink
+        :to="{ name: 'describe-publication', params: { publicationId: publication.id } }"
+        class="link"
+      >
         Add a description
       </RouterLink>
     </p>

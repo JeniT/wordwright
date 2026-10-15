@@ -46,7 +46,7 @@ export function brainstormRequest(c: BrainstormCase): LLMChatRequest {
 }
 
 /**
- * The critique route sends the venue's description (if it has one), the title and the draft as numbered blocks, with
+ * The critique route sends the publication's description (if it has one), the title and the draft as numbered blocks, with
  * the critique prompt as the system prompt.
  */
 export function critiqueRequest(c: CritiqueCase): LLMRequest {
@@ -57,7 +57,7 @@ export function critiqueRequest(c: CritiqueCase): LLMRequest {
         role: 'user',
         content: formatDraftForCritique(
           c.draft,
-          c.scenario ? SCENARIOS[c.scenario].venue.description : null,
+          c.scenario ? SCENARIOS[c.scenario].publication.description : null,
         ).message,
       },
     ],
@@ -71,7 +71,7 @@ export function researchRequest(c: ResearchCase): ResearchRequest {
     brief: formatResearchBrief(
       SCENARIOS[c.scenario].idea,
       c.areas,
-      SCENARIOS[c.scenario].venue.description,
+      SCENARIOS[c.scenario].publication.description,
     ),
     maxResults: MAX_RESEARCH_RESULTS,
   }
@@ -87,7 +87,7 @@ export function rephraseRequest(c: RephraseCase): LLMRequest {
         content: formatRephraseMessage(
           { kind: c.kind, wording: c.wording, aim: c.aim, earlier: c.earlier ?? [] },
           c.draft,
-          c.scenario ? SCENARIOS[c.scenario].venue.description : null,
+          c.scenario ? SCENARIOS[c.scenario].publication.description : null,
         ),
       },
     ],

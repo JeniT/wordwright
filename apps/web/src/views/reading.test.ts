@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } f
 
 useMockServer()
 
-const profile = {
+const publication = {
   id: 'ada-substack',
   name: 'Substack',
   siteUrl: null,
@@ -17,7 +17,7 @@ const profile = {
 }
 const idea = {
   id: 'i1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: '',
   links: [
@@ -34,7 +34,7 @@ const idea = {
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
-const ideaUrl = '*/api/profiles/ada-substack/ideas/i1'
+const ideaUrl = '*/api/publications/ada-substack/ideas/i1'
 const notesUrl = `${ideaUrl}/notes`
 const readingPath = (linkId: string) => `/p/ada-substack/ideas/i1/reading/${linkId}`
 
@@ -57,9 +57,9 @@ const open = (linkId = 'l1', extra: Parameters<typeof server.use> = []) => {
   server.use(
     ...extra,
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile])),
+    http.get('*/api/publications', () => HttpResponse.json([publication])),
     http.get(ideaUrl, () => HttpResponse.json(idea)),
-    http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+    http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
   )
   return renderAt(readingPath(linkId))
 }
@@ -79,10 +79,10 @@ describe('reading page', () => {
     )
   })
 
-  it('is reached from the idea’s reading list, which has no Keep tick (only the profile’s list drops items)', async () => {
+  it('is reached from the idea’s reading list, which has no Keep tick (only the publication’s list drops items)', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
@@ -90,13 +90,13 @@ describe('reading page', () => {
     expect(screen.queryByRole('switch', { name: /^Keep:/ })).not.toBeInTheDocument()
   })
 
-  it('moves items from an idea to the profile’s reading list or another idea, never to itself or a new idea', async () => {
+  it('moves items from an idea to the publication’s reading list or another idea, never to itself or a new idea', async () => {
     const moved: unknown[] = []
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
-      http.get('*/api/profiles/ada-substack/ideas', () =>
+      http.get('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json([
           {
             id: 'i1',
@@ -107,7 +107,7 @@ describe('reading page', () => {
           { id: 'i2', name: 'Lakes', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
         ]),
       ),
-      http.post('*/api/profiles/ada-substack/move/reading', async ({ request }) => {
+      http.post('*/api/publications/ada-substack/move/reading', async ({ request }) => {
         moved.push(await request.json())
         return HttpResponse.json({ batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 })
       }),
@@ -120,23 +120,23 @@ describe('reading page', () => {
       within(picker)
         .getAllByRole('option')
         .map((o) => o.textContent?.trim()),
-    ).toEqual(['Choose where…', 'The profile’s reading list', 'Lakes'])
-    await fireEvent.update(picker, 'profile')
+    ).toEqual(['Choose where…', 'The publication’s reading list', 'Lakes'])
+    await fireEvent.update(picker, 'publication')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     expect(
-      await screen.findByText(/Moved 1 item to the profile’s reading list\./),
+      await screen.findByText(/Moved 1 item to the publication’s reading list\./),
     ).toBeInTheDocument()
     expect(moved).toEqual([{ ids: ['l1'], to: { ideaId: null } }])
   })
 
-  it('moves notes from an idea to the profile, another idea or a new idea', async () => {
+  it('moves notes from an idea to the publication, another idea or a new idea', async () => {
     const moved: unknown[] = []
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
       http.get(notesUrl, () => HttpResponse.json([note('n1', 'An idea note', null, 'entered')])),
-      http.get('*/api/profiles/ada-substack/ideas', () =>
+      http.get('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json([
           {
             id: 'i1',
@@ -147,7 +147,7 @@ describe('reading page', () => {
           { id: 'i2', name: 'Lakes', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
         ]),
       ),
-      http.post('*/api/profiles/ada-substack/move/notes', async ({ request }) => {
+      http.post('*/api/publications/ada-substack/move/notes', async ({ request }) => {
         moved.push(await request.json())
         return HttpResponse.json({ batchId: 'b', readingItems: 0, merged: 0, copied: 0, notes: 1 })
       }),
@@ -162,10 +162,10 @@ describe('reading page', () => {
       within(picker)
         .getAllByRole('option')
         .map((o) => o.textContent?.trim()),
-    ).toEqual(['Choose where…', 'The profile’s notes', 'Lakes', 'A new idea…'])
-    await fireEvent.update(picker, 'profile')
+    ).toEqual(['Choose where…', 'The publication’s notes', 'Lakes', 'A new idea…'])
+    await fireEvent.update(picker, 'publication')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
-    expect(await screen.findByText(/Moved 1 note to the profile’s notes\./)).toBeInTheDocument()
+    expect(await screen.findByText(/Moved 1 note to the publication’s notes\./)).toBeInTheDocument()
     expect(moved).toEqual([{ ids: ['n1'], to: { ideaId: null } }])
   })
 
@@ -179,7 +179,7 @@ describe('reading page', () => {
   it('is reached from the reading list on the idea page', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')

@@ -12,7 +12,7 @@ export interface NewResearchItem {
   fetchedAuthors: string[]
 }
 
-/** The research runs of each idea, with the pages each found. Callers check that the person belongs to the idea's profile first. */
+/** The research runs of each idea, with the pages each found. Callers check that the person belongs to the idea's publication first. */
 export class ResearchStore {
   constructor(private readonly db: DatabaseSync) {}
 

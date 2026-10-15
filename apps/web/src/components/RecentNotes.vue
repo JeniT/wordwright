@@ -16,8 +16,8 @@ import QueryState from './QueryState.vue'
  * the notes page's query, so a note added here is on the full list at once (and the other way round).
  */
 const props = defineProps<{
-  profileId: string
-  /** The idea whose notes these are, or null for the profile's own. */
+  publicationId: string
+  /** The idea whose notes these are, or null for the publication's own. */
   ideaId: string | null
   /** The notes page this summarises. */
   to: RouteLocationRaw
@@ -29,10 +29,10 @@ const {
   append: appendNote,
   refreshIdea,
 } = useIdeaNotes(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.ideaId,
 )
-const reading = useReadingList(() => ({ profileId: props.profileId, ideaId: props.ideaId }))
+const reading = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 // "Recent" is when a note was made; the notes page's own order is the writer's.
 const recent = computed(() =>
   [...(notes.data.value ?? [])]
@@ -42,7 +42,7 @@ const recent = computed(() =>
 
 const draft = ref('')
 const add = useMutation({
-  mutationFn: () => api.addIdeaNote(props.profileId, props.ideaId, draft.value),
+  mutationFn: () => api.addIdeaNote(props.publicationId, props.ideaId, draft.value),
   onSuccess: async (note) => {
     draft.value = ''
     appendNote(note)
@@ -52,7 +52,7 @@ const add = useMutation({
 </script>
 
 <template>
-  <LandingSection :level="ideaId ? 'idea' : 'profile'" step="notes" title="Notes">
+  <LandingSection :level="ideaId ? 'idea' : 'publication'" step="notes" title="Notes">
     <template #actions>
       <RouterLink :to="to" class="link text-sm">
         See all notes<span v-if="notes.data.value?.length" class="meta">

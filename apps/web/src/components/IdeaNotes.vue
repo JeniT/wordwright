@@ -22,11 +22,11 @@ import TextAreaField from './TextAreaField.vue'
 import QueryState from './QueryState.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
-/** An idea's notes, or (no `ideaId`) the profile's own, gathered before there is an idea. */
+/** An idea's notes, or (no `ideaId`) the publication's own, gathered before there is an idea. */
 const props = defineProps<{
-  profileId: string
+  publicationId: string
   ideaId: string | null
-  /** The reading list they were taken from (the idea's, or the profile's), to name each note's source. */
+  /** The reading list they were taken from (the idea's, or the publication's), to name each note's source. */
   readingList: readonly IdeaLink[]
   /** The page's own title already says "Notes": keep this heading for screen readers only. */
   quietHeading?: boolean
@@ -38,7 +38,7 @@ const {
   append: appendNote,
   refreshIdea: refreshAround,
 } = useIdeaNotes(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.ideaId,
 )
 
@@ -59,7 +59,7 @@ const visibleNotes = computed(() =>
 const draft = ref('')
 const addBox = ref<HTMLElement>()
 const add = useMutation({
-  mutationFn: () => api.addIdeaNote(props.profileId, props.ideaId, draft.value),
+  mutationFn: () => api.addIdeaNote(props.publicationId, props.ideaId, draft.value),
   onSuccess: async (note) => {
     draft.value = ''
     appendNote(note)
@@ -89,7 +89,7 @@ const save = useMutation({
   // Only a changed text is sent; tags are set on their own, under each note.
   mutationFn: async (note: IdeaNote) =>
     editText.value.trim() !== note.text
-      ? api.updateIdeaNote(props.profileId, props.ideaId, note.id, editText.value)
+      ? api.updateIdeaNote(props.publicationId, props.ideaId, note.id, editText.value)
       : note,
   onSuccess: async (note) => {
     setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === note.id ? note : n)))
@@ -100,7 +100,7 @@ const save = useMutation({
 
 /** Gives a note exactly these tags (one more or one fewer than before, each time the person presses Enter). */
 async function saveTags(note: IdeaNote, tags: string[]) {
-  const saved = await api.setIdeaNoteTags(props.profileId, props.ideaId, note.id, tags)
+  const saved = await api.setIdeaNoteTags(props.publicationId, props.ideaId, note.id, tags)
   setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === saved.id ? saved : n)))
   await refreshAround()
 }
@@ -131,7 +131,7 @@ const mergeHint = computed(() =>
       : 'Join the selected notes into one. It goes where the first of them is.',
 )
 const merge = useMutation({
-  mutationFn: () => api.mergeIdeaNotes(props.profileId, props.ideaId, chosenIds.value),
+  mutationFn: () => api.mergeIdeaNotes(props.publicationId, props.ideaId, chosenIds.value),
   onSuccess: async (all) => {
     announcement.value = `Merged ${chosen.value.length} notes into one.`
     setNotes(all)
@@ -159,7 +159,7 @@ const carried = computed(() => {
 })
 const tagChosen = useMutation({
   mutationFn: (change: { add: string[]; remove: string[] }) =>
-    api.tagIdeaNotes(props.profileId, props.ideaId, { ids: chosenIds.value, ...change }),
+    api.tagIdeaNotes(props.publicationId, props.ideaId, { ids: chosenIds.value, ...change }),
   onSuccess: async (all) => {
     announcement.value = `Tagged ${chosen.value.length} ${chosen.value.length === 1 ? 'note' : 'notes'}.`
     setNotes(all)
@@ -175,12 +175,12 @@ function toggleTagging() {
   tagChosen.reset()
 }
 
-// ---- moving: the selected notes go to another idea, a new one, or the profile
-const mover = useMove(() => props.profileId)
+// ---- moving: the selected notes go to another idea, a new one, or the publication
+const mover = useMove(() => props.publicationId)
 const dest = useMoveDestination(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.ideaId,
-  'the profile’s notes',
+  'the publication’s notes',
 )
 const moving = ref(false)
 const bringAll = ref(false)
@@ -263,7 +263,7 @@ function cancelForm() {
 const split = useMutation({
   mutationFn: ({ note, at }: { note: IdeaNote; at: number }) =>
     api.splitIdeaNote(
-      props.profileId,
+      props.publicationId,
       props.ideaId,
       note.id,
       editText.value.slice(0, at),
@@ -287,7 +287,7 @@ function splitHere(note: IdeaNote) {
 
 // ---- removing
 const remove = useMutation({
-  mutationFn: (id: string) => api.removeIdeaNote(props.profileId, props.ideaId, id),
+  mutationFn: (id: string) => api.removeIdeaNote(props.publicationId, props.ideaId, id),
   onSuccess: async (_, id) => {
     setNotes((old: IdeaNote[] | undefined) => old?.filter((n) => n.id !== id))
     if (editingId.value === id) editingId.value = null
@@ -302,7 +302,7 @@ const confirmingDeleteChosen = ref(false)
 const removeChosen = useMutation({
   mutationFn: async (ids: string[]) => {
     const results = await Promise.allSettled(
-      ids.map((id) => api.removeIdeaNote(props.profileId, props.ideaId, id)),
+      ids.map((id) => api.removeIdeaNote(props.publicationId, props.ideaId, id)),
     )
     if (results.some((r) => r.status === 'rejected'))
       throw new Error('Some notes could not be deleted.')
@@ -317,7 +317,7 @@ const removeChosen = useMutation({
 
 // ---- reordering
 const move = useMutation({
-  mutationFn: (ids: string[]) => api.reorderIdeaNotes(props.profileId, props.ideaId, ids),
+  mutationFn: (ids: string[]) => api.reorderIdeaNotes(props.publicationId, props.ideaId, ids),
   onSuccess: (saved) => {
     setNotes(saved)
     void refreshAround() // in the background: nothing about the order waits on it
@@ -362,7 +362,7 @@ const label = (note: IdeaNote) => {
       One thought to a note, like index cards. Drag them by the dotted strip, or click it for
       arrows, to put them in order. To delete a note, press and hold its bin.
       <template v-if="!ideaId">
-        These notes belong to the profile, not to any one idea yet.
+        These notes belong to the publication, not to any one idea yet.
       </template>
     </p>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
@@ -455,7 +455,7 @@ const label = (note: IdeaNote) => {
                       v-model:new-idea-name="dest.newIdeaName"
                       :dest="dest"
                       :from-idea="!!ideaId"
-                      profile-label="The profile’s notes"
+                      publication-label="The publication’s notes"
                       allow-new
                       new-idea-hint="In your own words. The notes you move become its first notes."
                     />
@@ -628,8 +628,8 @@ const label = (note: IdeaNote) => {
       @confirm="removeChosen.mutate(chosenIds)"
       @cancel="confirmingDeleteChosen = false"
     >
-      The selected notes will be deleted from the {{ ideaId ? 'idea' : 'profile' }}. This can't be
-      undone.
+      The selected notes will be deleted from the {{ ideaId ? 'idea' : 'publication' }}. This can't
+      be undone.
     </ConfirmDialog>
   </section>
 </template>

@@ -15,17 +15,17 @@ import QueryState from './QueryState.vue'
  * before there is a conversation, the invitation to start one. Nothing is sent on arrival: both ways in lead to the
  * Refine page, where the reply is written and shown as it comes.
  */
-const props = defineProps<{ profileId: string; ideaId: string }>()
+const props = defineProps<{ publicationId: string; ideaId: string }>()
 const router = useRouter()
 const SHOWN = 600
 
 const conversation = useQuery({
-  queryKey: computed(() => queryKeys.conversation(props.profileId, props.ideaId)),
-  queryFn: () => api.getConversation(props.profileId, props.ideaId),
+  queryKey: computed(() => queryKeys.conversation(props.publicationId, props.ideaId)),
+  queryFn: () => api.getConversation(props.publicationId, props.ideaId),
 })
 const refineRoute = computed(() => ({
   name: 'brainstorm',
-  params: { profileId: props.profileId, id: props.ideaId },
+  params: { publicationId: props.publicationId, id: props.ideaId },
 }))
 const latest = computed(() =>
   [...(conversation.data.value?.messages ?? [])]
@@ -52,7 +52,7 @@ const message = ref('')
 function reply() {
   const text = message.value.trim()
   if (!text) return
-  holdMessage(props.profileId, props.ideaId, text)
+  holdMessage(props.publicationId, props.ideaId, text)
   void router.push(refineRoute.value)
 }
 const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })

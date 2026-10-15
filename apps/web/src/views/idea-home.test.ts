@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer()
 
-const profile = {
+const publication = {
   id: 'ada-substack',
   name: 'Substack',
   siteUrl: null,
@@ -29,7 +29,7 @@ const draft = (n: number) => ({
 })
 const idea = (links = [link(1), link(2)], drafts = [draft(1), draft(2)]) => ({
   id: 'i1',
-  profileId: 'ada-substack',
+  publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: '',
   links,
@@ -65,7 +65,7 @@ const message = (n: number, role: 'user' | 'assistant', text: string) => ({
   createdAt: `2026-01-0${n}T00:00:00Z`,
 })
 
-const ideaUrl = '*/api/profiles/ada-substack/ideas/i1'
+const ideaUrl = '*/api/publications/ada-substack/ideas/i1'
 
 /** A pretend API for the idea; `calls` records anything that would cost money or change something. */
 function fakeIdea(
@@ -83,8 +83,8 @@ function fakeIdea(
   }
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile])),
-    http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json([])),
+    http.get('*/api/publications', () => HttpResponse.json([publication])),
+    http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
     http.get(ideaUrl, () => HttpResponse.json(options.idea ?? idea())),
     http.get(`${ideaUrl}/notes`, () => HttpResponse.json(state.notes)),
     http.post(`${ideaUrl}/notes`, async ({ request }) => {
@@ -117,7 +117,7 @@ function fakeIdea(
       return HttpResponse.json(
         {
           id: 'd9',
-          profileId: 'ada-substack',
+          publicationId: 'ada-substack',
           ideaId: 'i1',
           title: 'Untitled',
           body: '',
@@ -139,7 +139,7 @@ function fakeIdea(
 }
 
 describe('an idea’s landing page', () => {
-  it('is titled with the idea’s name, with the profile above as a way up, and opens here', async () => {
+  it('is titled with the idea’s name, with the publication above as a way up, and opens here', async () => {
     fakeIdea()
     const { router } = await renderAt('/p/ada-substack/ideas/i1')
     expect(
@@ -170,7 +170,7 @@ describe('an idea’s landing page', () => {
   it('says when the idea cannot be opened', async () => {
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json({ error: 'Not found' }, { status: 404 })),
     )
     await renderAt('/p/ada-substack/ideas/i1')

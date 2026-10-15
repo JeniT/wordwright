@@ -21,8 +21,8 @@ const save = useMutation({
     <h2 id="name-heading" class="mb-3 font-display text-xl font-semibold">Your name</h2>
     <p class="mb-3 text-sm text-ink-soft">
       This is the name other people see: on the notes and brainstorm messages you write, in the
-      lists of people in a profile, and in invitations you send. Changing it updates it everywhere
-      it is shown. Emails already sent keep the old one.
+      lists of people in a publication, and in invitations you send. Changing it updates it
+      everywhere it is shown. Emails already sent keep the old one.
     </p>
     <form @submit.prevent="save.mutate()">
       <TextField

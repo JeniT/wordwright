@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { invalidateRoots, queryKeys, refreshIdea, refreshNotesEverywhere } from './queries'
 
 describe('queryKeys', () => {
-  it('names the profile’s own notes the same wherever they are asked for', () => {
+  it('names the publication’s own notes the same wherever they are asked for', () => {
     // A screen that spelled this differently would write to a cache entry nobody else reads.
-    expect(queryKeys.notes('p', null)).toEqual(['notes', 'p', 'profile'])
+    expect(queryKeys.notes('p', null)).toEqual(['notes', 'p', 'publication'])
     expect(queryKeys.notes('p', undefined)).toEqual(queryKeys.notes('p', null))
     expect(queryKeys.notes('p', 'i1')).toEqual(['notes', 'p', 'i1'])
   })
@@ -40,7 +40,7 @@ describe('refreshing', () => {
     expect(keys.map((k) => k[0])).toEqual(['notes', 'idea', 'ideas', 'draft-insertions'])
   })
 
-  it('an idea’s change refreshes that idea and the list; the profile’s own notes touch neither', async () => {
+  it('an idea’s change refreshes that idea and the list; the publication’s own notes touch neither', async () => {
     const { client, keys } = fakeClient()
     await refreshIdea(client, 'p', 'i1')
     expect(keys).toEqual([['idea', 'p', 'i1'], ['ideas']])

@@ -2,13 +2,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
-import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES_TEXT } from '../lib/profile-roles'
+import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES_TEXT } from '../lib/publication-roles'
 import HoldButton from './HoldButton.vue'
 import TextField from './TextField.vue'
 
 const props = defineProps<{
-  profileId: string
-  profileName: string
+  publicationId: string
+  publicationName: string
   /** Inviting needs the owner's own address to be confirmed. */
   confirmed: boolean
 }>()
@@ -18,14 +18,14 @@ const email = ref('')
 const lastInvited = ref('')
 
 const pending = useQuery({
-  queryKey: ['invitations', () => props.profileId],
-  queryFn: () => api.listInvitations(props.profileId),
+  queryKey: ['invitations', () => props.publicationId],
+  queryFn: () => api.listInvitations(props.publicationId),
   enabled: () => props.confirmed,
 })
 const refresh = () => queryClient.invalidateQueries({ queryKey: ['invitations'] })
 
 const invite = useMutation({
-  mutationFn: (address: string) => api.invite(props.profileId, address),
+  mutationFn: (address: string) => api.invite(props.publicationId, address),
   onSuccess: (_data, address) => {
     lastInvited.value = address
     email.value = ''
@@ -33,7 +33,7 @@ const invite = useMutation({
   },
 })
 const revoke = useMutation({
-  mutationFn: (id: string) => api.revokeInvitation(props.profileId, id),
+  mutationFn: (id: string) => api.revokeInvitation(props.publicationId, id),
   onSuccess: refresh,
 })
 </script>
@@ -41,7 +41,7 @@ const revoke = useMutation({
 <template>
   <div class="mt-3">
     <p v-if="!confirmed" class="text-sm text-ink-soft">
-      Confirm your email address to invite people to this profile.
+      Confirm your email address to invite people to this publication.
     </p>
     <template v-else>
       <!-- Handing someone a role is a trust decision, so what it allows is said before the address is asked for. -->
@@ -55,7 +55,7 @@ const revoke = useMutation({
         <div class="flex-1">
           <TextField
             v-model="email"
-            :label="`Invite someone to “${profileName}” (their email address)`"
+            :label="`Invite someone to “${publicationName}” (their email address)`"
             type="email"
             required
           />

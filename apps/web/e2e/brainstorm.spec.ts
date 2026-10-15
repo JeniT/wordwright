@@ -16,9 +16,9 @@ async function setUp(page: Page, { withKey = true } = {}) {
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
   }
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Weekly letters')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion loops.\nSecond line.')

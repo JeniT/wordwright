@@ -16,7 +16,7 @@ import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
 
 const props = defineProps<{
-  profileId: string
+  publicationId: string
   ideaId: string
   readingList: readonly IdeaLink[]
   /** Puts the note in the draft and saves it; rejects (with a message) if that didn't work. */
@@ -27,7 +27,7 @@ const props = defineProps<{
 const queryClient = useQueryClient()
 
 const { notes } = useIdeaNotes(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.ideaId,
 )
 const tagFilter = ref<string | null>(null)
@@ -50,7 +50,8 @@ const adding = useMutation({
   onSettled: refresh,
 })
 const putBack = useMutation({
-  mutationFn: (note: IdeaNote) => api.setNoteAdded(props.profileId, props.ideaId, note.id, false),
+  mutationFn: (note: IdeaNote) =>
+    api.setNoteAdded(props.publicationId, props.ideaId, note.id, false),
   onSettled: refresh,
 })
 
@@ -86,7 +87,7 @@ const label = (note: IdeaNote) => {
       <p v-if="!notes.data.value?.length" class="text-ink-soft">
         No notes yet.
         <RouterLink
-          :to="{ name: 'idea-notes', params: { profileId, id: ideaId } }"
+          :to="{ name: 'idea-notes', params: { publicationId, id: ideaId } }"
           class="underline"
         >
           Add some on the idea page.

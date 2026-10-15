@@ -16,7 +16,7 @@ function show(start = '', props: { maxlength?: number; hint?: string } = {}) {
     setup: () => () =>
       h(DescriptionEditor, {
         ref: handle,
-        label: 'About this venue',
+        label: 'About this publication',
         modelValue: state.markdown,
         'onUpdate:modelValue': (value: string) => {
           written.push(value)
@@ -37,7 +37,7 @@ describe('DescriptionEditor', () => {
     show('Weeknotes, **mostly for me**.\n\n- one\n- two\n\nSee [home](https://example.com).', {
       hint: 'What it is.',
     })
-    const box = await screen.findByRole('textbox', { name: 'About this venue' })
+    const box = await screen.findByRole('textbox', { name: 'About this publication' })
     expect(box).toHaveAttribute('aria-multiline', 'true')
     expect(box).toHaveAccessibleDescription('What it is.')
     expect(box.querySelector('strong')).toHaveTextContent('mostly for me')

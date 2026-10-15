@@ -11,7 +11,7 @@ import {
   DraftSchema,
   HandoverStateSchema,
   DraftReviewersSchema,
-  ProfileAttentionSchema,
+  PublicationAttentionSchema,
   ReviewAcceptedSchema,
   ReviewDetailSchema,
   ReviewInvitationPreviewSchema,
@@ -27,7 +27,7 @@ import {
   InvitationPreviewSchema,
   InvitationSchema,
   LlmSettingsSchema,
-  ProfileSchema,
+  PublicationSchema,
   ProposalSchema,
   RephraseResultSchema,
   ResearchRunSchema,
@@ -50,10 +50,10 @@ import {
   type LlmSettingsInput,
   type LoginInput,
   type OptionUseInput,
-  type ProfileInput,
-  type ProfileRole,
-  type ProfileDescriptionInput,
-  type ProfileUpdate,
+  type PublicationInput,
+  type PublicationRole,
+  type PublicationDescriptionInput,
+  type PublicationUpdate,
   type RegisterInput,
   type RephraseRequest,
   type SendMessageInput,
@@ -87,7 +87,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     })
     return checked(res)
   }
-  /** Sends a file as the whole request body (not multipart), as the profile image endpoint expects. */
+  /** Sends a file as the whole request body (not multipart), as the publication image endpoint expects. */
   async function sendFile(method: string, path: string, file: File): Promise<Response> {
     const res = await fetchImpl(`/api${path}`, {
       method,
@@ -116,15 +116,16 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     return { filename: filename ?? 'wordwright-export.zip', blob: await res.blob() }
   }
 
-  const ProfileList = ProfileSchema.array()
-  const drafts = (profileId: string) => `/profiles/${profileId}/drafts`
-  const ideas = (profileId: string) => `/profiles/${profileId}/ideas`
-  /** An idea's notes, or (no idea) the profile's own. */
-  const notesPath = (profileId: string, ideaId: string | null) =>
-    ideaId ? `${ideas(profileId)}/${ideaId}/notes` : `/profiles/${profileId}/notes`
-  const research = (profileId: string, ideaId: string) => `${ideas(profileId)}/${ideaId}/research`
-  const conversation = (profileId: string, ideaId: string) =>
-    `${ideas(profileId)}/${ideaId}/conversation`
+  const PublicationList = PublicationSchema.array()
+  const drafts = (publicationId: string) => `/publications/${publicationId}/drafts`
+  const ideas = (publicationId: string) => `/publications/${publicationId}/ideas`
+  /** An idea's notes, or (no idea) the publication's own. */
+  const notesPath = (publicationId: string, ideaId: string | null) =>
+    ideaId ? `${ideas(publicationId)}/${ideaId}/notes` : `/publications/${publicationId}/notes`
+  const research = (publicationId: string, ideaId: string) =>
+    `${ideas(publicationId)}/${ideaId}/research`
+  const conversation = (publicationId: string, ideaId: string) =>
+    `${ideas(publicationId)}/${ideaId}/conversation`
 
   return {
     // auth
@@ -174,25 +175,28 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     resetBrainstormPrompt: () =>
       get(BrainstormPromptSchema, 'DELETE', '/account/brainstorm-prompt'),
 
-    // profiles
-    listProfiles: () => get(ProfileList, 'GET', '/profiles'),
-    /** Follows the server's redirect for a renamed profile, so the result carries its current id. */
-    getProfile: (id: string) => get(ProfileSchema, 'GET', `/profiles/${id}`),
-    createProfile: (input: ProfileInput) => get(ProfileSchema, 'POST', '/profiles', input),
-    updateProfile: (id: string, changes: ProfileUpdate) =>
-      get(ProfileSchema, 'PATCH', `/profiles/${id}`, changes),
-    setProfileDescription: (id: string, input: ProfileDescriptionInput) =>
-      get(ProfileSchema, 'PUT', `/profiles/${id}/description`, input),
-    setProfileImage: async (id: string, file: File) =>
-      ProfileSchema.parse(await (await sendFile('PUT', `/profiles/${id}/image`, file)).json()),
-    removeProfileImage: (id: string) => act('DELETE', `/profiles/${id}/image`),
-    deleteProfile: (id: string) => act('DELETE', `/profiles/${id}`),
-    invite: (profileId: string, email: string) =>
-      act('POST', `/profiles/${profileId}/invitations`, { email }),
-    listInvitations: (profileId: string) =>
-      get(InvitationSchema.array(), 'GET', `/profiles/${profileId}/invitations`),
-    revokeInvitation: (profileId: string, invitationId: string) =>
-      act('DELETE', `/profiles/${profileId}/invitations/${invitationId}`),
+    // publications
+    listPublications: () => get(PublicationList, 'GET', '/publications'),
+    /** Follows the server's redirect for a renamed publication, so the result carries its current id. */
+    getPublication: (id: string) => get(PublicationSchema, 'GET', `/publications/${id}`),
+    createPublication: (input: PublicationInput) =>
+      get(PublicationSchema, 'POST', '/publications', input),
+    updatePublication: (id: string, changes: PublicationUpdate) =>
+      get(PublicationSchema, 'PATCH', `/publications/${id}`, changes),
+    setPublicationDescription: (id: string, input: PublicationDescriptionInput) =>
+      get(PublicationSchema, 'PUT', `/publications/${id}/description`, input),
+    setPublicationImage: async (id: string, file: File) =>
+      PublicationSchema.parse(
+        await (await sendFile('PUT', `/publications/${id}/image`, file)).json(),
+      ),
+    removePublicationImage: (id: string) => act('DELETE', `/publications/${id}/image`),
+    deletePublication: (id: string) => act('DELETE', `/publications/${id}`),
+    invite: (publicationId: string, email: string) =>
+      act('POST', `/publications/${publicationId}/invitations`, { email }),
+    listInvitations: (publicationId: string) =>
+      get(InvitationSchema.array(), 'GET', `/publications/${publicationId}/invitations`),
+    revokeInvitation: (publicationId: string, invitationId: string) =>
+      act('DELETE', `/publications/${publicationId}/invitations/${invitationId}`),
     previewInvitation: (token: string) =>
       get(InvitationPreviewSchema, 'POST', '/invitations/preview', { token }),
     declineInvitation: (token: string, block: 'none' | 'sender' | 'all') =>
@@ -203,22 +207,22 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     unblockInviter: (senderId: string) => act('DELETE', `/invitations/blocks/senders/${senderId}`),
     acceptInvitation: (token: string) =>
       get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
-    /** What is waiting on this person in the profile: offers, and the reviews of drafts they edit. */
-    getProfileAttention: (profileId: string) =>
-      get(ProfileAttentionSchema, 'GET', `/profiles/${profileId}/attention`),
-    // reviewers: people outside the profile asked to read one draft and comment on it
-    listReviewers: (profileId: string, draftId: string) =>
-      get(DraftReviewersSchema, 'GET', `${drafts(profileId)}/${draftId}/reviewers`),
+    /** What is waiting on this person in the publication: offers, and the reviews of drafts they edit. */
+    getPublicationAttention: (publicationId: string) =>
+      get(PublicationAttentionSchema, 'GET', `/publications/${publicationId}/attention`),
+    // reviewers: people outside the publication asked to read one draft and comment on it
+    listReviewers: (publicationId: string, draftId: string) =>
+      get(DraftReviewersSchema, 'GET', `${drafts(publicationId)}/${draftId}/reviewers`),
     /** Freezes the draft as a snapshot and asks people (by email, or members) to review it. */
-    sendForReview: (profileId: string, draftId: string, input: SendForReviewInput) =>
-      act('POST', `${drafts(profileId)}/${draftId}/send-for-review`, input),
+    sendForReview: (publicationId: string, draftId: string, input: SendForReviewInput) =>
+      act('POST', `${drafts(publicationId)}/${draftId}/send-for-review`, input),
     /** Stops accepting one review: it becomes read-only, and the comments stay. */
-    closeReview: (profileId: string, draftId: string, reviewId: string) =>
-      act('DELETE', `${drafts(profileId)}/${draftId}/reviewers/${reviewId}`),
-    closeAllReviews: (profileId: string, draftId: string) =>
-      act('POST', `${drafts(profileId)}/${draftId}/reviewers/close`),
-    withdrawReviewInvitation: (profileId: string, draftId: string, invitationId: string) =>
-      act('DELETE', `${drafts(profileId)}/${draftId}/reviewers/invitations/${invitationId}`),
+    closeReview: (publicationId: string, draftId: string, reviewId: string) =>
+      act('DELETE', `${drafts(publicationId)}/${draftId}/reviewers/${reviewId}`),
+    closeAllReviews: (publicationId: string, draftId: string) =>
+      act('POST', `${drafts(publicationId)}/${draftId}/reviewers/close`),
+    withdrawReviewInvitation: (publicationId: string, draftId: string, invitationId: string) =>
+      act('DELETE', `${drafts(publicationId)}/${draftId}/reviewers/invitations/${invitationId}`),
     previewReviewInvitation: (token: string) =>
       get(ReviewInvitationPreviewSchema, 'POST', '/review-invitations/preview', { token }),
     declineReviewInvitation: (token: string, block: 'none' | 'sender' | 'all') =>
@@ -236,187 +240,209 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     endReview: (id: string) => act('POST', `/reviews/${id}/end`),
     /** Chooses a username and becomes a full account. */
     startWriting: (handle: string) => get(UserSchema, 'POST', '/reviews/start-writing', { handle }),
-    setMemberRole: (id: string, userId: string, role: ProfileRole) =>
-      get(ProfileSchema, 'PUT', `/profiles/${id}/members/${userId}/role`, { role }),
+    setMemberRole: (id: string, userId: string, role: PublicationRole) =>
+      get(PublicationSchema, 'PUT', `/publications/${id}/members/${userId}/role`, { role }),
     exportAccount: () => download('/account/export'),
-    exportProfile: (id: string) => download(`/profiles/${id}/export`),
+    exportPublication: (id: string) => download(`/publications/${id}/export`),
     removeMember: (id: string, userId: string) =>
-      act('DELETE', `/profiles/${id}/members/${userId}`),
+      act('DELETE', `/publications/${id}/members/${userId}`),
 
     // ideas
-    listIdeas: (profileId: string) => get(IdeaSummarySchema.array(), 'GET', ideas(profileId)),
-    getIdea: (profileId: string, id: string) => get(IdeaSchema, 'GET', `${ideas(profileId)}/${id}`),
-    createIdea: (profileId: string, input: Pick<IdeaInput, 'name'> & Partial<IdeaInput>) =>
-      get(IdeaSchema, 'POST', ideas(profileId), input),
-    updateIdea: (profileId: string, id: string, changes: IdeaUpdate) =>
-      get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}`, changes),
-    deleteIdea: (profileId: string, id: string) => act('DELETE', `${ideas(profileId)}/${id}`),
+    listIdeas: (publicationId: string) =>
+      get(IdeaSummarySchema.array(), 'GET', ideas(publicationId)),
+    getIdea: (publicationId: string, id: string) =>
+      get(IdeaSchema, 'GET', `${ideas(publicationId)}/${id}`),
+    createIdea: (publicationId: string, input: Pick<IdeaInput, 'name'> & Partial<IdeaInput>) =>
+      get(IdeaSchema, 'POST', ideas(publicationId), input),
+    updateIdea: (publicationId: string, id: string, changes: IdeaUpdate) =>
+      get(IdeaSchema, 'PATCH', `${ideas(publicationId)}/${id}`, changes),
+    deleteIdea: (publicationId: string, id: string) =>
+      act('DELETE', `${ideas(publicationId)}/${id}`),
     /**
      * Answers with the whole idea, so the list of links is up to date. The server looks up the page's
      * title unless one is given, and refuses addresses that can't be a real website.
      */
-    addIdeaLink: (profileId: string, id: string, input: { url: string; title?: string }) =>
-      get(IdeaSchema, 'POST', `${ideas(profileId)}/${id}/links`, input),
+    addIdeaLink: (publicationId: string, id: string, input: { url: string; title?: string }) =>
+      get(IdeaSchema, 'POST', `${ideas(publicationId)}/${id}/links`, input),
     /** An empty title asks the server to look the page's title up again. */
     updateIdeaLink: (
-      profileId: string,
+      publicationId: string,
       id: string,
       linkId: string,
       input: { url: string; title: string; authors?: string[] },
-    ) => get(IdeaSchema, 'PATCH', `${ideas(profileId)}/${id}/links/${linkId}`, input),
-    removeIdeaLink: (profileId: string, id: string, linkId: string) =>
-      act('DELETE', `${ideas(profileId)}/${id}/links/${linkId}`),
-    // the profile's own reading list (items gathered before there is an idea); each answers with the list
-    listProfileReading: (profileId: string) =>
-      get(IdeaLinkSchema.array(), 'GET', `/profiles/${profileId}/reading`),
-    addProfileLink: (profileId: string, input: { url: string; title?: string }) =>
-      get(IdeaLinkSchema.array(), 'POST', `/profiles/${profileId}/reading`, input),
-    updateProfileLink: (
-      profileId: string,
+    ) => get(IdeaSchema, 'PATCH', `${ideas(publicationId)}/${id}/links/${linkId}`, input),
+    removeIdeaLink: (publicationId: string, id: string, linkId: string) =>
+      act('DELETE', `${ideas(publicationId)}/${id}/links/${linkId}`),
+    // the publication's own reading list (items gathered before there is an idea); each answers with the list
+    listPublicationReading: (publicationId: string) =>
+      get(IdeaLinkSchema.array(), 'GET', `/publications/${publicationId}/reading`),
+    addPublicationLink: (publicationId: string, input: { url: string; title?: string }) =>
+      get(IdeaLinkSchema.array(), 'POST', `/publications/${publicationId}/reading`, input),
+    updatePublicationLink: (
+      publicationId: string,
       linkId: string,
       input: { url: string; title: string; authors?: string[] },
-    ) => get(IdeaLinkSchema.array(), 'PATCH', `/profiles/${profileId}/reading/${linkId}`, input),
-    setProfileLinkRead: (profileId: string, linkId: string, read: boolean) =>
-      get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/read`, { read }),
-    /** Gives an item of the profile's own list exactly these tags. Answers with the whole list. */
-    setProfileLinkTags: (profileId: string, linkId: string, tags: string[]) =>
-      get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/tags`, { tags }),
-    /** Adds and removes tags on several items of the profile's own list at once. Answers with the whole list. */
-    tagProfileLinks: (
-      profileId: string,
+    ) =>
+      get(
+        IdeaLinkSchema.array(),
+        'PATCH',
+        `/publications/${publicationId}/reading/${linkId}`,
+        input,
+      ),
+    setPublicationLinkRead: (publicationId: string, linkId: string, read: boolean) =>
+      get(IdeaLinkSchema.array(), 'PUT', `/publications/${publicationId}/reading/${linkId}/read`, {
+        read,
+      }),
+    /** Gives an item of the publication's own list exactly these tags. Answers with the whole list. */
+    setPublicationLinkTags: (publicationId: string, linkId: string, tags: string[]) =>
+      get(IdeaLinkSchema.array(), 'PUT', `/publications/${publicationId}/reading/${linkId}/tags`, {
+        tags,
+      }),
+    /** Adds and removes tags on several items of the publication's own list at once. Answers with the whole list. */
+    tagPublicationLinks: (
+      publicationId: string,
       change: { ids: string[]; add: string[]; remove: string[] },
-    ) => get(IdeaLinkSchema.array(), 'POST', `/profiles/${profileId}/reading/tags`, change),
-    /** Asks for an item of the profile's own list to be kept (the others drop off after a month). */
-    setProfileLinkKept: (profileId: string, linkId: string, kept: boolean) =>
-      get(IdeaLinkSchema.array(), 'PUT', `/profiles/${profileId}/reading/${linkId}/kept`, { kept }),
-    removeProfileLink: (profileId: string, linkId: string) =>
-      act('DELETE', `/profiles/${profileId}/reading/${linkId}`),
-    createIdeaDraft: (profileId: string, id: string, input: Partial<DraftInput> = {}) =>
-      get(DraftSchema, 'POST', `${ideas(profileId)}/${id}/drafts`, input),
+    ) => get(IdeaLinkSchema.array(), 'POST', `/publications/${publicationId}/reading/tags`, change),
+    /** Asks for an item of the publication's own list to be kept (the others drop off after a month). */
+    setPublicationLinkKept: (publicationId: string, linkId: string, kept: boolean) =>
+      get(IdeaLinkSchema.array(), 'PUT', `/publications/${publicationId}/reading/${linkId}/kept`, {
+        kept,
+      }),
+    removePublicationLink: (publicationId: string, linkId: string) =>
+      act('DELETE', `/publications/${publicationId}/reading/${linkId}`),
+    createIdeaDraft: (publicationId: string, id: string, input: Partial<DraftInput> = {}) =>
+      get(DraftSchema, 'POST', `${ideas(publicationId)}/${id}/drafts`, input),
     /** Joins notes into the first of them. Answers with all the idea's notes. */
-    mergeIdeaNotes: (profileId: string, id: string | null, ids: string[]) =>
-      get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/merge`, { ids }),
+    mergeIdeaNotes: (publicationId: string, id: string | null, ids: string[]) =>
+      get(IdeaNoteSchema.array(), 'POST', `${notesPath(publicationId, id)}/merge`, { ids }),
     /** Cuts a note in two (the second follows the first). Answers with all the idea's notes. */
     splitIdeaNote: (
-      profileId: string,
+      publicationId: string,
       id: string | null,
       noteId: string,
       before: string,
       after: string,
     ) =>
-      get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/${noteId}/split`, {
+      get(IdeaNoteSchema.array(), 'POST', `${notesPath(publicationId, id)}/${noteId}/split`, {
         before,
         after,
       }),
     /** Gives a note exactly these tags. Answers with the note as saved. */
-    setIdeaNoteTags: (profileId: string, id: string | null, noteId: string, tags: string[]) =>
-      get(IdeaNoteSchema, 'PUT', `${notesPath(profileId, id)}/${noteId}/tags`, { tags }),
+    setIdeaNoteTags: (publicationId: string, id: string | null, noteId: string, tags: string[]) =>
+      get(IdeaNoteSchema, 'PUT', `${notesPath(publicationId, id)}/${noteId}/tags`, { tags }),
     /** Adds and removes tags on several notes at once. Answers with all the notes. */
     tagIdeaNotes: (
-      profileId: string,
+      publicationId: string,
       id: string | null,
       change: { ids: string[]; add: string[]; remove: string[] },
-    ) => get(IdeaNoteSchema.array(), 'POST', `${notesPath(profileId, id)}/tags`, change),
+    ) => get(IdeaNoteSchema.array(), 'POST', `${notesPath(publicationId, id)}/tags`, change),
     /** Adds and removes tags on several reading-list items at once. Answers with the whole idea. */
     tagIdeaLinks: (
-      profileId: string,
+      publicationId: string,
       id: string,
       change: { ids: string[]; add: string[]; remove: string[] },
-    ) => get(IdeaSchema, 'POST', `${ideas(profileId)}/${id}/links/tags`, change),
+    ) => get(IdeaSchema, 'POST', `${ideas(publicationId)}/${id}/links/tags`, change),
     /** Gives a reading-list item exactly these tags. Answers with the whole idea. */
-    setReadingItemTags: (profileId: string, id: string, linkId: string, tags: string[]) =>
-      get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/tags`, { tags }),
+    setReadingItemTags: (publicationId: string, id: string, linkId: string, tags: string[]) =>
+      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/links/${linkId}/tags`, { tags }),
     /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
-    setReadingItemRead: (profileId: string, id: string, linkId: string, read: boolean) =>
-      get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/links/${linkId}/read`, { read }),
+    setReadingItemRead: (publicationId: string, id: string, linkId: string, read: boolean) =>
+      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/links/${linkId}/read`, { read }),
     /** `ids` is every draft of the idea, in the new order. Answers with the idea as saved. */
-    reorderIdeaDrafts: (profileId: string, id: string, ids: string[]) =>
-      get(IdeaSchema, 'PUT', `${ideas(profileId)}/${id}/drafts/order`, { ids }),
+    reorderIdeaDrafts: (publicationId: string, id: string, ids: string[]) =>
+      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/drafts/order`, { ids }),
     // what was pulled into a draft from the idea's notes, and where it came from
-    listDraftInsertions: (profileId: string, draftId: string) =>
+    listDraftInsertions: (publicationId: string, draftId: string) =>
       get(
         DraftInsertionSchema.array(),
         'GET',
-        `/profiles/${profileId}/drafts/${draftId}/insertions`,
+        `/publications/${publicationId}/drafts/${draftId}/insertions`,
       ),
     /** Says the note's text went into the draft; the server sets the note aside and records its origin. */
-    addDraftInsertion: (profileId: string, draftId: string, input: DraftInsertionInput) =>
+    addDraftInsertion: (publicationId: string, draftId: string, input: DraftInsertionInput) =>
       get(
         DraftInsertionSchema,
         'POST',
-        `/profiles/${profileId}/drafts/${draftId}/insertions`,
+        `/publications/${publicationId}/drafts/${draftId}/insertions`,
         input,
       ),
     /** Puts a note back among those that can be pulled into a draft (`added: false`). */
-    setNoteAdded: (profileId: string, id: string, noteId: string, added: boolean) =>
-      get(IdeaNoteSchema, 'PUT', `${ideas(profileId)}/${id}/notes/${noteId}/added`, { added }),
+    setNoteAdded: (publicationId: string, id: string, noteId: string, added: boolean) =>
+      get(IdeaNoteSchema, 'PUT', `${ideas(publicationId)}/${id}/notes/${noteId}/added`, { added }),
     // notes: index cards for an idea, in the order the person arranged them
-    listIdeaNotes: (profileId: string, id: string | null) =>
-      get(IdeaNoteSchema.array(), 'GET', notesPath(profileId, id)),
+    listIdeaNotes: (publicationId: string, id: string | null) =>
+      get(IdeaNoteSchema.array(), 'GET', notesPath(publicationId, id)),
     /**
      * With `readingItemId` the note is taken from that item of the reading list (its origin is then `reading`);
      * with `quote` too, it is a direct quotation, kept word for word.
      */
     addIdeaNote: (
-      profileId: string,
+      publicationId: string,
       id: string | null,
       text: string,
       source: { readingItemId?: string; quote?: boolean } = {},
-    ) => get(IdeaNoteSchema, 'POST', notesPath(profileId, id), { text, ...source }),
-    updateIdeaNote: (profileId: string, id: string | null, noteId: string, text: string) =>
-      get(IdeaNoteSchema, 'PATCH', `${notesPath(profileId, id)}/${noteId}`, { text }),
-    removeIdeaNote: (profileId: string, id: string | null, noteId: string) =>
-      act('DELETE', `${notesPath(profileId, id)}/${noteId}`),
+    ) => get(IdeaNoteSchema, 'POST', notesPath(publicationId, id), { text, ...source }),
+    updateIdeaNote: (publicationId: string, id: string | null, noteId: string, text: string) =>
+      get(IdeaNoteSchema, 'PATCH', `${notesPath(publicationId, id)}/${noteId}`, { text }),
+    removeIdeaNote: (publicationId: string, id: string | null, noteId: string) =>
+      act('DELETE', `${notesPath(publicationId, id)}/${noteId}`),
     /** `ids` is every note of the idea, in the new order. Answers with the notes as saved. */
-    reorderIdeaNotes: (profileId: string, id: string | null, ids: string[]) =>
-      get(IdeaNoteSchema.array(), 'PUT', `${notesPath(profileId, id)}/order`, { ids }),
+    reorderIdeaNotes: (publicationId: string, id: string | null, ids: string[]) =>
+      get(IdeaNoteSchema.array(), 'PUT', `${notesPath(publicationId, id)}/order`, { ids }),
     // idea sources (the list is in priority order, highest first)
-    listSources: (profileId: string) =>
-      get(SourceListSchema, 'GET', `/profiles/${profileId}/sources`),
+    listSources: (publicationId: string) =>
+      get(SourceListSchema, 'GET', `/publications/${publicationId}/sources`),
     /** Adds the feed at `url`, or, if it is a website offering several feeds, answers with the choices. */
-    addSource: (profileId: string, url: string) =>
-      get(SourceSchema.or(SourceChoicesSchema), 'POST', `/profiles/${profileId}/sources`, { url }),
-    /** The newest posts across all the profile's feeds, from the last `days` days. */
-    recentPosts: (profileId: string, days: number, refresh = false) =>
+    addSource: (publicationId: string, url: string) =>
+      get(SourceSchema.or(SourceChoicesSchema), 'POST', `/publications/${publicationId}/sources`, {
+        url,
+      }),
+    /** The newest posts across all the publication's feeds, from the last `days` days. */
+    recentPosts: (publicationId: string, days: number, refresh = false) =>
       get(
         RecentPostsSchema,
         'GET',
-        `/profiles/${profileId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
+        `/publications/${publicationId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
       ),
     /**
-     * Moves reading items between the profile's own list (`ideaId` null) and its ideas, with the notes taken from
+     * Moves reading items between the publication's own list (`ideaId` null) and its ideas, with the notes taken from
      * them. All or nothing. Answers with what moved.
      */
-    moveReadingItems: (profileId: string, ids: string[], ideaId: string | null) =>
-      get(MoveResultSchema, 'POST', `/profiles/${profileId}/move/reading`, {
+    moveReadingItems: (publicationId: string, ids: string[], ideaId: string | null) =>
+      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/reading`, {
         ids,
         to: { ideaId },
       }),
     /** Moves notes the same way (each keeps its source, copied to where it goes). */
-    moveNotes: (profileId: string, ids: string[], ideaId: string | null) =>
-      get(MoveResultSchema, 'POST', `/profiles/${profileId}/move/notes`, { ids, to: { ideaId } }),
+    moveNotes: (publicationId: string, ids: string[], ideaId: string | null) =>
+      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/notes`, {
+        ids,
+        to: { ideaId },
+      }),
     /**
-     * Puts posts of the combined list on the profile's reading list (`add`), ignores them, or takes either back
+     * Puts posts of the combined list on the publication's reading list (`add`), ignores them, or takes either back
      * (`reconsider`). Each post is named by its feed and its id in it. Answers with what each has become.
      */
     decideFeedPosts: (
-      profileId: string,
+      publicationId: string,
       what: 'add' | 'ignore' | 'reconsider',
       posts: { sourceId: string; postId: string }[],
     ) =>
-      get(PostDecisionSchema, 'POST', `/profiles/${profileId}/sources/recent/${what}`, { posts }),
+      get(PostDecisionSchema, 'POST', `/publications/${publicationId}/sources/recent/${what}`, {
+        posts,
+      }),
     /** The feed's recent posts: the server's kept copy, or a fresh read if that is old. */
-    sourceItems: (profileId: string, id: string) =>
-      get(SourceItemsSchema, 'GET', `/profiles/${profileId}/sources/${id}/items`),
-    removeSource: (profileId: string, id: string) =>
-      act('DELETE', `/profiles/${profileId}/sources/${id}`),
+    sourceItems: (publicationId: string, id: string) =>
+      get(SourceItemsSchema, 'GET', `/publications/${publicationId}/sources/${id}/items`),
+    removeSource: (publicationId: string, id: string) =>
+      act('DELETE', `/publications/${publicationId}/sources/${id}`),
     /** `ids` is every source, in the new order. Answers with the list as saved. */
-    reorderSources: (profileId: string, ids: string[]) =>
-      get(SourceListSchema, 'PUT', `/profiles/${profileId}/sources/order`, { ids }),
+    reorderSources: (publicationId: string, ids: string[]) =>
+      get(SourceListSchema, 'PUT', `/publications/${publicationId}/sources/order`, { ids }),
 
-    // brainstorming: one conversation per idea, shared by the profile's members
-    getConversation: (profileId: string, ideaId: string) =>
-      get(ConversationSchema, 'GET', conversation(profileId, ideaId)),
+    // brainstorming: one conversation per idea, shared by the publication's members
+    getConversation: (publicationId: string, ideaId: string) =>
+      get(ConversationSchema, 'GET', conversation(publicationId, ideaId)),
     /**
      * Sends a message (or `{start: true}` / `{retry: true}`) and reads the AI's reply as it is written,
      * calling `onEvent` for each event. Resolves when the reply ends; rejects with an `ApiError` if it
@@ -425,13 +451,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      * @ai
      */
     streamReply: async (
-      profileId: string,
+      publicationId: string,
       ideaId: string,
       body: SendMessageInput,
       onEvent: (event: BrainstormEvent) => void,
       signal?: AbortSignal,
     ) => {
-      const res = await fetchImpl(`/api${conversation(profileId, ideaId)}/messages`, {
+      const res = await fetchImpl(`/api${conversation(publicationId, ideaId)}/messages`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -453,120 +479,146 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       signal?.throwIfAborted() // a stopped reply ends quietly inside readSse; report it as the abort it was
     },
     /** `overwrite` applies a suggestion made against text that has since changed. */
-    acceptProposal: (profileId: string, ideaId: string, proposalId: string, overwrite = false) =>
+    acceptProposal: (
+      publicationId: string,
+      ideaId: string,
+      proposalId: string,
+      overwrite = false,
+    ) =>
       get(
         ProposalSchema,
         'POST',
-        `${conversation(profileId, ideaId)}/proposals/${proposalId}/accept`,
+        `${conversation(publicationId, ideaId)}/proposals/${proposalId}/accept`,
         overwrite ? { overwrite: true } : {},
       ),
-    dismissProposal: (profileId: string, ideaId: string, proposalId: string) =>
+    dismissProposal: (publicationId: string, ideaId: string, proposalId: string) =>
       get(
         ProposalSchema,
         'POST',
-        `${conversation(profileId, ideaId)}/proposals/${proposalId}/dismiss`,
+        `${conversation(publicationId, ideaId)}/proposals/${proposalId}/dismiss`,
         {},
       ),
-    /** Deletes the whole conversation, for everyone in the profile. */
-    restartConversation: (profileId: string, ideaId: string) =>
-      act('DELETE', conversation(profileId, ideaId)),
+    /** Deletes the whole conversation, for everyone in the publication. */
+    restartConversation: (publicationId: string, ideaId: string) =>
+      act('DELETE', conversation(publicationId, ideaId)),
 
     // research: searches for reading, apart from the conversation
-    getResearch: (profileId: string, ideaId: string) =>
-      get(ResearchRunsSchema, 'GET', research(profileId, ideaId)),
+    getResearch: (publicationId: string, ideaId: string) =>
+      get(ResearchRunsSchema, 'GET', research(publicationId, ideaId)),
     /**
      * Asks the person's AI to search the web for these areas. Can take up to a minute.
      * @ai
      */
-    runResearch: (profileId: string, ideaId: string, areas: string) =>
-      get(ResearchRunSchema, 'POST', research(profileId, ideaId), { areas }),
+    runResearch: (publicationId: string, ideaId: string, areas: string) =>
+      get(ResearchRunSchema, 'POST', research(publicationId, ideaId), { areas }),
     /** Adds the ticked pages of a run to the idea's reading list. */
-    addResearchItem: (profileId: string, ideaId: string, runId: string, itemId: string) =>
-      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/add`, {
+    addResearchItem: (publicationId: string, ideaId: string, runId: string, itemId: string) =>
+      get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/add`, {
         itemIds: [itemId],
       }),
-    ignoreResearchItem: (profileId: string, ideaId: string, runId: string, itemId: string) =>
-      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/dismiss`, {
+    ignoreResearchItem: (publicationId: string, ideaId: string, runId: string, itemId: string) =>
+      get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/dismiss`, {
         itemIds: [itemId],
       }),
     /** Takes a decision back: an ignored page is waiting again; an added one also leaves the reading list. */
-    reconsiderResearchItem: (profileId: string, ideaId: string, runId: string, itemId: string) =>
-      get(ResearchRunSchema, 'POST', `${research(profileId, ideaId)}/${runId}/reconsider`, {
+    reconsiderResearchItem: (
+      publicationId: string,
+      ideaId: string,
+      runId: string,
+      itemId: string,
+    ) =>
+      get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/reconsider`, {
         itemIds: [itemId],
       }),
-    deleteResearch: (profileId: string, ideaId: string, runId: string) =>
-      act('DELETE', `${research(profileId, ideaId)}/${runId}`),
+    deleteResearch: (publicationId: string, ideaId: string, runId: string) =>
+      act('DELETE', `${research(publicationId, ideaId)}/${runId}`),
 
     // drafts
-    getDraft: (profileId: string, id: string) =>
-      get(DraftSchema, 'GET', `${drafts(profileId)}/${id}`),
-    updateDraft: (profileId: string, id: string, input: DraftSave) =>
-      get(DraftSchema, 'PUT', `${drafts(profileId)}/${id}`, input),
+    getDraft: (publicationId: string, id: string) =>
+      get(DraftSchema, 'GET', `${drafts(publicationId)}/${id}`),
+    updateDraft: (publicationId: string, id: string, input: DraftSave) =>
+      get(DraftSchema, 'PUT', `${drafts(publicationId)}/${id}`, input),
     // handing over a draft's editor role: each answers with the handover as it now stands
-    getHandover: (profileId: string, draftId: string) =>
-      get(HandoverStateSchema, 'GET', `${drafts(profileId)}/${draftId}/handover`),
-    offerDraft: (profileId: string, draftId: string, userId: string) =>
-      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/offer`, {
+    getHandover: (publicationId: string, draftId: string) =>
+      get(HandoverStateSchema, 'GET', `${drafts(publicationId)}/${draftId}/handover`),
+    offerDraft: (publicationId: string, draftId: string, userId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(publicationId)}/${draftId}/handover/offer`, {
         userId,
       }),
-    withdrawOffer: (profileId: string, draftId: string) =>
-      get(HandoverStateSchema, 'DELETE', `${drafts(profileId)}/${draftId}/handover/offer`),
-    acceptOffer: (profileId: string, draftId: string) =>
-      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/offer/accept`, {}),
-    declineOffer: (profileId: string, draftId: string) =>
+    withdrawOffer: (publicationId: string, draftId: string) =>
+      get(HandoverStateSchema, 'DELETE', `${drafts(publicationId)}/${draftId}/handover/offer`),
+    acceptOffer: (publicationId: string, draftId: string) =>
       get(
         HandoverStateSchema,
         'POST',
-        `${drafts(profileId)}/${draftId}/handover/offer/decline`,
+        `${drafts(publicationId)}/${draftId}/handover/offer/accept`,
         {},
       ),
-    askForDraft: (profileId: string, draftId: string) =>
-      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/asks`, {}),
-    closeAsk: (profileId: string, draftId: string, askId: string) =>
-      get(HandoverStateSchema, 'DELETE', `${drafts(profileId)}/${draftId}/handover/asks/${askId}`),
-    reassignDraft: (profileId: string, draftId: string, userId: string) =>
-      get(HandoverStateSchema, 'POST', `${drafts(profileId)}/${draftId}/handover/reassign`, {
+    declineOffer: (publicationId: string, draftId: string) =>
+      get(
+        HandoverStateSchema,
+        'POST',
+        `${drafts(publicationId)}/${draftId}/handover/offer/decline`,
+        {},
+      ),
+    askForDraft: (publicationId: string, draftId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(publicationId)}/${draftId}/handover/asks`, {}),
+    closeAsk: (publicationId: string, draftId: string, askId: string) =>
+      get(
+        HandoverStateSchema,
+        'DELETE',
+        `${drafts(publicationId)}/${draftId}/handover/asks/${askId}`,
+      ),
+    reassignDraft: (publicationId: string, draftId: string, userId: string) =>
+      get(HandoverStateSchema, 'POST', `${drafts(publicationId)}/${draftId}/handover/reassign`, {
         userId,
       }),
     /**
      * Asks for a critique of the saved draft; it is kept with the draft.
      * @ai
      */
-    critique: (profileId: string, draftId: string) =>
-      get(CritiqueStateSchema, 'POST', `/profiles/${profileId}/assist/critique`, { draftId }),
+    critique: (publicationId: string, draftId: string) =>
+      get(CritiqueStateSchema, 'POST', `/publications/${publicationId}/assist/critique`, {
+        draftId,
+      }),
     /**
      * Options for a selected passage (or the title) of the saved draft. Nothing is kept: the Rephrase window holds
      * the rounds and sends the earlier ones back.
      * @ai
      */
-    rephrase: (profileId: string, input: RephraseRequest) =>
-      get(RephraseResultSchema, 'POST', `/profiles/${profileId}/assist/rephrase`, input),
+    rephrase: (publicationId: string, input: RephraseRequest) =>
+      get(RephraseResultSchema, 'POST', `/publications/${publicationId}/assist/rephrase`, input),
     /** Records that words in the draft began as an AI option; the writer's report of what was offered. */
-    addOptionInsertion: (profileId: string, draftId: string, input: OptionUseInput) =>
+    addOptionInsertion: (publicationId: string, draftId: string, input: OptionUseInput) =>
       get(
         DraftInsertionSchema,
         'POST',
-        `/profiles/${profileId}/drafts/${draftId}/option-insertions`,
+        `/publications/${publicationId}/drafts/${draftId}/option-insertions`,
         input,
       ),
     /** The latest critique of the draft (null if none), and how many of its looks are used. */
-    latestCritique: (profileId: string, draftId: string) =>
-      get(CritiqueStateSchema, 'GET', `${drafts(profileId)}/${draftId}/critique`),
+    latestCritique: (publicationId: string, draftId: string) =>
+      get(CritiqueStateSchema, 'GET', `${drafts(publicationId)}/${draftId}/critique`),
     /** The comments on the draft that this person may see: all of them for its editor, only their own for others. */
-    listComments: (profileId: string, draftId: string) =>
-      get(CommentSchema.array(), 'GET', `${drafts(profileId)}/${draftId}/comments`),
-    addComment: (profileId: string, draftId: string, input: CommentInput) =>
-      get(CommentSchema, 'POST', `${drafts(profileId)}/${draftId}/comments`, input),
+    listComments: (publicationId: string, draftId: string) =>
+      get(CommentSchema.array(), 'GET', `${drafts(publicationId)}/${draftId}/comments`),
+    addComment: (publicationId: string, draftId: string, input: CommentInput) =>
+      get(CommentSchema, 'POST', `${drafts(publicationId)}/${draftId}/comments`, input),
     /** The editor sets a comment aside (or, with `resolved: false`, brings it back). Answers with the comments as they now are. */
     setCommentResolved: (
-      profileId: string,
+      publicationId: string,
       draftId: string,
       commentId: string,
       resolved: boolean,
     ) =>
-      get(CommentSchema.array(), 'PUT', `${drafts(profileId)}/${draftId}/comments/${commentId}`, {
-        resolved,
-      }),
+      get(
+        CommentSchema.array(),
+        'PUT',
+        `${drafts(publicationId)}/${draftId}/comments/${commentId}`,
+        {
+          resolved,
+        },
+      ),
   }
 }
 

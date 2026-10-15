@@ -77,7 +77,7 @@ export class FeedItemService {
    */
   async recent(
     userId: string,
-    profileId: string,
+    publicationId: string,
     sources: Source[],
     days: number,
     options: { refresh?: boolean } = {},
@@ -97,7 +97,7 @@ export class FeedItemService {
       )
     }
 
-    const state = postStates(this.store, profileId)
+    const state = postStates(this.store, publicationId)
     const seen = new Set<string>()
     const posts: { post: RecentPosts['posts'][number]; decidedAt: string | null }[] = []
     let undated = 0
@@ -171,7 +171,7 @@ export class FeedItemService {
       next = { ...before, checkedAt: at, lastError: message, lastErrorAt: at }
     }
     // The source may have been removed while we waited; then there is nothing to keep.
-    if (this.store.sources.profileOf(source.id)) this.store.sources.saveFetch(source.id, next)
+    if (this.store.sources.publicationOf(source.id)) this.store.sources.saveFetch(source.id, next)
     return next
   }
 }

@@ -12,23 +12,23 @@ import QueryState from './QueryState.vue'
 import RecentPostRow from './RecentPostRow.vue'
 
 /**
- * A summary of the profile's feeds for a landing page: the newest few posts still waiting for a decision, with a
+ * A summary of the publication's feeds for a landing page: the newest few posts still waiting for a decision, with a
  * link to Search to configure the feeds and see more. The rows are the Search page's own (`RecentPostRow`), so a
  * post can be added or ignored from here too. It asks for the same lists, under the same keys, as the Search page
  * (at its default period), so the two share what has been fetched and what is decided; it never asks the feeds to
  * check again.
  */
-const props = defineProps<{ profileId: string; to: RouteLocationRaw }>()
+const props = defineProps<{ publicationId: string; to: RouteLocationRaw }>()
 const SHOWN = 5
 
-const sources = useSources(() => props.profileId)
+const sources = useSources(() => props.publicationId)
 const byId = computed(() => new Map((sources.data.value ?? []).map((s) => [s.id, s])))
 const feedKey = computed(() => (sources.data.value ?? []).map((s) => s.id).join(','))
 const posts = useQuery({
   queryKey: computed(() =>
-    queryKeys.recentPosts(props.profileId, RECENT_DAYS_DEFAULT, feedKey.value),
+    queryKeys.recentPosts(props.publicationId, RECENT_DAYS_DEFAULT, feedKey.value),
   ),
-  queryFn: () => api.recentPosts(props.profileId, RECENT_DAYS_DEFAULT),
+  queryFn: () => api.recentPosts(props.publicationId, RECENT_DAYS_DEFAULT),
   enabled: computed(() => sources.isSuccess.value && (sources.data.value?.length ?? 0) > 0),
   staleTime: 5 * 60_000,
 })
@@ -40,11 +40,11 @@ const nameOf = (id: string) => {
   const s = byId.value.get(id)
   return s?.title ?? s?.url.replace(/^https?:\/\//, '') ?? 'a feed'
 }
-const { decide, notice, busy } = useDecidePosts(() => props.profileId)
+const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
 </script>
 
 <template>
-  <LandingSection level="profile" step="search" title="Search">
+  <LandingSection level="publication" step="search" title="Search">
     <template #actions>
       <RouterLink :to="to" class="link text-sm">See more and set up feeds</RouterLink>
     </template>

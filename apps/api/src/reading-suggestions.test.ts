@@ -70,8 +70,8 @@ async function world() {
   const ada = ctx.client()
   await register(ada, 'ada@example.com', 'Ada')
   await saveKey(ada)
-  const profile = (await (await ada.get('/api/profiles')).json())[0].id as string
-  const ideas = `/api/profiles/${profile}/ideas`
+  const publication = (await (await ada.get('/api/publications')).json())[0].id as string
+  const ideas = `/api/publications/${publication}/ideas`
   const idea = await (
     await ada.post(ideas, { name: 'Why rivers meander', notes: 'Erosion loops.' })
   ).json()
@@ -311,7 +311,7 @@ describe('which addresses the coach may pass on', () => {
 describe('the address checks', () => {
   const idea = {
     id: 'i',
-    profileId: 'p',
+    publicationId: 'p',
     name: 'An idea',
     notes: '',
     links: [

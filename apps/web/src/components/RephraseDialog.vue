@@ -27,7 +27,7 @@ const props = defineProps<{
   kind: 'title' | 'passage'
   /** The selected passage, or the title, as it is now. */
   wording: string
-  profileId: string
+  publicationId: string
   draftId: string
   /** How many rounds this window allows: the writer's critique-looks setting. */
   rounds?: number
@@ -83,7 +83,7 @@ const blocker = computed(() => {
 const generate = useMutation({
   mutationFn: async () => {
     await props.prepare?.()
-    return api.rephrase(props.profileId, {
+    return api.rephrase(props.publicationId, {
       draftId: props.draftId,
       kind: props.kind,
       wording: text.value,

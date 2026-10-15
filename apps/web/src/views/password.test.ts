@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer()
 
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
 const noLlm = http.get('*/api/llm', () =>
   HttpResponse.json({
     provider: 'anthropic',
@@ -21,7 +21,7 @@ describe('changing a password', () => {
     let sent: unknown
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       noLlm,
       http.post('*/api/account/password', async ({ request }) => {
         sent = await request.json()
@@ -47,7 +47,7 @@ describe('changing a password', () => {
   it('shows why it failed, e.g. a wrong current password', async () => {
     server.use(
       signedInAs(testUser),
-      noProfiles,
+      noPublications,
       noLlm,
       http.post('*/api/account/password', () =>
         HttpResponse.json({ error: 'Your current password is incorrect' }, { status: 403 }),
@@ -67,7 +67,7 @@ describe('adding a password to a Google-only account', () => {
     let requested = false
     server.use(
       signedInAs(googleOnly),
-      noProfiles,
+      noPublications,
       noLlm,
       http.post('*/api/account/password/setup-email', () => {
         requested = true
@@ -87,7 +87,7 @@ describe('adding a password to a Google-only account', () => {
   it('shows an error if the request is refused', async () => {
     server.use(
       signedInAs(googleOnly),
-      noProfiles,
+      noPublications,
       noLlm,
       http.post('*/api/account/password/setup-email', () =>
         HttpResponse.json({ error: 'Too many attempts' }, { status: 429 }),

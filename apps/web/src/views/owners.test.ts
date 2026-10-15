@@ -8,7 +8,7 @@ beforeEach(() => server.use(sourcesList()))
 
 const ada = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com' }
 const bob = { userId: 'u2', name: 'Bob', email: 'bob@example.com' }
-const profile = (viewer: 'owner' | 'member', roles: { ada: string; bob: string }) => ({
+const publication = (viewer: 'owner' | 'member', roles: { ada: string; bob: string }) => ({
   id: 'p1',
   name: 'Joint piece',
   siteUrl: null,
@@ -22,20 +22,20 @@ const profile = (viewer: 'owner' | 'member', roles: { ada: string; bob: string }
   ],
 })
 
-/** The profile as the server holds it, changed by the role request. */
+/** The publication as the server holds it, changed by the role request. */
 function serverWith(roles: { ada: string; bob: string }, viewer: 'owner' | 'member' = 'owner') {
   const state = { roles: { ...roles }, requests: [] as unknown[] }
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile(viewer, state.roles)])),
-    http.get('*/api/profiles/p1/invitations', () => HttpResponse.json([])),
-    http.get('*/api/profiles/p1/ideas', () => HttpResponse.json([])),
-    http.put('*/api/profiles/p1/members/:userId/role', async ({ request, params }) => {
+    http.get('*/api/publications', () => HttpResponse.json([publication(viewer, state.roles)])),
+    http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/ideas', () => HttpResponse.json([])),
+    http.put('*/api/publications/p1/members/:userId/role', async ({ request, params }) => {
       const body = (await request.json()) as { role: string }
       state.requests.push({ userId: params.userId, ...body })
       if (params.userId === 'u2') state.roles.bob = body.role
       else state.roles.ada = body.role
-      return HttpResponse.json(profile('owner', state.roles))
+      return HttpResponse.json(publication('owner', state.roles))
     }),
   )
   return state
@@ -108,7 +108,7 @@ describe('owners in the people list', () => {
   it("shows the server's reason if the change is refused", async () => {
     serverWith({ ada: 'owner', bob: 'member' })
     server.use(
-      http.put('*/api/profiles/p1/members/u2/role', () =>
+      http.put('*/api/publications/p1/members/u2/role', () =>
         HttpResponse.json({ error: 'There must be at least one owner.' }, { status: 409 }),
       ),
     )
@@ -124,7 +124,7 @@ describe('owners in the people list', () => {
 describe('removing someone and leaving', () => {
   const deleted = (state: { removed: string[] }) =>
     server.use(
-      http.delete('*/api/profiles/p1/members/:userId', ({ params }) => {
+      http.delete('*/api/publications/p1/members/:userId', ({ params }) => {
         state.removed.push(String(params.userId))
         return new HttpResponse(null, { status: 204 })
       }),
@@ -176,7 +176,7 @@ describe('removing someone and leaving', () => {
   it("shows the server's reason if removing fails", async () => {
     serverWith({ ada: 'owner', bob: 'member' })
     server.use(
-      http.delete('*/api/profiles/p1/members/u2', () =>
+      http.delete('*/api/publications/p1/members/u2', () =>
         HttpResponse.json({ error: 'That person is already gone.' }, { status: 404 }),
       ),
     )

@@ -20,7 +20,7 @@ export interface HandoverDeps {
 /**
  * Moving a draft's editor role takes two people, so it is explicit (CONTEXT.md, "Handover"): the editor offers it to a
  * named member who accepts; until then the offerer stays editor. Any other member can ask, which only prompts the
- * editor. An owner can reassign without the editor, for when they are away. Callers have checked profile membership.
+ * editor. An owner can reassign without the editor, for when they are away. Callers have checked publication membership.
  */
 export class HandoverService {
   constructor(private readonly d: HandoverDeps) {}
@@ -42,7 +42,7 @@ export class HandoverService {
       throw fail(429, 'You have made a lot of offers today. Please try again tomorrow.')
     }
     store.handovers.add(draft.id, 'offer', editor.id, target.userId)
-    const profile = store.profiles.get(draft.profileId, editor.id)
+    const publication = store.publications.get(draft.publicationId, editor.id)
     const to = store.users.findById(target.userId)
     if (to) {
       sendInBackground(
@@ -54,8 +54,8 @@ export class HandoverService {
           ...handoverOfferEmail({
             fromName: editor.name,
             draftTitle: draft.title,
-            profileName: profile?.name ?? 'a profile',
-            link: `${this.d.publicUrl}/p/${draft.profileId}/drafts/${draft.id}`,
+            publicationName: publication?.name ?? 'a publication',
+            link: `${this.d.publicUrl}/p/${draft.publicationId}/drafts/${draft.id}`,
           }),
         },
       )
@@ -112,7 +112,7 @@ export class HandoverService {
   /** An owner moves the role without the editor, recorded as such in the history. */
   reassign(draft: Draft, owner: UserRecord, toUserId: string): HandoverState {
     const { store } = this.d
-    if (store.profiles.roleOf(draft.profileId, owner.id) !== 'owner') {
+    if (store.publications.roleOf(draft.publicationId, owner.id) !== 'owner') {
       throw fail(403, 'Only an owner can reassign a draft.')
     }
     if (toUserId === draft.editorId) throw fail(400, 'They are already this draft’s editor.')
@@ -126,8 +126,10 @@ export class HandoverService {
   }
 
   private memberOf(draft: Draft, userId: string) {
-    const member = this.d.store.profiles.members(draft.profileId).find((m) => m.userId === userId)
-    if (!member) throw fail(400, 'That person is not a member of this profile.')
+    const member = this.d.store.publications
+      .members(draft.publicationId)
+      .find((m) => m.userId === userId)
+    if (!member) throw fail(400, 'That person is not a member of this publication.')
     return member
   }
 

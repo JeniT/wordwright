@@ -22,8 +22,8 @@ const toNote = (r: Row): IdeaNote => ({
 })
 
 /**
- * The notes of an idea, or of a profile as a whole (see `Owner`), in the order the person arranged them. Callers
- * check that the person belongs to the profile and that the idea is in it. `append`, `remove` and `reorder` make several writes, so routes call
+ * The notes of an idea, or of a publication as a whole (see `Owner`), in the order the person arranged them. Callers
+ * check that the person belongs to the publication and that the idea is in it. `append`, `remove` and `reorder` make several writes, so routes call
  * them inside `store.transaction`.
  */
 export class NoteStore {
@@ -73,43 +73,43 @@ export class NoteStore {
   }
 
   /** The notes taken from a reading item, in their order. */
-  byReadingItem(profileId: string, readingItemId: string): string[] {
+  byReadingItem(publicationId: string, readingItemId: string): string[] {
     return this.db
       .prepare(
-        'SELECT id FROM idea_notes WHERE profile_id = ? AND reading_item_id = ? ORDER BY position, rowid',
+        'SELECT id FROM idea_notes WHERE publication_id = ? AND reading_item_id = ? ORDER BY position, rowid',
       )
-      .all(profileId, readingItemId)
+      .all(publicationId, readingItemId)
       .map((r) => r.id as string)
   }
 
-  /** Where each of these notes is in the profile: the idea it belongs to, or null for the profile itself. */
-  locate(profileId: string, ids: string[]): Map<string, string | null> {
+  /** Where each of these notes is in the publication: the idea it belongs to, or null for the publication itself. */
+  locate(publicationId: string, ids: string[]): Map<string, string | null> {
     if (!ids.length) return new Map()
     const marks = ids.map(() => '?').join(', ')
     const rows = this.db
-      .prepare(`SELECT id, idea_id FROM idea_notes WHERE profile_id = ? AND id IN (${marks})`)
-      .all(profileId, ...ids)
+      .prepare(`SELECT id, idea_id FROM idea_notes WHERE publication_id = ? AND id IN (${marks})`)
+      .all(publicationId, ...ids)
     return new Map(rows.map((r) => [r.id as string, r.idea_id as string | null]))
   }
 
   /**
-   * Hands a note to an idea, or to the profile (`null`), at the end of that list, pointing at `readingItemId`
+   * Hands a note to an idea, or to the publication (`null`), at the end of that list, pointing at `readingItemId`
    * there (or at no item). Clears "added", since it hasn't been put into any of the new owner's drafts.
    */
-  moveTo(profileId: string, id: string, ideaId: string | null, readingItemId: string | null) {
-    const w = owned(ideaId ?? { profileId })
+  moveTo(publicationId: string, id: string, ideaId: string | null, readingItemId: string | null) {
+    const w = owned(ideaId ?? { publicationId })
     this.db
       .prepare(
         `UPDATE idea_notes SET idea_id = ?, reading_item_id = ?, added_at = NULL, updated_at = ?,
            position = (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql})
-         WHERE profile_id = ? AND id = ?`,
+         WHERE publication_id = ? AND id = ?`,
       )
-      .run(ideaId, readingItemId, nowIso(), ...w.args, profileId, id)
+      .run(ideaId, readingItemId, nowIso(), ...w.args, publicationId, id)
   }
 
   /** Adds a note after the others. */
   append(
-    profileId: string,
+    publicationId: string,
     ideaId: string | null,
     authorId: string | null,
     text: string,
@@ -119,15 +119,15 @@ export class NoteStore {
   ): IdeaNote {
     const id = randomUUID()
     const now = nowIso()
-    const w = owned(ideaId ?? { profileId })
+    const w = owned(ideaId ?? { publicationId })
     this.db
       .prepare(
-        `INSERT INTO idea_notes (id, profile_id, idea_id, created_by, text, origin, reading_item_id, is_quote, position, created_at, updated_at)
+        `INSERT INTO idea_notes (id, publication_id, idea_id, created_by, text, origin, reading_item_id, is_quote, position, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql}), ?, ?)`,
       )
       .run(
         id,
-        profileId,
+        publicationId,
         ideaId,
         authorId,
         text,
@@ -194,14 +194,14 @@ export class NoteStore {
 
   /** Replaces every note with notes holding `texts`, in order (`entered` unless said otherwise). Transitional: see `Idea.notes`. */
   replaceAll(
-    profileId: string,
+    publicationId: string,
     ideaId: string,
     authorId: string | null,
     texts: string[],
     origin: NoteOrigin = 'entered',
   ) {
     this.db.prepare('DELETE FROM idea_notes WHERE idea_id = ?').run(ideaId)
-    for (const text of texts) this.append(profileId, ideaId, authorId, text, origin)
+    for (const text of texts) this.append(publicationId, ideaId, authorId, text, origin)
   }
 
   /**
@@ -234,11 +234,11 @@ export class NoteStore {
    * Cuts a note in two: it keeps its place, identity and tags with the first part, and a copy (same origin,
    * author, source and tags) holding the second part follows it. Call inside a transaction.
    */
-  split(profileId: string, owner: Owner, id: string, before: string, after: string): string {
+  split(publicationId: string, owner: Owner, id: string, before: string, after: string): string {
     const ideaId = typeof owner === 'string' ? owner : null
     const note = this.get(owner, id)!
     const second = this.append(
-      profileId,
+      publicationId,
       ideaId,
       note.authorId,
       after,

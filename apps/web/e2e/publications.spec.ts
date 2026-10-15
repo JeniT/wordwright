@@ -14,11 +14,11 @@ async function registerUser(page: Page, name: string) {
   const email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
   await page.goto('/register')
   await page.getByLabel('What should we call you?').fill(name)
-  await page.getByLabel('Username').fill(name.toLowerCase()) // so profile addresses start with it
+  await page.getByLabel('Username').fill(name.toLowerCase()) // so publication addresses start with it
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 }
 
 /** A different name each time, because usernames are shared between parallel tests. */
@@ -33,10 +33,10 @@ test("shows the website's icon when there is no picture, and the person's own pi
   await registerUser(page, uniqueName('Ivy'))
 
   // A website and no picture: the site's icon stands in, drawn as another site's image (on its plate).
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Garden notes')
   await page.getByLabel(/Website/).fill('garden.example')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(/garden-notes$/)
   const icon = page.getByRole('banner').locator('img').filter({ visible: true }).first()
   await expect(icon).toHaveAttribute('src', /\/site-icon\?v=\d+$/)
@@ -45,25 +45,25 @@ test("shows the website's icon when there is no picture, and the person's own pi
 
   // The same website with a picture: the picture is shown, not the icon.
   await page.getByRole('link', { name: 'Wordwright' }).click()
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Allotment')
   await page.getByLabel(/Website/).fill('allotment.example')
   await page
     .getByLabel(/Picture/)
     .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: PNG })
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(/allotment$/)
   const own = page.getByRole('banner').locator('img').filter({ visible: true }).first()
   await expect(own).toHaveAttribute('src', /\/image\?v=\d+$/)
 })
 
-test('creates a profile with a website and picture, and opens its page', async ({ page }) => {
+test('creates a publication with a website and picture, and opens its page', async ({ page }) => {
   const person = uniqueName('Pat')
   await registerUser(page, person)
   const handle = person.toLowerCase()
 
-  await page.getByRole('link', { name: 'New profile' }).click()
-  await expect(page.getByRole('heading', { name: 'New profile' })).toBeVisible()
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await expect(page.getByRole('heading', { name: 'New publication' })).toBeVisible()
   await page.getByLabel('Name', { exact: true }).fill('My Substack')
   // The shareable address is previewed as you type.
   await expect(page.getByText(`/p/${handle}-my-substack`)).toBeVisible()
@@ -72,14 +72,14 @@ test('creates a profile with a website and picture, and opens its page', async (
     .getByLabel(/Picture/)
     .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: PNG })
   await noViolations(page)
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
 
-  // Lands on the profile page at its readable address.
+  // Lands on the publication page at its readable address.
   await expect(page).toHaveURL(new RegExp(`/p/${handle}-my-substack$`))
   await expect(
     page.getByRole('banner').getByText('My Substack').filter({ visible: true }).first(),
   ).toBeVisible()
-  // In the menu, and beside the title on the profile's own page.
+  // In the menu, and beside the title on the publication's own page.
   const site = page.getByRole('link', { name: /pat\.substack\.com/ }).first()
   await expect(site).toHaveAttribute('href', 'https://pat.substack.com')
   const image = page.getByRole('banner').locator('img')
@@ -94,21 +94,21 @@ test('creates a profile with a website and picture, and opens its page', async (
   await expect(card.locator('img')).toBeVisible()
 })
 
-test('edits details, changes and removes the picture, and deletes the profile', async ({
+test('edits details, changes and removes the picture, and deletes the publication', async ({
   page,
 }) => {
   await registerUser(page, uniqueName('Quinn'))
-  await page.getByRole('link', { name: 'New profile' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Draft venue')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Draft publication')
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
-    page.getByRole('banner').getByText('Draft venue').filter({ visible: true }).first(),
+    page.getByRole('banner').getByText('Draft publication').filter({ visible: true }).first(),
   ).toBeVisible()
   await expect(page.getByRole('banner').locator('img')).toHaveCount(0) // monogram placeholder
 
-  await page.getByRole('link', { name: 'Profile settings' }).click()
+  await page.getByRole('link', { name: 'Publication settings' }).click()
   await noViolations(page)
-  await page.getByLabel('Name', { exact: true }).fill('Final venue')
+  await page.getByLabel('Name', { exact: true }).fill('Final publication')
   await page.getByLabel('Website').fill('not a url')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('alert')).toContainText('Enter a web address')
@@ -118,7 +118,7 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await expect(page.getByLabel('Website')).toHaveValue('https://final.example.com')
 
   // The description is written in a rich-text editor, with no Markdown to know, and survives a reload.
-  const description = page.getByRole('textbox', { name: 'About this venue' })
+  const description = page.getByRole('textbox', { name: 'About this publication' })
   await description.fill('Personal weeknotes, mostly for me.')
   await description.press('ControlOrMeta+a')
   await page.getByRole('button', { name: 'Bold' }).click()
@@ -149,27 +149,29 @@ test('edits details, changes and removes the picture, and deletes the profile', 
   await holdToConfirm(page, page.getByRole('button', { name: 'Remove picture' }))
   await expect(page.getByRole('main').locator('img')).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Delete this profile' }).click()
+  await page.getByRole('button', { name: 'Delete this publication' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()
-  await expect(page.getByRole('heading', { name: 'Your profiles' })).toBeVisible()
-  await expect(page.getByRole('main').getByRole('link', { name: /Final venue/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+  await expect(page.getByRole('main').getByRole('link', { name: /Final publication/ })).toHaveCount(
+    0,
+  )
 })
 
-test('renaming a profile changes its address, and the old address still works', async ({
+test('renaming a publication changes its address, and the old address still works', async ({
   page,
 }) => {
   const who = uniqueName('Reese')
   await registerUser(page, who)
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Early name')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Early name').filter({ visible: true }).first(),
   ).toBeVisible()
   const oldPath = new URL(page.url()).pathname
   expect(oldPath).toMatch(/^\/p\/[a-z0-9]+-early-name$/)
 
-  await page.getByRole('link', { name: 'Profile settings' }).click()
+  await page.getByRole('link', { name: 'Publication settings' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Later name')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
@@ -187,21 +189,21 @@ test('renaming a profile changes its address, and the old address still works', 
   await expect(page).toHaveURL(`${newPath}/settings`)
 
   // The server itself answers the old API address with a permanent redirect.
-  const res = await page.request.get(`/api/profiles/${oldPath.slice(3)}`, { maxRedirects: 0 })
+  const res = await page.request.get(`/api/publications/${oldPath.slice(3)}`, { maxRedirects: 0 })
   expect(res.status()).toBe(301)
-  expect(res.headers()['location']).toBe(`/api/profiles/${newPath.slice(3)}`)
+  expect(res.headers()['location']).toBe(`/api/publications/${newPath.slice(3)}`)
 })
 
 test('changes the display name, which is then used wherever it is shown', async ({ page }) => {
   const who = uniqueName('Remy')
   await registerUser(page, who)
-  await page.getByRole('link', { name: 'New profile' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Remy venue')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Remy publication')
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
-    page.getByRole('banner').getByText('Remy venue').filter({ visible: true }).first(),
+    page.getByRole('banner').getByText('Remy publication').filter({ visible: true }).first(),
   ).toBeVisible()
-  await page.getByRole('link', { name: 'Profile settings' }).click()
+  await page.getByRole('link', { name: 'Publication settings' }).click()
   const member = (name: string) =>
     page
       .getByRole('main')
@@ -224,20 +226,20 @@ test('changes the display name, which is then used wherever it is shown', async 
   await expect(section.getByRole('status')).toContainText(`${who} Reed`)
   await noViolations(page)
 
-  // The header follows at once, and so does the list of people in the profile, with no other step.
+  // The header follows at once, and so does the list of people in the publication, with no other step.
   await expect(page.getByRole('link', { name: `${who} Reed`, exact: true })).toBeVisible()
   await page.reload()
   await expect(field).toHaveValue(`${who} Reed`)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await page
     .getByRole('main')
-    .getByRole('link', { name: /Remy venue/ })
+    .getByRole('link', { name: /Remy publication/ })
     .click()
-  await page.getByRole('link', { name: 'Profile settings' }).click()
+  await page.getByRole('link', { name: 'Publication settings' }).click()
   await expect(member(`${who} Reed`)).toBeVisible()
 })
 
-test('changes the username: existing profiles keep their address, new ones use it', async ({
+test('changes the username: existing publications keep their address, new ones use it', async ({
   page,
   browser,
 }) => {
@@ -245,10 +247,10 @@ test('changes the username: existing profiles keep their address, new ones use i
   const before = who.toLowerCase()
   const after = uniqueName('writer').toLowerCase()
   await registerUser(page, who)
-  await page.getByRole('link', { name: 'New profile' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('First venue')
-  await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page).toHaveURL(`/p/${before}-first-venue`)
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('First publication')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page).toHaveURL(`/p/${before}-first-publication`)
 
   await page.getByRole('link', { name: who, exact: true }).click()
   const section = page.getByRole('region', { name: 'Username' })
@@ -264,16 +266,15 @@ test('changes the username: existing profiles keep their address, new ones use i
   await section.getByRole('button', { name: 'Change username' }).click()
   await expect(section).toContainText(`Your username is now ${after}`)
 
-  // The profile made earlier keeps its address; a new one starts with the new username.
+  // The publication made earlier keeps its address; a new one starts with the new username.
   await page.getByRole('link', { name: 'Wordwright' }).click()
-  await expect(page.getByRole('main').getByRole('link', { name: /First venue/ })).toHaveAttribute(
-    'href',
-    `/p/${before}-first-venue`,
-  )
-  await page.getByRole('link', { name: 'New profile' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Second venue')
-  await page.getByRole('button', { name: 'Create profile' }).click()
-  await expect(page).toHaveURL(`/p/${after}-second-venue`)
+  await expect(
+    page.getByRole('main').getByRole('link', { name: /First publication/ }),
+  ).toHaveAttribute('href', `/p/${before}-first-publication`)
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Second publication')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page).toHaveURL(`/p/${after}-second-publication`)
 
   // The old username is kept for them: nobody else can take it.
   const other = await (await browser.newContext()).newPage()
@@ -282,7 +283,7 @@ test('changes the username: existing profiles keep their address, new ones use i
   await expect(other.getByText('That username is already taken. Try another.')).toBeVisible()
 })
 
-test('two people can each have a profile called "Substack", with different addresses', async ({
+test('two people can each have a publication called "Substack", with different addresses', async ({
   page,
   browser,
 }) => {
@@ -296,35 +297,35 @@ test('two people can each have a profile called "Substack", with different addre
     [page, ada],
     [bobPage, bob],
   ] as const) {
-    await p.getByRole('link', { name: 'New profile' }).click()
+    await p.getByRole('link', { name: 'New publication' }).click()
     await p.getByLabel('Name', { exact: true }).fill('Substack')
-    await p.getByRole('button', { name: 'Create profile' }).click()
+    await p.getByRole('button', { name: 'Create publication' }).click()
     await expect(p).toHaveURL(new RegExp(`/p/${who.toLowerCase()}-substack$`))
   }
 
-  // One person's profile address doesn't open for the other.
+  // One person's publication address doesn't open for the other.
   await bobPage.goto(`/p/${ada.toLowerCase()}-substack`)
-  await expect(bobPage.getByRole('alert')).toContainText("couldn't find that profile")
+  await expect(bobPage.getByRole('alert')).toContainText("couldn't find that publication")
   await noViolations(bobPage)
 })
 
-test('profile pages for a signed-in user have no detectable accessibility violations', async ({
+test('publication pages for a signed-in user have no detectable accessibility violations', async ({
   page,
 }) => {
   await registerUser(page, uniqueName('Sam'))
-  await noViolations(page) // the list, with the API key set-up and the first-profile prompt
-  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await noViolations(page) // the list, with the API key set-up and the first-publication prompt
+  await page.getByRole('link', { name: 'Create your first publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Sam writing')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
-  await noViolations(page) // the profile page
+  await noViolations(page) // the publication page
 })
 
 test('manages the ordered list of feeds on the Search page', async ({ page }) => {
   await registerUser(page, uniqueName('Tess'))
-  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByRole('link', { name: 'Create your first publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Reading list')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
 
   const sources = page.getByRole('region', { name: 'Feeds' })
@@ -430,9 +431,9 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
 
 test('pasting a site that offers several feeds asks which to add', async ({ page }) => {
   await registerUser(page, uniqueName('Wren'))
-  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByRole('link', { name: 'Create your first publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Choosing feeds')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
 
   const feeds = page.getByRole('region', { name: 'Feeds' })
@@ -459,9 +460,9 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
 
 test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await registerUser(page, uniqueName('Pia'))
-  await page.getByRole('link', { name: 'Create your first profile' }).click()
+  await page.getByRole('link', { name: 'Create your first publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Posts to read')
-  await page.getByRole('button', { name: 'Create profile' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
 
   const feeds = page.getByRole('region', { name: 'Feeds' })
@@ -488,20 +489,23 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await expect(recent.getByRole('listitem')).toContainText('Feed of read.example')
 })
 
-test('shows the description at the top of the profile page, clamped with Show more', async ({
+test('shows the description at the top of the publication page, clamped with Show more', async ({
   page,
 }) => {
   await registerUser(page, uniqueName('Robin'))
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Weeknotes')
-  await page.getByRole('button', { name: 'Create profile' }).click()
-  const about = page.getByRole('region', { name: 'About this profile' })
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  const about = page.getByRole('region', { name: 'About this publication' })
   await expect(about.getByRole('link', { name: 'Add a description' })).toBeVisible()
 
-  // The box to write in is the first thing on the describe page; saving goes back to the profile.
+  // The box to write in is the first thing on the describe page; saving goes back to the publication.
   await about.getByRole('link', { name: 'Add a description' }).click()
-  const paragraphs = Array.from({ length: 12 }, (_, i) => `Paragraph ${i + 1} about the venue.`)
-  await page.getByLabel('About this venue').fill(paragraphs.join('\n\n'))
+  const paragraphs = Array.from(
+    { length: 12 },
+    (_, i) => `Paragraph ${i + 1} about the publication.`,
+  )
+  await page.getByRole('textbox', { name: 'About this publication' }).fill(paragraphs.join('\n\n'))
   await page.getByRole('button', { name: 'Save description' }).click()
   await expect(page).toHaveURL(/\/p\/[^/]+$/)
 
@@ -527,11 +531,13 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   page,
 }) => {
   await registerUser(page, uniqueName('Sam'))
-  await page.getByRole('link', { name: 'New profile' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Garden notes')
   await page.getByLabel(/Website/).fill('garden.example')
   await page.getByRole('button', { name: 'Create and describe it' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Describe this publication' }),
+  ).toBeVisible()
   const describeUrl = page.url()
 
   // The guidance is open above the box, and there is no AI drafting from posts.
@@ -543,15 +549,17 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await expect(page.getByRole('button', { name: 'Draft a description' })).toHaveCount(0)
   await noViolations(page)
 
-  await page.getByLabel('About this venue').fill('Garden essays, by me, for me.')
+  await page
+    .getByRole('textbox', { name: 'About this publication' })
+    .fill('Garden essays, by me, for me.')
   await page.getByRole('button', { name: 'Save description' }).click()
-  const about = page.getByRole('region', { name: 'About this profile' })
+  const about = page.getByRole('region', { name: 'About this publication' })
   await expect(about.getByText('Garden essays, by me, for me.')).toBeVisible()
   await expect(about.getByText('AI draft', { exact: true })).toHaveCount(0)
   await noViolations(page)
 
   // The settings offer the same guidance, folded away.
-  await page.getByRole('link', { name: 'Profile settings' }).click()
+  await page.getByRole('link', { name: 'Publication settings' }).click()
   const folded = page.locator('details', { hasText: 'What makes a useful description' })
   await expect(folded).not.toHaveAttribute('open', '')
   await folded.getByText('What makes a useful description').click()
@@ -562,7 +570,9 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await page.setViewportSize({ width: 390, height: 800 })
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto(describeUrl)
-  await expect(page.getByRole('heading', { level: 1, name: 'Describe this venue' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Describe this publication' }),
+  ).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )

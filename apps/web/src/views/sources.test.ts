@@ -13,7 +13,7 @@ import {
 
 useMockServer({ warm: ['search'] })
 
-const profile = (role: 'owner' | 'member') => ({
+const publication = (role: 'owner' | 'member') => ({
   id: 'adalovelace-blog',
   name: 'Blog',
   siteUrl: null,
@@ -35,7 +35,7 @@ const source = (id: string, host: string, extra = {}) => ({
 const A = source('s1', 'a.example', {
   title: 'Alpha Notes',
   description: 'Essays on reading and thinking',
-  iconUrl: '/api/profiles/adalovelace-blog/sources/s1/icon?v=1',
+  iconUrl: '/api/publications/adalovelace-blog/sources/s1/icon?v=1',
 })
 const B = source('s2', 'b.example', { title: 'Beta Weekly' })
 const C = source('s3', 'c.example') // added before feeds were read: no title
@@ -44,11 +44,11 @@ const C = source('s3', 'c.example') // added before feeds were read: no title
 function fakeSources(initial = [A, B, C]) {
   const state = { list: [...initial], orders: [] as string[][], added: [] as string[] }
   server.use(
-    http.get('*/api/profiles/:id/sources', () => HttpResponse.json(state.list)),
-    http.get('*/api/profiles/:id/sources/recent', () =>
+    http.get('*/api/publications/:id/sources', () => HttpResponse.json(state.list)),
+    http.get('*/api/publications/:id/sources/recent', () =>
       HttpResponse.json({ days: 30, posts: [], omitted: 0, undated: 0, failed: [] }),
     ),
-    http.post('*/api/profiles/:id/sources', async ({ request }) => {
+    http.post('*/api/publications/:id/sources', async ({ request }) => {
       const { url } = (await request.json()) as { url: string }
       state.added.push(url)
       const added = source(`n${state.list.length}`, url.replace('/feed', ''), {
@@ -57,13 +57,13 @@ function fakeSources(initial = [A, B, C]) {
       state.list.push(added)
       return HttpResponse.json(added, { status: 201 })
     }),
-    http.put('*/api/profiles/:id/sources/order', async ({ request }) => {
+    http.put('*/api/publications/:id/sources/order', async ({ request }) => {
       const { ids } = (await request.json()) as { ids: string[] }
       state.orders.push(ids)
       state.list = ids.map((id) => state.list.find((s) => s.id === id)!)
       return HttpResponse.json(state.list)
     }),
-    http.delete('*/api/profiles/:id/sources/:sourceId', ({ params }) => {
+    http.delete('*/api/publications/:id/sources/:sourceId', ({ params }) => {
       state.list = state.list.filter((s) => s.id !== params.sourceId)
       return new HttpResponse(null, { status: 204 })
     }),
@@ -74,7 +74,7 @@ function fakeSources(initial = [A, B, C]) {
 async function openSearch(role: 'owner' | 'member' = 'owner') {
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile(role)])),
+    http.get('*/api/publications', () => HttpResponse.json([publication(role)])),
   )
   await renderAt('/p/adalovelace-blog/search')
   return screen.findByRole('heading', { name: 'Feeds' })
@@ -95,7 +95,7 @@ beforeEach(() =>
   server.use(
     llmSettings(true),
     // Owners' settings pages also list pending invitations.
-    http.get('*/api/profiles/:id/invitations', () => HttpResponse.json([])),
+    http.get('*/api/publications/:id/invitations', () => HttpResponse.json([])),
   ),
 )
 
@@ -133,7 +133,7 @@ describe('feeds on the Search page', () => {
   it('says what went wrong loading, and tries again on request', async () => {
     let attempts = 0
     server.use(
-      http.get('*/api/profiles/:id/sources', () =>
+      http.get('*/api/publications/:id/sources', () =>
         ++attempts === 1
           ? HttpResponse.json({ error: 'boom' }, { status: 500 })
           : HttpResponse.json([A]),
@@ -162,7 +162,7 @@ describe('feeds on the Search page', () => {
     let release: () => void = () => {}
     const released = new Promise<void>((resolve) => (release = resolve))
     server.use(
-      http.post('*/api/profiles/:id/sources', async () => {
+      http.post('*/api/publications/:id/sources', async () => {
         await released
         return HttpResponse.json(B, { status: 201 })
       }),
@@ -179,7 +179,7 @@ describe('feeds on the Search page', () => {
   it('shows why a link was refused, and keeps what was typed', async () => {
     fakeSources([A])
     server.use(
-      http.post('*/api/profiles/:id/sources', () =>
+      http.post('*/api/publications/:id/sources', () =>
         HttpResponse.json(
           { error: 'That address doesn’t look like an RSS or Atom feed.' },
           { status: 422 },
@@ -226,7 +226,7 @@ describe('feeds on the Search page', () => {
     let release!: () => void
     const held = new Promise<void>((resolve) => (release = resolve))
     server.use(
-      http.put('*/api/profiles/:id/sources/order', async ({ request }) => {
+      http.put('*/api/publications/:id/sources/order', async ({ request }) => {
         await held
         const { ids } = (await request.json()) as { ids: string[] }
         fake.orders.push(ids)
@@ -268,7 +268,7 @@ describe('feeds on the Search page', () => {
   it('shows the server’s list again when a move is refused as out of date', async () => {
     fakeSources()
     server.use(
-      http.put('*/api/profiles/:id/sources/order', () =>
+      http.put('*/api/publications/:id/sources/order', () =>
         HttpResponse.json({ error: 'The list has changed since you opened it.' }, { status: 409 }),
       ),
     )
@@ -394,7 +394,7 @@ describe('recent posts from all the feeds', () => {
   ) {
     const asked: string[] = []
     server.use(
-      http.get('*/api/profiles/:id/sources/recent', ({ request }) => {
+      http.get('*/api/publications/:id/sources/recent', ({ request }) => {
         const url = new URL(request.url)
         asked.push(url.search)
         return reply(url)
@@ -519,10 +519,10 @@ describe('deciding about the recent posts', () => {
   function fake(initial = [post('p1', 'First post'), post('p2', 'Second post')]) {
     const state = { posts: [...initial], sent: [] as { what: string; postId: string }[] }
     server.use(
-      http.get('*/api/profiles/:id/sources/recent', () =>
+      http.get('*/api/publications/:id/sources/recent', () =>
         HttpResponse.json({ days: 30, posts: state.posts, omitted: 0, undated: 0, failed: [] }),
       ),
-      http.post('*/api/profiles/:id/sources/recent/:what', async ({ params, request }) => {
+      http.post('*/api/publications/:id/sources/recent/:what', async ({ params, request }) => {
         const { posts } = (await request.json()) as {
           posts: { sourceId: string; postId: string }[]
         }
@@ -593,7 +593,7 @@ describe('deciding about the recent posts', () => {
       Array.from({ length: 8 }, (_, i) => post(`p${i + 1}`, `Post number ${i + 1}`)),
     )
     server.use(
-      http.get('*/api/profiles/:id/sources/recent', () => {
+      http.get('*/api/publications/:id/sources/recent', () => {
         const waiting = state.posts.filter((p) => p.status === 'new')
         const decided = state.posts.filter((p) => p.status !== 'new')
         return HttpResponse.json({
@@ -657,11 +657,11 @@ describe('deciding about the recent posts', () => {
     fakeSources([A])
     fake()
     server.use(
-      http.post('*/api/profiles/:id/sources/recent/add', () =>
+      http.post('*/api/publications/:id/sources/recent/add', () =>
         HttpResponse.json(
           {
             error:
-              'A profile can have up to 50 links. Remove some you no longer need to make room.',
+              'A publication can have up to 50 links. Remove some you no longer need to make room.',
           },
           { status: 409 },
         ),
@@ -673,7 +673,7 @@ describe('deciding about the recent posts', () => {
       await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
     )
     const alert = await within(recent).findByRole('alert')
-    expect(alert).toHaveTextContent('A profile can have up to 50 links')
+    expect(alert).toHaveTextContent('A publication can have up to 50 links')
     expect(
       within(recent).getByRole('button', { name: 'Add to the reading list: First post' }),
     ).toBeEnabled()
@@ -687,7 +687,7 @@ describe('deciding about the recent posts', () => {
     let release = () => {}
     const gate = new Promise<void>((resolve) => (release = resolve))
     server.use(
-      http.post('*/api/profiles/:id/sources/recent/ignore', async () => {
+      http.post('*/api/publications/:id/sources/recent/ignore', async () => {
         await gate
         return HttpResponse.json({ results: [{ sourceId: 's1', postId: 'p1', status: 'ignored' }] })
       }),
@@ -717,7 +717,7 @@ describe('paging through the recent posts', () => {
     }))
   const reply = (n: number) =>
     server.use(
-      http.get('*/api/profiles/:id/sources/recent', ({ request }) =>
+      http.get('*/api/publications/:id/sources/recent', ({ request }) =>
         HttpResponse.json({
           days: Number(new URL(request.url).searchParams.get('days')),
           posts: many(n),
@@ -853,7 +853,7 @@ describe('recent posts of a feed', () => {
   ) {
     const asked: string[] = []
     server.use(
-      http.get('*/api/profiles/:id/sources/:sourceId/items', ({ params }) => {
+      http.get('*/api/publications/:id/sources/:sourceId/items', ({ params }) => {
         asked.push(params.sourceId as string)
         return answer()
       }),
@@ -977,7 +977,7 @@ describe('a website that offers several feeds', () => {
   function fakeSite(answer: (url: string) => Response | null = () => null) {
     const asked: string[] = []
     server.use(
-      http.post('*/api/profiles/:id/sources', async ({ request }) => {
+      http.post('*/api/publications/:id/sources', async ({ request }) => {
         const { url } = (await request.json()) as { url: string }
         asked.push(url)
         const custom = answer(url)
@@ -1080,13 +1080,13 @@ describe('a website that offers several feeds', () => {
 })
 
 describe('where the feeds live', () => {
-  it('is reached from the profile page, and is no longer in Settings', async () => {
+  it('is reached from the publication page, and is no longer in Settings', async () => {
     fakeSources([A])
     server.use(
       signedInAs(testUser),
-      http.get('*/api/profiles', () => HttpResponse.json([profile('owner')])),
-      http.get('*/api/profiles/:id/ideas', () => HttpResponse.json([])),
-      http.get('*/api/profiles/:id/invitations', () => HttpResponse.json([])),
+      http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
+      http.get('*/api/publications/:id/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/:id/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/p/adalovelace-blog')
     await fireEvent.click(await screen.findByRole('link', { name: 'Search' }))

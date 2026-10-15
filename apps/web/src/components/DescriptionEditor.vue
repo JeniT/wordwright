@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PROFILE_DESCRIPTION_MAX } from '@lfwa/core'
+import { PUBLICATION_DESCRIPTION_MAX } from '@lfwa/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
@@ -7,7 +7,7 @@ import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 
 /**
- * Where a venue description is written: a small rich-text editor, so nobody needs to know Markdown. It offers what
+ * Where a publication description is written: a small rich-text editor, so nobody needs to know Markdown. It offers what
  * the description can show (bold, italic, links, bulleted and numbered lists, paragraphs) and reads and writes
  * Markdown, which is how the description is stored and rendered everywhere else. The toolbar is made of ordinary
  * buttons with words on them, so it works by keyboard and is read out; the usual shortcuts (Ctrl or Cmd with B, I and
@@ -21,7 +21,11 @@ const props = withDefaults(
     placeholder?: string
     maxlength?: number
   }>(),
-  { hint: undefined, placeholder: 'Write a few sentences…', maxlength: PROFILE_DESCRIPTION_MAX },
+  {
+    hint: undefined,
+    placeholder: 'Write a few sentences…',
+    maxlength: PUBLICATION_DESCRIPTION_MAX,
+  },
 )
 
 const labelId = useId()

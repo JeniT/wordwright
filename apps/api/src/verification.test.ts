@@ -136,16 +136,16 @@ describe('what verification gates', () => {
     const ctx = setup()
     const ada = ctx.client()
     await register(ada, 'ada@example.com', 'Ada')
-    const profileId = (await (await ada.get('/api/profiles')).json())[0].id as string
-    return { ctx, ada, profileId }
+    const publicationId = (await (await ada.get('/api/publications')).json())[0].id as string
+    return { ctx, ada, publicationId }
   }
 
   it('lets unverified people write but not invite others', async () => {
-    const { ada, profileId } = await twoUsers()
-    expect(await createDraft(ada, profileId, { title: 'T', body: 'B' })).toMatchObject({
+    const { ada, publicationId } = await twoUsers()
+    expect(await createDraft(ada, publicationId, { title: 'T', body: 'B' })).toMatchObject({
       title: 'T',
     })
-    const res = await ada.post(`/api/profiles/${profileId}/invitations`, {
+    const res = await ada.post(`/api/publications/${publicationId}/invitations`, {
       email: 'bob@example.com',
     })
     expect(res.status).toBe(403)
@@ -153,7 +153,7 @@ describe('what verification gates', () => {
   })
 
   it('unlocks inviting once the owner follows the emailed link', async () => {
-    const { ctx, ada, profileId } = await twoUsers()
+    const { ctx, ada, publicationId } = await twoUsers()
     const ownerLink = ctx.mailer.outbox
       .find((m) => m.to === 'ada@example.com')!
       .text.match(/token=([\w-]+)/)![1]
@@ -161,8 +161,11 @@ describe('what verification gates', () => {
       200,
     )
     expect(
-      (await ada.post(`/api/profiles/${profileId}/invitations`, { email: 'bob@example.com' }))
-        .status,
+      (
+        await ada.post(`/api/publications/${publicationId}/invitations`, {
+          email: 'bob@example.com',
+        })
+      ).status,
     ).toBe(202)
   })
 })

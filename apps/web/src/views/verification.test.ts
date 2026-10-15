@@ -6,8 +6,8 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 useMockServer()
 
 const unverified = { ...testUser, emailVerified: false }
-const noProfiles = http.get('*/api/profiles', () => HttpResponse.json([]))
-const profile = {
+const noPublications = http.get('*/api/publications', () => HttpResponse.json([]))
+const publication = {
   id: 'p1',
   name: "Ada's writing",
   siteUrl: null,
@@ -38,7 +38,7 @@ describe('confirm-email page', () => {
     let verified = false
     server.use(
       http.get('*/api/auth/me', () => HttpResponse.json(verified ? testUser : unverified)),
-      noProfiles,
+      noPublications,
       http.post('*/api/auth/verify-email', () => {
         verified = true
         return HttpResponse.json({ ok: true })
@@ -56,7 +56,7 @@ describe('confirm-email page', () => {
     let resent = false
     server.use(
       signedInAs(unverified),
-      noProfiles,
+      noPublications,
       http.post('*/api/auth/verify-email', () =>
         HttpResponse.json(
           { error: 'This verification link is invalid or has expired' },
@@ -101,7 +101,7 @@ describe('confirmation banner', () => {
   it('asks unconfirmed people to confirm, and can resend', async () => {
     server.use(
       signedInAs(unverified),
-      noProfiles,
+      noPublications,
       http.post('*/api/auth/resend-verification', () => HttpResponse.json({ ok: true })),
     )
     await renderAt('/account')
@@ -114,7 +114,7 @@ describe('confirmation banner', () => {
   it('shows why a resend failed (e.g. throttled)', async () => {
     server.use(
       signedInAs(unverified),
-      noProfiles,
+      noPublications,
       http.post('*/api/auth/resend-verification', () =>
         HttpResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 }),
       ),
@@ -125,7 +125,7 @@ describe('confirmation banner', () => {
   })
 
   it('is absent once confirmed', async () => {
-    server.use(signedInAs(testUser), noProfiles)
+    server.use(signedInAs(testUser), noPublications)
     await renderAt('/account')
     await screen.findByRole('heading', { name: 'Your account' })
     expect(screen.queryByRole('region', { name: 'Email confirmation' })).toBeNull()
@@ -136,7 +136,7 @@ describe('inviting needs a confirmed address', () => {
   it('replaces the invite form with an explanation', async () => {
     server.use(
       signedInAs(unverified),
-      http.get('*/api/profiles', () => HttpResponse.json([profile])),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/p/p1/settings')
     await screen.findByText(/Confirm your email address to invite people/)

@@ -6,27 +6,27 @@ A web app that supports a writer's journey from idea to published writing, with 
 
 ### People and access
 
-**Profile**:
-A publishing venue: a container of ideas and drafts, with people who work in it.
-_Avoid_: Workspace, account, blog
+**Publication**:
+A place where the writer publishes: a Substack, a blog, a magazine, a newsletter or similar. It holds ideas and drafts, with people who work in it.
+_Avoid_: Profile, venue, workspace, account
 
-**Profile picture**:
-The image an owner chooses for a profile. Always shown in preference to the site icon.
+**Publication picture**:
+The image an owner chooses for a publication. Always shown in preference to the site icon.
 _Avoid_: Avatar, logo
 
 **Site icon**:
-The icon of a profile's website, fetched once when the website is set or changed and shown, as a guest image, only when the profile has no picture of its own.
+The icon of a publication's website, fetched once when the website is set or changed and shown, as a guest image, only when the publication has no picture of its own.
 _Avoid_: Favicon, logo
 
 **Owner**:
-A person who administers a profile (invites and removes people, makes other members owners, reassigns drafts). A profile can have several owners but never none.
+A person who administers a publication (invites and removes people, makes other members owners, reassigns drafts). A publication can have several owners but never none.
 _Avoid_: Admin
 
 **Member**:
-A person who works in a profile. An owner is also a member._Avoid_: Collaborator, user, profile editor
+A person who works in a publication. An owner is also a member._Avoid_: Collaborator, user, publication editor
 
 **Reviewer**:
-A person invited by email to read and comment on a draft, without being a member of its profile. Has a reviewer-only account, which can be upgraded to a full one.
+A person invited by email to read and comment on a draft, without being a member of its publication. Has a reviewer-only account, which can be upgraded to a full one.
 _Avoid_: Guest, commenter, viewer
 
 ### Drafts and responsibility

@@ -23,7 +23,7 @@ import { fail, notFound } from '../errors'
 import { param } from './params'
 
 /**
- * Mounted under `/profiles/:profileId`, after membership has been checked. Drafts are created and
+ * Mounted under `/publications/:publicationId`, after membership has been checked. Drafts are created and
  * listed through their idea (`/ideas/:id/drafts`); these routes open, save and delete one by id.
  */
 export function draftRoutes(
@@ -35,24 +35,24 @@ export function draftRoutes(
   const { drafts, notes, ideas, comments } = store
   /** The draft a route is about, or a 404. */
   const draftOf = (c: Parameters<typeof param>[0]) => {
-    const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+    const draft = drafts.get(param(c, 'publicationId'), param(c, 'id'))
     if (!draft) throw notFound()
     return draft
   }
   return (
     new Hono<AppEnv>()
       .get('/:id', (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        const draft = drafts.get(param(c, 'publicationId'), param(c, 'id'))
         return draft ? c.json(draft) : c.json({ error: 'Not found' }, 404)
       })
       // Only the editor saves, and only from the version they last saw: a stale save is refused (409), never merged.
       .put('/:id', validateJson(DraftSaveSchema), (c) => {
-        const profileId = param(c, 'profileId')
-        const current = drafts.get(profileId, param(c, 'id'))
+        const publicationId = param(c, 'publicationId')
+        const current = drafts.get(publicationId, param(c, 'id'))
         if (!current) return c.json({ error: 'Not found' }, 404)
         requireEditor(current, c.get('user').id)
         const { version, ...input } = c.req.valid('json')
-        const saved = drafts.update(profileId, current.id, input, version)
+        const saved = drafts.update(publicationId, current.id, input, version)
         if (!saved) {
           throw fail(
             409,
@@ -91,11 +91,11 @@ export function draftRoutes(
       })
       // Words pulled into the draft from the idea's notes, and where they came from.
       .get('/:id/insertions', (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        const draft = drafts.get(param(c, 'publicationId'), param(c, 'id'))
         return draft ? c.json(drafts.insertions(draft.id)) : c.json({ error: 'Not found' }, 404)
       })
       .post('/:id/insertions', validateJson(DraftInsertionInputSchema), (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        const draft = drafts.get(param(c, 'publicationId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
         requireEditor(draft, c.get('user').id)
         const { noteId, text } = c.req.valid('json')
@@ -111,7 +111,7 @@ export function draftRoutes(
             'A quotation has to go into the draft as a quotation (every line starting with >).',
           )
         }
-        const idea = ideas.get(draft.profileId, draft.ideaId!)
+        const idea = ideas.get(draft.publicationId, draft.ideaId!)
         const item = idea?.links.find((l) => l.id === note.readingItemId)
         const inserted = store.transaction(() => {
           const id = drafts.addInsertion(draft.id, {
@@ -135,7 +135,7 @@ export function draftRoutes(
       })
       // The writer used an option from a Rephrase window: record that these words began as an AI option.
       .post('/:id/option-insertions', validateJson(OptionUseInputSchema), (c) => {
-        const draft = drafts.get(param(c, 'profileId'), param(c, 'id'))
+        const draft = drafts.get(param(c, 'publicationId'), param(c, 'id'))
         if (!draft) return c.json({ error: 'Not found' }, 404)
         requireEditor(draft, c.get('user').id)
         const use = c.req.valid('json')
@@ -168,7 +168,7 @@ export function draftRoutes(
       // Sending the draft for review: a snapshot is frozen and people are asked to review it (the editor only).
       .get('/:id/reviewers', (c) => c.json(reviews.reviewers(draftOf(c), c.get('user').id)))
       .post('/:id/send-for-review', validateJson(SendForReviewInputSchema), (c) => {
-        // Each email goes to a stranger from our server, so one person's are capped, like profile invitations.
+        // Each email goes to a stranger from our server, so one person's are capped, like publication invitations.
         const input = c.req.valid('json')
         for (let n = 0; n < input.emails.length; n++) {
           if (!inviteLimiter.allow(c.get('user').id)) {
@@ -191,7 +191,7 @@ export function draftRoutes(
         return c.body(null, 204)
       })
       .delete('/:id', (c) =>
-        drafts.delete(param(c, 'profileId'), param(c, 'id'))
+        drafts.delete(param(c, 'publicationId'), param(c, 'id'))
           ? c.body(null, 204)
           : c.json({ error: 'Not found' }, 404),
       )

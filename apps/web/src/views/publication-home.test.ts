@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer()
 
-const profile = {
+const publication = {
   id: 'ada-substack',
   name: 'Substack',
   siteUrl: 'https://substack.example/ada',
@@ -41,10 +41,10 @@ function fakeHome(notes: ReturnType<typeof note>[] = [], ideas: ReturnType<typeo
   const state = { notes: [...notes] }
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([profile])),
-    http.get('*/api/profiles/ada-substack/ideas', () => HttpResponse.json(ideas)),
-    http.get('*/api/profiles/ada-substack/notes', () => HttpResponse.json(state.notes)),
-    http.post('*/api/profiles/ada-substack/notes', async ({ request }) => {
+    http.get('*/api/publications', () => HttpResponse.json([publication])),
+    http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json(ideas)),
+    http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json(state.notes)),
+    http.post('*/api/publications/ada-substack/notes', async ({ request }) => {
       const { text } = (await request.json()) as { text: string }
       sent.push(text)
       const made = note(state.notes.length + 1, text)
@@ -55,8 +55,8 @@ function fakeHome(notes: ReturnType<typeof note>[] = [], ideas: ReturnType<typeo
   return sent
 }
 
-describe('a profile’s landing page', () => {
-  it('is titled with the profile’s name, beside its website, and does not link to itself', async () => {
+describe('a publication’s landing page', () => {
+  it('is titled with the publication’s name, beside its website, and does not link to itself', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     const title = await screen.findByRole('heading', { level: 1, name: 'Substack' })
@@ -86,7 +86,9 @@ describe('a profile’s landing page', () => {
   describe('description', () => {
     const describedAs = (description: string | null) => {
       fakeHome()
-      server.use(http.get('*/api/profiles', () => HttpResponse.json([{ ...profile, description }])))
+      server.use(
+        http.get('*/api/publications', () => HttpResponse.json([{ ...publication, description }])),
+      )
     }
     /** jsdom does no layout, so say how tall the text is and how much room it gets. */
     const layout = (scrollHeight: number, clientHeight: number) => {
@@ -107,7 +109,7 @@ describe('a profile’s landing page', () => {
       describedAs('Weeknotes, *mostly for me*. See [home](https://example.com).')
       layout(100, 100)
       await renderAt('/p/ada-substack')
-      const about = await screen.findByRole('region', { name: 'About this profile' })
+      const about = await screen.findByRole('region', { name: 'About this publication' })
       expect(within(about).getByRole('link', { name: 'home' })).toHaveAttribute(
         'href',
         'https://example.com',
@@ -174,7 +176,7 @@ describe('a profile’s landing page', () => {
     it('says what went wrong when a note can’t be added, and keeps the words', async () => {
       fakeHome()
       server.use(
-        http.post('*/api/profiles/ada-substack/notes', () =>
+        http.post('*/api/publications/ada-substack/notes', () =>
           HttpResponse.json({ error: 'Too many notes' }, { status: 409 }),
         ),
       )
@@ -188,7 +190,7 @@ describe('a profile’s landing page', () => {
     it('says when the notes can’t be loaded', async () => {
       fakeHome()
       server.use(
-        http.get('*/api/profiles/ada-substack/notes', () =>
+        http.get('*/api/publications/ada-substack/notes', () =>
           HttpResponse.json({ error: 'Nope' }, { status: 500 }),
         ),
       )
@@ -224,7 +226,7 @@ describe('a profile’s landing page', () => {
     it('says when the ideas can’t be loaded', async () => {
       fakeHome()
       server.use(
-        http.get('*/api/profiles/ada-substack/ideas', () =>
+        http.get('*/api/publications/ada-substack/ideas', () =>
           HttpResponse.json({ error: 'Nope' }, { status: 500 }),
         ),
       )
@@ -254,14 +256,14 @@ const post = (id: string, sourceId: string, title: string, day: number, status =
 })
 function fakeFeeds(sources: ReturnType<typeof source>[], posts: ReturnType<typeof post>[]) {
   server.use(
-    http.get('*/api/profiles/ada-substack/sources', () => HttpResponse.json(sources)),
-    http.get('*/api/profiles/ada-substack/sources/recent', () =>
+    http.get('*/api/publications/ada-substack/sources', () => HttpResponse.json(sources)),
+    http.get('*/api/publications/ada-substack/sources/recent', () =>
       HttpResponse.json({ days: 30, posts, omitted: 0, undated: 0, failed: [] }),
     ),
   )
 }
 
-describe('a profile’s landing page: search', () => {
+describe('a publication’s landing page: search', () => {
   it('says there are no feeds, and leads to where to add one', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
@@ -333,10 +335,10 @@ describe('a profile’s landing page: search', () => {
       }
       fakeHome()
       server.use(
-        http.get('*/api/profiles/ada-substack/sources', () =>
+        http.get('*/api/publications/ada-substack/sources', () =>
           HttpResponse.json([source('s1', 'Alpha Notes')]),
         ),
-        http.get('*/api/profiles/ada-substack/sources/recent', () =>
+        http.get('*/api/publications/ada-substack/sources/recent', () =>
           HttpResponse.json({
             days: 30,
             posts: [
@@ -349,7 +351,7 @@ describe('a profile’s landing page: search', () => {
           }),
         ),
         http.post(
-          '*/api/profiles/ada-substack/sources/recent/:what',
+          '*/api/publications/ada-substack/sources/recent/:what',
           async ({ params, request }) => {
             const { posts } = (await request.json()) as { posts: { postId: string }[] }
             const what = params.what as string
@@ -392,7 +394,7 @@ describe('a profile’s landing page: search', () => {
     it('says when a decision could not be saved, and the post stays', async () => {
       fakeDecisions()
       server.use(
-        http.post('*/api/profiles/ada-substack/sources/recent/:what', () =>
+        http.post('*/api/publications/ada-substack/sources/recent/:what', () =>
           HttpResponse.json({ error: 'Could not save that. Try again.' }, { status: 500 }),
         ),
       )
@@ -417,7 +419,7 @@ describe('a profile’s landing page: search', () => {
   it('says when the feeds can’t be loaded, or their posts, and can try again', async () => {
     fakeHome()
     server.use(
-      http.get('*/api/profiles/ada-substack/sources', () =>
+      http.get('*/api/publications/ada-substack/sources', () =>
         HttpResponse.json({ error: 'Nope' }, { status: 500 }),
       ),
     )
@@ -429,8 +431,10 @@ describe('a profile’s landing page: search', () => {
     fakeHome()
     const asked: string[] = []
     server.use(
-      http.get('*/api/profiles/ada-substack/sources', () => HttpResponse.json([source('s1', 'A')])),
-      http.get('*/api/profiles/ada-substack/sources/recent', ({ request }) => {
+      http.get('*/api/publications/ada-substack/sources', () =>
+        HttpResponse.json([source('s1', 'A')]),
+      ),
+      http.get('*/api/publications/ada-substack/sources/recent', ({ request }) => {
         asked.push(new URL(request.url).search)
         return HttpResponse.json({ days: 30, posts: [], omitted: 0, undated: 0, failed: [] })
       }),
@@ -453,12 +457,12 @@ const link = (id: string, title: string, extra = {}) => ({
   ...extra,
 })
 
-describe('a profile’s landing page: read', () => {
+describe('a publication’s landing page: read', () => {
   function fakeReading(initial: ReturnType<typeof link>[]) {
     const state = { links: [...initial], added: [] as string[] }
     server.use(
-      http.get('*/api/profiles/ada-substack/reading', () => HttpResponse.json(state.links)),
-      http.post('*/api/profiles/ada-substack/reading', async ({ request }) => {
+      http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(state.links)),
+      http.post('*/api/publications/ada-substack/reading', async ({ request }) => {
         const { url } = (await request.json()) as { url: string }
         state.added.push(url)
         state.links.push(link(`n${state.links.length + 1}`, `Title of ${url}`, { url }))
@@ -515,7 +519,7 @@ describe('a profile’s landing page: read', () => {
     fakeHome()
     fakeReading([])
     server.use(
-      http.post('*/api/profiles/ada-substack/reading', () =>
+      http.post('*/api/publications/ada-substack/reading', () =>
         HttpResponse.json(
           { error: 'Enter a web address, like https://example.com' },
           { status: 400 },
@@ -532,7 +536,7 @@ describe('a profile’s landing page: read', () => {
   it('says when the list can’t be loaded', async () => {
     fakeHome()
     server.use(
-      http.get('*/api/profiles/ada-substack/reading', () =>
+      http.get('*/api/publications/ada-substack/reading', () =>
         HttpResponse.json({ error: 'Nope' }, { status: 500 }),
       ),
     )

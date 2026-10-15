@@ -40,17 +40,17 @@ import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 import type { TextSelection } from '../lib/text-selection'
 import QueryState from '../components/QueryState.vue'
 
-const props = defineProps<{ profileId: string; id: string }>()
+const props = defineProps<{ publicationId: string; id: string }>()
 const queryClient = useQueryClient()
 const router = useRouter()
 
 const draft = useDraft(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 // Every draft develops an idea, which it links back to.
 const idea = useIdea(
-  () => props.profileId,
+  () => props.publicationId,
   () => draft.data.value?.ideaId,
 )
 const session = useSessionStore()
@@ -77,7 +77,7 @@ watch(
 const save = useMutation({
   mutationFn: () => {
     if (!loaded) throw new Error("The draft isn't ready yet. Try again in a moment.")
-    return api.updateDraft(props.profileId, props.id, {
+    return api.updateDraft(props.publicationId, props.id, {
       title: title.value,
       body: body.value,
       version: loaded.version,
@@ -85,7 +85,7 @@ const save = useMutation({
   },
   onSuccess: (saved) => {
     loaded = { title: saved.title, body: saved.body, version: saved.version }
-    queryClient.setQueryData(queryKeys.draft(props.profileId, props.id), saved)
+    queryClient.setQueryData(queryKeys.draft(props.publicationId, props.id), saved)
   },
 })
 /** The draft was saved from somewhere else since this page loaded it: what is typed here is kept, not sent. */
@@ -124,7 +124,11 @@ async function mayCite(item: IdeaLink): Promise<boolean> {
   if (choice === 'read-now') {
     const { href } = router.resolve({
       name: 'reading',
-      params: { profileId: props.profileId, id: draft.data.value!.ideaId!, linkId: item.id },
+      params: {
+        publicationId: props.publicationId,
+        id: draft.data.value!.ideaId!,
+        linkId: item.id,
+      },
     })
     window.open(href, '_blank', 'noopener')
     citeNotice.value = `Opened “${item.title || item.url}” in a new tab. Come back and add it once you have read it.`
@@ -132,12 +136,12 @@ async function mayCite(item: IdeaLink): Promise<boolean> {
   }
   try {
     const updated = await api.setReadingItemRead(
-      props.profileId,
+      props.publicationId,
       draft.data.value!.ideaId!,
       item.id,
       true,
     )
-    queryClient.setQueryData(queryKeys.idea(props.profileId, updated.id), updated)
+    queryClient.setQueryData(queryKeys.idea(props.publicationId, updated.id), updated)
     await invalidateRoots(queryClient, 'ideas')
   } catch {
     throw new Error("We couldn't mark it as read. Please try again.")
@@ -176,7 +180,7 @@ async function insertNote(note: IdeaNote, at?: number) {
     )
   }
   try {
-    await api.addDraftInsertion(props.profileId, props.id, { noteId: note.id, text: markdown })
+    await api.addDraftInsertion(props.publicationId, props.id, { noteId: note.id, text: markdown })
   } catch {
     throw new Error("The words are in your draft, but we couldn't mark the note as added.")
   }
@@ -190,7 +194,7 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
   if (dropping) return
   const ideaId = draft.data.value?.ideaId
   const note = queryClient
-    .getQueryData<IdeaNote[]>(queryKeys.notes(props.profileId, ideaId))
+    .getQueryData<IdeaNote[]>(queryKeys.notes(props.publicationId, ideaId))
     ?.find((n) => n.id === noteId)
   dropNotice.value = ''
   dropProblem.value = ''
@@ -247,7 +251,7 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
   // Words the writer wrote themselves need no record; words that began as an option do.
   if (!result.offered || !result.aim) return
   try {
-    await api.addOptionInsertion(props.profileId, props.id, {
+    await api.addOptionInsertion(props.publicationId, props.id, {
       kind: 'passage',
       offered: result.offered,
       text: result.text,
@@ -286,19 +290,19 @@ async function closeNotes() {
 // ---- comments: the editor sees everyone's (the AI's critique included) and the others only their own; the server
 // decides which. The latest critique's summary and the looks used are the editor's alone.
 const lastCritique = useDraftCritique(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
   () => canEdit.value,
 )
 const commentList = useDraftComments(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 const comments = computed(() => commentList.data.value ?? [])
 const critique = useMutation({
-  mutationFn: () => api.critique(props.profileId, props.id),
+  mutationFn: () => api.critique(props.publicationId, props.id),
   onSuccess: async (state) => {
-    queryClient.setQueryData(queryKeys.critique(props.profileId, props.id), state)
+    queryClient.setQueryData(queryKeys.critique(props.publicationId, props.id), state)
     await invalidateRoots(queryClient, 'comments')
     activePointId.value = null
   },
@@ -311,7 +315,7 @@ const critique = useMutation({
 // A comment is resolved (or not) as soon as the switch is flipped; if that cannot be saved the switch goes back.
 const resolveProblem = ref('')
 const setResolved = useResolveComment(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
   (err, commentId) => {
     resolveProblem.value = `We couldn't save that: ${errorMessage(err)}`
@@ -323,7 +327,7 @@ function resolve(commentId: string, resolved: boolean) {
   setResolved.mutate({ commentId, resolved })
 }
 const addComment = useAddComment(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 /** The paragraphs a new comment can be about: the draft as saved, because that is what the server finds them in. */
@@ -395,7 +399,7 @@ async function requestCritique() {
           <RouterLink
             :to="{
               name: 'idea-drafts',
-              params: { profileId: props.profileId, id: draft.data.value.ideaId },
+              params: { publicationId: props.publicationId, id: draft.data.value.ideaId },
             }"
             class="underline"
           >
@@ -409,10 +413,10 @@ async function requestCritique() {
           is this draft's editor. You can read it and its notes, but only they can change it. Reload
           the page, or come back to it, to see their latest changes.
         </p>
-        <HandoverPanel :profile-id="profileId" :draft-id="id" />
+        <HandoverPanel :publication-id="publicationId" :draft-id="id" />
         <ReviewersPanel
           v-if="draft.data.value"
-          :profile-id="profileId"
+          :publication-id="publicationId"
           :draft-id="id"
           :editor-id="draft.data.value.editorId"
         />
@@ -509,7 +513,7 @@ async function requestCritique() {
           <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
         </p>
 
-        <DraftInsertions :profile-id="profileId" :draft-id="id" :body="body" />
+        <DraftInsertions :publication-id="publicationId" :draft-id="id" :body="body" />
 
         <DraftPublish v-if="canEdit" :title="title" :body="body" />
       </article>
@@ -541,7 +545,7 @@ async function requestCritique() {
         <TabPanels v-model="sideTab" :tabs="sideTabs" label="Beside the draft">
           <template #notes>
             <DraftNotes
-              :profile-id="profileId"
+              :publication-id="publicationId"
               :idea-id="draft.data.value.ideaId"
               :reading-list="idea.data.value?.links ?? []"
               :insert="insertNote"
@@ -587,7 +591,7 @@ async function requestCritique() {
         :open="!!rephrasing"
         kind="passage"
         :wording="rephrasing?.text ?? ''"
-        :profile-id="profileId"
+        :publication-id="publicationId"
         :draft-id="id"
         :rounds="looks?.allowed"
         :prepare="() => save.mutateAsync()"

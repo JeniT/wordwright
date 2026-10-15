@@ -5,8 +5,8 @@ import type { Store } from '../db/store'
 import { fail } from '../errors'
 
 /**
- * Moving reading items and notes between a profile's own lists and its ideas (and between ideas). Each move is
- * one transaction: it happens in full or not at all, refuses anything outside the profile, and is written to the
+ * Moving reading items and notes between a publication's own lists and its ideas (and between ideas). Each move is
+ * one transaction: it happens in full or not at all, refuses anything outside the publication, and is written to the
  * log of moves. What "move" keeps is written out in docs/decisions.md; in short:
  *
  * - A **reading item** moves with its read date, authors, tags, address, title, why and origin, and the notes taken
@@ -20,20 +20,20 @@ import { fail } from '../errors'
 export class MoveService {
   constructor(private readonly store: Store) {}
 
-  /** `toIdeaId` null moves them to the profile's own reading list. */
+  /** `toIdeaId` null moves them to the publication's own reading list. */
   moveReading(
-    profileId: string,
+    publicationId: string,
     userId: string,
     ids: string[],
     toIdeaId: string | null,
   ): MoveResult {
     const { reading, notes, ideas, moves } = this.store
     return this.store.transaction(() => {
-      this.checkDestination(profileId, toIdeaId)
+      this.checkDestination(publicationId, toIdeaId)
       const batchId = randomUUID()
-      const toOwner = ownerFor(profileId, toIdeaId)
+      const toOwner = ownerFor(publicationId, toIdeaId)
       const wanted = [...new Set(ids)].map((id) => {
-        const found = reading.locate(profileId, id)
+        const found = reading.locate(publicationId, id)
         if (!found) throw fail(404, 'Not found')
         return { id, ...found }
       })
@@ -56,8 +56,8 @@ export class MoveService {
         (n, p) =>
           n +
           notes
-            .byReadingItem(profileId, p.id)
-            .filter((id) => notes.get(ownerFor(profileId, p.ideaId), id)).length,
+            .byReadingItem(publicationId, p.id)
+            .filter((id) => notes.get(ownerFor(publicationId, p.ideaId), id)).length,
         0,
       )
       if (
@@ -80,13 +80,13 @@ export class MoveService {
       let noteCount = 0
       const touched = new Set<string>(toIdeaId ? [toIdeaId] : [])
       for (const p of plan) {
-        const fromOwner = ownerFor(profileId, p.ideaId)
+        const fromOwner = ownerFor(publicationId, p.ideaId)
         if (p.ideaId) touched.add(p.ideaId)
         // The notes taken from the item go with it, and now point at whichever item stays.
-        for (const noteId of notes.byReadingItem(profileId, p.id)) {
+        for (const noteId of notes.byReadingItem(publicationId, p.id)) {
           if (!notes.get(fromOwner, noteId)) continue
-          notes.moveTo(profileId, noteId, toIdeaId, p.target)
-          moves.record(profileId, userId, batchId, {
+          notes.moveTo(publicationId, noteId, toIdeaId, p.target)
+          moves.record(publicationId, userId, batchId, {
             kind: 'note',
             itemId: noteId,
             fromIdeaId: p.ideaId,
@@ -110,9 +110,9 @@ export class MoveService {
           reading.remove(fromOwner, p.id)
           merged++
         } else {
-          reading.setOwner(profileId, p.id, toIdeaId)
+          reading.setOwner(publicationId, p.id, toIdeaId)
         }
-        moves.record(profileId, userId, batchId, {
+        moves.record(publicationId, userId, batchId, {
           kind: 'reading',
           itemId: p.id,
           fromIdeaId: p.ideaId,
@@ -125,15 +125,20 @@ export class MoveService {
     })
   }
 
-  /** `toIdeaId` null moves them to the profile's own notes. */
-  moveNotes(profileId: string, userId: string, ids: string[], toIdeaId: string | null): MoveResult {
+  /** `toIdeaId` null moves them to the publication's own notes. */
+  moveNotes(
+    publicationId: string,
+    userId: string,
+    ids: string[],
+    toIdeaId: string | null,
+  ): MoveResult {
     const { reading, notes, ideas, moves } = this.store
     return this.store.transaction(() => {
-      this.checkDestination(profileId, toIdeaId)
+      this.checkDestination(publicationId, toIdeaId)
       const batchId = randomUUID()
-      const toOwner = ownerFor(profileId, toIdeaId)
+      const toOwner = ownerFor(publicationId, toIdeaId)
       const unique = [...new Set(ids)]
-      const where = notes.locate(profileId, unique)
+      const where = notes.locate(publicationId, unique)
       if (where.size !== unique.length) throw fail(404, 'Not found')
 
       // In the order they are arranged where they are, one place after another.
@@ -141,7 +146,7 @@ export class MoveService {
       const places = [...new Set(unique.map((id) => where.get(id)!))]
       for (const from of places.filter((p) => p !== toIdeaId)) {
         const picked = new Set(unique.filter((id) => where.get(id) === from))
-        for (const n of notes.list(ownerFor(profileId, from))) {
+        for (const n of notes.list(ownerFor(publicationId, from))) {
           if (picked.has(n.id)) going.push({ id: n.id, from, readingItemId: n.readingItemId })
         }
       }
@@ -163,7 +168,7 @@ export class MoveService {
       )
       const missing = [...needed].filter((k) => {
         const [from, itemId] = k.split('|') as [string, string]
-        const item = reading.get(ownerFor(profileId, from === 'null' ? null : from), itemId)
+        const item = reading.get(ownerFor(publicationId, from === 'null' ? null : from), itemId)
         return item && !there.has(linkKey(item.url))
       })
       if (toIdeaId && reading.count(toOwner) + missing.length > MAX_IDEA_LINKS) {
@@ -174,12 +179,12 @@ export class MoveService {
       }
       for (const k of needed) {
         const [from, itemId] = k.split('|') as [string, string]
-        const item = reading.get(ownerFor(profileId, from === 'null' ? null : from), itemId)
+        const item = reading.get(ownerFor(publicationId, from === 'null' ? null : from), itemId)
         if (!item) continue
         const key = linkKey(item.url)
         let target = there.get(key)
         if (!target) {
-          target = reading.add(profileId, toIdeaId, item, item.origin).id
+          target = reading.add(publicationId, toIdeaId, item, item.origin).id
           there.set(key, target)
           copies++
         } else if (item.readAt && !reading.get(toOwner, target)?.readAt) {
@@ -192,8 +197,8 @@ export class MoveService {
       for (const g of going) {
         if (g.from) touched.add(g.from)
         const target = g.readingItemId ? (itemAt.get(`${g.from}|${g.readingItemId}`) ?? null) : null
-        notes.moveTo(profileId, g.id, toIdeaId, target)
-        moves.record(profileId, userId, batchId, {
+        notes.moveTo(publicationId, g.id, toIdeaId, target)
+        moves.record(publicationId, userId, batchId, {
           kind: 'note',
           itemId: g.id,
           fromIdeaId: g.from,
@@ -206,11 +211,12 @@ export class MoveService {
     })
   }
 
-  /** The idea must be one of this profile's. */
-  private checkDestination(profileId: string, ideaId: string | null) {
-    if (ideaId && !this.store.ideas.get(profileId, ideaId)) throw fail(404, 'Not found')
+  /** The idea must be one of this publication's. */
+  private checkDestination(publicationId: string, ideaId: string | null) {
+    if (ideaId && !this.store.ideas.get(publicationId, ideaId)) throw fail(404, 'Not found')
   }
 }
 
-const ownerFor = (profileId: string, ideaId: string | null): Owner => ideaId ?? { profileId }
-const subject = (ideaId: string | null) => (ideaId ? 'An idea' : 'A profile')
+const ownerFor = (publicationId: string, ideaId: string | null): Owner =>
+  ideaId ?? { publicationId }
+const subject = (ideaId: string | null) => (ideaId ? 'An idea' : 'A publication')

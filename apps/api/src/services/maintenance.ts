@@ -41,7 +41,7 @@ export class MaintenanceService {
 
   /**
    * Deletes accounts that never confirmed their email, are older than the limit and show no sign of
-   * use (no drafts, no saved API key, nobody else in their profiles). This frees addresses taken by
+   * use (no drafts, no saved API key, nobody else in their publications). This frees addresses taken by
    * typos or abandoned signups. Deletion is the same as when someone deletes their own account.
    */
   purgeUnconfirmedAccounts(): number {

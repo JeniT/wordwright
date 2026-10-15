@@ -88,7 +88,7 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
   account-deletion tests).
 - **API errors:** services and routes throw `fail(status, message)` (or `notFound()`) from `apps/api/src/errors.ts`; `app.ts` turns it into `{ error }`. Services never import Hono. Read path parameters with `param(c, 'id')` (`routes/params.ts`), never `c.req.param('id')!`.
 - **Web queries:** query keys and the queries screens share (`useIdea`, `useIdeas`, `useIdeaNotes`, `useSources`, `useDraft`) live in `apps/web/src/lib/queries.ts`. Don't write a key literal in a component; refresh with `invalidateRoots` / `refreshNotesEverywhere`.
-- **Loading and errors in the web app:** wrap anything fetched with `useQuery` in `QueryState` (or `IdeaGate` / `ProfileGate` for a whole page) rather than writing your own "Loading…" and error text.
+- **Loading and errors in the web app:** wrap anything fetched with `useQuery` in `QueryState` (or `IdeaGate` / `PublicationGate` for a whole page) rather than writing your own "Loading…" and error text.
 - **Saving in the web app:** show a form's result with `SaveStatus`, and fill fields from saved values with `useSavedValue` (`lib/forms.ts`), rather than writing your own "Saved" and error paragraphs.
 - **Editing in place:** use `useInlineEdit` (`lib/inline-edit.ts`) so focus goes into the field when the form opens and back to the button that opened it when it closes.
 - **e2e and saving:** the app shows a change at once and saves it in the background. `e2e/fixtures.ts` makes `page.reload`, `goBack` and `goto` wait for pending saves automatically; use `savesAnswered(page)` before any other step that must see the saved state (for example setting up a route).
@@ -107,11 +107,11 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
     No shadows or gradients. One sans typeface, in the editor and chat too.
   - The **highlighter** (`chip-ai`, `bg-mark`) is only for what the AI suggested. Errors use `danger` (raspberry),
     with words and an icon, never colour alone.
-  - Other websites' icons and logos go through `ProfileImage kind="source"` (a light plate, never bare).
+  - Other websites' icons and logos go through `PublicationImage kind="source"` (a light plate, never bare).
   - Need a role, component or rule that doesn't exist? Add it to `theme/` (and the palette test) and update
     `docs/design.md`; don't style one screen differently.
 - **Navigation (see [docs/design.md](docs/design.md#navigation-the-menu-follows-you)):** the side menu follows you
-  (home → profile → idea). A new page declares `meta: { level, step }` on its route, titles itself with `StepHeading`,
+  (home → publication → idea). A new page declares `meta: { level, step }` on its route, titles itself with `StepHeading`,
   and ends with `NextStep` where a next step makes sense. Numbered steps are always links, never locked; a step that
   calls the AI waits for a button (visiting spends nothing); pages read beside another window set `compact: true`.
   Don't add a second `aside` (the drafting notes own the `complementary` landmark).

@@ -7,7 +7,7 @@ export interface ListScope {
 }
 
 /**
- * Lists people can put in order (an idea's drafts and notes, a profile's feeds) keep each row's place in a `position`
+ * Lists people can put in order (an idea's drafts and notes, a publication's feeds) keep each row's place in a `position`
  * column. This is the one place that writes it. Call these inside a transaction: they make several writes.
  */
 

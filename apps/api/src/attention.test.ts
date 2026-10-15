@@ -4,21 +4,21 @@ import {
   lastReviewToken,
   register,
   setup,
-  shareProfile,
+  sharePublication,
   verifyAccounts,
   type TestClient,
 } from './test-helpers'
 
-describe('what is waiting on someone in a profile (#159)', () => {
+describe('what is waiting on someone in a publication (#159)', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient // owner and editor
   let bob: TestClient
   let cy: TestClient
-  let profile: string
+  let publication: string
   let draftId: string
-  const draftUrl = () => `/api/profiles/${profile}/drafts/${draftId}`
+  const draftUrl = () => `/api/publications/${publication}/drafts/${draftId}`
   const attention = async (c: TestClient) =>
-    (await c.get(`/api/profiles/${profile}/attention`)).json()
+    (await c.get(`/api/publications/${publication}/attention`)).json()
   const idOf = async (c: TestClient) => (await (await c.get('/api/auth/me')).json()).id as string
   const settle = () => new Promise((r) => setTimeout(r, 0))
 
@@ -31,10 +31,10 @@ describe('what is waiting on someone in a profile (#159)', () => {
     await register(bob, 'bob@example.com', 'Bob')
     await register(cy, 'cy@example.com', 'Cy')
     verifyAccounts(ctx, 'ada@example.com')
-    profile = (await (await ada.get('/api/profiles')).json())[0].id
-    await shareProfile(ctx, ada, profile, bob, 'bob@example.com')
-    await shareProfile(ctx, ada, profile, cy, 'cy@example.com')
-    draftId = (await createDraft(ada, profile, { title: 'Meanders', body: 'Rivers bend.' })).id
+    publication = (await (await ada.get('/api/publications')).json())[0].id
+    await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+    await sharePublication(ctx, ada, publication, cy, 'cy@example.com')
+    draftId = (await createDraft(ada, publication, { title: 'Meanders', body: 'Rivers bend.' })).id
   })
 
   it('is empty when nothing is waiting', async () => {
@@ -58,10 +58,10 @@ describe('what is waiting on someone in a profile (#159)', () => {
     expect((await attention(ada)).waiting).toEqual([])
   })
 
-  it('is private to the profile’s members', async () => {
+  it('is private to the publication’s members', async () => {
     const eve = ctx.client()
     await register(eve, 'eve@example.com', 'Eve')
-    expect((await eve.get(`/api/profiles/${profile}/attention`)).status).toBe(404)
+    expect((await eve.get(`/api/publications/${publication}/attention`)).status).toBe(404)
   })
 
   describe('the reviews of drafts you edit', () => {

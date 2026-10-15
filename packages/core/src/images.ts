@@ -1,5 +1,5 @@
 /**
- * Profile images are raster only. SVG is deliberately excluded: it can carry script, and the file
+ * Publication images are raster only. SVG is deliberately excluded: it can carry script, and the file
  * is served from our own origin.
  */
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const

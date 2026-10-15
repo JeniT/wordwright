@@ -8,7 +8,7 @@ useMockServer()
 const open = () => {
   server.use(
     signedInAs(testUser),
-    http.get('*/api/profiles', () => HttpResponse.json([])),
+    http.get('*/api/publications', () => HttpResponse.json([])),
     llmSettings(true),
   )
   return renderAt('/account')

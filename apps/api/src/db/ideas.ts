@@ -16,7 +16,7 @@ import { ReadingStore, type LinkWrite } from './reading'
 
 export type { LinkWrite }
 
-/** Ideas are always accessed through their profile; callers check membership first. */
+/** Ideas are always accessed through their publication; callers check membership first. */
 export class IdeaStore {
   private readonly notes: NoteStore
   private readonly reading: ReadingStore
@@ -26,14 +26,14 @@ export class IdeaStore {
     this.reading = new ReadingStore(db)
   }
 
-  list(profileId: string): IdeaSummary[] {
+  list(publicationId: string): IdeaSummary[] {
     return this.db
       .prepare(
         `SELECT i.id, i.name, i.updated_at,
            (SELECT count(*) FROM drafts d WHERE d.idea_id = i.id) AS draft_count
-         FROM ideas i WHERE i.profile_id = ? ORDER BY i.updated_at DESC, i.rowid DESC`,
+         FROM ideas i WHERE i.publication_id = ? ORDER BY i.updated_at DESC, i.rowid DESC`,
       )
-      .all(profileId)
+      .all(publicationId)
       .map((row) => ({
         id: row.id as string,
         name: row.name as string,
@@ -42,10 +42,10 @@ export class IdeaStore {
       }))
   }
 
-  get(profileId: string, id: string): Idea | undefined {
+  get(publicationId: string, id: string): Idea | undefined {
     const row = this.db
-      .prepare('SELECT * FROM ideas WHERE profile_id = ? AND id = ?')
-      .get(profileId, id)
+      .prepare('SELECT * FROM ideas WHERE publication_id = ? AND id = ?')
+      .get(publicationId, id)
     if (!row) return undefined
     const links = this.reading.list(id)
     const drafts = this.db
@@ -60,9 +60,9 @@ export class IdeaStore {
       }))
     return {
       id,
-      profileId: row.profile_id as string,
+      publicationId: row.publication_id as string,
       name: row.name as string,
-      // Transitional: see `Idea.notes`. The column of the same name is no longer read.
+      // Transitional: see `Idea.notes`. It is assembled from the notes table; ideas has no such column.
       notes: notesToMarkdown(this.notes.list(id).map((n) => n.text)),
       links,
       drafts,
@@ -73,7 +73,7 @@ export class IdeaStore {
 
   /** `origin` is where the starting notes came from. */
   create(
-    profileId: string,
+    publicationId: string,
     createdBy: string,
     input: IdeaInput,
     origin: NoteOrigin = 'entered',
@@ -82,16 +82,16 @@ export class IdeaStore {
     const now = nowIso()
     this.db
       .prepare(
-        `INSERT INTO ideas (id, profile_id, created_by, name, notes, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO ideas (id, publication_id, created_by, name, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, profileId, createdBy, input.name, '', now, now)
-    this.notes.replaceAll(profileId, id, createdBy, markdownToNotes(input.notes), origin)
-    return this.get(profileId, id)!
+      .run(id, publicationId, createdBy, input.name, now, now)
+    this.notes.replaceAll(publicationId, id, createdBy, markdownToNotes(input.notes), origin)
+    return this.get(publicationId, id)!
   }
 
-  update(profileId: string, id: string, changes: IdeaUpdate): Idea | undefined {
-    const current = this.get(profileId, id)
+  update(publicationId: string, id: string, changes: IdeaUpdate): Idea | undefined {
+    const current = this.get(publicationId, id)
     if (!current) return undefined
     this.db
       .prepare('UPDATE ideas SET name = ?, updated_at = ? WHERE id = ?')
@@ -101,16 +101,17 @@ export class IdeaStore {
       const texts = markdownToNotes(changes.notes)
       const same = this.notes.list(id).map((n) => n.text)
       if (texts.length !== same.length || texts.some((t, i) => t !== same[i]))
-        this.notes.replaceAll(profileId, id, null, texts)
+        this.notes.replaceAll(publicationId, id, null, texts)
     }
-    return this.get(profileId, id)
+    return this.get(publicationId, id)
   }
 
   /** Deletes the idea along with its links, notes and the drafts that develop it. */
-  delete(profileId: string, id: string): boolean {
+  delete(publicationId: string, id: string): boolean {
     return (
-      this.db.prepare('DELETE FROM ideas WHERE profile_id = ? AND id = ?').run(profileId, id)
-        .changes > 0
+      this.db
+        .prepare('DELETE FROM ideas WHERE publication_id = ? AND id = ?')
+        .run(publicationId, id).changes > 0
     )
   }
 
@@ -124,12 +125,12 @@ export class IdeaStore {
     input: Omit<LinkWrite, 'authors'> & { authors?: string[]; why?: string },
     origin: ReadingOrigin = 'entered',
   ): IdeaLink {
-    const profileId = (
-      this.db.prepare('SELECT profile_id FROM ideas WHERE id = ?').get(ideaId) as {
-        profile_id: string
+    const publicationId = (
+      this.db.prepare('SELECT publication_id FROM ideas WHERE id = ?').get(ideaId) as {
+        publication_id: string
       }
-    ).profile_id
-    const link = this.reading.add(profileId, ideaId, input, origin)
+    ).publication_id
+    const link = this.reading.add(publicationId, ideaId, input, origin)
     this.touch(ideaId)
     return link
   }

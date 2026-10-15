@@ -4,11 +4,11 @@ import type { Idea } from '@lfwa/core'
 import { useIdea } from '../lib/queries'
 
 /** Loading and error states for any page about one idea; the page itself is the slot. */
-const props = defineProps<{ profileId: string; id: string }>()
+const props = defineProps<{ publicationId: string; id: string }>()
 defineSlots<{ default(props: { idea: Idea }): unknown }>()
 
 const idea = useIdea(
-  () => props.profileId,
+  () => props.publicationId,
   () => props.id,
 )
 </script>
@@ -21,10 +21,10 @@ const idea = useIdea(
       It may have been deleted, or the connection may have dropped. Try reloading the page.
     </p>
     <RouterLink
-      :to="{ name: 'profile-ideas', params: { profileId } }"
+      :to="{ name: 'publication-ideas', params: { publicationId } }"
       class="link mt-3 inline-block"
     >
-      Back to the profile
+      Back to the publication
     </RouterLink>
   </div>
   <slot v-else-if="idea.data.value" :idea="idea.data.value" />

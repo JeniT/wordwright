@@ -204,7 +204,7 @@ export const PASSWORD = 'correct horse battery'
 /** The smallest valid PNG header; enough for the server to recognise the type. */
 export const PNG_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
 
-/** Signs up exactly as the web form does: no profile is created. */
+/** Signs up exactly as the web form does: no publication is created. */
 export async function signUp(
   client: TestClient,
   email = 'ada@example.com',
@@ -218,8 +218,8 @@ export async function signUp(
 }
 
 /**
- * Signs up and creates a first profile ("<name>'s writing"), since most tests are about what
- * happens inside a profile. Use `signUp` for tests about the brand-new account.
+ * Signs up and creates a first publication ("<name>'s writing"), since most tests are about what
+ * happens inside a publication. Use `signUp` for tests about the brand-new account.
  */
 export async function register(
   client: TestClient,
@@ -229,7 +229,7 @@ export async function register(
   handle = suggestHandle(name, email),
 ) {
   const user = await signUp(client, email, name, password, handle)
-  const res = await client.post('/api/profiles', { name: `${name}'s writing` })
+  const res = await client.post('/api/publications', { name: `${name}'s writing` })
   expectStatus(res.status, 201)
   return user
 }
@@ -266,15 +266,18 @@ export async function saveKey(client: TestClient, apiKey = GOOD_KEY, model = 'cl
   return res.json()
 }
 
-/** Shares a profile the way people do: the owner invites an address, the invitee accepts from the email. */
-export async function shareProfile(
+/** Shares a publication the way people do: the owner invites an address, the invitee accepts from the email. */
+export async function sharePublication(
   ctx: Pick<TestContext, 'mailer'>,
   owner: TestClient,
-  profileId: string,
+  publicationId: string,
   invitee: TestClient,
   email: string,
 ) {
-  expectStatus((await owner.post(`/api/profiles/${profileId}/invitations`, { email })).status, 202)
+  expectStatus(
+    (await owner.post(`/api/publications/${publicationId}/invitations`, { email })).status,
+    202,
+  )
   expectStatus(
     (await invitee.post('/api/invitations/accept', { token: lastInvitationToken(ctx.mailer) }))
       .status,
@@ -289,10 +292,10 @@ export const lastDeclineToken = (mailer: MemoryMailer) => lastEmailToken(mailer,
 /** Starts a draft the way the app does: every draft develops an idea, so this makes one first. */
 export async function createDraft(
   client: TestClient,
-  profileId: string,
+  publicationId: string,
   input: { title?: string; body?: string } = {},
 ) {
-  const base = `/api/profiles/${profileId}/ideas`
+  const base = `/api/publications/${publicationId}/ideas`
   const idea = await (await client.post(base, { name: input.title || 'An idea' })).json()
   const res = await client.post(`${base}/${idea.id}/drafts`, input)
   expectStatus(res.status, 201)
