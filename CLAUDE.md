@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-Issues live in GitHub Issues (`JeniT/writing-assistant`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues (`JeniT/wordwright`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

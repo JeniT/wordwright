@@ -8,9 +8,9 @@ account deletion, multiple publications per user with sharing, drafts (Markdown-
 and an LLM-powered critique. The rest is built on the same provider architecture.
 
 > **Contributing or picking this up in a new session?** Start with [AGENTS.md](AGENTS.md), then
-> the [GitHub issues](https://github.com/JeniT/writing-assistant/issues). Design rationale is in [docs/decisions.md](docs/decisions.md).
+> the [GitHub issues](https://github.com/JeniT/wordwright/issues). Design rationale is in [docs/decisions.md](docs/decisions.md).
 
-> The repository is on GitHub (private): `JeniT/writing-assistant`. CI runs the full check plus the browser tests on every push.
+> The repository is on GitHub (private): `JeniT/wordwright`. CI runs the full check plus the browser tests on every push.
 
 ## Stack
 

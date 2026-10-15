@@ -4,7 +4,7 @@
 sources, shaping an argument and outline, critiquing drafts _without losing the author's voice_, and generating
 titles/openings/social posts. Users bring their own LLM API key; the service has no server-wide LLM key.
 
-Read in this order: this file → [GitHub Issues](https://github.com/JeniT/writing-assistant/issues) (what to work on; `gh issue list --label ready`) → [docs/decisions.md](docs/decisions.md)
+Read in this order: this file → [GitHub Issues](https://github.com/JeniT/wordwright/issues) (what to work on; `gh issue list --label ready`) → [docs/decisions.md](docs/decisions.md)
 (why things are the way they are) → [docs/responsible-ai.md](docs/responsible-ai.md) (how AI may and may not be used here) → [README.md](README.md) (setup, architecture, accounts, BYOK). **Before changing anything people see, read [docs/design.md](docs/design.md).**
 
 ## The owner's four priorities (these decide trade-offs)
@@ -194,7 +194,7 @@ Triage produces issues, not code. If the owner then says "go ahead", claim the t
   - **Don't push on top of a red `main`** unless your push is the fix.
 - **Claim before starting:** claiming is creating the task's branch on GitHub, which is atomic: only one agent can.
   1. `git fetch origin`, then `gh issue view 7` to check it is open, not `in-progress`, and its prerequisites are closed.
-  2. `gh api repos/JeniT/writing-assistant/git/refs -f ref=refs/heads/issue-7 -f sha=$(git rev-parse origin/main)`.
+  2. `gh api repos/JeniT/wordwright/git/refs -f ref=refs/heads/issue-7 -f sha=$(git rev-parse origin/main)`.
      If it fails with "Reference already exists", someone else has the task: pick another.
   3. `gh issue edit 7 --add-label in-progress --remove-label ready` and
      `gh issue comment 7 --body "claimed: <agent/session> · branch: issue-7"`.
@@ -221,7 +221,7 @@ Triage produces issues, not code. If the owner then says "go ahead", claim the t
      the merge. **Don't push that merge**: those commits belong to the other session. Don't wait for the CI run
      your push started: the next task begins by checking it (see _Check CI before starting a task_).
 
-  The remote is `origin` (private GitHub repo `JeniT/writing-assistant`). Only push your own work to `main`, never
+  The remote is `origin` (private GitHub repo `JeniT/wordwright`). Only push your own work to `main`, never
   another session's in-progress branch.
 
 - **Don't, when landing:**
