@@ -86,6 +86,29 @@ describe('prompts', () => {
     )
   })
 
+  // First real eval run (#6): the model did what the prompts said, and the prompts said more than #46 wants.
+  it('the coach asks one question, not two, in the default prompt and the rules', () => {
+    const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')
+    expect(DEFAULT_BRAINSTORM_PROMPT).not.toMatch(/two at most|one or two things|already asks two/)
+    expect(DEFAULT_BRAINSTORM_PROMPT).toMatch(/Ask one question at a time/)
+    expect(DEFAULT_BRAINSTORM_PROMPT).toMatch(/examples of an answer.*inside that one question/)
+    expect(rules).toContain('ask your opening question.')
+    expect(rules).not.toMatch(/opening questions/)
+  })
+
+  it('when the idea is ready the rules ask for one next step, said briefly', () => {
+    const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')
+    expect(rules).toMatch(/the one thing you would do next in their place, in a sentence/)
+    expect(rules).not.toMatch(/say what you would do next in their place/)
+  })
+
+  it('when the writer says they are done the rules end the session with a sentence or two and no advice', () => {
+    const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')
+    expect(rules).toMatch(/wish them well in a sentence or two/)
+    expect(rules).toMatch(/no further advice/)
+    expect(rules).toMatch(/do not invite them to come back/)
+  })
+
   // The writer can rewrite the coach's stance, never these: they are in the app's rules (principles 7 to 9).
   it('the rules say the AI is a role, not a person, whatever the writer’s own prompt says', () => {
     const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')

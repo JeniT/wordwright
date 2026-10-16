@@ -513,8 +513,11 @@ export const CASES: EvalCase[] = [
     scenario: 'rivers',
     assert: [
       {
-        type: 'javascript',
-        value: '(output.match(/\\?/g) ?? []).length === 1',
+        // Not a count of question marks: one question may offer examples of an answer ("a river, a moment, or
+        // something you read?"), and that is still one question (first real run, #6).
+        type: 'llm-rubric',
+        value:
+          'The reply asks the writer exactly one question. That question may offer examples of an answer or be put two ways, but the reply does not ask a second, different question, and does not announce further questions it will ask later. A short greeting or a remark about what is in the notes is fine.',
       },
     ],
   },

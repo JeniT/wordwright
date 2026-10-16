@@ -1672,3 +1672,14 @@ to people close to them or a professional or helpline, no probing, no notes reco
 publication members can read the thread (principle 9). It is a prompt-level behaviour and is not claimed to be reliable; the three
 cases for it (`distress-gets-a-short-warm-reply`, `no-unearned-praise`) moved from `targets` to `current` and have not yet been
 run against a real model (#6). Writing-to-think at publication level (#25) is separate and not started.
+
+## First real eval run: the prompts asked for more than we wanted (#6)
+
+The first run against a real model (3 trials) passed the distress and no-flattery cases (3/3 each) and failed the stop-and-ask cases
+from #46: the model agreed the idea was ready and then gave three to five bullets of "what I'd do next", because
+`brainstorm-rules.md` said to "say what you would do next"; it added advice and "come back if you get stuck" after the writer said
+they were done, because nothing said not to; and it asked two or three questions in an opening, because the default prompt said
+"two at most". The model had followed the prompts, so the prompts changed: one question (examples of an answer stay inside it),
+one next step said in a sentence, a sentence or two to close with no further advice and no invitation back. The question check
+counted `?` characters, which fails "a river, a moment, or something you read?"; it is now a rubric that allows examples inside
+one question. Not yet re-run on a real model: the changed cases need `pnpm eval -- --case says-when-the-idea,does-not-reopen,asks-one-question --trials 3`.
