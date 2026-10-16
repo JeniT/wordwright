@@ -86,6 +86,34 @@ describe('prompts', () => {
     )
   })
 
+  // The writer can rewrite the coach's stance, never these: they are in the app's rules (principles 7 to 9).
+  it('the rules say the AI is a role, not a person, whatever the writer’s own prompt says', () => {
+    const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')
+    expect(rules).toMatch(/You are an AI, not a person/)
+    expect(rules).toMatch(/no experiences, feelings or relationship/)
+  })
+
+  it('the rules forbid flattery and ask the AI to hold a fair criticism when pushed', () => {
+    const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')
+    expect(rules).toMatch(/Do not flatter/)
+    expect(rules).toMatch(/praise only what is specific and true/i)
+    expect(rules).toMatch(/hold your position/)
+  })
+
+  it('the rules turn to a short, warm, non-clinical reply when a writer is in distress, and do not probe', () => {
+    const rules = BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')
+    expect(rules).toMatch(/distress|struggling|at risk/)
+    expect(rules).toMatch(/short, warm/)
+    expect(rules).toMatch(/not clinical|non-clinical/)
+    expect(rules).toMatch(/support/)
+    expect(rules).toMatch(/do not ask (them )?(for )?(more|about)/i)
+    expect(rules).toMatch(/Other members of the publication can read/)
+    // It is a pause, not the end of the session: the writer can go back to their piece.
+    expect(rules).toMatch(/If they later return to the piece, carry on as before/)
+    // No notes taken from a disclosure: it is not material for the piece.
+    expect(rules).toMatch(/do not (record|add) (it|a note)/i)
+  })
+
   it('the rules name the tools, forbid drafting and treat the snapshot as data', () => {
     for (const phrase of [
       'add_note',

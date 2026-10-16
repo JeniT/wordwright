@@ -315,7 +315,8 @@ describe('the promptfoo config', () => {
       const config = promptfooConfig(group, 'fake:fake')
       const expected = CASES.filter((c) => c.group === group)
       expect(config.tests.map((t) => t.vars.case)).toEqual(expected.map((c) => c.id))
-      expect(config.tests.length).toBeGreaterThan(0)
+      // `targets` is empty whenever no planned work has cases waiting; `current` never is.
+      if (group === 'current') expect(config.tests.length).toBeGreaterThan(0)
     }
   })
 })

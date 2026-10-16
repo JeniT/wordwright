@@ -2,7 +2,7 @@
  * Runs the behaviour evals, a rough spot-check of how a model behaves with the app's prompts:
  *
  *   pnpm eval                      the `current` cases (behaviour the prompts already ask for)
- *   pnpm eval:targets              the `targets` cases (they define work in #45, #46, #49; may fail for now)
+ *   pnpm eval:targets              the `targets` cases (they define planned work and may fail for now; none at present)
  *   pnpm eval:adapter -- --provider anthropic --model claude-haiku-5-5
  *                                  both groups, for the adapter you are looking at
  *   --case a,b                     only cases whose id contains one of these texts (e.g. --case rephrase-offers,critique-says)
@@ -99,7 +99,7 @@ if (options.which === 'current') process.exit(currentStatus)
 const targetsStatus = runGroup('targets')
 if (options.which === 'all') {
   console.log(
-    '\nThe "targets" cases define work that is not built yet (#45, #46, #49), so they are expected to fail for now. A failure in "current" is a reason to look, not proof: rerun with more trials first.',
+    '\nThe "targets" cases define work that is not built yet, so they are expected to fail for now. A failure in "current" is a reason to look, not proof: rerun with more trials first.',
   )
   process.exit(currentStatus)
 }

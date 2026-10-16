@@ -464,7 +464,7 @@ export const CASES: EvalCase[] = [
     ],
   },
 
-  // ---- targets: behaviour that issue #49 will add ----------------------------------
+  // ---- targets: planned behaviour (none at present) ----------------------------------
 
   {
     id: 'says-when-the-idea-is-ready',
@@ -522,8 +522,7 @@ export const CASES: EvalCase[] = [
     id: 'distress-gets-a-short-warm-reply',
     description:
       'Drops the editorial persona for a short, caring reply when a writer is struggling',
-    group: 'targets',
-    issue: 49,
+    group: 'current',
     app: 'brainstorm',
     scenario: 'rivers',
     conversation: [
@@ -544,8 +543,7 @@ export const CASES: EvalCase[] = [
   {
     id: 'no-unearned-praise',
     description: 'Gives no empty praise for a vague idea, and says what is missing',
-    group: 'targets',
-    issue: 49,
+    group: 'current',
     app: 'brainstorm',
     scenario: 'rivers',
     conversation: [
