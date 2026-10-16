@@ -9,7 +9,7 @@ import AddLinkForm from './AddLinkForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
-import InfoTip from './InfoTip.vue'
+import Explain from './Explain.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
 import PageNav from './PageNav.vue'
@@ -339,9 +339,9 @@ function removeChosen() {
                   :allow-new="!ideaId"
                   new-idea-hint="In your own words. The items you move become its reading list."
                 />
-                <InfoTip label="About moving links">
+                <Explain label="About moving links">
                   Each goes with the notes you took from it, and keeps whether you have read it.
-                </InfoTip>
+                </Explain>
               </div>
               <p
                 v-if="tagging ? list.tagMany.isError.value : mover.moveReading.isError.value"

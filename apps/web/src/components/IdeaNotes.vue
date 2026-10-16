@@ -9,7 +9,7 @@ import { useMove, useMoveDestination } from '../lib/move'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HoldButton from './HoldButton.vue'
-import InfoTip from './InfoTip.vue'
+import Explain from './Explain.vue'
 import Icon from './Icon.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveTo from './MoveTo.vue'
@@ -468,10 +468,10 @@ const label = (note: IdeaNote) => {
                       allow-new
                       new-idea-hint="In your own words. The notes you move become its first notes."
                     />
-                    <InfoTip label="About moving notes">
+                    <Explain label="About moving notes">
                       They keep the order you arranged them in, along with their tags and whether
                       they are quotations. They are moved, not copied.
-                    </InfoTip>
+                    </Explain>
                   </div>
                   <p
                     v-if="chosen.length && dest.chosen"

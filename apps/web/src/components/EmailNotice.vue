@@ -8,22 +8,21 @@ const resend = useMutation({ mutationFn: () => api.resendVerification() })
 </script>
 
 <template>
-  <div
+  <section
     v-if="session.user && !session.user.emailVerified"
-    class="border-b border-accent bg-accent-wash px-4 py-2 text-sm"
-    role="region"
+    class="notice notice-warn"
     aria-label="Email confirmation"
   >
-    <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1">
-      <p>
-        Please confirm your email address. We sent a link to
-        <strong>{{ session.user.email }}</strong
-        >.
-      </p>
+    <p>
+      Please confirm your email address. We sent a link to
+      <strong>{{ session.user.email }}</strong
+      >.
+    </p>
+    <div class="mt-2 flex flex-wrap items-center gap-3">
       <button
         v-if="!resend.isSuccess.value"
         type="button"
-        class="underline disabled:opacity-60"
+        class="btn btn-outline btn-sm"
         :disabled="resend.isPending.value"
         @click="resend.mutate()"
       >
@@ -34,5 +33,5 @@ const resend = useMutation({ mutationFn: () => api.resendVerification() })
         {{ errorMessage(resend.error.value) }}
       </p>
     </div>
-  </div>
+  </section>
 </template>

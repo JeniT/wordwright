@@ -6,6 +6,8 @@ import {
   CommentSchema,
   ConversationSchema,
   CritiqueSettingsSchema,
+  TutorialStateSchema,
+  type TutorialUpdate,
   SignedInDevicesSchema,
   SignedOutOthersSchema,
   CritiqueStateSchema,
@@ -179,6 +181,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     getCritiqueSettings: () => get(CritiqueSettingsSchema, 'GET', '/account/critique-settings'),
     saveCritiqueSettings: (rounds: number) =>
       get(CritiqueSettingsSchema, 'PUT', '/account/critique-settings', { rounds }),
+    // tutorial mode (#198): the switch, which kinds of page have been seen, and whether the offer to turn it off was answered
+    getTutorial: () => get(TutorialStateSchema, 'GET', '/account/tutorial'),
+    updateTutorial: (update: TutorialUpdate) =>
+      get(TutorialStateSchema, 'PUT', '/account/tutorial', update),
+    markTutorialSeen: (kind: string) =>
+      get(TutorialStateSchema, 'POST', '/account/tutorial/seen', { kind }),
     getBrainstormPrompt: () => get(BrainstormPromptSchema, 'GET', '/account/brainstorm-prompt'),
     saveBrainstormPrompt: (prompt: string) =>
       get(BrainstormPromptSchema, 'PUT', '/account/brainstorm-prompt', { prompt }),

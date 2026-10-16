@@ -18,6 +18,10 @@ declare module 'vue-router' {
     ideaFromDraft?: boolean
     /** Pages used beside another window (reading a source): the side menu folds away at every width. */
     compact?: boolean
+    /** The page has tutorial text (#198): visiting it with tutorial mode on counts towards having seen every kind. */
+    tutorial?: boolean
+    /** Info notices (like the offer to turn tutorial mode off) are held back here, so nothing interrupts writing. */
+    quiet?: boolean
   }
 }
 
@@ -255,7 +259,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'draft',
     component: () => import('./views/EditorView.vue'),
     props: true,
-    meta: { wide: true, level: 'idea', step: 'draft', ideaFromDraft: true },
+    meta: { wide: true, level: 'idea', step: 'draft', ideaFromDraft: true, quiet: true },
   },
   // Help works for everyone, signed in or not (a link from sign-up or an email must open). The catch-all comes last.
   {

@@ -19,6 +19,7 @@ export const testUser = {
   emailVerified: true,
   hasPassword: true,
   linkedProviders: [] as string[],
+  tutorialMode: false,
 }
 
 /**
@@ -42,6 +43,10 @@ export const server = setupServer(
   ),
   // The default number of critiques a draft gets (the account page shows the setting).
   http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds: 3 })),
+  // Tutorial mode is off unless a test says otherwise (only asked for while it is on).
+  http.get('*/api/account/tutorial', () =>
+    HttpResponse.json({ on: false, seen: [], answered: false }),
+  ),
   // The AI buttons read which provider's key they spend; a key is set unless a test says otherwise.
   http.get('*/api/llm', () =>
     HttpResponse.json({

@@ -8,6 +8,7 @@ import DevicesSection from '../components/DevicesSection.vue'
 import DangerZone from '../components/DangerZone.vue'
 import ExportSection from '../components/ExportSection.vue'
 import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
+import TutorialSettingsSection from '../components/TutorialSettingsSection.vue'
 import CritiqueSettingsSection from '../components/CritiqueSettingsSection.vue'
 import EmailSection from '../components/EmailSection.vue'
 import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
@@ -67,6 +68,8 @@ const deleteAccount = useMutation({
     <InvitationBlocksSection />
 
     <AppearanceSection />
+
+    <TutorialSettingsSection />
 
     <LlmSettingsSection />
 

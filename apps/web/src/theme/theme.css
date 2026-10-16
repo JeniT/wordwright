@@ -589,6 +589,33 @@
 }
 
 /*
+ * Notices at the top of a page (docs/design.md, "Notices"). warn = something needs doing, in the accent colours of a
+ * callout; info = an offer, a quiet panel so it doesn't compete with what must be done.
+ */
+@utility notice {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-ctl);
+  background: var(--color-surface);
+  font-size: 0.9375rem;
+}
+@utility notice-warn {
+  border-color: var(--color-accent);
+  background: var(--color-accent-wash);
+}
+@utility notice-info {
+  border-color: var(--color-line);
+  background: var(--color-surface);
+}
+/* An explanation written out on the page by tutorial mode, where the icon would have been. */
+@utility tutorial-note {
+  border-left: 2px solid var(--color-line);
+  padding-left: 0.75rem;
+  color: var(--color-ink-soft);
+  font-size: 0.875rem;
+}
+
+/*
  * Step numbers ("01", "02" ...): tabular figures in a small outlined badge. They orient and never lock anything.
  * `group` goes on the link that carries aria-current; the current step's badge fills with the accent.
  */

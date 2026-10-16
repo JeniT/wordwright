@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MAX_NOTE_TAGS } from '@wordwright/core'
 import Icon from './Icon.vue'
-import InfoTip from './InfoTip.vue'
+import Explain from './Explain.vue'
 import TagEntry from './TagEntry.vue'
 
 /**
@@ -80,9 +80,9 @@ function toggleRemoving(tag: string) {
         {{ item.tag }}
       </button>
     </div>
-    <InfoTip label="About tagging several at once">
+    <Explain label="About tagging several at once">
       Tags are added to what each {{ noun }} already has, up to {{ MAX_NOTE_TAGS }} each. Press a
       tag under Remove to take it off all of them.
-    </InfoTip>
+    </Explain>
   </div>
 </template>

@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { errorMessage } from '../lib/api'
 import { NEW_IDEA, OTHER_PUBLICATION, type useMoveDestination } from '../lib/move'
-import InfoTip from './InfoTip.vue'
+import Explain from './Explain.vue'
 
 /**
  * The picker for where to move reading items or notes: the publication's own list (when moving from an idea), the other
@@ -89,7 +89,7 @@ const otherName = computed(() => props.dest.otherPublication?.name ?? '')
         autocomplete="off"
         required
       />
-      <InfoTip label="About the new idea">{{ newIdeaHint }}</InfoTip>
+      <Explain label="About the new idea">{{ newIdeaHint }}</Explain>
     </template>
     <p v-if="dest.makeIdea.isError" role="alert" class="w-full text-sm text-danger">
       {{ errorMessage(dest.makeIdea.error) }}

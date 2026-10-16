@@ -21,6 +21,8 @@ export const queryKeys = {
   attention: (publicationId: string) => ['attention', publicationId] as const,
   /** Where the person is signed in (the account page). */
   devices: () => ['devices'] as const,
+  /** Tutorial mode's seen pages and answered offer (#198). */
+  tutorial: () => ['tutorial'] as const,
   reviews: () => ['reviews'] as const,
   review: (id: string) => ['review', id] as const,
   reviewers: (publicationId: string, id: string) => ['draft-reviewers', publicationId, id] as const,
@@ -57,6 +59,7 @@ export type QueryRoot =
   | 'recent-posts'
   | 'research'
   | 'sources'
+  | 'tutorial'
 
 /** Refreshes everything under each root. */
 export const invalidateRoots = (queryClient: QueryClient, ...roots: QueryRoot[]) =>

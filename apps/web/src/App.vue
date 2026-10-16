@@ -3,9 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import BrandMark from './components/BrandMark.vue'
+import NoticeBar from './components/NoticeBar.vue'
 import SettingsButton from './components/SettingsButton.vue'
 import SideMenu from './components/SideMenu.vue'
-import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
 import { useNav } from './lib/nav'
 import { usePublicationAddressRedirect, usePublications } from './lib/usePublications'
@@ -161,7 +161,6 @@ watch(
           <RouterLink :to="{ name: 'help' }" class="link">Help</RouterLink>
         </p>
       </header>
-      <VerifyEmailBanner />
       <main
         id="main"
         class="mx-auto px-4 py-8 md:py-12"
@@ -174,7 +173,10 @@ watch(
             Try again
           </button>
         </div>
-        <RouterView v-else />
+        <template v-else>
+          <NoticeBar v-if="session.user" />
+          <RouterView />
+        </template>
       </main>
     </div>
   </div>
