@@ -1,84 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import ListToolbar from '../components/ListToolbar.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { errorMessage } from '../lib/api'
-import { ideaMoveContents, useIdeaMovePreview, useMoveIdeas } from '../lib/move'
+import { ideaMoveContents, nameList, plural, useMoveIdeasFlow } from '../lib/move'
 import { useIdeas } from '../lib/queries'
-import { usePublications } from '../lib/usePublications'
 import QueryState from '../components/QueryState.vue'
 
 /** Step 03 of a publication: choose which idea to work on next. */
 const props = defineProps<{ publicationId: string }>()
 const ideas = useIdeas(() => props.publicationId)
-const router = useRouter()
-
-// ---- selecting ideas, to move them to another publication
-const selected = ref<string[]>([])
-/** The selected ideas that still exist (one that was moved or deleted meanwhile is not counted). */
-const chosen = computed(() =>
-  (ideas.data.value ?? []).filter((i) => selected.value.includes(i.id)).map((i) => i.id),
-)
-const toggle = (id: string, on: boolean) =>
-  (selected.value = on ? [...selected.value, id] : selected.value.filter((s) => s !== id))
-const selectAll = (on: boolean) =>
-  (selected.value = on ? (ideas.data.value ?? []).map((i) => i.id) : [])
-
-// Moving is offered only to someone with another publication to move to.
-const publications = usePublications()
-const others = computed(() =>
-  (publications.data.value ?? []).filter((p) => p.id !== props.publicationId),
-)
-const moving = ref(false)
-const target = ref('')
-const preview = useIdeaMovePreview(
+const flow = useMoveIdeasFlow(
   () => props.publicationId,
-  () => chosen.value,
-  () => (moving.value ? target.value : ''),
+  () => ideas.data.value ?? [],
 )
-const mover = useMoveIdeas(() => props.publicationId)
-const targetName = computed(() => others.value.find((p) => p.id === target.value)?.name ?? '')
-function toggleMoving() {
-  moving.value = !moving.value
-  target.value = ''
-  mover.reset()
-}
-const canMove = computed(
-  () =>
-    !!preview.data.value &&
-    !preview.data.value.problem &&
-    !preview.isFetching.value &&
-    !mover.isPending.value,
-)
-const plural = (n: number) => `${n} ${n === 1 ? 'idea' : 'ideas'}`
-const confirmLabel = computed(() =>
-  mover.isPending.value ? 'Moving…' : `Move ${plural(chosen.value.length)}`,
-)
-function move() {
-  if (!canMove.value) return
-  const ids = chosen.value
-  const to = target.value
-  mover.mutate(
-    { ids, to },
-    {
-      onSuccess: () => {
-        moving.value = false
-        selected.value = []
-        // Land on the idea where it is now (or on the list, for several).
-        void router.push(
-          ids.length === 1
-            ? { name: 'idea', params: { publicationId: to, id: ids[0]! } }
-            : { name: 'publication-ideas', params: { publicationId: to } },
-        )
-      },
-    },
-  )
-}
-/** Names, as a sentence: "Bob", "Bob and Cy", "Bob, Cy and Di". */
-const nameList = (names: string[]) =>
-  names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 </script>
 
 <template>
@@ -95,26 +31,27 @@ const nameList = (names: string[]) =>
         No ideas yet. When one occurs to you, note it down here, then draft it from there.
       </p>
       <div v-else class="mb-4 overflow-hidden rounded-ctl border border-line bg-surface">
+        <!-- The whole list is one page, so the page and the total are the same. -->
         <ListToolbar
           :page-size="ideas.data.value.length"
           :total="ideas.data.value.length"
-          :selected="chosen.length"
-          :selected-on-page="chosen.length"
+          :selected="flow.chosen.length"
+          :selected-on-page="flow.chosen.length"
           noun="ideas"
-          :form-open="moving"
-          :confirm-label="confirmLabel"
-          :can-confirm="canMove"
-          @toggle-page="selectAll"
-          @select-everything="selectAll(true)"
-          @confirm="move"
-          @cancel="toggleMoving"
+          :form-open="flow.moving"
+          :confirm-label="flow.confirmLabel"
+          :can-confirm="flow.canMove"
+          @toggle-page="flow.selectAll"
+          @select-everything="flow.selectAll(true)"
+          @confirm="flow.move"
+          @cancel="flow.toggleMoving"
         >
           <template #actions>
             <button
-              v-if="others.length"
+              v-if="flow.others.length"
               type="button"
               class="btn btn-sm btn-neutral"
-              @click="toggleMoving"
+              @click="flow.toggleMoving"
             >
               Move to…
             </button>
@@ -124,39 +61,41 @@ const nameList = (names: string[]) =>
               <label for="move-ideas-to" class="text-sm font-medium">Move to</label>
               <select
                 id="move-ideas-to"
-                v-model="target"
+                v-model="flow.target"
                 class="field field-compact max-w-full !w-auto"
               >
                 <option value="" disabled>Choose a publication…</option>
-                <option v-for="p in others" :key="p.id" :value="p.id">{{ p.name }}</option>
+                <option v-for="p in flow.others" :key="p.id" :value="p.id">{{ p.name }}</option>
               </select>
             </div>
-            <div v-if="target" class="mt-2 text-sm" aria-live="polite" data-move-says>
-              <p v-if="preview.isPending.value">Checking what will move…</p>
-              <p v-else-if="preview.isError.value" role="alert" class="text-danger">
-                {{ errorMessage(preview.error.value) }}
+            <div v-if="flow.target" class="mt-2 text-sm" aria-live="polite" data-move-says>
+              <p v-if="flow.preview.isPending">Checking what will move…</p>
+              <p v-else-if="flow.preview.isError" role="alert" class="text-danger">
+                {{ errorMessage(flow.preview.error) }}
               </p>
-              <template v-else-if="preview.data.value">
-                <p v-if="preview.data.value.problem" role="alert" class="text-danger">
-                  {{ preview.data.value.problem }}
+              <template v-else-if="flow.preview.data">
+                <p v-if="flow.preview.data.problem" role="alert" class="text-danger">
+                  {{ flow.preview.data.problem }}
                 </p>
                 <template v-else>
-                  <p>{{ ideaMoveContents(preview.data.value) }} will move to “{{ targetName }}”.</p>
-                  <p v-if="preview.data.value.losingAccess.length" class="mt-1 text-ink-soft">
-                    {{ nameList(preview.data.value.losingAccess) }}
+                  <p>
+                    {{ ideaMoveContents(flow.preview.data) }} will move to “{{ flow.targetName }}”.
+                  </p>
+                  <p v-if="flow.preview.data.losingAccess.length" class="mt-1 text-ink-soft">
+                    {{ nameList(flow.preview.data.losingAccess) }}
                     {{
-                      preview.data.value.losingAccess.length === 1
+                      flow.preview.data.losingAccess.length === 1
                         ? 'isn’t a member'
                         : 'aren’t members'
                     }}
-                    of “{{ targetName }}”, so will no longer be able to see
-                    {{ chosen.length === 1 ? 'it' : 'them' }}. Their comments stay.
+                    of “{{ flow.targetName }}”, so will no longer be able to see
+                    {{ flow.chosen.length === 1 ? 'it' : 'them' }}. Their comments stay.
                   </p>
                 </template>
               </template>
             </div>
-            <p v-if="mover.isError.value" role="alert" class="mt-2 text-sm text-danger">
-              {{ errorMessage(mover.error.value) }}
+            <p v-if="flow.mover.isError" role="alert" class="mt-2 text-sm text-danger">
+              {{ errorMessage(flow.mover.error) }}
             </p>
           </template>
         </ListToolbar>
@@ -165,9 +104,9 @@ const nameList = (names: string[]) =>
             <div class="list-rail">
               <input
                 type="checkbox"
-                :checked="selected.includes(idea.id)"
+                :checked="flow.selected.includes(idea.id)"
                 :aria-label="`Select ${idea.name}`"
-                @change="toggle(idea.id, ($event.target as HTMLInputElement).checked)"
+                @change="flow.toggle(idea.id, ($event.target as HTMLInputElement).checked)"
               />
             </div>
             <RouterLink
@@ -176,7 +115,7 @@ const nameList = (names: string[]) =>
             >
               <span class="text-lg font-semibold">{{ idea.name }}</span>
               <span class="meta shrink-0">
-                {{ idea.draftCount }} {{ idea.draftCount === 1 ? 'draft' : 'drafts' }}
+                {{ plural(idea.draftCount, 'draft', 'drafts') }}
               </span>
             </RouterLink>
           </li>

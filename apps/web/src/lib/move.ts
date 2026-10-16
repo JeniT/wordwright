@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { MoveResult, MoveTarget } from '@wordwright/core'
 import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from './api'
 import { invalidateRoots, queryKeys, useIdeas } from './queries'
 import { usePublications } from './usePublications'
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 /** "Moved 2 items and 5 notes to “Rivers”." */
 export function moveSummary(result: MoveResult, destination: string): string {
@@ -277,5 +278,93 @@ export function useMoveIdeas(publicationId: () => string) {
     mutationFn: (v: { ids: string[]; to: string }) => api.moveIdeas(publicationId(), v.ids, v.to),
     onSettled: () =>
       invalidateRoots(queryClient, 'idea', 'ideas', 'draft', 'notes', 'reading', 'attention'),
+  })
+}
+
+/** Names, as a sentence: "Bob", "Bob and Cy", "Bob, Cy and Di". */
+export const nameList = (names: string[]) =>
+  names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+
+/**
+ * Selecting ideas on a publication's Ideas page and moving them to another of the person's publications: the
+ * selection, the choice of publication, the confirmation (what the server says would happen) and, once moved,
+ * opening the idea where it is now. `move` is offered only when there is another publication to move to.
+ */
+export function useMoveIdeasFlow(publicationId: () => string, ideas: () => { id: string }[]) {
+  const router = useRouter()
+  const publications = usePublications()
+  const selected = ref<string[]>([])
+  /** The selected ideas that still exist (one that was moved or deleted meanwhile is not counted). */
+  const chosen = computed(() =>
+    ideas()
+      .filter((i) => selected.value.includes(i.id))
+      .map((i) => i.id),
+  )
+  const toggle = (id: string, on: boolean) =>
+    (selected.value = on ? [...selected.value, id] : selected.value.filter((s) => s !== id))
+  const selectAll = (on: boolean) => (selected.value = on ? ideas().map((i) => i.id) : [])
+
+  const others = computed(() =>
+    (publications.data.value ?? []).filter((p) => p.id !== publicationId()),
+  )
+  const moving = ref(false)
+  const target = ref('')
+  const preview = useIdeaMovePreview(
+    publicationId,
+    () => chosen.value,
+    () => (moving.value ? target.value : ''),
+  )
+  const mover = useMoveIdeas(publicationId)
+  const targetName = computed(() => others.value.find((p) => p.id === target.value)?.name ?? '')
+  function toggleMoving() {
+    moving.value = !moving.value
+    target.value = ''
+    mover.reset()
+  }
+  const canMove = computed(
+    () =>
+      !!preview.data.value &&
+      !preview.data.value.problem &&
+      !preview.isFetching.value &&
+      !mover.isPending.value,
+  )
+  const confirmLabel = computed(() =>
+    mover.isPending.value ? 'Moving…' : `Move ${plural(chosen.value.length, 'idea', 'ideas')}`,
+  )
+  function move() {
+    if (!canMove.value) return
+    const ids = chosen.value
+    const to = target.value
+    mover.mutate(
+      { ids, to },
+      {
+        onSuccess: () => {
+          moving.value = false
+          selected.value = []
+          // Land on the idea where it is now (or on the list, for several).
+          void router.push(
+            ids.length === 1
+              ? { name: 'idea', params: { publicationId: to, id: ids[0]! } }
+              : { name: 'publication-ideas', params: { publicationId: to } },
+          )
+        },
+      },
+    )
+  }
+  return reactive({
+    selected,
+    chosen,
+    toggle,
+    selectAll,
+    others,
+    moving,
+    target,
+    targetName,
+    preview,
+    mover,
+    toggleMoving,
+    canMove,
+    confirmLabel,
+    move,
   })
 }
