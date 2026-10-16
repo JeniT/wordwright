@@ -63,6 +63,8 @@ export class UserStore {
         input.emailVerified ? 1 : 0,
         nowIso(),
       )
+    // Tutorial mode is on for every new full account (#198); a reviewer-only one gets it when it becomes one.
+    if (!reviewerOnly) this.turnTutorialOn(id)
     return {
       id,
       handle,
@@ -89,7 +91,22 @@ export class UserStore {
    * Gives the user this username and records that they chose it. Their old one is kept for them
    * (see `retired_handles`). Call inside a transaction, after checking `handleTaken`.
    */
+  /** Same database as `UserSettingsStore`, written here so the account and its first setting are made together. */
+  private turnTutorialOn(id: string) {
+    this.db
+      .prepare(
+        `INSERT INTO user_settings (user_id, tutorial_mode, updated_at) VALUES (?, 1, ?)
+         ON CONFLICT(user_id) DO UPDATE SET tutorial_mode = 1, updated_at = excluded.updated_at`,
+      )
+      .run(id, nowIso())
+  }
+
   setHandle(id: string, handle: string, current: string | null) {
+    const wasReviewer = (
+      this.db.prepare('SELECT reviewer_only FROM users WHERE id = ?').get(id) as
+        { reviewer_only: number } | undefined
+    )?.reviewer_only
+    if (wasReviewer === 1) this.turnTutorialOn(id)
     if (current && handle !== current) {
       this.db
         .prepare(
@@ -101,6 +118,13 @@ export class UserStore {
     this.db
       .prepare('UPDATE users SET handle = ?, handle_chosen = 1, reviewer_only = 0 WHERE id = ?')
       .run(handle, id)
+  }
+
+  private tutorialModeOn(id: string): boolean {
+    const row = this.db
+      .prepare('SELECT tutorial_mode FROM user_settings WHERE user_id = ?')
+      .get(id) as { tutorial_mode: number | null } | undefined
+    return row?.tutorial_mode === 1
   }
 
   findById(id: string): UserRecord | undefined {
@@ -213,6 +237,7 @@ export class UserStore {
       emailVerified: user.emailVerified,
       hasPassword: this.getPasswordHash(user.id) !== undefined,
       linkedProviders: this.listProviders(user.id),
+      tutorialMode: !user.reviewerOnly && this.tutorialModeOn(user.id),
     }
   }
 

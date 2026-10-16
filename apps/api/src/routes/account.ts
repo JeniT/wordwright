@@ -9,6 +9,8 @@ import {
   ChangeEmailInputSchema,
   ChangePasswordInputSchema,
   DeleteAccountInputSchema,
+  TutorialSeenInputSchema,
+  TutorialUpdateSchema,
 } from '@wordwright/core'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
@@ -120,6 +122,20 @@ export function accountRoutes(
       .put('/critique-settings', validateJson(CritiqueSettingsSchema), (c) => {
         userSettings.setCritiqueRounds(c.get('user').id, c.req.valid('json').rounds)
         return c.json(c.req.valid('json'))
+      })
+      // Tutorial mode (#198). `requireUser` keeps reviewer-only accounts out, and they never have it.
+      .get('/tutorial', (c) => c.json(userSettings.getTutorial(c.get('user').id)))
+      .put('/tutorial', validateJson(TutorialUpdateSchema), (c) => {
+        const user = c.get('user')
+        const { on, answered } = c.req.valid('json')
+        if (on !== undefined) userSettings.setTutorialMode(user.id, on)
+        if (answered !== undefined) userSettings.setTutorialAnswered(user.id, answered)
+        return c.json(userSettings.getTutorial(user.id))
+      })
+      .post('/tutorial/seen', validateJson(TutorialSeenInputSchema), (c) => {
+        const user = c.get('user')
+        userSettings.addTutorialSeen(user.id, c.req.valid('json').kind)
+        return c.json(userSettings.getTutorial(user.id))
       })
       .delete('/brainstorm-prompt', (c) => c.json(brainstormPrompts.reset(c.get('user').id)))
       .delete('/', validateJson(DeleteAccountInputSchema), async (c) => {

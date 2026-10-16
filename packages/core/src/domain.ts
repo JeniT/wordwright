@@ -72,6 +72,8 @@ export const UserSchema = z.object({
   hasPassword: z.boolean(),
   /** External identity providers linked to the account, e.g. ["google"]. */
   linkedProviders: z.array(z.string()),
+  /** Whether tutorial mode is on (#198). Always false for a reviewer-only account. */
+  tutorialMode: z.boolean(),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -1171,6 +1173,33 @@ export type CritiqueRound = z.infer<typeof CritiqueRoundSchema>
 export const CRITIQUE_ROUNDS_DEFAULT = 3
 export const CRITIQUE_ROUNDS_MIN = 1
 export const CRITIQUE_ROUNDS_MAX = 5
+
+/** Kinds of page (route names) a person may have seen; a cap so a client cannot grow the list without end. */
+export const TUTORIAL_SEEN_MAX = 100
+
+export const TutorialStateSchema = z.object({
+  on: z.boolean(),
+  /** Route names of the pages with tutorial text the person has visited with tutorial mode on. */
+  seen: z.array(z.string()),
+  /** The offer to turn tutorial mode off has been answered (either way), so it is never shown again. */
+  answered: z.boolean(),
+})
+export type TutorialState = z.infer<typeof TutorialStateSchema>
+
+export const TutorialUpdateSchema = z.object({
+  on: z.boolean().optional(),
+  answered: z.boolean().optional(),
+})
+export type TutorialUpdate = z.infer<typeof TutorialUpdateSchema>
+
+export const TutorialSeenInputSchema = z.object({
+  kind: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9-]+$/),
+})
+export type TutorialSeenInput = z.infer<typeof TutorialSeenInputSchema>
 
 export const CritiqueSettingsSchema = z.object({
   /** Critiques a draft gets, whoever asks. */

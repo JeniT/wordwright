@@ -548,6 +548,13 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE moves ADD COLUMN to_publication_id TEXT REFERENCES publications(id) ON DELETE CASCADE;
   CREATE INDEX moves_to_publication ON moves(to_publication_id) WHERE to_publication_id IS NOT NULL;
   `,
+  // Tutorial mode (#198). tutorial_mode null = the default = off, so accounts that predate it stay off; registration
+  // writes 1. tutorial_seen is a JSON list of route names, tutorial_answered is the one-time offer to turn it off.
+  `
+  ALTER TABLE user_settings ADD COLUMN tutorial_mode INTEGER CHECK (tutorial_mode IN (0, 1));
+  ALTER TABLE user_settings ADD COLUMN tutorial_seen TEXT;
+  ALTER TABLE user_settings ADD COLUMN tutorial_answered INTEGER CHECK (tutorial_answered IN (0, 1));
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */
