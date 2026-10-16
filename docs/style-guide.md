@@ -4,7 +4,7 @@ How Wordwright speaks. Read this before you write, critique or rewrite any text 
 instructions, empty states, errors, emails. One guide, so the owner can correct it once and every agent follows.
 
 **How it relates to [design.md](design.md).** `design.md` decides _where_ text goes (on the page, behind an info icon,
-or on a help page: see the rule for that in [design.md](design.md)). This file decides _how it reads_. Both apply.
+or on a help page: see [Where explanatory text goes](design.md#where-explanatory-text-goes)). This file decides _how it reads_. Both apply.
 
 **What it does not cover.** The AI's own instructions in `prompts/` have their own [README](../prompts/README.md). What
 the AI says to the writer is shaped by those prompts and by [responsible-ai.md](responsible-ai.md), not by this guide.
@@ -54,9 +54,9 @@ Lead with what the person does. Say why only when it changes what they do.
   - Before: “Copy the key straight away. The Console only shows it once, and it starts with sk-ant-.”
   - After: “Copy the key now. The Console shows it only once.” (“It starts with sk-ant-” earns a place only if people
     paste the wrong thing.)
-- **Say what will happen next.** If an action spends money, sends text to the AI or can’t be undone, say so on or
-  beside the button, before they press it.
-  - After: “Critique sends your draft to your AI and uses your key.”
+- **Say what will happen next** when it can’t be undone, before they press the button. (An AI button already carries
+  the AI mark and a tooltip about the cost; don’t add a sentence for that.)
+  - After: “This can’t be undone. Its 3 comments go too.”
 - **Don’t explain what the screen already shows.**
   - Before: “This is the page where you can see all your drafts.” (under the heading “Drafts”)
   - After: (nothing)
@@ -185,5 +185,5 @@ Run this against any text before committing it, and when critiquing someone else
 5. **Is the label specific?** Would a screen-reader user hear a verb and an object?
 6. **Are the words ours?** Checked against CONTEXT.md and the table above; British spelling, sentence case, curly
    quotes, no exclamation marks.
-7. **Is it in the right place** (page, info icon or help page)? See [design.md](design.md).
+7. **Is it in the right place** (page, info icon or help page)? See [design.md](design.md#where-explanatory-text-goes).
 8. **Read it aloud.** If you run out of breath, cut.

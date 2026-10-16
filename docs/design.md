@@ -199,6 +199,64 @@ then **Cancel** and **Use this**. Nothing leaves the window until Use this.
 - There is no copy or post button on an option, and no highlighter on them: they are choices, not suggestions already
   made. The highlighter stays for what the AI has put in the writer's text.
 
+## Where explanatory text goes
+
+Text lives in one of four places. Pick by what the person needs it for; how it reads is in the
+[style guide](style-guide.md).
+
+**The test:** if the person skips this text, can they still finish the task without a mistake? If so, it doesn't belong
+on the page. Move it to an info icon or a help page, or cut it.
+
+| Where                   | Use it for                                                                                                                                              | Examples from the app                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **On the page**         | What the person needs to act or avoid a mistake _now_: the next step, what they will lose, what a field expects when that isn't obvious                 | The `NextStep` line. “This can’t be undone.” in a delete dialog. A hint under a field: “The address of the site”.           |
+| **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Move to… “About the new idea”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”. |
+| **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round (_planned, not built_)           | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.            |
+| **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (today still on the page, in `LlmSettingsSection`; see below).                           |
+
+### On the page
+
+- Short: two sentences at most per block (the length limits are in the style guide).
+- Next to the thing it is about, and before the action, not after.
+- What the AI button will spend or send is already said by its mark (see _AI buttons_) and its tooltip; don't repeat it
+  as a sentence on the page. Something the person **can't take back** is on the page, before the action.
+
+### Behind an info icon (`InfoTip`)
+
+- **Text only, two sentences at most**, about one control or term. No links or buttons inside: the tip closes when the
+  pointer or focus leaves, so they can't be reached. If it needs a link, it is a help page.
+- **Keyboard and touch:** the icon is a real button with a name (`label`, “About the new idea”), reached by Tab. The
+  tip shows on hover or focus, which a tap gives, and is the icon's description for screen readers.
+- **Dismissable:** a tip must close with Escape without moving focus (WCAG 1.4.13). The component doesn't do this yet;
+  it is tracked in #197.
+- Never the only place for something the person needs to finish the task. That is what the test above catches.
+
+### Tutorial mode (planned)
+
+New people need more than the icons give: what each kind of page is for, what the AI buttons do, what they will spend.
+Experienced people find that same text noise. So the fuller explanations are written once and shown only in **tutorial
+mode**, which is an account setting:
+
+- **On for new accounts, off for everyone else by default,** and always switchable in account settings.
+- It shows the fuller version of text that is otherwise behind an info icon (or absent), in place on the page, in the
+  same `callout`/hint styles as other text. It never adds anything the person needs to avoid a mistake: that is on the
+  page for everyone.
+- After they have seen every kind of page with it on, the app **suggests turning it off** once (a plain message with a
+  button, not repeated if declined).
+- Not built yet. The questions it leaves (what counts as a kind of page, how text is marked as tutorial-only, how it is
+  tested) are in #198; until then, nothing here depends on it.
+
+### On a help page
+
+- Linked from where it is needed by a **plain link in words** (“How to get an API key”), never by an icon, so it reads
+  and is found like any other link.
+- **Opens in the same tab,** with a Back link to where they were. **Except** from a screen holding unsaved input
+  (for example connecting your AI key): there it opens in a new tab, and the link says so (“How to get an API key (opens
+  in a new tab)”), so nothing typed is lost.
+- One topic per page, steps numbered 01, 02 as elsewhere, a title that names the task.
+- **Is there a help area yet? No.** There is no help route, layout or page. Until there is, longer text stays where it
+  is; the build is tracked in #196, which also moves the API-key steps onto the first page.
+
 ## Actions and lists
 
 Which control for which job, so every list (reading lists, notes, feeds, drafts) looks and behaves alike. The reading
