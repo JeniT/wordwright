@@ -60,23 +60,26 @@ const removeLlmKey = useMutation({
 <template>
   <section aria-labelledby="llm-heading">
     <!-- In the guide it is a step inside the first-run checklist (an h2 section), so one level down. -->
-    <component
-      :is="props.guide ? 'h3' : 'h2'"
-      id="llm-heading"
-      :class="[props.guide ? 'text-lg' : 'text-xl', 'mb-1 font-display font-semibold']"
-    >
-      {{ props.guide ? 'Connect your AI key (Anthropic)' : 'AI assistant' }}
-    </component>
+    <!-- The guide's explanation sits with the heading: an icon beside it, or written out below it in tutorial mode. -->
+    <div class="mb-1 flex flex-wrap items-center gap-2">
+      <component
+        :is="props.guide ? 'h3' : 'h2'"
+        id="llm-heading"
+        :class="[props.guide ? 'text-lg' : 'text-xl', 'font-display font-semibold']"
+      >
+        {{ props.guide ? 'Connect your AI key (Anthropic)' : 'AI assistant' }}
+      </component>
+      <Explain v-if="props.guide" label="About your AI key">
+        Wordwright has no AI of its own: you connect yours. Buttons with the AI mark send your text
+        to it, and nothing else does.
+      </Explain>
+    </div>
     <template v-if="props.guide">
-      <div class="mb-3 flex flex-wrap items-center gap-3">
+      <p class="mb-3">
         <RouterLink to="/help/api-key" target="_blank" class="link"
           >How to get an API key (opens in a new tab)</RouterLink
         >
-        <Explain label="About your AI key">
-          Wordwright has no AI of its own: you connect yours. Buttons with the AI mark send your
-          text to it, and nothing else does.
-        </Explain>
-      </div>
+      </p>
       <p class="mb-3">
         AI functions use Anthropic, which will bill you for your use.
         <RouterLink to="/help/privacy" target="_blank" class="link"

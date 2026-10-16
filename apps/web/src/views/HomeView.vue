@@ -37,12 +37,8 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
   </div>
   <!-- First run: two steps that never block each other. Gone once both are done. -->
   <section v-if="needsSetup" class="mb-10 panel p-5" aria-labelledby="setup-heading">
-    <h2 id="setup-heading" class="mb-2 font-display text-xl font-semibold">Get started</h2>
-    <Explain tutorial-only class="mb-2">
-      Wordwright helps you judge your own writing, and never writes it for you. These two steps set
-      up a place to keep your work and your own AI.
-    </Explain>
-    <ol class="mt-4 space-y-6">
+    <h2 id="setup-heading" class="mb-4 font-display text-xl font-semibold">Get started</h2>
+    <ol class="space-y-6">
       <li class="flex items-start gap-4" data-step="publication">
         <span
           class="step-num step-num-lg"

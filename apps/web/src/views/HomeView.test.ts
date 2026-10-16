@@ -235,12 +235,11 @@ describe('landing page: tutorial mode (#190)', () => {
     members: [],
   }
 
-  it('writes out what the first-run steps are for, and the AI key, when it is on', async () => {
+  it('writes out what a publication is and what the AI key is, when it is on', async () => {
     server.use(signedInAs({ ...testUser, tutorialMode: true }), noPublications, llmSettings(false))
     const { router } = await renderAt('/')
     expect(router.currentRoute.value.name).toBe('home')
     const setup = (await screen.findByRole('heading', { name: 'Get started' })).closest('section')!
-    expect(setup).toHaveTextContent(/never writes it for you/)
     expect(setup).toHaveTextContent(/no AI of its own/)
     // Written out, so no icons.
     expect(within(setup).queryByRole('button', { name: 'About your AI key' })).toBeNull()
@@ -254,7 +253,6 @@ describe('landing page: tutorial mode (#190)', () => {
     const setup = (await screen.findByRole('heading', { name: 'Get started' })).closest('section')!
     expect(within(setup).getByRole('button', { name: 'About your AI key' })).toBeInTheDocument()
     expect(within(setup).getByRole('button', { name: 'About publications' })).toBeInTheDocument()
-    expect(setup).not.toHaveTextContent(/never writes it for you/)
   })
 
   it('says what the list is for once setup is done, in tutorial mode only', async () => {
