@@ -95,3 +95,9 @@ _Avoid_: Prompt, instruction, brief
 **Option**:
 One of a set of different approaches the AI offers to a passage or title. None is used until the writer has picked it, can edit it, and presses "Use this".
 _Avoid_: Suggestion (that implies replacement text pushed at the writer), proposal (brainstorm's word for things the writer accepts), alternative
+
+### Explaining
+
+**Tutorial mode**:
+A setting on a person's account that shows the explanations otherwise kept behind info icons (and short page-purpose lines that appear nowhere else) written out on the page. On for new accounts, off for others, switchable at any time. It never holds anything a person needs to avoid a mistake.
+_Avoid_: Onboarding, walkthrough, help mode
