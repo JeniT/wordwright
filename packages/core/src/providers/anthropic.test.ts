@@ -80,6 +80,14 @@ describe('AnthropicProvider listModels', () => {
     ])
   })
 
+  it('still marks something latest in a line whose models have no release date, so there is always a choice', async () => {
+    const provider = providerListing([
+      model('claude-a', { line: 'opus', created_at: undefined }),
+      model('claude-b', { line: 'opus', created_at: undefined }),
+    ])
+    expect((await provider.listModels()).map((m) => m.latest)).toEqual([true, true])
+  })
+
   it('treats a model with no line as latest, since we cannot tell what it replaces (#218)', async () => {
     const provider = providerListing([
       model('claude-a', { line: null, created_at: '2025-01-01T00:00:00Z' }),

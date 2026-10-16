@@ -63,7 +63,8 @@ export class LlmKeyService {
 
   /**
    * Saves a new key and/or a different model. A key is checked by listing the models it can use, which spends no
-   * tokens, and a model must be one of those, so a typo or a retired model fails now rather than mid-draft.
+   * tokens, and a model must be one of those on offer to this person (see `models`), so a typo or a retired model
+   * fails now rather than mid-draft.
    */
   async save(userId: string, input: LlmSettingsInput): Promise<LlmSettings> {
     const { store, box } = this.d

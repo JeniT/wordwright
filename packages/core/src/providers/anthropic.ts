@@ -81,11 +81,14 @@ export class AnthropicProvider implements LLMProvider {
           created: m.created_at ?? '',
         })
       }
-      // Newest per line, by release date. The provider says not to guess a line from an id, so a model with no line
-      // is never treated as replaced.
+      // Newest per line, by release date (RFC 3339 in UTC, so strings compare in time order; models released together
+      // all count, and so do models with no date). The provider says not to guess a line from an id, so a model with no
+      // line is never treated as replaced.
       const newest = new Map<string, string>()
       for (const m of active) {
-        if (m.line !== null && m.created > (newest.get(m.line) ?? '')) newest.set(m.line, m.created)
+        const best = newest.get(m.line ?? '')
+        if (m.line !== null && (best === undefined || m.created > best))
+          newest.set(m.line, m.created)
       }
       return active.map((m) => ({
         id: m.id,
