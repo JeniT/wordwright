@@ -41,7 +41,10 @@ export function llmProviderContract(name: string, create: () => LLMProvider) {
         for (const m of models) {
           expect(m.id).not.toBe('')
           expect(m.label).not.toBe('')
+          expect(typeof m.latest).toBe('boolean')
         }
+        // Someone with no saved model must always have something to choose.
+        expect(models.some((m) => m.latest)).toBe(true)
         expect(new Set(models.map((m) => m.id)).size).toBe(models.length)
       })
 

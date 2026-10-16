@@ -149,7 +149,7 @@ describe('LLM settings', () => {
     const first = await ada.client.put('/api/llm', { provider: 'anthropic', apiKey: GOOD_KEY })
     expect(await first.json()).toMatchObject({ model: 'claude-sonnet-5-5', hasKey: true })
 
-    ctx.setModels([{ id: 'claude-future-1', label: 'Claude Future 1' }])
+    ctx.setModels([{ id: 'claude-future-1', label: 'Claude Future 1', latest: true }])
     const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
     const second = await bob.client.put('/api/llm', { provider: 'anthropic', apiKey: GOOD_KEY })
     expect(await second.json()).toMatchObject({ model: 'claude-future-1' })
@@ -225,18 +225,72 @@ describe('the models on offer', () => {
     const { ctx, client } = await signedInUser()
     await saveKey(client)
     ctx.setModels([
-      { id: 'claude-b', label: 'Claude B' },
-      { id: 'claude-a', label: 'Claude A' },
+      { id: 'claude-b', label: 'Claude B', latest: true },
+      { id: 'claude-a', label: 'Claude A', latest: true },
     ])
     const res = await client.get('/api/llm/models')
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       models: [
-        { id: 'claude-b', label: 'Claude B' },
-        { id: 'claude-a', label: 'Claude A' },
+        { id: 'claude-b', label: 'Claude B', latest: true },
+        { id: 'claude-a', label: 'Claude A', latest: true },
       ],
     })
     expect(ctx.modelCalls.at(-1)!.config.apiKey).toBe(GOOD_KEY)
+  })
+
+  it('offers the current models, plus the older one you already use, but not to anyone else (#218)', async () => {
+    const ctx = setup()
+    const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
+    const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
+    ctx.setModels([
+      { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', latest: true },
+      { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', latest: false },
+      { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', latest: true },
+    ])
+    await saveKey(ada.client, GOOD_KEY, 'claude-opus-5-5')
+    await saveKey(bob.client, GOOD_KEY, 'claude-opus-5-5')
+    // Ada picked the older model when it was current; it still works, so she keeps it.
+    ctx.store.credentials.setModel(
+      (await (await ada.client.get('/api/auth/me')).json()).id,
+      'claude-opus-4-8',
+    )
+    const ids = async (c: typeof ada.client) =>
+      ((await (await c.get('/api/llm/models')).json()).models as { id: string }[]).map((m) => m.id)
+    expect(await ids(ada.client)).toEqual([
+      'claude-opus-5-5',
+      'claude-opus-4-8',
+      'claude-sonnet-5-5',
+    ])
+    expect(await ids(bob.client)).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5'])
+  })
+
+  it('does not list a model that is no longer supported, even if it is the saved one (#218)', async () => {
+    const { ctx, client } = await signedInUser()
+    await saveKey(client, GOOD_KEY, 'claude-sonnet-5-5')
+    ctx.setModels([{ id: 'claude-opus-5-5', label: 'Claude Opus 5.5', latest: true }])
+    const res = await client.get('/api/llm/models')
+    expect((await res.json()).models.map((m: { id: string }) => m.id)).toEqual(['claude-opus-5-5'])
+  })
+
+  it('only accepts a model that is offered to this person, and keeps an older one you already have (#218)', async () => {
+    const ctx = setup()
+    const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
+    ctx.setModels([
+      { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', latest: true },
+      { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', latest: false },
+    ])
+    await saveKey(ada.client, GOOD_KEY, 'claude-opus-5-5')
+    const put = (model: string) => ada.client.put('/api/llm', { provider: 'anthropic', model })
+    expect((await put('claude-opus-4-8')).status).toBe(400) // active, but older and not hers
+    ctx.store.credentials.setModel(
+      (await (await ada.client.get('/api/auth/me')).json()).id,
+      'claude-opus-4-8',
+    )
+    expect((await put('claude-opus-4-8')).status).toBe(200) // hers already
+    // A replacement key keeps it too.
+    const keyOnly = await ada.client.put('/api/llm', { provider: 'anthropic', apiKey: GOOD_KEY })
+    expect(await keyOnly.json()).toMatchObject({ model: 'claude-opus-4-8' })
   })
 
   it('says so when the stored key has been revoked, or the provider is down', async () => {

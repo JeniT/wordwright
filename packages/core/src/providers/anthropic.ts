@@ -69,12 +69,29 @@ export class AnthropicProvider implements LLMProvider {
 
   async listModels(signal?: AbortSignal): Promise<LLMModelInfo[]> {
     try {
-      const models: LLMModelInfo[] = []
+      const active: { id: string; label: string; line: string | null; created: string }[] = []
       for await (const m of this.client.models.list({ limit: 100 }, { signal })) {
-        // Only chat models are for us; the id is what we send back, the display name what people read.
-        if (m.id.startsWith('claude-')) models.push({ id: m.id, label: m.display_name || m.id })
+        // Only chat models are for us. A deprecated or retired model is not for a new choice (a retired one fails).
+        if (!m.id.startsWith('claude-')) continue
+        if (m.lifecycle === 'deprecated' || m.lifecycle === 'retired') continue
+        active.push({
+          id: m.id,
+          label: m.display_name || m.id,
+          line: m.line ?? null,
+          created: m.created_at ?? '',
+        })
       }
-      return models
+      // Newest per line, by release date. The provider says not to guess a line from an id, so a model with no line
+      // is never treated as replaced.
+      const newest = new Map<string, string>()
+      for (const m of active) {
+        if (m.line !== null && m.created > (newest.get(m.line) ?? '')) newest.set(m.line, m.created)
+      }
+      return active.map((m) => ({
+        id: m.id,
+        label: m.label,
+        latest: m.line === null || m.created === newest.get(m.line),
+      }))
     } catch (err) {
       throw translate(err)
     }

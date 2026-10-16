@@ -25,24 +25,67 @@ function providerListing(models: unknown[] | (() => never)) {
   })
 }
 
+const model = (id: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  display_name: id.replace('claude-', 'Claude '),
+  lifecycle: 'active',
+  line: null,
+  created_at: '2026-01-01T00:00:00Z',
+  ...extra,
+})
+
 describe('AnthropicProvider listModels', () => {
   it("returns each chat model with the provider's own display name, in the order given", async () => {
     const provider = providerListing([
-      { id: 'claude-opus-5-5', display_name: 'Claude Opus 5.5', type: 'model' },
-      { id: 'claude-haiku-5-5', display_name: 'Claude Haiku 5.5', type: 'model' },
+      { ...model('claude-opus-5-5'), display_name: 'Claude Opus 5.5' },
+      { ...model('claude-haiku-5-5'), display_name: 'Claude Haiku 5.5' },
     ])
     expect(await provider.listModels()).toEqual([
-      { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
-      { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+      { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', latest: true },
+      { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', latest: true },
     ])
   })
 
   it('falls back to the id when there is no display name, and ignores anything that is not a Claude model', async () => {
     const provider = providerListing([
-      { id: 'claude-x', display_name: '' },
-      { id: 'embedding-1', display_name: 'Embedding' },
+      model('claude-x', { display_name: '' }),
+      model('embedding-1'),
     ])
-    expect(await provider.listModels()).toEqual([{ id: 'claude-x', label: 'claude-x' }])
+    expect(await provider.listModels()).toEqual([
+      { id: 'claude-x', label: 'claude-x', latest: true },
+    ])
+  })
+
+  it('leaves out deprecated and retired models, which are not for new choices (#218)', async () => {
+    const provider = providerListing([
+      model('claude-opus-5'),
+      model('claude-opus-4-5', { lifecycle: 'deprecated' }),
+      model('claude-opus-4', { lifecycle: 'retired' }),
+    ])
+    expect((await provider.listModels()).map((m) => m.id)).toEqual(['claude-opus-5'])
+  })
+
+  it('marks the newest model in each line as latest, and keeps older active ones unmarked (#218)', async () => {
+    const provider = providerListing([
+      model('claude-haiku-5-5', { line: 'haiku', created_at: '2026-06-01T00:00:00Z' }),
+      model('claude-opus-5-5', { line: 'opus', created_at: '2026-06-01T00:00:00Z' }),
+      model('claude-opus-4-8', { line: 'opus', created_at: '2026-03-01T00:00:00Z' }),
+      model('claude-opus-5', { line: 'opus', created_at: '2026-05-01T00:00:00Z' }),
+    ])
+    expect(await provider.listModels()).toEqual([
+      { id: 'claude-haiku-5-5', label: 'Claude haiku-5-5', latest: true },
+      { id: 'claude-opus-5-5', label: 'Claude opus-5-5', latest: true },
+      { id: 'claude-opus-4-8', label: 'Claude opus-4-8', latest: false },
+      { id: 'claude-opus-5', label: 'Claude opus-5', latest: false },
+    ])
+  })
+
+  it('treats a model with no line as latest, since we cannot tell what it replaces (#218)', async () => {
+    const provider = providerListing([
+      model('claude-a', { line: null, created_at: '2025-01-01T00:00:00Z' }),
+      model('claude-b', { line: null, created_at: '2026-01-01T00:00:00Z' }),
+    ])
+    expect((await provider.listModels()).map((m) => m.latest)).toEqual([true, true])
   })
 
   it('translates a rejected key into LLMAuthError', async () => {

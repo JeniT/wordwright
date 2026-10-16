@@ -26,9 +26,9 @@ export type FakeChatResponder = (
 
 /** What the fake offers by default: three models, as a real account might see. */
 export const FAKE_LLM_MODELS: LLMModelInfo[] = [
-  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
-  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
-  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', latest: true },
+  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5', latest: true },
+  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', latest: true },
 ]
 
 /** Deterministic provider for tests, local development and e2e runs. */

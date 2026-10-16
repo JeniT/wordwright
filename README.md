@@ -373,7 +373,8 @@ run on the _requester's_ key.
   adapter implementing `LLMProvider` (translating credential failures to `LLMAuthError`), and a case
   in `apps/api/src/llm-factory.ts`.
 - **Models are discovered, not listed here.** `GET /api/llm/models` asks the provider which models the saved key can
-  use (throttled; 409 without a key). `PUT /api/llm` checks a new key the same way and refuses a `model` that isn't in
+  use (throttled; 409 without a key): the newest in each model line, plus the one already saved if it is still
+  supported (deprecated and retired models are left out). `PUT /api/llm` checks a new key the same way and refuses a `model` that isn't in
   the list; leave `model` out to keep the current one (a first key gets `DEFAULT_LLM_MODEL` if offered, else the
   first model the provider lists).
 

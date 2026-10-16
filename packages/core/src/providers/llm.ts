@@ -69,10 +69,15 @@ export type LLMChatEvent =
   | { type: 'tool_call'; id: string; name: string; input: unknown }
   | { type: 'done'; stopReason: LLMStopReason; usage: LLMUsage }
 
-/** A model the provider offers this key. `label` is the provider's own name for it. */
+/**
+ * A model the provider offers this key and still supports (not deprecated or retired). `label` is the provider's own
+ * name for it. `latest` is false for an older model that a newer one in the same line has replaced: we offer it only
+ * to people already using it, so new people choose among the current ones.
+ */
 export interface LLMModelInfo {
   id: string
   label: string
+  latest: boolean
 }
 
 /**

@@ -1812,3 +1812,9 @@ used while it is offered).
   fetches the list once and keeps it for five minutes.
 - Adapters must implement `listModels()` and pass the new case in the contract suite. The Anthropic adapter keeps only
   ids starting `claude-`.
+- **Only current models are offered (#218).** With a real key the list was every model Anthropic had ever shipped. The
+  adapter now leaves out deprecated and retired models (a retired one fails when called, a deprecated one is closed to new
+  adopters) and marks the newest model in each `line` as `latest`; a model with no line counts as latest, since the
+  provider says not to guess a line from an id. The service offers the latest ones plus the model the person already
+  uses, if it is still supported, so nobody is forced off an older model that works while new people aren't steered to
+  it. A saved model that is deprecated or retired drops out, and the page says it is no longer offered.

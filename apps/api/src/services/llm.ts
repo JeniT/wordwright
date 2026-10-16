@@ -48,12 +48,17 @@ export class LlmKeyService {
     return { provider: stored.provider, model: stored.model, hasKey: true, keyHint: stored.keyHint }
   }
 
-  /** The models the stored key can use, asked of the provider. */
+  /**
+   * The models to offer this person: the current ones, plus the model they already use if the provider still
+   * supports it, so keeping an older model is possible but new people aren't steered to it.
+   */
   async models(userId: string): Promise<LLMModelInfo[]> {
-    return this.listModels(
-      this.config(userId),
+    const config = this.config(userId)
+    const all = await this.listModels(
+      config,
       'Your saved API key was rejected by the provider. Replace it.',
     )
+    return offered(all, config.model)
   }
 
   /**
@@ -71,13 +76,16 @@ export class LlmKeyService {
       return this.settings(userId)
     }
 
-    const models = await this.listModels(
-      {
-        provider: input.provider,
-        apiKey: input.apiKey,
-        model: input.model ?? DEFAULT_LLM_MODEL[input.provider],
-      },
-      'That API key was rejected by the provider. Please check it.',
+    const models = offered(
+      await this.listModels(
+        {
+          provider: input.provider,
+          apiKey: input.apiKey,
+          model: input.model ?? DEFAULT_LLM_MODEL[input.provider],
+        },
+        'That API key was rejected by the provider. Please check it.',
+      ),
+      stored?.model,
     )
     const model = this.pickModel(
       models,
@@ -167,5 +175,9 @@ export class LlmKeyService {
     return { provider: stored.provider, apiKey, model: stored.model }
   }
 }
+
+/** The latest models, and the one already in use (if the provider still lists it), in the provider's order. */
+const offered = (models: LLMModelInfo[], current: string | undefined) =>
+  models.filter((m) => m.latest || m.id === current)
 
 const context = (userId: string, provider: string) => `llm-key:${userId}:${provider}`
