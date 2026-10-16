@@ -370,6 +370,78 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await expect(page.getByText('Still as inserted')).toBeVisible()
 })
 
+test('rephrases the title once the draft is long enough, and records the option used', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await registerUser(page)
+  await page.goto('/account')
+  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-title-key-5678')
+  await page.getByRole('button', { name: 'Save' }).first().click()
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Anthropic key saved (…5678)' }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
+  await openFirstPublication(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers bend')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  const titleField = page.getByLabel('Title', { exact: true })
+  await titleField.fill('Why rivers bend')
+  const bodyBox = page.getByRole('textbox', { name: 'Draft body' })
+  await bodyBox.click()
+  await page.keyboard.type('The river bends because the outside bank erodes faster.')
+
+  // Too little written: the button waits and says what to do.
+  const rephraseTitle = page.getByRole('button', { name: 'Rephrase title' })
+  await expect(rephraseTitle).toBeDisabled()
+  await expect(page.getByText('Write more first. Options for a title come from')).toBeVisible()
+
+  // Enough written (typing 300 words one key at a time is slow, so paste them in).
+  const words = Array.from({ length: 310 }, (_, i) => `word${i}`).join(' ')
+  await bodyBox.evaluate((el, text) => {
+    const data = new DataTransfer()
+    data.setData('text/plain', text)
+    el.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+    )
+  }, words)
+  await expect(rephraseTitle).toBeEnabled()
+  await rephraseTitle.click()
+
+  const dialog = page.getByRole('dialog', { name: 'Rephrase the title' })
+  await expect(dialog.getByLabel('Current wording')).toHaveValue('Why rivers bend')
+  await dialog.getByLabel('What should it do?').fill('Curious, and promising an answer')
+  await dialog.getByRole('button', { name: 'Generate options' }).click()
+  const list = dialog.getByRole('list', { name: 'Options' })
+  await expect(list.getByRole('listitem')).toHaveCount(8)
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the title window').toEqual([])
+  await page.setViewportSize({ width: 390, height: 800 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await list
+    .getByRole('listitem')
+    .first()
+    .getByRole('button', { name: /Replace the wording/ })
+    .click()
+  await dialog.getByRole('button', { name: 'Use this' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(titleField).toHaveValue('Fake option 1 of round 1.')
+  await expect(rephraseTitle).toBeFocused()
+
+  // The title is saved, and where it began is on record.
+  await page.reload()
+  await expect(titleField).toHaveValue('Fake option 1 of round 1.')
+  await page.getByText('Where some of the words came from (1)').click()
+  await expect(
+    page.getByText(/A title that began as an AI option, for “Curious, and promising an answer”/),
+  ).toBeVisible()
+})
+
 test('closing the Rephrase window with Escape changes nothing and returns to the button', async ({
   page,
 }) => {

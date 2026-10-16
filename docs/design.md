@@ -183,6 +183,10 @@ fits a 390px phone. Order, top to bottom: the **current wording** (editable), th
 **Generate options** `AiButton` with "Round n of N" beside it and, in words, why it is disabled when it is, the options,
 then **Cancel** and **Use this**. Nothing leaves the window until Use this.
 
+**Rephrase title** (#163) sits beside the title field (the title wraps above it on a phone) and opens the same window, headed
+"Rephrase the title", with no selection step. While the draft is too short it is disabled and the line under the title says
+"Write more first. Options for a title come from what you've written."
+
 - **Short wording** (a title, or up to 25 words) shows its options as a **list**: each row is the option and a
   `btn btn-sm btn-outline` **Replace wording** button, which puts it in the wording field. **Longer wording** shows a
   **carousel** (`RephraseOptions`): one option at a time, **Previous** and **Next** buttons (disabled at the ends), "Option

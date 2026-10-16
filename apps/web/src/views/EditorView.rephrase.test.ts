@@ -23,7 +23,8 @@ const draft = {
 }
 
 /** The draft's page for its editor (or, with `viewer`, someone else), recording what is saved and recorded. */
-function mockDraft(viewer = testUser) {
+function mockDraft(viewer = testUser, over: Partial<typeof draft> = {}) {
+  const current = { ...draft, ...over }
   const saved: { title: string; body: string; version: number }[] = []
   const recorded: Record<string, unknown>[] = []
   const asked: Record<string, unknown>[] = []
@@ -51,11 +52,11 @@ function mockDraft(viewer = testUser) {
         updatedAt: '2026-01-01T00:00:00Z',
       }),
     ),
-    http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(draft)),
+    http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(current)),
     http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
       const body = (await request.json()) as { title: string; body: string; version: number }
       saved.push(body)
-      return HttpResponse.json({ ...draft, ...body, version: body.version + 1 })
+      return HttpResponse.json({ ...current, ...body, version: body.version + 1 })
     }),
     http.post('*/api/publications/p1/assist/rephrase', async ({ request }) => {
       asked.push((await request.json()) as Record<string, unknown>)
@@ -231,5 +232,81 @@ describe('EditorView: Rephrase', () => {
     await renderAt('/p/p1/drafts/d1')
     await screen.findByTestId('read-only')
     expect(screen.queryByRole('button', { name: 'Rephrase' })).toBeNull()
+  })
+
+  describe('the title', () => {
+    /** Enough words for title options to come from: the configured minimum, and a few more. */
+    const LONG = Array.from({ length: 320 }, (_, i) => `word${i}`).join(' ')
+    const titleButton = () => screen.findByRole('button', { name: 'Rephrase title' })
+
+    it('waits for a longer draft, and says so', async () => {
+      mockDraft()
+      await renderAt('/p/p1/drafts/d1')
+      const button = await titleButton()
+      expect(button).toBeDisabled()
+      expect(button).toHaveAccessibleDescription(
+        "Write more first. Options for a title come from what you've written.",
+      )
+    })
+
+    it('is not offered to someone who cannot change the draft', async () => {
+      mockDraft(
+        { ...testUser, id: 'u2', name: 'Bob Jones', email: 'bob@example.com', handle: 'bob' },
+        { body: LONG },
+      )
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByTestId('read-only')
+      expect(screen.queryByRole('button', { name: 'Rephrase title' })).toBeNull()
+    })
+
+    it('asks about the title with no selection, sets the title from the chosen option, saves and records it', async () => {
+      const { saved, recorded, asked } = mockDraft(testUser, { body: LONG })
+      await renderAt('/p/p1/drafts/d1')
+      await waitFor(async () => expect(await titleButton()).toBeEnabled())
+      await fireEvent.click(await titleButton())
+
+      const dialog = await screen.findByRole('dialog', { name: 'Rephrase the title' })
+      expect((within(dialog).getByLabelText('Current wording') as HTMLTextAreaElement).value).toBe(
+        'T',
+      )
+      await fireEvent.update(
+        within(dialog).getByLabelText('What should it do?'),
+        'Plainer and more curious',
+      )
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Generate options' }))
+      await within(dialog).findByRole('list', { name: 'Options' })
+      expect(asked[0]).toMatchObject({ draftId: 'd1', kind: 'title', wording: 'T' })
+
+      await fireEvent.click(
+        within(dialog).getByRole('button', { name: /Replace the wording with option 2/ }),
+      )
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+      expect(screen.getByLabelText('Title', { selector: 'input' })).toHaveValue(
+        'Rivers bend; outer banks erode.',
+      )
+      await waitFor(() => expect(recorded).toHaveLength(1))
+      expect(recorded[0]).toEqual({
+        kind: 'title',
+        offered: 'Rivers bend; outer banks erode.',
+        text: 'Rivers bend; outer banks erode.',
+        aim: 'Plainer and more curious',
+      })
+      expect(saved.at(-1)!.title).toBe('Rivers bend; outer banks erode.')
+    })
+
+    it('leaves the title alone, and returns to the button, when cancelled', async () => {
+      const { saved, recorded } = mockDraft(testUser, { body: LONG })
+      await renderAt('/p/p1/drafts/d1')
+      await waitFor(async () => expect(await titleButton()).toBeEnabled())
+      ;(await titleButton()).focus()
+      await fireEvent.click(await titleButton())
+      await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+      expect(screen.getByLabelText('Title', { selector: 'input' })).toHaveValue('T')
+      expect(saved).toEqual([])
+      expect(recorded).toEqual([])
+      await waitFor(() => expect(titleButton()).resolves.toHaveFocus())
+    })
   })
 })

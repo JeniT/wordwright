@@ -1589,6 +1589,15 @@ assistance ladder. This task is the service; the window is #162, the title entry
   the Rephrase dialog, so a third dialog does not copy it.
 - **Layout.** The button row under the editor now wraps, since a third button no longer fit beside the others on a phone.
 
+### Rephrase for the title (#163)
+
+- **Same window, no new rules.** The title is `kind: 'title'` in the same dialog and endpoint; short options, at most 20 words
+  each. The button is beside the title, not among the editor buttons, because it acts on the title and needs no selection.
+- **Gated on the draft, not the title.** Titles are best made when the piece is nearly done, so the button waits for
+  `REPHRASE.titleMinBodyWords` words of body (and a non-empty title to start from). The server checks the same, before spending.
+- **Using an option sets the title and saves**, and is recorded like a passage (kind `title`). The record's "still as inserted"
+  check is skipped for titles, since the title is a single field.
+
 ## Exporting your writing: Markdown only, by role, built on request (#167)
 
 A zip of Markdown files, nothing else, so a writer can open their words anywhere (priority 4: no lock-in). Chosen with

@@ -410,4 +410,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   (`POST …/drafts/:id/option-insertions`, in `draft_insertions` with origin `option`, shown in the draft's "Where some of the
   words came from" list). The record is the writer's own report of what was offered, because the server keeps nothing between
   rounds. Words the writer wrote themselves leave no record. The fake LLM (`FAKE_LLM=true`) answers with numbered options.
-- **Not yet built:** idea scanning, outlining, streaming critique, Rephrase for the title (#163) and social posts (#164).
+  **Rephrase title** (#163): the button beside the title opens the same window with the title as the wording and no selection.
+  It waits until the draft has at least `REPHRASE.titleMinBodyWords` (300) words and says so; **Use this** sets the title,
+  saves, and records it with kind `title`. Options are short (a list of about 8, each at most 20 words).
+- **Not yet built:** idea scanning, outlining, streaming critique, social posts (#164).

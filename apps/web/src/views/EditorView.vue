@@ -16,7 +16,9 @@ import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import {
   ONE_PARAGRAPH,
+  REPHRASE,
   WHOLE_DRAFT,
+  countWords,
   splitBlocks,
   wordingProblem,
   type IdeaLink,
@@ -219,7 +221,11 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
 // ---- Rephrase: options for the words selected in the text. The window opens on what is selected when the button is
 // pressed; what comes back replaces exactly those words, the draft is saved, and if an option was used that is recorded.
 const selection = ref<TextSelection | null>(null)
-const rephrasing = ref<{ from: number; to: number; text: string } | null>(null)
+const rephrasing = ref<
+  | { kind: 'passage'; from: number; to: number; text: string }
+  | { kind: 'title'; text: string }
+  | null
+>(null)
 const rephraseNotice = ref('')
 const rephraseProblem = computed(() => {
   const s = selection.value
@@ -230,13 +236,27 @@ function openRephrase() {
   const s = selection.value
   if (!s || rephraseProblem.value) return
   rephraseNotice.value = ''
-  rephrasing.value = { from: s.from, to: s.to, text: s.text }
+  rephrasing.value = { kind: 'passage', from: s.from, to: s.to, text: s.text }
+}
+// The title needs no selection, but needs a draft worth titling: options come from what has been written.
+const titleProblem = computed(() => {
+  if (countWords(body.value) < REPHRASE.titleMinBodyWords) {
+    return "Write more first. Options for a title come from what you've written."
+  }
+  return wordingProblem('title', title.value)
+})
+function openTitleRephrase() {
+  if (titleProblem.value) return
+  rephraseNotice.value = ''
+  rephrasing.value = { kind: 'title', text: title.value }
 }
 async function useRephrased(result: { text: string; offered: string | null; aim: string | null }) {
   const target = rephrasing.value
   rephrasing.value = null
   if (!target) return
-  if (!editor.value?.replaceRange(target.from, target.to, result.text, target.text)) {
+  if (target.kind === 'title') {
+    title.value = result.text
+  } else if (!editor.value?.replaceRange(target.from, target.to, result.text, target.text)) {
     rephraseNotice.value =
       'The draft changed while the window was open, so nothing was replaced. Select the words again to try once more.'
     return
@@ -252,7 +272,7 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
   if (!result.offered || !result.aim) return
   try {
     await api.addOptionInsertion(props.publicationId, props.id, {
-      kind: 'passage',
+      kind: target.kind,
       offered: result.offered,
       text: result.text,
       aim: result.aim,
@@ -422,13 +442,28 @@ async function requestCritique() {
         />
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
-        <input
-          id="title"
-          v-model="title"
-          :readonly="!canEdit"
-          class="mb-6 w-full bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-ink-soft"
-          placeholder="Title"
-        />
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2" :class="canEdit ? 'mb-2' : 'mb-6'">
+          <input
+            id="title"
+            v-model="title"
+            :readonly="!canEdit"
+            class="min-w-0 flex-1 basis-64 bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-ink-soft"
+            placeholder="Title"
+          />
+          <button
+            v-if="canEdit"
+            type="button"
+            class="btn btn-outline"
+            :disabled="!!titleProblem"
+            aria-describedby="title-rephrase-hint"
+            @click="openTitleRephrase"
+          >
+            Rephrase title
+          </button>
+        </div>
+        <p v-if="canEdit" id="title-rephrase-hint" class="mb-6 text-sm text-ink-soft">
+          {{ titleProblem ?? 'Rephrase title gives you options for a new title.' }}
+        </p>
 
         <RichEditor
           ref="editor"
@@ -589,7 +624,7 @@ async function requestCritique() {
 
       <RephraseDialog
         :open="!!rephrasing"
-        kind="passage"
+        :kind="rephrasing?.kind ?? 'passage'"
         :wording="rephrasing?.text ?? ''"
         :publication-id="publicationId"
         :draft-id="id"
