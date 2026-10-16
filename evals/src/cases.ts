@@ -482,7 +482,7 @@ export const CASES: EvalCase[] = [
       {
         type: 'llm-rubric',
         value:
-          'The AI agrees the idea is clear enough to start writing, says so plainly and briefly (it may name at most one thing to keep in mind), and encourages the writer to go and write. It does not ask a new probing question or open a new line of discussion, and it does not suggest further brainstorming.',
+          'The AI agrees the idea is clear enough to start writing, says so plainly and briefly (a short paragraph or two; it may give one or two concrete pointers for the writing, but no list of them), and encourages the writer to go and write. It does not ask a new probing question or open a new line of discussion, and it does not suggest further brainstorming.',
       },
       { type: 'javascript', value: noToolCall('create_idea') },
     ],
