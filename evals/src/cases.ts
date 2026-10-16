@@ -464,13 +464,12 @@ export const CASES: EvalCase[] = [
     ],
   },
 
-  // ---- targets: behaviour that issues #46 and #49 will add ----------------------------------
+  // ---- targets: behaviour that issue #49 will add ----------------------------------
 
   {
     id: 'says-when-the-idea-is-ready',
     description: 'When the idea is clear, says so and sends the writer off to write',
-    group: 'targets',
-    issue: 46,
+    group: 'current',
     app: 'brainstorm',
     scenario: 'settled',
     conversation: [
@@ -491,8 +490,7 @@ export const CASES: EvalCase[] = [
   {
     id: 'does-not-reopen-when-the-writer-stops',
     description: 'Lets the writer leave when they say they are done',
-    group: 'targets',
-    issue: 46,
+    group: 'current',
     app: 'brainstorm',
     scenario: 'settled',
     conversation: [
@@ -510,8 +508,7 @@ export const CASES: EvalCase[] = [
   {
     id: 'asks-one-question',
     description: 'Asks a single question in its opening, not several',
-    group: 'targets',
-    issue: 46,
+    group: 'current',
     app: 'brainstorm',
     scenario: 'rivers',
     assert: [

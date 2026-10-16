@@ -359,6 +359,14 @@ const busyNote = computed(() =>
             <button v-if="streaming" type="button" class="btn btn-neutral" @click="stop">
               Stop
             </button>
+            <!-- The session never has to run on: the writer can leave whenever they judge the idea clear enough. -->
+            <RouterLink
+              v-if="!streaming"
+              :to="{ name: 'idea-drafts', params: { publicationId, id } }"
+              class="btn btn-outline"
+            >
+              I have enough: go and write
+            </RouterLink>
           </div>
         </form>
 

@@ -166,6 +166,14 @@ describe('the brainstorm page', () => {
     expect(screen.queryByLabelText('Your message')).toBeNull() // nothing to answer yet
   })
 
+  it('lets the writer end the session at any point by going on to write', async () => {
+    mockConversation([kickoff(), aiMessage('What is the claim?')])
+    await renderAt(page)
+    await screen.findByText('What is the claim?')
+    const leave = screen.getByRole('link', { name: 'I have enough: go and write' })
+    expect(leave).toHaveAttribute('href', '/p/ada-substack/ideas/i1/drafts')
+  })
+
   it('starts when asked, streaming the first questions, and then holds the saved exchange', async () => {
     const api = mockConversation()
     api.respond = () => {

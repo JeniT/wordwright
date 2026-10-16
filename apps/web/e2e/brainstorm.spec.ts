@@ -86,6 +86,16 @@ test('brainstorms an idea: the coach asks, suggests, and nothing changes until a
   await expect(page.getByText('Accepted by Pru.')).toBeVisible()
 })
 
+test('the writer can end the session whenever they have enough, and go on to draft', async ({
+  page,
+}) => {
+  await setUp(page)
+  await startBrainstorming(page)
+  await expect(page.getByLabel('Your message')).toBeEnabled()
+  await page.getByRole('link', { name: 'I have enough: go and write' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
+})
+
 test('the points made in the chat are added to the idea as notes, as they are made', async ({
   page,
 }) => {
