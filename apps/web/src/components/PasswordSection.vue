@@ -43,7 +43,7 @@ const setup = useMutation({
         label="New password"
         type="password"
         autocomplete="new-password"
-        hint="At least 10 characters. Your other devices will be signed out."
+        hint="At least 8 characters. Your other devices will be signed out."
         required
       />
       <SaveStatus

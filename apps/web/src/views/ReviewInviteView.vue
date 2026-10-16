@@ -99,7 +99,7 @@ const decline = useMutation({
             label="Choose a password"
             type="password"
             autocomplete="new-password"
-            hint="At least 10 characters."
+            hint="At least 8 characters."
             required
           />
           <p v-if="create.isError.value" role="alert" class="mb-3 text-sm text-danger">

@@ -65,7 +65,7 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
         label="Password"
         type="password"
         autocomplete="new-password"
-        hint="At least 10 characters."
+        hint="At least 8 characters."
         required
       />
       <p v-if="register.isError.value" role="alert" class="mb-3 text-danger">

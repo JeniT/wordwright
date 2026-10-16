@@ -122,7 +122,7 @@ describe('registration', () => {
   })
 
   it.each([
-    ['a short password', { password: 'short' }, 'Use at least 10 characters'],
+    ['a short password', { password: 'short' }, 'Use at least 8 characters'],
     ['a bad email', { email: 'not-an-email' }, 'Enter an email address, like name@example.com'],
     ['a blank name', { name: '  ' }, 'Enter a name'],
   ])('explains %s in plain words, not as a zod object', async (_label, change, message) => {

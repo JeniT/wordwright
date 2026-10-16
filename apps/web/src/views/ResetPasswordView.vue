@@ -25,7 +25,7 @@ const reset = useMutation({ mutationFn: () => api.resetPassword(token, password.
         label="New password"
         type="password"
         autocomplete="new-password"
-        hint="At least 10 characters."
+        hint="At least 8 characters."
         required
       />
       <p v-if="reset.isError.value" role="alert" class="mb-3 text-danger">

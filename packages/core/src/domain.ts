@@ -21,7 +21,7 @@ export const EmailSchema = z
 /** Max length bounds the cost of hashing attacker-supplied input. */
 export const PasswordSchema = z
   .string()
-  .min(10, 'Use at least 10 characters')
+  .min(8, 'Use at least 8 characters')
   .max(128, 'Use 128 characters or fewer for the password')
 export const NameSchema = z
   .string()

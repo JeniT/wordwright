@@ -1396,7 +1396,7 @@ test('the sign-up form explains a problem the server finds, in words', async ({ 
   await fillSignUp(page, 'Hopper')
   await page.getByLabel('Password').fill('short')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('alert')).toHaveText('Use at least 10 characters')
+  await expect(page.getByRole('alert')).toHaveText('Use at least 8 characters')
   await expect(page.getByText('[object Object]')).toHaveCount(0)
 })
 

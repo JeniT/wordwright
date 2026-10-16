@@ -279,7 +279,7 @@ tests inject fakes and nothing hits the network.
   device; your current session is refused with 400, a stranger's id is 404), `DELETE /api/account/sessions` (every
   session but this one; answers `{ count }`). Changing or resetting a password ends the others (a reset ends all);
   changing the email address does not.
-- **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after
+- **Passwords:** scrypt (`node:crypto`), 8-128 characters. Reset links are single-use, expire after
   an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
   an address has an account (except at registration, which has to say so), and that includes
   inviting someone to a publication.
