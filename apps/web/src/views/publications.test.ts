@@ -83,8 +83,8 @@ describe('publication list (home)', () => {
   it('explains what a publication is when there are none', async () => {
     server.use(signedInAs(testUser), listPublications([]))
     await renderAt('/')
-    await screen.findByText('Next, create your first publication')
-    expect(screen.getByRole('link', { name: 'Create your first publication' })).toHaveAttribute(
+    await screen.findByRole('heading', { name: 'Create your first publication' })
+    expect(screen.getByRole('link', { name: 'Start a publication' })).toHaveAttribute(
       'href',
       '/publications/new',
     )
@@ -450,7 +450,7 @@ describe('publication settings', () => {
     const dialog = screen.getByRole('dialog', { name: 'Delete this publication?' })
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, delete it' }))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
-    await screen.findByText('Next, create your first publication')
+    await screen.findByRole('heading', { name: 'Create your first publication' })
   })
 
   it('gives a member a read-only view and a way to leave', async () => {

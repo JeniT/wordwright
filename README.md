@@ -107,7 +107,7 @@ tests inject fakes and nothing hits the network.
 ## Accounts and sign-in
 
 - **Model:** a user has any number of _publications_; ideas belong to a publication, and every draft belongs to an idea. Publications are shared by
-  adding members (`owner` or `member`; a publication can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a publication: the landing page invites the new user to create (and set up) their own.
+  adding members (`owner` or `member`; a publication can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a publication: Home opens with a two-step checklist (01 create a publication, 02 connect an AI key) in either order, which disappears once both are done.
 - **A publication is a place you publish** (a Substack, a blog, a magazine, a newsletter): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) followed by its newest feed posts, the first items on its reading list (and a form to add one), its latest notes (and a form to add one) and its ideas (see _Navigation_ below for its steps);

@@ -1350,28 +1350,46 @@ test('a new account chooses a username, connects an API key, then creates its fi
 
   // No publication was made for them. The landing page explains how to get a key, with a field for it.
   await expect(page.getByText('Welcome, Grace')).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: 'First, connect your AI assistant' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Connect your AI key (Anthropic)' })).toBeVisible()
   await expect(
     page.getByRole('link', { name: 'How to get an API key (opens in a new tab)' }),
   ).toHaveAttribute('href', '/help/api-key')
   await expect(page.getByRole('link', { name: /privacy implications/ })).toBeVisible()
-  await expect(page.getByText('Next, create your first publication')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Create your first publication' })).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: '01' })).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: '02' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'landing page').toEqual([])
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-onboarding-key-4321')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
   await expect(page.getByLabel('Anthropic API key')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Start a publication' })).toBeVisible()
 
-  // Then they create (and set up) their first publication.
-  await page.getByRole('link', { name: 'Create your first publication' }).click()
+  // Then they create (and set up) their first publication; the checklist is gone when they come back.
+  await page.getByRole('link', { name: 'Start a publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Grace letters')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Grace letters').filter({ visible: true }).first(),
   ).toBeVisible()
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Two steps/ })).toHaveCount(0)
+})
+
+test('first-run steps can be done in the other order', async ({ page }) => {
+  await registerUser(page, 'Katherine', { withPublication: false })
+  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Orbits')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await page.goto('/')
+  await expect(page.getByText('Create your first publication · done')).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'half-done').toEqual([])
+  await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-order-key-4321')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
+  await expect(page.getByRole('link', { name: /Orbits/ })).toBeVisible()
 })
 
 test('the sign-up form explains a problem the server finds, in words', async ({ page }) => {

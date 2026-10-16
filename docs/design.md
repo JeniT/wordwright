@@ -471,6 +471,11 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Beside the publication's name, in the menu and on its landing page |
 | Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Beside the idea's name, in the menu and on its landing page        |
 
+**First run (Home).** While a person has no publication or no AI key, the top of Home is a two-item checklist using the
+same 01 / 02 badges: **01 Create your first publication** and **02 Connect your AI key (Anthropic)**. Neither blocks the
+other. A finished step keeps its place with a tick in the badge and "done"; when both are done the checklist goes and the
+list of publications stands alone. The badges stay decoration (`aria-hidden`); the ordered list carries the order.
+
 The principles (they are the point of the pattern; keep them when you add a page):
 
 1. **Numbers orient; they never gate.** Every step is a link, always enabled. Nothing is locked, greyed out or

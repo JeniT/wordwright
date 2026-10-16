@@ -43,9 +43,14 @@ const removeLlmKey = useMutation({
 
 <template>
   <section aria-labelledby="llm-heading">
-    <h2 id="llm-heading" class="mb-1 font-display text-xl font-semibold">
-      {{ props.guide ? 'First, connect your AI assistant' : 'AI assistant' }}
-    </h2>
+    <!-- In the guide it is a step inside the first-run checklist (an h2 section), so one level down. -->
+    <component
+      :is="props.guide ? 'h3' : 'h2'"
+      id="llm-heading"
+      :class="[props.guide ? 'text-lg' : 'text-xl', 'mb-1 font-display font-semibold']"
+    >
+      {{ props.guide ? 'Connect your AI key (Anthropic)' : 'AI assistant' }}
+    </component>
     <template v-if="props.guide">
       <p class="mb-3 text-sm text-ink-soft">
         Wordwright uses your own Anthropic account, so the cost of the AI is billed to you. Your

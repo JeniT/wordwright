@@ -11,7 +11,7 @@ describe('landing page: connecting an AI key', () => {
   it('walks a new user through getting a key, with a field to paste it into', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(false))
     await renderAt('/')
-    const heading = await screen.findByRole('heading', { name: 'First, connect your AI assistant' })
+    const heading = await screen.findByRole('heading', { name: 'Connect your AI key (Anthropic)' })
     const section = heading.closest('section')!
 
     // The steps live on a help page; the screen links to it (in a new tab, so a half-typed key isn't lost).
@@ -33,7 +33,7 @@ describe('landing page: connecting an AI key', () => {
 
     // A brand-new user is also pointed at their first publication.
     expect(screen.getByText(/Welcome, Ada Lovelace/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Create your first publication' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Start a publication' })).toHaveAttribute(
       'href',
       '/publications/new',
     )
@@ -72,12 +72,17 @@ describe('landing page: connecting an AI key', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(/key is saved/)
+    // The step stays on the page, marked done, while the publication step is still waiting.
+    expect(
+      screen.getByRole('heading', { name: /Connect your AI key \(Anthropic\)/ }),
+    ).toHaveTextContent('done')
+    expect(screen.getByRole('link', { name: 'Start a publication' })).toBeVisible()
     expect(sent).toEqual({
       provider: 'anthropic',
       model: 'claude-sonnet-5-5',
       apiKey: 'sk-ant-secret-1234567890',
     })
-    expect(screen.queryByRole('heading', { name: 'First, connect your AI assistant' })).toBeNull()
+    expect(screen.queryByLabelText('Anthropic API key')).toBeNull()
   })
 
   it('shows why a key was refused, and keeps the instructions', async () => {
@@ -96,7 +101,7 @@ describe('landing page: connecting an AI key', () => {
     )
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/)
-    expect(screen.getByRole('heading', { name: 'First, connect your AI assistant' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Connect your AI key (Anthropic)' })).toBeVisible()
   })
 
   it('also reminds people who already have publications but no key', async () => {
@@ -116,16 +121,98 @@ describe('landing page: connecting an AI key', () => {
       llmSettings(false),
     )
     await renderAt('/')
-    await screen.findByRole('heading', { name: 'First, connect your AI assistant' })
-    expect(screen.queryByText(/Welcome/)).toBeNull()
+    await screen.findByRole('heading', { name: 'Connect your AI key (Anthropic)' })
     expect(await screen.findByRole('link', { name: /Blog/ })).toBeInTheDocument()
   })
 
   it('stays out of the way once a key is saved', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     await renderAt('/')
-    await screen.findByText('Next, create your first publication')
-    expect(screen.queryByRole('heading', { name: 'First, connect your AI assistant' })).toBeNull()
+    await screen.findByRole('heading', { name: 'Create your first publication' })
     expect(screen.queryByLabelText('Anthropic API key')).toBeNull()
+    expect(screen.getByRole('heading', { name: /Connect your AI key/ })).toHaveTextContent('done')
+  })
+
+  it('shows a done step for the publication and still asks for the key', async () => {
+    const publication = {
+      id: 'adalovelace-blog',
+      name: 'Blog',
+      siteUrl: null,
+      imageUrl: null,
+      siteIconUrl: null,
+      description: null,
+      role: 'owner',
+      members: [],
+    }
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      llmSettings(false),
+    )
+    await renderAt('/')
+    await screen.findByLabelText('Anthropic API key')
+    const steps = screen.getAllByRole('listitem').filter((li) => li.dataset.step)
+    expect(steps).toHaveLength(2)
+    expect(steps[0]).toHaveTextContent('Create your first publication · done')
+    expect(within(steps[0]!).queryByRole('link')).toBeNull()
+    expect(within(steps[1]!).getByLabelText('Anthropic API key')).toBeVisible()
+  })
+
+  it('numbers the two steps when neither is done, and neither blocks the other', async () => {
+    server.use(signedInAs(testUser), noPublications, llmSettings(false))
+    await renderAt('/')
+    await screen.findByLabelText('Anthropic API key')
+    const steps = screen.getAllByRole('listitem').filter((li) => li.dataset.step)
+    expect(steps[0]).toHaveTextContent('01')
+    expect(steps[1]).toHaveTextContent('02')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Start a publication' })).toBeVisible()
+  })
+
+  it('goes away when both are done', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () =>
+        HttpResponse.json([
+          {
+            id: 'adalovelace-blog',
+            name: 'Blog',
+            siteUrl: null,
+            imageUrl: null,
+            siteIconUrl: null,
+            description: null,
+            role: 'owner',
+            members: [],
+          },
+        ]),
+      ),
+      llmSettings(true),
+    )
+    await renderAt('/')
+    await screen.findByRole('link', { name: /Blog/ })
+    expect(screen.queryByRole('heading', { name: /Two steps/ })).toBeNull()
+    expect(screen.queryByRole('listitem', { name: /01/ })).toBeNull()
+  })
+
+  it('says what went wrong and lets you try again when the publications cannot load', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      llmSettings(false),
+    )
+    await renderAt('/')
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /try again/i })).toBeVisible()
+  })
+
+  it('still shows the publication step, and explains the problem, when the key settings cannot load', async () => {
+    server.use(
+      signedInAs(testUser),
+      noPublications,
+      http.get('*/api/llm', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    )
+    await renderAt('/')
+    expect(await screen.findByRole('link', { name: 'Start a publication' })).toBeVisible()
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 })
