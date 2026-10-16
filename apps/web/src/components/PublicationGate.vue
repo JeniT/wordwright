@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { watch } from 'vue'
 import type { Publication } from '@wordwright/core'
+import { rememberPublication } from '../lib/last-publication'
 import { usePublication } from '../lib/usePublications'
 
 /** Loading, error and not-found states for any page about one publication; the page itself is the slot. */
 const props = defineProps<{ publicationId: string }>()
 defineSlots<{ default(props: { publication: Publication }): unknown }>()
 const { publications, publication } = usePublication(() => props.publicationId)
+// Home's quick add starts from the publication you last worked in.
+watch(
+  () => publication.value?.id,
+  (id) => id && rememberPublication(id),
+  { immediate: true },
+)
 </script>
 
 <template>

@@ -435,6 +435,21 @@ export const DraftSchema = z.object({
 })
 export type Draft = z.infer<typeof DraftSchema>
 
+/** How many drafts Home offers to pick up again. */
+export const RECENT_DRAFTS_LIMIT = 3
+
+/** A draft the person edits, with enough around it to show where it is and to open it (Home, #192). */
+export const RecentDraftSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  ideaId: z.string(),
+  ideaName: z.string(),
+  publicationId: z.string(),
+  publicationName: z.string(),
+  updatedAt: z.string(),
+})
+export type RecentDraft = z.infer<typeof RecentDraftSchema>
+
 export const DraftInputSchema = z.object({
   title: z.string().max(300).default(''),
   body: z.string().default(''),

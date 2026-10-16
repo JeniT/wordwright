@@ -5,6 +5,8 @@ import { RouterLink } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
+import PickUp from '../components/PickUp.vue'
+import QuickAdd from '../components/QuickAdd.vue'
 import PublicationImage from '../components/PublicationImage.vue'
 import UsernameSection from '../components/UsernameSection.vue'
 import { api } from '../lib/api'
@@ -102,6 +104,11 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
       </li>
     </ul>
   </section>
+
+  <template v-if="hasPublication && publications.data.value">
+    <QuickAdd :publications="publications.data.value" />
+    <PickUp />
+  </template>
 
   <section aria-labelledby="publications-heading">
     <!-- With none yet, the checklist above is the page: the heading stays for screen readers (it names the page)

@@ -7,6 +7,7 @@ import type {
   InsertionOrigin,
   NoteOrigin,
   OptionUseInput,
+  RecentDraft,
 } from '@wordwright/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
@@ -21,6 +22,30 @@ export class DraftStore {
       .prepare(`${SELECT} WHERE d.publication_id = ? ORDER BY d.updated_at DESC`)
       .all(publicationId)
       .map(toDraft)
+  }
+
+  /** The drafts `userId` edits, in publications they still belong to, most recently saved first. */
+  recentFor(userId: string, limit: number): RecentDraft[] {
+    return this.db
+      .prepare(
+        `SELECT d.id, d.title, d.idea_id, d.publication_id, d.updated_at, i.name AS idea_name, p.name AS publication_name
+         FROM drafts d
+         JOIN publication_members m ON m.publication_id = d.publication_id AND m.user_id = ?
+         JOIN ideas i ON i.id = d.idea_id
+         JOIN publications p ON p.id = d.publication_id
+         WHERE d.editor_id = ?
+         ORDER BY d.updated_at DESC, d.rowid DESC LIMIT ?`,
+      )
+      .all(userId, userId, limit)
+      .map((row) => ({
+        id: row.id as string,
+        title: row.title as string,
+        ideaId: row.idea_id as string,
+        ideaName: row.idea_name as string,
+        publicationId: row.publication_id as string,
+        publicationName: row.publication_name as string,
+        updatedAt: row.updated_at as string,
+      }))
   }
 
   get(publicationId: string, id: string): Draft | undefined {

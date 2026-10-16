@@ -62,6 +62,8 @@ export const server = setupServer(
       ],
     }),
   ),
+  // Nothing to pick up on Home unless a test says otherwise.
+  http.get('*/api/drafts/recent', () => HttpResponse.json([])),
   // No feeds yet, and so no recent posts.
   http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json([])),
   // An empty reading list (the publication's, which the Read page shows).

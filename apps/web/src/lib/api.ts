@@ -32,6 +32,7 @@ import {
   LlmModelsSchema,
   LlmSettingsSchema,
   PublicationSchema,
+  RecentDraftSchema,
   ProposalSchema,
   RephraseResultSchema,
   ResearchRunSchema,
@@ -245,6 +246,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** A new person's reviewer-only account, made and signed in by following the link. */
     registerReviewer: (input: ReviewerRegisterInput) =>
       get(UserSchema, 'POST', '/auth/register-reviewer', input),
+    // drafts the person edits, across their publications
+    listRecentDrafts: () => get(RecentDraftSchema.array(), 'GET', '/drafts/recent'),
     // a reviewer's own reviews
     listReviews: () => get(ReviewSummarySchema.array(), 'GET', '/reviews'),
     getReview: (id: string) => get(ReviewDetailSchema, 'GET', `/reviews/${id}`),

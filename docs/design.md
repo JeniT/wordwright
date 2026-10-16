@@ -471,6 +471,15 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Beside the publication's name, in the menu and on its landing page |
 | Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Beside the idea's name, in the menu and on its landing page        |
 
+**Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
+**Quick add**, **Pick up**, then the publications. _Quick add_ is three buttons (**New idea**, **Add a note**, **Add something to
+read**), each opening one small form below them; Cancel or Escape closes it and returns focus to its button. A publication picker
+shows only when there is more than one; it starts at the publication last worked in (saved in `localStorage` when a
+publication page opens or one is chosen here), else the one with the newest draft to pick up, else the first. **New idea** is
+the main button only while the chosen publication has no ideas. A note or reading item goes to the publication's own list, never
+into an idea, and the form says where it went and stays open for the next. _Pick up_ lists up to three drafts the person edits
+(`GET /api/drafts/recent`), newest first, each with idea, publication and a **Continue** link.
+
 **First run (Home).** While a person has no publication or no AI key, the top of Home is a two-item checklist using the
 same 01 / 02 badges: **01 Create your first publication** and **02 Connect your AI key (Anthropic)**. Neither blocks the
 other. A finished step keeps its place with a tick in the badge and "done"; when both are done the checklist goes and the

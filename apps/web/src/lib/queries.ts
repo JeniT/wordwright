@@ -28,6 +28,8 @@ export const queryKeys = {
   /** Tutorial mode's seen pages and answered offer (#198). */
   tutorial: () => ['tutorial'] as const,
   reviews: () => ['reviews'] as const,
+  /** The drafts Home offers to pick up again. */
+  recentDrafts: () => ['recent-drafts'] as const,
   review: (id: string) => ['review', id] as const,
   reviewers: (publicationId: string, id: string) => ['draft-reviewers', publicationId, id] as const,
   handover: (publicationId: string, id: string) => ['draft-handover', publicationId, id] as const,
@@ -60,6 +62,7 @@ export type QueryRoot =
   | 'ideas'
   | 'notes'
   | 'reading'
+  | 'recent-drafts'
   | 'recent-posts'
   | 'research'
   | 'sources'
@@ -213,4 +216,9 @@ export function useIdeaNotes(publicationId: Get<string>, ideaId: Get<string | nu
     append,
     refreshIdea: () => refreshIdea(queryClient, publicationId(), ideaId()),
   }
+}
+
+/** The drafts the person edits, newest first, across their publications (Home's "Pick up", #192). */
+export function useRecentDrafts() {
+  return useQuery({ queryKey: queryKeys.recentDrafts(), queryFn: () => api.listRecentDrafts() })
 }

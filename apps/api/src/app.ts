@@ -27,6 +27,7 @@ import { ResearchService } from './services/research'
 import { IdeaLinkService } from './services/idea-links'
 import { HandoverService } from './services/handover'
 import { ReviewService } from './services/reviews'
+import { recentDraftRoutes } from './routes/recent-drafts'
 import { reviewInvitationRoutes, reviewRoutes } from './routes/reviews'
 import { InvitationService } from './services/invitations'
 import { ExportService } from './services/export'
@@ -191,6 +192,7 @@ export function createApp(deps: AppDeps) {
   api.route('/invitations', invitationRoutes(invitations, accounts))
   api.route('/review-invitations', reviewInvitationRoutes(reviews, accounts))
   api.route('/reviews', signedIn(reviewRoutes(reviews, accounts)))
+  api.route('/drafts', signedIn(recentDraftRoutes(store.drafts)))
   api.route(
     '/publications',
     signedIn(

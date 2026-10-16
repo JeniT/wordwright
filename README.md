@@ -45,7 +45,7 @@ gentle "Next: …" suggestion. Home → publication → idea:
 
 | Level       | Menu lists                                                                                                                                                    | Front door                     |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Home        | Publications; account settings by the gear beside your name (`/`, `/account`)                                                                                 | `/`                            |
+| Home        | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`, `/account`)                                                   | `/`                            |
 | Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                              | `/p/<id>` → its landing page   |
 | Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings | `/p/<id>/ideas/<idea>` → Notes |
 
@@ -119,6 +119,7 @@ tests inject fakes and nothing hits the network.
   added) for a linked set of posts. Anyone a publication is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. API:
   `/api/publications/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
+  **Home:** `GET /api/drafts/recent` answers the (up to three) drafts the signed-in person edits, newest first, in publications they still belong to (draft, idea and publication names and ids), for Home's **Pick up**; not available to reviewer-only accounts. **Quick add** on Home uses the existing create-idea, publication notes and publication reading endpoints.
   **Reading list (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
