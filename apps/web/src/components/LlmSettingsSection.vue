@@ -5,6 +5,7 @@ import { ref } from 'vue'
 import { api } from '../lib/api'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
+import ProviderPrivacyAdvice from './ProviderPrivacyAdvice.vue'
 import TextField from './TextField.vue'
 import SaveStatus from './SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
@@ -102,6 +103,7 @@ const removeLlmKey = useMutation({
       A button with this mark sends your text to your AI and uses your key, so it costs tokens;
       while it works, the mark turns into a spinner. Buttons without the mark never do.
     </p>
+    <ProviderPrivacyAdvice />
     <p v-if="llm.data.value && !props.guide" role="status" class="mb-3 text-sm">
       <template v-if="llm.data.value.hasKey"
         >Anthropic key saved ({{ llm.data.value.keyHint }}).</template

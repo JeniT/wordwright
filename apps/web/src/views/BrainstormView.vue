@@ -12,6 +12,7 @@ import AiButton from '../components/AiButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Markdown from '../components/Markdown.vue'
 import NextStep from '../components/NextStep.vue'
+import SharedThreadNotice from '../components/SharedThreadNotice.vue'
 import ProposalCard from '../components/ProposalCard.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
 import StepHeading from '../components/StepHeading.vue'
@@ -203,10 +204,10 @@ const busyNote = computed(() =>
       <p class="mb-4 text-sm text-ink-soft">
         Your AI (with your own key) will talk this idea through with you, and add the points you
         make to its notes as you go. Your idea, its notes and links, and this publication's details
-        are sent to your AI provider so it can discuss them; the text of your drafts never is.
-        Everyone in this publication sees this conversation. A new title or a separate idea is only
-        a suggestion until someone accepts it.
+        are sent to your AI provider so it can discuss them; the text of your drafts never is. A new
+        title or a separate idea is only a suggestion until someone accepts it.
       </p>
+      <SharedThreadNotice :publication-id="publicationId" />
 
       <details class="mb-6 rounded-ctl border border-line bg-surface p-3 text-sm">
         <summary class="cursor-pointer font-medium">The idea being discussed</summary>

@@ -1353,7 +1353,8 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await expect(
     page.getByRole('heading', { name: 'First, connect your AI assistant' }),
   ).toBeVisible()
-  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(5)
+  await expect(page.getByRole('main').locator('ol > li')).toHaveCount(5)
+  await expect(page.getByText('Protect what you write')).toBeVisible()
   await expect(page.getByText('Next, create your first publication')).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'landing page').toEqual([])
 

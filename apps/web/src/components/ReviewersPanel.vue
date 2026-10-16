@@ -90,7 +90,7 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
         <p class="callout mb-3" data-testid="snapshot-notice">
           The people you ask read a <strong>frozen copy</strong> of the draft as it is now, not what
           you write after this. Sending again makes a new copy. They can comment, and only you see
-          their comments.
+          their comments. The AI never receives them.
         </p>
         <div class="mb-3">
           <label for="review-emails" class="mb-1 block font-medium">Email addresses</label>

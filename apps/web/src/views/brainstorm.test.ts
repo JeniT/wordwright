@@ -154,9 +154,8 @@ describe('the brainstorm page', () => {
     await renderAt(page)
     expect(await screen.findByRole('heading', { name: 'Refine' })).toBeInTheDocument()
     expect(screen.getByText(/the text of your\s+drafts never is/)).toBeInTheDocument()
-    expect(
-      screen.getByText(/Everyone in this publication sees this conversation/),
-    ).toBeInTheDocument()
+    // On your own, nothing is shared, so there is nothing to warn about.
+    expect(screen.queryByTestId('shared-thread-notice')).toBeNull()
 
     const summary = screen.getByText('The idea being discussed').closest('details')!
     expect(within(summary).getByText(/Erosion loops/)).toBeInTheDocument()
@@ -164,6 +163,39 @@ describe('the brainstorm page', () => {
 
     expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Your message')).toBeNull() // nothing to answer yet
+  })
+
+  it('says plainly that a thread is shared, before the first brainstorm, when others are in the publication', async () => {
+    mockConversation(
+      [],
+      [
+        http.get('*/api/publications', () =>
+          HttpResponse.json([
+            {
+              id: 'ada-substack',
+              name: 'Ada',
+              siteUrl: null,
+              imageUrl: null,
+              siteIconUrl: null,
+              description: null,
+              role: 'owner',
+              members: [
+                { userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' },
+                { userId: 'u2', name: 'Bo', email: 'bo@example.com', role: 'member' },
+              ],
+            },
+          ]),
+        ),
+      ],
+    )
+    await renderAt(page)
+    const notice = await screen.findByTestId('shared-thread-notice')
+    expect(notice).toHaveTextContent(/Everyone in this publication can read it/)
+    expect(notice).toHaveTextContent(/AI provider of whoever sends the message/)
+    expect(notice).toHaveTextContent(/earlier messages and notes by other members/)
+    expect(notice).toHaveTextContent(/publication with no other members/)
+    // It is there before the conversation has begun.
+    expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
   })
 
   it('lets the writer end the session at any point by going on to write', async () => {

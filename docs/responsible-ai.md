@@ -187,8 +187,13 @@ Anthropic specifics checked against the provider's current pages before it ships
 > If you use a different provider, look for the same three things: whether API data is used for training, how long it
 > is kept, and whether you can set a spending limit.
 
-(The sources I found disagreed on the default retention period when this was written. Before shipping this text,
-read the two pages above and quote what they say today.)
+_Shipped (#47)._ The app's text is in `ProviderPrivacyAdvice.vue` (landing page and Account → AI assistant) and
+`SharedThreadNotice.vue` (brainstorm page, shown whenever the publication has other members). Checked on 2026-10-16:
+Anthropic's [commercial retention page](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)
+says API inputs and outputs are deleted within 30 days by default (longer for Usage Policy flags or by agreement), and
+its API data-retention page says retained data is never used for training without permission. The earlier "7 to 30
+days" wording was dropped. Recheck both pages if either text is changed. The review panel also says reviewers see
+only a frozen copy and their own comments, and that the AI never receives comments.
 
 ## Applying this to the roadmap
 

@@ -30,6 +30,18 @@ describe('AccountView', () => {
     expect(screen.getAllByRole('radiogroup', { name: 'Appearance' })).toHaveLength(1)
   })
 
+  it('gives advice on the provider privacy settings next to the AI key', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+    )
+    await renderAt('/account')
+    const advice = await screen.findByRole('region', { name: 'Protect what you write' })
+    expect(advice).toHaveTextContent(/Console, not a Claude chat subscription/)
+    expect(advice).toHaveTextContent(/spending limit/)
+    expect(advice).toHaveTextContent(/Revoke the key/)
+  })
+
   it('requires the typed email (and password) before deleting, then signs out', async () => {
     let body: unknown
     server.use(
