@@ -1,6 +1,13 @@
+<script setup lang="ts">
+/** `level` is the heading level: 3 under a settings section's h2, 2 on the privacy help page, which has an h1. */
+withDefaults(defineProps<{ level?: 2 | 3 }>(), { level: 3 })
+</script>
+
 <template>
   <section class="callout mb-4 text-sm" aria-labelledby="provider-privacy-heading">
-    <h3 id="provider-privacy-heading" class="mb-1 font-medium">Protect what you write</h3>
+    <component :is="`h${level}`" id="provider-privacy-heading" class="mb-1 font-medium"
+      >Protect what you write</component
+    >
     <p class="mb-2">Your writing is sent to Anthropic using your key. A few things to check:</p>
     <ul class="list-disc space-y-1 pl-5">
       <li>

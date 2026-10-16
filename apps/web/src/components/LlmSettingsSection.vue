@@ -51,7 +51,7 @@ const removeLlmKey = useMutation({
         Wordwright uses your own Anthropic account, so the cost of the AI is billed to you. Your
         writing is sent to Anthropic using your key. This does have
         <RouterLink to="/help/privacy" target="_blank" class="link"
-          >privacy implications<span class="sr-only"> (opens in a new tab)</span></RouterLink
+          >privacy implications (opens in a new tab)</RouterLink
         >.
       </p>
       <p class="mb-3 text-sm">
@@ -62,7 +62,7 @@ const removeLlmKey = useMutation({
     </template>
     <p v-else class="mb-3 text-sm text-ink-soft">
       AI features use your own Anthropic account, so usage is billed to you, not to this service.
-      Paste your key below. It's stored encrypted and never shown again.
+      Paste your key below. It’s stored encrypted and never shown again.
       <RouterLink to="/help/api-key" target="_blank" class="link"
         >How to get an API key (opens in a new tab)</RouterLink
       >

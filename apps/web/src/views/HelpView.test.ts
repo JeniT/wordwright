@@ -37,7 +37,10 @@ describe('Help', () => {
       'https://console.anthropic.com/settings/keys',
     )
     // The way on once they have a key, and to the privacy page.
-    expect(screen.getByRole('link', { name: 'privacy' })).toHaveAttribute('href', '/help/privacy')
+    expect(screen.getByRole('link', { name: 'privacy advice' })).toHaveAttribute(
+      'href',
+      '/help/privacy',
+    )
   })
 
   it('explains the privacy checks on their own page', async () => {

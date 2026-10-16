@@ -125,6 +125,7 @@ repeated change across files, use `perl -pi -e 's/a/b/' <files>`. To read part o
   and ends with `NextStep` where a next step makes sense. Numbered steps are always links, never locked; a step that
   calls the AI waits for a button (visiting spends nothing); pages read beside another window set `compact: true`.
   Don't add a second `aside` (the drafting notes own the `complementary` landmark).
+  Help pages are the exception: they sit outside the levels (`meta: { open: true }`, framed by `HelpPage`, no step).
 - **Reorderable lists:** use `ReorderableList` (a dotted left rail you drag, with up/down arrow buttons that show for the whole list on hover or focus, with
   focus and announcements) for any list whose order people can change, so they all look and behave alike.
 - **Controls in lists** (full rules in [docs/design.md](docs/design.md#actions-and-lists)): checkboxes only _select_

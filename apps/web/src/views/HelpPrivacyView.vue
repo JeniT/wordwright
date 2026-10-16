@@ -10,7 +10,7 @@ import ProviderPrivacyAdvice from '../components/ProviderPrivacyAdvice.vue'
       The AI buttons send the text you are working on to Anthropic, using your own key. These are
       the things worth checking before you start.
     </p>
-    <ProviderPrivacyAdvice />
+    <ProviderPrivacyAdvice :level="2" />
     <p class="text-sm">
       Don’t have a key yet? See
       <RouterLink to="/help/api-key" class="link">how to get one</RouterLink>.

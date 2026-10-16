@@ -257,10 +257,7 @@ export const routes: RouteRecordRaw[] = [
     props: true,
     meta: { wide: true, level: 'idea', step: 'draft', ideaFromDraft: true },
   },
-]
-
-/** Help pages work for everyone, signed in or not (a link from sign-up or an email must open). */
-const helpRoutes: RouteRecordRaw[] = [
+  // Help works for everyone, signed in or not (a link from sign-up or an email must open). The catch-all comes last.
   {
     path: '/help',
     name: 'help',
@@ -286,7 +283,6 @@ const helpRoutes: RouteRecordRaw[] = [
     meta: { open: true },
   },
 ]
-routes.push(...helpRoutes)
 
 /**
  * The page the person was on before this one, within this tab (null when they arrived straight here: a new tab, a

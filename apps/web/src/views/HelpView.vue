@@ -18,7 +18,7 @@ const pages = [
 </script>
 
 <template>
-  <HelpPage title="Help" index>
+  <HelpPage title="Help" hide-back>
     <ul class="space-y-3" aria-label="Help pages">
       <li v-for="page in pages" :key="page.name" class="card p-4">
         <h2 class="font-semibold">
