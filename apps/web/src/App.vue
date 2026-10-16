@@ -23,6 +23,8 @@ usePublicationAddressRedirect()
 const nav = useNav()
 /** Where you are, for the phone's top bar while the menu is folded: "What the allotment…  02 Notes". */
 const here = computed(() => {
+  if (nav.level.value === 'account')
+    return nav.accountPages.value.find((p) => p.key === nav.stepKey.value)?.label ?? ''
   const step = nav.steps.value.find((s) => s.key === nav.stepKey.value)
   return step ? `${step.number} ${step.label}` : ''
 })
@@ -135,7 +137,11 @@ watch(
           <div class="mt-auto border-t border-line px-5 py-4">
             <div class="flex items-center justify-between gap-2">
               <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
-              <SettingsButton :to="{ name: 'account' }" label="Account settings" />
+              <SettingsButton
+                :to="{ name: 'account' }"
+                label="Account settings"
+                :current="nav.level.value === 'account'"
+              />
             </div>
             <div class="mt-2 flex flex-wrap items-center gap-3">
               <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">

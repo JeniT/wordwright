@@ -17,6 +17,10 @@ test('sees where they are signed in, ends the other device, and is asked before 
   await page.getByLabel('Password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Sign-in and security' })
+    .click()
 
   const section = page.getByRole('region', { name: "Where you're signed in" })
   await expect(section.getByText('Only this device is signed in')).toBeVisible()

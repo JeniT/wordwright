@@ -314,7 +314,7 @@ const busyNote = computed(() =>
         >
           <p>{{ replyProblem.message }}</p>
           <p v-if="replyProblem.needsKey" class="mt-1">
-            <RouterLink to="/account" class="underline">Go to account settings</RouterLink>
+            <RouterLink to="/account/ai" class="underline">Go to account settings</RouterLink>
           </p>
         </div>
 

@@ -127,7 +127,7 @@ describe('"Who can invite you" on the account page', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     const s = within(await section())
     await fireEvent.click(await s.findByRole('button', { name: 'Unblock Ada Lovelace' }))
     expect(await s.findByText(/You haven't blocked anyone/)).toBeInTheDocument()
@@ -146,7 +146,7 @@ describe('"Who can invite you" on the account page', () => {
         return HttpResponse.json({ ok: true })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     const box = await within(await section()).findByLabelText(
       /Don't accept invitations from anyone/,
     )
@@ -158,7 +158,7 @@ describe('"Who can invite you" on the account page', () => {
 
   it('asks unconfirmed accounts to confirm first', async () => {
     server.use(signedInAs({ ...testUser, emailVerified: false }), ...base)
-    await renderAt('/account')
+    await renderAt('/account/security')
     expect(within(await section()).getByText(/Confirm your email address/)).toBeInTheDocument()
     expect(screen.queryByLabelText(/Don't accept invitations/)).toBeNull()
   })
@@ -171,7 +171,7 @@ describe('"Who can invite you" on the account page', () => {
         HttpResponse.json({ error: 'Something went wrong' }, { status: 500 }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     expect(await within(await section()).findByRole('alert')).toHaveTextContent(
       'Something went wrong',
     )

@@ -31,7 +31,10 @@ onMounted(() => token && confirm.mutate())
         Thanks, your email address has been changed. Use it to sign in from now on.
       </p>
       <p class="mt-4 text-sm">
-        <RouterLink :to="session.user ? '/account' : '/login'" class="text-accent underline">
+        <RouterLink
+          :to="session.user ? '/account/details' : '/login'"
+          class="text-accent underline"
+        >
           {{ session.user ? 'Back to your account' : 'Sign in' }}
         </RouterLink>
       </p>
@@ -39,7 +42,10 @@ onMounted(() => token && confirm.mutate())
     <template v-else>
       <p role="alert" class="text-danger">{{ errorMessage(confirm.error.value) }}</p>
       <p class="mt-4 text-sm">
-        <RouterLink :to="session.user ? '/account' : '/login'" class="text-accent underline">
+        <RouterLink
+          :to="session.user ? '/account/details' : '/login'"
+          class="text-accent underline"
+        >
           {{ session.user ? 'Go to your account' : 'Sign in' }}
         </RouterLink>
         {{

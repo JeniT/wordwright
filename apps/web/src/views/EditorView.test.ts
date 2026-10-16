@@ -376,7 +376,7 @@ describe('EditorView critique', () => {
     )
     expect(screen.getByRole('link', { name: 'account settings' })).toHaveAttribute(
       'href',
-      '/account',
+      '/account/ai',
     )
     // The critique already made is still there to work from.
     expect(await screen.findByText('A decent start.')).toBeTruthy()

@@ -10,7 +10,7 @@ import { vTip } from '../lib/tip'
  * link (it goes to a page), is marked current on its own page, and is 44px square (docs/design.md, Navigation):
  * `w-11!` overrides the 36px width `btn-icon` sets for buttons that repeat on every row.
  */
-defineProps<{ to: RouteLocationRaw; label: string }>()
+defineProps<{ to: RouteLocationRaw; label: string; current?: boolean }>()
 </script>
 
 <template>
@@ -18,6 +18,7 @@ defineProps<{ to: RouteLocationRaw; label: string }>()
     v-tip="label"
     :to="to"
     :aria-label="label"
+    v-bind="current ? { 'aria-current': 'page' } : {}"
     class="btn btn-icon btn-ghost min-h-11 w-11! shrink-0"
   >
     <Icon name="settings" />

@@ -12,7 +12,7 @@ declare module 'vue-router' {
     /** Pages that need more room than a column of text (the drafting page has a side column). */
     wide?: boolean
     /** Which level of the app the page belongs to, which decides what the side menu lists (see lib/nav.ts). */
-    level?: 'publication' | 'idea'
+    level?: 'publication' | 'idea' | 'account'
     /** The numbered step the page belongs to (a key from PUBLICATION_STEPS or IDEA_STEPS); none for settings. */
     step?: string
     /** For the drafting page: the idea it belongs to is found from the draft, not from the address. */
@@ -109,7 +109,22 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/ReviewView.vue'),
     props: true,
   },
-  { path: '/account', name: 'account', component: () => import('./views/AccountView.vue') },
+  { path: '/account', name: 'account', redirect: { name: 'account-details' } },
+  ...(
+    [
+      ['details', 'AccountDetailsView'],
+      ['ai', 'AccountAiView'],
+      ['display', 'AccountDisplayView'],
+      ['security', 'AccountSecurityView'],
+      ['download', 'AccountDownloadView'],
+      ['delete', 'AccountDeleteView'],
+    ] as const
+  ).map(([step, view]): RouteRecordRaw => ({
+    path: `/account/${step}`,
+    name: `account-${step}`,
+    component: () => import(`./views/${view}.vue`),
+    meta: { level: 'account', step },
+  })),
   {
     path: '/publications/new',
     name: 'new-publication',

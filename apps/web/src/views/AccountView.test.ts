@@ -22,7 +22,7 @@ describe('AccountView', () => {
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
-    await renderAt('/account')
+    await renderAt('/account/display')
     const group = await screen.findByRole('radiogroup', { name: 'Appearance' })
     expect(within(screen.getByRole('main')).getByRole('radiogroup', { name: 'Appearance' })).toBe(
       group,
@@ -44,7 +44,7 @@ describe('AccountView', () => {
 
     it('shows whether it is on, and explains what it does', async () => {
       signedInWith(true)
-      await renderAt('/account')
+      await renderAt('/account/display')
       expect(await tutorialSwitch()).toBeChecked()
       expect(screen.getByRole('region', { name: 'Tutorial mode' })).toHaveTextContent(
         /Explains each page/i,
@@ -60,7 +60,7 @@ describe('AccountView', () => {
           return HttpResponse.json({ on: false, seen: [], answered: false })
         }),
       )
-      await renderAt('/account')
+      await renderAt('/account/display')
       await fireEvent.click(await tutorialSwitch())
       await waitFor(() => expect(puts).toEqual([{ on: false }]))
       expect(await screen.findByText('Saved')).toBeVisible()
@@ -74,7 +74,7 @@ describe('AccountView', () => {
           HttpResponse.json({ on: true, seen: ['publication-ideas'], answered: true }),
         ),
       )
-      await renderAt('/account')
+      await renderAt('/account/display')
       await fireEvent.click(await tutorialSwitch())
       await waitFor(async () => expect(await tutorialSwitch()).toBeChecked())
     })
@@ -86,7 +86,7 @@ describe('AccountView', () => {
           HttpResponse.json({ error: 'We could not save that. Try again.' }, { status: 500 }),
         ),
       )
-      await renderAt('/account')
+      await renderAt('/account/display')
       await fireEvent.click(await tutorialSwitch())
       expect(await screen.findByRole('alert')).toHaveTextContent('We could not save that')
       expect(await tutorialSwitch()).toBeChecked()
@@ -98,7 +98,7 @@ describe('AccountView', () => {
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     const advice = await screen.findByRole('region', { name: 'Protect what you write' })
     expect(advice).toHaveTextContent(/Console, not a Claude chat subscription/)
     expect(advice).toHaveTextContent(/spending limit/)
@@ -115,7 +115,7 @@ describe('AccountView', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    const { router } = await renderAt('/account')
+    const { router } = await renderAt('/account/delete')
     await fireEvent.update(
       await screen.findByLabelText('Password', { selector: 'input' }),
       'my password 123',
@@ -141,7 +141,7 @@ describe('AccountView', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    const { router } = await renderAt('/account')
+    const { router } = await renderAt('/account/delete')
     const keep = await screen.findByRole('radio', { name: /Keep my name on my notes/ })
     expect(keep).toBeChecked() // the default
     await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
@@ -166,7 +166,7 @@ describe('AccountView', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    const { router } = await renderAt('/account')
+    const { router } = await renderAt('/account/delete')
     await fireEvent.update(
       await screen.findByLabelText('Password', { selector: 'input' }),
       'my password 123',
@@ -181,7 +181,7 @@ describe('AccountView', () => {
     await fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(deleted).toBe(false)
-    expect(router.currentRoute.value.name).toBe('account')
+    expect(router.currentRoute.value.name).toBe('account-delete')
   })
 
   it('closes the confirmation and shows the problem if the deletion is refused', async () => {
@@ -192,7 +192,7 @@ describe('AccountView', () => {
         HttpResponse.json({ error: 'That password is not right.' }, { status: 400 }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/delete')
     await fireEvent.update(await screen.findByLabelText('Password', { selector: 'input' }), 'wrong')
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
     await fireEvent.click(await screen.findByRole('button', { name: /Yes, delete my account/ }))
@@ -205,29 +205,61 @@ describe('AccountView', () => {
       signedInAs({ ...testUser, hasPassword: false, linkedProviders: ['google'] }),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
-    await renderAt('/account')
+    await renderAt('/account/delete')
     expect(
       await screen.findByText(/To delete your account, first add a password/),
     ).toBeInTheDocument()
     expect(screen.queryByLabelText('Password', { selector: 'input' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Delete my account' })).toBeDisabled()
-    expect(screen.getByText(/Linked sign-in: google/)).toBeInTheDocument()
   })
 
-  it('shows the handle that publication addresses start with, and links to the publications', async () => {
+  it('sends /account to the details page, with no header block or Publications section', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
-    await renderAt('/account')
-    const section = (await screen.findByRole('heading', { name: 'Publications' })).closest(
-      'section',
-    )!
-    expect(section).toHaveTextContent('adalovelace')
-    expect(within(section).getByRole('link', { name: 'your publications' })).toHaveAttribute(
-      'href',
-      '/',
+    const { router } = await renderAt('/account')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your details' })).toBeVisible()
+    expect(router.currentRoute.value.path).toBe('/account/details')
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(
+      expect.arrayContaining(['Your name', 'Username']),
     )
+    expect(screen.queryByRole('heading', { name: 'Publications' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Your account' })).toBeNull()
+  })
+
+  it.each([
+    ['details', 'Your details'],
+    ['ai', 'Your AI'],
+    ['display', 'Display'],
+    ['security', 'Sign-in and security'],
+    ['download', 'Download your writing'],
+    ['delete', 'Delete account'],
+  ])('/account/%s is titled “%s” and lists all six pages in the menu', async (page, title) => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+    )
+    await renderAt(`/account/${page}`)
+    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible()
+    const menu = within(screen.getByRole('navigation', { name: 'Account settings' }))
+    expect(menu.getAllByRole('link').map((a) => a.textContent)).toEqual([
+      'Your details',
+      'Your AI',
+      'Display',
+      'Sign-in and security',
+      'Download your writing',
+      'Delete account',
+    ])
+    expect(menu.getByRole('link', { current: 'page' })).toHaveTextContent(title)
+    expect(menu.getAllByRole('link', { current: 'page' })).toHaveLength(1)
+    const banner = within(screen.getByRole('banner'))
+    expect(banner.getByRole('link', { name: '← All publications' })).toHaveAttribute('href', '/')
+    expect(banner.getByRole('link', { name: 'Account settings', current: 'page' })).toHaveAttribute(
+      'href',
+      '/account',
+    )
+    expect(screen.queryByText('01')).toBeNull() // plain links, no step numbers
   })
 })
 
@@ -245,7 +277,7 @@ describe('AccountView: AI assistant key', () => {
         return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     await screen.findByText('No API key yet.')
     expect(screen.queryByLabelText('Model')).toBeNull() // the provider lists models for a key
     expect(screen.getByText('Save a key to choose a model.')).toBeInTheDocument()
@@ -273,7 +305,7 @@ describe('AccountView: AI assistant key', () => {
         return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     const save = (await screen.findAllByRole('button', { name: 'Save' }))[0]!
     expect(save).toBeDisabled() // still loading
     await screen.findByText('No API key yet.')
@@ -295,7 +327,7 @@ describe('AccountView: AI assistant key', () => {
         ),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     await screen.findByText('No API key yet.') // settings loaded, so Save is enabled
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-wrong-1234567890')
     await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
@@ -319,7 +351,7 @@ describe('AccountView: AI assistant key', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     await screen.findByText(/Anthropic key saved/)
     const model = await screen.findByLabelText('Model')
     // The provider's own names, not ours.
@@ -354,7 +386,7 @@ describe('AccountView: the model', () => {
           : HttpResponse.json({ models: [{ id: 'claude-opus-5-5', label: 'Claude Opus 5.5' }] }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     expect(await screen.findByText(/Couldn.t load models/)).toBeInTheDocument()
     expect(screen.getByText('claude-opus-5-5')).toBeInTheDocument()
     fail = false
@@ -368,7 +400,7 @@ describe('AccountView: the model', () => {
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/llm', () => HttpResponse.json({ ...saved, model: 'claude-retired-1' })),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     const model = await screen.findByLabelText('Model')
     expect(model).toHaveValue('claude-retired-1')
     expect(screen.getByText(/no longer offered/)).toBeInTheDocument()
@@ -393,7 +425,7 @@ describe('AccountView: replacing a key while the saved model is retired', () => 
         return HttpResponse.json({ ...retired, model: 'claude-sonnet-5-5' })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     await screen.findByText(/no longer offered/)
     await fireEvent.update(
       screen.getByLabelText(/Replace API key/),
@@ -422,7 +454,7 @@ describe('AccountView: critiques of a draft', () => {
   it('shows the current number, suggests three, and saves a change', async () => {
     const saved: number[] = []
     mock(saved, 2)
-    await renderAt('/account')
+    await renderAt('/account/ai')
     const select = await screen.findByLabelText('Critiques each draft gets')
     await waitFor(() => expect(select).toHaveValue('2'))
     expect(
@@ -455,7 +487,7 @@ describe('AccountView: critiques of a draft', () => {
         return HttpResponse.json({ rounds: 3 })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     const select = await screen.findByLabelText('Critiques each draft gets')
     expect(select).toBeDisabled()
     arrive()
@@ -478,7 +510,7 @@ describe('AccountView: critiques of a draft', () => {
         HttpResponse.json({ error: 'Choose a number from 1 to 5' }, { status: 400 }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/ai')
     const save = within(
       await screen.findByRole('region', { name: 'Critiques of a draft' }),
     ).getByRole('button', { name: 'Save' })

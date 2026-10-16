@@ -28,7 +28,7 @@ describe('changing a password', () => {
         return HttpResponse.json({ ok: true })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     const current = await screen.findByLabelText('Current password')
     expect(current).toHaveAttribute('type', 'password')
     await fireEvent.update(current, 'my old password')
@@ -53,7 +53,7 @@ describe('changing a password', () => {
         HttpResponse.json({ error: 'Your current password is incorrect' }, { status: 403 }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     await fireEvent.update(await screen.findByLabelText('Current password'), 'nope nope nope')
     await fireEvent.update(screen.getByLabelText('New password'), 'a brand new password')
     await fireEvent.click(screen.getByRole('button', { name: 'Change password' }))
@@ -74,7 +74,7 @@ describe('adding a password to a Google-only account', () => {
         return HttpResponse.json({ ok: true })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     await screen.findByText(/You sign in with google/)
     expect(screen.queryByLabelText('Current password')).toBeNull()
 
@@ -93,7 +93,7 @@ describe('adding a password to a Google-only account', () => {
         HttpResponse.json({ error: 'Too many attempts' }, { status: 429 }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     await fireEvent.click(
       await screen.findByRole('button', { name: 'Email me a link to set a password' }),
     )

@@ -1,0 +1,89 @@
+import AxeBuilder from '@axe-core/playwright'
+import type { Page } from '@playwright/test'
+import { expect, test } from './fixtures'
+
+// Account settings are six short pages with their own level in the side menu (#210).
+
+const noViolations = async (page: Page, what: string) =>
+  expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
+
+async function signUp(page: Page) {
+  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+  await page.goto('/register')
+  await page.getByLabel('What should we call you?').fill('Una')
+  await page.getByLabel('Username').fill(`u${id}`)
+  await page.getByLabel('Email').fill(`una-${id}@example.com`)
+  await page.getByLabel('Password').fill('a perfectly good password')
+  await page.getByRole('button', { name: 'Create account' }).click()
+}
+
+const PAGES = [
+  ['Your details', '/account/details'],
+  ['Your AI', '/account/ai'],
+  ['Display', '/account/display'],
+  ['Sign-in and security', '/account/security'],
+  ['Download your writing', '/account/download'],
+  ['Delete account', '/account/delete'],
+] as const
+
+test('the gear opens the account level, the menu moves between its pages, and /account redirects', async ({
+  page,
+}) => {
+  await signUp(page)
+  const gear = page.getByRole('banner').getByRole('link', { name: 'Account settings' })
+  await gear.click()
+  await expect(page).toHaveURL(/\/account\/details$/)
+  await expect(gear).toHaveAttribute('aria-current', 'page')
+
+  const menu = page.getByRole('navigation', { name: 'Account settings' })
+  for (const [label, path] of PAGES) {
+    await menu.getByRole('link', { name: label }).click()
+    await expect(page).toHaveURL(new RegExp(`${path}$`))
+    await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    await expect(menu.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
+    await expect(gear).toHaveAttribute('aria-current', 'page') // current across the group
+  }
+
+  // The delete page's way to the download page.
+  await page.getByRole('link', { name: /download your writing first/i }).click()
+  await expect(page).toHaveURL(/\/account\/download$/)
+
+  await page.goto('/account')
+  await expect(page).toHaveURL(/\/account\/details$/)
+
+  await page.getByRole('banner').getByRole('link', { name: '← All publications' }).click()
+  await expect(page).toHaveURL(/\/$/)
+})
+
+test('each page is accessible in light, in dark and on a phone, with no sideways scroll', async ({
+  page,
+}) => {
+  await signUp(page)
+  for (const [label, path] of PAGES) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    await noViolations(page, `${label}, light`)
+  }
+  await page.emulateMedia({ colorScheme: 'dark' })
+  for (const [label, path] of PAGES) {
+    await page.goto(path)
+    await noViolations(page, `${label}, dark`)
+  }
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.goto('/account/details')
+  await page.getByRole('button', { name: 'Menu' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Display' })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Display' })).toBeVisible()
+  for (const [label, path] of PAGES) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    await noViolations(page, `${label}, phone`)
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(overflow, `${label}: no sideways scroll at 390px`).toBe(false)
+  }
+})

@@ -1,21 +1,10 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import AppearanceSection from '../components/AppearanceSection.vue'
+import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import DevicesSection from '../components/DevicesSection.vue'
 import DangerZone from '../components/DangerZone.vue'
-import ExportSection from '../components/ExportSection.vue'
-import TutorialSettingsSection from '../components/TutorialSettingsSection.vue'
-import CritiqueSettingsSection from '../components/CritiqueSettingsSection.vue'
-import EmailSection from '../components/EmailSection.vue'
-import InvitationBlocksSection from '../components/InvitationBlocksSection.vue'
-import LlmSettingsSection from '../components/LlmSettingsSection.vue'
-import NameSection from '../components/NameSection.vue'
-import PasswordSection from '../components/PasswordSection.vue'
-import UsernameSection from '../components/UsernameSection.vue'
-
+import StepHeading from '../components/StepHeading.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
 import { useSessionStore } from '../stores/session'
@@ -43,55 +32,15 @@ const deleteAccount = useMutation({
 </script>
 
 <template>
-  <div v-if="session.user" class="space-y-10">
-    <section aria-labelledby="account-heading">
-      <h1 id="account-heading" class="font-display text-2xl font-semibold">Your account</h1>
-      <p class="mt-2 text-ink-soft">{{ session.user.name }} · {{ session.user.email }}</p>
-      <p v-if="session.user.linkedProviders.length" class="text-sm text-ink-soft">
-        Linked sign-in: {{ session.user.linkedProviders.join(', ') }}
-      </p>
-    </section>
-
-    <NameSection />
-
-    <UsernameSection />
-
-    <EmailSection />
-
-    <PasswordSection />
-
-    <DevicesSection />
-
-    <InvitationBlocksSection />
-
-    <AppearanceSection />
-
-    <TutorialSettingsSection />
-
-    <LlmSettingsSection />
-
-    <CritiqueSettingsSection />
-
-    <section aria-labelledby="publications-heading">
-      <h2 id="publications-heading" class="mb-1 font-display text-xl font-semibold">
-        Publications
-      </h2>
-      <p class="text-sm text-ink-soft">
-        Create, share and manage publications from
-        <RouterLink to="/" class="underline">your publications</RouterLink>. Publication addresses
-        start with your handle,
-        <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}</code
-        >.
-      </p>
-    </section>
-
-    <ExportSection />
-
+  <div v-if="session.user">
+    <StepHeading>Delete account</StepHeading>
     <DangerZone title="Delete account">
       <p class="mb-4 text-sm">
         Deleting can't be undone, so
-        <a href="#download" class="underline">download your writing first</a> if you want to keep
-        it.
+        <RouterLink :to="{ name: 'account-download' }" class="underline"
+          >download your writing first</RouterLink
+        >
+        if you want to keep it.
       </p>
       <p class="mb-4 text-sm">
         This permanently deletes your account, and every publication (with its drafts) that only you
@@ -124,8 +73,10 @@ const deleteAccount = useMutation({
           required
         />
         <p v-else class="mb-3 text-sm">
-          To delete your account, first add a password in the section above; that keeps anyone who
-          borrows your signed-in device from deleting it.
+          To delete your account, first add a password in
+          <RouterLink :to="{ name: 'account-security' }" class="underline"
+            >Sign-in and security</RouterLink
+          >; that keeps anyone who borrows your signed-in device from deleting it.
         </p>
         <p v-if="deleteAccount.isError.value" role="alert" class="mb-3 text-danger">
           {{ errorMessage(deleteAccount.error.value) }}

@@ -17,8 +17,8 @@ import HelpPage from '../components/HelpPage.vue'
       It is on when you create an account. Once you have seen every kind of page that has a
       tutorial, we ask once whether you would like to turn it off. You can change it at any time
       with the <strong>Tutorial mode</strong> switch in
-      <RouterLink :to="{ name: 'account' }" class="link">your account settings</RouterLink>, and
-      turning it back on doesn’t make us forget which pages you have seen.
+      <RouterLink :to="{ name: 'account-display' }" class="link">your account settings</RouterLink>,
+      and turning it back on doesn’t make us forget which pages you have seen.
     </p>
     <h2 class="mb-1 font-display text-xl font-semibold">What we keep</h2>
     <p>

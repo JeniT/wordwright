@@ -28,7 +28,7 @@ describe('username on the account page', () => {
   it('explains what it is for, checks the new one as it is typed, and saves it', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     const fake = fakeUsernames()
-    await renderAt('/account')
+    await renderAt('/account/details')
     expect(await screen.findByText(/Your username is/)).toHaveTextContent('adalovelace')
     expect(
       screen.getByText(/Publications you already have keep their addresses/),
@@ -52,7 +52,7 @@ describe('username on the account page', () => {
   it('explains a badly formed or reserved username, and will not save it', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames()
-    await renderAt('/account')
+    await renderAt('/account/details')
     const field = await screen.findByLabelText('New username')
     await fireEvent.update(field, 'has space')
     expect(await screen.findByText('Use only letters and numbers in your username')).toBeVisible()
@@ -64,7 +64,7 @@ describe('username on the account page', () => {
   it('will not offer the username they already have as a change', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames()
-    await renderAt('/account')
+    await renderAt('/account/details')
     await fireEvent.update(await screen.findByLabelText('New username'), 'AdaLovelace')
     expect(await screen.findByText('That is your current username.')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Change username' })).toBeDisabled()
@@ -83,7 +83,7 @@ describe('username on the account page', () => {
         ),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/details')
     await fireEvent.update(await screen.findByLabelText('New username'), 'lovelace')
     await fireEvent.click(await screen.findByRole('button', { name: 'Change username' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('changed your username several')

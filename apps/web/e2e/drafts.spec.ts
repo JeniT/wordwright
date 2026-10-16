@@ -221,7 +221,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.
   await expect(page.getByText('1 of 3 looks used')).toBeVisible()
-  await page.goto('/account')
+  await page.goto('/account/ai')
   await page.getByLabel('Critiques each draft gets').selectOption('1')
   await page
     .getByRole('region', { name: 'Critiques of a draft' })
@@ -275,7 +275,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
 }) => {
   test.setTimeout(90_000)
   await registerUser(page)
-  await page.goto('/account')
+  await page.goto('/account/ai')
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-rephrase-key-5678')
   await page.getByRole('button', { name: 'Save' }).first().click()
   await expect(
@@ -375,7 +375,7 @@ test('rephrases the title once the draft is long enough, and records the option 
 }) => {
   test.setTimeout(90_000)
   await registerUser(page)
-  await page.goto('/account')
+  await page.goto('/account/ai')
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-title-key-5678')
   await page.getByRole('button', { name: 'Save' }).first().click()
   await expect(
@@ -523,6 +523,10 @@ test('changes the email address once the new one is confirmed', async ({ page })
   const newEmail = `changed-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
 
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Your details' })
+    .click()
   await page.getByLabel('New email address').fill(newEmail)
   await page.getByLabel('Confirm with your password').fill('the wrong password')
   await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
@@ -533,7 +537,7 @@ test('changes the email address once the new one is confirmed', async ({ page })
   await expect(page.getByRole('status').filter({ hasText: newEmail })).toBeVisible()
 
   // Nothing has changed until the link is opened.
-  await expect(page.getByText(`Ada Lovelace · ${oldEmail}`)).toBeVisible()
+  await expect(page.getByText(`Your address is ${oldEmail}`)).toBeVisible()
   const link = linkIn(
     await waitForEmail(newEmail, 'Confirm your new email address'),
     '/confirm-email-change',
@@ -542,7 +546,7 @@ test('changes the email address once the new one is confirmed', async ({ page })
   await page.goto(link!)
   await expect(page.getByText('your email address has been changed')).toBeVisible()
   await page.getByRole('link', { name: 'Back to your account' }).click()
-  await expect(page.getByText(`Ada Lovelace · ${newEmail}`)).toBeVisible()
+  await expect(page.getByText(`Your address is ${newEmail}`)).toBeVisible()
   await waitForEmail(oldEmail, 'Your email address was changed')
 
   // The new address signs in; the old one no longer does.
@@ -562,6 +566,10 @@ test('"this wasn\'t me" puts the old address back and forces a new password', as
   const newEmail = `intruder-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
 
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Your details' })
+    .click()
   await page.getByLabel('New email address').fill(newEmail)
   await page.getByLabel('Confirm with your password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
@@ -791,6 +799,10 @@ test('the only owner of a shared publication cannot delete their account until a
   await confirmEmail(page, adaEmail)
   await joinFrom(page, browser, 'Bob')
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Delete account' })
+    .click()
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await page.getByRole('button', { name: 'Delete my account' }).click()
   await page
@@ -1208,7 +1220,7 @@ test('declining and blocking an inviter from the email, then lifting the block',
     linkIn(await waitForEmail(bobEmail, 'Confirm your email address'), '/verify-email')!,
   )
   await expect(bob.getByText('your email address is confirmed')).toBeVisible()
-  await bob.goto('/account')
+  await bob.goto('/account/security')
   await expect(bob.getByText('Ada', { exact: true })).toBeVisible()
   expect(
     (await new AxeBuilder({ page: bob }).analyze()).violations,
@@ -1288,6 +1300,10 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await expect(phone.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Sign-in and security' })
+    .click()
   // A wrong current password is explained and changes nothing.
   await page.getByLabel('Current password').fill('definitely not it')
   await page.getByLabel('New password').fill('my brand new password')
@@ -1303,7 +1319,7 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await phone.reload()
   await expect(phone.getByRole('heading', { name: 'Sign in' })).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign-in and security' })).toBeVisible()
 
   // Old password dead, new one works.
   await page.getByRole('button', { name: 'Sign out' }).click()
@@ -1424,7 +1440,11 @@ test('downloads your writing as a zip from the account page and from a publicati
   }
 
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
-  await expect(page.getByRole('heading', { name: 'Download your writing' })).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Download your writing' })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Download your writing' })).toBeVisible()
   const account = await downloaded(page, () =>
     page.getByRole('button', { name: 'Download as a zip' }).click(),
   )
@@ -1444,6 +1464,10 @@ test('downloads your writing as a zip from the account page and from a publicati
 test('deletes an account', async ({ page }) => {
   const email = await registerUser(page)
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Delete account' })
+    .click()
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await expect(page.getByRole('radio', { name: /Keep my name on my notes/ })).toBeChecked()
   await page.getByRole('radio', { name: /a former member/ }).check()
@@ -1477,6 +1501,10 @@ test('signed-in pages have no detectable accessibility violations', async ({ pag
   await registerUser(page)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Your AI' })
+    .click()
   await expect(page.getByRole('heading', { name: 'AI assistant' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

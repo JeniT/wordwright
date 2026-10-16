@@ -198,7 +198,12 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
   }
   // The system is dark here; choosing Light (on the account page) overrides it, is remembered, and System hands control back.
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Your account' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Your details' })).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Display' })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Display' })).toBeVisible()
   await noViolations(page, 'Account settings in dark mode')
   await expect(page.getByRole('radio', { name: 'System' })).toBeChecked()
   await page.getByRole('radio', { name: 'Light' }).check()

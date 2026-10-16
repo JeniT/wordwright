@@ -19,7 +19,7 @@ describe('changing your email on the account page', () => {
         return HttpResponse.json({ ok: true })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/details')
     const form = (await screen.findByRole('heading', { name: 'Email address' })).closest('section')!
     expect(form).toHaveTextContent('ada@example.com')
 
@@ -41,7 +41,7 @@ describe('changing your email on the account page', () => {
         HttpResponse.json({ error: 'An account with this email already exists' }, { status: 409 }),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/details')
     const form = (await screen.findByRole('heading', { name: 'Email address' })).closest('section')!
     await fireEvent.update(screen.getByLabelText('New email address'), 'bob@example.com')
     await fireEvent.update(screen.getByLabelText('Confirm with your password'), 'my password')
@@ -60,7 +60,7 @@ describe('changing your email on the account page', () => {
         return HttpResponse.json({ ok: true })
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/details')
     const form = (await screen.findByRole('heading', { name: 'Email address' })).closest('section')!
     await fireEvent.update(screen.getByLabelText('New email address'), 'bob@example.com')
     await fireEvent.update(screen.getByLabelText('Confirm with your password'), 'my password')
@@ -77,7 +77,7 @@ describe('changing your email on the account page', () => {
       noPublications,
       llmSettings(false),
     )
-    await renderAt('/account')
+    await renderAt('/account/details')
     const section = (await screen.findByRole('heading', { name: 'Email address' })).closest(
       'section',
     )!

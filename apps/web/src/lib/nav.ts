@@ -33,7 +33,17 @@ export const IDEA_STEPS: Step[] = [
   { key: 'draft', label: 'Draft', route: 'idea-drafts' },
 ]
 
-export type NavLevel = 'home' | 'publication' | 'idea'
+/** The account settings pages: plain links in the menu (settings are not a sequence, so no numbers). */
+export const ACCOUNT_PAGES: Step[] = [
+  { key: 'details', label: 'Your details', route: 'account-details' },
+  { key: 'ai', label: 'Your AI', route: 'account-ai' },
+  { key: 'display', label: 'Display', route: 'account-display' },
+  { key: 'security', label: 'Sign-in and security', route: 'account-security' },
+  { key: 'download', label: 'Download your writing', route: 'account-download' },
+  { key: 'delete', label: 'Delete account', route: 'account-delete' },
+]
+
+export type NavLevel = 'home' | 'publication' | 'idea' | 'account'
 
 export const stepsFor = (level: NavLevel) =>
   level === 'idea' ? IDEA_STEPS : level === 'publication' ? PUBLICATION_STEPS : []
@@ -72,6 +82,7 @@ export function useNav() {
   })
   const level = computed<NavLevel>(() => {
     const declared = route.meta.level
+    if (declared === 'account') return 'account'
     if (!declared || !publicationId.value) return 'home'
     // A draft that belongs to no idea sits with the publication's ideas.
     if (declared === 'idea' && !ideaId.value && !draftLoading.value) return 'publication'
@@ -111,17 +122,25 @@ export function useNav() {
     }),
   )
 
+  const accountPages = computed(() =>
+    ACCOUNT_PAGES.map((page) => ({ ...page, to: { name: page.route } as RouteLocationRaw })),
+  )
+
   /** What the page is called above its title: the idea or the publication, depending on level. */
   const eyebrow = computed(() =>
     level.value === 'idea'
       ? idea.data.value?.name
       : level.value === 'publication'
         ? publication.value?.name
-        : undefined,
+        : level.value === 'account'
+          ? 'Account settings'
+          : undefined,
   )
 
   /** Where the name above a page's title leads: a level's pages lead back to its landing page (not from it). */
   const eyebrowTo = computed<RouteLocationRaw | undefined>(() => {
+    if (level.value === 'account')
+      return route.name === 'account-details' ? undefined : { name: 'account-details' }
     if (route.name === 'publication' || route.name === 'idea' || !publicationId.value)
       return undefined
     if (level.value === 'publication')
@@ -138,6 +157,7 @@ export function useNav() {
     publication,
     idea,
     steps,
+    accountPages,
     stepKey,
     stepNumber: computed(() => stepNumber(level.value, stepKey.value)),
     eyebrow,

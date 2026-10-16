@@ -10,7 +10,7 @@ import SettingsButton from './SettingsButton.vue'
  * numbered steps; inside an idea, the idea's. Each level's settings are a gear button beside its name. A "back up" link and the thing's name sit at the top. The numbers
  * orient and never lock: every step is a link. docs/design.md explains the pattern.
  */
-const { level, publication, idea, steps, stepKey, loading } = useNav()
+const { level, publication, idea, steps, accountPages, stepKey, loading } = useNav()
 
 const sharedWith = () => {
   const others = (publication.value?.members.length ?? 1) - 1
@@ -55,6 +55,10 @@ const itemClass =
       />
     </div>
   </div>
+  <div v-else-if="level === 'account'" class="px-5 pb-4">
+    <RouterLink :to="{ name: 'home' }" class="link text-sm">← All publications</RouterLink>
+    <p class="meta mt-3">Account settings</p>
+  </div>
   <div v-else-if="level === 'idea'" class="px-5 pb-4">
     <RouterLink
       v-if="publication"
@@ -91,6 +95,22 @@ const itemClass =
     <ul>
       <li>
         <RouterLink :to="{ name: 'home' }" :class="itemClass">Publications</RouterLink>
+      </li>
+    </ul>
+  </nav>
+
+  <nav v-else-if="level === 'account'" aria-label="Account settings" class="px-3 pb-3">
+    <ul>
+      <li v-for="page in accountPages" :key="page.key">
+        <RouterLink v-slot="{ href, navigate }" :to="page.to" custom>
+          <a
+            :href="href"
+            :aria-current="page.key === stepKey ? 'page' : undefined"
+            :class="itemClass"
+            @click="navigate"
+            >{{ page.label }}</a
+          >
+        </RouterLink>
       </li>
     </ul>
   </nav>

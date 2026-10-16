@@ -127,7 +127,7 @@ describe('confirmation banner', () => {
   it('is absent once confirmed', async () => {
     server.use(signedInAs(testUser), noPublications)
     await renderAt('/account')
-    await screen.findByRole('heading', { name: 'Your account' })
+    await screen.findByRole('heading', { name: 'Your details' })
     expect(screen.queryByRole('region', { name: 'Email confirmation' })).toBeNull()
   })
 })

@@ -271,6 +271,10 @@ test('changes the display name, which is then used wherever it is shown', async 
   await expect(member(who)).toBeVisible()
 
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Your details' })
+    .click()
   const section = page.getByRole('region', { name: 'Your name' })
   const field = section.getByLabel('What should we call you?')
   const change = section.getByRole('button', { name: 'Change name' })
@@ -312,6 +316,10 @@ test('changes the username: existing publications keep their address, new ones u
   await expect(page).toHaveURL(`/p/${before}-first-publication`)
 
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await page
+    .getByRole('navigation', { name: 'Account settings' })
+    .getByRole('link', { name: 'Your details' })
+    .click()
   const section = page.getByRole('region', { name: 'Username' })
   await expect(section).toContainText(`Your username is ${before}`)
   await section.getByLabel('New username').fill('Not Valid!')

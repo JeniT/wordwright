@@ -166,7 +166,7 @@ describe('the research page', () => {
     expect(alert).toHaveTextContent('rejected your API key')
     expect(within(alert).getByRole('link', { name: 'Go to account settings' })).toHaveAttribute(
       'href',
-      '/account',
+      '/account/ai',
     )
     expect(screen.getByLabelText('What areas do you want to research?')).toHaveValue('Anything')
   })

@@ -101,7 +101,7 @@ const audience = computed(() =>
       {{ errorMessage(error) }}
       <RouterLink
         v-if="error instanceof ApiError && [400, 409].includes(error.status)"
-        to="/account"
+        to="/account/ai"
         class="underline"
         >Go to account settings</RouterLink
       >

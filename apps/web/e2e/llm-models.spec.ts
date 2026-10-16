@@ -18,7 +18,7 @@ test('offers the provider’s models once a key is saved, and keeps the one chos
   page,
 }) => {
   await signUp(page)
-  await page.goto('/account')
+  await page.goto('/account/ai')
   await expect(page.getByText('Save a key to choose a model.')).toBeVisible()
   await expect(page.getByLabel('Model')).toHaveCount(0)
 

@@ -23,7 +23,7 @@ test('is on for a new account, can be turned off and on again, and survives a re
   page,
 }) => {
   await signUp(page)
-  await page.goto('/account')
+  await page.goto('/account/display')
   const mode = page.getByRole('switch', { name: 'Tutorial mode' })
   await expect(mode).toBeChecked()
 
@@ -42,7 +42,7 @@ test('the warn notice, the settings section and the help page are accessible in 
   page,
 }) => {
   await signUp(page)
-  await page.goto('/account')
+  await page.goto('/account/display')
   await expect(page.getByRole('region', { name: 'Email confirmation' })).toBeVisible()
   await noViolations(page, 'account, light')
 

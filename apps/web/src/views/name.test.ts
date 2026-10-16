@@ -11,7 +11,7 @@ const open = () => {
     http.get('*/api/publications', () => HttpResponse.json([])),
     llmSettings(true),
   )
-  return renderAt('/account')
+  return renderAt('/account/details')
 }
 
 describe('your name on the account page', () => {
@@ -39,8 +39,7 @@ describe('your name on the account page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Change name' }))
     await waitFor(() => expect(sent).toEqual({ name: 'Ada King' }))
     expect(await screen.findByText(/People now see/)).toHaveTextContent('Ada King')
-    // The account heading and the name in the menu foot follow the change.
-    expect(screen.getByText(/Ada King · ada@example.com/)).toBeInTheDocument()
+    // The name in the menu foot follows the change.
     expect(within(screen.getByRole('banner')).getByText('Ada King')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Change name' })).toBeDisabled()
   })

@@ -48,9 +48,9 @@ describe('downloading your writing', () => {
         return zipReply('wordwright-export-2026-10-14.zip')
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/download')
     expect(
-      await screen.findByRole('heading', { name: 'Download your writing' }),
+      await screen.findByRole('heading', { level: 1, name: 'Download your writing' }),
     ).toBeInTheDocument()
     expect(screen.getByText(/as an owner you get every draft/i)).toBeInTheDocument()
 
@@ -66,10 +66,9 @@ describe('downloading your writing', () => {
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([])),
     )
-    await renderAt('/account')
+    await renderAt('/account/delete')
     const link = await screen.findByRole('link', { name: /download your writing first/i })
-    expect(link.getAttribute('href')).toBe('#download')
-    expect(document.getElementById('download')).not.toBeNull()
+    expect(link.getAttribute('href')).toBe('/account/download')
   })
 
   it('explains in words why it could not be made, and lets you try again', async () => {
@@ -83,7 +82,7 @@ describe('downloading your writing', () => {
         ),
       ),
     )
-    await renderAt('/account')
+    await renderAt('/account/download')
     await fireEvent.click(await screen.findByRole('button', { name: 'Download as a zip' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/Try again in a little while/)
     expect(saved).toEqual([])

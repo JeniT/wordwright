@@ -543,7 +543,7 @@ async function requestCritique() {
             this draft. The next step is to
             <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. You
             can change how many looks a draft gets in your
-            <RouterLink to="/account" class="underline">account settings</RouterLink>.
+            <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
           </template>
           <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
         </p>

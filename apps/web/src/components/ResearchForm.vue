@@ -76,7 +76,7 @@ function submit() {
     >
       <p>{{ errorMessage(search.error.value) }}</p>
       <p v-if="needsKey" class="mt-1">
-        <RouterLink to="/account" class="underline">Go to account settings</RouterLink>
+        <RouterLink to="/account/ai" class="underline">Go to account settings</RouterLink>
       </p>
     </div>
   </form>

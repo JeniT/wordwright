@@ -60,8 +60,10 @@ const change = useMutation({
     <!-- Signs in with Google only: a session alone isn't enough proof, so a password comes first -->
     <p v-else class="text-sm text-ink-soft">
       Your address is <strong>{{ session.user.email }}</strong
-      >. To change it, first add a password in the section below; that keeps anyone who borrows your
-      signed-in device from redirecting your account's email.
+      >. To change it, first add a password in
+      <RouterLink :to="{ name: 'account-security' }" class="underline"
+        >Sign-in and security</RouterLink
+      >; that keeps anyone who borrows your signed-in device from redirecting your account's email.
     </p>
   </section>
 </template>

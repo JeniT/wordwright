@@ -43,11 +43,12 @@ The side menu **follows you**: what it lists depends on where you are, with a li
 are in. Numbers on the steps orient; they never lock anything, so every step is always a link, and each page ends with a
 gentle "Next: …" suggestion. Home → publication → idea:
 
-| Level       | Menu lists                                                                                                                                                    | Front door                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Home        | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`, `/account`)                                                   | `/`                            |
-| Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                              | `/p/<id>` → its landing page   |
-| Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings | `/p/<id>/ideas/<idea>` → Notes |
+| Level       | Menu lists                                                                                                                                                         | Front door                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| Home        | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                    | `/`                             |
+| Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                                   | `/p/<id>` → its landing page    |
+| Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings      | `/p/<id>/ideas/<idea>` → Notes  |
+| Account     | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** | `/account` → `/account/details` |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
@@ -221,7 +222,7 @@ tests inject fakes and nothing hits the network.
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
   type (`GET /api/auth/handle-available`; the server checks again on submit). Sign-ups through an external
   identity provider have no form to choose it on, so they get one derived from their name, e.g. `jenit`, and the
-  landing page asks once whether they'd like another or want to keep it. Anyone can change theirs on the Account page
+  landing page asks once whether they'd like another or want to keep it. Anyone can change theirs on the Your details page
   (`PUT /api/account/handle`, up to 5 changes a day). Publications already created keep their address; new ones use the
   new username. The old one is kept for its owner: nobody else can take it, but they can switch back. A few names
   that look like the service itself (`admin`, `support`...) are reserved. A publication's id is `<creator's handle>-<slug of its name>`, such as
@@ -234,7 +235,7 @@ tests inject fakes and nothing hits the network.
   a key is saved (new users have to do this before the AI features work); a new user with no publication is also
   prompted to create one.
 - **Your name:** the name from sign-up is what other people see on notes, brainstorm messages, member lists and
-  invitations. It can be changed on the Account page (`PUT /api/account/name`) and changes everywhere at once, since
+  invitations. It can be changed on the Your details page (`PUT /api/account/name`) and changes everywhere at once, since
   nothing stores a copy; emails already sent keep the old one.
 - **Publication pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/publications/:id/image` to members only. The type is decided by the file's bytes (not what the browser
@@ -271,7 +272,7 @@ tests inject fakes and nothing hits the network.
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
-- **Where you're signed in** (Account page, between Password and the other settings, #165): each session keeps a
+- **Where you're signed in** (Sign-in and security page, #165): each session keeps a
   coarse label from the User-Agent ("Safari on macOS", else "Unknown device"; picked from a fixed list of words, so
   nothing the browser sends is stored or shown back) and when it was last used (rewritten at most once an hour).
   **No IP address, no location, no raw User-Agent.** Each is named on the page by its own random id, never the cookie or
@@ -284,11 +285,11 @@ tests inject fakes and nothing hits the network.
   an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
   an address has an account (except at registration, which has to say so), and that includes
   inviting someone to a publication.
-- **Changing your password** (Account page) needs the current one, signs out every _other_ device, cancels any
+- **Changing your password** (Sign-in and security page) needs the current one, signs out every _other_ device, cancels any
   reset link already out, and emails a "your password was changed" notice with a link to reset if it wasn't
   you. Google-only accounts can **add** a password: instead of typing one on the page, they're emailed a link
   (the reset flow), so a hijacked session alone can't add a password and keep access.
-- **Changing your email** (Account page) needs the password. We email a link to the _new_ address and switch
+- **Changing your email** (Your details page) needs the password. We email a link to the _new_ address and switch
   only when it's opened (24 hours, newest request wins), so a typo can't lock anyone out. The new address
   counts as confirmed, the old one gets a "your email was changed" notice, and confirmation links, reset links
   and invitations addressed to the old address stop working. Changing or resetting the password cancels a
@@ -312,7 +313,7 @@ tests inject fakes and nothing hits the network.
   not) can decline and, optionally, stop invitations from that sender or from everyone. The sender is never
   told: a declined invitation just stops being pending, and later invitations from a blocked sender (or any
   invitation to an address that blocks everyone) are dropped with the same reply as always. Confirmed accounts
-  see and lift their blocks under "Who can invite you" on the Account page; blocks follow the person if they
+  see and lift their blocks under "Who can invite you" on the Sign-in and security page; blocks follow the person if they
   change their email.
 - **Email confirmation:** new local accounts are _unconfirmed_; signup emails a link (valid 24 hours, newest
   link only, harmless to open twice). Unconfirmed people can write and use AI features, but **can't invite
@@ -324,7 +325,7 @@ tests inject fakes and nothing hits the network.
   no drafts or ideas, no saved API key, nobody else in their publications. That frees addresses taken by typos. The signup
   email says so, and one reminder (with a fresh confirmation link) is sent 3 days before deletion. The same pass removes expired sessions, used/expired links and old invitations. It logs
   counts only, never who.
-- **Exporting your writing** (#167): the account page (all your publications, `GET /api/account/export`) and each publication's
+- **Exporting your writing** (#167): the Download your writing page (all your publications, `GET /api/account/export`) and each publication's
   settings (`GET /api/publications/:id/export`) download a zip of Markdown only: a README, then per publication a file for the
   publication, one per idea (notes, reading list, links to drafts) and one per draft. Owners get every draft, members
   the drafts they edit or started; notes and reading items are everyone's, with names. Comments, reviews, brainstorm
@@ -420,7 +421,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
   (the design is in [docs/decisions.md](docs/decisions.md#comment-marks-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
   The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
-  gets 3 critiques by default (each person can choose 1 to 5 on their account page), counted per draft.
+  gets 3 critiques by default (each person can choose 1 to 5 on Your AI), counted per draft.
 - **Rephrase** (`POST /api/publications/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage
   or the title: `{draftId, kind: 'title'|'passage', wording, aim, earlier}` gives `{size, options}`. `earlier` holds the
   rounds already asked in this window, so the AI is told what it has offered and a later round needs a different aim.
@@ -428,7 +429,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   crosses paragraphs or is outside 5 to 150 words, an aim of fewer than 3 words, and a title for a draft under about 300
   words, before spending anything. Short wording (a title, or up to 25 words) gets 5 to 10 options, longer gets 3 to 5, and the
   AI is told to make them differ in approach. Every number is in one place, `packages/core/src/rephrase.ts`. The prompt is
-  `prompts/options.md`. The round limit in a window is the critique-looks setting (account page). Only the draft, wording,
+  `prompts/options.md`. The round limit in a window is the critique-looks setting (Your AI page). Only the draft, wording,
   aim and publication description are sent: never notes, threads or comments.
   **The Rephrase window** (#162): in the draft editor, select words inside one paragraph and press **Rephrase**. A dialog
   shows the wording (editable), asks "What should it do?" (the Aim), and **Generate options** (saving the draft first, since

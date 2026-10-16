@@ -148,7 +148,7 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
   `busy-text` is read out through a polite live region the component owns (don't add a second status for the
   same wait). Under reduced motion the spinner stays still: the busy button and its words are the signal.
 - **Meaning:** the icon is never alone. The words "Uses your Anthropic key, so it costs tokens" are the button's
-  tooltip and its accessible description, and the account page (AI assistant) explains the mark once.
+  tooltip and its accessible description, and the account settings (Your AI) explain the mark once.
 - **Which buttons:** the ones whose press makes an LLM request (Critique, Brainstorm's Start/Send/Try again, Research,
   Research) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
   which open the conversation where the reply is written). Not the buttons around them: Save, Add note, Accept or
@@ -465,11 +465,12 @@ How people are led through the app. The side menu **follows you**: what it lists
 back up and the name of the thing you are in. (We drew three approaches, a steady menu with steps on the page and a
 menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#navigation-the-menu-follows-you).)
 
-| Level       | You are choosing…                | The menu lists                                                                                                                  | Settings (a gear button)                                           |
-| ----------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Home        | which **publication** to work on | Publications                                                                                                                    | Beside your name in the menu foot                                  |
-| Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Beside the publication's name, in the menu and on its landing page |
-| Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Beside the idea's name, in the menu and on its landing page        |
+| Level       | You are choosing…                | The menu lists                                                                                                                                                             | Settings (a gear button)                                           |
+| ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Home        | which **publication** to work on | Publications                                                                                                                                                               | Beside your name in the menu foot                                  |
+| Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                                                            | Beside the publication's name, in the menu and on its landing page |
+| Account     | which **setting** to change      | **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** (plain links, no numbers; way up "← All publications") | The gear in the menu foot, current across the whole group          |
+| Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**                                            | Beside the idea's name, in the menu and on its landing page        |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
 **Quick add**, **Pick up**, then the publications. _Quick add_ is three buttons (**New idea**, **Add a note**, **Add something to
@@ -506,7 +507,11 @@ The principles (they are the point of the pattern; keep them when you add a page
    in the list of steps. It is the same gear at every level; its name and its place say which. It is marked current
    (`aria-current`, `accent-wash`) on its own page. The **menu foot** holds your name (plain text) with the account
    gear, and a **Sign out** button (an action, so a button, not a link). Appearance is a setting, so it lives on the
-   account page.
+   Display page. **Account settings are six short pages, not one long one** (`/account/details`, `/ai`, `/display`,
+   `/security`, `/download`, `/delete`; `/account` redirects to the first), under an `account` level whose menu is
+   plain links with no numbers, because settings are not a sequence. Each page is titled with `StepHeading` ("Account
+   settings" is the small link above the title) and has no `NextStep`. A new setting goes on the page it belongs to; add a
+   page only if none fits (`ACCOUNT_PAGES` in `lib/nav.ts`, plus a route with `meta: { level: 'account', step }`).
 8. **A level has a landing page** (a publication's, at `/p/:publicationId`; an idea's, at `/p/:publicationId/ideas/:id`) that is none of the numbered steps: a summary of
    each step with its quick action (the newest feed posts; the reading list and a form to add to it; the latest notes and a form to add one; the ideas). Nothing in the menu is current there.
    The publication's description comes first.
@@ -526,7 +531,7 @@ The principles (they are the point of the pattern; keep them when you add a page
 | ![Idea, Research step](screenshots/nav-idea-research.png) | ![Publication, Ideas step](screenshots/nav-publication-ideas.png) |
 | ![Phone, menu open](screenshots/nav-phone-menu-open.png)  |                                                                   |
 
-**How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea', step: '<key>' }` in `router.ts`
+**How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea' | 'account', step: '<key>' }` in `router.ts`
 (`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
 (the research tool, reading one source) use their step's key, so it stays current. The title is
 `<StepHeading>Name</StepHeading>`; end the page with `<NextStep :to label>why this is next</NextStep>`. A page that is

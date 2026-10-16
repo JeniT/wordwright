@@ -31,7 +31,7 @@ const open = async (state: { devices: unknown[] } = { devices: [here] }) => {
     http.get('*/api/publications', () => HttpResponse.json([])),
     http.get('*/api/account/sessions', () => HttpResponse.json(state.devices)),
   )
-  await renderAt('/account')
+  await renderAt('/account/security')
   return screen.findByRole('region', { name: "Where you're signed in" })
 }
 
@@ -45,7 +45,7 @@ describe("Where you're signed in", () => {
         return HttpResponse.json([here, phone])
       }),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     const section = await screen.findByRole('region', { name: "Where you're signed in" })
     expect(within(section).getByText('Loading…')).toBeInTheDocument()
     expect(await within(section).findByText('Firefox on Linux')).toBeInTheDocument()
@@ -70,7 +70,7 @@ describe("Where you're signed in", () => {
       http.get('*/api/publications', () => HttpResponse.json([])),
       http.get('*/api/account/sessions', () => new HttpResponse(null, { status: 500 })),
     )
-    await renderAt('/account')
+    await renderAt('/account/security')
     const section = await screen.findByRole('region', { name: "Where you're signed in" })
     const alert = await within(section).findByRole('alert')
     expect(alert).toHaveTextContent(/couldn't load where you're signed in/)

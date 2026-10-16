@@ -408,7 +408,7 @@ describe('the brainstorm page', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('Add your Anthropic API key')
       expect(screen.getByRole('link', { name: 'Go to account settings' })).toHaveAttribute(
         'href',
-        '/account',
+        '/account/ai',
       )
       expect(screen.getByLabelText('Your message')).toHaveValue('Please answer') // not lost
     })
