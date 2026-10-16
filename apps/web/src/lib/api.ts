@@ -2,7 +2,6 @@ import {
   AcceptInvitationResultSchema,
   AuthConfigSchema,
   BrainstormEventSchema,
-  BrainstormPromptSchema,
   CommentSchema,
   ConversationSchema,
   CritiqueSettingsSchema,
@@ -177,7 +176,6 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     saveLlmSettings: (input: LlmSettingsInput) => get(LlmSettingsSchema, 'PUT', '/llm', input),
     removeLlmKey: () => act('DELETE', '/llm'),
 
-    // the person's own brainstorming prompt (the default until they change it)
     getCritiqueSettings: () => get(CritiqueSettingsSchema, 'GET', '/account/critique-settings'),
     saveCritiqueSettings: (rounds: number) =>
       get(CritiqueSettingsSchema, 'PUT', '/account/critique-settings', { rounds }),
@@ -187,11 +185,6 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(TutorialStateSchema, 'PUT', '/account/tutorial', update),
     markTutorialSeen: (kind: string) =>
       get(TutorialStateSchema, 'POST', '/account/tutorial/seen', { kind }),
-    getBrainstormPrompt: () => get(BrainstormPromptSchema, 'GET', '/account/brainstorm-prompt'),
-    saveBrainstormPrompt: (prompt: string) =>
-      get(BrainstormPromptSchema, 'PUT', '/account/brainstorm-prompt', { prompt }),
-    resetBrainstormPrompt: () =>
-      get(BrainstormPromptSchema, 'DELETE', '/account/brainstorm-prompt'),
 
     // publications
     listPublications: () => get(PublicationList, 'GET', '/publications'),

@@ -23,13 +23,9 @@ export const testUser = {
 }
 
 /**
- * Answers every test needs without saying so: pages that always load something (the account page
- * shows the brainstorming prompt). `server.use()` in a test overrides these; resetting restores them.
+ * Answers every test needs without saying so: pages that always load something. `server.use()` in a test overrides these; resetting restores them.
  */
 export const server = setupServer(
-  http.get('*/api/account/brainstorm-prompt', () =>
-    HttpResponse.json({ prompt: 'The default brainstorming prompt.', isDefault: true }),
-  ),
   // Only this device is signed in (the account page lists where the person is signed in).
   http.get('*/api/account/sessions', () =>
     HttpResponse.json([

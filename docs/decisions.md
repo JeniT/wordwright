@@ -205,8 +205,7 @@ Brainstorm's own prompt (`brainstorm-default.md`) and the three fixed prompts sa
   audience or a wider appeal, and critique then reads as a coach would. Whether that is enough, or the publication needs
   an explicit mode, was decision #137: it does not (see above); the evals added here are what to watch.
 - **Shared by the publication.** The description belongs to the publication, so everyone in it sends the same block through
-  their own key, model and (for brainstorm) prompt. People who saved their own brainstorm prompt keep it; the rules that
-  are added after it carry the instructions about the description either way.
+  their own key and model. The rules added after the brainstorming prompt carry the instructions about the description.
 
 ## An AI draft of the publication description: reflect, label, confirm (#135, part of #27)
 
@@ -1068,15 +1067,15 @@ the token limit reports no tool calls (their input may be half-written); provide
 writing. `complete()`/`stream()` now translate errors the same way, so a non-auth failure is an `LLMProviderError`
 (with the SDK error as its `cause`) rather than the raw SDK error.
 
-## A person's brainstorming prompt: stored only if it differs from the default
+## A person's brainstorming prompt: removed (#205)
 
-Each person's own version lives in `user_prompts`; no row (or an empty one) means "use `prompts/brainstorm-default.md`".
-Saving text identical to the default (after trimming and normalising line endings) deletes the row rather than storing
-a copy, so that improving the default, which the owner expects to keep tuning, reaches everyone who hasn't really changed
-it; copies would silently freeze people on old wording. Resetting asks for confirmation only when there is a saved version
-to lose. The prompt is capped at 8,000 characters and is only ever used for that person's own requests; the app's own
-rules (`prompts/brainstorm-rules.md`) are added after it and can't be edited, so a person's prompt can't remove the tool
-rules or the no-drafting rule.
+People could once edit their own brainstorming prompt (stored in `user_prompts`, only when it differed from the default, so
+improving the default reached everyone who hadn't really changed it). That is gone: everyone uses
+`prompts/brainstorm-default.md`, then the app's fixed rules (`prompts/brainstorm-rules.md`). It was the longest and least
+used section of the account page, and a personal prompt could pull the AI away from the rung the product claims
+(see responsible-ai.md, "Stance is the user's; boundaries are the app's"). A migration drops `user_prompts`, so saved
+versions are deleted rather than kept where nobody can see or use them. Anyone who had customised theirs now gets the
+default.
 
 ## How the brainstorm conversation is stored, replayed and kept safe
 

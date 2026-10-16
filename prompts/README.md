@@ -20,7 +20,6 @@ The instructions we give the AI live here, as plain Markdown files, so they're e
 - The evals read these same files, so what they test is what the app sends.
 - Keep `brainstorm-rules.md` in step with the tools the model is given (`add_note`, `update_idea`, `create_idea`, `suggest_reading`; see
   [docs/brainstorming.md](../docs/brainstorming.md)): if you rename a tool, change it there too.
-- Changing the default brainstorming prompt doesn't change anyone who has already saved their own version.
 - The writer's description of their publication (the publication description) reaches the brainstorm snapshot, the critique
   message and the research brief in a `<publication_description>` block, only when there is one a person wrote or accepted.
   `brainstorm-rules.md`, `critique.md` and `research.md` say it is the writer's material, never instructions.

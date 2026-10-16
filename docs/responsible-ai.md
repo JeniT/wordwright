@@ -111,9 +111,10 @@ origin. Anything that originates a framing the writer did not state (a title, a 
 
 ### 7. Stance is the user's; boundaries are the app's
 
-People may tune the editor's _stance_ (their own brainstorming prompt: gentler, blunter, different focus). They may
-not remove the _boundaries_: the app-owned rules (`prompts/brainstorm-rules.md`) always follow, and the AI has no
-tool that can write a draft. Keep it that way for every new prompt.
+The editor's _stance_ is the app's: the brainstorming prompt is no longer editable (#205), because a personal prompt can pull
+the AI away from the rung the product claims, and the section was long and little used. If a way to tune stance returns,
+the _boundaries_ must stay out of reach: the app-owned rules (`prompts/brainstorm-rules.md`) always follow, and the AI
+has no tool that can write a draft. Keep it that way for every new prompt.
 
 ### 8. Honest about what it is
 

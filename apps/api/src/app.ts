@@ -23,7 +23,6 @@ import { publicationRoutes } from './routes/publications'
 import { AccountService } from './services/accounts'
 import { BrainstormService } from './services/brainstorm'
 import { FeedItemService } from './services/feed-items'
-import { BrainstormPromptService } from './services/brainstorm-prompt'
 import { ResearchService } from './services/research'
 import { IdeaLinkService } from './services/idea-links'
 import { HandoverService } from './services/handover'
@@ -130,7 +129,6 @@ export function createApp(deps: AppDeps) {
       verificationLimiter: limiter(3, HOUR),
     }),
   )
-  const brainstormPrompts = new BrainstormPromptService(store)
   const exportService = new ExportService(store, deps.now)
   const exportLimiter = limiter(5, HOUR)
   api.route(
@@ -139,7 +137,6 @@ export function createApp(deps: AppDeps) {
       accounts,
       emailChanges,
       attempts(),
-      brainstormPrompts,
       limiter(5, DAY),
       store.userSettings,
       exportService,
@@ -176,7 +173,6 @@ export function createApp(deps: AppDeps) {
   })
   const brainstorm = new BrainstormService({
     store,
-    prompts: brainstormPrompts,
     resolveLlm: (userId) => llmKeys.resolveWithInfo(userId),
     // The same lookups that title a typed link, so the same page fetcher.
     pages: deps.pageFetcher ?? new NoPageInfoFetcher(),

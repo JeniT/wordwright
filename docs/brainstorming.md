@@ -73,10 +73,10 @@ not just in the prompt:
 
 Built by the server on every turn, never by the client.
 
-- **System prompt**, in two parts, in this order: (1) the **user's brainstorming prompt** (or the default), then
-  (2) an **app-owned block** that the user can't edit: how tools work (including that `add_note` takes effect at once), what the model must not do (draft, claim
-  facts about the publication it wasn't given), and how to treat the context (below). Keeping them apart means editing
-  your prompt can't break the tool protocol.
+- **System prompt**, in two parts, in this order: (1) the **default brainstorming prompt** (`prompts/brainstorm-default.md`; people used to be able to edit their own copy, removed in #205), then
+  (2) an **app-owned block**: how tools work (including that `add_note` takes effect at once), what the model must not do (draft, claim
+  facts about the publication it wasn't given), and how to treat the context (below). Keeping them apart means the tool protocol
+  can be changed without touching the coach's wording.
 - **Idea snapshot**, sent as the start of a user turn: the idea's title and notes, the related links (address and
   title), the publication's name, website and the writer's description of it, in a `<publication_description>` block (or a line saying
   it has not been described yet, so the model asks who the readers are, unless the description says the writing is
@@ -172,8 +172,6 @@ provider, model, content JSON, status, created_at)`: `kind` is `kickoff` or `mes
 - `idea_proposals(id, message_id → idea_messages ON DELETE CASCADE, tool_call_id, tool, input JSON, base JSON,
 status pending|accepted|dismissed, decided_by, decided_at, created_idea_id, check_status, fetched_title, fetched_authors)`
   (`tool` is `update_idea`, `create_idea` or `suggest_reading`; the last three columns are only set for `suggest_reading`).
-- A per-user brainstorming prompt: `user_prompts(user_id PK → users ON DELETE CASCADE, brainstorm TEXT, updated_at)`,
-  with no row (or null) meaning "use the default".
 
 The publication-rename list needs no change (these tables hang off ideas and users, not publications).
 
@@ -195,8 +193,6 @@ All under `/api/publications/:publicationId/ideas/:id/conversation` (members onl
   transaction (changing the title, or creating an idea) and answers `409` if the suggestion was already decided, or if
   the title it would replace has changed since, unless `overwrite` is sent.
 - `DELETE`: start again (refused while a reply is in flight).
-  And on the account: `GET`/`PUT`/`DELETE /api/account/brainstorm-prompt` (the effective prompt and whether it is
-  the default; save; reset).
 
 ## UI
 
@@ -206,8 +202,6 @@ All under `/api/publications/:publicationId/ideas/:id/conversation` (members onl
   Stop button while streaming, and a collapsed summary of the idea being discussed. Keyboard-usable; the thread is
   a `role="log"`; streaming text is announced politely and not word by word; loading, empty, error and
   "someone else is waiting" states all designed, and checked at phone width.
-- **Account page:** a "Brainstorming prompt" section: a text area showing the prompt in effect, **Save**, and
-  **Reset to default**, with a short explanation of what the prompt does and that the app adds its own rules.
 - One new dependency: **`markdown-it`** (HTML and images disabled) to render model output. No chat framework: a
   framework would bring its own protocol and cut across the ports-and-adapters rule.
 

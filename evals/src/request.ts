@@ -8,7 +8,6 @@ import type {
 import {
   BRAINSTORM_KICKOFF_PROMPT,
   CRITIQUE_PROMPT,
-  DEFAULT_BRAINSTORM_PROMPT,
   OPTIONS_PROMPT,
   RESEARCH_PROMPT,
 } from '@wordwright/prompts'
@@ -38,7 +37,7 @@ export function brainstormRequest(c: BrainstormCase): LLMChatRequest {
     content: t.text,
   }))
   return {
-    system: brainstormSystem(DEFAULT_BRAINSTORM_PROMPT),
+    system: brainstormSystem(),
     messages: [{ role: 'user', content: first }, ...rest],
     tools: BRAINSTORM_TOOLS,
     effort: 'medium',

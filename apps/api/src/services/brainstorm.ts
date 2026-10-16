@@ -31,13 +31,13 @@ import {
   BRAINSTORM_KICKOFF_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   CREATE_IDEA_TOOL_PROMPT,
+  DEFAULT_BRAINSTORM_PROMPT,
   SUGGEST_READING_TOOL_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
 } from '@wordwright/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/conversations'
 import type { Store } from '../db/store'
-import type { BrainstormPromptService } from './brainstorm-prompt'
 import { ReadingChecker, type CheckedReading } from './reading-suggestions'
 import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
 import { fail } from '../errors'
@@ -74,7 +74,6 @@ export const BRAINSTORM_TOOLS = [
 
 export interface BrainstormDeps {
   store: Store
-  prompts: BrainstormPromptService
   /** The person's own LLM (their key and model), and what to record about it. Throws `LlmError` if none. */
   resolveLlm: (userId: string) => { llm: LLMProvider; provider: string; model: string }
   /** Looks at suggested addresses (the SSRF-safe fetcher), so the writer sees what is really there. */
@@ -110,9 +109,8 @@ export interface Turn {
   run(signal: AbortSignal): AsyncIterable<BrainstormEvent>
 }
 
-/** What is sent as the system prompt: the person's prompt, then the rules they can't edit. The evals use this too. */
-export const brainstormSystem = (personsPrompt: string) =>
-  `${personsPrompt}\n\n${BRAINSTORM_RULES_PROMPT}`
+/** What is sent as the system prompt: the default prompt, then the app's own rules. The evals use this too. */
+export const brainstormSystem = () => `${DEFAULT_BRAINSTORM_PROMPT}\n\n${BRAINSTORM_RULES_PROMPT}`
 
 /** Keeps text we insert from closing or imitating the snapshot's own tags. */
 const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -202,7 +200,7 @@ export class BrainstormService {
       throw fail(429, "You're sending messages very quickly. Wait a few minutes and try again.")
     }
     const { llm, provider, model } = this.d.resolveLlm(user.id)
-    const system = brainstormSystem(this.d.prompts.effective(user.id))
+    const system = brainstormSystem()
 
     this.replying.set(idea.id, { name: user.name, since: this.now() })
     try {

@@ -373,10 +373,8 @@ run on the _requester's_ key.
   in `apps/api/src/llm-factory.ts`.
 
 **Brainstorming prompt:** the instructions that make the AI a writing coach when you brainstorm an
-idea are the Markdown file `prompts/brainstorm-default.md`. Each person can edit their own version on the account page
-(`GET`/`PUT`/`DELETE /api/account/brainstorm-prompt`, up to 8,000 characters) and reset it to the default; a version
-that equals the default isn't stored, so changes to the default reach everyone who hasn't customised theirs. The app
-adds its own fixed rules after it (`prompts/brainstorm-rules.md`).
+idea are the Markdown file `prompts/brainstorm-default.md`; the app adds its own fixed rules after it
+(`prompts/brainstorm-rules.md`). The same for everyone: it is not editable (#205).
 
 **Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/publications/:id/ideas/:idea/conversation`
 holds one thread per idea, shared by the publication's members. `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or

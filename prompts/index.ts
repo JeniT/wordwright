@@ -14,10 +14,10 @@ export const CRITIQUE_PROMPT = prompt('critique.md')
 /** The Rephrase window: options for a passage or title the writer is stuck on, which they choose from and edit. */
 export const OPTIONS_PROMPT = prompt('options.md')
 
-/** The default brainstorming prompt: a writing coach. Each person can edit their own copy on their account page. */
+/** The default brainstorming prompt: a writing coach. */
 export const DEFAULT_BRAINSTORM_PROMPT = prompt('brainstorm-default.md')
 
-/** The brainstorming rules the app always adds after a person's prompt (tools, safety). People can't edit these. */
+/** The brainstorming rules the app always adds after it (tools, safety). People can't edit these. */
 export const BRAINSTORM_RULES_PROMPT = prompt('brainstorm-rules.md')
 
 /** Sent as the writer's first turn, with the idea snapshot, to make the AI open the session itself. */

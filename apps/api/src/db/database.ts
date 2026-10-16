@@ -555,6 +555,11 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE user_settings ADD COLUMN tutorial_seen TEXT;
   ALTER TABLE user_settings ADD COLUMN tutorial_answered INTEGER CHECK (tutorial_answered IN (0, 1));
   `,
+  // The editable brainstorming prompt is gone (#205): everyone uses the default. Stored copies are deleted rather than
+  // kept where nobody can see or use them.
+  `
+  DROP TABLE user_prompts;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

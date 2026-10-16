@@ -14,7 +14,6 @@ import {
 import { BRAINSTORM_RULES_PROMPT, DEFAULT_BRAINSTORM_PROMPT } from '@wordwright/prompts'
 import { RateLimiter } from './auth/rate-limit'
 import { BrainstormService, formatSnapshot, REPLY_TIMEOUT_MS } from './services/brainstorm'
-import { BrainstormPromptService } from './services/brainstorm-prompt'
 import {
   PASSWORD,
   register,
@@ -196,12 +195,12 @@ describe('starting a brainstorm', () => {
     expect(JSON.stringify(ctx.chats.map((c) => c.request))).not.toContain('SECRET DRAFT BODY')
   })
 
-  it("uses the sender's own version of the prompt", async () => {
+  it('uses the default prompt for everyone, and has no way to change it (#205)', async () => {
     const { ctx, ada, send } = await world()
-    await ada.put('/api/account/brainstorm-prompt', { prompt: 'You are a gentle coach.' })
+    expect((await ada.put('/api/account/brainstorm-prompt', { prompt: 'Mine' })).status).toBe(404)
     await send(ada, START)
     expect(ctx.chats.at(-1)!.request.system).toBe(
-      `You are a gentle coach.\n\n${BRAINSTORM_RULES_PROMPT}`,
+      `${DEFAULT_BRAINSTORM_PROMPT}\n\n${BRAINSTORM_RULES_PROMPT}`,
     )
   })
 
@@ -327,10 +326,9 @@ describe('carrying on the conversation', () => {
     expect(await senders()).toEqual(['Ada', 'Robert'])
   })
 
-  it('shares one thread between members, each message using its sender key and prompt', async () => {
+  it('shares one thread between members, each message using its sender’s key', async () => {
     const { ctx, ada, send, thread, addBob } = await world()
     const bob = await addBob()
-    await bob.put('/api/account/brainstorm-prompt', { prompt: "Bob's own prompt." })
     ctx.setChat(() => ({ text: 'Noted.' }))
     await send(ada, START)
     await send(bob, say('Bob here.'))
@@ -338,7 +336,7 @@ describe('carrying on the conversation', () => {
     const [adaTurn, bobTurn] = ctx.chats
     expect(adaTurn!.config.apiKey).toBe('sk-ant-good-key-1234567890')
     expect(bobTurn!.config.apiKey).toBe('sk-ant-bobs-own-key-1234567890')
-    expect(bobTurn!.request.system).toBe(`Bob's own prompt.\n\n${BRAINSTORM_RULES_PROMPT}`)
+    expect(bobTurn!.request.system).toBe(adaTurn!.request.system)
     expect(bobTurn!.request.messages).toHaveLength(3) // Bob's turn replays Ada's whole thread
 
     const seenByAda = await thread(ada)
@@ -839,7 +837,6 @@ describe('when a reply goes wrong', () => {
     })
     const service = new BrainstormService({
       store,
-      prompts: new BrainstormPromptService(store),
       resolveLlm: () => ({ llm, provider: 'fake', model: 'm' }),
       limiter: new RateLimiter(100, 1000),
       pages: new FakePageInfoFetcher(),
@@ -899,7 +896,6 @@ describe('one reply at a time', () => {
     let now = 1_000_000
     const service = new BrainstormService({
       store,
-      prompts: new BrainstormPromptService(store),
       resolveLlm: () => ({ llm: new FakeLLMProvider(), provider: 'fake', model: 'm' }),
       limiter: new RateLimiter(100, 1000),
       pages: new FakePageInfoFetcher(),
@@ -934,7 +930,6 @@ describe('stopping a reply', () => {
     }))
     const service = new BrainstormService({
       store,
-      prompts: new BrainstormPromptService(store),
       resolveLlm: () => ({ llm, provider: 'fake', model: 'm' }),
       limiter: new RateLimiter(100, 1000),
       pages: new FakePageInfoFetcher(),

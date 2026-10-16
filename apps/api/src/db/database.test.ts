@@ -49,10 +49,22 @@ describe('migrations', () => {
     expect(tableNames(db)).toContain('b')
   })
 
+  it('deletes stored brainstorming prompts, which nobody can use any more (#205)', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    db.exec(
+      `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
+    )
+    db.exec(`INSERT INTO user_prompts (user_id, brainstorm, updated_at) VALUES ('u', 'Mine', 't')`)
+    migrate(db, 'test')
+    expect(tableNames(db)).not.toContain('user_prompts')
+  })
+
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -3)) // before the sessions migration (the last but two)
+    migrate(db, 'test', MIGRATIONS.slice(0, -4)) // before the sessions migration (the last but three)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )

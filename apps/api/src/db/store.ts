@@ -17,7 +17,6 @@ import { ResearchStore } from './research'
 import { ReviewStore } from './reviews'
 import { SourceStore } from './sources'
 import { TokenStore } from './tokens'
-import { UserPromptStore } from './user-prompts'
 import { UserSettingsStore } from './user-settings'
 import { UserStore } from './users'
 
@@ -40,7 +39,6 @@ export interface Store {
   invitations: InvitationStore
   reviews: ReviewStore
   credentials: CredentialStore
-  userPrompts: UserPromptStore
   userSettings: UserSettingsStore
   /** Run several writes atomically. */
   transaction<T>(fn: () => T): T
@@ -66,7 +64,6 @@ export function createStore(db: DatabaseSync): Store {
     invitations: new InvitationStore(db),
     reviews: new ReviewStore(db),
     credentials: new CredentialStore(db),
-    userPrompts: new UserPromptStore(db),
     userSettings: new UserSettingsStore(db),
     transaction: (fn) => transaction(db, fn),
   }
