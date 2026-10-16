@@ -1214,9 +1214,9 @@ distinct heading typeface.
 
 ## Navigation: the menu follows you
 
-**Decision.** The side menu **follows you** through three levels: Home (Publications, Account settings), a publication (**01
-Search**, **02 Read**, **03 Notes**, **04 Ideas**, Publication settings) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
-**04 Draft**, Idea settings; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
+**Decision.** The side menu **follows you** through three levels: Home (Publications), a publication (**01
+Search**, **02 Read**, **03 Notes**, **04 Ideas**) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
+**04 Draft**; settings at every level are one gear button beside the name (#180), not a menu item; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
 works and how to extend it is in [design.md](design.md#navigation-the-menu-follows-you); the mock-ups we compared, with
 screenshots, are in [design-concepts/navigation/](design-concepts/navigation/README.md).
 

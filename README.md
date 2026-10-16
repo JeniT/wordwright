@@ -43,11 +43,11 @@ The side menu **follows you**: what it lists depends on where you are, with a li
 are in. Numbers on the steps orient; they never lock anything, so every step is always a link, and each page ends with a
 gentle "Next: …" suggestion. Home → publication → idea:
 
-| Level       | Menu lists                                                                                                                              | Front door                     |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Home        | Publications, Account settings (`/`, `/account`)                                                                                        | `/`                            |
-| Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; Publication settings                       | `/p/<id>` → its landing page   |
-| Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); Idea settings | `/p/<id>/ideas/<idea>` → Notes |
+| Level       | Menu lists                                                                                                                                                    | Front door                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Home        | Publications; account settings by the gear beside your name (`/`, `/account`)                                                                                 | `/`                            |
+| Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                              | `/p/<id>` → its landing page   |
+| Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings | `/p/<id>/ideas/<idea>` → Notes |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
