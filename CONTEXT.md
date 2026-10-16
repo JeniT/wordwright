@@ -18,6 +18,10 @@ _Avoid_: Avatar, logo
 The icon of a publication's website, fetched once when the website is set or changed and shown, as a guest image, only when the publication has no picture of its own.
 _Avoid_: Favicon, logo
 
+**Mark**:
+The Wordwright product's own symbol: a flame whose tip is a split pen nib. It names the product only, so it is never shown for a publication and never stands in for a Publication picture or Site icon.
+_Avoid_: Logo, favicon (the browser-tab copy is still just "the mark"), Wordwright icon
+
 **Owner**:
 A person who administers a publication (invites and removes people, makes other members owners, reassigns drafts). A publication can have several owners but never none.
 _Avoid_: Admin

@@ -331,6 +331,24 @@ announces the new range; the bottom one returns you to the top of the list), fiv
 `lib/paging.ts`, `usePaging`). Filter first, then page; a new filter returns to page 1; removing the last item on a page
 steps back one. No page controls when everything fits on one page.
 
+## The mark
+
+The Wordwright **mark** (see `CONTEXT.md`) is a flame whose tip is a split pen nib, one colour: the `accent` role. It names the product and
+nothing else, so it appears in only four places and never as decoration:
+
+| Where                                       | Size       | How                                                                          |
+| ------------------------------------------- | ---------- | ---------------------------------------------------------------------------- |
+| Side-menu header, reviewer header           | 36px tall  | Beside the word "Wordwright" (the link's name); replaces the old "W" tile    |
+| Signed-out pages (sign in, register, reset) | 48px tall  | Centred above the word "Wordwright"                                          |
+| Browser tab                                 | 16 to 48px | `public/favicon.svg` (follows the system's light or dark), `.ico` and `.png` |
+| Home-screen icon                            | 180px      | `public/apple-touch-icon.png`: the mark on the `paper` colour                |
+
+It never appears in empty states, loaders, buttons or as a watermark, never in place of a publication's picture or site icon, and not in
+emails (they use no images). In the app it is the `BrandMark` component, an inline SVG in `text-accent`, because people can pin Light or Dark
+whatever their system says and an `<img>` of the file could not follow. The favicon is the one place that follows the system instead, since
+browsers offer nothing else. The source drawing is `docs/design-concepts/icon/icon.svg`; `export/` holds the tidied mark, the favicon set and
+PNG tiles (192 and 512, unused until Wordwright is installable). If the drawing changes, update `BrandMark.vue` and the files in `public/` from it.
+
 ## Pictures and logos from other sites
 
 We can't control a favicon: it may be transparent, dark on transparent, full-bleed colour, white-backed, tiny or

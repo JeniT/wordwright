@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import BrandMark from './components/BrandMark.vue'
 import SettingsButton from './components/SettingsButton.vue'
 import SideMenu from './components/SideMenu.vue'
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
@@ -69,11 +70,7 @@ watch(
       class="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4"
     >
       <RouterLink to="/reviews" class="flex items-center gap-3 font-semibold no-underline">
-        <span
-          class="grid size-9 place-items-center rounded-ctl bg-accent text-sm text-on-accent"
-          aria-hidden="true"
-          >W</span
-        >
+        <BrandMark :height="36" />
         <span class="text-lg">Wordwright</span>
       </RouterLink>
       <div class="flex flex-wrap items-center gap-3 text-sm">
@@ -104,11 +101,7 @@ watch(
           :class="nav.compact.value ? '' : 'md:py-5'"
         >
           <RouterLink to="/" class="flex items-center gap-3 font-semibold no-underline">
-            <span
-              class="grid size-9 place-items-center rounded-ctl bg-accent text-sm text-on-accent"
-              aria-hidden="true"
-              >W</span
-            >
+            <BrandMark :height="36" />
             <span class="text-lg">Wordwright</span>
           </RouterLink>
           <button
@@ -153,7 +146,13 @@ watch(
 
     <div class="min-w-0">
       <header v-if="!session.user" class="px-4 py-5 text-center">
-        <RouterLink to="/" class="text-lg font-semibold no-underline">Wordwright</RouterLink>
+        <RouterLink
+          to="/"
+          class="inline-flex flex-col items-center gap-2.5 text-lg font-semibold no-underline"
+        >
+          <BrandMark :height="48" />
+          Wordwright
+        </RouterLink>
       </header>
       <VerifyEmailBanner />
       <main
