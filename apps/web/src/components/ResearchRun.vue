@@ -171,7 +171,7 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
 
     <p class="mt-3 border-t border-line pt-2">
       <HoldButton
-        :tip="'Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there.'"
+        tip="Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there."
         verb="Delete"
         class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
         :aria-label="`Delete this research: ${run.areas}`"

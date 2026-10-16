@@ -577,7 +577,7 @@ const label = (note: IdeaNote) => {
               <Icon name="edit" />
             </button>
             <HoldButton
-              :tip="'Press and hold, or tap twice, to delete this note'"
+              tip="Press and hold, or tap twice, to delete this note"
               verb="Delete"
               class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
               :disabled="remove.isPending.value"

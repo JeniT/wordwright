@@ -43,6 +43,8 @@ function hide() {
   tipEl = null
   owner = null
   document.removeEventListener('keydown', onEscape, true)
+  window.removeEventListener('scroll', hide, true)
+  window.removeEventListener('resize', hide)
 }
 
 function hideSoon() {
@@ -72,6 +74,9 @@ function show(target: HTMLElement) {
   tipEl = tip
   owner = target
   document.addEventListener('keydown', onEscape, true)
+  // The tooltip is placed once, beside the button as it was; if the page moves under it, it goes rather than float.
+  window.addEventListener('scroll', hide, true)
+  window.addEventListener('resize', hide)
 }
 
 export const vTip: Directive<HTMLElement, string | undefined> = {
@@ -107,7 +112,10 @@ export const vTip: Directive<HTMLElement, string | undefined> = {
     const state = states.get(el)
     if (!state) return
     state.text = binding.value ?? ''
-    if (owner === el && tipEl) tipEl.textContent = binding.value ?? ''
+    if (owner === el && tipEl) {
+      tipEl.textContent = binding.value ?? ''
+      place(el, tipEl)
+    }
   },
   unmounted(el) {
     states.get(el)?.cleanup()

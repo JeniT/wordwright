@@ -140,7 +140,7 @@ const deletePublication = useMutation({
           <ImageField label="Choose a picture" @select="uploadImage.mutate($event)" />
           <HoldButton
             v-if="publication.imageUrl"
-            :tip="'Press and hold, or tap twice, to remove the picture'"
+            tip="Press and hold, or tap twice, to remove the picture"
             verb="Remove"
             class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
             aria-label="Remove picture"

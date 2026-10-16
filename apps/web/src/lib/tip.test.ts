@@ -64,6 +64,14 @@ describe('v-tip', () => {
     expect(tip()).toBeNull()
   })
 
+  it('goes when the page scrolls, rather than floating away from its button', async () => {
+    render(Probe)
+    button().focus()
+    expect(tip()).not.toBeNull()
+    await fireEvent.scroll(window)
+    expect(tip()).toBeNull()
+  })
+
   it('is not read out: the button’s own name is the accessible one', async () => {
     render(Probe)
     button().focus()
