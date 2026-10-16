@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { delay, http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } from '../test-utils'
@@ -52,7 +52,7 @@ describe('downloading your writing', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Download your writing' }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/as an owner you get every draft/i)).toBeInTheDocument()
+    expect(screen.getByText(/Owners get every draft/)).toBeInTheDocument()
 
     await fireEvent.click(screen.getByRole('button', { name: 'Download as a zip' }))
     expect(await screen.findByRole('button', { name: 'Preparing…' })).toBeDisabled()
@@ -67,7 +67,9 @@ describe('downloading your writing', () => {
       http.get('*/api/publications', () => HttpResponse.json([])),
     )
     await renderAt('/account/delete')
-    const link = await screen.findByRole('link', { name: /download your writing first/i })
+    const link = await within(await screen.findByRole('main')).findByRole('link', {
+      name: 'Download your writing',
+    })
     expect(link.getAttribute('href')).toBe('/account/download')
   })
 

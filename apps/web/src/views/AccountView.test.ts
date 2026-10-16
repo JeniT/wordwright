@@ -23,11 +23,17 @@ describe('AccountView', () => {
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/account/display')
-    const group = await screen.findByRole('radiogroup', { name: 'Appearance' })
-    expect(within(screen.getByRole('main')).getByRole('radiogroup', { name: 'Appearance' })).toBe(
-      group,
-    )
-    expect(screen.getAllByRole('radiogroup', { name: 'Appearance' })).toHaveLength(1)
+    const group = await screen.findByRole('radiogroup', {
+      name: 'Light mode, dark mode, or follow your device',
+    })
+    expect(
+      within(screen.getByRole('main')).getByRole('radiogroup', {
+        name: 'Light mode, dark mode, or follow your device',
+      }),
+    ).toBe(group)
+    expect(
+      screen.getAllByRole('radiogroup', { name: 'Light mode, dark mode, or follow your device' }),
+    ).toHaveLength(1)
   })
 
   describe('tutorial mode', () => {
@@ -120,10 +126,10 @@ describe('AccountView', () => {
       await screen.findByLabelText('Password', { selector: 'input' }),
       'my password 123',
     )
-    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
     const dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
     expect(body).toBeUndefined() // nothing is deleted until the person confirms
-    await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete account' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
     expect(body).toEqual({
       password: 'my password 123',
@@ -142,16 +148,16 @@ describe('AccountView', () => {
       }),
     )
     const { router } = await renderAt('/account/delete')
-    const keep = await screen.findByRole('radio', { name: /Keep my name on my notes/ })
+    const keep = await screen.findByRole('radio', { name: /Keep my display name on my notes/ })
     expect(keep).toBeChecked() // the default
     await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
     await fireEvent.update(
       screen.getByLabelText('Password', { selector: 'input' }),
       'my password 123',
     )
-    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
     const dialog = await screen.findByRole('dialog')
-    await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete account' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
     expect(body.keepName).toBe(false)
   })
@@ -171,13 +177,13 @@ describe('AccountView', () => {
       await screen.findByLabelText('Password', { selector: 'input' }),
       'my password 123',
     )
-    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).toBeNull()
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
     await fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(deleted).toBe(false)
@@ -194,8 +200,12 @@ describe('AccountView', () => {
     )
     await renderAt('/account/delete')
     await fireEvent.update(await screen.findByLabelText('Password', { selector: 'input' }), 'wrong')
-    await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
-    await fireEvent.click(await screen.findByRole('button', { name: /Yes, delete my account/ }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    await fireEvent.click(
+      await within(await screen.findByRole('dialog')).findByRole('button', {
+        name: 'Delete account',
+      }),
+    )
     expect(await screen.findByRole('alert')).toHaveTextContent(/password/)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -210,7 +220,7 @@ describe('AccountView', () => {
       await screen.findByText(/To delete your account, first add a password/),
     ).toBeInTheDocument()
     expect(screen.queryByLabelText('Password', { selector: 'input' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Delete my account' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Delete account' })).toBeNull()
   })
 
   it('sends /account to the details page, with no header block or Publications section', async () => {
@@ -222,7 +232,7 @@ describe('AccountView', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Your details' })).toBeVisible()
     expect(router.currentRoute.value.path).toBe('/account/details')
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(
-      expect.arrayContaining(['Your name', 'Username']),
+      expect.arrayContaining(['Name', 'Username']),
     )
     expect(screen.queryByRole('heading', { name: 'Publications' })).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Your account' })).toBeNull()

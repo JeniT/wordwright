@@ -111,9 +111,9 @@ describe('decline-invitation page', () => {
   })
 })
 
-describe('"Who can invite you" on the account page', () => {
+describe('"Invitations" on the security page', () => {
   const section = async () =>
-    (await screen.findByRole('heading', { name: 'Who can invite you' })).closest('section')!
+    (await screen.findByRole('heading', { name: 'Invitations' })).closest('section')!
   const base = [noPublications, llmSettings(false)]
 
   it('lists blocked people and unblocks one', async () => {
@@ -130,7 +130,7 @@ describe('"Who can invite you" on the account page', () => {
     await renderAt('/account/security')
     const s = within(await section())
     await fireEvent.click(await s.findByRole('button', { name: 'Unblock Ada Lovelace' }))
-    expect(await s.findByText(/You haven't blocked anyone/)).toBeInTheDocument()
+    expect(await s.findByText(/No one blocked/)).toBeInTheDocument()
   })
 
   it('turns blocking everyone on', async () => {
@@ -147,9 +147,9 @@ describe('"Who can invite you" on the account page', () => {
       }),
     )
     await renderAt('/account/security')
-    const box = await within(await section()).findByLabelText(
-      /Don't accept invitations from anyone/,
-    )
+    const box = await within(await section()).findByRole('switch', {
+      name: 'Block all invitations',
+    })
     expect(box).not.toBeChecked()
     await fireEvent.click(box)
     await waitFor(() => expect(sent).toEqual({ blocked: true }))
@@ -159,8 +159,10 @@ describe('"Who can invite you" on the account page', () => {
   it('asks unconfirmed accounts to confirm first', async () => {
     server.use(signedInAs({ ...testUser, emailVerified: false }), ...base)
     await renderAt('/account/security')
-    expect(within(await section()).getByText(/Confirm your email address/)).toBeInTheDocument()
-    expect(screen.queryByLabelText(/Don't accept invitations/)).toBeNull()
+    expect(
+      within(await section()).getByText('Confirm your email address first.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Block all invitations' })).toBeNull()
   })
 
   it('shows an error if the settings cannot be loaded', async () => {

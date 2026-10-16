@@ -33,7 +33,7 @@ describe('changing a password', () => {
     expect(current).toHaveAttribute('type', 'password')
     await fireEvent.update(current, 'my old password')
     await fireEvent.update(screen.getByLabelText('New password'), 'a brand new password')
-    await fireEvent.click(screen.getByRole('button', { name: 'Change password' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Save password' }))
 
     await screen.findByText(/signed out your other devices/)
     expect(sent).toEqual({
@@ -56,7 +56,7 @@ describe('changing a password', () => {
     await renderAt('/account/security')
     await fireEvent.update(await screen.findByLabelText('Current password'), 'nope nope nope')
     await fireEvent.update(screen.getByLabelText('New password'), 'a brand new password')
-    await fireEvent.click(screen.getByRole('button', { name: 'Change password' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Save password' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Your current password is incorrect')
     expect(screen.queryByText(/signed out your other devices/)).toBeNull()
   })
@@ -75,13 +75,13 @@ describe('adding a password to a Google-only account', () => {
       }),
     )
     await renderAt('/account/security')
-    await screen.findByText(/You sign in with google/)
+    await screen.findByText(/Add a password to sign in with email too/)
     expect(screen.queryByLabelText('Current password')).toBeNull()
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a link to set a password' }))
-    await screen.findByText(/We've emailed you a link/)
+    await fireEvent.click(screen.getByRole('button', { name: 'Email me a link' }))
+    await screen.findByText(/Link sent/)
     expect(requested).toBe(true)
-    expect(screen.queryByRole('button', { name: 'Email me a link to set a password' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Email me a link' })).toBeNull()
   })
 
   it('shows an error if the request is refused', async () => {
@@ -94,9 +94,7 @@ describe('adding a password to a Google-only account', () => {
       ),
     )
     await renderAt('/account/security')
-    await fireEvent.click(
-      await screen.findByRole('button', { name: 'Email me a link to set a password' }),
-    )
+    await fireEvent.click(await screen.findByRole('button', { name: 'Email me a link' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts')
   })
 })

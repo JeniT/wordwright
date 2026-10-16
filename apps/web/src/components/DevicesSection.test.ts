@@ -32,10 +32,10 @@ const open = async (state: { devices: unknown[] } = { devices: [here] }) => {
     http.get('*/api/account/sessions', () => HttpResponse.json(state.devices)),
   )
   await renderAt('/account/security')
-  return screen.findByRole('region', { name: "Where you're signed in" })
+  return screen.findByRole('region', { name: 'Devices' })
 }
 
-describe("Where you're signed in", () => {
+describe('Devices', () => {
   it('says it is loading, then lists each device, marking this one with no button', async () => {
     server.use(
       signedInAs(testUser),
@@ -46,7 +46,7 @@ describe("Where you're signed in", () => {
       }),
     )
     await renderAt('/account/security')
-    const section = await screen.findByRole('region', { name: "Where you're signed in" })
+    const section = await screen.findByRole('region', { name: 'Devices' })
     expect(within(section).getByText('Loading…')).toBeInTheDocument()
     expect(await within(section).findByText('Firefox on Linux')).toBeInTheDocument()
     const items = within(section).getAllByRole('listitem')
@@ -55,7 +55,9 @@ describe("Where you're signed in", () => {
     expect(items[0]).toHaveTextContent('This device')
     expect(within(items[0]!).queryByRole('button')).toBeNull()
     expect(items[1]).toHaveTextContent(/Last used/)
-    expect(within(section).getByText(/Changing or resetting your password/)).toBeInTheDocument()
+    expect(
+      within(section).getByText("Sign out a device you've lost or shared."),
+    ).toBeInTheDocument()
   })
 
   it('says only this device is signed in, with nothing to sign out', async () => {
@@ -71,9 +73,9 @@ describe("Where you're signed in", () => {
       http.get('*/api/account/sessions', () => new HttpResponse(null, { status: 500 })),
     )
     await renderAt('/account/security')
-    const section = await screen.findByRole('region', { name: "Where you're signed in" })
+    const section = await screen.findByRole('region', { name: 'Devices' })
     const alert = await within(section).findByRole('alert')
-    expect(alert).toHaveTextContent(/couldn't load where you're signed in/)
+    expect(alert).toHaveTextContent(/couldn't load your devices/)
     expect(alert).toHaveTextContent(/try again/i)
     server.use(http.get('*/api/account/sessions', () => HttpResponse.json([here, phone])))
     await fireEvent.click(within(section).getByRole('button', { name: 'Try again' }))

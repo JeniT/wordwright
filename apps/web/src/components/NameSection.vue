@@ -18,30 +18,23 @@ const save = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="name-heading">
-    <h2 id="name-heading" class="mb-3 font-display text-xl font-semibold">Your name</h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      This is the name other people see: on the notes and brainstorm messages you write, in the
-      lists of people in a publication, and in invitations you send. Changing it updates it
-      everywhere it is shown. Emails already sent keep the old one.
-    </p>
+    <h2 id="name-heading" class="mb-3 font-display text-xl font-semibold">Name</h2>
     <form @submit.prevent="save.mutate()">
       <TextField
         v-model="name"
-        label="What should we call you?"
+        label="Name"
+        hint="Other people see this on your notes, messages and invitations."
         autocomplete="given-name"
         :maxlength="100"
         required
       />
-      <SaveStatus :mutation="save" class="mb-3">
-        Saved. People now see <strong>{{ session.user.name }}</strong
-        >.
-      </SaveStatus>
+      <SaveStatus :mutation="save" class="mb-3" />
       <button
         type="submit"
         class="btn btn-primary"
         :disabled="save.isPending.value || !name.trim() || name.trim() === session.user.name"
       >
-        Change name
+        Save name
       </button>
     </form>
   </section>

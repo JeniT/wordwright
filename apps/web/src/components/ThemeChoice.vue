@@ -5,6 +5,7 @@ import { useTheme, type ThemeChoice } from '../lib/useTheme'
  * Appearance: follow the device, or always light, or always dark. Three states, so a radio group (arrow keys move
  * between them), not a switch. Applies and saves as soon as it is chosen.
  */
+withDefaults(defineProps<{ label?: string }>(), { label: 'Appearance' })
 const { choice, choose } = useTheme()
 const options: { value: ThemeChoice; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -14,7 +15,7 @@ const options: { value: ThemeChoice; label: string }[] = [
 </script>
 
 <template>
-  <div role="radiogroup" aria-label="Appearance" class="segmented">
+  <div role="radiogroup" :aria-label="label" class="segmented">
     <label v-for="option in options" :key="option.value">
       <input
         type="radio"

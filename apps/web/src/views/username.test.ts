@@ -29,13 +29,11 @@ describe('username on the account page', () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     const fake = fakeUsernames()
     await renderAt('/account/details')
-    expect(await screen.findByText(/Your username is/)).toHaveTextContent('adalovelace')
-    expect(
-      screen.getByText(/Publications you already have keep their addresses/),
-    ).toBeInTheDocument()
-
-    const field = screen.getByLabelText('New username')
-    const save = screen.getByRole('button', { name: 'Change username' })
+    const field = await screen.findByLabelText('Username', { selector: 'input' })
+    expect(field).toHaveValue('adalovelace') // the current one
+    expect(screen.getByText('Used in URLs, for example ada-substack')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'About usernames' })).toBeInTheDocument()
+    const save = screen.getByRole('button', { name: 'Save username' })
     expect(save).toBeDisabled()
 
     await fireEvent.update(field, 'bobby')
@@ -46,28 +44,31 @@ describe('username on the account page', () => {
     expect(await screen.findByText('“lovelace” is available.')).toBeVisible()
     await fireEvent.click(save)
     await waitFor(() => expect(fake.saved).toEqual(['Lovelace']))
-    expect(await screen.findByText(/Your username is now/)).toHaveTextContent('lovelace')
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
   })
 
   it('explains a badly formed or reserved username, and will not save it', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames()
     await renderAt('/account/details')
-    const field = await screen.findByLabelText('New username')
+    const field = await screen.findByLabelText('Username', { selector: 'input' })
     await fireEvent.update(field, 'has space')
     expect(await screen.findByText('Use only letters and numbers in your username')).toBeVisible()
     await fireEvent.update(field, 'admin')
     expect(await screen.findByText('That username is reserved. Try another.')).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Change username' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save username' })).toBeDisabled()
   })
 
   it('will not offer the username they already have as a change', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(true))
     fakeUsernames()
     await renderAt('/account/details')
-    await fireEvent.update(await screen.findByLabelText('New username'), 'AdaLovelace')
-    expect(await screen.findByText('That is your current username.')).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Change username' })).toBeDisabled()
+    await fireEvent.update(
+      await screen.findByLabelText('Username', { selector: 'input' }),
+      'AdaLovelace',
+    )
+    expect(screen.getByText('Used in URLs, for example ada-substack')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Save username' })).toBeDisabled()
   })
 
   it("shows the server's reason when saving fails", async () => {
@@ -84,8 +85,11 @@ describe('username on the account page', () => {
       ),
     )
     await renderAt('/account/details')
-    await fireEvent.update(await screen.findByLabelText('New username'), 'lovelace')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Change username' }))
+    await fireEvent.update(
+      await screen.findByLabelText('Username', { selector: 'input' }),
+      'lovelace',
+    )
+    await fireEvent.click(await screen.findByRole('button', { name: 'Save username' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('changed your username several')
   })
 })
@@ -99,7 +103,7 @@ describe('the one-time prompt for a generated username', () => {
     await renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Choose your username' })).toBeVisible()
     expect(screen.getByText(/We gave you/)).toHaveTextContent('adal')
-    await fireEvent.update(screen.getByLabelText('Username'), 'ada')
+    await fireEvent.update(screen.getByLabelText('Username', { selector: 'input' }), 'ada')
     await fireEvent.click(await screen.findByRole('button', { name: 'Use this username' }))
     await waitFor(() => expect(fake.saved).toEqual(['ada']))
     // Answered, so it goes away.

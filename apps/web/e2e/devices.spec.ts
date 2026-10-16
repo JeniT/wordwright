@@ -21,8 +21,9 @@ test('sees where they are signed in, ends the other device, and is asked before 
     .getByRole('navigation', { name: 'Account settings' })
     .getByRole('link', { name: 'Sign-in and security' })
     .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Sign-in and security' })).toBeVisible()
 
-  const section = page.getByRole('region', { name: "Where you're signed in" })
+  const section = page.getByRole('region', { name: 'Devices' })
   await expect(section.getByText('Only this device is signed in')).toBeVisible()
   await expect(section.getByText('This device', { exact: true })).toBeVisible()
 

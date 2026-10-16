@@ -24,8 +24,8 @@ describe('changing your email on the account page', () => {
     expect(form).toHaveTextContent('ada@example.com')
 
     await fireEvent.update(screen.getByLabelText('New email address'), ' New@Example.com ')
-    await fireEvent.update(screen.getByLabelText('Confirm with your password'), 'my password')
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a link to confirm' }))
+    await fireEvent.update(screen.getByLabelText('Password'), 'my password')
+    await fireEvent.click(screen.getByRole('button', { name: 'Send confirmation link' }))
 
     expect(await within(form).findByRole('status')).toHaveTextContent('new@example.com')
     expect(sent).toEqual({ newEmail: 'New@Example.com', password: 'my password' })
@@ -44,8 +44,8 @@ describe('changing your email on the account page', () => {
     await renderAt('/account/details')
     const form = (await screen.findByRole('heading', { name: 'Email address' })).closest('section')!
     await fireEvent.update(screen.getByLabelText('New email address'), 'bob@example.com')
-    await fireEvent.update(screen.getByLabelText('Confirm with your password'), 'my password')
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a link to confirm' }))
+    await fireEvent.update(screen.getByLabelText('Password'), 'my password')
+    await fireEvent.click(screen.getByRole('button', { name: 'Send confirmation link' }))
     expect(await within(form).findByRole('alert')).toHaveTextContent('already exists')
     expect(within(form).queryByRole('status')).toBeNull()
   })
@@ -63,10 +63,10 @@ describe('changing your email on the account page', () => {
     await renderAt('/account/details')
     const form = (await screen.findByRole('heading', { name: 'Email address' })).closest('section')!
     await fireEvent.update(screen.getByLabelText('New email address'), 'bob@example.com')
-    await fireEvent.update(screen.getByLabelText('Confirm with your password'), 'my password')
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a link to confirm' }))
+    await fireEvent.update(screen.getByLabelText('Password'), 'my password')
+    await fireEvent.click(screen.getByRole('button', { name: 'Send confirmation link' }))
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Email me a link to confirm' })).toBeDisabled(),
+      expect(screen.getByRole('button', { name: 'Send confirmation link' })).toBeDisabled(),
     )
     await within(form).findByRole('status')
   })

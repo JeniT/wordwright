@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useTemplateRef, watch } from 'vue'
 import { api } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
 import SaveStatus from './SaveStatus.vue'
+import SwitchField from './SwitchField.vue'
 
 const session = useSessionStore()
 const queryClient = useQueryClient()
@@ -21,6 +23,9 @@ const setAll = useMutation({
   mutationFn: (blocked: boolean) => api.setBlockAllInvitations(blocked),
   onSuccess: refresh,
 })
+const field = useTemplateRef<InstanceType<typeof SwitchField>>('field')
+// Shown as soon as it is flipped; if saving fails, the switch goes back.
+watch(setAll.isError, (failed) => failed && field.value?.revert())
 const unblock = useMutation({
   mutationFn: (senderId: string) => api.unblockInviter(senderId),
   onSuccess: refresh,
@@ -29,35 +34,25 @@ const unblock = useMutation({
 
 <template>
   <section v-if="session.user" aria-labelledby="invite-blocks-heading">
-    <h2 id="invite-blocks-heading" class="mb-3 font-display text-xl font-semibold">
-      Who can invite you
-    </h2>
+    <h2 id="invite-blocks-heading" class="mb-3 font-display text-xl font-semibold">Invitations</h2>
 
     <p v-if="!session.user.emailVerified" class="text-sm text-ink-soft">
-      Confirm your email address to choose who can invite you to share a publication.
+      Confirm your email address first.
     </p>
     <QueryState v-else :query="blocks" what="your invitation settings" detail>
       <template v-if="blocks.data.value">
-        <label class="mb-4 flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            class="mt-1"
-            :checked="blocks.data.value.all"
-            :disabled="setAll.isPending.value"
-            @change="setAll.mutate(($event.target as HTMLInputElement).checked)"
-          />
-          <span>
-            Don't accept invitations from anyone
-            <span class="block text-ink-soft"
-              >Invitations to {{ session.user.email }} are dropped without telling the sender.</span
-            >
-          </span>
-        </label>
+        <SwitchField
+          ref="field"
+          :model-value="blocks.data.value.all"
+          label="Block all invitations"
+          :disabled="setAll.isPending.value"
+          @update:model-value="setAll.mutate($event)"
+        />
+        <p class="mt-1 mb-4 text-sm text-ink-soft">Senders aren't told.</p>
 
         <h3 class="mb-1 text-sm font-medium">Blocked people</h3>
         <p v-if="blocks.data.value.senders.length === 0" class="text-sm text-ink-soft">
-          You haven't blocked anyone. You can block someone from the "Decline" link in their
-          invitation email.
+          No one blocked. Use Decline in an invitation email to block its sender.
         </p>
         <ul v-else class="mb-2 space-y-1">
           <li

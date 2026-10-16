@@ -2,6 +2,7 @@
 import { useMutation } from '@tanstack/vue-query'
 import { api } from '../lib/api'
 import { saveFile } from '../lib/download'
+import InfoTip from './InfoTip.vue'
 import SaveStatus from './SaveStatus.vue'
 
 /** Everything of the person's own, as Markdown: all their publications (the account page) or just one (its settings). */
@@ -15,16 +16,24 @@ const download = useMutation({
 </script>
 
 <template>
-  <section id="download" aria-labelledby="download-heading">
-    <h2 id="download-heading" class="mb-1 font-display text-xl font-semibold">
+  <section
+    id="download"
+    :aria-labelledby="publication ? 'download-heading' : undefined"
+    :aria-label="publication ? undefined : 'Download your writing'"
+  >
+    <h2 v-if="publication" id="download-heading" class="mb-1 font-display text-xl font-semibold">
       Download your writing
     </h2>
-    <p v-if="!publication" class="mb-3 text-sm text-ink-soft">
-      Everything you have written in your publications, as a zip of Markdown files: ideas, notes,
-      reading lists and drafts. As an owner you get every draft in a publication; as a member, the
-      drafts you edit or started. Comments, reviews, brainstorming conversations and API keys are
-      not included.
-    </p>
+    <div v-if="!publication" class="mb-3 flex items-start gap-2">
+      <p class="text-sm text-ink-soft">
+        A zip of Markdown files: your ideas, notes, reading lists and drafts. Comments, reviews,
+        brainstorming and keys aren't included.
+      </p>
+      <InfoTip label="About what you get"
+        >Owners get every draft in a publication. Members get the drafts they edit or
+        started.</InfoTip
+      >
+    </div>
     <p v-else-if="publication.role === 'owner'" class="mb-3 text-sm text-ink-soft">
       This publication as a zip of Markdown files: its ideas, notes, reading lists and drafts. As an
       owner you get every draft in this publication, including other members' drafts.

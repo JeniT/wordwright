@@ -204,6 +204,7 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
     .getByRole('link', { name: 'Display' })
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'Display' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Display' })).toBeVisible()
   await noViolations(page, 'Account settings in dark mode')
   await expect(page.getByRole('radio', { name: 'System' })).toBeChecked()
   await page.getByRole('radio', { name: 'Light' }).check()

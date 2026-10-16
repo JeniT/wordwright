@@ -16,7 +16,7 @@ watch(save.isError, (failed) => failed && field.value?.revert())
   <section aria-labelledby="tutorial-heading">
     <h2 id="tutorial-heading" class="mb-1 font-display text-xl font-semibold">Tutorial mode</h2>
     <p class="mb-3 text-sm text-ink-soft">
-      Explains each page as you go. It is on for new accounts.
+      Explains each page as you go.
       <RouterLink :to="{ name: 'help-tutorial-mode' }" class="link">About tutorial mode</RouterLink>
     </p>
     <SwitchField

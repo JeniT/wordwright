@@ -272,7 +272,7 @@ tests inject fakes and nothing hits the network.
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
-- **Where you're signed in** (Sign-in and security page, #165): each session keeps a
+- **Devices** (Sign-in and security page, #165): each session keeps a
   coarse label from the User-Agent ("Safari on macOS", else "Unknown device"; picked from a fixed list of words, so
   nothing the browser sends is stored or shown back) and when it was last used (rewritten at most once an hour).
   **No IP address, no location, no raw User-Agent.** Each is named on the page by its own random id, never the cookie or
@@ -313,7 +313,7 @@ tests inject fakes and nothing hits the network.
   not) can decline and, optionally, stop invitations from that sender or from everyone. The sender is never
   told: a declined invitation just stops being pending, and later invitations from a blocked sender (or any
   invitation to an address that blocks everyone) are dropped with the same reply as always. Confirmed accounts
-  see and lift their blocks under "Who can invite you" on the Sign-in and security page; blocks follow the person if they
+  see and lift their blocks under "Invitations" on the Sign-in and security page; blocks follow the person if they
   change their email.
 - **Email confirmation:** new local accounts are _unconfirmed_; signup emails a link (valid 24 hours, newest
   link only, harmless to open twice). Unconfirmed people can write and use AI features, but **can't invite

@@ -17,13 +17,13 @@ const open = () => {
 describe('your name on the account page', () => {
   it('starts with the current name, and offers no change until it is edited', async () => {
     await open()
-    const field = await screen.findByLabelText('What should we call you?')
+    const field = await screen.findByLabelText('Name', { selector: 'input' })
     expect(field).toHaveValue('Ada Lovelace')
-    expect(screen.getByRole('button', { name: 'Change name' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled()
     await fireEvent.update(field, '   ')
-    expect(screen.getByRole('button', { name: 'Change name' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled()
     await fireEvent.update(field, 'Ada Lovelace') // the same name is not a change
-    expect(screen.getByRole('button', { name: 'Change name' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled()
   })
 
   it('saves the new name and shows it everywhere the page does', async () => {
@@ -35,13 +35,13 @@ describe('your name on the account page', () => {
       }),
     )
     await open()
-    await fireEvent.update(await screen.findByLabelText('What should we call you?'), 'Ada King')
-    await fireEvent.click(screen.getByRole('button', { name: 'Change name' }))
+    await fireEvent.update(await screen.findByLabelText('Name', { selector: 'input' }), 'Ada King')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
     await waitFor(() => expect(sent).toEqual({ name: 'Ada King' }))
-    expect(await screen.findByText(/People now see/)).toHaveTextContent('Ada King')
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
     // The name in the menu foot follows the change.
     expect(within(screen.getByRole('banner')).getByText('Ada King')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Change name' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled()
   })
 
   it("shows the server's explanation and keeps what was typed", async () => {
@@ -51,9 +51,9 @@ describe('your name on the account page', () => {
       ),
     )
     await open()
-    const field = await screen.findByLabelText('What should we call you?')
+    const field = await screen.findByLabelText('Name', { selector: 'input' })
     await fireEvent.update(field, 'A different name')
-    await fireEvent.click(screen.getByRole('button', { name: 'Change name' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('100 characters or fewer')
     expect(field).toHaveValue('A different name')
   })
@@ -68,12 +68,12 @@ describe('your name on the account page', () => {
       }),
     )
     await open()
-    await fireEvent.update(await screen.findByLabelText('What should we call you?'), 'Slow Ada')
-    const button = screen.getByRole('button', { name: 'Change name' })
+    await fireEvent.update(await screen.findByLabelText('Name', { selector: 'input' }), 'Slow Ada')
+    const button = screen.getByRole('button', { name: 'Save name' })
     await fireEvent.click(button)
     expect(button).toBeDisabled()
     await fireEvent.click(button)
-    await screen.findByText(/People now see/)
+    await screen.findByText('Saved')
     expect(calls).toBe(1)
   })
 })

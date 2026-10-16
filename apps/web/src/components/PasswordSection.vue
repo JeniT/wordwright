@@ -52,20 +52,20 @@ const setup = useMutation({
         class="mb-3"
       />
       <button type="submit" class="btn btn-primary" :disabled="change.isPending.value">
-        Change password
+        Save password
       </button>
     </form>
 
     <!-- Signs in with Google only: add a password via an emailed link -->
     <div v-else>
       <p class="mb-3 text-sm text-ink-soft">
-        You sign in with {{ session.user.linkedProviders.join(' / ') || 'a linked account' }}. You
-        can also add a password, to sign in with your email too. For your security we email a link
-        to <strong>{{ session.user.email }}</strong> to choose it.
+        Add a password to sign in with email too. We'll email a link to
+        <strong>{{ session.user.email }}</strong
+        >.
       </p>
       <SaveStatus
         :mutation="setup"
-        saved="We've emailed you a link. Opening it signs you out of your devices so you can choose a password."
+        saved="Link sent. Opening it signs you out of your devices."
         class="mb-3"
       />
       <button
@@ -75,7 +75,7 @@ const setup = useMutation({
         :disabled="setup.isPending.value"
         @click="setup.mutate()"
       >
-        Email me a link to set a password
+        Email me a link
       </button>
     </div>
   </section>

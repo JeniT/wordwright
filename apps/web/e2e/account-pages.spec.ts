@@ -45,7 +45,7 @@ test('the gear opens the account level, the menu moves between its pages, and /a
   }
 
   // The delete page's way to the download page.
-  await page.getByRole('link', { name: /download your writing first/i }).click()
+  await page.getByRole('main').getByRole('link', { name: 'Download your writing' }).click()
   await expect(page).toHaveURL(/\/account\/download$/)
 
   await page.goto('/account')

@@ -38,15 +38,9 @@ const devicesWord = (n: number) => `${n} other ${n === 1 ? 'device' : 'devices'}
 
 <template>
   <section aria-labelledby="devices-heading">
-    <h2 id="devices-heading" class="mb-1 font-display text-xl font-semibold">
-      Where you're signed in
-    </h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      If you lose a laptop or used a shared computer, sign it out here. Changing or resetting your
-      password also signs you out everywhere else; changing your email address doesn't. We keep only
-      the kind of browser and system, and when it was last used: never where it was.
-    </p>
-    <QueryState :query="devices" what="where you're signed in">
+    <h2 id="devices-heading" class="mb-1 font-display text-xl font-semibold">Devices</h2>
+    <p class="mb-3 text-sm text-ink-soft">Sign out a device you've lost or shared.</p>
+    <QueryState :query="devices" what="your devices">
       <ul class="panel mb-3 divide-y divide-line">
         <li
           v-for="device in devices.data.value"
