@@ -210,10 +210,9 @@ Each kind of page gets one review of every word on it, filed as an issue labelle
 5. **Look beyond the words.** Two buttons for one action, a duplicated way out, a missing state (loading, empty,
    error), a name that differs from the same thing elsewhere, a missing glossary term, or a flow that would be
    simpler with fewer choices. Note wording in other pages as follow-ups; don't widen the review.
-6. **Grill the owner** (`grill-with-docs`) before filing anything. The owner can type /grill-with-docs; an agent can
-   not invoke it (it is user-only), so load the two skills it calls, `grilling` and `domain-modeling`, and add any new
-   term to CONTEXT.md as it is agreed. Show the table of text now, problem, and
-   proposal; then ask the open decisions as one numbered round, each with your recommended answer worded so "yes"
+6. **Grill the owner** (the `grilling` and `domain-modeling` skills; together they are what the owner's
+   `/grill-with-docs` runs, which an agent can't invoke) before filing anything. Add any new term to
+   CONTEXT.md as it is agreed. Show the table of text now, problem, and proposal; then ask the open decisions as one numbered round, each with your recommended answer worded so "yes"
    accepts it. Ask only what changes the outcome. Look facts up yourself. Repeat until nothing is left assumed.
 7. **File one issue** with the agreed table, the `Do` list (including any `CONTEXT.md` terms), acceptance criteria as
    in the Definition of done (component tests with tutorial mode on and off, e2e where flows change, help page if
