@@ -227,8 +227,8 @@ on the page. Move it to an info icon or a help page, or cut it.
   pointer or focus leaves, so they can't be reached. If it needs a link, it is a help page.
 - **Keyboard and touch:** the icon is a real button with a name (`label`, “About the new idea”), reached by Tab. The
   tip shows on hover or focus, which a tap gives, and is the icon's description for screen readers.
-- **Dismissable:** a tip must close with Escape without moving focus (WCAG 1.4.13). The component doesn't do this yet;
-  it is tracked in #197.
+- **Dismissable, hoverable, persistent (WCAG 1.4.13):** Escape closes the tip without moving focus, and it shows again
+  on the next hover or focus. The pointer can move from the icon onto the tip without it closing.
 - Never the only place for something the person needs to finish the task. That is what the test above catches.
 
 ### Tutorial mode (planned)
