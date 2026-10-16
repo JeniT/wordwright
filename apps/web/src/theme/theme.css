@@ -43,6 +43,7 @@
   --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-sunken: var(--sunken);
+  --color-hover-wash: var(--hover-wash);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-line: var(--line);
@@ -233,7 +234,7 @@
 }
 /*
  * An icon-only button: no border or fill at rest, the icon in `ink-soft` (4.5:1 on paper, surface and sunken, so it
- * is easy enough to see without a hover, which phones don't have). Hover and keyboard focus fill it with `sunken`;
+ * is easy enough to see without a hover, which phones don't have). Hover and keyboard focus fill it with `hover-wash` (a soft step off the surface in both modes; `sunken` is near-black in dark);
  * its own page shows `accent-wash` and an accent icon (`aria-current`), which is a shape as well as a colour.
  * Accent is left for the current page and the primary action, never an icon on every row.
  */
@@ -243,7 +244,7 @@
   color: var(--color-ink-soft);
   &:hover:not(:disabled),
   &:focus-visible {
-    background: var(--color-sunken);
+    background: var(--color-hover-wash);
     color: var(--color-ink);
   }
   &[aria-current='page'],
@@ -251,7 +252,7 @@
     background: var(--color-accent-wash);
     color: var(--color-accent);
   }
-  /* On a recessed strip a `sunken` hover would not show, so it steps to `line`. */
+  /* On a recessed strip the `hover-wash` would not show (in light it is the strip's own colour), so it steps to `line`. */
   :where(.bg-sunken) &:hover:not(:disabled),
   :where(.bg-sunken) &:focus-visible {
     background: var(--color-line);

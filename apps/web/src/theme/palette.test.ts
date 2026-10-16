@@ -43,6 +43,7 @@ const PAIRS: [string, string, number, string][] = [
   ['ink-soft', 'paper', 4.5, 'secondary text on the page'],
   ['ink-soft', 'surface', 4.5, 'secondary text and hints on panels'],
   ['ink-soft', 'sunken', 4.5, 'secondary text on recessed areas'],
+  ['ink', 'hover-wash', 4.5, 'icon of a ghost button hovered or focused'],
   ['ink', 'line', 4.5, 'icon of a ghost button hovered on a recessed strip'],
   ['accent', 'paper', 4.5, 'links and outline buttons on the page'],
   ['accent', 'surface', 4.5, 'links on panels'],

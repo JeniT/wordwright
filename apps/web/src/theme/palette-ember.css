@@ -9,6 +9,7 @@
   --paper: #f8f5f1; /* page background */
   --surface: #ffffff; /* raised areas: inputs, panels, cards */
   --sunken: #eee8e0; /* recessed areas: code, quotes, disabled fields */
+  --hover-wash: #eee8e0; /* the fill under the pointer on a quiet control (an icon button); a gentle step off its surface */
   --ink: #2a2420; /* body text */
   --ink-soft: #594f47; /* secondary text, hints */
   --line: #e0d8ce; /* decorative dividers */
@@ -44,6 +45,7 @@
   --paper: #1a1512;
   --surface: #241d19;
   --sunken: #120e0c;
+  --hover-wash: #342a23;
   --ink: #f1e9e1;
   --ink-soft: #b8aa9d;
   --line: #382e27;
@@ -79,6 +81,8 @@
     --paper: #1a1512;
     --surface: #241d19;
     --sunken: #120e0c;
+    --hover-wash: #342a23;
+    --hover-wash: #342a23;
     --ink: #f1e9e1;
     --ink-soft: #b8aa9d;
     --line: #382e27;
