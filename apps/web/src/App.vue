@@ -75,6 +75,7 @@ watch(
       </RouterLink>
       <div class="flex flex-wrap items-center gap-3 text-sm">
         <span>{{ session.user.name }}</span>
+        <RouterLink :to="{ name: 'help' }" class="link">Help</RouterLink>
         <ThemeChoice />
         <RouterLink :to="{ name: 'start-writing' }" class="btn btn-outline btn-sm"
           >Start writing</RouterLink
@@ -136,9 +137,12 @@ watch(
               <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
               <SettingsButton :to="{ name: 'account' }" label="Account settings" />
             </div>
-            <button type="button" class="btn btn-outline btn-sm mt-2" @click="signOut.mutate()">
-              Sign out
-            </button>
+            <div class="mt-2 flex flex-wrap items-center gap-3">
+              <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">
+                Sign out
+              </button>
+              <RouterLink :to="{ name: 'help' }" class="link text-sm">Help</RouterLink>
+            </div>
           </div>
         </div>
       </div>
@@ -153,6 +157,9 @@ watch(
           <BrandMark :height="48" />
           Wordwright
         </RouterLink>
+        <p class="mt-2 text-sm">
+          <RouterLink :to="{ name: 'help' }" class="link">Help</RouterLink>
+        </p>
       </header>
       <VerifyEmailBanner />
       <main

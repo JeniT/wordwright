@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useSessionStore } from './stores/session'
 
@@ -258,6 +259,41 @@ export const routes: RouteRecordRaw[] = [
   },
 ]
 
+/** Help pages work for everyone, signed in or not (a link from sign-up or an email must open). */
+const helpRoutes: RouteRecordRaw[] = [
+  {
+    path: '/help',
+    name: 'help',
+    component: () => import('./views/HelpView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/api-key',
+    name: 'help-api-key',
+    component: () => import('./views/HelpApiKeyView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/privacy',
+    name: 'help-privacy',
+    component: () => import('./views/HelpPrivacyView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/:rest(.*)',
+    name: 'help-not-found',
+    component: () => import('./views/HelpNotFoundView.vue'),
+    meta: { open: true },
+  },
+]
+routes.push(...helpRoutes)
+
+/**
+ * The page the person was on before this one, within this tab (null when they arrived straight here: a new tab, a
+ * reload, a link from an email). Help pages use it for "Back".
+ */
+export const cameFrom = ref<string | null>(null)
+
 export function createAppRouter(history = createWebHistory()) {
   const router = createRouter({
     history,
@@ -271,6 +307,9 @@ export function createAppRouter(history = createWebHistory()) {
     },
   })
 
+  router.afterEach((to, from) => {
+    cameFrom.value = from.matched.length ? from.fullPath : null
+  })
   router.beforeEach(async (to) => {
     const session = useSessionStore()
     await session.load()

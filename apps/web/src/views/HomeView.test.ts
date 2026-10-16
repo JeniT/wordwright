@@ -14,23 +14,20 @@ describe('landing page: connecting an AI key', () => {
     const heading = await screen.findByRole('heading', { name: 'First, connect your AI assistant' })
     const section = heading.closest('section')!
 
-    const steps = section.querySelectorAll('ol > li')
-    expect(steps).toHaveLength(5)
-    expect(within(section).getByRole('link', { name: 'Anthropic Console' })).toHaveAttribute(
+    // The steps live on a help page; the screen links to it (in a new tab, so a half-typed key isn't lost).
+    expect(section.querySelector('ol')).toBeNull()
+    const how = within(section).getByRole('link', {
+      name: 'How to get an API key (opens in a new tab)',
+    })
+    expect(how).toHaveAttribute('href', '/help/api-key')
+    expect(how).toHaveAttribute('target', '_blank')
+    expect(within(section).getByRole('link', { name: /privacy implications/ })).toHaveAttribute(
       'href',
-      'https://console.anthropic.com/',
-    )
-    expect(within(section).getByRole('link', { name: 'API keys' })).toHaveAttribute(
-      'href',
-      'https://console.anthropic.com/settings/keys',
+      '/help/privacy',
     )
     expect(within(section).getByLabelText('Anthropic API key')).toHaveAttribute('type', 'password')
-    // Advice on the provider's privacy settings sits where the key is added.
-    expect(within(section).getByText('Protect what you write')).toBeInTheDocument()
-    expect(within(section).getByText(/within 30 days/)).toBeInTheDocument()
-    expect(
-      within(section).getByRole('link', { name: 'platform.claude.com/settings/privacy' }),
-    ).toHaveAttribute('href', 'https://platform.claude.com/settings/privacy')
+    // The full privacy advice is on its own help page, not here.
+    expect(within(section).queryByText('Protect what you write')).toBeNull()
     // The model choice can wait for the account page.
     expect(within(section).queryByLabelText('Model')).toBeNull()
 

@@ -84,6 +84,8 @@ repeated change across files, use `perl -pi -e 's/a/b/' <files>`. To read part o
 - `apps/web`: Vue 3 + Vite + Pinia + TanStack Query + Tiptap + Tailwind v4. `lib/api.ts` is the only place that
   calls the API, and it validates responses with the shared schemas. `src/theme/` is the design: the colour
   palette (`palette-ember.css`, the only place a colour is chosen) and the components built on it (`theme.css`).
+- Help area: `/help` (`apps/web/src/views/Help*View.vue`, framed by `components/HelpPage.vue`; the list is in
+  `HelpView.vue`). Longer or outside-the-app explanation lives there, not on the page ([docs/design.md](docs/design.md#where-explanatory-text-goes)).
 - `docs/design.md`: the design system and how to apply it. `docs/design-concepts/`: the options we considered
   (an archive; the decision and reasons are in `docs/decisions.md`).
 
@@ -138,6 +140,8 @@ repeated change across files, use `perl -pi -e 's/a/b/' <files>`. To read part o
 2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors. UI changes follow
    [docs/design.md](docs/design.md) and have been looked at in light **and** dark mode and at phone width (390px).
 3. Docs updated where behaviour changed (README section, `.env.example`, `docs/decisions.md` for non-obvious choices).
+   **The help area too:** a change to what people can do, or how, updates the matching help page under `/help`, or adds
+   one if the feature has steps or explanation that don't fit on the page (see _Where explanatory text goes_ in design.md).
    A feature that calls an LLM also adds boundary evals, and an invariant test where a boundary is structural
    (see [docs/responsible-ai.md](docs/responsible-ai.md)). A change to anything in `prompts/` is a change to the
    product's behaviour: say so in the commit and ask the owner to review it.

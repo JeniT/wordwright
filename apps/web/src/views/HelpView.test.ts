@@ -1,0 +1,84 @@
+import { fireEvent, screen, within } from '@testing-library/vue'
+import { describe, expect, it } from 'vitest'
+import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import { http, HttpResponse } from 'msw'
+
+useMockServer()
+
+describe('Help', () => {
+  it('lists the help pages, for someone who is signed out too', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/help')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Help' })).toBeVisible()
+    const list = screen.getByRole('list', { name: 'Help pages' })
+    expect(within(list).getByRole('link', { name: 'How to get an API key' })).toHaveAttribute(
+      'href',
+      '/help/api-key',
+    )
+    expect(within(list).getByRole('link', { name: 'Privacy and your writing' })).toHaveAttribute(
+      'href',
+      '/help/privacy',
+    )
+  })
+
+  it('walks through getting a key in five numbered steps with links to the Console', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help/api-key')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'How to get an API key' }),
+    ).toBeVisible()
+    const steps = screen.getByRole('main').querySelectorAll('ol > li')
+    expect(steps).toHaveLength(5)
+    expect(
+      within(steps[0] as HTMLElement).getByRole('link', { name: /Anthropic Console/ }),
+    ).toHaveAttribute('href', 'https://console.anthropic.com/')
+    expect(screen.getByRole('link', { name: /API keys/ })).toHaveAttribute(
+      'href',
+      'https://console.anthropic.com/settings/keys',
+    )
+    // The way on once they have a key, and to the privacy page.
+    expect(screen.getByRole('link', { name: 'privacy' })).toHaveAttribute('href', '/help/privacy')
+  })
+
+  it('explains the privacy checks on their own page', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help/privacy')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Privacy and your writing' }),
+    ).toBeVisible()
+    expect(screen.getByText(/within 30 days/)).toBeInTheDocument()
+  })
+
+  it('has a Back link to where you were', async () => {
+    server.use(signedInAs(testUser))
+    const { router } = await renderAt('/help')
+    await router.push('/help/api-key')
+    await fireEvent.click(await screen.findByRole('link', { name: /Back/ }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Help' })).toBeVisible()
+  })
+
+  it('goes to the help list instead when there is nowhere to go back to', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help/privacy')
+    expect(await screen.findByRole('link', { name: /All help/ })).toHaveAttribute('href', '/help')
+  })
+
+  it('says so when a help page does not exist, and points to the list', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help/nothing-here')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'No such help page' }),
+    ).toBeVisible()
+    expect(screen.getByRole('link', { name: 'All help' })).toHaveAttribute('href', '/help')
+  })
+
+  it('is in the side menu footer for a signed-in person', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([])),
+    )
+    await renderAt('/account')
+    const help = await screen.findByRole('link', { name: 'Help' })
+    expect(help).toHaveAttribute('href', '/help')
+  })
+})

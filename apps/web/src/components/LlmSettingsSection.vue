@@ -2,6 +2,7 @@
 import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
@@ -47,63 +48,31 @@ const removeLlmKey = useMutation({
     </h2>
     <template v-if="props.guide">
       <p class="mb-3 text-sm text-ink-soft">
-        Wordwright uses your own Anthropic account to read and critique your drafts, so the cost of
-        using it is billed to you, not to this service. You'll need to do this once before the
-        assistant can help; it takes a few minutes.
+        Wordwright uses your own Anthropic account, so the cost of the AI is billed to you. Your
+        writing is sent to Anthropic using your key. This does have
+        <RouterLink to="/help/privacy" target="_blank" class="link"
+          >privacy implications<span class="sr-only"> (opens in a new tab)</span></RouterLink
+        >.
       </p>
-      <ol class="mb-4 list-decimal space-y-2 pl-5 text-sm text-ink-soft">
-        <li>
-          Go to the
-          <a href="https://console.anthropic.com/" target="_blank" rel="noopener" class="underline"
-            >Anthropic Console</a
-          >
-          and sign up or sign in. This is separate from a Claude chat subscription, so you may need
-          a new account even if you already use Claude.
-        </li>
-        <li>
-          Add a payment method and a small amount of credit in the Console's billing settings. A few
-          dollars goes a long way, and you can set a monthly spending limit there too.
-        </li>
-        <li>
-          Open
-          <a
-            href="https://console.anthropic.com/settings/keys"
-            target="_blank"
-            rel="noopener"
-            class="underline"
-            >API keys</a
-          >
-          and choose “Create key”. Give it a name you'll recognise, like “Writing assistant”.
-        </li>
-        <li>
-          Copy the key straight away. The Console only shows it once, and it starts with
-          <code class="rounded-ctl bg-sunken px-1">sk-ant-</code>.
-        </li>
-        <li>Paste it below and press Save. We check that it works before keeping it.</li>
-      </ol>
-      <p class="mb-3 text-sm text-ink-soft">
-        Your key is stored encrypted, used only for your requests, and never shown again. You can
-        replace or remove it any time from your account page.
+      <p class="mb-3 text-sm">
+        <RouterLink to="/help/api-key" target="_blank" class="link"
+          >How to get an API key (opens in a new tab)</RouterLink
+        >
       </p>
     </template>
     <p v-else class="mb-3 text-sm text-ink-soft">
       AI features use your own Anthropic account, so usage is billed to you, not to this service.
-      Create a key in the
-      <a
-        href="https://console.anthropic.com/settings/keys"
-        target="_blank"
-        rel="noopener"
-        class="underline"
-        >Anthropic Console</a
+      Paste your key below. It's stored encrypted and never shown again.
+      <RouterLink to="/help/api-key" target="_blank" class="link"
+        >How to get an API key (opens in a new tab)</RouterLink
       >
-      and paste it below. It's stored encrypted and never shown again.
     </p>
     <p v-if="!props.guide" class="mb-3 text-sm text-ink-soft">
       <Icon name="ai" :size="16" class="mr-1 inline align-text-bottom" />
       A button with this mark sends your text to your AI and uses your key, so it costs tokens;
       while it works, the mark turns into a spinner. Buttons without the mark never do.
     </p>
-    <ProviderPrivacyAdvice />
+    <ProviderPrivacyAdvice v-if="!props.guide" />
     <p v-if="llm.data.value && !props.guide" role="status" class="mb-3 text-sm">
       <template v-if="llm.data.value.hasKey"
         >Anthropic key saved ({{ llm.data.value.keyHint }}).</template

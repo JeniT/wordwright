@@ -212,7 +212,7 @@ on the page. Move it to an info icon or a help page, or cut it.
 | **On the page**         | What the person needs to act or avoid a mistake _now_: the next step, what they will lose, what a field expects when that isn't obvious                 | The `NextStep` line. “This can’t be undone.” in a delete dialog. A hint under a field: “The address of the site”.           |
 | **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Move to… “About the new idea”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”. |
 | **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round (_planned, not built_)           | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.            |
-| **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (today still on the page, in `LlmSettingsSection`; see below).                           |
+| **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (`/help/api-key`; the key screen holds only a link to it).                               |
 
 ### On the page
 
@@ -254,8 +254,12 @@ mode**, which is an account setting:
   (for example connecting your AI key): there it opens in a new tab, and the link says so (“How to get an API key (opens
   in a new tab)”), so nothing typed is lost.
 - One topic per page, steps numbered 01, 02 as elsewhere, a title that names the task.
-- **Is there a help area yet? No.** There is no help route, layout or page. Until there is, longer text stays where it
-  is; the build is tracked in #196, which also moves the API-key steps onto the first page.
+- **Is there a help area yet? Yes.** `/help` lists the pages; each is a view (`HelpApiKeyView`, `HelpPrivacyView`)
+  inside `HelpPage`, which supplies the title and a **Back** link (to the page the person was on, or **All help** when
+  they came straight here). Help is open to everyone, signed in or not, so it is `meta: { open: true }` and has no
+  menu level or step. It is reached from **Help** in the side-menu footer (beside Sign out), the reviewer bar, and under
+  the name on signed-out pages. To add a page: a view, a route (before the `/help/:rest(.*)` catch-all), and a line in
+  `HelpView`. Functionality that changes must update its help page (AGENTS.md, Definition of done).
 
 ## Actions and lists
 
