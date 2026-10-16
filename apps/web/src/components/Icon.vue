@@ -18,6 +18,7 @@ defineProps<{
     | 'ai'
     | 'working'
     | 'settings'
+    | 'sign-out'
   size?: number
 }>()
 </script>
@@ -67,6 +68,11 @@ defineProps<{
     <template v-else-if="name === 'undo'">
       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
       <path d="M3 3v5h5" />
+    </template>
+    <template v-else-if="name === 'sign-out'">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
     </template>
     <path v-else-if="name === 'working'" d="M21 12a9 9 0 1 1-6.219-8.56" />
     <template v-else-if="name === 'settings'">

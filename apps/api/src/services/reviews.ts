@@ -202,10 +202,19 @@ export class ReviewService {
   }
 
   /** A new person: a reviewer-only account is made for them, and they are signed in. */
-  async registerAndAccept(token: string, name: string, password: string): Promise<Session> {
+  async registerAndAccept(
+    token: string,
+    name: string,
+    password: string,
+    deviceLabel?: string,
+  ): Promise<Session> {
     const inv = this.usable(token)
     return this.d.accounts
-      .registerReviewer({ name, email: inv.email, password }, (user) => this.enroll(user, inv))
+      .registerReviewer(
+        { name, email: inv.email, password },
+        (user) => this.enroll(user, inv),
+        deviceLabel,
+      )
       .catch((err: unknown) => {
         if (err instanceof Error && 'code' in err && err.code === 'email_in_use') {
           throw fail(409, 'There is already an account for this address. Sign in to see the draft.')

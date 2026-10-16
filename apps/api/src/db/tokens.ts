@@ -1,5 +1,9 @@
+import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 import { nowIso } from './database'
+
+/** "Last used" is only rewritten when it is this old. */
+const LAST_USED_GRANULARITY_MS = 60 * 60 * 1000
 
 /** What every emailed one-time link records about itself, however its row is laid out. */
 const linkFields = (row: Record<string, unknown>) => ({
@@ -13,20 +17,62 @@ export class TokenStore {
   constructor(private readonly db: DatabaseSync) {}
 
   // -- sessions
-  createSession(tokenHash: string, userId: string, expiresAt: Date) {
+  createSession(
+    tokenHash: string,
+    userId: string,
+    expiresAt: Date,
+    deviceLabel: string | null = null,
+  ) {
+    const now = nowIso()
     this.db
       .prepare(
-        'INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
+        `INSERT INTO sessions (token_hash, id, user_id, created_at, expires_at, device_label, last_used_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(tokenHash, userId, nowIso(), expiresAt.toISOString())
+      .run(tokenHash, randomUUID(), userId, now, expiresAt.toISOString(), deviceLabel, now)
   }
 
-  /** Returns the owning user id if the session exists and hasn't expired. */
+  /**
+   * Returns the owning user id if the session exists and hasn't expired. "Last used" moves on at most once an
+   * hour, so ordinary requests don't write.
+   */
   findSessionUser(tokenHash: string, now: Date): string | undefined {
     const row = this.db
-      .prepare('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?')
-      .get(tokenHash, now.toISOString()) as { user_id: string } | undefined
-    return row?.user_id
+      .prepare('SELECT user_id, last_used_at FROM sessions WHERE token_hash = ? AND expires_at > ?')
+      .get(tokenHash, now.toISOString()) as { user_id: string; last_used_at: string } | undefined
+    if (!row) return undefined
+    if (now.getTime() - Date.parse(row.last_used_at) >= LAST_USED_GRANULARITY_MS) {
+      this.db
+        .prepare('UPDATE sessions SET last_used_at = ? WHERE token_hash = ?')
+        .run(now.toISOString(), tokenHash)
+    }
+    return row.user_id
+  }
+
+  /** The person's sessions that still work, most recently used first. */
+  listSessions(userId: string, now: Date) {
+    const rows = this.db
+      .prepare(
+        `SELECT id, token_hash, device_label, last_used_at FROM sessions
+         WHERE user_id = ? AND expires_at > ? ORDER BY last_used_at DESC`,
+      )
+      .all(userId, now.toISOString())
+    return rows.map((r) => ({
+      id: r.id as string,
+      tokenHash: r.token_hash as string,
+      deviceLabel: (r.device_label as string | null) ?? null,
+      lastUsedAt: r.last_used_at as string,
+    }))
+  }
+
+  /** Ends one of this person's sessions by its public id. Returns false if they have no such session. */
+  deleteUserSessionById(userId: string, id: string): boolean {
+    return (
+      Number(
+        this.db.prepare('DELETE FROM sessions WHERE user_id = ? AND id = ?').run(userId, id)
+          .changes,
+      ) > 0
+    )
   }
 
   deleteSession(tokenHash: string) {

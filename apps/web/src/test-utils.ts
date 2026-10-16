@@ -29,6 +29,17 @@ export const server = setupServer(
   http.get('*/api/account/brainstorm-prompt', () =>
     HttpResponse.json({ prompt: 'The default brainstorming prompt.', isDefault: true }),
   ),
+  // Only this device is signed in (the account page lists where the person is signed in).
+  http.get('*/api/account/sessions', () =>
+    HttpResponse.json([
+      {
+        id: 's-this',
+        deviceLabel: 'Safari on macOS',
+        lastUsedAt: '2026-10-16T09:30:00.000Z',
+        current: true,
+      },
+    ]),
+  ),
   // The default number of critiques a draft gets (the account page shows the setting).
   http.get('*/api/account/critique-settings', () => HttpResponse.json({ rounds: 3 })),
   // The AI buttons read which provider's key they spend; a key is set unless a test says otherwise.

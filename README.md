@@ -259,6 +259,15 @@ tests inject fakes and nothing hits the network.
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.
+- **Where you're signed in** (Account page, between Password and the other settings, #165): each session keeps a
+  coarse label from the User-Agent ("Safari on macOS", else "Unknown device"; picked from a fixed list of words, so
+  nothing the browser sends is stored or shown back) and when it was last used (rewritten at most once an hour).
+  **No IP address, no location, no raw User-Agent.** Each is named on the page by its own random id, never the cookie or
+  its hash. API (all need sign-in, and reviewer-only accounts get 404 as for the rest of the page):
+  `GET /api/account/sessions` (the one asking has `current: true`), `DELETE /api/account/sessions/:id` (another
+  device; your current session is refused with 400, a stranger's id is 404), `DELETE /api/account/sessions` (every
+  session but this one; answers `{ count }`). Changing or resetting a password ends the others (a reset ends all);
+  changing the email address does not.
 - **Passwords:** scrypt (`node:crypto`), 10-128 characters. Reset links are single-use, expire after
   an hour, and signing in elsewhere is revoked when a password changes. Responses never reveal whether
   an address has an account (except at registration, which has to say so), and that includes

@@ -6,6 +6,8 @@ import {
   CommentSchema,
   ConversationSchema,
   CritiqueSettingsSchema,
+  SignedInDevicesSchema,
+  SignedOutOthersSchema,
   CritiqueStateSchema,
   DraftInsertionSchema,
   DraftSchema,
@@ -157,6 +159,11 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     confirmEmailChange: (token: string) => act('POST', '/auth/confirm-email-change', { token }),
     undoEmailChange: (token: string) => act('POST', '/auth/undo-email-change', { token }),
     requestPasswordSetup: () => act('POST', '/account/password/setup-email', {}),
+    /** Where they are signed in; the entry for the device asking has `current: true`. */
+    getDevices: () => get(SignedInDevicesSchema, 'GET', '/account/sessions'),
+    signOutDevice: (id: string) => act('DELETE', `/account/sessions/${encodeURIComponent(id)}`),
+    /** Ends every session but this one; answers with how many there were. */
+    signOutOtherDevices: () => get(SignedOutOthersSchema, 'DELETE', '/account/sessions'),
     deleteAccount: (confirmEmail: string, password: string | undefined, keepName: boolean) =>
       act('DELETE', '/account', { confirmEmail, password, keepName }),
 

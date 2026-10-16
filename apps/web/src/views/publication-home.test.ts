@@ -169,7 +169,10 @@ describe('a publication’s landing page', () => {
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       await waitFor(() => expect(sent).toEqual(['A new thought']))
       const list = await screen.findByRole('list', { name: 'Recent notes' })
-      expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('A new thought')
+      // The list is refreshed once the note is saved, so wait for it rather than read it the moment it exists.
+      await waitFor(() =>
+        expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('A new thought'),
+      )
       expect(screen.getByLabelText('Add a note')).toHaveValue('')
     })
 

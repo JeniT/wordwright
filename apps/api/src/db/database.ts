@@ -533,6 +533,15 @@ export const MIGRATIONS: Migration[] = [
   CREATE UNIQUE INDEX draft_handovers_one_offer ON draft_handovers(draft_id)
     WHERE kind = 'offer' AND status = 'pending';
   `,
+  `
+  -- Where you're signed in (#165). Only a coarse label ("Safari on macOS") and times are kept: no IP address, no
+  -- location, no raw user-agent. "id" is what the page names a session by, so the token hash never leaves the server.
+  ALTER TABLE sessions ADD COLUMN id TEXT;
+  ALTER TABLE sessions ADD COLUMN device_label TEXT;
+  ALTER TABLE sessions ADD COLUMN last_used_at TEXT;
+  UPDATE sessions SET id = lower(hex(randomblob(16))), last_used_at = created_at;
+  CREATE UNIQUE INDEX sessions_id ON sessions(id);
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

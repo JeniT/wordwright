@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppearanceSection from '../components/AppearanceSection.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import DevicesSection from '../components/DevicesSection.vue'
 import DangerZone from '../components/DangerZone.vue'
 import ExportSection from '../components/ExportSection.vue'
 import BrainstormPromptSection from '../components/BrainstormPromptSection.vue'
@@ -60,6 +61,8 @@ const deleteAccount = useMutation({
     <EmailSection />
 
     <PasswordSection />
+
+    <DevicesSection />
 
     <InvitationBlocksSection />
 

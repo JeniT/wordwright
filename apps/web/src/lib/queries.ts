@@ -17,6 +17,8 @@ export const queryKeys = {
   sources: (publicationId: string) => ['sources', publicationId] as const,
   draft: (publicationId: string, id: string) => ['draft', publicationId, id] as const,
   attention: (publicationId: string) => ['attention', publicationId] as const,
+  /** Where the person is signed in (the account page). */
+  devices: () => ['devices'] as const,
   reviews: () => ['reviews'] as const,
   review: (id: string) => ['review', id] as const,
   reviewers: (publicationId: string, id: string) => ['draft-reviewers', publicationId, id] as const,
@@ -40,6 +42,7 @@ export type QueryRoot =
   | 'critique'
   | 'draft'
   | 'draft-handover'
+  | 'devices'
   | 'draft-reviewers'
   | 'review'
   | 'reviews'

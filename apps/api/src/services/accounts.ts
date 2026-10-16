@@ -1,9 +1,11 @@
-import type { RegisterInput, User } from '@wordwright/core'
+import type { RegisterInput, SignedInDevice, User } from '@wordwright/core'
 import type { IdentityClaims } from '../auth/identity'
+import { UNKNOWN_DEVICE } from '../auth/device'
 import type { PasswordHasher } from '../auth/password'
 import { generateToken, hashToken } from '../auth/secrets'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
+import { fail, notFound } from '../errors'
 import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
 import {
@@ -73,7 +75,7 @@ export class AccountService {
     this.now = d.now ?? (() => new Date())
   }
 
-  async register(input: RegisterInput): Promise<Session> {
+  async register(input: RegisterInput, deviceLabel?: string): Promise<Session> {
     const { store } = this.d
     if (store.users.findByEmail(input.email)) throw emailInUse()
     if (store.users.handleTaken(input.handle)) throw handleInUse()
@@ -90,7 +92,7 @@ export class AccountService {
         return created
       })
       this.sendVerificationEmail(user)
-      return this.startSession(user)
+      return this.startSession(user, deviceLabel)
     } catch (err) {
       // Lost a race with a concurrent registration for the same email or username.
       if (String(err).includes('users.handle')) throw handleInUse()
@@ -107,6 +109,7 @@ export class AccountService {
   async registerReviewer(
     input: { name: string; email: string; password: string },
     enroll: (user: UserRecord) => void,
+    deviceLabel?: string,
   ): Promise<Session> {
     const { store } = this.d
     if (store.users.findByEmail(input.email)) throw emailInUse()
@@ -123,21 +126,21 @@ export class AccountService {
         enroll(created)
         return created
       })
-      return this.startSession(user)
+      return this.startSession(user, deviceLabel)
     } catch (err) {
       if (isUniqueViolation(err)) throw emailInUse()
       throw err
     }
   }
 
-  async login(email: string, password: string): Promise<Session> {
+  async login(email: string, password: string, deviceLabel?: string): Promise<Session> {
     const { store, hasher } = this.d
     const user = store.users.findByEmail(email)
     const hash = user && store.users.getPasswordHash(user.id)
     const ok = await hasher.verify(password, hash ?? (await this.getDummyHash()))
     if (!user || !hash || !ok)
       throw new AccountError('invalid_credentials', 'Invalid email or password')
-    return this.startSession(user)
+    return this.startSession(user, deviceLabel)
   }
 
   logout(sessionToken: string) {
@@ -149,6 +152,42 @@ export class AccountService {
     if (!sessionToken) return undefined
     const userId = this.d.store.tokens.findSessionUser(hashToken(sessionToken), this.now())
     return userId ? this.d.store.users.findById(userId) : undefined
+  }
+
+  // ---- where the person is signed in ----------------------------------------
+
+  /** Their sessions that still work, the one making this request first (it is marked `current`). */
+  listDevices(user: UserRecord, sessionToken: string): SignedInDevice[] {
+    const mine = hashToken(sessionToken)
+    return this.d.store.tokens
+      .listSessions(user.id, this.now())
+      .map((s) => ({
+        id: s.id,
+        deviceLabel: s.deviceLabel ?? UNKNOWN_DEVICE,
+        lastUsedAt: s.lastUsedAt,
+        current: s.tokenHash === mine,
+      }))
+      .sort((a, b) => Number(b.current) - Number(a.current)) // stable: the rest stay most recent first
+  }
+
+  /** Ends one other session. Someone else's id is "not found", the same as one that doesn't exist. */
+  signOutDevice(user: UserRecord, sessionToken: string, id: string) {
+    const { tokens } = this.d.store
+    const target = tokens.listSessions(user.id, this.now()).find((s) => s.id === id)
+    if (target?.tokenHash === hashToken(sessionToken)) {
+      throw fail(400, 'This is the device you are using. Use "Sign out" in the menu to end it.')
+    }
+    if (!tokens.deleteUserSessionById(user.id, id)) throw notFound()
+  }
+
+  /** Ends every session but this one. Returns how many working sessions that was. */
+  signOutOtherDevices(user: UserRecord, sessionToken: string): number {
+    const { tokens } = this.d.store
+    const others = tokens
+      .listSessions(user.id, this.now())
+      .filter((s) => s.tokenHash !== hashToken(sessionToken)).length
+    tokens.deleteUserSessionsExcept(user.id, hashToken(sessionToken))
+    return others
   }
 
   handleTaken(handle: string): boolean {
@@ -368,10 +407,14 @@ export class AccountService {
 
   // ---- external identity login --------------------------------------------
 
-  async loginWithIdentity(provider: string, claims: IdentityClaims): Promise<Session> {
+  async loginWithIdentity(
+    provider: string,
+    claims: IdentityClaims,
+    deviceLabel?: string,
+  ): Promise<Session> {
     const { store } = this.d
     const existing = store.users.findByIdentity(provider, claims.subject)
-    if (existing) return this.startSession(existing)
+    if (existing) return this.startSession(existing, deviceLabel)
 
     // We only trust a provider's email if the provider says it is verified.
     if (!claims.emailVerified) {
@@ -403,7 +446,7 @@ export class AccountService {
       store.users.linkIdentity(created.id, provider, claims.subject)
       return created
     })
-    return this.startSession(user)
+    return this.startSession(user, deviceLabel)
   }
 
   // ---- deletion -----------------------------------------------------------
@@ -453,10 +496,10 @@ export class AccountService {
     return new Date(this.now().getTime() + ms)
   }
 
-  private startSession(user: UserRecord): Session {
+  private startSession(user: UserRecord, deviceLabel?: string): Session {
     const token = generateToken()
     const expiresAt = this.expiresIn(SESSION_TTL_MS)
-    this.d.store.tokens.createSession(hashToken(token), user.id, expiresAt)
+    this.d.store.tokens.createSession(hashToken(token), user.id, expiresAt, deviceLabel ?? null)
     return { token, expiresAt, user }
   }
 

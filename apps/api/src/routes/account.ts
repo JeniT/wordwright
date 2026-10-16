@@ -19,6 +19,7 @@ import type { UserSettingsStore } from '../db/user-settings'
 import { validateJson } from '../validate'
 import { toHttpError } from './auth'
 import { fail } from '../errors'
+import { param } from './params'
 import type { ExportService } from '../services/export'
 import { throttleExport, zipResponse } from './zip-response'
 
@@ -41,6 +42,20 @@ export function accountRoutes(
         const user = c.get('user')
         throttleExport(exportLimiter, user.id)
         return zipResponse(c, exports.account(user))
+      })
+      // Where they are signed in, and ending those sessions (#165). Ids are the page's own names for sessions, never
+      // the cookie, and every one is checked against the signed-in person, so another person's id is a 404.
+      .get('/sessions', (c) =>
+        c.json(accounts.listDevices(c.get('user'), getCookie(c, SESSION_COOKIE)!)),
+      )
+      .delete('/sessions', (c) =>
+        c.json({
+          count: accounts.signOutOtherDevices(c.get('user'), getCookie(c, SESSION_COOKIE)!),
+        }),
+      )
+      .delete('/sessions/:id', (c) => {
+        accounts.signOutDevice(c.get('user'), getCookie(c, SESSION_COOKIE)!, param(c, 'id'))
+        return c.body(null, 204)
       })
       // Guessing the current password is the attack here, so attempts are throttled per person.
       .post('/password', validateJson(ChangePasswordInputSchema), async (c) => {

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it } from 'vitest'
-import { DatabaseError, migrate, openDatabase } from './database'
+import { DatabaseError, MIGRATIONS, migrate, openDatabase } from './database'
 
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -46,6 +46,29 @@ describe('migrations', () => {
     expect(version(db)).toBe(2)
     expect(db.prepare('SELECT id FROM a').all()).toHaveLength(1)
     expect(tableNames(db)).toContain('b')
+  })
+
+  it('give a session from before devices were listed an id and a last-used time (#165)', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    db.exec(
+      `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
+    )
+    db.exec(
+      `INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES ('h1', 'u', '2026-01-01T00:00:00Z', 'x'), ('h2', 'u', '2026-01-02T00:00:00Z', 'x')`,
+    )
+    migrate(db, 'test')
+    const rows = db
+      .prepare('SELECT id, device_label, last_used_at FROM sessions ORDER BY created_at')
+      .all()
+    expect(rows.map((r) => r.last_used_at)).toEqual([
+      '2026-01-01T00:00:00Z',
+      '2026-01-02T00:00:00Z',
+    ])
+    expect(rows.every((r) => typeof r.id === 'string' && r.id.length === 32)).toBe(true)
+    expect(new Set(rows.map((r) => r.id)).size).toBe(2)
+    expect(rows.every((r) => r.device_label === null)).toBe(true)
   })
 
   it('has an index on every publication_id so a publication’s rows are found and deleted quickly', () => {

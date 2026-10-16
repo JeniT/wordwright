@@ -16,6 +16,7 @@ import {
 import type { IdentityProvider } from '../auth/identity'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
+import { describeDevice } from '../auth/device'
 import { generateToken } from '../auth/secrets'
 import { validateJson } from '../validate'
 import { AccountError, type AccountService, type Session } from '../services/accounts'
@@ -82,6 +83,8 @@ export function authRoutes(d: AuthRouteDeps) {
     })
   }
 
+  const deviceOf = (c: Context) => describeDevice(c.req.header('user-agent'))
+
   const throttle = (limiter: RateLimiter, email: string) => {
     if (!limiter.allow(email)) {
       throw fail(429, 'Too many attempts. Try again later.')
@@ -112,7 +115,9 @@ export function authRoutes(d: AuthRouteDeps) {
       })
 
       .post('/register', validateJson(RegisterInputSchema), async (c) => {
-        const session = await d.accounts.register(c.req.valid('json')).catch(toHttpError)
+        const session = await d.accounts
+          .register(c.req.valid('json'), deviceOf(c))
+          .catch(toHttpError)
         setSession(c, session)
         return c.json(d.accounts.toPublic(session.user), 201)
       })
@@ -120,7 +125,9 @@ export function authRoutes(d: AuthRouteDeps) {
       // A new person following a review link: a reviewer-only account, made and signed in at once.
       .post('/register-reviewer', validateJson(ReviewerRegisterInputSchema), async (c) => {
         const { token, name, password } = c.req.valid('json')
-        const session = await d.reviews.registerAndAccept(token, name, password).catch(toHttpError)
+        const session = await d.reviews
+          .registerAndAccept(token, name, password, deviceOf(c))
+          .catch(toHttpError)
         setSession(c, session)
         return c.json(d.accounts.toPublic(session.user), 201)
       })
@@ -128,7 +135,7 @@ export function authRoutes(d: AuthRouteDeps) {
       .post('/login', validateJson(LoginInputSchema), async (c) => {
         const { email, password } = c.req.valid('json')
         throttle(d.loginLimiter, email)
-        const session = await d.accounts.login(email, password).catch(toHttpError)
+        const session = await d.accounts.login(email, password, deviceOf(c)).catch(toHttpError)
         setSession(c, session)
         return c.json(d.accounts.toPublic(session.user))
       })
@@ -245,7 +252,7 @@ export function authRoutes(d: AuthRouteDeps) {
             nonce: tx.nonce,
             redirectUri: redirectUri(d.publicUrl, provider.id),
           })
-          setSession(c, await d.accounts.loginWithIdentity(provider.id, claims))
+          setSession(c, await d.accounts.loginWithIdentity(provider.id, claims, deviceOf(c)))
           return c.redirect(`${d.publicUrl}${tx.next ?? ''}`)
         } catch (err) {
           return loginFailed(err instanceof AccountError ? err.code : 'oauth_failed')

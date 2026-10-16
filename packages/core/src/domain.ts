@@ -109,6 +109,23 @@ export const ChangePasswordInputSchema = z.object({
   newPassword: PasswordSchema,
 })
 
+/** One place the person is signed in. Only a coarse label and a time are kept (no IP address, no location). */
+export const SignedInDeviceSchema = z.object({
+  id: z.string(),
+  /** "Safari on macOS", or "Unknown device". */
+  deviceLabel: z.string(),
+  lastUsedAt: z.string(),
+  /** The session making this request: it is ended with "Sign out", not from this list. */
+  current: z.boolean(),
+})
+export type SignedInDevice = z.infer<typeof SignedInDeviceSchema>
+
+export const SignedInDevicesSchema = z.array(SignedInDeviceSchema)
+
+/** How many other devices "Sign out everywhere else" ended. */
+export const SignedOutOthersSchema = z.object({ count: z.number().int().min(0) })
+export type SignedOutOthers = z.infer<typeof SignedOutOthersSchema>
+
 /** Changing the email address re-checks the password, like changing the password does. */
 export const ChangeEmailInputSchema = z.object({
   newEmail: EmailSchema,
