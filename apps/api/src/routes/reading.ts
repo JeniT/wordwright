@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import {
   BulkTagInputSchema,
   IdeaLinkInputSchema,
+  MoveIdeasInputSchema,
   MoveNotesInputSchema,
   MoveReadingInputSchema,
   NoteTagsInputSchema,
@@ -11,6 +12,7 @@ import {
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { IdeaLinkService } from '../services/idea-links'
+import type { IdeaMoveService } from '../services/idea-moves'
 import type { MoveService } from '../services/moves'
 import { validateJson } from '../validate'
 import { notFound } from '../errors'
@@ -89,15 +91,30 @@ export function publicationReadingRoutes(store: Store, links: IdeaLinkService) {
   )
 }
 
-/** Moving reading items and notes between the publication's own lists and its ideas. */
-export function moveRoutes(moves: MoveService) {
-  return new Hono<AppEnv>()
-    .post('/reading', validateJson(MoveReadingInputSchema), (c) => {
-      const { ids, to } = c.req.valid('json')
-      return c.json(moves.moveReading(param(c, 'publicationId'), c.get('user').id, ids, to))
-    })
-    .post('/notes', validateJson(MoveNotesInputSchema), (c) => {
-      const { ids, to } = c.req.valid('json')
-      return c.json(moves.moveNotes(param(c, 'publicationId'), c.get('user').id, ids, to))
-    })
+/** Moving reading items and notes between the publication's own lists and its ideas, and ideas to another publication. */
+export function moveRoutes(moves: MoveService, ideaMoves: IdeaMoveService) {
+  return (
+    new Hono<AppEnv>()
+      .post('/reading', validateJson(MoveReadingInputSchema), (c) => {
+        const { ids, to } = c.req.valid('json')
+        return c.json(moves.moveReading(param(c, 'publicationId'), c.get('user').id, ids, to))
+      })
+      .post('/notes', validateJson(MoveNotesInputSchema), (c) => {
+        const { ids, to } = c.req.valid('json')
+        return c.json(moves.moveNotes(param(c, 'publicationId'), c.get('user').id, ids, to))
+      })
+      // What moving the ideas would do, to confirm first.
+      .post('/ideas/preview', validateJson(MoveIdeasInputSchema), (c) => {
+        const { ids, to } = c.req.valid('json')
+        return c.json(
+          ideaMoves.preview(param(c, 'publicationId'), c.get('user').id, ids, to.publicationId),
+        )
+      })
+      .post('/ideas', validateJson(MoveIdeasInputSchema), (c) => {
+        const { ids, to } = c.req.valid('json')
+        return c.json(
+          ideaMoves.move(param(c, 'publicationId'), c.get('user').id, ids, to.publicationId),
+        )
+      })
+  )
 }

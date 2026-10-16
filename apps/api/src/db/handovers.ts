@@ -115,6 +115,31 @@ export class HandoverStore {
     close('withdrawn', "kind = 'ask' AND actor_id = ?")
   }
 
+  /**
+   * Drafts are going to a publication where some of the people in their open offers and asks are not members: those
+   * are closed, so nothing waits on someone who can no longer see the draft.
+   */
+  closeForMove(draftIds: string[], stays: (userId: string) => boolean) {
+    if (!draftIds.length) return
+    const marks = draftIds.map(() => '?').join(', ')
+    const open = this.db
+      .prepare(
+        `SELECT id, kind, actor_id, member_id FROM draft_handovers
+         WHERE status = 'pending' AND draft_id IN (${marks})`,
+      )
+      .all(...draftIds)
+    for (const h of open) {
+      const actor = h.actor_id as string | null
+      const member = h.member_id as string | null
+      if ((actor && !stays(actor)) || (member && !stays(member))) {
+        this.resolve(
+          h.id as string,
+          h.kind === 'offer' && member && !stays(member) ? 'declined' : 'withdrawn',
+        )
+      }
+    }
+  }
+
   /** Open offers in the publication that are made to this person, or (`by`) that this person has made. */
   openOffers(publicationId: string, userId: string, side: 'to' | 'by') {
     const mine = side === 'to' ? 'h.member_id' : 'h.actor_id'

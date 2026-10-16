@@ -141,6 +141,11 @@ tests inject fakes and nothing hits the network.
   Any member of both may do it; one who isn't a member of the destination gets "Not found". Everything above carries over
   (items with the same address are joined, a note's source is copied, the limits apply to the destination), and **Undo**
   works while you belong to both (`to: { ideaId, publicationId }` on `POST /api/publications/:id/move/…`).
+  **Moving ideas:** on the **Ideas** page, tick ideas and choose **Move to…** a publication of yours (offered only if you have
+  another). The page says how many ideas, drafts, notes and links will move and who will lose sight of them, before you confirm.
+  An idea moves whole, with its drafts and everything on them; an owner of the publication it is in must do it if it has
+  drafts, and each draft's editor must belong to the destination (`POST /api/publications/:id/move/ideas`, with
+  `…/ideas/preview` to check first). See `docs/decisions.md`.
   **Read items are hidden by default** on every reading list (an idea's and the publication's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.

@@ -11,6 +11,8 @@ import { api } from './api'
 export const queryKeys = {
   idea: (publicationId: string, id: string | undefined) => ['idea', publicationId, id] as const,
   ideas: (publicationId: string) => ['ideas', publicationId] as const,
+  ideaMovePreview: (publicationId: string, ids: string[], to: string) =>
+    ['idea-move-preview', publicationId, to, ...[...ids].sort()] as const,
   /** An idea's notes, or (no idea) the publication's own. */
   notes: (publicationId: string, ideaId: string | null | undefined) =>
     ['notes', publicationId, ideaId ?? 'publication'] as const,
@@ -48,6 +50,7 @@ export type QueryRoot =
   | 'reviews'
   | 'draft-insertions'
   | 'idea'
+  | 'idea-move-preview'
   | 'ideas'
   | 'notes'
   | 'reading'

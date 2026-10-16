@@ -21,6 +21,7 @@ import { sourceRoutes } from './sources'
 import { moveRoutes, publicationReadingRoutes } from './reading'
 import { noteRoutes } from './notes'
 import { NoteEditService } from '../services/note-edits'
+import { IdeaMoveService } from '../services/idea-moves'
 import { MoveService } from '../services/moves'
 import { FeedPostService } from '../services/feed-posts'
 import type { BrainstormService } from '../services/brainstorm'
@@ -82,6 +83,7 @@ export function publicationRoutes({
   const owner = requireMember(store, true)
   const noteEdits = new NoteEditService(store)
   const moves = new MoveService(store)
+  const ideaMoves = new IdeaMoveService(store)
   const feedPosts = new FeedPostService(store)
 
   // Best effort, and throttled like adding a feed: each fetch makes the server visit a page the person typed.
@@ -277,7 +279,10 @@ export function publicationRoutes({
           ),
         ),
       )
-      .route('/:publicationId/move', new Hono<AppEnv>().use(member).route('/', moveRoutes(moves)))
+      .route(
+        '/:publicationId/move',
+        new Hono<AppEnv>().use(member).route('/', moveRoutes(moves, ideaMoves)),
+      )
       .route(
         '/:publicationId/assist',
         new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),

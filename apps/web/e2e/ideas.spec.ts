@@ -906,3 +906,45 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
     .click()
   await expect(body).toContainText('Erosion on the outside of each bend.')
 })
+
+test('moves an idea with its draft to another publication, and opens it there', async ({
+  page,
+}) => {
+  await startIdea(page)
+  await startDraft(page)
+  const idOf = () => new URL(page.url()).pathname.split('/')[2]!
+  const first = idOf()
+
+  // Someone with one publication is not offered a move.
+  await page.goto(`/p/${first}/ideas`)
+  await page.getByRole('checkbox', { name: 'Select Why rivers meander' }).check()
+  await expect(page.getByRole('button', { name: 'Move to…' })).toHaveCount(0)
+
+  // A second publication to move to.
+  await page.goto('/')
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Elsewhere')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+  const second = idOf()
+
+  await page.goto(`/p/${first}/ideas`)
+  await page.getByRole('checkbox', { name: 'Select Why rivers meander' }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
+  await page.getByLabel('Move to').selectOption({ label: 'Elsewhere' })
+  await expect(
+    page.getByText('1 idea, 1 draft, 1 note, 0 links will move to “Elsewhere”.'),
+  ).toBeVisible()
+  await noViolations(page, 'confirming a move of an idea')
+  await page.getByRole('button', { name: 'Move 1 idea' }).click()
+
+  // It opens where it is now, with its draft.
+  await expect(page).toHaveURL(new RegExp(`/p/${second}/ideas/[^/]+$`))
+  await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
+  await goTo(page, 'Draft')
+  await expect(page.getByRole('main').getByRole('list').getByRole('listitem')).toHaveCount(1)
+
+  // And the first publication has no ideas left.
+  await page.goto(`/p/${first}/ideas`)
+  await expect(page.getByText('No ideas yet')).toBeVisible()
+})

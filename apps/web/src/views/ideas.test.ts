@@ -97,6 +97,141 @@ describe('ideas on the publication page', () => {
   })
 })
 
+describe('moving ideas to another publication', () => {
+  const poems = { ...publication, id: 'ada-poems', name: 'Poems' }
+  const rows = [
+    { id: 'i1', name: 'Why rivers meander', draftCount: 2, updatedAt: '2026-01-02T00:00:00Z' },
+    { id: 'i2', name: 'Tides', draftCount: 1, updatedAt: '2026-01-01T00:00:00Z' },
+  ]
+  const preview = {
+    ideas: 1,
+    drafts: 2,
+    notes: 5,
+    links: 3,
+    losingAccess: ['Bob', 'Cy'],
+    problem: null as string | null,
+  }
+  function fake(publications = [publication, poems]) {
+    const moves: unknown[] = []
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json(publications)),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json(rows)),
+      http.get('*/api/publications/ada-poems/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-poems/ideas/i1', () =>
+        HttpResponse.json({ ...idea, publicationId: 'ada-poems' }),
+      ),
+      http.post('*/api/publications/ada-substack/move/ideas', async ({ request }) => {
+        moves.push(await request.json())
+        return HttpResponse.json({ publicationId: 'ada-poems', ideaIds: ['i1'] })
+      }),
+    )
+    return { moves }
+  }
+  const choose = async () => {
+    await renderAt('/p/ada-substack/ideas')
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select Why rivers meander' }),
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+    await fireEvent.update(await screen.findByLabelText('Move to'), 'ada-poems')
+  }
+
+  it('offers no way to move to someone with one publication', async () => {
+    fake([publication])
+    await renderAt('/p/ada-substack/ideas')
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select Why rivers meander' }),
+    )
+    expect(screen.getByText('1 selected')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Move to…' })).toBeNull()
+  })
+
+  it('lists only the other publications, then says what moves and who loses sight of it', async () => {
+    fake()
+    server.use(
+      http.post('*/api/publications/ada-substack/move/ideas/preview', () =>
+        HttpResponse.json(preview),
+      ),
+    )
+    await renderAt('/p/ada-substack/ideas')
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select Why rivers meander' }),
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+    const select = await screen.findByLabelText('Move to')
+    expect(within(select).queryByRole('option', { name: 'Substack' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeDisabled() // nowhere chosen yet
+    await fireEvent.update(select, 'ada-poems')
+    const says = await waitFor(() => {
+      const el = document.querySelector('[data-move-says]')!
+      expect(el).toHaveTextContent('1 idea, 2 drafts, 5 notes, 3 links will move to “Poems”.')
+      return el
+    })
+    expect(says).toHaveTextContent(
+      'Bob and Cy aren’t members of “Poems”, so will no longer be able to see it.',
+    )
+    expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeEnabled()
+  })
+
+  it('moves them, then opens the idea where it is now', async () => {
+    const f = fake()
+    server.use(
+      http.post('*/api/publications/ada-substack/move/ideas/preview', () =>
+        HttpResponse.json({ ...preview, losingAccess: [] }),
+      ),
+    )
+    await choose()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeEnabled())
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 idea' }))
+    await waitFor(() =>
+      expect(f.moves).toEqual([{ ids: ['i1'], to: { publicationId: 'ada-poems' } }]),
+    )
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Why rivers meander' }),
+    ).toBeInTheDocument()
+  })
+
+  it('says what is in the way, and does not allow the move', async () => {
+    fake()
+    server.use(
+      http.post('*/api/publications/ada-substack/move/ideas/preview', () =>
+        HttpResponse.json({
+          ...preview,
+          problem: 'Ask Bob to join Poems first, or hand the draft over.',
+        }),
+      ),
+    )
+    await choose()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ask Bob to join Poems first, or hand the draft over.',
+    )
+    expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeDisabled()
+  })
+
+  it('says so while it checks, and when it could not', async () => {
+    fake()
+    server.use(
+      http.post('*/api/publications/ada-substack/move/ideas/preview', () => new Promise(() => {})),
+    )
+    await choose()
+    expect(await screen.findByText('Checking what will move…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeDisabled()
+  })
+
+  it('shows why a check or a move failed', async () => {
+    fake()
+    server.use(
+      http.post('*/api/publications/ada-substack/move/ideas/preview', () =>
+        HttpResponse.json({ error: 'Not found' }, { status: 404 }),
+      ),
+    )
+    await choose()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not found')
+    expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeDisabled()
+  })
+})
+
 describe('new idea page', () => {
   it('asks for the core idea and notes, then opens the new idea', async () => {
     let sent: unknown

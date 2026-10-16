@@ -18,7 +18,8 @@ const idea = useIdea(
   <div v-else-if="idea.isError.value" role="alert" class="panel p-6">
     <h1 class="text-lg font-semibold">We couldn't open that idea</h1>
     <p class="mt-1 text-ink-soft">
-      It may have been deleted, or the connection may have dropped. Try reloading the page.
+      It may have been deleted or moved to another publication, or the connection may have dropped.
+      Try reloading the page.
     </p>
     <RouterLink
       :to="{ name: 'publication-ideas', params: { publicationId } }"

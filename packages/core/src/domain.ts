@@ -671,6 +671,36 @@ export const MoveResultSchema = z.object({
 })
 export type MoveResult = z.infer<typeof MoveResultSchema>
 
+export const MAX_MOVED_IDEAS = 500
+
+/** Moving whole ideas to another publication the person belongs to. */
+export const MoveIdeasInputSchema = z.object({
+  ids: z.array(z.string()).min(1, 'Choose at least one idea').max(MAX_MOVED_IDEAS),
+  to: z.object({ publicationId: z.string() }),
+})
+export type MoveIdeasInput = z.infer<typeof MoveIdeasInputSchema>
+
+/**
+ * What moving the ideas would do, to confirm before doing it. `problem` is the reason it would be refused (in words
+ * that say what to do), or null.
+ */
+export const MoveIdeasPreviewSchema = z.object({
+  ideas: z.number(),
+  drafts: z.number(),
+  notes: z.number(),
+  links: z.number(),
+  /** Members of the publication they leave who don't belong to the one they go to, so can no longer see them. */
+  losingAccess: z.array(z.string()),
+  problem: z.string().nullable(),
+})
+export type MoveIdeasPreview = z.infer<typeof MoveIdeasPreviewSchema>
+
+export const MoveIdeasResultSchema = z.object({
+  publicationId: z.string(),
+  ideaIds: z.array(z.string()),
+})
+export type MoveIdeasResult = z.infer<typeof MoveIdeasResultSchema>
+
 export const NOTE_TAG_MAX = 40
 export const MAX_NOTE_TAGS = 10
 

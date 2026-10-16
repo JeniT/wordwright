@@ -115,6 +115,37 @@ export class IdeaStore {
     )
   }
 
+  /** What an idea holds, for saying what moving it takes with it. */
+  contents(id: string): { drafts: number; notes: number; links: number } {
+    const n = (table: string) =>
+      (
+        this.db.prepare(`SELECT count(*) AS n FROM ${table} WHERE idea_id = ?`).get(id) as {
+          n: number
+        }
+      ).n
+    return { drafts: n('drafts'), notes: n('idea_notes'), links: n('idea_links') }
+  }
+
+  /**
+   * Hands the idea, with its drafts, notes and links, to another publication. Everything that hangs off the idea or a
+   * draft (comments, reviews, critique rounds, the brainstorm thread, research) follows by their ids. A reading item
+   * stops coming from a feed, since feeds belong to the publication they were added to.
+   */
+  moveToPublication(id: string, toPublicationId: string) {
+    const now = nowIso()
+    this.db
+      .prepare('UPDATE ideas SET publication_id = ?, updated_at = ? WHERE id = ?')
+      .run(toPublicationId, now, id)
+    for (const table of ['drafts', 'idea_notes']) {
+      this.db
+        .prepare(`UPDATE ${table} SET publication_id = ? WHERE idea_id = ?`)
+        .run(toPublicationId, id)
+    }
+    this.db
+      .prepare('UPDATE idea_links SET publication_id = ?, source_id = NULL WHERE idea_id = ?')
+      .run(toPublicationId, id)
+  }
+
   countLinks(ideaId: string): number {
     return this.reading.count(ideaId)
   }

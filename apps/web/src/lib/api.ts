@@ -35,6 +35,8 @@ import {
   ResearchRunSchema,
   ResearchRunsSchema,
   SourceChoicesSchema,
+  MoveIdeasPreviewSchema,
+  MoveIdeasResultSchema,
   MoveResultSchema,
   type MoveTarget,
   PostDecisionSchema,
@@ -419,6 +421,18 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      */
     moveReadingItems: (publicationId: string, ids: string[], to: MoveTarget) =>
       get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/reading`, { ids, to }),
+    /** What moving these ideas to another publication would do, and what would stop it, without doing it. */
+    previewMoveIdeas: (publicationId: string, ids: string[], toPublicationId: string) =>
+      get(MoveIdeasPreviewSchema, 'POST', `/publications/${publicationId}/move/ideas/preview`, {
+        ids,
+        to: { publicationId: toPublicationId },
+      }),
+    /** Moves whole ideas (with their drafts, notes, links and brainstorm thread) to another publication. */
+    moveIdeas: (publicationId: string, ids: string[], toPublicationId: string) =>
+      get(MoveIdeasResultSchema, 'POST', `/publications/${publicationId}/move/ideas`, {
+        ids,
+        to: { publicationId: toPublicationId },
+      }),
     /** Moves notes the same way (each keeps its source, copied to where it goes). */
     moveNotes: (publicationId: string, ids: string[], to: MoveTarget) =>
       get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/notes`, { ids, to }),

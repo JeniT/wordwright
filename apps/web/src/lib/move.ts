@@ -1,8 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { MoveResult, MoveTarget } from '@wordwright/core'
 import { computed, reactive, ref } from 'vue'
 import { api } from './api'
-import { invalidateRoots, useIdeas } from './queries'
+import { invalidateRoots, queryKeys, useIdeas } from './queries'
 import { usePublications } from './usePublications'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -236,5 +236,46 @@ export function useMoveDestination(
     chosen,
     resolve,
     reset,
+  })
+}
+
+/** What moving the ideas to the publication would do; asked for once both are chosen, and never spends anything. */
+export function useIdeaMovePreview(
+  publicationId: () => string,
+  ids: () => string[],
+  to: () => string,
+) {
+  return useQuery({
+    queryKey: computed(() => queryKeys.ideaMovePreview(publicationId(), ids(), to())),
+    queryFn: () => api.previewMoveIdeas(publicationId(), ids(), to()),
+    enabled: () => !!to() && ids().length > 0,
+    // The answer describes the publications as they are now; ask again each time rather than trusting an old one.
+    staleTime: 0,
+    gcTime: 0,
+  })
+}
+
+/** "1 idea, 2 drafts, 5 notes, 3 links": what a move of ideas takes with it. */
+export function ideaMoveContents(p: {
+  ideas: number
+  drafts: number
+  notes: number
+  links: number
+}): string {
+  return [
+    plural(p.ideas, 'idea', 'ideas'),
+    plural(p.drafts, 'draft', 'drafts'),
+    plural(p.notes, 'note', 'notes'),
+    plural(p.links, 'link', 'links'),
+  ].join(', ')
+}
+
+/** Moves whole ideas to another publication; the pages that show ideas, drafts or notes are refreshed after. */
+export function useMoveIdeas(publicationId: () => string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { ids: string[]; to: string }) => api.moveIdeas(publicationId(), v.ids, v.to),
+    onSettled: () =>
+      invalidateRoots(queryClient, 'idea', 'ideas', 'draft', 'notes', 'reading', 'attention'),
   })
 }
