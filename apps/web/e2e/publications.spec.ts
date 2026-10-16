@@ -1,8 +1,42 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
+import { deflateSync } from 'node:zlib'
 import { expect, goTo, holdToConfirm, savesAnswered, showArrowsFor, test } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
+
+/** A real PNG of the given size (flat colour), for checking what happens to a picture bigger than the app keeps. */
+function solidPng(width: number, height: number) {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    return c >>> 0
+  })
+  const crc = (bytes: Buffer) => {
+    let c = 0xffffffff
+    for (const b of bytes) c = crcTable[(c ^ b) & 0xff]! ^ (c >>> 8)
+    return (c ^ 0xffffffff) >>> 0
+  }
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type), data])
+    const out = Buffer.alloc(body.length + 8)
+    out.writeUInt32BE(data.length, 0)
+    body.copy(out, 4)
+    out.writeUInt32BE(crc(body), body.length + 4)
+    return out
+  }
+  const header = Buffer.alloc(13)
+  header.writeUInt32BE(width, 0)
+  header.writeUInt32BE(height, 4)
+  header.set([8, 2, 0, 0, 0], 8) // 8-bit RGB
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(width * 3, 0x80)])
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(Buffer.concat(Array.from({ length: height }, () => row)))),
+    chunk('IEND', Buffer.alloc(0)),
+  ])
+}
 
 // A real 1x1 PNG, so the browser actually decodes what we upload.
 const PNG = Buffer.from(
@@ -55,6 +89,31 @@ test("shows the website's icon when there is no picture, and the person's own pi
   await expect(page).toHaveURL(/allotment$/)
   const own = page.getByRole('banner').locator('img').filter({ visible: true }).first()
   await expect(own).toHaveAttribute('src', /\/image\?v=\d+$/)
+})
+
+test('a picture bigger than the app keeps is shrunk for the writer, not refused', async ({
+  page,
+}) => {
+  await registerUser(page, uniqueName('Una'))
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Big picture')
+  await page
+    .getByLabel(/Picture/)
+    .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: solidPng(1600, 1200) })
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page).toHaveURL(/big-picture$/)
+  const picture = page.locator('img[src*="/image?v="]').filter({ visible: true }).first()
+  await expect(picture).toBeVisible()
+  // naturalWidth is 0 until the picture has loaded, so wait for it rather than read it once.
+  await expect
+    .poll(() =>
+      picture.evaluate((img: HTMLImageElement) => ({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      })),
+    )
+    .toEqual({ width: 512, height: 384 })
 })
 
 test('creates a publication with a website and picture, and opens its page', async ({ page }) => {
@@ -141,7 +200,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
     mimeType: 'image/png',
     buffer: Buffer.from('not an image'),
   })
-  await expect(page.getByRole('alert')).toContainText('not a PNG, JPEG, WebP or GIF')
+  await expect(page.getByRole('alert')).toContainText('could not be read as a picture')
   await page
     .getByLabel('Choose a picture')
     .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: PNG })

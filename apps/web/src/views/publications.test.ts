@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   llmSettings,
   renderAt,
@@ -15,7 +15,12 @@ useMockServer()
 // jsdom cannot type into the rich-text editor; its own tests are in DescriptionEditor.test.ts.
 vi.mock('../components/DescriptionEditor.vue', () => import('../testing/description-editor-stub'))
 // The landing page asks whether a key is saved; these tests are about publications.
-beforeEach(() => server.use(llmSettings(true), sourcesList()))
+// jsdom decodes no pictures; the picture field asks the browser for a picture's size, so say they are small ones.
+beforeEach(() => {
+  vi.stubGlobal('createImageBitmap', async () => ({ width: 100, height: 100, close: () => {} }))
+  server.use(llmSettings(true), sourcesList())
+})
+afterEach(() => vi.unstubAllGlobals())
 
 const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
 const member = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'member' }

@@ -226,7 +226,8 @@ tests inject fakes and nothing hits the network.
   nothing stores a copy; emails already sent keep the old one.
 - **Publication pictures:** PNG, JPEG, WebP or GIF, up to 1 MB, stored in the database and served from
   `/api/publications/:id/image` to members only. The type is decided by the file's bytes (not what the browser
-  claims); SVG is refused because it can carry script. Each person can own up to 25 publications.
+  claims); SVG is refused because it can carry script. The browser first shrinks a PNG, JPEG or WebP over 1 MB or
+  512px on its longest side (so a phone photo works as it is); GIFs are not touched, and the server's limits don't change. Each person can own up to 25 publications.
 - **Search: the publication's feeds**: each publication keeps an ordered list of RSS/Atom feeds (up to 50), managed on the publication's
   **Search** page (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
