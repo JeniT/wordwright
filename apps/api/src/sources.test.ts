@@ -364,7 +364,6 @@ describe('idea sources', () => {
     expect(
       (
         await ada.delete('/api/account', {
-          confirmEmail: 'ada@example.com',
           password: 'correct horse battery',
         })
       ).status,

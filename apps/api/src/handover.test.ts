@@ -221,7 +221,6 @@ describe('handing over a draft (#155)', () => {
       await bob.post(url('/offer'), { userId: ids.cy })
       await cy.post(url('/asks'), {})
       const gone = await bob.delete('/api/account', {
-        confirmEmail: 'bob@example.com',
         password: PASSWORD,
         ...(keepName === undefined ? {} : { keepName }),
       })

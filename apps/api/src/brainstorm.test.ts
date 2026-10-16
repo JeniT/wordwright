@@ -992,7 +992,6 @@ describe('what is kept when things are deleted', () => {
     const { ctx, ada, idea, send } = await world()
     await send(ada, START)
     const res = await ada.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(res.status).toBe(204)
@@ -1005,7 +1004,6 @@ describe('what is kept when things are deleted', () => {
     await send(ada, START)
     await send(bob, say('Bob was here.'))
     const gone = await bob.delete('/api/account', {
-      confirmEmail: 'bob@example.com',
       password: PASSWORD,
     })
     expect(gone.status).toBe(204)
@@ -1022,7 +1020,6 @@ describe('what is kept when things are deleted', () => {
     await send(ada, START)
     await send(bob, say('Bob was here.'))
     const gone = await bob.delete('/api/account', {
-      confirmEmail: 'bob@example.com',
       password: PASSWORD,
       keepName: false,
     })

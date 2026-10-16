@@ -194,7 +194,7 @@ describe('failure and cleanup', () => {
 
   it('removes outstanding verification links when the account is deleted', async () => {
     const { ctx, client, token } = await newUser()
-    await client.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+    await client.delete('/api/account', { password: PASSWORD })
     expect(ctx.store.tokens.findVerification(hashToken(token))).toBeUndefined()
   })
 })

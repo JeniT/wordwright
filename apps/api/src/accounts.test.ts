@@ -390,19 +390,12 @@ describe('password recovery when email delivery fails', () => {
 })
 
 describe('account deletion', () => {
-  it('requires the right confirmation and password', async () => {
+  it('requires the right password', async () => {
     const { client, store } = setup()
     const c = client()
     await register(c)
-    expect(
-      (await c.delete('/api/account', { confirmEmail: 'other@example.com', password: PASSWORD }))
-        .status,
-    ).toBe(403)
-    expect(
-      (await c.delete('/api/account', { confirmEmail: 'ada@example.com', password: 'wrong' }))
-        .status,
-    ).toBe(403)
-    expect((await c.delete('/api/account', { confirmEmail: 'ada@example.com' })).status).toBe(403)
+    expect((await c.delete('/api/account', { password: 'wrong password' })).status).toBe(403)
+    expect((await c.delete('/api/account', {})).status).toBe(403)
     expect(store.users.findByEmail('ada@example.com')).toBeDefined()
   })
 
@@ -470,7 +463,6 @@ describe('account deletion', () => {
     expect(store.sources.getFetch(feed.id)).toBeDefined()
 
     const res = await c.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(res.status).toBe(204)
@@ -518,12 +510,11 @@ describe('account deletion', () => {
 
     // As the only owner she can't leave the others without one; she chooses Bob first.
     const refused = await ada.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(refused.status).toBe(409)
     await ada.put(`/api/publications/${shared.id}/members/${bobUser.id}/role`, { role: 'owner' })
-    await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+    await ada.delete('/api/account', { password: PASSWORD })
 
     const view = await (await bob.get(`/api/publications/${shared.id}`)).json()
     expect(view.members.map((m: { userId: string }) => m.userId)).toEqual([
@@ -539,13 +530,11 @@ describe('account deletion', () => {
     const { client } = setup()
     const c = client()
     await register(c)
-    await c.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+    await c.delete('/api/account', { password: PASSWORD })
     await register(client())
   })
 
   it('requires being signed in', async () => {
-    expect(
-      (await setup().client().delete('/api/account', { confirmEmail: 'a@example.com' })).status,
-    ).toBe(401)
+    expect((await setup().client().delete('/api/account', {})).status).toBe(401)
   })
 })

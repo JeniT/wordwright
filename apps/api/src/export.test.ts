@@ -188,7 +188,6 @@ describe('exporting writing as Markdown', () => {
 
   it('credits notes whose author has gone as "a former member"', async () => {
     await bob.delete('/api/account', {
-      confirmEmail: 'bob@example.com',
       password: PASSWORD,
       keepName: false,
     })

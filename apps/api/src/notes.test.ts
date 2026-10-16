@@ -630,7 +630,6 @@ describe('idea notes', () => {
 
     // Once they have left, the note stays, with nobody named.
     const left = await bob.delete('/api/account', {
-      confirmEmail: 'bob@example.com',
       password: PASSWORD,
       keepName: false,
     })
@@ -649,7 +648,6 @@ describe('idea notes', () => {
     await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
     await bob.post(notes(), { text: 'Bob wrote this' })
     const left = await bob.delete('/api/account', {
-      confirmEmail: 'bob@example.com',
       password: PASSWORD,
     })
     expect(left.status).toBe(204)

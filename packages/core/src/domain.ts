@@ -135,9 +135,8 @@ export const ChangeEmailInputSchema = z.object({
 })
 export type ChangeEmailInput = z.infer<typeof ChangeEmailInputSchema>
 
-/** Deleting an account needs deliberate confirmation (and the password, if there is one). */
+/** Deleting an account needs the password (the account's email is on the page, so typing it proves nothing). */
 export const DeleteAccountInputSchema = z.object({
-  confirmEmail: EmailSchema,
   password: z.string().max(128, 'That password is too long').optional(),
   /** Leave the display name on notes and messages in publications that continue (otherwise "a former member"). */
   keepName: z.boolean().default(true),

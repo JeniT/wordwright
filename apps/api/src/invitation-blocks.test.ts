@@ -208,7 +208,7 @@ describe('managing blocks from the account', () => {
 
   it('goes away with the blocked sender’s account', async () => {
     const { ada, bob } = await blockedBob()
-    await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+    await ada.delete('/api/account', { password: PASSWORD })
     expect((await (await bob.get('/api/invitations/blocks')).json()).senders).toEqual([])
   })
 })

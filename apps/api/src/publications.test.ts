@@ -630,7 +630,7 @@ describe('several owners', () => {
   })
 
   it('does not let the last owner delete their account while others depend on the publication', async () => {
-    const body = { confirmEmail: 'ada@example.com', password: PASSWORD }
+    const body = { password: PASSWORD }
     const refused = await ada.delete('/api/account', body)
     expect(refused.status).toBe(409)
     expect((await refused.json()).error).toMatch(/make someone else an owner first/i)

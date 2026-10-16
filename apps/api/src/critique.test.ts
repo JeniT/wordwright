@@ -268,7 +268,6 @@ describe('critique rounds per draft', () => {
     const me = await (await client.get('/api/auth/me')).json()
     expect(ctx.store.userSettings.getCritiqueRounds(me.id)).toBe(2)
     const gone = await client.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(gone.status).toBe(204)

@@ -106,7 +106,6 @@ describe('a draft has one editor (#154)', () => {
     it('hands their drafts to the owner when they delete their account', async () => {
       ctx.store.drafts.reassignEditor(publication, adaId, bobId)
       const gone = await bob.delete('/api/account', {
-        confirmEmail: 'bob@example.com',
         password: PASSWORD,
       })
       expect(gone.status).toBe(204)
@@ -116,7 +115,6 @@ describe('a draft has one editor (#154)', () => {
     it('hands them to the remaining owner when the owner who edited them deletes their account', async () => {
       await ada.put(`${base()}/members/${bobId}/role`, { role: 'owner' }) // the only owner can't leave without one
       const gone = await ada.delete('/api/account', {
-        confirmEmail: 'ada@example.com',
         password: PASSWORD,
       })
       expect(gone.status).toBe(204)

@@ -393,10 +393,9 @@ describe('reviewers (#157)', () => {
         const { rae } = await joinAsReviewer(email, keepName ? 'Kay' : 'Dee')
         const id = (await reviewsOf(rae))[0]!.id
         await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: `note ${keepName}` })
-        expect(
-          (await rae.delete('/api/account', { confirmEmail: email, password: PASSWORD, keepName }))
-            .status,
-        ).toBe(204)
+        expect((await rae.delete('/api/account', { password: PASSWORD, keepName })).status).toBe(
+          204,
+        )
         const comment = (await (await ada.get(`${draftUrl()}/comments`)).json()).find(
           (c: { text: string }) => c.text === `note ${keepName}`,
         )

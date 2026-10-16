@@ -100,7 +100,6 @@ describe('changing your username', () => {
     await register(ada, 'ada@example.com', 'Ada', PASSWORD, 'countess')
     await put(ada, 'lovelace')
     const res = await ada.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(res.status).toBe(204)

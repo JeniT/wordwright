@@ -294,7 +294,6 @@ describe('comments on a draft (#156)', () => {
     it('keeps their name when they delete their account and choose to', async () => {
       await say(bob, 'Bob was here.')
       const gone = await bob.delete('/api/account', {
-        confirmEmail: 'bob@example.com',
         password: PASSWORD,
         keepName: true,
       })
@@ -307,7 +306,6 @@ describe('comments on a draft (#156)', () => {
     it('keeps the comment but no trace of their name when they choose not to', async () => {
       await say(bob, 'Bob was here.')
       const gone = await bob.delete('/api/account', {
-        confirmEmail: 'bob@example.com',
         password: PASSWORD,
         keepName: false,
       })

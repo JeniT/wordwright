@@ -25,13 +25,11 @@ const router = useRouter()
 const queryClient = useQueryClient()
 
 // ---- account deletion
-const confirmEmail = ref('')
 const deletePassword = ref('')
 const keepName = ref(true)
 const confirmingDelete = ref(false)
 const deleteAccount = useMutation({
-  mutationFn: () =>
-    api.deleteAccount(confirmEmail.value, deletePassword.value || undefined, keepName.value),
+  mutationFn: () => api.deleteAccount(deletePassword.value, keepName.value),
   onSuccess: async () => {
     session.set(null)
     queryClient.clear()
@@ -118,12 +116,6 @@ const deleteAccount = useMutation({
           </label>
         </fieldset>
         <TextField
-          v-model="confirmEmail"
-          :label="`Type your email (${session.user.email}) to confirm`"
-          type="email"
-          required
-        />
-        <TextField
           v-if="session.user.hasPassword"
           v-model="deletePassword"
           label="Password"
@@ -131,10 +123,16 @@ const deleteAccount = useMutation({
           autocomplete="current-password"
           required
         />
+        <p v-else class="mb-3 text-sm">
+          To delete your account, first add a password in the section above; that keeps anyone who
+          borrows your signed-in device from deleting it.
+        </p>
         <p v-if="deleteAccount.isError.value" role="alert" class="mb-3 text-danger">
           {{ errorMessage(deleteAccount.error.value) }}
         </p>
-        <button type="submit" class="btn btn-danger-solid">Delete my account</button>
+        <button type="submit" class="btn btn-danger-solid" :disabled="!session.user.hasPassword">
+          Delete my account
+        </button>
       </form>
       <ConfirmDialog
         :open="confirmingDelete"

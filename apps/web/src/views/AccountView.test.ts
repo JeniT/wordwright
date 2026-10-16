@@ -105,7 +105,7 @@ describe('AccountView', () => {
     expect(advice).toHaveTextContent(/Revoke the key/)
   })
 
-  it('requires the typed email (and password) before deleting, then signs out', async () => {
+  it('requires the password before deleting, then signs out', async () => {
     let body: unknown
     server.use(
       signedInAs(testUser),
@@ -116,9 +116,8 @@ describe('AccountView', () => {
       }),
     )
     const { router } = await renderAt('/account')
-    await fireEvent.update(await screen.findByLabelText(/Type your email/), 'ada@example.com')
     await fireEvent.update(
-      screen.getByLabelText('Password', { selector: 'input' }),
+      await screen.findByLabelText('Password', { selector: 'input' }),
       'my password 123',
     )
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
@@ -127,7 +126,6 @@ describe('AccountView', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
     expect(body).toEqual({
-      confirmEmail: 'ada@example.com',
       password: 'my password 123',
       keepName: true,
     })
@@ -136,7 +134,7 @@ describe('AccountView', () => {
   it('asks whether to keep their name on their notes, and sends the answer', async () => {
     let body: { keepName?: boolean } = {}
     server.use(
-      signedInAs({ ...testUser, hasPassword: false }),
+      signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.delete('*/api/account', async ({ request }) => {
         body = (await request.json()) as typeof body
@@ -147,7 +145,10 @@ describe('AccountView', () => {
     const keep = await screen.findByRole('radio', { name: /Keep my name on my notes/ })
     expect(keep).toBeChecked() // the default
     await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
-    await fireEvent.update(screen.getByLabelText(/Type your email/), 'ada@example.com')
+    await fireEvent.update(
+      screen.getByLabelText('Password', { selector: 'input' }),
+      'my password 123',
+    )
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
     const dialog = await screen.findByRole('dialog')
     await fireEvent.click(within(dialog).getByRole('button', { name: /Yes, delete my account/ }))
@@ -158,7 +159,7 @@ describe('AccountView', () => {
   it('keeps the account if the person cancels the confirmation', async () => {
     let deleted = false
     server.use(
-      signedInAs({ ...testUser, hasPassword: false }),
+      signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.delete('*/api/account', () => {
         deleted = true
@@ -166,7 +167,10 @@ describe('AccountView', () => {
       }),
     )
     const { router } = await renderAt('/account')
-    await fireEvent.update(await screen.findByLabelText(/Type your email/), 'ada@example.com')
+    await fireEvent.update(
+      await screen.findByLabelText('Password', { selector: 'input' }),
+      'my password 123',
+    )
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
@@ -189,22 +193,24 @@ describe('AccountView', () => {
       ),
     )
     await renderAt('/account')
-    await fireEvent.update(await screen.findByLabelText(/Type your email/), 'ada@example.com')
-    await fireEvent.update(screen.getByLabelText('Password', { selector: 'input' }), 'wrong')
+    await fireEvent.update(await screen.findByLabelText('Password', { selector: 'input' }), 'wrong')
     await fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
     await fireEvent.click(await screen.findByRole('button', { name: /Yes, delete my account/ }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/password/)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('does not ask for a password if the account has none', async () => {
+  it('points an account with no password to adding one, and does not let it delete', async () => {
     server.use(
       signedInAs({ ...testUser, hasPassword: false, linkedProviders: ['google'] }),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/account')
-    await screen.findByLabelText(/Type your email/)
+    expect(
+      await screen.findByText(/To delete your account, first add a password/),
+    ).toBeInTheDocument()
     expect(screen.queryByLabelText('Password', { selector: 'input' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Delete my account' })).toBeDisabled()
     expect(screen.getByText(/Linked sign-in: google/)).toBeInTheDocument()
   })
 

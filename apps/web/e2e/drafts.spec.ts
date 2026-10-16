@@ -791,7 +791,6 @@ test('the only owner of a shared publication cannot delete their account until a
   await confirmEmail(page, adaEmail)
   await joinFrom(page, browser, 'Bob')
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
-  await page.getByLabel(/Type your email/).fill(adaEmail)
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await page.getByRole('button', { name: 'Delete my account' }).click()
   await page
@@ -1445,7 +1444,6 @@ test('downloads your writing as a zip from the account page and from a publicati
 test('deletes an account', async ({ page }) => {
   const email = await registerUser(page)
   await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
-  await page.getByLabel(/Type your email/).fill(email)
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await expect(page.getByRole('radio', { name: /Keep my name on my notes/ })).toBeChecked()
   await page.getByRole('radio', { name: /a former member/ }).check()

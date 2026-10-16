@@ -329,7 +329,9 @@ tests inject fakes and nothing hits the network.
   the drafts they edit or started; notes and reading items are everyone's, with names. Comments, reviews, brainstorm
   chats, API keys and email addresses are never included. Built on request, throttled to 5 an hour per person; see
   `docs/decisions.md`.
-- **Deleting an account** removes the user, credentials, sessions and memberships, and every publication
+- **Deleting an account** needs the account's password (`password` in `DELETE /api/account`; a wrong or missing one
+  answers 403). An account that signs in only with Google must add a password first, as changing an email does, and the
+  request answers 4xx saying so. It removes the user, credentials, sessions and memberships, and every publication
   (with its drafts) where they are the only member. In shared publications they are removed and drafts they wrote
   there stay; the only owner of a shared publication must first make someone else an owner (or delete the publication),
   and the request answers 409 until they do. The page asks

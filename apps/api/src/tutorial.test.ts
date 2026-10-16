@@ -120,7 +120,6 @@ describe('tutorial mode (#198)', () => {
     const { ctx, client, me } = await ada()
     await client.post('/api/account/tutorial/seen', { kind: 'publication-ideas' })
     const gone = await client.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
     })
     expect(gone.status).toBe(204)

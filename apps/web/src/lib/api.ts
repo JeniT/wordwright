@@ -169,8 +169,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     signOutDevice: (id: string) => act('DELETE', `/account/sessions/${encodeURIComponent(id)}`),
     /** Ends every session but this one; answers with how many there were. */
     signOutOtherDevices: () => get(SignedOutOthersSchema, 'DELETE', '/account/sessions'),
-    deleteAccount: (confirmEmail: string, password: string | undefined, keepName: boolean) =>
-      act('DELETE', '/account', { confirmEmail, password, keepName }),
+    deleteAccount: (password: string, keepName: boolean) =>
+      act('DELETE', '/account', { password, keepName }),
 
     // bring-your-own LLM key (write-only: the key is never returned)
     getLlmSettings: () => get(LlmSettingsSchema, 'GET', '/llm'),

@@ -173,12 +173,14 @@ describe('login with an external identity provider', () => {
     expect((await attacker.get('/api/auth/me')).status).toBe(401)
   })
 
-  it('lets an identity-only user delete their account with just the email', async () => {
+  it('makes an identity-only user add a password before deleting their account', async () => {
     const { client, store } = withIdp()
     const c = client()
     await signInWithIdp(c)
-    expect((await c.delete('/api/account', { confirmEmail: 'ada@example.com' })).status).toBe(204)
-    expect(store.users.findByIdentity('google', 'google-123')).toBeUndefined()
+    const res = await c.delete('/api/account', {})
+    expect(res.status).toBeGreaterThanOrEqual(400)
+    expect(JSON.stringify(await res.json())).toContain('Add a password')
+    expect(store.users.findByIdentity('google', 'google-123')).toBeDefined()
   })
 
   it('does not email reset links to identity-only accounts', async () => {

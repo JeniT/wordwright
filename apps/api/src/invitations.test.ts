@@ -387,7 +387,7 @@ describe('cleanup', () => {
     await register(bob, 'bob@example.com', 'Bob')
     await invite('bob@example.com')
     const token = lastInvitationToken(ctx.mailer)
-    await bob.delete('/api/account', { confirmEmail: 'bob@example.com', password: PASSWORD })
+    await bob.delete('/api/account', { password: PASSWORD })
     expect(ctx.store.invitations.findByTokenHash(hashToken(token))).toBeUndefined()
   })
 
@@ -395,7 +395,7 @@ describe('cleanup', () => {
     const { ctx, ada, invite } = await world()
     await invite('bob@example.com')
     const token = lastInvitationToken(ctx.mailer)
-    await ada.delete('/api/account', { confirmEmail: 'ada@example.com', password: PASSWORD })
+    await ada.delete('/api/account', { password: PASSWORD })
     expect(ctx.store.invitations.findByTokenHash(hashToken(token))).toBeUndefined()
   })
 

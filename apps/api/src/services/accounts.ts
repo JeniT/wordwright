@@ -459,18 +459,17 @@ export class AccountService {
    * user wrote in shared publications stay with the publication (their author reference is cleared; their name stays on
    * their notes and the like if `keepName`).
    */
-  async deleteAccount(
-    user: UserRecord,
-    confirmEmail: string,
-    password?: string,
-    keepName = true,
-  ): Promise<void> {
+  async deleteAccount(user: UserRecord, password?: string, keepName = true): Promise<void> {
     const { store, hasher } = this.d
-    if (confirmEmail !== user.email) {
-      throw new AccountError('confirmation_failed', 'The email address does not match')
-    }
     const hash = store.users.getPasswordHash(user.id)
-    if (hash && !(password && (await hasher.verify(password, hash)))) {
+    // A session alone isn't proof (a borrowed device would do): Google-only accounts add a password first.
+    if (!hash) {
+      throw new AccountError(
+        'password_required',
+        'Add a password to your account first; then you can delete it.',
+      )
+    }
+    if (!(password && (await hasher.verify(password, hash)))) {
       throw new AccountError('confirmation_failed', 'Incorrect password')
     }
 

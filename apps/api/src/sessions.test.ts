@@ -172,7 +172,6 @@ describe('where you are signed in', () => {
   it('removes the sessions when the account is deleted', async () => {
     const { ctx, laptop } = await twoDevices()
     const res = await laptop.delete('/api/account', {
-      confirmEmail: 'ada@example.com',
       password: PASSWORD,
       keepName: true,
     })

@@ -53,7 +53,7 @@ the unverified local account's password and sessions are **discarded** and the i
 Removes the user and everything only they own (including publications where they're the sole member). In shared publications
 they're removed; drafts they wrote there remain. A person who is the **only owner** of a publication others belong to is
 refused (409) until they make someone else an owner or delete the publication (#166), so nobody is handed a publication they
-didn't agree to run. The cleanup of never-confirmed accounts still passes ownership on to the longest-standing member:
+didn't agree to run. Deleting needs the account's password (#208): typing the email proved nothing, since it is on the account page, so `confirmEmail` is gone, and a Google-only account must add a password first, as changing an email already requires. The cleanup of never-confirmed accounts still passes ownership on to the longest-standing member:
 there is no one to ask, and those accounts are unused. Immediate, no grace period; the account page offers a download of the person's writing first (#167, below).
 
 **Several owners (#166).** A publication can have several owners but never none. Any owner can make a member an owner or

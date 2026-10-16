@@ -177,7 +177,6 @@ describe('words pulled into a draft from notes', () => {
     ])
 
     const left = await bob.delete('/api/account', {
-      confirmEmail: 'bob@example.com',
       password: PASSWORD,
       keepName: false,
     })
@@ -281,7 +280,6 @@ describe('options used from a Rephrase window (#162)', () => {
       ctx.store.drafts.reassignEditor(publication, adaId, bobId)
       await bob.post(options(), use)
       const left = await bob.delete('/api/account', {
-        confirmEmail: 'bob@example.com',
         password: PASSWORD,
         keepName,
       })
