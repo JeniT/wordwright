@@ -53,7 +53,7 @@ const when = (iso: string) =>
       </div>
       <button
         type="button"
-        class="btn btn-sm btn-icon btn-quiet shrink-0"
+        class="btn btn-sm btn-icon btn-ghost shrink-0"
         title="Reconsider"
         :disabled="busy"
         :aria-label="`Reconsider: ${post.title}`"
@@ -85,7 +85,7 @@ const when = (iso: string) =>
       <div class="flex shrink-0 items-start gap-2">
         <button
           type="button"
-          class="btn btn-sm btn-icon btn-quiet"
+          class="btn btn-sm btn-icon btn-ghost"
           title="Add to the reading list"
           :disabled="busy"
           :aria-label="`Add to the reading list: ${post.title}`"
@@ -95,7 +95,7 @@ const when = (iso: string) =>
         </button>
         <button
           type="button"
-          class="btn btn-sm btn-icon btn-quiet"
+          class="btn btn-sm btn-icon btn-ghost"
           title="Ignore"
           :disabled="busy"
           :aria-label="`Ignore: ${post.title}`"

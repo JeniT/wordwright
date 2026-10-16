@@ -15,7 +15,7 @@ const id = useId()
   <span class="group relative inline-flex">
     <button
       type="button"
-      class="btn btn-sm btn-icon btn-quiet !min-h-7 !w-7"
+      class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
       :aria-label="label"
       :aria-describedby="id"
     >

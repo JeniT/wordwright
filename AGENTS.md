@@ -119,7 +119,7 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
   focus and announcements) for any list whose order people can change, so they all look and behave alike.
 - **Controls in lists** (full rules in [docs/design.md](docs/design.md#actions-and-lists)): checkboxes only _select_
   items; a state of an item or the view is a **switch** (`SwitchField`); actions are buttons, icon-only
-  (`btn btn-sm btn-icon btn-quiet` + `Icon`) when they repeat on every row; filters sit left and bulk actions right in
+  (`btn btn-sm btn-icon btn-ghost` + `Icon`, borderless) when they repeat on every row; filters sit left and bulk actions right in
   a `ListToolbar`; removing is a `HoldButton`; long lists page with `usePaging` + `PageNav`.
 - Don't add dependencies casually; prefer the platform and what's already installed. Explain any new one in the commit.
 

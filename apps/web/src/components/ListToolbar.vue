@@ -155,7 +155,7 @@ watch(
       </div>
       <button
         type="button"
-        class="btn btn-sm btn-icon btn-quiet shrink-0"
+        class="btn btn-sm btn-icon btn-ghost shrink-0"
         title="Close the filters"
         aria-label="Close the filters"
         @click="filtering = false"

@@ -172,7 +172,7 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
     <p class="mt-3 border-t border-line pt-2">
       <HoldButton
         verb="Delete"
-        class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+        class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
         title="Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there."
         :aria-label="`Delete this research: ${run.areas}`"
         :disabled="remove.isPending.value"

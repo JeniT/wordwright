@@ -222,7 +222,7 @@
     opacity: 0.9;
   }
 }
-/* Icon buttons and low-emphasis actions keep a faint outline so they still read as buttons. */
+/* Low-emphasis text actions keep a faint outline so they still read as buttons (icon-only buttons use btn-ghost). */
 @utility btn-quiet {
   border-color: var(--color-line);
   color: var(--color-accent);
@@ -231,7 +231,42 @@
     border-color: var(--color-accent);
   }
 }
-/* A square button holding only an icon (add `btn-sm` and `btn-quiet`). Its name comes from an aria-label. */
+/*
+ * An icon-only button: no border or fill at rest, the icon in `ink-soft` (4.5:1 on paper, surface and sunken, so it
+ * is easy enough to see without a hover, which phones don't have). Hover and keyboard focus fill it with `sunken`;
+ * its own page shows `accent-wash` and an accent icon (`aria-current`), which is a shape as well as a colour.
+ * Accent is left for the current page and the primary action, never an icon on every row.
+ */
+@utility btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-ink-soft);
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--color-sunken);
+    color: var(--color-ink);
+  }
+  &[aria-current='page'],
+  &[aria-current='page']:hover:not(:disabled) {
+    background: var(--color-accent-wash);
+    color: var(--color-accent);
+  }
+  /* On a recessed strip a `sunken` hover would not show, so it steps to `line`. */
+  :where(.bg-sunken) &:hover:not(:disabled),
+  :where(.bg-sunken) &:focus-visible {
+    background: var(--color-line);
+  }
+}
+/* Add to `btn-ghost` for Remove: raspberry on hover or focus, and while a hold-to-confirm button is armed. */
+@utility btn-ghost-danger {
+  &:hover:not(:disabled),
+  &:focus-visible,
+  &[data-armed] {
+    background: var(--color-danger-wash);
+    color: var(--color-danger);
+  }
+}
+/* A square button holding only an icon (add `btn-sm` and `btn-ghost`). Its name comes from an aria-label. */
 @utility btn-icon {
   width: 2.25rem;
   min-width: 2.25rem;

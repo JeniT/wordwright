@@ -184,7 +184,7 @@ function saveLink() {
             <button
               ref="editButton"
               type="button"
-              class="btn btn-sm btn-icon btn-quiet"
+              class="btn btn-sm btn-icon btn-ghost"
               title="Edit"
               :aria-label="`Edit link to ${label()}`"
               @click="startEditing"
@@ -193,7 +193,7 @@ function saveLink() {
             </button>
             <HoldButton
               verb="Remove"
-              class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+              class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
               :title="removeHint()"
               :aria-label="`Remove link to ${label()}`"
               @confirm="emit('remove')"

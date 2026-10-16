@@ -141,7 +141,7 @@ const deletePublication = useMutation({
           <HoldButton
             v-if="publication.imageUrl"
             verb="Remove"
-            class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+            class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
             title="Press and hold, or tap twice, to remove the picture"
             aria-label="Remove picture"
             :disabled="removeImage.isPending.value"

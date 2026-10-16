@@ -566,7 +566,7 @@ const label = (note: IdeaNote) => {
             <button
               v-if="!note.quote"
               type="button"
-              class="btn btn-sm btn-icon btn-quiet"
+              class="btn btn-sm btn-icon btn-ghost"
               :data-edit-button="note.id"
               :disabled="editingId === note.id"
               title="Edit"
@@ -577,7 +577,7 @@ const label = (note: IdeaNote) => {
             </button>
             <HoldButton
               verb="Delete"
-              class="btn btn-sm btn-icon btn-quiet hover:border-danger hover:bg-danger-wash hover:text-danger"
+              class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
               :disabled="remove.isPending.value"
               title="Press and hold, or tap twice, to delete this note"
               :aria-label="`Delete ${label(note)}`"

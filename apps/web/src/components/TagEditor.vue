@@ -100,7 +100,7 @@ async function hide() {
         v-if="!open"
         ref="opener"
         type="button"
-        class="btn btn-sm btn-icon btn-quiet !min-h-7 !w-7"
+        class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
         :title="`Add tags to ${label}`"
         :aria-label="`Add tags to ${label}`"
         aria-expanded="false"
@@ -118,7 +118,7 @@ async function hide() {
         />
         <button
           type="button"
-          class="btn btn-sm btn-icon btn-quiet !min-h-7 !w-7"
+          class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
           :title="`Done tagging ${label}`"
           :aria-label="`Done tagging ${label}`"
           aria-expanded="true"

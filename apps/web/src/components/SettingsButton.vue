@@ -17,7 +17,7 @@ defineProps<{ to: RouteLocationRaw; label: string }>()
     :to="to"
     :title="label"
     :aria-label="label"
-    class="btn btn-icon btn-quiet min-h-11 w-11! shrink-0 aria-[current=page]:border-accent aria-[current=page]:bg-accent-wash"
+    class="btn btn-icon btn-ghost min-h-11 w-11! shrink-0"
   >
     <Icon name="settings" />
   </RouterLink>
