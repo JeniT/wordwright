@@ -66,6 +66,14 @@ test passes alone but timed out in the full run, the machine was busy: note it, 
 only if it fails alone too. Locally the runners take only a few cores each (`maxWorkers` in
 `apps/web/vite.config.ts`, `workers` in `apps/web/playwright.config.ts`); don't raise them to go faster.
 
+### Don't use `sed` to edit files
+
+This machine is macOS, so `sed` is BSD `sed`, not GNU. `sed -i 's/a/b/' file` fails (BSD wants a backup suffix after
+`-i`, so it reads the script as the suffix: "undefined label", "illegal option"), and GNU-only features such as `\+`,
+`\b` and `\n` in replacements behave differently. It is not a permissions problem. For edits, use the Edit tool; for a
+repeated change across files, use `perl -pi -e 's/a/b/' <files>`. To read part of a file, use the Read tool with
+`offset` and `limit`.
+
 ## Layout
 
 - `packages/core`: Zod schemas, provider ports + adapters + fakes, contract test suites. Shared by web and api.
