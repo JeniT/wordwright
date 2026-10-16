@@ -2,6 +2,7 @@
 import { CRITIQUE_ROUNDS_DEFAULT, CRITIQUE_ROUNDS_MAX, CRITIQUE_ROUNDS_MIN } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api, errorMessage } from '../lib/api'
+import InfoTip from './InfoTip.vue'
 import SaveStatus from './SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
 
@@ -24,37 +25,38 @@ const save = useMutation({
 
 <template>
   <section aria-labelledby="critique-settings-heading">
-    <h2 id="critique-settings-heading" class="mb-1 font-display text-xl font-semibold">
-      Critiques of a draft
-    </h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      An AI editor can always find something else to change, and each round of changes can take a
-      draft further from your own voice and further from finished. So a draft gets a limited number
-      of critiques. The count is kept for the draft, and editing it doesn't reset it. When they are
-      used up, the next step is to publish.
-    </p>
-    <p class="mb-3 text-sm text-ink-soft">
-      The same number limits <strong>Rephrase</strong>: in one Rephrase window you can change your
-      aim and ask for more options this many times.
-    </p>
+    <div class="mb-3 flex items-center gap-2">
+      <h2 id="critique-settings-heading" class="font-display text-xl font-semibold">
+        Critique limit
+      </h2>
+      <InfoTip label="Why critiques are limited"
+        >An AI editor can always find more to change, and each round can take a draft further from
+        your voice. When a draft's critiques are used up, the next step is to publish.</InfoTip
+      >
+    </div>
     <p v-if="settings.isError.value" role="alert" class="mb-3 text-danger">
       {{ errorMessage(settings.error.value) }}
     </p>
     <form @submit.prevent="save.mutate()">
       <div class="mb-4">
         <label for="critique-rounds" class="mb-1 block text-sm font-medium"
-          >Critiques each draft gets</label
+          >Critiques per draft</label
         >
         <select
           id="critique-rounds"
           v-model.number="rounds"
           class="field"
+          aria-describedby="critique-rounds-hint"
           :disabled="!settings.data.value"
         >
           <option v-for="n in choices" :key="n" :value="n">
             {{ n }}{{ n === CRITIQUE_ROUNDS_DEFAULT ? ' (suggested)' : '' }}
           </option>
         </select>
+        <p id="critique-rounds-hint" class="mt-1 text-sm text-ink-soft">
+          Also limits how many times you can ask for options for ways to rephrase parts of your
+          drafts.
+        </p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <button
@@ -62,7 +64,7 @@ const save = useMutation({
           class="btn btn-primary"
           :disabled="save.isPending.value || !settings.data.value"
         >
-          Save
+          Save limit
         </button>
         <SaveStatus :mutation="save" class="basis-full" />
       </div>

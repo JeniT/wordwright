@@ -6,7 +6,7 @@ import { api } from '../lib/api'
 import Explain from './Explain.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
-import ProviderPrivacyAdvice from './ProviderPrivacyAdvice.vue'
+import InfoTip from './InfoTip.vue'
 import TextField from './TextField.vue'
 import SaveStatus from './SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
@@ -67,8 +67,12 @@ const removeLlmKey = useMutation({
         id="llm-heading"
         :class="[props.guide ? 'text-lg' : 'text-xl', 'font-display font-semibold']"
       >
-        {{ props.guide ? 'Connect your AI key (Anthropic)' : 'AI assistant' }}
+        {{ props.guide ? 'Connect your AI key (Anthropic)' : 'Your AI key' }}
       </component>
+      <InfoTip v-if="!props.guide" label="About your AI key"
+        >What the AI mark means is explained in
+        <RouterLink to="/help/ai-settings" class="link">Your AI settings</RouterLink>.</InfoTip
+      >
       <Explain v-if="props.guide" label="About your AI key">
         Wordwright has no AI of its own: you connect yours. Buttons with the AI mark send your text
         to it, and nothing else does.
@@ -87,32 +91,27 @@ const removeLlmKey = useMutation({
         >
       </p>
     </template>
-    <p v-else class="mb-3 text-sm text-ink-soft">
-      AI features use your own Anthropic account, so usage is billed to you, not to this service.
-      Paste your key below. It’s stored encrypted and never shown again.
-      <RouterLink to="/help/api-key" target="_blank" class="link"
-        >How to get an API key (opens in a new tab)</RouterLink
-      >
-    </p>
-    <p v-if="!props.guide" class="mb-3 text-sm text-ink-soft">
-      <Icon name="ai" :size="16" class="mr-1 inline align-text-bottom" />
-      A button with this mark sends your text to your AI and uses your key, so it costs tokens;
-      while it works, the mark turns into a spinner. Buttons without the mark never do.
-    </p>
-    <ProviderPrivacyAdvice v-if="!props.guide" />
+    <template v-else>
+      <p class="mb-1">Your AI uses your own Anthropic key, so Anthropic bills you, not us.</p>
+      <p class="mb-3 flex flex-wrap gap-x-4 text-sm">
+        <RouterLink to="/help/api-key" target="_blank" class="link"
+          >How to get an API key<span class="sr-only"> (opens in a new tab)</span></RouterLink
+        >
+        <RouterLink to="/help/privacy" target="_blank" class="link"
+          >Privacy advice<span class="sr-only"> (opens in a new tab)</span></RouterLink
+        >
+      </p>
+    </template>
     <p v-if="llm.data.value && !props.guide" role="status" class="mb-3 text-sm">
-      <template v-if="llm.data.value.hasKey"
-        >Anthropic key saved ({{ llm.data.value.keyHint }}).</template
-      >
-      <template v-else>No API key yet.</template>
+      <template v-if="llm.data.value.hasKey">Key saved ({{ llm.data.value.keyHint }})</template>
+      <template v-else>No key yet</template>
     </p>
     <form @submit.prevent="saveLlm.mutate()">
       <TextField
         v-model="apiKey"
-        :label="
-          llm.data.value?.hasKey
-            ? 'Replace API key (leave blank to keep the current one)'
-            : 'Anthropic API key'
+        :label="llm.data.value?.hasKey && !props.guide ? 'New API key' : 'Anthropic API key'"
+        :hint="
+          llm.data.value?.hasKey && !props.guide ? 'Leave blank to keep the current one' : undefined
         "
         type="password"
         autocomplete="off"
@@ -150,7 +149,7 @@ const removeLlmKey = useMutation({
           class="btn btn-primary"
           :disabled="saveLlm.isPending.value || llm.isPending.value"
         >
-          {{ saveLlm.isPending.value ? 'Checking key…' : 'Save' }}
+          {{ saveLlm.isPending.value ? 'Checking key…' : props.guide ? 'Save' : 'Save key' }}
         </button>
         <HoldButton
           v-if="llm.data.value?.hasKey"

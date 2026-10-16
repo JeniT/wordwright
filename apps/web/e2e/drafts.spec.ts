@@ -132,11 +132,9 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('link', { name: 'Go to account settings' }).click()
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-test-key-1234')
-  await page.getByRole('button', { name: 'Save' }).first().click()
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Anthropic key saved (…1234)' }),
-  ).toBeVisible()
-  await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "Replace…"
+  await page.getByRole('button', { name: 'Save key' }).first().click()
+  await expect(page.getByRole('status').filter({ hasText: 'Key saved (…1234)' })).toBeVisible()
+  await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "New API key"
 
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
@@ -222,13 +220,13 @@ test('register, write, save and request a critique', async ({ page }) => {
   // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.
   await expect(page.getByText('1 of 3 looks used')).toBeVisible()
   await page.goto('/account/ai')
-  await page.getByLabel('Critiques each draft gets').selectOption('1')
+  await page.getByLabel('Critiques per draft').selectOption('1')
   await page
-    .getByRole('region', { name: 'Critiques of a draft' })
-    .getByRole('button', { name: 'Save' })
+    .getByRole('region', { name: 'Critique limit' })
+    .getByRole('button', { name: 'Save limit' })
     .click()
   await expect(
-    page.getByRole('region', { name: 'Critiques of a draft' }).getByText('Saved', { exact: true }),
+    page.getByRole('region', { name: 'Critique limit' }).getByText('Saved', { exact: true }),
   ).toBeVisible()
   await page.goBack()
   // The page reloads on the way back, which can be slow on a busy machine.
@@ -277,10 +275,8 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await registerUser(page)
   await page.goto('/account/ai')
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-rephrase-key-5678')
-  await page.getByRole('button', { name: 'Save' }).first().click()
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Anthropic key saved (…5678)' }),
-  ).toBeVisible()
+  await page.getByRole('button', { name: 'Save key' }).first().click()
+  await expect(page.getByRole('status').filter({ hasText: 'Key saved (…5678)' })).toBeVisible()
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
@@ -377,10 +373,8 @@ test('rephrases the title once the draft is long enough, and records the option 
   await registerUser(page)
   await page.goto('/account/ai')
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-title-key-5678')
-  await page.getByRole('button', { name: 'Save' }).first().click()
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Anthropic key saved (…5678)' }),
-  ).toBeVisible()
+  await page.getByRole('button', { name: 'Save key' }).first().click()
+  await expect(page.getByRole('status').filter({ hasText: 'Key saved (…5678)' })).toBeVisible()
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
@@ -1516,6 +1510,6 @@ test('signed-in pages have no detectable accessibility violations', async ({ pag
     .getByRole('link', { name: 'Your AI' })
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'Your AI' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'AI assistant' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your AI key' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

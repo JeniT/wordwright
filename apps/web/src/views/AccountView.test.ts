@@ -99,16 +99,31 @@ describe('AccountView', () => {
     })
   })
 
-  it('gives advice on the provider privacy settings next to the AI key', async () => {
+  it('keeps the long privacy advice off the page, with links to it and to the key guide', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
     await renderAt('/account/ai')
-    const advice = await screen.findByRole('region', { name: 'Protect what you write' })
-    expect(advice).toHaveTextContent(/Console, not a Claude chat subscription/)
-    expect(advice).toHaveTextContent(/spending limit/)
-    expect(advice).toHaveTextContent(/Revoke the key/)
+    expect(await screen.findByRole('heading', { level: 2, name: 'Your AI key' })).toBeVisible()
+    expect(screen.queryByRole('region', { name: 'Protect what you write' })).toBeNull()
+    expect(screen.getByText(/so Anthropic bills you, not us/)).toBeVisible()
+    expect(screen.getByRole('link', { name: /Privacy advice/ })).toHaveAttribute(
+      'href',
+      '/help/privacy',
+    )
+    expect(screen.getByRole('link', { name: /How to get an API key/ })).toHaveAttribute(
+      'href',
+      '/help/api-key',
+    )
+    // The AI mark is explained on the help page, reached from the info icon; not written out here.
+    expect(screen.getByRole('link', { name: 'Your AI settings' })).toHaveAttribute(
+      'href',
+      '/help/ai-settings',
+    )
+    expect(screen.queryByText(/turns into a spinner/)).toBeNull()
+    const order = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent?.trim())
+    expect(order).toEqual(['Your AI key', 'Critique limit'])
   })
 
   it('requires the password before deleting, then signs out', async () => {
@@ -231,7 +246,7 @@ describe('AccountView', () => {
     const { router } = await renderAt('/account')
     expect(await screen.findByRole('heading', { level: 1, name: 'Your details' })).toBeVisible()
     expect(router.currentRoute.value.path).toBe('/account/details')
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent?.trim())).toEqual(
       expect.arrayContaining(['Name', 'Username']),
     )
     expect(screen.queryByRole('heading', { name: 'Publications' })).toBeNull()
@@ -288,15 +303,15 @@ describe('AccountView: AI assistant key', () => {
       }),
     )
     await renderAt('/account/ai')
-    await screen.findByText('No API key yet.')
+    await screen.findByText('No key yet')
     expect(screen.queryByLabelText('Model')).toBeNull() // the provider lists models for a key
     expect(screen.getByText('Save a key to choose a model.')).toBeInTheDocument()
     const field = screen.getByLabelText('Anthropic API key')
     expect(field).toHaveAttribute('type', 'password')
     await fireEvent.update(field, '  sk-ant-secret-1234567890  ')
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
 
-    await screen.findByText(/Anthropic key saved \(…7890\)/)
+    await screen.findByText(/Key saved \(…7890\)/)
     expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-secret-1234567890' })
     expect(screen.queryByDisplayValue(/sk-ant/)).toBeNull() // the field is cleared
     expect(await screen.findByLabelText('Model')).toBeInTheDocument()
@@ -316,13 +331,13 @@ describe('AccountView: AI assistant key', () => {
       }),
     )
     await renderAt('/account/ai')
-    const save = (await screen.findAllByRole('button', { name: 'Save' }))[0]!
+    const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
     expect(save).toBeDisabled() // still loading
-    await screen.findByText('No API key yet.')
+    await screen.findByText('No key yet')
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-secret-1234567890')
     expect(save).toBeEnabled()
     await fireEvent.click(save)
-    await screen.findByText(/Anthropic key saved/)
+    await screen.findByText(/Key saved/)
   })
 
   it('shows why a key was refused', async () => {
@@ -338,9 +353,9 @@ describe('AccountView: AI assistant key', () => {
       ),
     )
     await renderAt('/account/ai')
-    await screen.findByText('No API key yet.') // settings loaded, so Save is enabled
+    await screen.findByText('No key yet') // settings loaded, so Save is enabled
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-wrong-1234567890')
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
     expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/)
   })
 
@@ -362,7 +377,7 @@ describe('AccountView: AI assistant key', () => {
       }),
     )
     await renderAt('/account/ai')
-    await screen.findByText(/Anthropic key saved/)
+    await screen.findByText(/Key saved/)
     const model = await screen.findByLabelText('Model')
     // The provider's own names, not ours.
     expect(
@@ -371,13 +386,13 @@ describe('AccountView: AI assistant key', () => {
         .map((o) => o.textContent),
     ).toEqual(['Claude Sonnet 5.5', 'Claude Opus 5.5', 'Claude Haiku 5.5'])
     await fireEvent.update(model, 'claude-opus-5-5')
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
     await waitFor(() => expect(sent).toEqual({ provider: 'anthropic', model: 'claude-opus-5-5' }))
 
     const removeKey = screen.getByRole('button', { name: 'Remove key' })
     await fireEvent.click(removeKey) // no hold: it only asks to be pressed again
     await fireEvent.click(removeKey)
-    await screen.findByText('No API key yet.')
+    await screen.findByText('No key yet')
   })
 })
 
@@ -437,11 +452,8 @@ describe('AccountView: replacing a key while the saved model is retired', () => 
     )
     await renderAt('/account/ai')
     await screen.findByText(/no longer offered/)
-    await fireEvent.update(
-      screen.getByLabelText(/Replace API key/),
-      'sk-ant-replacement-1234567890',
-    )
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    await fireEvent.update(screen.getByLabelText('New API key'), 'sk-ant-replacement-1234567890')
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
     await waitFor(() =>
       expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-replacement-1234567890' }),
     )
@@ -465,7 +477,7 @@ describe('AccountView: critiques of a draft', () => {
     const saved: number[] = []
     mock(saved, 2)
     await renderAt('/account/ai')
-    const select = await screen.findByLabelText('Critiques each draft gets')
+    const select = await screen.findByLabelText('Critiques per draft')
     await waitFor(() => expect(select).toHaveValue('2'))
     expect(
       within(select)
@@ -473,13 +485,13 @@ describe('AccountView: critiques of a draft', () => {
         .map((o) => o.textContent?.trim()),
     ).toEqual(['1', '2', '3 (suggested)', '4', '5'])
     // The same setting limits the rounds in a Rephrase window (#161), and the page says so.
-    expect(screen.getByRole('region', { name: 'Critiques of a draft' })).toHaveTextContent(
-      /limits Rephrase/,
+    expect(screen.getByRole('region', { name: 'Critique limit' })).toHaveTextContent(
+      /rephrase parts of your drafts/,
     )
     await fireEvent.update(select, '5')
     await fireEvent.click(
-      within(screen.getByRole('region', { name: 'Critiques of a draft' })).getByRole('button', {
-        name: 'Save',
+      within(screen.getByRole('region', { name: 'Critique limit' })).getByRole('button', {
+        name: 'Save limit',
       }),
     )
     await screen.findByText('Saved')
@@ -498,15 +510,15 @@ describe('AccountView: critiques of a draft', () => {
       }),
     )
     await renderAt('/account/ai')
-    const select = await screen.findByLabelText('Critiques each draft gets')
+    const select = await screen.findByLabelText('Critiques per draft')
     expect(select).toBeDisabled()
     arrive()
     await waitFor(() => expect(select).toBeEnabled())
     expect(select).toHaveValue('3')
     await fireEvent.update(select, '1')
     await fireEvent.click(
-      within(screen.getByRole('region', { name: 'Critiques of a draft' })).getByRole('button', {
-        name: 'Save',
+      within(screen.getByRole('region', { name: 'Critique limit' })).getByRole('button', {
+        name: 'Save limit',
       }),
     )
     await screen.findByText('Saved')
@@ -521,9 +533,10 @@ describe('AccountView: critiques of a draft', () => {
       ),
     )
     await renderAt('/account/ai')
-    const save = within(
-      await screen.findByRole('region', { name: 'Critiques of a draft' }),
-    ).getByRole('button', { name: 'Save' })
+    const save = within(await screen.findByRole('region', { name: 'Critique limit' })).getByRole(
+      'button',
+      { name: 'Save limit' },
+    )
     await waitFor(() => expect(save).toBeEnabled()) // not until the saved number has arrived
     await fireEvent.click(save)
     await screen.findByText('Choose a number from 1 to 5')

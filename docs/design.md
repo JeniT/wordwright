@@ -148,7 +148,7 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
   `busy-text` is read out through a polite live region the component owns (don't add a second status for the
   same wait). Under reduced motion the spinner stays still: the busy button and its words are the signal.
 - **Meaning:** the icon is never alone. The words "Uses your Anthropic key, so it costs tokens" are the button's
-  tooltip and its accessible description, and the account settings (Your AI) explain the mark once.
+  tooltip and its accessible description, and the help page "Your AI settings" (`/help/ai-settings`, linked from the info icon on Your AI) explains the mark once.
 - **Which buttons:** the ones whose press makes an LLM request (Critique, Brainstorm's Start/Send/Try again, Research,
   Research) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
   which open the conversation where the reply is written). Not the buttons around them: Save, Add note, Accept or
@@ -207,12 +207,12 @@ Text lives in one of four places. Pick by what the person needs it for; how it r
 **The test:** if the person skips this text, can they still finish the task without a mistake? If so, it doesn't belong
 on the page. Move it to an info icon or a help page, or cut it.
 
-| Where                   | Use it for                                                                                                                                              | Examples from the app                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **On the page**         | What the person needs to act or avoid a mistake _now_: the next step, what they will lose, what a field expects when that isn't obvious                 | The `NextStep` line. “This can’t be undone.” in a delete dialog. A hint under a field: “The address of the site”.           |
-| **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Move to… “About the new idea”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”. |
-| **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round                                  | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.            |
-| **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (`/help/api-key`; the key screen holds only a link to it).                               |
+| Where                   | Use it for                                                                                                                                              | Examples from the app                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **On the page**         | What the person needs to act or avoid a mistake _now_: the next step, what they will lose, what a field expects when that isn't obvious                 | The `NextStep` line. “This can’t be undone.” in a delete dialog. A hint under a field: “The address of the site”.                                                         |
+| **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Move to… “About the new idea”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”.                                               |
+| **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round                                  | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.                                                          |
+| **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (`/help/api-key`; the key screen holds only a link to it); what the AI mark means and why critiques are limited (`/help/ai-settings`). |
 
 ### On the page
 

@@ -59,7 +59,7 @@ describe('AI buttons', () => {
     for (const file of vueFiles(src)) {
       if (file.endsWith('AiButton.vue') || file.endsWith('Icon.vue')) continue
       const text = readFileSync(file, 'utf8')
-      expect(text.includes('name="ai"'), file).toBe(file.endsWith('LlmSettingsSection.vue'))
+      expect(text.includes('name="ai"'), file).toBe(file.endsWith('HelpAiSettingsView.vue'))
     }
   })
 })

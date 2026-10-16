@@ -302,6 +302,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/help/ai-settings',
+    name: 'help-ai-settings',
+    component: () => import('./views/HelpAiSettingsView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/help/tutorial-mode',
     name: 'help-tutorial-mode',
     component: () => import('./views/HelpTutorialModeView.vue'),

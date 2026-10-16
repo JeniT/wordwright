@@ -23,7 +23,7 @@ test('offers the provider’s models once a key is saved, and keeps the one chos
   await expect(page.getByLabel('Model')).toHaveCount(0)
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-models-key-1234')
-  await page.getByRole('button', { name: 'Save', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Save key', exact: true }).first().click()
 
   const model = page.getByLabel('Model')
   await expect(model).toBeVisible()
@@ -31,7 +31,7 @@ test('offers the provider’s models once a key is saved, and keeps the one chos
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
   await model.selectOption({ label: 'Claude Haiku 5.5' })
-  await page.getByRole('button', { name: 'Save', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Save key', exact: true }).first().click()
   await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible()
   await page.reload()
   await expect(page.getByLabel('Model')).toHaveValue('claude-haiku-5-5')

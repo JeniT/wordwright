@@ -52,6 +52,24 @@ describe('Help', () => {
     expect(screen.getByText(/within 30 days/)).toBeInTheDocument()
   })
 
+  it('explains the AI mark and the critique limit on their own page, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    expect(within(list).getByRole('link', { name: 'Your AI settings' })).toHaveAttribute(
+      'href',
+      '/help/ai-settings',
+    )
+    await renderAt('/help/ai-settings')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your AI settings' })).toBeVisible()
+    expect(screen.getByText(/uses your key, so it costs tokens/)).toBeInTheDocument()
+    expect(screen.getByText(/limits/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Critique limit' })).toHaveAttribute(
+      'href',
+      '/account/ai',
+    )
+  })
+
   it('has a Back link to where you were', async () => {
     server.use(signedInAs(testUser))
     const { router } = await renderAt('/help')

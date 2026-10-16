@@ -87,3 +87,34 @@ test('each page is accessible in light, in dark and on a phone, with no sideways
     expect(overflow, `${label}: no sideways scroll at 390px`).toBe(false)
   }
 })
+
+test('Your AI leads with the key, keeps the long advice on help pages, and links to them', async ({
+  page,
+}) => {
+  await signUp(page)
+  await page.goto('/account/ai')
+  const key = page.getByRole('heading', { level: 2, name: 'Your AI key' })
+  const limit = page.getByRole('heading', { level: 2, name: 'Critique limit' })
+  await expect(key).toBeVisible()
+  expect((await key.boundingBox())!.y, 'the key comes first').toBeLessThan(
+    (await limit.boundingBox())!.y,
+  )
+  await expect(page.getByText('No key yet')).toBeVisible()
+  await expect(page.getByText('Protect what you write')).toHaveCount(0)
+  await expect(page.getByText('turns into a spinner')).toHaveCount(0)
+
+  // The info icon beside the heading holds the way to the help page.
+  await page.getByRole('button', { name: 'About your AI key' }).hover()
+  await page.getByRole('link', { name: 'Your AI settings' }).click()
+  await expect(page).toHaveURL(/\/help\/ai-settings$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Your AI settings' })).toBeVisible()
+  await noViolations(page, 'Your AI settings help page')
+  await page.getByRole('link', { name: 'Critique limit' }).click()
+  await expect(page).toHaveURL(/\/account\/ai$/)
+
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/help/ai-settings')
+  await noViolations(page, 'Your AI settings help page, dark')
+  await page.setViewportSize({ width: 390, height: 800 })
+  await noViolations(page, 'Your AI settings help page, phone')
+})

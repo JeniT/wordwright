@@ -15,6 +15,11 @@ const pages = [
     about: 'What is sent to Anthropic when you use the AI, and what to check.',
   },
   {
+    name: 'help-ai-settings',
+    title: 'Your AI settings',
+    about: 'What the AI mark means, and why critiques are limited.',
+  },
+  {
     name: 'help-tutorial-mode',
     title: 'About tutorial mode',
     about: 'The explanations written out on the page while you are getting to know the site.',
