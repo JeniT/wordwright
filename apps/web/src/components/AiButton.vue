@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/vue-query'
 import { computed, useAttrs, useId } from 'vue'
 import { api } from '../lib/api'
+import { queryKeys } from '../lib/queries'
 import { aiHint } from '../lib/ai'
 import Icon from './Icon.vue'
 
@@ -19,7 +20,7 @@ const props = withDefaults(
 )
 const attrs = useAttrs()
 const hintId = useId()
-const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
+const llm = useQuery({ queryKey: queryKeys.llm(), queryFn: () => api.getLlmSettings() })
 const hint = computed(() => aiHint(llm.data.value?.provider))
 const describedBy = computed(() => [attrs['aria-describedby'], hintId].filter(Boolean).join(' '))
 </script>

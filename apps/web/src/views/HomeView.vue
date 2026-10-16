@@ -16,7 +16,7 @@ import QueryState from '../components/QueryState.vue'
 const session = useSessionStore()
 const publications = usePublications()
 // Shares the cache with the setup form, which updates it when a key is saved.
-const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
+const llm = useQuery({ queryKey: queryKeys.llm(), queryFn: () => api.getLlmSettings() })
 const justConnected = ref(false)
 // Both are known before the checklist shows, so it never flashes for someone who is already set up.
 const hasPublication = computed(() => !!publications.data.value?.length)

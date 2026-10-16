@@ -21,6 +21,8 @@ export const queryKeys = {
   attention: (publicationId: string) => ['attention', publicationId] as const,
   /** Where the person is signed in (the account page). */
   devices: () => ['devices'] as const,
+  /** The person's saved AI key settings (never the key itself). */
+  llm: () => ['llm'] as const,
   /** The models the provider offers the saved key (the account page). */
   llmModels: () => ['llm-models'] as const,
   /** Tutorial mode's seen pages and answered offer (#198). */

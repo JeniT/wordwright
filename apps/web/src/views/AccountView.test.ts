@@ -369,6 +369,37 @@ describe('AccountView: the model', () => {
   })
 })
 
+describe('AccountView: replacing a key while the saved model is retired', () => {
+  it('sends only the key, so the server keeps or replaces the model rather than refusing it', async () => {
+    let sent: unknown
+    const retired = {
+      provider: 'anthropic',
+      model: 'claude-retired-1',
+      hasKey: true,
+      keyHint: '…7890',
+    }
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/llm', () => HttpResponse.json(retired)),
+      http.put('*/api/llm', async ({ request }) => {
+        sent = await request.json()
+        return HttpResponse.json({ ...retired, model: 'claude-sonnet-5-5' })
+      }),
+    )
+    await renderAt('/account')
+    await screen.findByText(/no longer offered/)
+    await fireEvent.update(
+      screen.getByLabelText(/Replace API key/),
+      'sk-ant-replacement-1234567890',
+    )
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
+    await waitFor(() =>
+      expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-replacement-1234567890' }),
+    )
+  })
+})
+
 describe('AccountView: critiques of a draft', () => {
   const mock = (saved: number[] = [], rounds = 3) =>
     server.use(

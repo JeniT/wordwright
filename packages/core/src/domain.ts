@@ -1416,8 +1416,10 @@ export const LLM_PROVIDER_IDS = ['anthropic'] as const
 export const LLMProviderIdSchema = z.enum(LLM_PROVIDER_IDS)
 export type LLMProviderId = z.infer<typeof LLMProviderIdSchema>
 
-/** The models on offer come from the provider itself (`LLMProvider.listModels`), not from a list kept here. */
-/** Used until the person chooses, if the provider offers it to their key. */
+/**
+ * Used until the person chooses, if the provider offers it to their key. (The models on offer come from the provider
+ * itself, `LLMProvider.listModels`, not from a list kept here.)
+ */
 export const DEFAULT_LLM_MODEL: Record<LLMProviderId, string> = { anthropic: 'claude-sonnet-5-5' }
 
 export const LlmModelSchema = z.object({ id: z.string(), label: z.string() })

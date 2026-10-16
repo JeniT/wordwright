@@ -18,7 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [] }>()
 
 const queryClient = useQueryClient()
-const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
+const llm = useQuery({ queryKey: queryKeys.llm(), queryFn: () => api.getLlmSettings() })
 // The provider lists the models for a key, so the choice only exists once there is one.
 const hasKey = computed(() => !props.guide && llm.data.value?.hasKey === true)
 const models = useLlmModels(() => hasKey.value)
@@ -33,12 +33,16 @@ const saveLlm = useMutation({
     api.saveLlmSettings({
       provider: 'anthropic',
       // Left out until there is a list to choose from: the server keeps the current model, or picks one.
-      model: hasKey.value && models.isSuccess.value && model.value ? model.value : undefined,
+      // A retired model is not sent either: the server would refuse it, and keeps or replaces it itself.
+      model:
+        hasKey.value && models.isSuccess.value && model.value && !retired.value
+          ? model.value
+          : undefined,
       apiKey: apiKey.value.trim() || undefined,
     }),
   onSuccess: (settings) => {
     apiKey.value = ''
-    queryClient.setQueryData(['llm'], settings)
+    queryClient.setQueryData(queryKeys.llm(), settings)
     queryClient.invalidateQueries({ queryKey: queryKeys.llmModels() })
     emit('saved')
   },
@@ -46,7 +50,7 @@ const saveLlm = useMutation({
 const removeLlmKey = useMutation({
   mutationFn: () => api.removeLlmKey(),
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['llm'] })
+    queryClient.invalidateQueries({ queryKey: queryKeys.llm() })
     queryClient.removeQueries({ queryKey: queryKeys.llmModels() })
   },
 })
@@ -107,7 +111,10 @@ const removeLlmKey = useMutation({
         :required="!llm.data.value?.hasKey"
       />
       <div v-if="hasKey" class="mb-4">
-        <label for="llm-model" class="mb-1 block text-sm font-medium">Model</label>
+        <label v-if="models.isSuccess.value" for="llm-model" class="mb-1 block text-sm font-medium"
+          >Model</label
+        >
+        <p v-else class="mb-1 text-sm font-medium">Model</p>
         <p v-if="models.isPending.value" class="text-ink-soft">Loading…</p>
         <template v-else-if="models.isError.value">
           <p>{{ model }}</p>
