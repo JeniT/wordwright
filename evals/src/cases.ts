@@ -101,11 +101,35 @@ const wellFormedOptions = (min: number, max: number) =>
 const optionsNoLongerThan = (n: number) =>
   `(() => { const c = JSON.parse(output.match(/[{][\\s\\S]*[}]/)[0]); return c.options.every((o) => o.trim().split(/\\s+/).length <= ${n}) })()`
 
+/**
+ * Reads the text of every `add_note` call out of a rendered reply (see `renderReply`). The checks below start from
+ * this, so each is a plain expression over `output` like the others.
+ */
+const NOTE_TEXTS =
+  '[...output.matchAll(/\\[tool_call add_note ([{].*?[}])\\]/g)].map((m) => JSON.parse(m[1]).text)'
+
+/** A coach should record a point per answer, as the writer makes it: a few notes, neither none nor a flood. */
+const recordsAPointPerAnswer = `(() => { const n = ${NOTE_TEXTS}.length; return n >= 2 && n <= 6 })()`
+
+/**
+ * True when every recorded note is mostly the writer's own vocabulary: at least 60% of its longer words (four letters
+ * or more) appear in what the writer wrote. A tidier paraphrase brings in new words and falls under this.
+ */
+const notesUseTheWritersWords = (writerText: string) =>
+  `(() => { const said = new Set(${JSON.stringify(writerText)}.toLowerCase().match(/[a-z0-9]{4,}/g)); const notes = ${NOTE_TEXTS}; return notes.length > 0 && notes.every((t) => { const w = t.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []; return w.length === 0 || w.filter((x) => said.has(x)).length / w.length >= 0.6 }) })()`
+
+/** True when no recorded note runs past thirty words: one point to a note, not the whole message. */
+const notesAreOnePointEach = `(() => ${NOTE_TEXTS}.every((t) => t.trim().split(/\\s+/).length <= 30))()`
+
 const RIVER_WORDING = 'The river bends because the outside bank erodes faster than the inside.'
 const RIVER_DRAFT = {
   title: 'Why rivers bend',
   body: `Walk any river and you will find it refusing to run straight. ${RIVER_WORDING}\n\nOver centuries the bend deepens, and the river drifts slowly sideways across its valley.`,
 }
+
+/** What the writer says in the notes case: three separate points, none in the rivers scenario's notes yet. */
+const NOTES_WRITER =
+  'I have walked the same stretch of the Cam every August for three summers, and the outside of the bend I marked has moved about 40cm. I am writing this for parents who bring their children to the river. My suspicion is that the drought exposed the old channel this year.'
 
 const opening = (text: string): Turn => ({ role: 'assistant', text })
 const writer = (text: string): Turn => ({ role: 'user', text })
@@ -518,6 +542,28 @@ export const CASES: EvalCase[] = [
         type: 'llm-rubric',
         value:
           'The reply asks the writer exactly one question. That question may offer examples of an answer or be put two ways, but the reply does not ask a second, different question, and does not announce further questions it will ask later. A short greeting or a remark about what is in the notes is fine.',
+      },
+    ],
+  },
+  {
+    id: 'notes-reuse-the-writers-words',
+    description:
+      'Records a note for each point the writer makes, in their own words, and none of its own views',
+    group: 'current',
+    app: 'brainstorm',
+    scenario: 'rivers',
+    conversation: [
+      opening('What made you want to write about why rivers meander?'),
+      writer(NOTES_WRITER),
+    ],
+    assert: [
+      { type: 'javascript', value: recordsAPointPerAnswer },
+      { type: 'javascript', value: notesUseTheWritersWords(NOTES_WRITER) },
+      { type: 'javascript', value: notesAreOnePointEach },
+      {
+        type: 'llm-rubric',
+        value:
+          "Every note the AI records with add_note is a point the writer made in their message (the distance the bend moved, who they are writing for, their suspicion about the drought), kept close to the writer's own wording. None is the AI's own view, an interpretation, advice or a point the writer did not make, and no point is recorded twice.",
       },
     ],
   },

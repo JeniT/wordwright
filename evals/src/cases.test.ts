@@ -351,6 +351,56 @@ describe('the deterministic check on a critique', () => {
   })
 })
 
+describe('the deterministic checks on the notes the coach records', () => {
+  const checks = CASES.find((c) => c.id === 'notes-reuse-the-writers-words')!
+    .assert.filter((a) => a.type === 'javascript')
+    .map(
+      (a) => (output: string) => new Function('output', `return (${a.value})`)(output) as boolean,
+    )
+  const [oneEach, inTheirWords, onePoint] = checks as [
+    (o: string) => boolean,
+    (o: string) => boolean,
+    (o: string) => boolean,
+  ]
+  const call = (text: string) => `[tool_call add_note ${JSON.stringify({ text })}]`
+  const reply = (...notes: string[]) => ['Noted.', ...notes.map(call)].join('\n')
+
+  it('wants a note as each point is made: at least two, and not a flood', () => {
+    expect(oneEach(reply('The outside of the bend moved about 40cm.'))).toBe(false)
+    expect(oneEach(reply('a', 'b'))).toBe(true)
+    expect(oneEach(reply(...'abcdefg'.split('')))).toBe(false)
+    expect(oneEach('I would love to hear more.')).toBe(false)
+  })
+
+  it('accepts notes that keep the writer’s own words, even when a few are rearranged', () => {
+    expect(
+      inTheirWords(
+        reply(
+          'The outside of the bend I marked has moved about 40cm.',
+          'Writing for parents who bring their children to the river.',
+          'Suspects the drought exposed the old channel this year.',
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  it('refuses a note tidied into the coach’s own vocabulary', () => {
+    expect(
+      inTheirWords(
+        reply(
+          'The outside of the bend I marked has moved about 40cm.',
+          'Meander migration reflects asymmetric hydraulic shear.',
+        ),
+      ),
+    ).toBe(false)
+  })
+
+  it('wants one point to a note, not the whole message in one', () => {
+    expect(onePoint(reply('Bend moved 40cm.', 'Parents with children.'))).toBe(true)
+    expect(onePoint(reply('word '.repeat(40).trim()))).toBe(false)
+  })
+})
+
 describe('the deterministic checks on rephrase options', () => {
   const checks = (id: string) =>
     CASES.find((c) => c.id === id)!
