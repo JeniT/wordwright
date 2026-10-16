@@ -1,22 +1,10 @@
 <script setup lang="ts">
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import type { TutorialUpdate } from '@wordwright/core'
-import { api, errorMessage } from '../lib/api'
-import { queryKeys } from '../lib/queries'
-import { useTutorialOffer } from '../lib/tutorial'
-import { useSessionStore } from '../stores/session'
+import { errorMessage } from '../lib/api'
+import { useTutorialOffer, useUpdateTutorial } from '../lib/tutorial'
 
 /** The one-time offer to turn tutorial mode off, once every page with tutorial text has been seen (#198). */
 const show = useTutorialOffer()
-const session = useSessionStore()
-const queryClient = useQueryClient()
-const answer = useMutation({
-  mutationFn: (update: TutorialUpdate) => api.updateTutorial(update),
-  onSuccess: (state) => {
-    queryClient.setQueryData(queryKeys.tutorial(), state)
-    if (session.user) session.set({ ...session.user, tutorialMode: state.on })
-  },
-})
+const answer = useUpdateTutorial()
 </script>
 
 <template>

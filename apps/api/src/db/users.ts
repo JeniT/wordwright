@@ -87,10 +87,6 @@ export class UserStore {
     return retired !== undefined && retired.user_id !== exceptUserId
   }
 
-  /**
-   * Gives the user this username and records that they chose it. Their old one is kept for them
-   * (see `retired_handles`). Call inside a transaction, after checking `handleTaken`.
-   */
   /** Same database as `UserSettingsStore`, written here so the account and its first setting are made together. */
   private turnTutorialOn(id: string) {
     this.db
@@ -101,6 +97,11 @@ export class UserStore {
       .run(id, nowIso())
   }
 
+  /**
+   * Gives the user this username and records that they chose it. Their old one is kept for them
+   * (see `retired_handles`). Call inside a transaction, after checking `handleTaken`.
+   * A reviewer-only account becomes a full one here, and a full account starts with tutorial mode on (#198).
+   */
   setHandle(id: string, handle: string, current: string | null) {
     const wasReviewer = (
       this.db.prepare('SELECT reviewer_only FROM users WHERE id = ?').get(id) as
@@ -188,6 +189,7 @@ export class UserStore {
   /** The account becomes a full one (invited to a publication, or the person chose to start writing). */
   clearReviewerOnly(id: string) {
     this.db.prepare('UPDATE users SET reviewer_only = 0 WHERE id = ?').run(id)
+    this.turnTutorialOn(id) // a new full account, as in `setHandle` (#198)
   }
 
   /** The username was one we generated, so the app asks once whether the person would like another. */

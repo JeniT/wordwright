@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query'
+import type { TutorialUpdate } from '@wordwright/core'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session'
@@ -95,4 +96,17 @@ export function useTutorialOffer() {
       seenOnArrival.value !== null &&
       kinds.value.every((k) => seenOnArrival.value!.includes(k)),
   )
+}
+
+/** Changes the switch or answers the offer, and brings the session and the seen list up to date with the result. */
+export function useUpdateTutorial() {
+  const session = useSessionStore()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (update: TutorialUpdate) => api.updateTutorial(update),
+    onSuccess: (state) => {
+      queryClient.setQueryData(queryKeys.tutorial(), state)
+      if (session.user) session.set({ ...session.user, tutorialMode: state.on })
+    },
+  })
 }

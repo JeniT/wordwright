@@ -47,7 +47,7 @@ describe('AccountView', () => {
       await renderAt('/account')
       expect(await tutorialSwitch()).toBeChecked()
       expect(screen.getByRole('region', { name: 'Tutorial mode' })).toHaveTextContent(
-        /explanations/i,
+        /Explains each page/i,
       )
     })
 

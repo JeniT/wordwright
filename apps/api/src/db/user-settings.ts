@@ -1,6 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite'
+import { z } from 'zod'
 import { TUTORIAL_SEEN_MAX, type TutorialState } from '@wordwright/core'
 import { nowIso } from './database'
+
+const SeenList = z.array(z.string())
 
 /** A person's own settings. A missing value means "use the default". */
 export class UserSettingsStore {
@@ -37,7 +40,7 @@ export class UserSettingsStore {
       | undefined
     return {
       on: row?.tutorial_mode === 1,
-      seen: row?.tutorial_seen ? (JSON.parse(row.tutorial_seen) as string[]) : [],
+      seen: row?.tutorial_seen ? SeenList.parse(JSON.parse(row.tutorial_seen)) : [],
       answered: row?.tutorial_answered === 1,
     }
   }
