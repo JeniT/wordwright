@@ -172,6 +172,10 @@ describe('landing page: connecting an AI key', () => {
     // What a publication is: behind an info icon, not a paragraph (the step can be done without it).
     expect(screen.getByRole('button', { name: 'About publications' })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'New publication' })).toHaveLength(1)
+    // No empty 'Your publications' section: the heading stays for screen readers only.
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Your publications' }).parentElement,
+    ).toHaveClass('sr-only')
   })
 
   it('goes away when both are done', async () => {

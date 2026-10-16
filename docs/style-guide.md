@@ -57,6 +57,10 @@ Lead with what the person does. Say why only when it changes what they do.
 - **Say what will happen next** when it can’t be undone, before they press the button. (An AI button already carries
   the AI mark and a tooltip about the cost; don’t add a sentence for that.)
   - After: “This can’t be undone. Its 3 comments go too.”
+- **Say what a term is only where it is skippable.** “A publication is a place you publish, like a Substack or a
+  blog” is not needed to press “New publication”, so it goes behind an info icon (written out in tutorial mode), never
+  in a paragraph. Don’t use a word that is not in CONTEXT.md to explain one that is (“readers”, for a publication).
+- **Don’t tell people they may do things in any order.** If nothing is locked, saying so is noise.
 - **Don’t explain what the screen already shows.**
   - Before: “This is the page where you can see all your drafts.” (under the heading “Drafts”)
   - After: (nothing)
@@ -74,6 +78,10 @@ A verb and what it acts on, in sentence case. The label says what _will happen_.
 - **Keep it short**: one to three words, four at most. Where the surrounding heading gives the object, the verb alone
   is fine (“Add”, under “Notes”).
 - **Cancel is “Cancel”.** It dismisses without doing anything.
+- **One name for one action.** The same action has the same label wherever it appears, and a page never offers two
+  buttons for it. If the page already has one, the second goes.
+  - Before: “Start a publication” in the first-run steps, “New publication” beside the list.
+  - After: “New publication” in both, and only one of them on the page at a time.
 
 ### Links
 
@@ -96,6 +104,8 @@ Say where they go, not “click here” or “read more”. A link in running te
   - After: “Your ideas”
 - **Short.** Five words or fewer. Sentence case. No full stop, no question unless the question is the page (“What should
   it do?” on the Aim).
+- **Don’t greet.** No “Welcome, Ada” above the work: it is flattery, it lengthens the heading, and it has to change
+  as the page does. A first-run block is headed by what it is: “Get started”.
 - **One `h1`.** Headings aren’t for decoration or for emphasis; see _Length and scannability_.
 
 ### Empty states
@@ -153,6 +163,8 @@ People scan; they don’t read screens. Fewer words, then structure.
   - Before: “**Use an API key** from the Console, **not a Claude chat subscription**. **Know how long it is kept.**”
   - After: “Use an API key from the Console, not a chat subscription.” (one bold phrase at most, or none)
 - **Lists for steps and parallel items only.** Three or more things of the same kind; otherwise a sentence.
+- **Text in sibling blocks is styled alike.** Two steps of one list have the same size and colour of body text; if
+  one is small and soft, so is the other, and that is a sign it should not be on the page.
 - **No small print.** Secondary text (`text-sm`, `ink-soft`) is for dates, counts and brief hints. If it matters, it
   isn’t small.
 
@@ -187,3 +199,17 @@ Run this against any text before committing it, and when critiquing someone else
    quotes, no exclamation marks.
 7. **Is it in the right place** (page, info icon or help page)? See [design.md](design.md#where-explanatory-text-goes).
 8. **Read it aloud.** If you run out of breath, cut.
+
+## Worked example: the first-run checklist on Home
+
+The crit of [#190](https://github.com/JeniT/wordwright/issues/190), as a model for the next page.
+
+| Was                                                                                          | Rule it broke                                     | Now                                                                                                                 |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| “Welcome, Ada. Two steps to get going” (and “One more step…” after one was done)             | Don’t greet; headings five words or fewer         | “Get started”                                                                                                       |
+| “A publication is a place you publish… It keeps its own ideas, readers and drafts together.” | Skippable text off the page; unclear word         | One sentence behind an info icon (“About publications”); the second one is cut                                      |
+| “You can do the steps in either order…”                                                      | Don’t tell people they may do things in any order | Cut                                                                                                                 |
+| “Start a publication” beside “New publication”                                               | One name for one action                           | “New publication”, once                                                                                             |
+| A “Your publications” heading and button over an empty list                                  | Don’t explain or show what the screen lacks       | Shown only once there is a publication (kept, hidden, as the page’s `h1`)                                           |
+| Step 1 body text normal, step 2 body text small and soft                                     | Text in sibling blocks is styled alike            | Both normal                                                                                                         |
+| Three small paragraphs above the key field                                                   | No small print; length limits                     | A link to how to get a key, then “AI functions use Anthropic, which will bill you for your use.” and a privacy link |

@@ -22,6 +22,8 @@ const justConnected = ref(false)
 const hasPublication = computed(() => !!publications.data.value?.length)
 const hasKey = computed(() => !!llm.data.value?.hasKey)
 const loaded = computed(() => !!publications.data.value && (!!llm.data.value || llm.isError.value))
+// Known to be empty (not merely still loading), so the list's own heading row gives way to the checklist.
+const noneYet = computed(() => !!publications.data.value && !hasPublication.value)
 const needsSetup = computed(() => loaded.value && (!hasPublication.value || !hasKey.value))
 // Drafts other people have asked this person to read and comment on (a member of a publication may be asked to).
 const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
@@ -102,11 +104,12 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
   </section>
 
   <section aria-labelledby="publications-heading">
-    <div class="mb-6 flex items-center justify-between gap-4">
+    <!-- With none yet, the checklist above is the page: the heading stays for screen readers (it names the page)
+         and the button is the checklist's first step. -->
+    <div :class="noneYet ? 'sr-only' : 'mb-6 flex items-center justify-between gap-4'">
       <h1 id="publications-heading" class="font-display text-2xl font-semibold">
         Your publications
       </h1>
-      <!-- Until there is one, the checklist's first step carries this action. -->
       <RouterLink v-if="hasPublication" :to="{ name: 'new-publication' }" class="btn btn-primary"
         >New publication</RouterLink
       >

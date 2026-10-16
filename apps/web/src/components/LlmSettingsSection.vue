@@ -58,7 +58,7 @@ const removeLlmKey = useMutation({
         >
       </p>
       <p class="mb-3">
-        Your writing goes to Anthropic, who bill you for the AI.
+        AI functions use Anthropic, which will bill you for your use.
         <RouterLink to="/help/privacy" target="_blank" class="link"
           >Read the privacy advice (opens in a new tab)</RouterLink
         >
