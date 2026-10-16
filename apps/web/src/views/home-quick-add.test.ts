@@ -88,6 +88,22 @@ describe('Home: Pick up (#192)', () => {
     expect(within(section).getByRole('button', { name: /try again/i })).toBeVisible()
   })
 
+  it('says it is loading while the drafts are on their way', async () => {
+    server.use(
+      signedInAs(testUser),
+      publications(blog),
+      llmSettings(true),
+      http.get('*/api/drafts/recent', async () => {
+        await new Promise((r) => setTimeout(r, 300))
+        return HttpResponse.json([recentDraft()])
+      }),
+    )
+    await renderAt('/')
+    const section = (await screen.findByRole('heading', { name: 'Pick up' })).closest('section')!
+    expect(within(section).getByText('Loading…')).toBeVisible()
+    expect(await within(section).findByText('Why we write')).toBeVisible()
+  })
+
   it('is not offered before there is a publication', async () => {
     server.use(signedInAs(testUser), publications(), llmSettings(false))
     await renderAt('/')
@@ -285,6 +301,73 @@ describe('Home: Quick add (#192)', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('That note is too long.')
     expect(screen.getByLabelText('Note')).toHaveValue('Words')
+  })
+
+  it.each([
+    ['New idea', 'Idea name', 'Create idea', 'ideas', 'Words'],
+    ['Add something to read', 'Web address', 'Add to reading list', 'reading', 'https://a.example'],
+  ])(
+    'says what went wrong when %s fails, and keeps what was typed',
+    async (open, label, submit, path, text) => {
+      server.use(
+        signedInAs(testUser),
+        publications(blog),
+        llmSettings(true),
+        ideasFor('ada-blog', ['x']),
+        http.post(`*/api/publications/ada-blog/${path}`, () =>
+          HttpResponse.json({ error: 'Sorry, that did not work.' }, { status: 500 }),
+        ),
+      )
+      await renderAt('/')
+      await fireEvent.click(await screen.findByRole('button', { name: open }))
+      await fireEvent.update(screen.getByLabelText(label), text)
+      await fireEvent.click(screen.getByRole('button', { name: submit }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, that did not work.')
+      expect(screen.getByLabelText(label)).toHaveValue(text)
+    },
+  )
+
+  it('keeps adding to the publication you were shown when Pick up loads late', async () => {
+    const posted: string[] = []
+    server.use(
+      signedInAs(testUser),
+      publications(blog, letters),
+      llmSettings(true),
+      ideasFor('ada-blog', ['x']),
+      ideasFor('ada-letters', ['x']),
+      http.get('*/api/drafts/recent', async () => {
+        await new Promise((r) => setTimeout(r, 200))
+        return HttpResponse.json([
+          recentDraft({ publicationId: 'ada-letters', publicationName: 'Letters' }),
+        ])
+      }),
+      http.post('*/api/publications/:id/reading', ({ params }) => {
+        posted.push(String(params.id))
+        return HttpResponse.json([])
+      }),
+    )
+    await renderAt('/')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add something to read' }))
+    await fireEvent.update(screen.getByLabelText('Web address'), 'https://a.example')
+    await new Promise((r) => setTimeout(r, 300))
+    expect(screen.getByLabelText('Add to publication')).toHaveValue('ada-blog')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await screen.findByText(/Added to Blog’s reading list/)
+    expect(posted).toEqual(['ada-blog'])
+  })
+
+  it('remembers a publication when you open any page of it, an idea or a draft included', async () => {
+    server.use(
+      signedInAs(testUser),
+      publications(blog, letters),
+      llmSettings(true),
+      http.get('*/api/publications/ada-letters/ideas/i1', () =>
+        HttpResponse.json({}, { status: 404 }),
+      ),
+    )
+    const { router } = await renderAt('/')
+    await router.push({ name: 'idea', params: { publicationId: 'ada-letters', id: 'i1' } })
+    expect(localStorage.getItem('wordwright:last-publication')).toBe('ada-letters')
   })
 
   it('closes with Cancel or Escape and gives focus back to the button', async () => {

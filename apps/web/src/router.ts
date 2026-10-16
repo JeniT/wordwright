@@ -1,3 +1,4 @@
+import { rememberPublication } from './lib/last-publication'
 import { ref } from 'vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useSessionStore } from './stores/session'
@@ -319,6 +320,8 @@ export function createAppRouter(history = createWebHistory()) {
   })
 
   router.afterEach((to, from) => {
+    // Any page of a publication (an idea, a draft...) counts as working in it, for Home's quick add.
+    if (typeof to.params.publicationId === 'string') rememberPublication(to.params.publicationId)
     cameFrom.value = from.matched.length ? from.fullPath : null
   })
   router.beforeEach(async (to) => {

@@ -83,6 +83,10 @@ A reviewer or non-editor member sees only the draft and their own comments, neve
 The row of small forms on a writer's landing page for adding a new idea, a note or something to read without first opening a publication. A note or reading item lands on the chosen publication's own list, never inside an idea.
 _Avoid_: Capture, inbox (that word is the issue tracker's)
 
+**Pick up**:
+The short list on a writer's landing page of the drafts they are the editor of, newest first, each with a link to carry on writing it. Not the drafts they are only asked to review.
+_Avoid_: Recent, continue (that is the link's label), in progress
+
 **Move**:
 Taking notes, reading items or whole ideas from where they are to another place: another idea, a publication's own list, or (rarely) another publication the person belongs to. An idea moves with all its drafts, notes and links, and the people who could see it only through its old publication stop seeing it.
 _Avoid_: Transfer, copy (a moved note's source reading item is copied, but the note itself is moved)

@@ -22,16 +22,16 @@ type Kind = 'idea' | 'note' | 'reading'
 
 // Which publication: the one just picked, else the one last worked in, else the one with the newest draft to pick up
 // (nothing records when a publication's content last changed), else the first.
-const recent = useRecentDrafts()
+const recentDrafts = useRecentDrafts()
 const chosen = ref<string>()
-const has = (id: string | null | undefined): id is string =>
+const isKnown = (id: string | null | undefined): id is string =>
   !!id && props.publications.some((p) => p.id === id)
 const selectedId = computed(() => {
-  if (has(chosen.value)) return chosen.value
+  if (isKnown(chosen.value)) return chosen.value
   const remembered = lastPublicationId()
-  if (has(remembered)) return remembered
-  const newest = recent.data.value?.[0]?.publicationId
-  return has(newest) ? newest : props.publications[0]!.id
+  if (isKnown(remembered)) return remembered
+  const newest = recentDrafts.data.value?.[0]?.publicationId
+  return isKnown(newest) ? newest : props.publications[0]!.id
 })
 const selected = computed(() => props.publications.find((p) => p.id === selectedId.value)!)
 function pick(event: Event) {
@@ -58,6 +58,8 @@ const readingUrl = ref('')
 const added = ref<{ kind: 'note' | 'reading'; publication: Publication }>()
 
 function open(kind: Kind) {
+  // Pick up may finish loading while a form is open: keep adding to the publication the person saw.
+  chosen.value ??= selectedId.value
   added.value = undefined
   createIdea.reset()
   addNote.reset()
@@ -92,6 +94,12 @@ const addReading = useMutation({
     form.value?.querySelector<HTMLElement>('input')?.focus()
   },
 })
+const mutations = { idea: createIdea, note: addNote, reading: addReading }
+const submitLabels: Record<Kind, string> = {
+  idea: 'Create idea',
+  note: 'Add note',
+  reading: 'Add to reading list',
+}
 const busy = computed(
   () => createIdea.isPending.value || addNote.isPending.value || addReading.isPending.value,
 )
@@ -149,13 +157,7 @@ const busy = computed(
       v-if="editing"
       ref="form"
       class="mt-4"
-      @submit.prevent="
-        editing === 'idea'
-          ? createIdea.mutate()
-          : editing === 'note'
-            ? addNote.mutate()
-            : addReading.mutate()
-      "
+      @submit.prevent="editing && mutations[editing].mutate()"
       @keydown.esc="stop()"
     >
       <TextField v-if="editing === 'idea'" v-model="ideaName" label="Idea name" required />
@@ -173,17 +175,11 @@ const busy = computed(
       />
       <div class="flex flex-wrap items-center gap-3">
         <button type="submit" class="btn btn-primary" :disabled="busy">
-          {{
-            editing === 'idea'
-              ? 'Create idea'
-              : editing === 'note'
-                ? 'Add note'
-                : 'Add to reading list'
-          }}
+          {{ editing && submitLabels[editing] }}
         </button>
         <button type="button" class="btn btn-quiet" @click="stop()">Cancel</button>
         <SaveStatus
-          :mutation="editing === 'idea' ? createIdea : editing === 'note' ? addNote : addReading"
+          :mutation="mutations[editing]"
           saved=""
           :saving="editing === 'idea' ? 'Creating…' : 'Adding…'"
         />
