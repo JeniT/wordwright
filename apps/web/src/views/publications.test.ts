@@ -84,7 +84,7 @@ describe('publication list (home)', () => {
     server.use(signedInAs(testUser), listPublications([]))
     await renderAt('/')
     await screen.findByRole('heading', { name: 'Create your first publication' })
-    expect(screen.getByRole('link', { name: 'Start a publication' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'New publication' })).toHaveAttribute(
       'href',
       '/publications/new',
     )

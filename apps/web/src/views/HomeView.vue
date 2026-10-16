@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import PublicationImage from '../components/PublicationImage.vue'
@@ -34,13 +35,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
   </div>
   <!-- First run: two steps that never block each other. Gone once both are done. -->
   <section v-if="needsSetup" class="mb-10 panel p-5" aria-labelledby="setup-heading">
-    <h2 id="setup-heading" class="mb-4 font-display text-xl font-semibold">
-      <template v-if="!hasPublication && !hasKey"
-        >Welcome<template v-if="session.user">, {{ session.user.name }}</template
-        >. Two steps to get going</template
-      >
-      <template v-else>One more step to get going</template>
-    </h2>
+    <h2 id="setup-heading" class="mb-4 font-display text-xl font-semibold">Get started</h2>
     <ol class="space-y-6">
       <li class="flex items-start gap-4" data-step="publication">
         <span
@@ -53,15 +48,14 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
           <h3 class="font-display text-lg font-semibold">
             Create your first publication<span v-if="hasPublication" class="meta"> · done</span>
           </h3>
-          <template v-if="!hasPublication">
-            <p class="mt-1 text-ink-soft">
-              A publication is a place you publish, like a Substack or a blog. It keeps its own
-              ideas, readers and drafts together.
-            </p>
-            <RouterLink :to="{ name: 'new-publication' }" class="btn btn-primary mt-3 inline-block">
-              Start a publication
-            </RouterLink>
-          </template>
+          <div v-if="!hasPublication" class="mt-2 flex flex-wrap items-center gap-3">
+            <RouterLink :to="{ name: 'new-publication' }" class="btn btn-primary"
+              >New publication</RouterLink
+            >
+            <Explain label="About publications"
+              >A publication is a place you publish, like a Substack or a blog.</Explain
+            >
+          </div>
         </div>
       </li>
       <li class="flex items-start gap-4" data-step="key">
@@ -75,10 +69,6 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
           <QueryState v-if="llm.isError.value" :query="llm" what="your AI key settings" />
           <template v-else-if="!hasKey">
             <LlmSettingsSection guide @saved="justConnected = true" />
-            <p class="mt-3 text-sm text-ink-soft">
-              You can do the steps in either order. Without a key, publications, ideas and notes
-              still work; the AI features ask you to connect one.
-            </p>
           </template>
           <template v-else>
             <h3 class="font-display text-lg font-semibold">
@@ -116,7 +106,8 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
       <h1 id="publications-heading" class="font-display text-2xl font-semibold">
         Your publications
       </h1>
-      <RouterLink :to="{ name: 'new-publication' }" class="btn btn-primary"
+      <!-- Until there is one, the checklist's first step carries this action. -->
+      <RouterLink v-if="hasPublication" :to="{ name: 'new-publication' }" class="btn btn-primary"
         >New publication</RouterLink
       >
     </div>

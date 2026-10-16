@@ -52,16 +52,15 @@ const removeLlmKey = useMutation({
       {{ props.guide ? 'Connect your AI key (Anthropic)' : 'AI assistant' }}
     </component>
     <template v-if="props.guide">
-      <p class="mb-3 text-sm text-ink-soft">
-        Wordwright uses your own Anthropic account, so the cost of the AI is billed to you. Your
-        writing is sent to Anthropic using your key. This does have
-        <RouterLink to="/help/privacy" target="_blank" class="link"
-          >privacy implications (opens in a new tab)</RouterLink
-        >.
-      </p>
-      <p class="mb-3 text-sm">
+      <p class="mb-3">
         <RouterLink to="/help/api-key" target="_blank" class="link"
           >How to get an API key (opens in a new tab)</RouterLink
+        >
+      </p>
+      <p class="mb-3">
+        Your writing goes to Anthropic, who bill you for the AI.
+        <RouterLink to="/help/privacy" target="_blank" class="link"
+          >Read the privacy advice (opens in a new tab)</RouterLink
         >
       </p>
     </template>

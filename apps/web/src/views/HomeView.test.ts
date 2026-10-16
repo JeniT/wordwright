@@ -21,7 +21,7 @@ describe('landing page: connecting an AI key', () => {
     })
     expect(how).toHaveAttribute('href', '/help/api-key')
     expect(how).toHaveAttribute('target', '_blank')
-    expect(within(section).getByRole('link', { name: /privacy implications/ })).toHaveAttribute(
+    expect(within(section).getByRole('link', { name: /privacy advice/ })).toHaveAttribute(
       'href',
       '/help/privacy',
     )
@@ -32,8 +32,7 @@ describe('landing page: connecting an AI key', () => {
     expect(within(section).queryByLabelText('Model')).toBeNull()
 
     // A brand-new user is also pointed at their first publication.
-    expect(screen.getByText(/Welcome, Ada Lovelace/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Start a publication' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'New publication' })).toHaveAttribute(
       'href',
       '/publications/new',
     )
@@ -76,7 +75,7 @@ describe('landing page: connecting an AI key', () => {
     expect(
       screen.getByRole('heading', { name: /Connect your AI key \(Anthropic\)/ }),
     ).toHaveTextContent('done')
-    expect(screen.getByRole('link', { name: 'Start a publication' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'New publication' })).toBeVisible()
     expect(sent).toEqual({
       provider: 'anthropic',
       model: 'claude-sonnet-5-5',
@@ -166,7 +165,13 @@ describe('landing page: connecting an AI key', () => {
     expect(steps[0]).toHaveTextContent('01')
     expect(steps[1]).toHaveTextContent('02')
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
-    expect(screen.getByRole('link', { name: 'Start a publication' })).toBeVisible()
+    const create = screen.getByRole('link', { name: 'New publication' })
+    expect(create).toBeVisible()
+    // inline-block would override the button's flex centring and push its label off-centre.
+    expect(create).not.toHaveClass('inline-block')
+    // What a publication is: behind an info icon, not a paragraph (the step can be done without it).
+    expect(screen.getByRole('button', { name: 'About publications' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'New publication' })).toHaveLength(1)
   })
 
   it('goes away when both are done', async () => {
@@ -190,7 +195,7 @@ describe('landing page: connecting an AI key', () => {
     )
     await renderAt('/')
     await screen.findByRole('link', { name: /Blog/ })
-    expect(screen.queryByRole('heading', { name: /Two steps/ })).toBeNull()
+    expect(screen.queryByRole('heading', { name: /Get started/ })).toBeNull()
     expect(screen.queryByRole('listitem', { name: /01/ })).toBeNull()
   })
 
@@ -212,7 +217,7 @@ describe('landing page: connecting an AI key', () => {
       http.get('*/api/llm', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
     )
     await renderAt('/')
-    expect(await screen.findByRole('link', { name: 'Start a publication' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'New publication' })).toBeVisible()
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 })

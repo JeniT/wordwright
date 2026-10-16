@@ -1349,12 +1349,11 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await expect(third.getByRole('button', { name: 'Create account' })).toBeDisabled()
 
   // No publication was made for them. The landing page explains how to get a key, with a field for it.
-  await expect(page.getByText('Welcome, Grace')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Connect your AI key (Anthropic)' })).toBeVisible()
   await expect(
     page.getByRole('link', { name: 'How to get an API key (opens in a new tab)' }),
   ).toHaveAttribute('href', '/help/api-key')
-  await expect(page.getByRole('link', { name: /privacy implications/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /privacy advice/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Create your first publication' })).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: '01' })).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: '02' })).toBeVisible()
@@ -1364,10 +1363,10 @@ test('a new account chooses a username, connects an API key, then creates its fi
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText(/Your Anthropic key is saved/)
   await expect(page.getByLabel('Anthropic API key')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Start a publication' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'New publication' })).toBeVisible()
 
   // Then they create (and set up) their first publication; the checklist is gone when they come back.
-  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Grace letters')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
@@ -1375,12 +1374,12 @@ test('a new account chooses a username, connects an API key, then creates its fi
   ).toBeVisible()
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Two steps/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /Get started/ })).toHaveCount(0)
 })
 
 test('first-run steps can be done in the other order', async ({ page }) => {
   await registerUser(page, 'Katherine', { withPublication: false })
-  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Orbits')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await page.goto('/')

@@ -373,7 +373,7 @@ test('publication pages for a signed-in user have no detectable accessibility vi
 }) => {
   await registerUser(page, uniqueName('Sam'))
   await noViolations(page) // the list, with the API key set-up and the first-publication prompt
-  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Sam writing')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
@@ -382,7 +382,7 @@ test('publication pages for a signed-in user have no detectable accessibility vi
 
 test('manages the ordered list of feeds on the Search page', async ({ page }) => {
   await registerUser(page, uniqueName('Tess'))
-  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Reading list')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
@@ -490,7 +490,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
 
 test('pasting a site that offers several feeds asks which to add', async ({ page }) => {
   await registerUser(page, uniqueName('Wren'))
-  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Choosing feeds')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
@@ -519,7 +519,7 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
 
 test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await registerUser(page, uniqueName('Pia'))
-  await page.getByRole('link', { name: 'Start a publication' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Posts to read')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')

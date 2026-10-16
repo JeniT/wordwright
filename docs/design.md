@@ -474,7 +474,7 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 **First run (Home).** While a person has no publication or no AI key, the top of Home is a two-item checklist using the
 same 01 / 02 badges: **01 Create your first publication** and **02 Connect your AI key (Anthropic)**. Neither blocks the
 other. A finished step keeps its place with a tick in the badge and "done"; when both are done the checklist goes and the
-list of publications stands alone. The badges stay decoration (`aria-hidden`); the ordered list carries the order.
+list of publications stands alone. The heading is "Get started" and the action is the same "New publication" as beside the list (which shows only once there is a publication). What a publication is sits behind an info icon (`Explain`); body text in both steps is the same size and colour. The badges stay decoration (`aria-hidden`); the ordered list carries the order.
 
 The principles (they are the point of the pattern; keep them when you add a page):
 
