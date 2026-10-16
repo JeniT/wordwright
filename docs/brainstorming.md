@@ -21,7 +21,7 @@ tool: it never writes or edits drafts.
 | Who sees the conversation?           | **One thread per idea, visible to every member of the publication.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                                           |
 | How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                                                |
 | What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **publication** (name, website and the writer's own **description** of it, when they have written one). See _Context_ for what is deliberately left out. |
-| Whose prompt?                        | **Per user**, editable on the account page, with a default that makes the model a writing coach. In a shared publication, the person sending the message supplies the prompt, key and model.                                                      |
+| Whose prompt?                        | **The same for everyone**: a default that makes the model a writing coach (not editable since #205). In a shared publication, the person sending the message supplies the key and model.                                                          |
 
 ## How it works
 
@@ -150,8 +150,6 @@ threads get long enough to matter.
 - **Rendering:** model output is Markdown, rendered with HTML **off**, images **off** (an image address is a way to
   leak data to a stranger's server), links opening in a new tab with `rel="noopener noreferrer"`. Plain text is
   never put into the page as HTML.
-- **Per-user custom prompt:** length-capped (8,000 characters), only ever used for that person's own calls, never
-  shown to other members. It can't change the app-owned block.
 - **Privacy:** the idea, notes, links and publication description go to the person's LLM provider under their own key.
   The brainstorm page says so. In a shared publication, a message from a member is sent through _that_ member's
   provider.
