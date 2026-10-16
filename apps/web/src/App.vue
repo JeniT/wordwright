@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import SettingsButton from './components/SettingsButton.vue'
 import SideMenu from './components/SideMenu.vue'
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue'
 import { api } from './lib/api'
@@ -77,8 +78,13 @@ watch(
       </RouterLink>
       <div class="flex flex-wrap items-center gap-3 text-sm">
         <span>{{ session.user.name }}</span>
-        <button type="button" class="link" @click="signOut.mutate()">Sign out</button>
         <ThemeChoice />
+        <RouterLink :to="{ name: 'start-writing' }" class="btn btn-outline btn-sm"
+          >Start writing</RouterLink
+        >
+        <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">
+          Sign out
+        </button>
       </div>
     </header>
     <header
@@ -132,15 +138,14 @@ watch(
         >
           <SideMenu />
 
-          <div class="mt-auto border-t border-line p-4">
-            <p class="meta">Signed in as</p>
-            <RouterLink to="/account" class="link font-semibold">{{
-              session.user.name
-            }}</RouterLink>
-            <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <button type="button" class="link" @click="signOut.mutate()">Sign out</button>
-              <ThemeChoice />
+          <div class="mt-auto border-t border-line px-5 py-4">
+            <div class="flex items-center justify-between gap-2">
+              <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
+              <SettingsButton :to="{ name: 'account' }" label="Account settings" />
             </div>
+            <button type="button" class="btn btn-outline btn-sm mt-2" @click="signOut.mutate()">
+              Sign out
+            </button>
           </div>
         </div>
       </div>

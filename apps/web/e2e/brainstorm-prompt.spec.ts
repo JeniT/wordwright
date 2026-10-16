@@ -9,7 +9,7 @@ test('edits, saves and resets the brainstorming prompt on the account page', asy
   await page.getByLabel('Email').fill(`pru-${id}@example.com`)
   await page.getByLabel('Password').fill('a perfectly good password')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByRole('link', { name: 'Pru', exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
 
   const section = page.getByRole('region', { name: 'Brainstorming prompt' })
   const prompt = section.getByLabel('Prompt')

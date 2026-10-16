@@ -3,10 +3,11 @@ import { RouterLink } from 'vue-router'
 import { useNav } from '../lib/nav'
 import { displayHost } from '../lib/usePublications'
 import PublicationImage from './PublicationImage.vue'
+import SettingsButton from './SettingsButton.vue'
 
 /**
- * The menu that follows you. At home it lists Publications and Account settings; inside a publication, that publication's
- * numbered steps; inside an idea, the idea's. A "back up" link and the thing's name sit at the top. The numbers
+ * The menu that follows you. At home it lists Publications; inside a publication, that publication's
+ * numbered steps; inside an idea, the idea's. Each level's settings are a gear button beside its name. A "back up" link and the thing's name sit at the top. The numbers
  * orient and never lock: every step is a link. docs/design.md explains the pattern.
  */
 const { level, publication, idea, steps, stepKey, loading } = useNav()
@@ -32,7 +33,7 @@ const itemClass =
         :site-icon-url="publication.siteIconUrl"
         size="xs"
       />
-      <div class="min-w-0">
+      <div class="min-w-0 flex-1">
         <p class="leading-tight font-semibold break-words">
           <RouterLink
             :to="{ name: 'publication', params: { publicationId: publication.id } }"
@@ -48,6 +49,10 @@ const itemClass =
         </p>
         <p v-if="sharedWith()" class="meta">{{ sharedWith() }}</p>
       </div>
+      <SettingsButton
+        :to="{ name: 'publication-settings', params: { publicationId: publication.id } }"
+        label="Publication settings"
+      />
     </div>
   </div>
   <div v-else-if="level === 'idea'" class="px-5 pb-4">
@@ -59,16 +64,26 @@ const itemClass =
       ← {{ publication.name }}
     </RouterLink>
     <p class="meta mt-3">Idea</p>
-    <p v-if="idea.data.value" class="leading-snug font-semibold break-words">
-      <RouterLink
+    <div v-if="idea.data.value" class="flex items-center gap-2">
+      <p class="min-w-0 flex-1 leading-snug font-semibold break-words">
+        <RouterLink
+          :to="{
+            name: 'idea',
+            params: { publicationId: idea.data.value.publicationId, id: idea.data.value.id },
+          }"
+          class="no-underline hover:underline aria-[current=page]:underline"
+          >{{ idea.data.value.name }}</RouterLink
+        >
+      </p>
+      <SettingsButton
+        v-if="publication"
         :to="{
-          name: 'idea',
-          params: { publicationId: idea.data.value.publicationId, id: idea.data.value.id },
+          name: 'idea-settings',
+          params: { publicationId: publication.id, id: idea.data.value.id },
         }"
-        class="no-underline hover:underline aria-[current=page]:underline"
-        >{{ idea.data.value.name }}</RouterLink
-      >
-    </p>
+        label="Idea settings"
+      />
+    </div>
     <p v-else-if="loading || idea.isPending.value" class="meta">Loading…</p>
   </div>
 
@@ -76,9 +91,6 @@ const itemClass =
     <ul>
       <li>
         <RouterLink :to="{ name: 'home' }" :class="itemClass">Publications</RouterLink>
-      </li>
-      <li>
-        <RouterLink :to="{ name: 'account' }" :class="itemClass">Account settings</RouterLink>
       </li>
     </ul>
   </nav>
@@ -116,24 +128,5 @@ const itemClass =
         </RouterLink>
       </li>
     </ol>
-    <ul v-if="publication" class="mt-3 border-t border-line pt-3">
-      <li v-if="level === 'publication'">
-        <RouterLink
-          :to="{ name: 'publication-settings', params: { publicationId: publication.id } }"
-          :class="itemClass"
-          >Publication settings</RouterLink
-        >
-      </li>
-      <li v-else-if="idea.data.value">
-        <RouterLink
-          :to="{
-            name: 'idea-settings',
-            params: { publicationId: publication.id, id: idea.data.value.id },
-          }"
-          :class="itemClass"
-          >Idea settings</RouterLink
-        >
-      </li>
-    </ul>
   </nav>
 </template>

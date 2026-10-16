@@ -64,12 +64,63 @@ function mockApp() {
 const menu = async () => within(await screen.findByRole('banner'))
 
 describe('the menu at home', () => {
-  it('lists the publications page and the account settings', async () => {
+  it('lists the publications page, and leaves settings to the button by the person’s name', async () => {
     mockApp()
     await renderAt('/')
     const nav = within(await screen.findByRole('navigation', { name: 'Main' }))
     expect(nav.getByRole('link', { name: 'Publications' })).toHaveAttribute('href', '/')
-    expect(nav.getByRole('link', { name: 'Account settings' })).toHaveAttribute('href', '/account')
+    expect(nav.queryByRole('link', { name: 'Account settings' })).toBeNull()
+  })
+})
+
+describe('the settings buttons', () => {
+  it('sit by the account name in the menu foot, which has a Sign out button and no "Signed in as"', async () => {
+    mockApp()
+    await renderAt('/')
+    const banner = await menu()
+    const gear = await banner.findByRole('link', { name: 'Account settings' })
+    expect(gear).toHaveAttribute('href', '/account')
+    expect(banner.getByText(testUser.name)).not.toHaveAttribute('href')
+    expect(banner.queryByRole('link', { name: testUser.name })).toBeNull()
+    expect(banner.queryByText('Signed in as')).toBeNull()
+    expect(banner.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    // Appearance is a setting, so it lives on the account page now.
+    expect(banner.queryByRole('radiogroup', { name: 'Appearance' })).toBeNull()
+  })
+
+  it('sit by the publication’s name in the menu and its page title, and are current on the settings page', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack')
+    const gears = await screen.findAllByRole('link', { name: 'Publication settings' })
+    expect(gears).toHaveLength(2) // the menu header and the landing page title
+    for (const gear of gears) expect(gear).toHaveAttribute('href', '/p/ada-substack/settings')
+    expect(
+      within(screen.getByRole('main')).getByRole('link', { name: 'Publication settings' }),
+    ).toBeInTheDocument()
+  })
+
+  it('are current while on the settings page', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/settings')
+    const gear = await (await menu()).findByRole('link', { name: 'Publication settings' })
+    expect(gear).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('sit by the idea’s name in the menu and its page title', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1')
+    const gears = await screen.findAllByRole('link', { name: 'Idea settings' })
+    expect(gears).toHaveLength(2)
+    for (const gear of gears) {
+      expect(gear).toHaveAttribute('href', '/p/ada-substack/ideas/i1/settings')
+    }
+  })
+
+  it('show on a step page only in the menu, where the idea’s name is', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1/notes')
+    const gears = await screen.findAllByRole('link', { name: 'Idea settings' })
+    expect(gears).toHaveLength(1)
   })
 })
 
@@ -88,13 +139,10 @@ describe('the menu in a publication', () => {
     expect(text(steps[3]!)).toMatch(/^04Ideas/)
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current')
-    expect(await within(nav).findByRole('link', { name: 'Publication settings' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/settings',
-    )
+    expect(within(nav).queryByRole('link', { name: 'Publication settings' })).toBeNull()
     const header = await menu()
     expect(header.getByRole('link', { name: '← All publications' })).toHaveAttribute('href', '/')
-    expect(header.getByText('Shared with 1 person')).toBeInTheDocument()
+    expect(await header.findByText('Shared with 1 person')).toBeInTheDocument()
   })
 
   it('counts the ideas under the Ideas step', async () => {
@@ -143,10 +191,7 @@ describe('the menu in an idea', () => {
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
     expect(await within(nav).findByText('2 sources')).toBeInTheDocument()
     expect(within(nav).getByText('1 draft')).toBeInTheDocument()
-    expect(await within(nav).findByRole('link', { name: 'Idea settings' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/ideas/i1/settings',
-    )
+    expect(within(nav).queryByRole('link', { name: 'Idea settings' })).toBeNull()
     const header = await menu()
     expect(header.getByRole('link', { name: '← Substack' })).toHaveAttribute(
       'href',

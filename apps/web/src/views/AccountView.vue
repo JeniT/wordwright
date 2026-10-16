@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AppearanceSection from '../components/AppearanceSection.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import DangerZone from '../components/DangerZone.vue'
 import ExportSection from '../components/ExportSection.vue'
@@ -61,6 +62,8 @@ const deleteAccount = useMutation({
     <PasswordSection />
 
     <InvitationBlocksSection />
+
+    <AppearanceSection />
 
     <LlmSettingsSection />
 

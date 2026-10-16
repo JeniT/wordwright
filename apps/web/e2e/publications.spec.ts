@@ -106,7 +106,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   ).toBeVisible()
   await expect(page.getByRole('banner').locator('img')).toHaveCount(0) // monogram placeholder
 
-  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await noViolations(page)
   await page.getByLabel('Name', { exact: true }).fill('Final publication')
   await page.getByLabel('Website').fill('not a url')
@@ -171,7 +171,7 @@ test('renaming a publication changes its address, and the old address still work
   const oldPath = new URL(page.url()).pathname
   expect(oldPath).toMatch(/^\/p\/[a-z0-9]+-early-name$/)
 
-  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await page.getByLabel('Name', { exact: true }).fill('Later name')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
@@ -203,7 +203,7 @@ test('changes the display name, which is then used wherever it is shown', async 
   await expect(
     page.getByRole('banner').getByText('Remy publication').filter({ visible: true }).first(),
   ).toBeVisible()
-  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   const member = (name: string) =>
     page
       .getByRole('main')
@@ -211,7 +211,7 @@ test('changes the display name, which is then used wherever it is shown', async 
       .filter({ hasText: `${name} (` })
   await expect(member(who)).toBeVisible()
 
-  await page.getByRole('link', { name: who, exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   const section = page.getByRole('region', { name: 'Your name' })
   const field = section.getByLabel('What should we call you?')
   const change = section.getByRole('button', { name: 'Change name' })
@@ -227,7 +227,7 @@ test('changes the display name, which is then used wherever it is shown', async 
   await noViolations(page)
 
   // The header follows at once, and so does the list of people in the publication, with no other step.
-  await expect(page.getByRole('link', { name: `${who} Reed`, exact: true })).toBeVisible()
+  await expect(page.getByRole('banner').getByText(`${who} Reed`, { exact: true })).toBeVisible()
   await page.reload()
   await expect(field).toHaveValue(`${who} Reed`)
   await page.getByRole('link', { name: 'Wordwright' }).click()
@@ -235,7 +235,7 @@ test('changes the display name, which is then used wherever it is shown', async 
     .getByRole('main')
     .getByRole('link', { name: /Remy publication/ })
     .click()
-  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await expect(member(`${who} Reed`)).toBeVisible()
 })
 
@@ -252,7 +252,7 @@ test('changes the username: existing publications keep their address, new ones u
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(`/p/${before}-first-publication`)
 
-  await page.getByRole('link', { name: who, exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   const section = page.getByRole('region', { name: 'Username' })
   await expect(section).toContainText(`Your username is ${before}`)
   await section.getByLabel('New username').fill('Not Valid!')
@@ -559,7 +559,7 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await noViolations(page)
 
   // The settings offer the same guidance, folded away.
-  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   const folded = page.locator('details', { hasText: 'What makes a useful description' })
   await expect(folded).not.toHaveAttribute('open', '')
   await folded.getByText('What makes a useful description').click()

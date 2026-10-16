@@ -6,6 +6,7 @@ import RecentNotes from '../components/RecentNotes.vue'
 import RecentReading from '../components/RecentReading.vue'
 import RecentRefine from '../components/RecentRefine.vue'
 import ResearchForm from '../components/ResearchForm.vue'
+import SettingsButton from '../components/SettingsButton.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
 import { usePublication } from '../lib/usePublications'
 
@@ -31,7 +32,13 @@ const showResearch = () =>
           {{ publication.name }}
         </RouterLink>
       </p>
-      <h1 class="h1 break-words">{{ idea.name }}</h1>
+      <div class="flex items-center gap-2">
+        <h1 class="h1 break-words">{{ idea.name }}</h1>
+        <SettingsButton
+          :to="{ name: 'idea-settings', params: { publicationId, id } }"
+          label="Idea settings"
+        />
+      </div>
     </div>
 
     <!-- Unread reading comes first; the AI box is for when there is nothing left to read. -->

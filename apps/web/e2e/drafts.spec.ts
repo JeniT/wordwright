@@ -56,7 +56,7 @@ async function openFirstPublication(page: Page) {
 async function openSettings(page: Page) {
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'Publication settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await expect(page.getByRole('heading', { name: 'Publication settings' })).toBeVisible()
 }
 
@@ -522,7 +522,7 @@ test('changes the email address once the new one is confirmed', async ({ page })
   const oldEmail = await registerUser(page)
   const newEmail = `changed-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
 
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   await page.getByLabel('New email address').fill(newEmail)
   await page.getByLabel('Confirm with your password').fill('the wrong password')
   await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
@@ -561,7 +561,7 @@ test('"this wasn\'t me" puts the old address back and forces a new password', as
   const oldEmail = await registerUser(page)
   const newEmail = `intruder-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
 
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   await page.getByLabel('New email address').fill(newEmail)
   await page.getByLabel('Confirm with your password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Email me a link to confirm' }).click()
@@ -729,7 +729,7 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
 
   // Bob can now change the publication's details.
   await bob.reload()
-  await bob.getByRole('link', { name: 'Publication settings' }).click()
+  await bob.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await expect(bob.getByRole('button', { name: 'Save details' })).toBeVisible()
 
   // Ada steps down and loses the owner-only parts of the page.
@@ -774,7 +774,7 @@ test('removing a member and leaving a publication each ask first, saying what ha
 
   // Cara leaves from her own page, after being told she needs a new invitation to come back.
   await cara.reload()
-  await cara.getByRole('link', { name: 'Publication settings' }).click()
+  await cara.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await cara.getByRole('button', { name: 'Leave', exact: true }).click()
   const leaving = cara.getByRole('dialog', { name: /^Leave / })
   await expect(leaving).toContainText('only if an owner invites you again')
@@ -790,7 +790,7 @@ test('the only owner of a shared publication cannot delete their account until a
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await joinFrom(page, browser, 'Bob')
-  await page.getByRole('link', { name: 'Ada', exact: true }).first().click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   await page.getByLabel(/Type your email/).fill(adaEmail)
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await page.getByRole('button', { name: 'Delete my account' }).click()
@@ -1045,7 +1045,7 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
 
   // Rae chooses to start writing: a full account, sent to the home page.
   await rae.getByRole('link', { name: '← All your reviews' }).click()
-  await rae.getByRole('link', { name: 'Start writing' }).click()
+  await rae.getByRole('banner').getByRole('link', { name: 'Start writing' }).click()
   await rae.getByLabel('Username').fill(uniqueUsername())
   await rae.getByRole('button', { name: 'Start writing' }).click()
   await expect(rae.getByRole('link', { name: 'Account' }).first()).toBeVisible()
@@ -1288,7 +1288,7 @@ test('changes the password: other devices are signed out, a notice is emailed', 
   await phone.getByRole('button', { name: 'Sign in' }).click()
   await expect(phone.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   // A wrong current password is explained and changes nothing.
   await page.getByLabel('Current password').fill('definitely not it')
   await page.getByLabel('New password').fill('my brand new password')
@@ -1404,7 +1404,7 @@ test('downloads your writing as a zip from the account page and from a publicati
     return { name: download.suggestedFilename(), names }
   }
 
-  await page.getByRole('link', { name: 'Ada', exact: true }).first().click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   await expect(page.getByRole('heading', { name: 'Download your writing' })).toBeVisible()
   const account = await downloaded(page, () =>
     page.getByRole('button', { name: 'Download as a zip' }).click(),
@@ -1424,7 +1424,7 @@ test('downloads your writing as a zip from the account page and from a publicati
 
 test('deletes an account', async ({ page }) => {
   const email = await registerUser(page)
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   await page.getByLabel(/Type your email/).fill(email)
   await page.getByLabel('Password', { exact: true }).and(page.locator('input')).fill(PASSWORD)
   await expect(page.getByRole('radio', { name: /Keep my name on my notes/ })).toBeChecked()
@@ -1458,7 +1458,7 @@ test('sign-in and registration pages have no detectable accessibility violations
 test('signed-in pages have no detectable accessibility violations', async ({ page }) => {
   await registerUser(page)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
-  await page.getByRole('link', { name: 'Ada Lovelace', exact: true }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
   await expect(page.getByRole('heading', { name: 'AI assistant' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

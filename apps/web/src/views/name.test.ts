@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
@@ -39,9 +39,9 @@ describe('your name on the account page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Change name' }))
     await waitFor(() => expect(sent).toEqual({ name: 'Ada King' }))
     expect(await screen.findByText(/People now see/)).toHaveTextContent('Ada King')
-    // The account heading and the link in the page header follow the change.
+    // The account heading and the name in the menu foot follow the change.
     expect(screen.getByText(/Ada King · ada@example.com/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ada King' })).toHaveAttribute('href', '/account')
+    expect(within(screen.getByRole('banner')).getByText('Ada King')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Change name' })).toBeDisabled()
   })
 

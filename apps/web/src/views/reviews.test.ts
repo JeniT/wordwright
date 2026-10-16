@@ -50,8 +50,15 @@ describe('a reviewer’s landing page', () => {
     expect(within(list).getByText('You ended this review')).toBeTruthy()
     // Nothing of the rest of the app is offered.
     expect(screen.queryByRole('link', { name: /Account|Publications|Ideas/ })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Start writing' })).toBeTruthy()
+    const header = within(screen.getByRole('banner'))
+    expect(header.getByRole('button', { name: 'Sign out' })).toBeTruthy()
+    // They have no account page, so no settings button; Appearance and the way to upgrade are here instead.
+    expect(header.queryByRole('link', { name: /settings/i })).toBeNull()
+    expect(header.getByRole('radiogroup', { name: 'Appearance' })).toBeTruthy()
+    expect(header.getByRole('link', { name: 'Start writing' })).toHaveAttribute(
+      'href',
+      '/reviews/start',
+    )
   })
 
   it('says so when there is nothing to review, and when the list cannot be loaded', async () => {

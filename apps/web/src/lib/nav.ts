@@ -6,9 +6,9 @@ import { usePublication } from './usePublications'
 
 /**
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
- *   home    -> Publications, Account settings
- *   publication -> 01 Search, 02 Read, 03 Notes, 04 Ideas, and the publication's settings
- *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, and the idea's settings
+ *   home    -> Publications (account settings: the gear by the person's name in the menu foot)
+ *   publication -> 01 Search, 02 Read, 03 Notes, 04 Ideas, (its settings: a gear beside its name)
+ *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, (its settings: a gear beside its name)
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
  */

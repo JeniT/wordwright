@@ -17,6 +17,19 @@ const publication = {
 }
 
 describe('AccountView', () => {
+  it('has the Appearance choice, which is not in the menu', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+    )
+    await renderAt('/account')
+    const group = await screen.findByRole('radiogroup', { name: 'Appearance' })
+    expect(within(screen.getByRole('main')).getByRole('radiogroup', { name: 'Appearance' })).toBe(
+      group,
+    )
+    expect(screen.getAllByRole('radiogroup', { name: 'Appearance' })).toHaveLength(1)
+  })
+
   it('requires the typed email (and password) before deleting, then signs out', async () => {
     let body: unknown
     server.use(

@@ -8,6 +8,7 @@ import PublicationImage from '../components/PublicationImage.vue'
 import RecentNotes from '../components/RecentNotes.vue'
 import RecentPostsSummary from '../components/RecentPostsSummary.vue'
 import RecentReading from '../components/RecentReading.vue'
+import SettingsButton from '../components/SettingsButton.vue'
 import { useIdeas } from '../lib/queries'
 import { displayHost } from '../lib/usePublications'
 import QueryState from '../components/QueryState.vue'
@@ -31,7 +32,13 @@ const ideas = useIdeas(() => props.publicationId)
         size="sm"
       />
       <div class="min-w-0">
-        <h1 class="h1 break-words">{{ publication.name }}</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="h1 break-words">{{ publication.name }}</h1>
+          <SettingsButton
+            :to="{ name: 'publication-settings', params: { publicationId } }"
+            label="Publication settings"
+          />
+        </div>
         <p v-if="publication.siteUrl" class="meta truncate">
           <a :href="publication.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
             {{ displayHost(publication.siteUrl) }}

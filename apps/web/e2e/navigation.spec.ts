@@ -37,7 +37,7 @@ test('leads through a publication and an idea step by step, without ever locking
 
   // In an idea: four steps, in order, the current one marked, each always available.
   const idea = page.getByRole('navigation', { name: 'Idea' })
-  await expect(idea.getByRole('listitem')).toHaveCount(4 + 1) // four steps and Idea settings
+  await expect(idea.getByRole('listitem')).toHaveCount(4) // the four steps; settings is the gear by the name
   await expect(idea.getByRole('link', { name: 'Notes', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
@@ -91,7 +91,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(idea.getByRole('link', { name: 'Publish' })).toHaveCount(0)
 
   // Idea settings are apart from the steps: no step is current there.
-  await page.getByRole('link', { name: 'Idea settings' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Idea settings' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Idea settings' })).toBeVisible()
   await noViolations(page, 'Idea settings')
 
@@ -117,10 +117,13 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   await noViolations(page, 'Publication notes step')
 
-  // Home: publications and account settings.
+  // Home: the publications, with the account's settings button by the person's name (not a link in the list).
   await page.getByRole('link', { name: '← All publications' }).click()
+  const main = page.getByRole('navigation', { name: 'Main' })
+  await expect(main.getByRole('link', { name: 'Publications' })).toBeVisible()
+  await expect(main.getByRole('link', { name: 'Account settings' })).toHaveCount(0)
   await expect(
-    page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Account settings' }),
+    page.getByRole('banner').getByRole('link', { name: 'Account settings' }),
   ).toBeVisible()
 
   // Opening a publication lands on its own page, which is none of the steps.
@@ -193,7 +196,10 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
     await expect(page.getByRole('heading', { level: 1, name: step })).toBeVisible()
     await noViolations(page, `${step} step in dark mode`)
   }
-  // The system is dark here; choosing Light overrides it, is remembered, and System hands control back.
+  // The system is dark here; choosing Light (on the account page) overrides it, is remembered, and System hands control back.
+  await page.getByRole('banner').getByRole('link', { name: 'Account settings' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Your account' })).toBeVisible()
+  await noViolations(page, 'Account settings in dark mode')
   await expect(page.getByRole('radio', { name: 'System' })).toBeChecked()
   await page.getByRole('radio', { name: 'Light' }).check()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
@@ -219,6 +225,11 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   await menuButton.click()
   await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
   await noViolations(page, 'phone menu open')
+  // The idea's settings button sits by its name in the open menu, big enough to tap.
+  const gear = page.getByRole('banner').getByRole('link', { name: 'Idea settings' })
+  await expect(gear).toBeVisible()
+  const box = await gear.boundingBox()
+  expect(Math.min(box!.width, box!.height)).toBeGreaterThanOrEqual(44)
   await page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Draft' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false') // closed by moving on

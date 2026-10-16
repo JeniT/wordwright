@@ -355,11 +355,11 @@ How people are led through the app. The side menu **follows you**: what it lists
 back up and the name of the thing you are in. (We drew three approaches, a steady menu with steps on the page and a
 menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#navigation-the-menu-follows-you).)
 
-| Level       | You are choosing…                | The menu lists                                                                                                                  | Settings             |
-| ----------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| Home        | which **publication** to work on | Publications, Account settings                                                                                                  | Account settings     |
-| Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Publication settings |
-| Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Idea settings        |
+| Level       | You are choosing…                | The menu lists                                                                                                                  | Settings (a gear button)                                           |
+| ----------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Home        | which **publication** to work on | Publications                                                                                                                    | Beside your name in the menu foot                                  |
+| Publication | what to gather, then which idea  | **01 Search** (feeds, recent posts), **02 Read** (the reading list), **03 Notes**, **04 Ideas**                                 | Beside the publication's name, in the menu and on its landing page |
+| Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft** | Beside the idea's name, in the menu and on its landing page        |
 
 The principles (they are the point of the pattern; keep them when you add a page):
 
@@ -373,7 +373,13 @@ The principles (they are the point of the pattern; keep them when you add a page
 5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Start brainstorming**,
    Research's **Start research**); arriving by the menu must never cost the writer money.
 6. **Always a way up**: "← All publications", "← {publication}".
-7. **Settings sit apart from the steps**, at their own level, with no step current.
+7. **Settings sit apart from the steps**, at their own level, with no step current. They are reached by one **icon-only
+   gear button** (`SettingsButton`: a link, 44px square, named "Account settings", "Publication settings" or "Idea
+   settings", with the same words as its tooltip) placed beside the name of the thing it configures, never a text link
+   in the list of steps. It is the same gear at every level; its name and its place say which. It is marked current
+   (`aria-current`, `accent-wash`) on its own page. The **menu foot** holds your name (plain text) with the account
+   gear, and a **Sign out** button (an action, so a button, not a link). Appearance is a setting, so it lives on the
+   account page.
 8. **A level has a landing page** (a publication's, at `/p/:publicationId`; an idea's, at `/p/:publicationId/ideas/:id`) that is none of the numbered steps: a summary of
    each step with its quick action (the newest feed posts; the reading list and a form to add to it; the latest notes and a form to add one; the ideas). Nothing in the menu is current there.
    The publication's description comes first.
@@ -413,7 +419,8 @@ a newsletter, and help drafting social threads, would add their own buttons ther
 ## Layout
 
 A **reviewer-only account** (someone asked to read a draft, see decisions.md "Reviewers") has no side menu: a single top
-bar with the name, Sign out and the Appearance choice, over one column. Its pages (`ReviewsView`, `ReviewView`) use the
+bar with the name, the Appearance choice, a **Start writing** button (the way to upgrade to a full account) and
+Sign out, over one column. It has no settings gear: a reviewer-only account has no account page. Its pages (`ReviewsView`, `ReviewView`) use the
 same cards, callouts and chips as everywhere else.
 
 - **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button
@@ -428,7 +435,7 @@ same cards, callouts and chips as everywhere else.
 
 - Contrast: enforced by `palette.test.ts` (text 4.5:1, borders and focus 3:1) in light and dark.
 - **Focus:** one 3px outline in `focus`, from the base layer. Don't remove outlines or restyle focus per control.
-- **Targets:** buttons 44px (`btn-sm` and icon buttons 36px), checkboxes 20px, switches 44px wide and 44px high with their label.
+- **Targets:** buttons 44px (`btn-sm` and icon buttons 36px; the settings gear is 44px, since it sits alone), checkboxes 20px, switches 44px wide and 44px high with their label.
 - **Text:** 16px minimum in fields (stops iOS zoom), links underlined, no text in images.
 - **Motion:** reduced motion is honoured globally; don't add animation that carries meaning.
 - **Not by colour alone:** errors have words and (where it fits) an icon; AI-suggested things have a label, not just
