@@ -3,6 +3,7 @@
 How Wordwright looks, why, and how to keep it that way. Read this before changing anything people see. The short
 version is in [AGENTS.md](../AGENTS.md); the reasoning behind choosing this design, and the alternatives we dropped,
 are in [decisions.md](decisions.md#visual-design-ember) and the archive in [design-concepts/](design-concepts/README.md).
+How the words read (voice, buttons, errors, length) is in the [style guide](style-guide.md); this file decides where text goes.
 
 **Ember** is a calm, clear tool for writing: warm stone neutrals, one burnt-orange accent, IBM Plex Sans everywhere,
 a side menu, 1px outlines on everything you can press or type in, and a designed dark mode.

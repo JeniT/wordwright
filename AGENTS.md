@@ -5,7 +5,7 @@ sources, shaping an argument and outline, critiquing drafts _without losing the 
 titles/openings/social posts. Users bring their own LLM API key; the service has no server-wide LLM key.
 
 Read in this order: this file → [GitHub Issues](https://github.com/JeniT/wordwright/issues) (what to work on; `gh issue list --label ready`) → [docs/decisions.md](docs/decisions.md)
-(why things are the way they are) → [docs/responsible-ai.md](docs/responsible-ai.md) (how AI may and may not be used here) → [README.md](README.md) (setup, architecture, accounts, BYOK). **Before changing anything people see, read [docs/design.md](docs/design.md).**
+(why things are the way they are) → [docs/responsible-ai.md](docs/responsible-ai.md) (how AI may and may not be used here) → [README.md](README.md) (setup, architecture, accounts, BYOK). **Before changing anything people see, read [docs/design.md](docs/design.md); before writing or changing any of its words, read [docs/style-guide.md](docs/style-guide.md).**
 
 ## The owner's four priorities (these decide trade-offs)
 
@@ -97,7 +97,7 @@ only if it fails alone too. Locally the runners take only a few cores each (`max
   never log request bodies, keys, tokens or reset links in production code paths.
 - **Per-user spending:** AI calls use the _requesting_ user's own key (`LlmKeyService.resolve`). Never add a
   fallback to a shared key.
-- **UI text:** plain, friendly English; no jargon in error messages.
+- **UI text:** plain, friendly English; no jargon in error messages. Follow [docs/style-guide.md](docs/style-guide.md).
 - **Styling (full rules in [docs/design.md](docs/design.md)):**
   - Use **roles, never raw colours**: `bg-surface`, `text-ink-soft`, `border-line-strong`, `text-danger`,
     `bg-accent-wash` ... Tailwind's default palette is switched off, so `bg-stone-100` or `text-red-700` simply
