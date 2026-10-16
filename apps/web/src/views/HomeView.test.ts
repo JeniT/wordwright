@@ -222,3 +222,61 @@ describe('landing page: connecting an AI key', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 })
+
+describe('landing page: tutorial mode (#190)', () => {
+  const blog = {
+    id: 'adalovelace-blog',
+    name: 'Blog',
+    siteUrl: null,
+    imageUrl: null,
+    siteIconUrl: null,
+    description: null,
+    role: 'owner',
+    members: [],
+  }
+
+  it('writes out what the first-run steps are for, and the AI key, when it is on', async () => {
+    server.use(signedInAs({ ...testUser, tutorialMode: true }), noPublications, llmSettings(false))
+    const { router } = await renderAt('/')
+    expect(router.currentRoute.value.name).toBe('home')
+    const setup = (await screen.findByRole('heading', { name: 'Get started' })).closest('section')!
+    expect(setup).toHaveTextContent(/never writes it for you/)
+    expect(setup).toHaveTextContent(/no AI of its own/)
+    // Written out, so no icons.
+    expect(within(setup).queryByRole('button', { name: 'About your AI key' })).toBeNull()
+    expect(within(setup).queryByRole('button', { name: 'About publications' })).toBeNull()
+    expect(within(setup).getByText(/place you publish/)).toBeVisible()
+  })
+
+  it('keeps the explanations behind info icons, and the purpose line away, when it is off', async () => {
+    server.use(signedInAs(testUser), noPublications, llmSettings(false))
+    await renderAt('/')
+    const setup = (await screen.findByRole('heading', { name: 'Get started' })).closest('section')!
+    expect(within(setup).getByRole('button', { name: 'About your AI key' })).toBeInTheDocument()
+    expect(within(setup).getByRole('button', { name: 'About publications' })).toBeInTheDocument()
+    expect(setup).not.toHaveTextContent(/never writes it for you/)
+  })
+
+  it('says what the list is for once setup is done, in tutorial mode only', async () => {
+    server.use(
+      signedInAs({ ...testUser, tutorialMode: true }),
+      http.get('*/api/publications', () => HttpResponse.json([blog])),
+      llmSettings(true),
+    )
+    await renderAt('/')
+    await screen.findByRole('link', { name: /Blog/ })
+    expect(screen.getByText('Open a publication to work on its ideas and drafts.')).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Get started' })).toBeNull()
+  })
+
+  it('does not show that line when tutorial mode is off', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([blog])),
+      llmSettings(true),
+    )
+    await renderAt('/')
+    await screen.findByRole('link', { name: /Blog/ })
+    expect(screen.queryByText(/work on its ideas and drafts/)).toBeNull()
+  })
+})

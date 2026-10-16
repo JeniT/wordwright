@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
+import Explain from './Explain.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ProviderPrivacyAdvice from './ProviderPrivacyAdvice.vue'
@@ -67,11 +68,15 @@ const removeLlmKey = useMutation({
       {{ props.guide ? 'Connect your AI key (Anthropic)' : 'AI assistant' }}
     </component>
     <template v-if="props.guide">
-      <p class="mb-3">
+      <div class="mb-3 flex flex-wrap items-center gap-3">
         <RouterLink to="/help/api-key" target="_blank" class="link"
           >How to get an API key (opens in a new tab)</RouterLink
         >
-      </p>
+        <Explain label="About your AI key">
+          Wordwright has no AI of its own: you connect yours. Buttons with the AI mark send your
+          text to it, and nothing else does.
+        </Explain>
+      </div>
       <p class="mb-3">
         AI functions use Anthropic, which will bill you for your use.
         <RouterLink to="/help/privacy" target="_blank" class="link"

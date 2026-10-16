@@ -8,8 +8,8 @@ const answer = useUpdateTutorial()
 </script>
 
 <template>
-  <section v-if="show" class="notice notice-info" aria-label="Tutorial mode">
-    <h2 class="font-semibold">You’ve seen every kind of page</h2>
+  <section v-if="show" class="notice notice-info" aria-labelledby="tutorial-offer-heading">
+    <h2 id="tutorial-offer-heading" class="font-semibold">You’ve seen every kind of page</h2>
     <p class="mt-1 text-ink-soft">
       Tutorial mode explains each page as you go. You can turn it off now, or on again later in your
       account settings.

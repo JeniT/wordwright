@@ -32,7 +32,7 @@ function tutorialIs(seen: string[], answered = false) {
     seen: () => string[]
   }
 }
-const offer = () => screen.queryByRole('region', { name: 'Tutorial mode' })
+const offer = () => screen.queryByRole('region', { name: 'You’ve seen every kind of page' })
 
 describe('the warn notice: email confirmation', () => {
   it('asks for the address to be confirmed, with a way to resend the link', async () => {
@@ -57,12 +57,11 @@ describe('the warn notice: email confirmation', () => {
   it('comes before the info notice', async () => {
     tutorialIs(['explained', 'quiet'])
     await mountTutorial({ emailVerified: false, path: '/plain' })
-    await screen.findByRole('region', { name: 'Tutorial mode' })
+    await screen.findByRole('region', { name: 'You’ve seen every kind of page' })
     const regions = screen.getAllByRole('region')
-    expect(regions.map((r) => r.getAttribute('aria-label'))).toEqual([
-      'Email confirmation',
-      'Tutorial mode',
-    ])
+    expect(
+      regions.map((r) => r.getAttribute('aria-label') ?? r.getAttribute('aria-labelledby')),
+    ).toEqual(['Email confirmation', 'tutorial-offer-heading'])
   })
 })
 
@@ -78,7 +77,7 @@ describe('the info notice: the offer to turn tutorial mode off', () => {
     await waitFor(() => expect(server.seen()).toEqual(['quiet', 'explained']))
     expect(offer()).toBeNull() // the page that completed the set doesn't get the offer
     await router.push('/plain')
-    const notice = await screen.findByRole('region', { name: 'Tutorial mode' })
+    const notice = await screen.findByRole('region', { name: 'You’ve seen every kind of page' })
     expect(notice).toHaveClass('notice-info')
     expect(notice).toHaveTextContent('Turn off tutorial mode')
   })
@@ -110,11 +109,11 @@ describe('the info notice: the offer to turn tutorial mode off', () => {
   it('is held back on a quiet page, and shown when they leave it', async () => {
     tutorialIs(['explained', 'quiet'])
     const { router } = await mountTutorial({ path: '/plain' })
-    await screen.findByRole('region', { name: 'Tutorial mode' })
+    await screen.findByRole('region', { name: 'You’ve seen every kind of page' })
     await router.push('/quiet')
     await waitFor(() => expect(offer()).toBeNull())
     await router.push('/plain')
-    await screen.findByRole('region', { name: 'Tutorial mode' })
+    await screen.findByRole('region', { name: 'You’ve seen every kind of page' })
   })
 
   it('turns tutorial mode off, remembers the answer and goes away', async () => {

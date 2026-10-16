@@ -29,7 +29,12 @@ declare module 'vue-router' {
 const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing'])
 
 export const routes: RouteRecordRaw[] = [
-  { path: '/', name: 'home', component: () => import('./views/HomeView.vue') },
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('./views/HomeView.vue'),
+    meta: { tutorial: true },
+  },
   {
     path: '/login',
     name: 'login',
