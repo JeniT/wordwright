@@ -209,7 +209,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   // The editor resolves a comment when they have dealt with it. It is hidden, not deleted, and the tab counts one fewer.
   const side2 = page.getByRole('complementary')
   await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
-  await side2.getByRole('switch', { name: 'Resolved: comment 1' }).check()
+  await side2.getByRole('switch', { name: 'Resolved: comment 1' }).click()
   await expect(side2.getByRole('tab', { name: 'Comments, 1' })).toBeVisible()
   await expect(side2.getByRole('switch', { name: 'Resolved: comment 1' })).toHaveCount(0)
   await side2.getByRole('switch', { name: 'Show resolved (1)' }).check()
@@ -855,7 +855,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await adaSide.getByRole('tab', { name: /^Comments/ }).click()
   const bobsComment = adaSide.getByRole('listitem').filter({ hasText: 'Lovely first line.' })
   await expect(bobsComment).toContainText('Bob')
-  await adaSide.getByRole('switch', { name: 'Resolved: comment 1' }).check()
+  await adaSide.getByRole('switch', { name: 'Resolved: comment 1' }).click()
   await expect(adaSide.getByText('Lovely first line.')).toHaveCount(0)
   await bob.reload()
   await bob
