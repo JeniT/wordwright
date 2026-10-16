@@ -29,6 +29,7 @@ import {
   InvitationBlocksSchema,
   InvitationPreviewSchema,
   InvitationSchema,
+  LlmModelsSchema,
   LlmSettingsSchema,
   PublicationSchema,
   ProposalSchema,
@@ -174,6 +175,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // bring-your-own LLM key (write-only: the key is never returned)
     getLlmSettings: () => get(LlmSettingsSchema, 'GET', '/llm'),
     saveLlmSettings: (input: LlmSettingsInput) => get(LlmSettingsSchema, 'PUT', '/llm', input),
+    listLlmModels: () => get(LlmModelsSchema, 'GET', '/llm/models'),
     removeLlmKey: () => act('DELETE', '/llm'),
 
     getCritiqueSettings: () => get(CritiqueSettingsSchema, 'GET', '/account/critique-settings'),

@@ -34,6 +34,24 @@ export function llmProviderContract(name: string, create: () => LLMProvider) {
       await expect(create().complete({ ...request, signal: controller.signal })).rejects.toThrow()
     })
 
+    describe('listModels', () => {
+      it('lists at least one model, each with an id and a label, without repeats', async () => {
+        const models = await create().listModels()
+        expect(models.length).toBeGreaterThan(0)
+        for (const m of models) {
+          expect(m.id).not.toBe('')
+          expect(m.label).not.toBe('')
+        }
+        expect(new Set(models.map((m) => m.id)).size).toBe(models.length)
+      })
+
+      it('rejects when the signal is already aborted', async () => {
+        const controller = new AbortController()
+        controller.abort()
+        await expect(create().listModels(controller.signal)).rejects.toThrow()
+      })
+    })
+
     describe('chat', () => {
       const chatRequest: LLMChatRequest = {
         system: 'You are brief.',

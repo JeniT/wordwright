@@ -11,6 +11,55 @@ function providerWhere(create: () => Promise<unknown>, stream?: () => AsyncItera
 const request = { messages: [{ role: 'user' as const, content: 'hi' }] }
 const apiError = (status: number) => Anthropic.APIError.generate(status, {}, 'nope', new Headers())
 
+/** The SDK's `models.list()` is an async-iterable page, newest model first. */
+function providerListing(models: unknown[] | (() => never)) {
+  const list = () => ({
+    async *[Symbol.asyncIterator]() {
+      if (typeof models === 'function') models()
+      else yield* models
+    },
+  })
+  return new AnthropicProvider({
+    apiKey: 'k',
+    client: { models: { list } } as unknown as Anthropic,
+  })
+}
+
+describe('AnthropicProvider listModels', () => {
+  it("returns each chat model with the provider's own display name, in the order given", async () => {
+    const provider = providerListing([
+      { id: 'claude-opus-5-5', display_name: 'Claude Opus 5.5', type: 'model' },
+      { id: 'claude-haiku-5-5', display_name: 'Claude Haiku 5.5', type: 'model' },
+    ])
+    expect(await provider.listModels()).toEqual([
+      { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+      { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+    ])
+  })
+
+  it('falls back to the id when there is no display name, and ignores anything that is not a Claude model', async () => {
+    const provider = providerListing([
+      { id: 'claude-x', display_name: '' },
+      { id: 'embedding-1', display_name: 'Embedding' },
+    ])
+    expect(await provider.listModels()).toEqual([{ id: 'claude-x', label: 'claude-x' }])
+  })
+
+  it('translates a rejected key into LLMAuthError', async () => {
+    const provider = providerListing(() => {
+      throw apiError(401)
+    })
+    await expect(provider.listModels()).rejects.toBeInstanceOf(LLMAuthError)
+  })
+
+  it('translates other failures into LLMProviderError', async () => {
+    const provider = providerListing(() => {
+      throw apiError(500)
+    })
+    await expect(provider.listModels()).rejects.toBeInstanceOf(LLMProviderError)
+  })
+})
+
 describe('AnthropicProvider', () => {
   it('joins text blocks and passes model, system prompt and limits through', async () => {
     let seen: Record<string, unknown> = {}

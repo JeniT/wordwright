@@ -1,4 +1,5 @@
 import {
+  FAKE_LLM_MODELS,
   FakeLLMProvider,
   FakeResearchProvider,
   type FakeChatResponder,
@@ -6,6 +7,7 @@ import {
   type FeedFetcher,
   FakePageInfoFetcher,
   LLMAuthError,
+  type LLMModelInfo,
   suggestHandle,
   type LLMConfig,
   type LLMRequest,
@@ -102,6 +104,9 @@ export function setup(options: TestOptions = {}) {
   let chatResponder: FakeChatResponder = () => ({ text: 'A fake reply.' })
   /** Decides what a one-shot `complete()` answers; by default a critique, since that is what asks. */
   let completionResponder: ((request: LLMRequest) => string) | undefined
+  /** Every `listModels()` call, with the credentials it was made with. */
+  const modelCalls: { config: LLMConfig }[] = []
+  let modelsOffered: LLMModelInfo[] = FAKE_LLM_MODELS
   const llmFactory = (config: LLMConfig) =>
     new FakeLLMProvider(
       (request) => {
@@ -126,6 +131,12 @@ export function setup(options: TestOptions = {}) {
         chats.push({ config, request })
         if (config.apiKey.startsWith('bad-')) throw new LLMAuthError()
         return chatResponder(request, chats.length)
+      },
+      () => {
+        modelCalls.push({ config })
+        if (config.apiKey.startsWith('bad-')) throw new LLMAuthError()
+        if (config.apiKey.startsWith('down-')) throw new Error('provider outage')
+        return modelsOffered
       },
     )
   /** Every research request made, with the credentials it was made with. */
@@ -165,6 +176,11 @@ export function setup(options: TestOptions = {}) {
     db,
     mailer: memoryMailer,
     llmCalls,
+    modelCalls,
+    /** Decides which models the fake provider offers. */
+    setModels: (models: LLMModelInfo[]) => {
+      modelsOffered = models
+    },
     /** Every brainstorming turn (`chat()`), with the credentials it was made with. */
     chats,
     /** Decides what the fake AI says next in a brainstorming conversation. */

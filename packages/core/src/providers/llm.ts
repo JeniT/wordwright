@@ -69,6 +69,12 @@ export type LLMChatEvent =
   | { type: 'tool_call'; id: string; name: string; input: unknown }
   | { type: 'done'; stopReason: LLMStopReason; usage: LLMUsage }
 
+/** A model the provider offers this key. `label` is the provider's own name for it. */
+export interface LLMModelInfo {
+  id: string
+  label: string
+}
+
 /**
  * Port for any text-generation service. Implementations live in adapters
  * (see ./anthropic.ts, ./fake-llm.ts); application code depends only on this.
@@ -83,6 +89,11 @@ export interface LLMProvider {
    * `LLMProviderError` when the provider can't answer; aborting `request.signal` rejects too.
    */
   chat(request: LLMChatRequest): AsyncIterable<LLMChatEvent>
+  /**
+   * The models these credentials can use, newest first as the provider orders them. Costs no tokens, so it also
+   * checks the key. Rejects with `LLMAuthError` or `LLMProviderError`, like the calls above.
+   */
+  listModels(signal?: AbortSignal): Promise<LLMModelInfo[]>
 }
 
 /**

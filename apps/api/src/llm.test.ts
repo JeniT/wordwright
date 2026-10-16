@@ -51,10 +51,10 @@ describe('LLM settings', () => {
       hasKey: true,
       keyHint: '…7890',
     })
-    // One cheap validation call, made with the user's key and chosen model.
-    expect(ctx.llmCalls).toHaveLength(1)
-    expect(ctx.llmCalls[0]!.config).toMatchObject({ apiKey: GOOD_KEY, model: 'claude-haiku-5-5' })
-    expect(ctx.llmCalls[0]!.request.maxTokens).toBe(1)
+    // The key is checked by listing the models it can use, which spends no tokens (#206).
+    expect(ctx.modelCalls).toHaveLength(1)
+    expect(ctx.modelCalls[0]!.config).toMatchObject({ apiKey: GOOD_KEY })
+    expect(ctx.llmCalls).toHaveLength(0)
   })
 
   it('never returns or stores the key in plain text', async () => {
@@ -121,6 +121,8 @@ describe('LLM settings', () => {
     await saveKey(client)
     const calls = ctx.llmCalls.length
     const res = await client.put('/api/llm', { provider: 'anthropic', model: 'claude-opus-5-5' })
+    // It is checked against the live list, using the stored key.
+    expect(ctx.modelCalls.at(-1)!.config).toMatchObject({ apiKey: GOOD_KEY })
     expect(await res.json()).toMatchObject({
       model: 'claude-opus-5-5',
       hasKey: true,
@@ -129,12 +131,39 @@ describe('LLM settings', () => {
     expect(ctx.llmCalls).toHaveLength(calls) // no provider call needed
   })
 
-  it('validates the provider, model and key shape', async () => {
+  it('refuses a model the provider does not offer this key, and saves nothing', async () => {
     const { client } = await signedInUser()
-    expect(
-      (await client.put('/api/llm', { provider: 'anthropic', model: 'gpt-4', apiKey: GOOD_KEY }))
-        .status,
-    ).toBe(400)
+    const res = await client.put('/api/llm', {
+      provider: 'anthropic',
+      model: 'gpt-4',
+      apiKey: GOOD_KEY,
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/model/i)
+    expect((await (await client.get('/api/llm')).json()).hasKey).toBe(false)
+  })
+
+  it('uses the default model for a first key, or the first one offered if the default is not', async () => {
+    const ctx = setup()
+    const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
+    const first = await ada.client.put('/api/llm', { provider: 'anthropic', apiKey: GOOD_KEY })
+    expect(await first.json()).toMatchObject({ model: 'claude-sonnet-5-5', hasKey: true })
+
+    ctx.setModels([{ id: 'claude-future-1', label: 'Claude Future 1' }])
+    const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
+    const second = await bob.client.put('/api/llm', { provider: 'anthropic', apiKey: GOOD_KEY })
+    expect(await second.json()).toMatchObject({ model: 'claude-future-1' })
+  })
+
+  it('keeps the chosen model when only a replacement key is sent', async () => {
+    const { client } = await signedInUser()
+    await saveKey(client, GOOD_KEY, 'claude-haiku-5-5')
+    const res = await client.put('/api/llm', { provider: 'anthropic', apiKey: GOOD_KEY })
+    expect(await res.json()).toMatchObject({ model: 'claude-haiku-5-5' })
+  })
+
+  it('validates the provider and key shape', async () => {
+    const { client } = await signedInUser()
     expect(
       (await client.put('/api/llm', { provider: 'openai', model: 'x', apiKey: GOOD_KEY })).status,
     ).toBe(400)
@@ -180,6 +209,76 @@ describe('LLM settings', () => {
   })
 })
 
+describe('the models on offer', () => {
+  it('needs someone signed in', async () => {
+    expect((await setup().client().get('/api/llm/models')).status).toBe(401)
+  })
+
+  it('asks for a key first', async () => {
+    const { client } = await signedInUser()
+    const res = await client.get('/api/llm/models')
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/API key/)
+  })
+
+  it('lists what the provider offers the stored key, with the provider’s own names', async () => {
+    const { ctx, client } = await signedInUser()
+    await saveKey(client)
+    ctx.setModels([
+      { id: 'claude-b', label: 'Claude B' },
+      { id: 'claude-a', label: 'Claude A' },
+    ])
+    const res = await client.get('/api/llm/models')
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      models: [
+        { id: 'claude-b', label: 'Claude B' },
+        { id: 'claude-a', label: 'Claude A' },
+      ],
+    })
+    expect(ctx.modelCalls.at(-1)!.config.apiKey).toBe(GOOD_KEY)
+  })
+
+  it('says so when the stored key has been revoked, or the provider is down', async () => {
+    const ctx = setup()
+    const { client } = await signedInUser(ctx)
+    await saveKey(client)
+    // Simulate the stored key being revoked later by swapping in one the fake provider refuses.
+    const me = (await (await client.get('/api/auth/me')).json()).id
+    const { createSecretBox } = await import('./auth/secret-box')
+    const box = createSecretBox('test-key-secret-test-key-secret!!')
+    const stored = ctx.store.credentials.get(me)!
+    for (const [key, status] of [
+      ['bad-revoked-1234567890', 400],
+      ['down-outage-1234567890', 502],
+    ] as const) {
+      ctx.store.credentials.save(me, {
+        ...stored,
+        encryptedKey: box.encrypt(key, `llm-key:${me}:anthropic`),
+      })
+      const res = await client.get('/api/llm/models')
+      expect(res.status).toBe(status)
+      expect(JSON.stringify(await res.json())).not.toContain(key)
+    }
+  })
+
+  it('never lists models for a user with no key of their own', async () => {
+    const ctx = setup()
+    const ada = await signedInUser(ctx, 'ada@example.com', 'Ada')
+    const bob = await signedInUser(ctx, 'bob@example.com', 'Bob')
+    await saveKey(ada.client)
+    expect((await bob.client.get('/api/llm/models')).status).toBe(409)
+  })
+
+  it('throttles requests', async () => {
+    const { client } = await signedInUser()
+    await saveKey(client)
+    let last = 0
+    for (let i = 0; i < 40; i++) last = (await client.get('/api/llm/models')).status
+    expect(last).toBe(429)
+  })
+})
+
 describe('using the key', () => {
   it('asks for a key before running AI features', async () => {
     const { client, publicationId } = await signedInUser()
@@ -212,15 +311,21 @@ describe('using the key', () => {
     await saveKey(ada.client, 'sk-ant-ada-key-1111111111')
     await saveKey(bob.client, 'sk-ant-bob-key-2222222222')
     await sharePublication(ctx, ada.client, ada.publicationId, bob.client, 'bob@example.com')
-    const draft = await createDraft(ada.client, ada.publicationId, { title: 'T', body: 'B' })
+    // Each critiques a draft they are the editor of; the AI call is made with the key of whoever asks.
+    const adas = await createDraft(ada.client, ada.publicationId, { title: 'T', body: 'B' })
+    const bobs = await createDraft(bob.client, ada.publicationId, { title: 'T', body: 'B' })
 
-    await bob.client.post(`/api/publications/${ada.publicationId}/assist/critique`, {
-      draftId: draft.id,
-    })
+    const bobAsked = await bob.client.post(
+      `/api/publications/${ada.publicationId}/assist/critique`,
+      { draftId: bobs.id },
+    )
+    expect(bobAsked.status).toBe(200)
     expect(ctx.llmCalls.at(-1)!.config.apiKey).toBe('sk-ant-bob-key-2222222222')
-    await ada.client.post(`/api/publications/${ada.publicationId}/assist/critique`, {
-      draftId: draft.id,
-    })
+    const adaAsked = await ada.client.post(
+      `/api/publications/${ada.publicationId}/assist/critique`,
+      { draftId: adas.id },
+    )
+    expect(adaAsked.status).toBe(200)
     expect(ctx.llmCalls.at(-1)!.config.apiKey).toBe('sk-ant-ada-key-1111111111')
   })
 

@@ -145,7 +145,7 @@ export function createApp(deps: AppDeps) {
   )
   const signedIn = (routes: Hono<AppEnv>) =>
     new Hono<AppEnv>().use(requireUser(accounts)).route('/', routes)
-  api.route('/llm', signedIn(llmRoutes(llmKeys, attempts())))
+  api.route('/llm', signedIn(llmRoutes(llmKeys, attempts(), limiter(30, MINUTE))))
   const invitations = new InvitationService({
     store,
     mailer: deps.mailer,

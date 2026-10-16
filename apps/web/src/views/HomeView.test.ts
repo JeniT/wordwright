@@ -76,11 +76,8 @@ describe('landing page: connecting an AI key', () => {
       screen.getByRole('heading', { name: /Connect your AI key \(Anthropic\)/ }),
     ).toHaveTextContent('done')
     expect(screen.getByRole('link', { name: 'New publication' })).toBeVisible()
-    expect(sent).toEqual({
-      provider: 'anthropic',
-      model: 'claude-sonnet-5-5',
-      apiKey: 'sk-ant-secret-1234567890',
-    })
+    // No model: the first-run step has no list to choose from, so the server uses the default.
+    expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-secret-1234567890' })
     expect(screen.queryByLabelText('Anthropic API key')).toBeNull()
   })
 

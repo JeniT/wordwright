@@ -4,6 +4,7 @@ import {
   type LLMChatEvent,
   type LLMChatMessage,
   type LLMChatRequest,
+  type LLMModelInfo,
   type LLMProvider,
   type LLMRequest,
   type LLMStopReason,
@@ -61,6 +62,19 @@ export class AnthropicProvider implements LLMProvider {
           yield event.delta.text
         }
       }
+    } catch (err) {
+      throw translate(err)
+    }
+  }
+
+  async listModels(signal?: AbortSignal): Promise<LLMModelInfo[]> {
+    try {
+      const models: LLMModelInfo[] = []
+      for await (const m of this.client.models.list({ limit: 100 }, { signal })) {
+        // Only chat models are for us; the id is what we send back, the display name what people read.
+        if (m.id.startsWith('claude-')) models.push({ id: m.id, label: m.display_name || m.id })
+      }
+      return models
     } catch (err) {
       throw translate(err)
     }

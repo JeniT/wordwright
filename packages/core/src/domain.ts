@@ -1416,15 +1416,13 @@ export const LLM_PROVIDER_IDS = ['anthropic'] as const
 export const LLMProviderIdSchema = z.enum(LLM_PROVIDER_IDS)
 export type LLMProviderId = z.infer<typeof LLMProviderIdSchema>
 
-export const LLM_MODELS = {
-  anthropic: [
-    { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (balanced)' },
-    { id: 'claude-opus-5-5', label: 'Claude Opus 5.5 (most capable)' },
-    { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 (fastest, cheapest)' },
-  ],
-} as const satisfies Record<LLMProviderId, readonly { id: string; label: string }[]>
-
+/** The models on offer come from the provider itself (`LLMProvider.listModels`), not from a list kept here. */
+/** Used until the person chooses, if the provider offers it to their key. */
 export const DEFAULT_LLM_MODEL: Record<LLMProviderId, string> = { anthropic: 'claude-sonnet-5-5' }
+
+export const LlmModelSchema = z.object({ id: z.string(), label: z.string() })
+export const LlmModelsSchema = z.object({ models: z.array(LlmModelSchema) })
+export type LlmModels = z.infer<typeof LlmModelsSchema>
 
 /** What the client may see. The key itself is write-only. */
 export const LlmSettingsSchema = z.object({
@@ -1436,17 +1434,22 @@ export const LlmSettingsSchema = z.object({
 })
 export type LlmSettings = z.infer<typeof LlmSettingsSchema>
 
-export const LlmSettingsInputSchema = z.object({
-  provider: LLMProviderIdSchema,
-  model: z.string().max(100),
-  /** Omit to keep the stored key and only change the model. */
-  apiKey: z
-    .string()
-    .trim()
-    .min(10, 'That API key looks too short. Copy the whole key from your provider')
-    .max(500, 'That API key is too long')
-    .optional(),
-})
+export const LlmSettingsInputSchema = z
+  .object({
+    provider: LLMProviderIdSchema,
+    /** Omit to keep the stored model (or, for a first key, the default if the provider offers it). */
+    model: z.string().max(100).optional(),
+    /** Omit to keep the stored key and only change the model. */
+    apiKey: z
+      .string()
+      .trim()
+      .min(10, 'That API key looks too short. Copy the whole key from your provider')
+      .max(500, 'That API key is too long')
+      .optional(),
+  })
+  .refine((v) => v.model !== undefined || v.apiKey !== undefined, {
+    message: 'Enter an API key or choose a model',
+  })
 export type LlmSettingsInput = z.infer<typeof LlmSettingsInputSchema>
 
 /** Everything needed to talk to a model on a user's behalf. Never serialise this. */

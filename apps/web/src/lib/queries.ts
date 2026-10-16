@@ -21,6 +21,8 @@ export const queryKeys = {
   attention: (publicationId: string) => ['attention', publicationId] as const,
   /** Where the person is signed in (the account page). */
   devices: () => ['devices'] as const,
+  /** The models the provider offers the saved key (the account page). */
+  llmModels: () => ['llm-models'] as const,
   /** Tutorial mode's seen pages and answered offer (#198). */
   tutorial: () => ['tutorial'] as const,
   reviews: () => ['reviews'] as const,
@@ -87,6 +89,17 @@ export const refreshIdea = (
 
 // The arguments are getters, so a query follows a component's props as they change.
 type Get<T> = () => T
+
+/** The models the provider offers this person's saved key; only asked for once there is a key. */
+export function useLlmModels(enabled: Get<boolean>) {
+  return useQuery({
+    queryKey: queryKeys.llmModels(),
+    queryFn: () => api.listLlmModels(),
+    enabled,
+    // The provider's list changes rarely, and each look is a call to their account.
+    staleTime: 5 * 60_000,
+  })
+}
 
 export function useIdea(publicationId: Get<string>, id: Get<string | undefined>) {
   return useQuery({

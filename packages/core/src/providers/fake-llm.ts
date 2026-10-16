@@ -1,6 +1,7 @@
 import type {
   LLMChatEvent,
   LLMChatRequest,
+  LLMModelInfo,
   LLMProvider,
   LLMRequest,
   LLMStopReason,
@@ -23,6 +24,13 @@ export type FakeChatResponder = (
   callNumber: number,
 ) => FakeChatReply | Promise<FakeChatReply>
 
+/** What the fake offers by default: three models, as a real account might see. */
+export const FAKE_LLM_MODELS: LLMModelInfo[] = [
+  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
+  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+]
+
 /** Deterministic provider for tests, local development and e2e runs. */
 export class FakeLLMProvider implements LLMProvider {
   readonly name = 'fake'
@@ -33,7 +41,13 @@ export class FakeLLMProvider implements LLMProvider {
   constructor(
     private readonly respond: (request: LLMRequest) => string = defaultResponse,
     private readonly respondChat: FakeChatResponder = defaultChatReply,
+    private readonly models: LLMModelInfo[] | (() => LLMModelInfo[]) = FAKE_LLM_MODELS,
   ) {}
+
+  async listModels(signal?: AbortSignal): Promise<LLMModelInfo[]> {
+    signal?.throwIfAborted()
+    return typeof this.models === 'function' ? this.models() : this.models
+  }
 
   async complete(request: LLMRequest): Promise<string> {
     this.calls.push(request)

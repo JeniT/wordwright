@@ -228,7 +228,7 @@ describe('AccountView', () => {
 describe('AccountView: AI assistant key', () => {
   const noKey = { provider: 'anthropic', model: 'claude-sonnet-5-5', hasKey: false, keyHint: null }
 
-  it('saves the key and model, then shows only a hint', async () => {
+  it('saves the key, then shows only a hint; the model is chosen once there is a key', async () => {
     let sent: unknown
     server.use(
       signedInAs(testUser),
@@ -236,33 +236,25 @@ describe('AccountView: AI assistant key', () => {
       http.get('*/api/llm', () => HttpResponse.json(noKey)),
       http.put('*/api/llm', async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({
-          ...noKey,
-          model: 'claude-haiku-5-5',
-          hasKey: true,
-          keyHint: '…7890',
-        })
+        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
       }),
     )
     await renderAt('/account')
     await screen.findByText('No API key yet.')
-    await fireEvent.update(screen.getByLabelText('Model'), 'claude-haiku-5-5')
+    expect(screen.queryByLabelText('Model')).toBeNull() // the provider lists models for a key
+    expect(screen.getByText('Save a key to choose a model.')).toBeInTheDocument()
     const field = screen.getByLabelText('Anthropic API key')
     expect(field).toHaveAttribute('type', 'password')
     await fireEvent.update(field, '  sk-ant-secret-1234567890  ')
     await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
 
     await screen.findByText(/Anthropic key saved \(…7890\)/)
-    expect(sent).toEqual({
-      provider: 'anthropic',
-      model: 'claude-haiku-5-5',
-      apiKey: 'sk-ant-secret-1234567890',
-    })
+    expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-secret-1234567890' })
     expect(screen.queryByDisplayValue(/sk-ant/)).toBeNull() // the field is cleared
+    expect(await screen.findByLabelText('Model')).toBeInTheDocument()
   })
 
-  it('cannot be submitted before the saved settings have loaded (no empty model)', async () => {
-    let sent: { model?: string } | undefined
+  it('cannot be submitted before the saved settings have loaded', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
@@ -271,7 +263,7 @@ describe('AccountView: AI assistant key', () => {
         return HttpResponse.json(noKey)
       }),
       http.put('*/api/llm', async ({ request }) => {
-        sent = (await request.json()) as { model?: string }
+        await request.json()
         return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
       }),
     )
@@ -283,7 +275,6 @@ describe('AccountView: AI assistant key', () => {
     expect(save).toBeEnabled()
     await fireEvent.click(save)
     await screen.findByText(/Anthropic key saved/)
-    expect(sent?.model).toBe('claude-sonnet-5-5')
   })
 
   it('shows why a key was refused', async () => {
@@ -324,7 +315,14 @@ describe('AccountView: AI assistant key', () => {
     )
     await renderAt('/account')
     await screen.findByText(/Anthropic key saved/)
-    await fireEvent.update(screen.getByLabelText('Model'), 'claude-opus-5-5')
+    const model = await screen.findByLabelText('Model')
+    // The provider's own names, not ours.
+    expect(
+      within(model)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['Claude Sonnet 5.5', 'Claude Opus 5.5', 'Claude Haiku 5.5'])
+    await fireEvent.update(model, 'claude-opus-5-5')
     await fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]!)
     await waitFor(() => expect(sent).toEqual({ provider: 'anthropic', model: 'claude-opus-5-5' }))
 
@@ -332,6 +330,42 @@ describe('AccountView: AI assistant key', () => {
     await fireEvent.click(removeKey) // no hold: it only asks to be pressed again
     await fireEvent.click(removeKey)
     await screen.findByText('No API key yet.')
+  })
+})
+
+describe('AccountView: the model', () => {
+  const saved = { provider: 'anthropic', model: 'claude-opus-5-5', hasKey: true, keyHint: '…7890' }
+
+  it('shows the current model and a way to try again when the list will not load', async () => {
+    let fail = true
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/llm', () => HttpResponse.json(saved)),
+      http.get('*/api/llm/models', () =>
+        fail
+          ? HttpResponse.json({ error: 'down' }, { status: 502 })
+          : HttpResponse.json({ models: [{ id: 'claude-opus-5-5', label: 'Claude Opus 5.5' }] }),
+      ),
+    )
+    await renderAt('/account')
+    expect(await screen.findByText(/Couldn.t load models/)).toBeInTheDocument()
+    expect(screen.getByText('claude-opus-5-5')).toBeInTheDocument()
+    fail = false
+    await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByLabelText('Model')).toHaveValue('claude-opus-5-5')
+  })
+
+  it('says so when the saved model is no longer offered, and keeps it selected until another is chosen', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/llm', () => HttpResponse.json({ ...saved, model: 'claude-retired-1' })),
+    )
+    await renderAt('/account')
+    const model = await screen.findByLabelText('Model')
+    expect(model).toHaveValue('claude-retired-1')
+    expect(screen.getByText(/no longer offered/)).toBeInTheDocument()
   })
 })
 

@@ -92,7 +92,8 @@ To use Claude: `LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... pnpm dev`.
 Application code depends on **ports** in `packages/core/src/providers`, never on a vendor SDK:
 
 - `LLMProvider` — `complete()` and `stream()` for single prompts, and `chat()` for conversations in which the model may
-  call tools (streamed `text` / `tool_call` / `done` events; no sampling options). Adapters: `AnthropicProvider`,
+  call tools (streamed `text` / `tool_call` / `done` events; no sampling options), and `listModels()`, the models the
+  key can use (it spends no tokens, so it also checks the key). Adapters: `AnthropicProvider`,
   `FakeLLMProvider` (scriptable). The contract suite can also be run against the real service:
   `ANTHROPIC_API_KEY=... pnpm --filter @wordwright/core test`.
 - `SearchProvider` — for news, web and scholarly sources (Crossref, OpenAlex, ...). Only a fake exists so far.
@@ -368,9 +369,13 @@ run on the _requester's_ key.
   so rotation can be added later; there is no rotation tooling yet.
 - `FAKE_LLM=true` swaps in a canned fake that accepts any key (development and e2e only; refused in
   production).
-- To add a provider: extend `LLM_PROVIDER_IDS` / `LLM_MODELS` in `packages/core/src/domain.ts`, add an
+- To add a provider: extend `LLM_PROVIDER_IDS` and `DEFAULT_LLM_MODEL` in `packages/core/src/domain.ts`, add an
   adapter implementing `LLMProvider` (translating credential failures to `LLMAuthError`), and a case
   in `apps/api/src/llm-factory.ts`.
+- **Models are discovered, not listed here.** `GET /api/llm/models` asks the provider which models the saved key can
+  use (throttled; 409 without a key). `PUT /api/llm` checks a new key the same way and refuses a `model` that isn't in
+  the list; leave `model` out to keep the current one (a first key gets `DEFAULT_LLM_MODEL` if offered, else the
+  first model the provider lists).
 
 **Brainstorming prompt:** the instructions that make the AI a writing coach when you brainstorm an
 idea are the Markdown file `prompts/brainstorm-default.md`; the app adds its own fixed rules after it

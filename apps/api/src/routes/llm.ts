@@ -20,17 +20,26 @@ export function toLlmHttpError(err: unknown): never {
 }
 
 /** Mounted behind `requireUser`. The API key is accepted here but never returned. */
-export function llmRoutes(llm: LlmKeyService, limiter: RateLimiter) {
-  return new Hono<AppEnv>()
-    .get('/', (c) => c.json(llm.settings(c.get('user').id)))
-    .put('/', validateJson(LlmSettingsInputSchema), async (c) => {
-      const userId = c.get('user').id
-      // Saving a key makes a paid call to the provider; don't let this be used as a key-checking oracle.
-      if (!limiter.allow(userId)) throw fail(429, 'Too many attempts. Try again later.')
-      return c.json(await llm.save(userId, c.req.valid('json')).catch(toLlmHttpError))
-    })
-    .delete('/', (c) => {
-      llm.remove(c.get('user').id)
-      return c.body(null, 204)
-    })
+export function llmRoutes(llm: LlmKeyService, limiter: RateLimiter, modelsLimiter: RateLimiter) {
+  return (
+    new Hono<AppEnv>()
+      .get('/', (c) => c.json(llm.settings(c.get('user').id)))
+      // Free for the person, but it is a call to their provider with their key, so it is throttled like the rest.
+      .get('/models', async (c) => {
+        if (!modelsLimiter.allow(c.get('user').id))
+          throw fail(429, 'Too many attempts. Try again later.')
+        const models = await llm.models(c.get('user').id).catch(toLlmHttpError)
+        return c.json({ models })
+      })
+      .put('/', validateJson(LlmSettingsInputSchema), async (c) => {
+        const userId = c.get('user').id
+        // Saving a key makes a paid call to the provider; don't let this be used as a key-checking oracle.
+        if (!limiter.allow(userId)) throw fail(429, 'Too many attempts. Try again later.')
+        return c.json(await llm.save(userId, c.req.valid('json')).catch(toLlmHttpError))
+      })
+      .delete('/', (c) => {
+        llm.remove(c.get('user').id)
+        return c.body(null, 204)
+      })
+  )
 }

@@ -52,6 +52,16 @@ export const server = setupServer(
       keyHint: '…7890',
     }),
   ),
+  // The models the provider offers the saved key (the account page lists them).
+  http.get('*/api/llm/models', () =>
+    HttpResponse.json({
+      models: [
+        { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
+        { id: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+        { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
+      ],
+    }),
+  ),
   // No feeds yet, and so no recent posts.
   http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json([])),
   // An empty reading list (the publication's, which the Read page shows).

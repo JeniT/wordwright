@@ -1,5 +1,5 @@
 import {
-  LLM_MODELS,
+  DEFAULT_LLM_MODEL,
   LLM_PROVIDER_IDS,
   type LLMProvider,
   type LLMProviderId,
@@ -27,10 +27,10 @@ export function choiceFromEnv(env: NodeJS.ProcessEnv = process.env): AdapterChoi
 
 export function defaultModel(provider: string): string {
   if (provider === 'fake') return 'fake'
-  const models = LLM_MODELS[provider as LLMProviderId]
-  if (!models)
+  const model = DEFAULT_LLM_MODEL[provider as LLMProviderId]
+  if (!model)
     throw new Error(`Unknown provider "${provider}". Known: ${LLM_PROVIDER_IDS.join(', ')}, fake`)
-  return models[0].id
+  return model
 }
 
 /**

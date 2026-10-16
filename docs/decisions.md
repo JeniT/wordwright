@@ -1792,3 +1792,23 @@ is in the way. Confirming does the move (`POST …/move/ideas`) and opens the id
   pages remain without text. The seen list is on the server, so it follows the person to another device, and capped.
 - **Notices.** The email banner became the first of two kinds in a bar inside the content column: **warn** (needs action,
   accent) and **info** (an offer, quiet). Info is held back on the editor so nothing interrupts writing.
+
+## The model is chosen from what the provider offers the key (#206)
+
+The hard-coded `LLM_MODELS` list (three models, our own "balanced / cheapest" labels) is gone. `LLMProvider.listModels()`
+asks the provider, so a new model appears without a code change and the labels are the provider's own. We kept a curated
+list for a while on the grounds that we had run the evals against those models; but the evals are best-efforts smoke
+tests and nobody runs them for every model, so the list gave a false sense of testing and a release's delay. A new model
+is still the person's choice and their money, so nothing is chosen for them except the default (`DEFAULT_LLM_MODEL`,
+used while it is offered).
+
+- Listing costs no tokens, so it also replaces the one-token `complete()` call that used to check a new key. The same
+  call checks a chosen model against the live list on save; a model-only change uses the stored key. Failures read like
+  the old ones: a rejected key is 400, an unreachable provider 502.
+- The list needs a key, so the choice appears only once one is saved (a first key sends no model; the server uses the
+  default if offered, else the first listed). A saved model the provider no longer offers stays selected with a note,
+  rather than being silently swapped.
+- `GET /api/llm/models` is throttled (30 a minute) because each call goes to the person's own provider account. The page
+  fetches the list once and keeps it for five minutes.
+- Adapters must implement `listModels()` and pass the new case in the contract suite. The Anthropic adapter keeps only
+  ids starting `claude-`.

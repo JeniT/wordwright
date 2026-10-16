@@ -1,9 +1,9 @@
 import {
   DEFAULT_LLM_MODEL,
-  LLM_MODELS,
   LLMAuthError,
   type LLMConfig,
   type LLMFactory,
+  type LLMModelInfo,
   type LLMProvider,
   type LlmSettings,
   type LlmSettingsInput,
@@ -48,47 +48,47 @@ export class LlmKeyService {
     return { provider: stored.provider, model: stored.model, hasKey: true, keyHint: stored.keyHint }
   }
 
-  /** Saves a new key (after checking it works) and/or a different model. */
+  /** The models the stored key can use, asked of the provider. */
+  async models(userId: string): Promise<LLMModelInfo[]> {
+    return this.listModels(
+      this.config(userId),
+      'Your saved API key was rejected by the provider. Replace it.',
+    )
+  }
+
+  /**
+   * Saves a new key and/or a different model. A key is checked by listing the models it can use, which spends no
+   * tokens, and a model must be one of those, so a typo or a retired model fails now rather than mid-draft.
+   */
   async save(userId: string, input: LlmSettingsInput): Promise<LlmSettings> {
-    const { store, box, factory } = this.d
-    if (!LLM_MODELS[input.provider].some((m) => m.id === input.model)) {
-      throw new LlmError('invalid_model', 'Unknown model')
-    }
+    const { store, box } = this.d
+    const stored = store.credentials.get(userId)
 
     if (input.apiKey === undefined) {
-      if (!store.credentials.get(userId)) throw new LlmError('missing_key', 'Enter an API key')
-      store.credentials.setModel(userId, input.model)
+      if (!stored) throw new LlmError('missing_key', 'Enter an API key')
+      const models = await this.models(userId)
+      store.credentials.setModel(userId, this.pickModel(models, input.model, stored.model))
       return this.settings(userId)
     }
 
-    // Prove the key works before keeping it, so typos fail now rather than mid-draft.
-    try {
-      await factory({
+    const models = await this.listModels(
+      {
         provider: input.provider,
         apiKey: input.apiKey,
-        model: input.model,
-      }).complete({
-        messages: [{ role: 'user', content: 'ping' }],
-        maxTokens: 1,
-      })
-    } catch (err) {
-      if (err instanceof LLMAuthError) {
-        throw new LlmError(
-          'key_rejected',
-          'That API key was rejected by the provider. Please check it.',
-        )
-      }
-      throw new LlmError(
-        'provider_unreachable',
-        "Couldn't reach the provider to check the key. Try again.",
-      )
-    }
-
+        model: input.model ?? DEFAULT_LLM_MODEL[input.provider],
+      },
+      'That API key was rejected by the provider. Please check it.',
+    )
+    const model = this.pickModel(
+      models,
+      input.model,
+      stored?.model ?? DEFAULT_LLM_MODEL[input.provider],
+    )
     store.credentials.save(userId, {
       provider: input.provider,
       encryptedKey: box.encrypt(input.apiKey, context(userId, input.provider)),
       keyHint: `…${input.apiKey.slice(-4)}`,
-      model: input.model,
+      model,
     })
     return this.settings(userId)
   }
@@ -121,6 +121,38 @@ export class LlmKeyService {
   /** An LLM client that spends this user's credits. */
   resolve(userId: string): LLMProvider {
     return this.d.factory(this.config(userId))
+  }
+
+  /** What was asked for if it is on offer; with no ask, the current model, else the first one offered. */
+  private pickModel(models: LLMModelInfo[], asked: string | undefined, current: string): string {
+    if (models.length === 0) {
+      throw new LlmError(
+        'invalid_model',
+        'The provider offers no models to this key. Check the key’s access.',
+      )
+    }
+    if (asked !== undefined) {
+      if (!models.some((m) => m.id === asked)) {
+        throw new LlmError(
+          'invalid_model',
+          'That model isn’t available to your key. Choose another.',
+        )
+      }
+      return asked
+    }
+    return models.some((m) => m.id === current) ? current : models[0]!.id
+  }
+
+  private async listModels(config: LLMConfig, rejected: string): Promise<LLMModelInfo[]> {
+    try {
+      return await this.d.factory(config).listModels()
+    } catch (err) {
+      if (err instanceof LLMAuthError) throw new LlmError('key_rejected', rejected)
+      throw new LlmError(
+        'provider_unreachable',
+        'Couldn’t reach the provider to check the key. Try again.',
+      )
+    }
   }
 
   private config(userId: string): LLMConfig {

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { DEFAULT_LLM_MODEL, LLM_MODELS } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import HoldButton from './HoldButton.vue'
@@ -10,6 +9,7 @@ import ProviderPrivacyAdvice from './ProviderPrivacyAdvice.vue'
 import TextField from './TextField.vue'
 import SaveStatus from './SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
+import { queryKeys, useLlmModels } from '../lib/queries'
 
 const props = defineProps<{
   /** First-time setup: step-by-step instructions, and just the key field (the default model is used). */
@@ -19,25 +19,36 @@ const emit = defineEmits<{ saved: [] }>()
 
 const queryClient = useQueryClient()
 const llm = useQuery({ queryKey: ['llm'], queryFn: () => api.getLlmSettings() })
-// A valid default, so the form can never submit an empty model before settings arrive.
-const model = useSavedValue<string>(() => llm.data.value?.model, DEFAULT_LLM_MODEL.anthropic)
+// The provider lists the models for a key, so the choice only exists once there is one.
+const hasKey = computed(() => !props.guide && llm.data.value?.hasKey === true)
+const models = useLlmModels(() => hasKey.value)
+const model = useSavedValue<string>(() => llm.data.value?.model, '')
+const offered = computed(() => models.data.value?.models ?? [])
+const retired = computed(
+  () => models.isSuccess.value && !!model.value && !offered.value.some((m) => m.id === model.value),
+)
 const apiKey = ref('')
 const saveLlm = useMutation({
   mutationFn: () =>
     api.saveLlmSettings({
       provider: 'anthropic',
-      model: model.value,
+      // Left out until there is a list to choose from: the server keeps the current model, or picks one.
+      model: hasKey.value && models.isSuccess.value && model.value ? model.value : undefined,
       apiKey: apiKey.value.trim() || undefined,
     }),
   onSuccess: (settings) => {
     apiKey.value = ''
     queryClient.setQueryData(['llm'], settings)
+    queryClient.invalidateQueries({ queryKey: queryKeys.llmModels() })
     emit('saved')
   },
 })
 const removeLlmKey = useMutation({
   mutationFn: () => api.removeLlmKey(),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['llm'] }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['llm'] })
+    queryClient.removeQueries({ queryKey: queryKeys.llmModels() })
+  },
 })
 </script>
 
@@ -84,14 +95,6 @@ const removeLlmKey = useMutation({
       <template v-else>No API key yet.</template>
     </p>
     <form @submit.prevent="saveLlm.mutate()">
-      <div v-if="!props.guide" class="mb-4">
-        <label for="llm-model" class="mb-1 block text-sm font-medium">Model</label>
-        <select id="llm-model" v-model="model" class="field">
-          <option v-for="m in LLM_MODELS.anthropic" :key="m.id" :value="m.id">
-            {{ m.label }}
-          </option>
-        </select>
-      </div>
       <TextField
         v-model="apiKey"
         :label="
@@ -103,6 +106,29 @@ const removeLlmKey = useMutation({
         autocomplete="off"
         :required="!llm.data.value?.hasKey"
       />
+      <div v-if="hasKey" class="mb-4">
+        <label for="llm-model" class="mb-1 block text-sm font-medium">Model</label>
+        <p v-if="models.isPending.value" class="text-ink-soft">Loading…</p>
+        <template v-else-if="models.isError.value">
+          <p>{{ model }}</p>
+          <p role="alert" class="mt-1 text-danger">
+            Couldn’t load models.
+            <button type="button" class="link" @click="models.refetch()">Try again</button>
+          </p>
+        </template>
+        <template v-else>
+          <select id="llm-model" v-model="model" class="field">
+            <option v-if="retired" :value="model">{{ model }}</option>
+            <option v-for="m in offered" :key="m.id" :value="m.id">{{ m.label }}</option>
+          </select>
+          <p v-if="retired" role="alert" class="mt-1 text-danger">
+            This model is no longer offered. Choose another.
+          </p>
+        </template>
+      </div>
+      <p v-else-if="!props.guide" class="mb-4 text-sm text-ink-soft">
+        Save a key to choose a model.
+      </p>
       <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"
