@@ -51,7 +51,7 @@ describe('migrations', () => {
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    migrate(db, 'test', MIGRATIONS.slice(0, -2)) // before the sessions migration (the last but one)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -136,6 +136,8 @@ describe('migrations', () => {
       INSERT INTO drafts (id, publication_id, idea_id, title, body, created_at, updated_at) VALUES ('d', 'p', 'i', 't', 'b', 'x', 'x');
       INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', NULL, 'https://x.example', 'x', 'x');
       INSERT INTO publication_aliases VALUES ('u1-old', 'p');
+      INSERT INTO publications (id, name, created_at) VALUES ('q', 'Q', 'x');
+      INSERT INTO moves (id, batch_id, publication_id, moved_at, kind, item_id, to_publication_id) VALUES ('m', 'b', 'q', 'x', 'reading', 'l', 'p');
     `)
     db.exec("DELETE FROM publications WHERE id = 'p'")
     for (const table of [
@@ -144,6 +146,7 @@ describe('migrations', () => {
       'drafts',
       'idea_links',
       'publication_aliases',
+      'moves', // the log of a move out of another publication goes with the one it went into
     ]) {
       expect(db.prepare(`SELECT count(*) AS n FROM ${table}`).get(), table).toEqual({ n: 0 })
     }

@@ -207,13 +207,16 @@ export class ReadingStore {
    * Hands an item to an idea, or to the publication (`null`). It keeps everything else about it, except that it starts
    * afresh on the publication's list (its month begins again, and it is no longer kept) and an idea's list has no keeping.
    */
-  setOwner(publicationId: string, id: string, ideaId: string | null) {
+  setOwner(publicationId: string, id: string, toPublicationId: string, ideaId: string | null) {
+    // A feed belongs to one publication, so an item that leaves it no longer comes from one.
     this.db
       .prepare(
-        `UPDATE idea_links SET idea_id = ?, kept = 0, created_at = CASE WHEN ? IS NULL THEN ? ELSE created_at END
+        `UPDATE idea_links SET publication_id = ?, idea_id = ?, kept = 0,
+           source_id = CASE WHEN publication_id = ? THEN source_id END,
+           created_at = CASE WHEN ? IS NULL THEN ? ELSE created_at END
          WHERE publication_id = ? AND id = ?`,
       )
-      .run(ideaId, ideaId, nowIso(), publicationId, id)
+      .run(toPublicationId, ideaId, toPublicationId, ideaId, nowIso(), publicationId, id)
   }
 
   /** Asks for an item of the publication's own list to be kept (or not). */

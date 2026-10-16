@@ -136,6 +136,11 @@ tests inject fakes and nothing hits the network.
   that the pages they were taken from are copied to the destination's reading list (the originals stay); a tick
   offers to bring the other notes taken from those pages too. Notes are moved, not copied, in the order you arranged
   them, with their tags and quotation marks. **Undo** moves them back (to the end of where they were).
+  **Between publications:** someone who belongs to more than one publication also gets **Another publication…** in **Move
+  to** (reading items and notes alike): choose the publication, then its own list, one of its ideas or a new idea there.
+  Any member of both may do it; one who isn't a member of the destination gets "Not found". Everything above carries over
+  (items with the same address are joined, a note's source is copied, the limits apply to the destination), and **Undo**
+  works while you belong to both (`to: { ideaId, publicationId }` on `POST /api/publications/:id/move/…`).
   **Read items are hidden by default** on every reading list (an idea's and the publication's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.

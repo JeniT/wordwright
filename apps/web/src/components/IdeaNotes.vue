@@ -220,7 +220,13 @@ async function moveChosen() {
   const target = await dest.resolve()
   if (!target) return
   mover.moveNotes.mutate(
-    { ids, from: props.ideaId, to: target.to, toName: target.name },
+    {
+      ids,
+      from: props.ideaId,
+      to: target.to,
+      toPublicationId: target.toPublicationId,
+      toName: target.name,
+    },
     {
       onSuccess: () => {
         moving.value = false
@@ -454,6 +460,8 @@ const label = (note: IdeaNote) => {
                     <MoveTo
                       v-model:destination="dest.destination"
                       v-model:new-idea-name="dest.newIdeaName"
+                      v-model:other-publication="dest.otherPublicationId"
+                      v-model:other-destination="dest.otherDestination"
                       :dest="dest"
                       :from-idea="!!ideaId"
                       publication-label="The publication’s notes"

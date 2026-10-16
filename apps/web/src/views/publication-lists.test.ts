@@ -548,6 +548,147 @@ describe('moving reading items', () => {
   })
 })
 
+describe('moving to another publication', () => {
+  const poems = { ...publication, id: 'ada-poems', name: 'Poems' }
+  const poemIdeas = [
+    { id: 'p1', name: 'Sonnets', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
+  ]
+  const result = { batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 }
+  /** Two publications, the ideas of each, and both publications' move endpoints, remembering what they were sent. */
+  function fake(publications = [publication, poems]) {
+    const state = fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
+    const moves: { via: string; body: unknown }[] = []
+    server.use(
+      http.get('*/api/publications', () => HttpResponse.json(publications)),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-poems/ideas', () => HttpResponse.json(poemIdeas)),
+      http.post('*/api/publications/:id/move/reading', async ({ params, request }) => {
+        const body = (await request.json()) as { ids: string[] }
+        moves.push({ via: params.id as string, body })
+        if (params.id === 'ada-substack')
+          state.links = state.links.filter((l) => !body.ids.includes(l.id))
+        return HttpResponse.json(result)
+      }),
+    )
+    return { moves }
+  }
+  const start = async () => {
+    await renderAt('/p/ada-substack/reading')
+    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select A paper' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+  }
+
+  it('offers no way into another publication to someone who has only one', async () => {
+    fake([publication])
+    await start()
+    const select = await screen.findByLabelText('Move to')
+    expect(within(select).queryByRole('option', { name: /Another publication/ })).toBeNull()
+    expect(screen.queryByLabelText('Which publication')).toBeNull()
+  })
+
+  it('adds an optional step for someone with several: a publication, then somewhere in it', async () => {
+    const f = fake()
+    await start()
+    const select = await screen.findByLabelText('Move to')
+    // Nothing changes for the common move: the ideas are listed as before.
+    expect(screen.queryByLabelText('Which publication')).toBeNull()
+    await fireEvent.update(select, '__other')
+    const publicationSelect = await screen.findByLabelText('Which publication')
+    expect(within(publicationSelect).queryByRole('option', { name: 'Substack' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Move 1 item' })).toBeDisabled()
+    await fireEvent.update(publicationSelect, 'ada-poems')
+    const into = await screen.findByLabelText('Move into')
+    expect(within(into).getByRole('option', { name: 'Sonnets' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Move 1 item' })).toBeDisabled()
+    await fireEvent.update(into, 'publication')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Moved 1 item to “Poems”’s reading list.',
+    )
+    expect(f.moves).toEqual([
+      {
+        via: 'ada-substack',
+        body: { ids: ['l1'], to: { ideaId: null, publicationId: 'ada-poems' } },
+      },
+    ])
+  })
+
+  it('puts them back with Undo, asking the publication they went to', async () => {
+    const f = fake()
+    await start()
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
+    await fireEvent.update(await screen.findByLabelText('Move into'), 'p1')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('to “Sonnets” in “Poems”.')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(f.moves).toHaveLength(2))
+    expect(f.moves[1]).toEqual({
+      via: 'ada-poems',
+      body: { ids: ['l1'], to: { ideaId: null, publicationId: 'ada-substack' } },
+    })
+  })
+
+  it('says so while the other publication’s ideas load, and when they could not be', async () => {
+    fake()
+    server.use(
+      http.get('*/api/publications/ada-poems/ideas', () =>
+        HttpResponse.json({ error: 'x' }, { status: 500 }),
+      ),
+    )
+    await start()
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
+    expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load the ideas of “Poems”")
+    expect(screen.queryByLabelText('Move into')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Move 1 item' })).toBeDisabled()
+  })
+
+  it('shows a loading message while the other publication’s ideas load', async () => {
+    fake()
+    server.use(http.get('*/api/publications/ada-poems/ideas', () => new Promise(() => {})))
+    await start()
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
+    expect(await screen.findByText('Loading its ideas…')).toBeInTheDocument()
+  })
+
+  it('names a new idea in the other publication, which is made there', async () => {
+    const f = fake()
+    const created: string[] = []
+    server.use(
+      http.post('*/api/publications/ada-poems/ideas', async ({ request }) => {
+        created.push(((await request.json()) as { name: string }).name)
+        return HttpResponse.json(
+          {
+            id: 'new9',
+            publicationId: 'ada-poems',
+            name: 'Odes',
+            notes: '',
+            links: [],
+            drafts: [],
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+          { status: 201 },
+        )
+      }),
+    )
+    await start()
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
+    await fireEvent.update(await screen.findByLabelText('Move into'), '__new')
+    await fireEvent.update(screen.getByLabelText("What's your core idea?"), 'Odes')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
+    await waitFor(() => expect(f.moves).toHaveLength(1))
+    expect(created).toEqual(['Odes'])
+    expect(f.moves[0]!.body).toEqual({
+      ids: ['l1'],
+      to: { ideaId: 'new9', publicationId: 'ada-poems' },
+    })
+  })
+})
+
 describe('selecting, bulk actions and pages on the reading list', () => {
   const seven = () =>
     Array.from({ length: 7 }, (_, i) => link(`l${i + 1}`, `Link ${i + 1}`, { origin: 'feed' }))
@@ -825,6 +966,26 @@ describe('moving notes', () => {
       'The page they were taken from will be copied to its reading list',
     )
     expect(says()).toHaveTextContent('the originals stay where they are')
+  })
+
+  it('moves notes into another publication, with the source copied there', async () => {
+    const f = fake()
+    server.use(
+      http.get('*/api/publications', () =>
+        HttpResponse.json([publication, { ...publication, id: 'ada-poems', name: 'Poems' }]),
+      ),
+      http.get('*/api/publications/ada-poems/ideas', () => HttpResponse.json([])),
+    )
+    await open()
+    await tick('Typed thought')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
+    await fireEvent.update(await screen.findByLabelText('Move into'), 'publication')
+    expect(says()).toHaveTextContent('1 note will move to “Poems”’s notes.')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
+    await waitFor(() => expect(f.moves).toHaveLength(1))
+    expect(f.moves[0]).toMatchObject({ to: { ideaId: null, publicationId: 'ada-poems' } })
   })
 
   it('moves the chosen notes, says what moved, and puts them back with Undo', async () => {

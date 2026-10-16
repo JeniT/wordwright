@@ -542,6 +542,12 @@ export const MIGRATIONS: Migration[] = [
   UPDATE sessions SET id = lower(hex(randomblob(16))), last_used_at = created_at;
   CREATE UNIQUE INDEX sessions_id ON sessions(id);
   `,
+  // A move can now cross publications: publication_id is where the thing came from, and this is where it went (null
+  // when that was the same publication). The log concerns both, so it goes with either.
+  `
+  ALTER TABLE moves ADD COLUMN to_publication_id TEXT REFERENCES publications(id) ON DELETE CASCADE;
+  CREATE INDEX moves_to_publication ON moves(to_publication_id) WHERE to_publication_id IS NOT NULL;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

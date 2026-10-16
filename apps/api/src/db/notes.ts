@@ -93,18 +93,25 @@ export class NoteStore {
   }
 
   /**
-   * Hands a note to an idea, or to the publication (`null`), at the end of that list, pointing at `readingItemId`
-   * there (or at no item). Clears "added", since it hasn't been put into any of the new owner's drafts.
+   * Hands a note of `publicationId` to an idea of `toPublicationId`, or to that publication (`null`), at the end of
+   * that list, pointing at `readingItemId` there (or at no item). Clears "added", since it hasn't been put into any of
+   * the new owner's drafts.
    */
-  moveTo(publicationId: string, id: string, ideaId: string | null, readingItemId: string | null) {
-    const w = owned(ideaId ?? { publicationId })
+  moveTo(
+    publicationId: string,
+    id: string,
+    toPublicationId: string,
+    ideaId: string | null,
+    readingItemId: string | null,
+  ) {
+    const w = owned(ideaId ?? { publicationId: toPublicationId })
     this.db
       .prepare(
-        `UPDATE idea_notes SET idea_id = ?, reading_item_id = ?, added_at = NULL, updated_at = ?,
+        `UPDATE idea_notes SET publication_id = ?, idea_id = ?, reading_item_id = ?, added_at = NULL, updated_at = ?,
            position = (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql})
          WHERE publication_id = ? AND id = ?`,
       )
-      .run(ideaId, readingItemId, nowIso(), ...w.args, publicationId, id)
+      .run(toPublicationId, ideaId, readingItemId, nowIso(), ...w.args, publicationId, id)
   }
 
   /** Adds a note after the others. */

@@ -403,3 +403,50 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await expect(page.getByText(/^Moved back\./)).toBeVisible()
   await expect(notes.getByText('Bends migrate downstream.')).toBeVisible()
 })
+
+test('moves a note into another of the writer’s publications, and puts it back', async ({
+  page,
+}) => {
+  await signUpWithPublication(page)
+  const idOf = () => new URL(page.url()).pathname.split('/')[2]!
+  const first = idOf()
+  await goTo(page, 'Notes')
+  await page.getByLabel('Add a note', { exact: true }).fill('Belongs elsewhere')
+  await page.getByRole('button', { name: 'Add note', exact: true }).click()
+  await expect(page.getByText('Belongs elsewhere')).toBeVisible()
+
+  // A second publication, so that "Another publication…" is offered.
+  await page.goto('/')
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Name', { exact: true }).fill('Elsewhere')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+  const second = idOf()
+
+  await page.goto(`/p/${first}/notes`)
+  await page.getByRole('checkbox', { name: /^Select note “Belongs elsewhere/ }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
+  await page.getByLabel('Move to').selectOption({ label: 'Another publication…' })
+  await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
+  await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
+  await noViolations(page, 'choosing another publication to move to')
+  await page.getByRole('button', { name: 'Move 1 note' }).click()
+  await expect(page.getByText(/^Moved 1 note to “Elsewhere”’s notes\./)).toBeVisible()
+  await expect(page.getByText('Belongs elsewhere')).toHaveCount(0)
+
+  // Undo asks the publication it went to to send it back.
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(page.getByText(/^Moved back\./)).toBeVisible()
+  await expect(page.getByText('Belongs elsewhere')).toBeVisible()
+
+  // Moved again, it is there.
+  await page.getByRole('checkbox', { name: /^Select note “Belongs elsewhere/ }).check()
+  await page.getByRole('button', { name: 'Move to…' }).click()
+  await page.getByLabel('Move to').selectOption({ label: 'Another publication…' })
+  await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
+  await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
+  await page.getByRole('button', { name: 'Move 1 note' }).click()
+  await expect(page.getByText(/^Moved 1 note to “Elsewhere”’s notes\./)).toBeVisible()
+  await page.goto(`/p/${second}/notes`)
+  await expect(page.getByText('Belongs elsewhere')).toBeVisible()
+})

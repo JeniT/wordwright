@@ -94,10 +94,10 @@ export function moveRoutes(moves: MoveService) {
   return new Hono<AppEnv>()
     .post('/reading', validateJson(MoveReadingInputSchema), (c) => {
       const { ids, to } = c.req.valid('json')
-      return c.json(moves.moveReading(param(c, 'publicationId'), c.get('user').id, ids, to.ideaId))
+      return c.json(moves.moveReading(param(c, 'publicationId'), c.get('user').id, ids, to))
     })
     .post('/notes', validateJson(MoveNotesInputSchema), (c) => {
       const { ids, to } = c.req.valid('json')
-      return c.json(moves.moveNotes(param(c, 'publicationId'), c.get('user').id, ids, to.ideaId))
+      return c.json(moves.moveNotes(param(c, 'publicationId'), c.get('user').id, ids, to))
     })
 }

@@ -36,6 +36,7 @@ import {
   ResearchRunsSchema,
   SourceChoicesSchema,
   MoveResultSchema,
+  type MoveTarget,
   PostDecisionSchema,
   RecentPostsSchema,
   SourceItemsSchema,
@@ -412,20 +413,15 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
         `/publications/${publicationId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
       ),
     /**
-     * Moves reading items between the publication's own list (`ideaId` null) and its ideas, with the notes taken from
-     * them. All or nothing. Answers with what moved.
+     * Moves reading items between the publication's own list (`ideaId` null) and its ideas, or into another
+     * publication the person belongs to (`publicationId`), with the notes taken from them. All or nothing. Answers
+     * with what moved.
      */
-    moveReadingItems: (publicationId: string, ids: string[], ideaId: string | null) =>
-      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/reading`, {
-        ids,
-        to: { ideaId },
-      }),
+    moveReadingItems: (publicationId: string, ids: string[], to: MoveTarget) =>
+      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/reading`, { ids, to }),
     /** Moves notes the same way (each keeps its source, copied to where it goes). */
-    moveNotes: (publicationId: string, ids: string[], ideaId: string | null) =>
-      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/notes`, {
-        ids,
-        to: { ideaId },
-      }),
+    moveNotes: (publicationId: string, ids: string[], to: MoveTarget) =>
+      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/notes`, { ids, to }),
     /**
      * Puts posts of the combined list on the publication's reading list (`add`), ignores them, or takes either back
      * (`reconsider`). Each post is named by its feed and its id in it. Answers with what each has become.

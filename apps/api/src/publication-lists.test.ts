@@ -619,6 +619,173 @@ describe('moving notes', () => {
   })
 })
 
+describe('moving between publications', () => {
+  let s: Awaited<ReturnType<typeof start>>
+  let other: string // a second publication of Ada's
+  let otherApi: string
+  const post = (kind: 'reading' | 'notes', ids: string[], to: object, via = s.api) =>
+    s.ada.post(`${via}/move/${kind}`, { ids, to })
+  const item = async (url: string, extra: object = {}): Promise<Link> =>
+    (await s.ada.post(s.reading(), { url, title: url.replace('https://', ''), ...extra }))
+      .json()
+      .then((l: Link[]) => l.find((x) => x.url === url)!)
+  const otherLinks = async (): Promise<Link[]> => (await s.ada.get(`${otherApi}/reading`)).json()
+  const otherNotes = async (): Promise<Note[]> => (await s.ada.get(`${otherApi}/notes`)).json()
+  beforeEach(async () => {
+    s = await start()
+    other = (await (await s.ada.post('/api/publications', { name: 'Second' })).json()).id
+    otherApi = `/api/publications/${other}`
+  })
+
+  it('moves an item with its notes to the other publication’s list, or to one of its ideas', async () => {
+    const a = await item('https://a.example/post', { authors: ['Ada'] })
+    const note = await (
+      await s.ada.post(s.notes(), { text: 'About A', readingItemId: a.id, tags: [] })
+    ).json()
+    const res = await post('reading', [a.id], { ideaId: null, publicationId: other })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ readingItems: 1, merged: 0, notes: 1 })
+    expect(await s.links()).toEqual([])
+    expect(await s.noteList()).toEqual([])
+    expect((await otherLinks()).map((l) => [l.id, l.authors])).toEqual([[a.id, ['Ada']]])
+    expect((await otherNotes()).map((n) => [n.id, n.readingItemId])).toEqual([[note.id, a.id]])
+
+    const idea = (await (await s.ada.post(`${otherApi}/ideas`, { name: 'Elsewhere' })).json()).id
+    const b = await item('https://b.example/post')
+    await post('reading', [b.id], { ideaId: idea, publicationId: other })
+    expect(
+      (await (await s.ada.get(`${otherApi}/ideas/${idea}`)).json()).links.map((l: Link) => l.id),
+    ).toEqual([b.id])
+  })
+
+  it('moves notes, copying their source and joining the same address already there', async () => {
+    const a = await item('https://a.example/post')
+    const b = await item('https://b.example/post')
+    s.ctx.store.reading.add(other, null, { url: 'https://b.example/post', title: 'B' })
+    const na = await (await s.ada.post(s.notes(), { text: 'A', readingItemId: a.id })).json()
+    const nb = await (await s.ada.post(s.notes(), { text: 'B', readingItemId: b.id })).json()
+    const res = await post('notes', [na.id, nb.id], { ideaId: null, publicationId: other })
+    expect(await res.json()).toMatchObject({ notes: 2, copied: 1 })
+    const links = await otherLinks()
+    expect(links.map((l) => l.url).sort()).toEqual([
+      'https://a.example/post',
+      'https://b.example/post',
+    ])
+    const there = new Map(links.map((l) => [l.url, l.id]))
+    expect((await otherNotes()).map((n) => [n.text, n.readingItemId])).toEqual([
+      ['A', there.get('https://a.example/post')],
+      ['B', there.get('https://b.example/post')],
+    ])
+    // The sources stay where the notes came from.
+    expect((await s.links()).map((l) => l.id).sort()).toEqual([a.id, b.id].sort())
+    expect(await s.noteList()).toEqual([])
+  })
+
+  it('joins an item with the one of the same address already in the other publication', async () => {
+    const a = await item('https://a.example/post')
+    const there = s.ctx.store.reading.add(other, null, {
+      url: 'https://a.example/post',
+      title: 'A',
+    })
+    const note = await (await s.ada.post(s.notes(), { text: 'A', readingItemId: a.id })).json()
+    const res = await post('reading', [a.id], { ideaId: null, publicationId: other })
+    expect(await res.json()).toMatchObject({ readingItems: 1, merged: 1, notes: 1 })
+    expect((await otherLinks()).map((l) => l.id)).toEqual([there.id])
+    expect((await otherNotes()).map((n) => [n.id, n.readingItemId])).toEqual([[note.id, there.id]])
+    expect(await s.links()).toEqual([])
+  })
+
+  it('applies the destination’s limits', async () => {
+    const idea = (await (await s.ada.post(`${otherApi}/ideas`, { name: 'Full' })).json()).id
+    for (let i = 0; i < MAX_IDEA_NOTES; i++) {
+      s.ctx.store.notes.append(other, idea, null, `n${i}`)
+    }
+    const n = await (await s.ada.post(s.notes(), { text: 'one too many' })).json()
+    const res = await post('notes', [n.id], { ideaId: idea, publicationId: other })
+    expect(res.status).toBe(409)
+    expect((await s.noteList()).map((x) => x.id)).toEqual([n.id])
+  })
+
+  it('can be undone from the other side, by a member of both', async () => {
+    const a = await item('https://a.example/post')
+    const note = await (await s.ada.post(s.notes(), { text: 'N', readingItemId: a.id })).json()
+    await post('reading', [a.id], { ideaId: null, publicationId: other })
+    const back = await post(
+      'reading',
+      [a.id],
+      { ideaId: null, publicationId: s.publication },
+      otherApi,
+    )
+    expect(back.status).toBe(200)
+    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.noteList()).map((n) => n.id)).toEqual([note.id])
+    expect(await otherLinks()).toEqual([])
+  })
+
+  it('refuses a publication the person is not a member of, as if it did not exist, changing nothing', async () => {
+    const bob = s.ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    const bobs = (await (await bob.get('/api/publications')).json())[0].id as string
+    const a = await item('https://a.example/post')
+    const n = await (await s.ada.post(s.notes(), { text: 'N' })).json()
+    for (const publicationId of [bobs, 'no-such-publication']) {
+      const r = await post('reading', [a.id], { ideaId: null, publicationId })
+      expect(r.status).toBe(404)
+      expect((await post('notes', [n.id], { ideaId: null, publicationId })).status).toBe(404)
+      expect(await r.json()).toEqual({ error: 'Not found' })
+    }
+    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.noteList()).map((x) => x.id)).toEqual([n.id])
+    expect(await (await bob.get(`/api/publications/${bobs}/reading`)).json()).toEqual([])
+  })
+
+  it('refuses someone who belongs only to the source, and an idea that is in neither publication', async () => {
+    const bob = s.ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    verifyAccounts(s.ctx, 'ada@example.com')
+    await sharePublication(s.ctx, s.ada, s.publication, bob, 'bob@example.com')
+    const a = await item('https://a.example/post')
+    // Bob can move within the shared publication but not into Ada's other one.
+    const r = await bob.post(`${s.api}/move/reading`, {
+      ids: [a.id],
+      to: { ideaId: null, publicationId: other },
+    })
+    expect(r.status).toBe(404)
+    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    // An idea of the source publication is not a destination in the other one.
+    const idea = await s.newIdea()
+    expect((await post('reading', [a.id], { ideaId: idea, publicationId: other })).status).toBe(404)
+  })
+
+  it('records both sides in the log', async () => {
+    const a = await item('https://a.example/post')
+    const { batchId } = await (
+      await post('reading', [a.id], { ideaId: null, publicationId: other })
+    ).json()
+    for (const publication of [s.publication, other]) {
+      expect(s.ctx.store.moves.list(publication)).toEqual([
+        expect.objectContaining({ kind: 'reading', itemId: a.id, toPublicationId: other, batchId }),
+      ])
+    }
+    // A move within the publication records no destination publication.
+    const b = await item('https://b.example/post')
+    const idea = await s.newIdea()
+    await post('reading', [b.id], { ideaId: idea })
+    expect(s.ctx.store.moves.list(s.publication)[0]).toMatchObject({
+      itemId: b.id,
+      toPublicationId: null,
+    })
+  })
+
+  it('goes from the log of both publications when either is deleted', async () => {
+    const a = await item('https://a.example/post')
+    await post('reading', [a.id], { ideaId: null, publicationId: other })
+    expect(s.ctx.store.moves.list(s.publication)).toHaveLength(1)
+    await s.ada.delete(otherApi)
+    expect(s.ctx.store.moves.list(s.publication)).toEqual([])
+  })
+})
+
 describe('items dropping off the publication’s reading list after a month', () => {
   let s: Awaited<ReturnType<typeof start>>
   const DAY = 86_400_000

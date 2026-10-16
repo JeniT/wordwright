@@ -635,10 +635,15 @@ export const IdeaNoteInputSchema = z.object({
 })
 
 /**
- * Where to move reading items or notes: to an idea of the same publication, or (`null`) to the publication itself, where
- * they are kept before there is an idea.
+ * Where to move reading items or notes: to an idea, or (`null`) to the publication itself, where they are kept before
+ * there is an idea. The publication is the one the request is made to, unless `publicationId` names another that the
+ * person belongs to.
  */
-export const MoveTargetSchema = z.object({ ideaId: z.string().nullable() })
+export const MoveTargetSchema = z.object({
+  ideaId: z.string().nullable(),
+  publicationId: z.string().optional(),
+})
+export type MoveTarget = z.infer<typeof MoveTargetSchema>
 
 export const MoveReadingInputSchema = z.object({
   ids: z.array(z.string()).min(1, 'Choose at least one item').max(MAX_IDEA_LINKS),

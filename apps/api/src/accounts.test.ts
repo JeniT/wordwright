@@ -447,6 +447,15 @@ describe('account deletion', () => {
       toIdeaId: null,
       merged: false,
     })
+    // A move into it from another publication is part of its log too.
+    store.moves.record(publicationId, user.id, 'batch2', {
+      kind: 'note',
+      itemId: 'n',
+      fromIdeaId: null,
+      toIdeaId: null,
+      toPublicationId: second.id,
+      merged: false,
+    })
     store.feedDecisions.ignore(second.id, 'https://x.example/post', user.id)
     expect(store.reading.list({ publicationId: second.id })).toHaveLength(1)
     const feed = store.sources.add(second.id, 'https://news.example/feed')
