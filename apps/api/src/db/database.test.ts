@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it } from 'vitest'
 import { DatabaseError, MIGRATIONS, migrate, openDatabase } from './database'
+import { PUBLICATION_REFERENCES } from './publications'
 
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -96,6 +97,25 @@ describe('migrations', () => {
       ).length
       expect(leading + primary, `${table} needs an index on publication_id`).toBeGreaterThan(0)
     }
+  })
+
+  it('lists, for renaming a publication, every column that references one', () => {
+    const db = openDatabase(':memory:')
+    const referencing = (
+      db
+        .prepare(
+          `SELECT m.name AS "table", f."from" AS "column" FROM sqlite_master m, pragma_foreign_key_list(m.name) f
+           WHERE m.type = 'table' AND f."table" = 'publications'`,
+        )
+        .all() as { table: string; column: string }[]
+    ).map((r) => `${r.table}.${r.column}`)
+    const listed = PUBLICATION_REFERENCES.map(([t, c]) => `${t}.${c}`)
+    // publication_aliases is rewritten by hand (it keeps the old ids); publications.id is the id itself.
+    expect(
+      [...referencing, 'publications.id']
+        .filter((r) => r !== 'publication_aliases.publication_id')
+        .sort(),
+    ).toEqual(listed.sort())
   })
 
   it('enforces unique usernames, and lets reviewer-only accounts have none', () => {

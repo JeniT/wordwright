@@ -20,6 +20,27 @@ export interface SiteIcon {
   data: Uint8Array
 }
 
+/**
+ * Every column that holds a publication's id, so that renaming a publication changes it everywhere at once. A new
+ * column that references `publications` must be added here; a database test compares this with the schema.
+ * (`publication_aliases.publication_id` is handled by hand, as it keeps the old ids.)
+ */
+export const PUBLICATION_REFERENCES: [table: string, column: string][] = [
+  ['publications', 'id'],
+  ['publication_members', 'publication_id'],
+  ['publication_images', 'publication_id'],
+  ['publication_site_icons', 'publication_id'],
+  ['drafts', 'publication_id'],
+  ['ideas', 'publication_id'],
+  ['idea_notes', 'publication_id'],
+  ['idea_links', 'publication_id'],
+  ['invitations', 'publication_id'],
+  ['publication_sources', 'publication_id'],
+  ['feed_post_ignores', 'publication_id'],
+  ['moves', 'publication_id'],
+  ['moves', 'to_publication_id'],
+]
+
 export class PublicationStore {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -85,8 +106,7 @@ export class PublicationStore {
     )
     if (next === id) return id
 
-    // Every table that points at a publication, so the id changes everywhere at once or not at all.
-    // A new table with a `publication_id` must be added to this list (a rename test covers each one).
+    // Every column that points at a publication, so the id changes everywhere at once or not at all.
     this.db.exec('PRAGMA defer_foreign_keys = ON') // until the transaction ends, when every reference must hold
     this.db.prepare('DELETE FROM publication_aliases WHERE old_id = ?').run(next)
     this.db
@@ -95,17 +115,7 @@ export class PublicationStore {
     this.db
       .prepare('INSERT INTO publication_aliases (old_id, publication_id) VALUES (?, ?)')
       .run(id, next)
-    for (const [table, column] of [
-      ['publications', 'id'],
-      ['publication_members', 'publication_id'],
-      ['publication_images', 'publication_id'],
-      ['publication_site_icons', 'publication_id'],
-      ['drafts', 'publication_id'],
-      ['ideas', 'publication_id'],
-      ['idea_notes', 'publication_id'],
-      ['invitations', 'publication_id'],
-      ['publication_sources', 'publication_id'],
-    ]) {
+    for (const [table, column] of PUBLICATION_REFERENCES) {
       this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(next, id)
     }
     return next

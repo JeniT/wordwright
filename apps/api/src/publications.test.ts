@@ -752,6 +752,39 @@ describe('publication site icon', () => {
     expect(after.siteIconUrl).not.toBeNull()
   })
 
+  it('keeps its reading list, notes and log of moves when it is renamed', async () => {
+    const created = await (await ada.post('/api/publications', { name: 'Garden' })).json()
+    const api = `/api/publications/${created.id}`
+    const item = (await (await ada.post(`${api}/reading`, { url: 'https://a.example/' })).json())[0]
+    await ada.post(`${api}/notes`, { text: 'A note', readingItemId: item.id })
+    const idea = await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()
+    const other = await (await ada.post('/api/publications', { name: 'Other' })).json()
+    await ada.post(`${api}/move/reading`, {
+      ids: [item.id],
+      to: { ideaId: null, publicationId: other.id },
+    })
+
+    const res = await ada.patch(api, { name: 'Allotment' })
+    expect(res.status).toBe(200)
+    const renamed = (await res.json()).id as string
+    expect(renamed).not.toBe(created.id)
+    const after = `/api/publications/${renamed}`
+    expect(await (await ada.get(`${after}/notes`)).json()).toEqual([])
+    expect(
+      (await (await ada.get(`${after}/ideas`)).json()).map((i: { id: string }) => i.id),
+    ).toEqual([idea.id])
+    // The log of the move out of it is still found, from both sides.
+    expect(ctx.store.moves.list(renamed)).toHaveLength(2) // the item and its note
+    expect(ctx.store.moves.list(other.id)).toHaveLength(2)
+    // And an item on its list still belongs to it.
+    const second = (
+      await (await ada.post(`${after}/reading`, { url: 'https://b.example/' })).json()
+    )[0]
+    expect(second.url).toBe('https://b.example/')
+    await ada.post(`${after}/move/reading`, { ids: [second.id], to: { ideaId: idea.id } })
+    expect(ctx.store.moves.list(renamed)).toHaveLength(3)
+  })
+
   it('goes with the publication, and moves with it when it is renamed', async () => {
     const created = await (
       await ada.post('/api/publications', { name: 'Garden', siteUrl: 'https://garden.example/' })
