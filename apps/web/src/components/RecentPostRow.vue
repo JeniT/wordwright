@@ -3,6 +3,7 @@ import type { RecentPost } from '@wordwright/core'
 import type { PostDecision } from '../lib/recent-posts'
 import Icon from './Icon.vue'
 import PublicationImage from './PublicationImage.vue'
+import { vTip } from '../lib/tip'
 
 /**
  * One post from a feed, with the decision to make about it (or how it was decided, and a way back). Shared by the
@@ -52,9 +53,9 @@ const when = (iso: string) =>
         >
       </div>
       <button
+        v-tip="'Reconsider'"
         type="button"
         class="btn btn-sm btn-icon btn-ghost shrink-0"
-        title="Reconsider"
         :disabled="busy"
         :aria-label="`Reconsider: ${post.title}`"
         @click="emit('decide', 'reconsider')"
@@ -84,9 +85,9 @@ const when = (iso: string) =>
       </div>
       <div class="flex shrink-0 items-start gap-2">
         <button
+          v-tip="'Add to the reading list'"
           type="button"
           class="btn btn-sm btn-icon btn-ghost"
-          title="Add to the reading list"
           :disabled="busy"
           :aria-label="`Add to the reading list: ${post.title}`"
           @click="emit('decide', 'add')"
@@ -94,9 +95,9 @@ const when = (iso: string) =>
           <Icon name="check" />
         </button>
         <button
+          v-tip="'Ignore'"
           type="button"
           class="btn btn-sm btn-icon btn-ghost"
-          title="Ignore"
           :disabled="busy"
           :aria-label="`Ignore: ${post.title}`"
           @click="emit('decide', 'ignore')"

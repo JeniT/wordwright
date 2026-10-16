@@ -39,6 +39,15 @@ afterEach(() => {
 })
 
 describe('holding with the pointer', () => {
+  it('says what it does on keyboard focus, when given a tip', async () => {
+    const { button } = setup({ tip: 'Press and hold, or tap twice, to delete this note' })
+    button.focus()
+    expect(document.querySelector('[data-tip]')).toHaveTextContent(
+      'Press and hold, or tap twice, to delete this note',
+    )
+    button.blur()
+    expect(document.querySelector('[data-tip]')).toBeNull()
+  })
   it('confirms once, when the hold has lasted long enough, and shows a filling ring meanwhile', async () => {
     const { button, onConfirm } = setup()
     await press(button)

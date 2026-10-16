@@ -987,8 +987,8 @@ describe('deleting selected notes', () => {
     const edit = screen.getByRole('button', { name: /^Edit note “One/ })
     expect(edit).toHaveClass('btn-icon')
     expect(edit).toHaveTextContent('') // an icon, named by its label
-    expect(screen.getByRole('button', { name: /^Delete note “One/ })).toHaveAttribute(
-      'title',
+    screen.getByRole('button', { name: /^Delete note “One/ }).focus()
+    expect(document.querySelector('[data-tip]')).toHaveTextContent(
       'Press and hold, or tap twice, to delete this note',
     )
   })

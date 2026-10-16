@@ -21,6 +21,7 @@ import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
 import QueryState from './QueryState.vue'
 import { useInlineEdit } from '../lib/inline-edit'
+import { vTip } from '../lib/tip'
 
 /** An idea's notes, or (no `ideaId`) the publication's own, gathered before there is an idea. */
 const props = defineProps<{
@@ -565,21 +566,21 @@ const label = (note: IdeaNote) => {
           <template #actions="{ item: note }">
             <button
               v-if="!note.quote"
+              v-tip="'Edit'"
               type="button"
               class="btn btn-sm btn-icon btn-ghost"
               :data-edit-button="note.id"
               :disabled="editingId === note.id"
-              title="Edit"
               :aria-label="`Edit ${label(note)}`"
               @click="startEditing(note)"
             >
               <Icon name="edit" />
             </button>
             <HoldButton
+              :tip="'Press and hold, or tap twice, to delete this note'"
               verb="Delete"
               class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
               :disabled="remove.isPending.value"
-              title="Press and hold, or tap twice, to delete this note"
               :aria-label="`Delete ${label(note)}`"
               @confirm="remove.mutate(note.id)"
             >

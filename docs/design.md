@@ -226,7 +226,11 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
   link), and for everything in the toolbar.
 - **Icon only** (`btn btn-sm btn-icon btn-ghost` + `Icon`, no border) for actions that repeat on every row, are rare, and have a
   universal icon: Edit (pencil), Remove (bin). Always an `aria-label` that names the item ("Remove link to A paper") and
-  a `title`; a 36px target.
+  a tooltip (`v-tip`, below); a 36px target.
+- **Tooltip on an icon-only button: `v-tip`, not `title`** (`lib/tip.ts`; on a `HoldButton`, its `tip` prop). The browser's `title`
+  shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
+  pointer moves onto it, goes on Escape (focus stays), and is `aria-hidden`: the `aria-label` is the name, the tooltip a
+  visible echo (or, for a hold-to-confirm button, the hint). A click or tap that focuses the button doesn't pop it up.
 - **Icon with text** where the icon backs up the words, as in a destructive confirmation.
 - At most one text button per row; the rest are icons.
 
@@ -261,7 +265,7 @@ lines; the actions stay top-right and wrap below on a phone. Notes are the excep
 
 **Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
-("Add to the reading list: {title}") and a **cross** ("Ignore: {title}"), each with a `title`; a decided post shows ✓ or ✗
+("Add to the reading list: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗
 and a single **undo** button ("Reconsider: {title}"). A decision made in either place updates both (they share query keys),
 and is announced in a polite live region. The list has no bulk actions, so it has no select rail or `ListToolbar`; the
 Search page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.

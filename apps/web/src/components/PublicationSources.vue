@@ -164,10 +164,10 @@ function shortName(address: string) {
         </template>
         <template #actions="{ item: source }">
           <HoldButton
+            :tip="'Press and hold, or tap twice, to remove this feed'"
             verb="Remove"
             class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
             :disabled="remove.isPending.value"
-            title="Press and hold, or tap twice, to remove this feed"
             :aria-label="`Remove ${nameOf(source)}`"
             @confirm="remove.mutate(source)"
           >

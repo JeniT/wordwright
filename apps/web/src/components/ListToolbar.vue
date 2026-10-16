@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, useId, useTemplateRef, watch, watchEffect } from 'vue'
 import Icon from './Icon.vue'
+import { vTip } from '../lib/tip'
 
 /**
  * The top of a list of items: the select-all checkbox above the rail of row checkboxes, a filter button (a funnel)
@@ -90,18 +91,18 @@ watch(
         </div>
         <div class="flex shrink-0 gap-1">
           <button
+            v-tip="confirmLabel"
             type="submit"
             class="btn btn-sm btn-icon btn-primary"
             :disabled="!canConfirm"
-            :title="confirmLabel"
             :aria-label="confirmLabel"
           >
             <Icon name="check" :size="16" />
           </button>
           <button
+            v-tip="'Cancel'"
             type="button"
             class="btn btn-sm btn-icon btn-neutral"
-            title="Cancel"
             aria-label="Cancel"
             @click="emit('cancel')"
           >
@@ -117,12 +118,12 @@ watch(
           <label :for="id" class="text-sm">Select all</label>
           <span v-if="canFilter" class="inline-flex items-center gap-2">
             <button
+              v-tip="'Filter'"
               type="button"
               class="btn btn-sm btn-icon btn-neutral"
               :class="{ '!border-accent !bg-accent-wash': filterSummary }"
               :aria-expanded="filtersOpen"
               :aria-controls="filtersId"
-              title="Filter"
               :aria-label="filterSummary ? `Filter (on: ${filterSummary})` : 'Filter'"
               @click="filtering = !filtering"
             >
@@ -154,9 +155,9 @@ watch(
         <slot name="filters" />
       </div>
       <button
+        v-tip="'Close the filters'"
         type="button"
         class="btn btn-sm btn-icon btn-ghost shrink-0"
-        title="Close the filters"
         aria-label="Close the filters"
         @click="filtering = false"
       >

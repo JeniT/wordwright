@@ -2,6 +2,7 @@
 import type { RouteLocationRaw } from 'vue-router'
 import { RouterLink } from 'vue-router'
 import Icon from './Icon.vue'
+import { vTip } from '../lib/tip'
 
 /**
  * The way into the settings of whatever it sits beside: the account, a publication or an idea. Always the same gear,
@@ -14,8 +15,8 @@ defineProps<{ to: RouteLocationRaw; label: string }>()
 
 <template>
   <RouterLink
+    v-tip="label"
     :to="to"
-    :title="label"
     :aria-label="label"
     class="btn btn-icon btn-ghost min-h-11 w-11! shrink-0"
   >

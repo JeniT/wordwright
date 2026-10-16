@@ -138,9 +138,9 @@ const removeLlmKey = useMutation({
         </button>
         <HoldButton
           v-if="llm.data.value?.hasKey"
+          :tip="'Press and hold, or tap twice, to remove your key'"
           verb="Remove"
           class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-          title="Press and hold, or tap twice, to remove your key"
           aria-label="Remove key"
           :disabled="removeLlmKey.isPending.value"
           @confirm="removeLlmKey.mutate()"

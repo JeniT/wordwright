@@ -319,11 +319,11 @@ describe('a publication’s landing page: search', () => {
     // Icon-only, so the names carry the meaning.
     const add = within(row).getByRole('button', { name: 'Add to the reading list: Post 1' })
     expect(add).toHaveTextContent('')
-    expect(add).toHaveAttribute('title', 'Add to the reading list')
-    expect(within(row).getByRole('button', { name: 'Ignore: Post 1' })).toHaveAttribute(
-      'title',
-      'Ignore',
-    )
+    add.focus()
+    expect(document.querySelector('[data-tip]')).toHaveTextContent('Add to the reading list')
+    const ignore = within(row).getByRole('button', { name: 'Ignore: Post 1' })
+    ignore.focus()
+    expect(document.querySelector('[data-tip]')).toHaveTextContent('Ignore')
   })
 
   describe('deciding', () => {

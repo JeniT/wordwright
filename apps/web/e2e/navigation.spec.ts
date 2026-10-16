@@ -244,6 +244,35 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   await noViolations(page, 'idea landing page on a phone')
 })
 
+test('an icon-only button says what it does on keyboard focus, inside the viewport, and Escape puts it away', async ({
+  page,
+}) => {
+  const viewport = { width: 390, height: 800 }
+  await page.setViewportSize(viewport)
+  await signUpWithIdea(page)
+  await page.getByRole('button', { name: 'Menu', exact: true }).click()
+  // Tab from the idea's name onto its settings gear, at the menu's right edge where a clipping parent would cut it.
+  await page.getByRole('banner').getByRole('link', { name: 'What pruning teaches' }).focus()
+  await page.keyboard.press('Tab')
+  const gear = page.getByRole('banner').getByRole('link', { name: 'Idea settings' })
+  await expect(gear).toBeFocused()
+  const tip = page.locator('[data-tip]')
+  await expect(tip).toHaveText('Idea settings')
+  const box = (await tip.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width)
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height)
+  await noViolations(page, 'tooltip showing')
+  await page.keyboard.press('Escape')
+  await expect(tip).toHaveCount(0)
+  await expect(gear).toBeFocused()
+  // Hovering shows it again, and it is gone after the pointer leaves.
+  await gear.hover()
+  await expect(tip).toHaveText('Idea settings')
+  await page.mouse.move(5, 700)
+  await expect(tip).toHaveCount(0)
+})
+
 test('the menu folds away at every width while reading a source, so two windows fit side by side', async ({
   page,
 }) => {

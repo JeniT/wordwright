@@ -6,6 +6,7 @@ export const ARMED_MS = 5000
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useId } from 'vue'
 import { holdDuration } from '../lib/hold-settings'
+import { vTip } from '../lib/tip'
 
 /**
  * A button that asks for a deliberate act instead of a dialog, in either of two ways. Press and hold it until the
@@ -21,8 +22,10 @@ const props = withDefaults(
     disabled?: boolean
     /** The action in one word, for the armed button: "Delete" shows "Delete?". */
     verb?: string
+    /** What the button does, shown on hover and keyboard focus (`v-tip`, which can't go on a component with several roots). */
+    tip?: string
   }>(),
-  { holdMs: undefined, disabled: false, verb: 'Confirm' },
+  { holdMs: undefined, disabled: false, verb: 'Confirm', tip: undefined },
 )
 const duration = computed(() => props.holdMs ?? holdDuration())
 const emit = defineEmits<{ confirm: [] }>()
@@ -165,6 +168,7 @@ const ringStyle = computed(() => ({ left: `${ring.value.x}px`, top: `${ring.valu
 <template>
   <button
     ref="button"
+    v-tip="tip"
     v-bind="$attrs"
     type="button"
     :disabled="disabled"

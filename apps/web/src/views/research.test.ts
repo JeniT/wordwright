@@ -349,7 +349,9 @@ describe('reviewing what research found', () => {
   it('deletes a run only once it is confirmed, and says pages already added stay', async () => {
     const { article } = await open()
     const button = article.getByRole('button', { name: /^Delete this research/ })
-    expect(button).toHaveAttribute('title', expect.stringContaining('stay there'))
+    button.focus()
+    expect(document.querySelector('[data-tip]')).toHaveTextContent(/stay there/)
+    button.blur()
     await fireEvent.click(button) // no hold: it only asks to be pressed again
     expect(await screen.findByText('Delete?')).toBeInTheDocument()
     expect(screen.getByText('How fast bends migrate')).toBeInTheDocument()

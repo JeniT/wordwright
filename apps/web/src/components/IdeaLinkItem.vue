@@ -10,6 +10,7 @@ import TagEditor from './TagEditor.vue'
 import SwitchField from './SwitchField.vue'
 import TextField from './TextField.vue'
 import { useInlineEdit } from '../lib/inline-edit'
+import { vTip } from '../lib/tip'
 
 /** An item of an idea's reading list, or (no `ideaId`) of the publication's own. */
 const props = defineProps<{
@@ -183,18 +184,18 @@ function saveLink() {
             </RouterLink>
             <button
               ref="editButton"
+              v-tip="'Edit'"
               type="button"
               class="btn btn-sm btn-icon btn-ghost"
-              title="Edit"
               :aria-label="`Edit link to ${label()}`"
               @click="startEditing"
             >
               <Icon name="edit" />
             </button>
             <HoldButton
+              :tip="removeHint()"
               verb="Remove"
               class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-              :title="removeHint()"
               :aria-label="`Remove link to ${label()}`"
               @confirm="emit('remove')"
             >

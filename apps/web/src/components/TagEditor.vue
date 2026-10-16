@@ -4,6 +4,7 @@ import { MAX_NOTE_TAGS } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import Icon from './Icon.vue'
 import TagEntry from './TagEntry.vue'
+import { vTip } from '../lib/tip'
 
 /**
  * The tags of one note or link, shown under it. A small label button opens a field: type a tag and press Enter, again
@@ -99,9 +100,9 @@ async function hide() {
       <button
         v-if="!open"
         ref="opener"
+        v-tip="`Add tags to ${label}`"
         type="button"
         class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
-        :title="`Add tags to ${label}`"
         :aria-label="`Add tags to ${label}`"
         aria-expanded="false"
         @click="show"
@@ -117,9 +118,9 @@ async function hide() {
           @escape="hide"
         />
         <button
+          v-tip="`Done tagging ${label}`"
           type="button"
           class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
-          :title="`Done tagging ${label}`"
           :aria-label="`Done tagging ${label}`"
           aria-expanded="true"
           @click="hide"
