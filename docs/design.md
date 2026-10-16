@@ -211,7 +211,7 @@ on the page. Move it to an info icon or a help page, or cut it.
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **On the page**         | What the person needs to act or avoid a mistake _now_: the next step, what they will lose, what a field expects when that isn't obvious                 | The `NextStep` line. “This can’t be undone.” in a delete dialog. A hint under a field: “The address of the site”.           |
 | **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Move to… “About the new idea”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”. |
-| **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round (_planned, not built_)           | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.            |
+| **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round                                  | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.            |
 | **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (`/help/api-key`; the key screen holds only a link to it).                               |
 
 ### On the page
@@ -231,20 +231,43 @@ on the page. Move it to an info icon or a help page, or cut it.
   on the next hover or focus. The pointer can move from the icon onto the tip without it closing.
 - Never the only place for something the person needs to finish the task. That is what the test above catches.
 
-### Tutorial mode (planned)
+### Tutorial mode
 
 New people need more than the icons give: what each kind of page is for, what the AI buttons do, what they will spend.
 Experienced people find that same text noise. So the fuller explanations are written once and shown only in **tutorial
-mode**, which is an account setting:
+mode**, which is an account setting (`user_settings.tutorial_mode`, and the **Tutorial mode** switch in account
+settings, which is always available both ways):
 
-- **On for new accounts, off for everyone else by default,** and always switchable in account settings.
-- It shows the fuller version of text that is otherwise behind an info icon (or absent), in place on the page, in the
-  same `callout`/hint styles as other text. It never adds anything the person needs to avoid a mistake: that is on the
-  page for everyone.
-- After they have seen every kind of page with it on, the app **suggests turning it off** once (a plain message with a
-  button, not repeated if declined).
-- Not built yet. The questions it leaves (what counts as a kind of page, how text is marked as tutorial-only, how it is
-  tested) are in #198; until then, nothing here depends on it.
+- **On for new accounts, off for everyone else by default.** A reviewer-only account never has it; when it becomes a
+  full account it is turned on, as for any new account.
+- **One component, `Explain`,** takes the same `label` and slot as the old `InfoTip`. Off: the icon and bubble. On: the
+  same text written out below its control, in `tutorial-note` (ink-soft, a thin left rule), no icon. `<Explain
+tutorial-only>` is for what a page is for, which has no icon: it shows nothing when the mode is off. The text is
+  written once, so the two versions can't drift. Two sentences at most in both modes.
+- **It never adds anything the person needs to avoid a mistake:** that is on the page for everyone. Review checklist:
+  take every `Explain` away; could the person still finish the task and avoid a mistake?
+- **Kinds of page.** A route opts in with `meta: { tutorial: true }` and a `name`; the name is its kind. An `Explain`
+  that shows in tutorial mode records the page's kind as seen (kept on the account, so it follows the person). A
+  test (`tutorial-routes.test.ts`) requires each opted-in route to have a test that renders it with
+  `tutorialMode: true`. The content-crit issue for a page adds `meta.tutorial` with its text.
+- **The offer to turn it off.** Once every opted-in kind has been seen, the **next** page (not the one that completed
+  the set) shows an info notice once: "Turn off tutorial mode" or "Keep it on". Either answer is kept and it never
+  returns. Not shown on a quiet page (`meta.quiet`, the editor).
+
+### Notices
+
+The notice bar (`NoticeBar`) sits at the top of the content column of every signed-in page: in the column, not edge to
+edge, and not sticky, so it scrolls away. A page can have more than one; **warn** comes first.
+
+| Kind     | Means                      | Look (`notice` +)                                    | Example                           |
+| -------- | -------------------------- | ---------------------------------------------------- | --------------------------------- |
+| **warn** | Something needs doing      | `notice-warn`: accent border, `accent-wash` fill     | Please confirm your email address |
+| **info** | An offer, nothing is wrong | `notice-info`: `surface` fill, `line` border (quiet) | Turn tutorial mode off? (once)    |
+
+- Each is a labelled `region` (not a live region, so it doesn't interrupt a screen reader). The text is short; the
+  buttons sit under it and wrap at 390px. An info notice has a short title, one sentence, a primary button and a quiet one.
+- A **quiet** page (`meta.quiet`, the editor) shows warn notices but holds info notices back, so nothing interrupts writing.
+- A notice that can fail says so in a `role="alert"` line with what to do next, and stays.
 
 ### On a help page
 

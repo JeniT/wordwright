@@ -52,7 +52,7 @@ describe('migrations', () => {
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -2)) // before the sessions migration (the last but one)
+    migrate(db, 'test', MIGRATIONS.slice(0, -3)) // before the sessions migration (the last but two)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )

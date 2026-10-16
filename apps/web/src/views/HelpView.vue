@@ -14,6 +14,11 @@ const pages = [
     title: 'Privacy and your writing',
     about: 'What is sent to Anthropic when you use the AI, and what to check.',
   },
+  {
+    name: 'help-tutorial-mode',
+    title: 'About tutorial mode',
+    about: 'The explanations written out on the page while you are getting to know the site.',
+  },
 ]
 </script>
 

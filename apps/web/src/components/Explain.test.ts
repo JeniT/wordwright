@@ -3,7 +3,6 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { mountTutorial } from '../testing/tutorial-harness'
 import { server, useMockServer } from '../test-utils'
-import Explain from './Explain.vue'
 
 useMockServer()
 

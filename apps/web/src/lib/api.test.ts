@@ -13,6 +13,7 @@ const user = {
   emailVerified: false,
   hasPassword: true,
   linkedProviders: [],
+  tutorialMode: false,
 }
 
 const server = setupServer()

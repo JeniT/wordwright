@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useTemplateRef } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { queryKeys } from '../lib/queries'
 import { useTutorialMode } from '../lib/tutorial'
@@ -23,12 +24,13 @@ const save = useMutation({
 </script>
 
 <template>
-  <section aria-labelledby="tutorial-heading" aria-label="Tutorial mode">
+  <section aria-labelledby="tutorial-heading">
     <h2 id="tutorial-heading" class="mb-1 font-display text-xl font-semibold">Tutorial mode</h2>
     <p class="mb-3 text-sm text-ink-soft">
       Writes out, on the page, the explanations that otherwise sit behind an info icon, and what
       each page is for. It is on for new accounts, and you can turn it on or off here whenever you
       like.
+      <RouterLink :to="{ name: 'help-tutorial-mode' }" class="link">About tutorial mode</RouterLink>
     </p>
     <SwitchField
       ref="field"

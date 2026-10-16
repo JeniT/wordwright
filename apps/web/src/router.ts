@@ -281,6 +281,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/help/tutorial-mode',
+    name: 'help-tutorial-mode',
+    component: () => import('./views/HelpTutorialModeView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/help/:rest(.*)',
     name: 'help-not-found',
     component: () => import('./views/HelpNotFoundView.vue'),

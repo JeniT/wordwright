@@ -511,8 +511,42 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
 })
 
+/** A new account has tutorial mode on, which writes tips out instead of showing their icons; these tests are about the icons. */
+async function turnTutorialModeOff(page: Page) {
+  const res = await page.request.put('/api/account/tutorial', { data: { on: false } })
+  expect(res.ok()).toBe(true)
+  await page.reload()
+}
+
+test('with tutorial mode on, a tip is written out on the page instead of behind an icon', async ({
+  page,
+}) => {
+  await signUpWithPublication(page)
+  await page.getByRole('link', { name: 'New idea' }).click()
+  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
+  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/)
+  await goTo(page, 'Notes')
+  const notes = page.getByRole('region', { name: 'Notes' })
+  for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
+    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByRole('button', { name: 'Add note' }).click()
+    await expect(notes.getByText(text)).toBeVisible()
+  }
+  await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
+  await notes.getByRole('checkbox', { name: /^Select note “Deposition/ }).check()
+  await notes.getByRole('button', { name: 'Tag…' }).click()
+  await expect(notes.getByText(/up to 10 each/)).toBeVisible()
+  await expect(notes.getByRole('button', { name: 'About tagging several at once' })).toHaveCount(0)
+  await noViolations(page, 'a tip written out')
+  await page.setViewportSize({ width: 390, height: 800 })
+  await noViolations(page, 'a tip written out, phone')
+})
+
 test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {
   await signUpWithPublication(page)
+  await turnTutorialModeOff(page)
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
