@@ -3,6 +3,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import { Mark } from '@tiptap/pm/model'
+import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { watch } from 'vue'
 import {
@@ -132,6 +133,7 @@ function replaceRange(from: number, to: number, text: string, expected: string):
     .focus()
     .command(({ tr, state }) => {
       tr.replaceWith(from, to, state.schema.text(text, marks))
+      tr.setSelection(CursorSelection.near(tr.doc.resolve(from + text.length))) // the cursor after them, nothing selected
       return true
     })
     .run()

@@ -254,6 +254,7 @@ describe('EditorView: Rephrase', () => {
       expect(within(dialog).queryByText(/formatted differently/)).toBeNull()
       await use()
       expect(firstParagraphHtml()).toBe('<em>Rivers wander as banks wear away.</em>')
+      await waitFor(async () => expect(await rephraseButton()).toBeDisabled()) // the cursor follows them; nothing is selected
       await waitFor(() =>
         expect(saved.at(-1)?.body).toContain('*Rivers wander as banks wear away.*'),
       )
