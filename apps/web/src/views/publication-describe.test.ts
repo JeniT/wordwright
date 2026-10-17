@@ -66,35 +66,46 @@ describe('describing a publication: guidance and the box', () => {
     expect(calls).toEqual([])
   })
 
-  it('opens with guidance on what a description needs, and the box to write it in after it', async () => {
+  it('has one way out, a plain link to the guidance, and no heading over the box', async () => {
     fakeServer()
     await renderAt('/p/ada-publication/describe')
-    const box = await screen.findByLabelText('About this publication')
-    const guidance = screen.getByText('What makes a useful description').closest('details')!
-    expect(guidance).toHaveAttribute('open')
-    for (const topic of [
-      'What it is.',
-      'What it covers.',
-      'Who reads it.',
-      'How it is written.',
-      'What you want from feedback',
-      'An example',
-    ]) {
-      expect(within(guidance).getByText(topic, { exact: false })).toBeInTheDocument()
-    }
-    expect(within(guidance).getByText(/never as instructions/)).toBeInTheDocument()
-    expect(guidance.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const box = await screen.findByRole('textbox', { name: 'Description' })
+    expect(screen.queryByRole('link', { name: /← Garden notes/ })).toBeNull()
+    expect(screen.queryByRole('heading', { level: 2, name: 'The description' })).toBeNull()
+    expect(screen.queryByText('What makes a useful description')).toBeNull() // no panel of advice
+    expect(
+      screen.getByRole('link', { name: 'See what makes a useful description' }),
+    ).toHaveAttribute('href', '/help/description')
+    expect(box).toHaveAccessibleDescription(/Your AI reads it before it helps with anything here/)
+    expect(screen.queryByPlaceholderText(/few sentences/)).toBeNull()
+  })
+
+  it('says what the page is for only in tutorial mode', async () => {
+    fakeServer()
+    server.use(signedInAs({ ...testUser, tutorialMode: true }))
+    const { router } = await renderAt('/p/ada-publication/describe')
+    await screen.findByRole('textbox', { name: 'Description' })
+    expect(router.currentRoute.value.name).toBe('describe-publication')
+    expect(screen.getByText(/given to your AI, so it knows what you are writing for/)).toBeVisible()
+  })
+
+  it('keeps that line away otherwise, and never says "assistants"', async () => {
+    fakeServer()
+    await renderAt('/p/ada-publication/describe')
+    await screen.findByRole('textbox', { name: 'Description' })
+    expect(screen.queryByText(/so it knows what you are writing for/)).toBeNull()
+    expect(document.body).not.toHaveTextContent(/assistant/i)
   })
 
   it('saves what is written in the box', async () => {
     const { calls } = fakeServer()
     const { router } = await renderAt('/p/ada-publication/describe')
-    await screen.findByLabelText('About this publication')
+    await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.queryByText(/AI draft/)).toBeNull() // nothing is marked as the AI's
     const save = screen.getByRole('button', { name: 'Save description' })
     expect(save).toBeDisabled() // nothing to save yet
     await fireEvent.update(
-      screen.getByLabelText('About this publication'),
+      screen.getByRole('textbox', { name: 'Description' }),
       'Personal weeknotes, mostly for me.',
     )
     await fireEvent.click(save)
@@ -106,14 +117,16 @@ describe('describing a publication: guidance and the box', () => {
 })
 
 describe('the description in the settings and on the publication page', () => {
-  it('has the same guidance in the settings, folded away', async () => {
+  it('links to the guidance from the settings instead of folding it away', async () => {
     fakeServer({ ...bare, description: 'Mine.' })
     await renderAt('/p/ada-publication/settings')
-    const guidance = (await screen.findByText('What makes a useful description')).closest(
-      'details',
-    )!
-    expect(guidance).not.toHaveAttribute('open')
-    expect(within(guidance).getByText(/Who reads it\./)).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: 'Description' })).toBeInTheDocument()
+    expect(screen.queryByText('What makes a useful description')).toBeNull()
+    expect(
+      screen.getByRole('link', { name: 'See what makes a useful description' }),
+    ).toHaveAttribute('href', '/help/description')
+    expect(screen.getByText('Everyone who shares this publication can change it.')).toBeVisible()
+    expect(screen.queryByText(/first thing people see/)).toBeNull()
   })
 
   it('shows the writer’s words with no mark about where they came from', async () => {

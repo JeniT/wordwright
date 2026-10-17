@@ -2,9 +2,9 @@
 import { PUBLICATION_DESCRIPTION_MAX, type Publication } from '@wordwright/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
-import DescriptionGuidance from './DescriptionGuidance.vue'
 import SaveStatus from './SaveStatus.vue'
 import DescriptionEditor from './DescriptionEditor.vue'
 
@@ -26,14 +26,14 @@ const save = useMutation({
 <template>
   <section aria-labelledby="description-heading">
     <h2 id="description-heading" class="mb-3 font-display text-xl font-semibold">Description</h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      What this publication is, who reads it, and what kinds of writing go here. It can be as short
-      as “Personal weeknotes, mostly for me”. Everyone who shares this publication can change it,
-      and it's the first thing people see on the publication page.
+    <p class="mb-3">Everyone who shares this publication can change it.</p>
+    <p class="mb-4">
+      <RouterLink :to="{ name: 'help-description' }" class="link">
+        See what makes a useful description
+      </RouterLink>
     </p>
-    <DescriptionGuidance class="mb-4" />
     <form @submit.prevent="save.mutate()">
-      <DescriptionEditor v-model="text" label="About this publication" />
+      <DescriptionEditor v-model="text" label="Description" />
       <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"

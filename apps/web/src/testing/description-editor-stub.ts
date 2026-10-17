@@ -16,15 +16,18 @@ export default defineComponent({
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     const id = useId()
+    const hintId = useId()
     return () =>
       h('div', [
         h('label', { for: id }, props.label),
         h('textarea', {
           id,
+          'aria-describedby': props.hint ? hintId : undefined,
           value: props.modelValue,
           onInput: (event: Event) =>
             emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
         }),
+        props.hint ? h('p', { id: hintId }, props.hint) : null,
       ])
   },
 })

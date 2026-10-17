@@ -5,12 +5,11 @@ import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
-import DescriptionGuidance from './DescriptionGuidance.vue'
 import SaveStatus from './SaveStatus.vue'
 import DescriptionEditor from './DescriptionEditor.vue'
 
 /**
- * Describing a publication: guidance on what a description needs, and a box to write it in. The writer's own words are the
+ * Describing a publication: a link to advice on what a description needs, and a box to write it in. The writer's own words are the
  * only source of a description.
  */
 const props = defineProps<{ publication: Publication }>()
@@ -36,16 +35,17 @@ const accept = useMutation({
 
 <template>
   <div>
-    <section aria-labelledby="publication-description-heading">
-      <h2 id="publication-description-heading" class="mb-2 font-display text-xl font-semibold">
-        The description
-      </h2>
-      <DescriptionGuidance class="mb-4" open />
+    <div>
+      <p class="mb-4">
+        <RouterLink :to="{ name: 'help-description' }" class="link">
+          See what makes a useful description
+        </RouterLink>
+      </p>
       <form @submit.prevent="accept.mutate()">
         <DescriptionEditor
           v-model="text"
-          label="About this publication"
-          hint="What the publication is, who reads it and what kinds of writing go here. The notes above say more."
+          label="Description"
+          hint="What it is, who reads it and what kinds of writing go there. Your AI reads it before it helps with anything here."
         />
         <div class="flex flex-wrap items-center gap-3">
           <button
@@ -64,6 +64,6 @@ const accept = useMutation({
         </div>
         <SaveStatus :mutation="accept" saved="" class="mt-2" />
       </form>
-    </section>
+    </div>
   </div>
 </template>

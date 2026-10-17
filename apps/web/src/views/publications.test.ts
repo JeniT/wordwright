@@ -385,7 +385,7 @@ describe('publication description', () => {
       }),
     )
     await renderAt('/p/adalovelace-substack/settings')
-    const field = await screen.findByLabelText('About this publication')
+    const field = await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.getByRole('button', { name: 'Save description' })).toBeDisabled()
     await fireEvent.update(field, 'Weeknotes, *mostly for me*. See [home](https://example.com).')
     await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
@@ -405,7 +405,7 @@ describe('publication description', () => {
       ),
     )
     await renderAt('/p/adalovelace-substack/settings')
-    await fireEvent.update(await screen.findByLabelText('About this publication'), 'Hello')
+    await fireEvent.update(await screen.findByRole('textbox', { name: 'Description' }), 'Hello')
     await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Keep the description under 5000')
   })
@@ -416,7 +416,7 @@ describe('publication description', () => {
       listPublications([{ ...substack, description: 'A newsletter for gardeners' }]),
     )
     await renderAt('/p/adalovelace-substack/settings')
-    expect(await screen.findByLabelText('About this publication')).toHaveValue(
+    expect(await screen.findByRole('textbox', { name: 'Description' })).toHaveValue(
       'A newsletter for gardeners',
     )
   })

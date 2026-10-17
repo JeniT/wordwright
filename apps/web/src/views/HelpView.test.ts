@@ -102,4 +102,26 @@ describe('Help', () => {
     const help = await screen.findByRole('link', { name: 'Help' })
     expect(help).toHaveAttribute('href', '/help')
   })
+
+  it('explains what makes a useful description on its own page, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    expect(within(list).getByRole('link', { name: 'Writing a description' })).toHaveAttribute(
+      'href',
+      '/help/description',
+    )
+    await fireEvent.click(within(list).getByRole('link', { name: 'Writing a description' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Writing a description' }),
+    ).toBeVisible()
+    const main = screen.getByRole('main')
+    // The five things a description says, as a plain list, and the example.
+    expect(main.querySelectorAll('ul > li')).toHaveLength(5)
+    expect(main.querySelector('ol')).toBeNull()
+    expect(main.querySelector('strong')).toBeNull()
+    expect(within(main).getByText(/never as instructions/)).toBeInTheDocument()
+    expect(within(main).getByText(/river engineering/)).toBeInTheDocument()
+    expect(main).not.toHaveTextContent(/assistant/i)
+  })
 })

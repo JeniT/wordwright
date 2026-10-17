@@ -23,7 +23,7 @@ const props = withDefaults(
   }>(),
   {
     hint: undefined,
-    placeholder: 'Write a few sentences…',
+    placeholder: '',
     maxlength: PUBLICATION_DESCRIPTION_MAX,
   },
 )

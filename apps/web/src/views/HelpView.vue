@@ -20,6 +20,11 @@ const pages = [
     about: 'What the AI mark means, and why critiques are limited.',
   },
   {
+    name: 'help-description',
+    title: 'Writing a description',
+    about: 'What to say about your publication so your AI knows what you are writing for.',
+  },
+  {
     name: 'help-tutorial-mode',
     title: 'About tutorial mode',
     about: 'The explanations written out on the page while you are getting to know the site.',

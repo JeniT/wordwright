@@ -201,7 +201,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'describe-publication',
     component: () => import('./views/PublicationDescribeView.vue'),
     props: true,
-    meta: { level: 'publication' },
+    meta: { level: 'publication', tutorial: true },
   },
   {
     path: '/p/:publicationId/settings',
@@ -313,6 +313,12 @@ export const routes: RouteRecordRaw[] = [
     path: '/help/tutorial-mode',
     name: 'help-tutorial-mode',
     component: () => import('./views/HelpTutorialModeView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/description',
+    name: 'help-description',
+    component: () => import('./views/HelpDescriptionView.vue'),
     meta: { open: true },
   },
   {

@@ -179,7 +179,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   await expect(page.getByLabel('Website')).toHaveValue('https://final.example.com')
 
   // The description is written in a rich-text editor, with no Markdown to know, and survives a reload.
-  const description = page.getByRole('textbox', { name: 'About this publication' })
+  const description = page.getByRole('textbox', { name: 'Description' })
   await description.fill('Personal weeknotes, mostly for me.')
   await description.press('ControlOrMeta+a')
   await page.getByRole('button', { name: 'Bold' }).click()
@@ -577,7 +577,7 @@ test('shows the description at the top of the publication page, clamped with Sho
     { length: 12 },
     (_, i) => `Paragraph ${i + 1} about the publication.`,
   )
-  await page.getByRole('textbox', { name: 'About this publication' }).fill(paragraphs.join('\n\n'))
+  await page.getByRole('textbox', { name: 'Description' }).fill(paragraphs.join('\n\n'))
   await page.getByRole('button', { name: 'Save description' }).click()
   await expect(page).toHaveURL(/\/p\/[^/]+$/)
 
@@ -613,30 +613,27 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   ).toBeVisible()
   const describeUrl = page.url()
 
-  // The guidance is open above the box, and there is no AI drafting from posts.
-  const guidance = page.locator('details', { hasText: 'What makes a useful description' })
-  await expect(guidance).toHaveAttribute('open', '')
-  await expect(guidance.getByText('Who reads it.')).toBeVisible()
-  await expect(guidance.getByText('An example')).toBeVisible()
+  // The advice is a link, not a panel above the box, and there is no AI drafting from posts.
+  await expect(
+    page.getByRole('link', { name: 'See what makes a useful description' }),
+  ).toBeVisible()
+  await expect(page.locator('details')).toHaveCount(0)
   await expect(page.getByText('Draft from a few posts')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Draft a description' })).toHaveCount(0)
   await noViolations(page)
 
-  await page
-    .getByRole('textbox', { name: 'About this publication' })
-    .fill('Garden essays, by me, for me.')
+  await page.getByRole('textbox', { name: 'Description' }).fill('Garden essays, by me, for me.')
   await page.getByRole('button', { name: 'Save description' }).click()
   const about = page.getByRole('region', { name: 'About this publication' })
   await expect(about.getByText('Garden essays, by me, for me.')).toBeVisible()
   await expect(about.getByText('AI draft', { exact: true })).toHaveCount(0)
   await noViolations(page)
 
-  // The settings offer the same guidance, folded away.
+  // The settings link to the same advice, which is on its own help page.
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
-  const folded = page.locator('details', { hasText: 'What makes a useful description' })
-  await expect(folded).not.toHaveAttribute('open', '')
-  await folded.getByText('What makes a useful description').click()
-  await expect(folded.getByText('How it is written.')).toBeVisible()
+  await page.getByRole('link', { name: 'See what makes a useful description' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Writing a description' })).toBeVisible()
+  await expect(page.getByText('What it is:', { exact: false })).toBeVisible()
   await noViolations(page)
 
   // The describe page on a phone, in dark mode.
