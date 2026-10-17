@@ -768,6 +768,7 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
 
   // Bob is now the only owner.
   await bob.reload()
+  await openSettingsPage(bob, 'Sharing')
   await expect(bob.getByRole('button', { name: 'Step down as owner' })).toBeDisabled()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
@@ -1221,7 +1222,7 @@ test('declining and blocking an inviter from the email, then lifting the block',
   await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
   await page.getByLabel('Email address').first().fill(bobEmail)
   await page.getByRole('button', { name: 'Send invitation' }).first().click()
-  await expect(page.getByText(`emailed an invitation to ${bobEmail}`)).toBeVisible()
+  await expect(page.getByText(`Invitation sent to ${bobEmail}`)).toBeVisible()
   await page.reload()
   await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
 

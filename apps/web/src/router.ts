@@ -1,6 +1,7 @@
 import { rememberPublication } from './lib/last-publication'
 import { ref } from 'vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import type { NavLevel } from './lib/nav'
 import { useSessionStore } from './stores/session'
 
 declare module 'vue-router' {
@@ -12,7 +13,7 @@ declare module 'vue-router' {
     /** Pages that need more room than a column of text (the drafting page has a side column). */
     wide?: boolean
     /** Which level of the app the page belongs to, which decides what the side menu lists (see lib/nav.ts). */
-    level?: 'publication' | 'publication-settings' | 'idea' | 'account'
+    level?: Exclude<NavLevel, 'home'>
     /** The numbered step the page belongs to (a key from PUBLICATION_STEPS or IDEA_STEPS); none for settings. */
     step?: string
     /** For the drafting page: the idea it belongs to is found from the draft, not from the address. */
