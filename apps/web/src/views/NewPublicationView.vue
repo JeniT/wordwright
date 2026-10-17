@@ -52,8 +52,8 @@ const create = useMutation({
       New publication
     </h1>
     <Explain tutorial-only class="mb-6">
-      A publication is a place you publish, like a Substack or a blog. It keeps its ideas and drafts
-      together.
+      A publication is a place you publish, like a Substack or a blog. We keep your research, notes
+      and ideas for each publication together.
     </Explain>
 
     <form @submit.prevent="create.mutate()">
@@ -74,7 +74,7 @@ const create = useMutation({
         We fetch the site’s icon from this address and use it until you add a picture.
       </Explain>
 
-      <div class="flex items-center gap-4">
+      <div class="mb-6 flex items-center gap-4">
         <PublicationImage id="preview" :name="name || '?'" :image-url="preview" size="lg" />
         <div class="flex-1">
           <ImageField
