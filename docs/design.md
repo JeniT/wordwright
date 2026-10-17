@@ -272,7 +272,7 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
 ### Links that open in a new tab
 
 - Use `NewTabLink` for every one. It adds the **new-tab icon** (`Icon name="external"`) after the link text, a tooltip
-  (“Opens in a new tab”) and hidden words “(opens in a new tab)” for screen readers, so the wording and the icon are
+  (`v-tip`, “Opens in a new tab”: it shows on keyboard focus too) and hidden words “(opens in a new tab)” for screen readers, so the wording and the icon are
   written once. Never write `target="_blank"` or the words in a component.
 - The words are never shown on the page. The icon is a convention, so there is no legend; `detail` adds to the spoken
   name where several links read the same (“Open the page”).
@@ -282,7 +282,8 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
 ### On a help page
 
 - Linked from where it is needed by a **plain link in words** (“How to get an API key”), never by an icon, so it reads
-  and is found like any other link.
+  and is found like any other link. (A link from a help page out to another website is a different thing: it carries the
+  new-tab icon like any outbound link.)
 - **Opens in the same tab,** with a Back link to where they were. **Except** from a screen holding unsaved input
   (for example connecting your AI key): there it opens in a new tab, and the link says so with the new-tab icon (see
   _Links that open in a new tab_), so nothing typed is lost.

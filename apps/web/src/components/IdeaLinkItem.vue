@@ -158,7 +158,6 @@ function saveLink() {
               :id="`reading-item-${link.id}`"
               :href="link.url"
               class="line-clamp-2 break-words underline"
-              :title="label()"
               >{{ label() }}</NewTabLink
             >
             <p class="meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">

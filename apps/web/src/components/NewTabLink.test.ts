@@ -34,17 +34,6 @@ describe('NewTabLink', () => {
     ).toBeInTheDocument()
   })
 
-  it('has a tooltip, unless the caller gives its own title', () => {
-    const first = render(NewTabLink, { props: { href: 'https://example.org/a' } })
-    expect(first.getByRole('link')).toHaveAttribute('title', 'Opens in a new tab')
-    first.unmount()
-    const second = render(NewTabLink, {
-      props: { href: 'https://example.org/a' },
-      attrs: { title: 'A long title' },
-    })
-    expect(second.getByRole('link')).toHaveAttribute('title', 'A long title')
-  })
-
   it('also works for a page inside the app', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
