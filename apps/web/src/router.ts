@@ -230,7 +230,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       level: 'publication-settings',
       step,
-      ...(step === 'description' && { tutorial: true }),
+      ...((step === 'description' || step === 'sharing') && { tutorial: true }),
     },
   })),
 

@@ -7,6 +7,7 @@ import { api } from '../lib/api'
 import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES } from '../lib/publication-roles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
+import RowList from './RowList.vue'
 import SaveStatus from './SaveStatus.vue'
 
 const props = defineProps<{ publication: Publication }>()
@@ -19,6 +20,7 @@ const isOwner = computed(() => props.publication.role === 'owner')
 const onlyOwner = computed(
   () => props.publication.members.filter((m) => m.role === 'owner').length === 1,
 )
+const people = computed(() => props.publication.members.map((m) => ({ ...m, id: m.userId })))
 const isMe = (m: PublicationMember) => m.userId === session.user?.id
 const hintId = useId()
 
@@ -73,64 +75,60 @@ const confirmLabel = computed(() => {
 </script>
 
 <template>
-  <ul class="text-sm">
-    <li
-      v-for="m in publication.members"
-      :key="m.userId"
-      class="flex flex-wrap items-center justify-between gap-2 py-1"
-    >
-      <span>
+  <RowList :items="people" label="People" class="text-sm">
+    <template #default="{ item: m }">
+      <span class="min-w-0 flex-1 break-words">
         {{ m.name }}
         <span class="text-ink-soft">({{ m.email }}, {{ m.role }})</span>
       </span>
-      <span class="flex flex-wrap items-center gap-3">
-        <button
-          v-if="isOwner && m.role === 'member'"
-          type="button"
-          class="btn btn-sm btn-outline"
-          :aria-label="`Make owner ${m.name}`"
-          @click="pending = { member: m, role: 'owner' }"
-        >
-          Make owner
-        </button>
-        <button
-          v-if="isOwner && m.role === 'owner' && !isMe(m)"
-          type="button"
-          class="btn btn-sm btn-outline"
-          :aria-label="`Remove as owner ${m.name}`"
-          @click="pending = { member: m, role: 'member' }"
-        >
-          Remove as owner
-        </button>
-        <button
-          v-if="isOwner && isMe(m) && publication.members.length > 1"
-          type="button"
-          class="btn btn-sm btn-outline"
-          :disabled="onlyOwner"
-          :aria-describedby="onlyOwner ? hintId : undefined"
-          @click="pending = { member: m, role: 'member' }"
-        >
-          Step down as owner
-        </button>
-        <button
-          v-if="canRemove(m)"
-          type="button"
-          class="underline"
-          :aria-label="isMe(m) ? undefined : `Remove ${m.name}`"
-          @click="removing = m"
-        >
-          {{ isMe(m) ? 'Leave' : 'Remove' }}
-        </button>
-      </span>
-    </li>
-  </ul>
-  <p
-    v-if="isOwner && onlyOwner && publication.members.length > 1"
-    :id="hintId"
-    class="mt-2 text-sm text-ink-soft"
-  >
-    You are the only owner. Make someone else an owner first, or delete the publication.
-  </p>
+      <p
+        v-if="isMe(m) && isOwner && onlyOwner && publication.members.length > 1"
+        :id="hintId"
+        class="basis-full text-ink-soft"
+      >
+        You are the only owner. Make someone else an owner first, or delete the publication.
+      </p>
+    </template>
+    <template #actions="{ item: m }">
+      <button
+        v-if="isOwner && m.role === 'member'"
+        type="button"
+        class="btn btn-sm btn-outline"
+        :aria-label="`Make owner ${m.name}`"
+        @click="pending = { member: m, role: 'owner' }"
+      >
+        Make owner
+      </button>
+      <button
+        v-if="isOwner && m.role === 'owner' && !isMe(m)"
+        type="button"
+        class="btn btn-sm btn-outline"
+        :aria-label="`Remove as owner ${m.name}`"
+        @click="pending = { member: m, role: 'member' }"
+      >
+        Remove as owner
+      </button>
+      <button
+        v-if="isOwner && isMe(m) && publication.members.length > 1"
+        type="button"
+        class="btn btn-sm btn-outline"
+        :disabled="onlyOwner"
+        :aria-describedby="onlyOwner ? hintId : undefined"
+        @click="pending = { member: m, role: 'member' }"
+      >
+        Step down as owner
+      </button>
+      <button
+        v-if="canRemove(m)"
+        type="button"
+        class="btn btn-sm btn-neutral"
+        :aria-label="isMe(m) ? undefined : `Remove ${m.name}`"
+        @click="removing = m"
+      >
+        {{ isMe(m) ? 'Leave' : 'Remove' }}
+      </button>
+    </template>
+  </RowList>
   <SaveStatus :mutation="setRole" class="mt-2"
     ><span>{{ changed }}</span></SaveStatus
   >

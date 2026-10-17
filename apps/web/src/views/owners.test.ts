@@ -90,12 +90,61 @@ describe('owners in the people list', () => {
     expect(within(dialog).getByText(/only another owner can give them back/i)).toBeInTheDocument()
   })
 
-  it('does not offer to step down when you are the only owner, and says why', async () => {
+  it('does not offer to step down when you are the only owner, and says why in their own row', async () => {
     serverWith({ ada: 'owner', bob: 'member' })
     await renderAt('/p/p1/settings/sharing')
     const step = await screen.findByRole('button', { name: 'Step down as owner' })
     expect(step).toBeDisabled()
     expect(step).toHaveAccessibleDescription(/only owner.*make someone else an owner first/i)
+    const mine = step.closest('li')!
+    expect(mine).toHaveTextContent('You are the only owner.')
+    expect(within(mine).queryByText('Bob')).toBeNull()
+  })
+
+  it('gives every action in the people list as a button, none as a link', async () => {
+    serverWith({ ada: 'owner', bob: 'member' })
+    await renderAt('/p/p1/settings/sharing')
+    const list = await screen.findByRole('list', { name: 'People' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(list).getByRole('button', { name: 'Remove Bob' })).toHaveClass('btn')
+    expect(within(list).queryByRole('link')).toBeNull()
+  })
+
+  describe('what owners can do', () => {
+    it('is behind an info icon once there is someone else in the list', async () => {
+      serverWith({ ada: 'owner', bob: 'member' })
+      await renderAt('/p/p1/settings/sharing')
+      const info = await screen.findByRole('button', { name: 'About owners' })
+      expect(info).toHaveAccessibleDescription(/^Owners can also change the publication/)
+    })
+
+    it('is written out in tutorial mode', async () => {
+      serverWith({ ada: 'owner', bob: 'member' })
+      server.use(signedInAs({ ...testUser, tutorialMode: true }))
+      const { router } = await renderAt('/p/p1/settings/sharing')
+      expect(router.currentRoute.value.name).toBe('publication-settings-sharing')
+      expect(await screen.findByText(/^Owners can also change the publication/)).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'About owners' })).toBeNull()
+    })
+
+    it('is left out when you are the only person', async () => {
+      server.use(
+        signedInAs({ ...testUser, tutorialMode: true }),
+        http.get('*/api/publications', () =>
+          HttpResponse.json([
+            {
+              ...publication('owner', { ada: 'owner', bob: 'member' }),
+              members: [{ ...ada, role: 'owner' }],
+            },
+          ]),
+        ),
+        http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
+      )
+      await renderAt('/p/p1/settings/sharing')
+      await screen.findByRole('heading', { name: 'People' })
+      expect(screen.queryByText(/Owners can also/)).toBeNull()
+      expect(screen.queryByRole('button', { name: 'About owners' })).toBeNull()
+    })
   })
 
   it('offers members nothing but leaving', async () => {

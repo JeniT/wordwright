@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import Icon from './Icon.vue'
+import RowList from './RowList.vue'
 
 /**
  * An ordered list that people can rearrange. Each row has a left rail (the shared `list-rail` zone, dotted so that it
@@ -255,99 +256,100 @@ function endDrag() {
 }
 
 const buttonClass = 'btn btn-quiet btn-rail'
+
+/** What the drag needs on each row: the drop line, the faded dragged row, and the drop handlers. */
+const rowAttrs = (item: T) => ({
+  class: [
+    'border-y-2 border-transparent',
+    {
+      'opacity-50': draggingId.value === item.id,
+      'border-t-accent':
+        over.value?.id === item.id && !over.value.after && draggingId.value !== item.id,
+      'border-b-accent':
+        over.value?.id === item.id && over.value.after && draggingId.value !== item.id,
+    },
+  ],
+  onDragover: (event: DragEvent) => onDragOver(event, item),
+  onDrop,
+})
 </script>
 
 <template>
   <div ref="root" @focusout="onFocusOut">
-    <div class="overflow-hidden rounded-ctl border border-line bg-surface">
-      <slot name="toolbar" />
-      <ol class="divide-y divide-line">
-        <li
-          v-for="(item, index) in shown"
-          :key="item.id"
-          class="flex items-stretch border-y-2 border-transparent"
-          :class="{
-            'opacity-50': draggingId === item.id,
-            'border-t-accent': over?.id === item.id && !over.after && draggingId !== item.id,
-            'border-b-accent': over?.id === item.id && over.after && draggingId !== item.id,
-          }"
-          @dragover="onDragOver($event, item)"
-          @drop="onDrop"
+    <RowList :items="shown" ordered :row-attrs="rowAttrs">
+      <template v-if="$slots.toolbar" #toolbar><slot name="toolbar" /></template>
+      <template #rail="{ item, index }">
+        <div
+          class="list-rail list-rail-grab select-none"
+          draggable="true"
+          data-testid="rail"
+          title="Drag to change the order, or click to show or hide arrows"
+          @click="onRailClick($event, item)"
+          @dragstart="onDragStart($event, item)"
+          @dragend="endDrag"
         >
-          <div
-            class="list-rail list-rail-grab select-none"
-            draggable="true"
-            data-testid="rail"
-            title="Drag to change the order, or click to show or hide arrows"
-            @click="onRailClick($event, item)"
-            @dragstart="onDragStart($event, item)"
-            @dragend="endDrag"
-          >
-            <slot name="rail" :item="item" :index="index" />
-            <!-- For the keyboard and screen readers: the rail's own click (which this bubbles to) shows the arrows. -->
-            <button
-              type="button"
-              class="sr-only"
-              data-testid="grip"
-              :data-grip="item.id"
-              :aria-label="`Reorder ${itemLabel(item)}`"
-              :aria-expanded="showArrows"
-              @focus="armed = true"
-              @keydown="onGripKey($event, item)"
-            ></button>
-            <!-- The grip and the arrows share one slot (centred in the row, under the checkbox), so swapping moves nothing. -->
-            <div class="my-auto grid place-items-center">
-              <svg
-                class="list-rail-grip col-start-1 row-start-1"
-                :class="{ invisible: showArrows }"
-                width="10"
-                height="16"
-                viewBox="0 0 10 16"
-                fill="currentColor"
-                aria-hidden="true"
-                focusable="false"
+          <slot name="rail" :item="item" :index="index" />
+          <!-- For the keyboard and screen readers: the rail's own click (which this bubbles to) shows the arrows. -->
+          <button
+            type="button"
+            class="sr-only"
+            data-testid="grip"
+            :data-grip="item.id"
+            :aria-label="`Reorder ${itemLabel(item)}`"
+            :aria-expanded="showArrows"
+            @focus="armed = true"
+            @keydown="onGripKey($event, item)"
+          ></button>
+          <!-- The grip and the arrows share one slot (centred in the row, under the checkbox), so swapping moves nothing. -->
+          <div class="my-auto grid place-items-center">
+            <svg
+              class="list-rail-grip col-start-1 row-start-1"
+              :class="{ invisible: showArrows }"
+              width="10"
+              height="16"
+              viewBox="0 0 10 16"
+              fill="currentColor"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <circle v-for="y in [2, 8, 14]" :key="`l${y}`" cx="2" :cy="y" r="1.5" />
+              <circle v-for="y in [2, 8, 14]" :key="`r${y}`" cx="8" :cy="y" r="1.5" />
+            </svg>
+            <div
+              class="col-start-1 row-start-1 flex flex-col gap-1"
+              :class="{ invisible: !showArrows }"
+              :aria-hidden="!showArrows"
+              :inert="!showArrows"
+            >
+              <button
+                type="button"
+                :class="buttonClass"
+                :data-move="`${item.id}-up`"
+                :disabled="index === 0"
+                :aria-label="`Move ${itemLabel(item)} up`"
+                @click="moveBy(item, -1)"
               >
-                <circle v-for="y in [2, 8, 14]" :key="`l${y}`" cx="2" :cy="y" r="1.5" />
-                <circle v-for="y in [2, 8, 14]" :key="`r${y}`" cx="8" :cy="y" r="1.5" />
-              </svg>
-              <div
-                class="col-start-1 row-start-1 flex flex-col gap-1"
-                :class="{ invisible: !showArrows }"
-                :aria-hidden="!showArrows"
-                :inert="!showArrows"
+                <Icon name="up" :size="16" />
+              </button>
+              <button
+                type="button"
+                :class="buttonClass"
+                :data-move="`${item.id}-down`"
+                :disabled="index === shown.length - 1"
+                :aria-label="`Move ${itemLabel(item)} down`"
+                @click="moveBy(item, 1)"
               >
-                <button
-                  type="button"
-                  :class="buttonClass"
-                  :data-move="`${item.id}-up`"
-                  :disabled="index === 0"
-                  :aria-label="`Move ${itemLabel(item)} up`"
-                  @click="moveBy(item, -1)"
-                >
-                  <Icon name="up" :size="16" />
-                </button>
-                <button
-                  type="button"
-                  :class="buttonClass"
-                  :data-move="`${item.id}-down`"
-                  :disabled="index === shown.length - 1"
-                  :aria-label="`Move ${itemLabel(item)} down`"
-                  @click="moveBy(item, 1)"
-                >
-                  <Icon name="down" :size="16" />
-                </button>
-              </div>
+                <Icon name="down" :size="16" />
+              </button>
             </div>
           </div>
-          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
-            <slot :item="item" :index="index" />
-            <span class="flex shrink-0 gap-1">
-              <slot name="actions" :item="item" :index="index" />
-            </span>
-          </div>
-        </li>
-      </ol>
-    </div>
+        </div>
+      </template>
+      <template #default="{ item, index }"><slot :item="item" :index="index" /></template>
+      <template #actions="{ item, index }">
+        <slot name="actions" :item="item" :index="index" />
+      </template>
+    </RowList>
     <!-- Not role="status": a page should have only one of those, and several lists can share a page. -->
     <p aria-live="polite" aria-atomic="true" class="sr-only">{{ notice }}</p>
   </div>

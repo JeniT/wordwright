@@ -1,7 +1,7 @@
-import { fireEvent, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MEMBER_ABILITIES, OWNER_ABILITIES } from '../lib/publication-roles'
+import { MEMBER_ABILITIES } from '../lib/publication-roles'
 import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -243,18 +243,50 @@ describe('inviting from the publication settings page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/lot of invitations/)
   })
 
-  it('says what members and owners can do before you invite, using the shared wording', async () => {
+  it('says what the section is for, and keeps what members can do behind the info icon', async () => {
     server.use(
-      signedInAs(testUser),
+      signedInAs({ ...testUser, tutorialMode: false }),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/p/p1/settings/sharing')
-    const note = await screen.findByTestId('invite-roles')
-    expect(note).toHaveTextContent(/Members can /)
-    for (const ability of [...MEMBER_ABILITIES, ...OWNER_ABILITIES]) {
-      expect(note).toHaveTextContent(ability)
-    }
+    expect(await screen.findByText('Invite new members.')).toBeInTheDocument()
+    const info = screen.getByRole('button', { name: 'About members' })
+    expect(info).toHaveAccessibleDescription(/^Members can /)
+    const description = info.getAttribute('aria-describedby')
+      ? document.getElementById(info.getAttribute('aria-describedby')!)?.textContent
+      : ''
+    for (const ability of MEMBER_ABILITIES) expect(description).toContain(ability)
+    // Owners are not what this form invites, so they are not mentioned here.
+    expect(screen.queryByText(/Owners can also/)).toBeNull()
+  })
+
+  it('writes the members text out on the page in tutorial mode', async () => {
+    server.use(
+      signedInAs({ ...testUser, tutorialMode: true }),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/p1/settings/sharing')
+    expect(await screen.findByText(/^Members can read and comment/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'About members' })).toBeNull()
+  })
+
+  it('lists pending invitations as rows, with real buttons and no links', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/p1/invitations', () =>
+        HttpResponse.json([
+          { id: 'i1', email: 'bob@example.com', expiresAt: '2030-01-08T00:00:00Z' },
+        ]),
+      ),
+    )
+    await renderAt('/p/p1/settings/sharing')
+    const list = await screen.findByRole('list', { name: 'Invitations waiting for a reply' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(list).getByRole('button', { name: /^Resend invitation/ })).toHaveClass('btn')
+    expect(within(list).queryByRole('link')).toBeNull()
   })
 
   it('does not show it to someone who has not confirmed their address (no form to explain)', async () => {
@@ -264,6 +296,6 @@ describe('inviting from the publication settings page', () => {
     )
     await renderAt('/p/p1/settings/sharing')
     await screen.findByText(/Confirm your email address to invite people/)
-    expect(screen.queryByTestId('invite-roles')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'About members' })).toBeNull()
   })
 })
