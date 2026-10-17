@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wordwright: coming soon</title>
+    <meta
+      name="description"
+      content="Wordwright helps writers find ideas, shape arguments and judge their own drafts, without losing their voice. Coming soon."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      /* Ember palette, copied from apps/web/src/theme/palette-ember.css (light, then dark by system setting). */
+      @font-face {
+        font-family: 'IBM Plex Sans';
+        src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'IBM Plex Sans';
+        src: url('/fonts/ibm-plex-sans-latin-600-normal.woff2') format('woff2');
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+      }
+      :root {
+        --paper: #f8f5f1;
+        --ink: #2a2420;
+        --ink-soft: #594f47;
+        --line: #e0d8ce;
+        --accent: #b0440c;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #1a1512;
+          --ink: #f1e9e1;
+          --ink-soft: #b8aa9d;
+          --line: #382e27;
+          --accent: #f08a4b;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem 1rem;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.5;
+        text-align: center;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+      .mark {
+        color: var(--accent);
+      }
+      h1 {
+        margin: 0;
+        font-size: 2.25rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      p {
+        margin: 0;
+        padding-top: 1rem;
+        border-top: 1px solid var(--line);
+        min-width: 8rem;
+        font-size: 1.125rem;
+        color: var(--ink-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg
+        class="mark"
+        aria-hidden="true"
+        focusable="false"
+        width="66"
+        height="96"
+        viewBox="17.6 151.3 74.6 109.2"
+      >
+        <path
+          fill="currentColor"
+          d="m 51.210261,157.11819 c 5.287843,7.56324 8.814802,13.2251 11.164743,17.33679 6.294672,11.01378 10.385296,25.04485 10.632943,36.82256 0.02071,0.98519 -1.205883,28.1997 -15.953548,28.19983 -6.865216,2.3e-4 -12.430711,-5.56503 -12.430766,-12.43025 5.5e-5,-6.86522 5.56555,-12.43048 12.430766,-12.43025 4.147185,6e-5 6.16473,0.7276 7.78247,2.29599 7.866596,-9.56725 -3.376434,-34.58509 -6.079215,-40.751 -4.830259,-11.01937 -6.072204,-13.64909 -8.68868,-18.77247 -1.472325,-2.88299 -2.225491,-2.62149 -2.042431,0.60926 1.819741,32.11584 -25.790525,46.0386 -28.215349,64.65339 -2.55192,19.59048 16.01547,35.77146 35.77146,35.77146 19.755985,0 34.561483,-16.01547 34.561483,-35.77146 0,-18.05537 -17.947842,-52.76167 -37.303657,-67.24662 -2.774615,-2.07639 -3.617708,-1.12994 -1.630219,1.71277 z"
+        />
+      </svg>
+      <h1>Wordwright</h1>
+      <p>Coming soon</p>
+    </main>
+  </body>
+</html>
