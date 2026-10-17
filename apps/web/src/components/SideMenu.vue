@@ -32,6 +32,7 @@ const itemClass =
         :name="publication.name"
         :image-url="publication.imageUrl"
         :site-icon-url="publication.siteIconUrl"
+        :site-icon-square="publication.siteIconSquare"
         size="xs"
       />
       <div class="min-w-0 flex-1">

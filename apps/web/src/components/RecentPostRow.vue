@@ -15,6 +15,7 @@ defineProps<{
   /** The feed's name and logo. */
   feedName: string
   feedIconUrl?: string | null
+  feedIconSquare?: boolean
   busy: boolean
 }>()
 const emit = defineEmits<{ decide: [what: PostDecision] }>()
@@ -29,6 +30,7 @@ const when = (iso: string) =>
       :id="post.sourceId"
       :name="feedName"
       :image-url="feedIconUrl"
+      :square="feedIconSquare"
       size="xs"
       kind="source"
       class="mt-0.5"

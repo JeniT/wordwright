@@ -28,4 +28,24 @@ describe('PublicationImage', () => {
     expect(container.querySelector('img')).toBeNull()
     expect(container.querySelector('.source-letter')).toHaveTextContent('G')
   })
+
+  it('fills the box with a site icon that is square to its corners, and keeps the others on the plate', () => {
+    const square = render(PublicationImage, {
+      props: { ...props, siteIconUrl: '/site.png', siteIconSquare: true },
+    })
+    expect(square.container.querySelector('.source-mark')).toHaveAttribute('data-fill', 'true')
+    const other = render(PublicationImage, { props: { ...props, siteIconUrl: '/site.png' } })
+    expect(other.container.querySelector('.source-mark')).not.toHaveAttribute('data-fill')
+  })
+
+  it('does the same for a feed icon, and never fills the writer’s own picture by that flag', () => {
+    const feed = render(PublicationImage, {
+      props: { ...props, imageUrl: '/feed.png', kind: 'source', square: true },
+    })
+    expect(feed.container.querySelector('.source-mark')).toHaveAttribute('data-fill', 'true')
+    const own = render(PublicationImage, {
+      props: { ...props, imageUrl: '/own.png', square: true, siteIconSquare: true },
+    })
+    expect(own.container.querySelector('[data-fill]')).toBeNull()
+  })
 })

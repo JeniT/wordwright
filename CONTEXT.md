@@ -19,7 +19,7 @@ The image an owner chooses for a publication. Always shown in preference to the 
 _Avoid_: Avatar, logo
 
 **Site icon**:
-The icon of a publication's website, fetched once when the website is set or changed and shown, as a guest image, only when the publication has no picture of its own.
+The icon of a publication's website, fetched once when the website is set or changed and shown, as a guest image, only when the publication has no picture of its own. It sits contained on a plate, unless it is square to its corners (as wide as it is tall, at least 64px, all four corner pixels opaque), when it fills the picture's box. A feed's icon follows the same rule.
 _Avoid_: Favicon, logo
 
 **Mark**:

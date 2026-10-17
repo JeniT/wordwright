@@ -11,6 +11,10 @@ const props = withDefaults(
      * site's picture (on the plate, contained), never cropped into the slot for the person's own picture.
      */
     siteIconUrl?: string | null
+    /** The site icon is square to its corners (`siteIconSquare`), so it fills the box instead of sitting on the plate. */
+    siteIconSquare?: boolean
+    /** Same, for a `kind="source"` picture passed as `imageUrl` (a feed's icon). */
+    square?: boolean
     size?: 'xs' | 'sm' | 'md' | 'lg'
     /**
      * `publication`: the person's own picture, cropped to fill the tile.
@@ -19,7 +23,14 @@ const props = withDefaults(
      */
     kind?: 'publication' | 'source'
   }>(),
-  { imageUrl: null, siteIconUrl: null, size: 'md', kind: 'publication' },
+  {
+    imageUrl: null,
+    siteIconUrl: null,
+    siteIconSquare: false,
+    square: false,
+    size: 'md',
+    kind: 'publication',
+  },
 )
 
 // A palette-matched tint, chosen from the id so a publication or source keeps its colour everywhere.
@@ -33,6 +44,8 @@ const tint = computed(() => {
 const shownIcon = computed(() =>
   props.kind === 'source' ? props.imageUrl : props.imageUrl ? null : props.siteIconUrl,
 )
+// Only another site's picture is ever filled; it stays framed by the same border, and any other shape stays on the plate.
+const fills = computed(() => (props.kind === 'source' ? props.square : props.siteIconSquare))
 const initial = computed(() => (Array.from(props.name.trim())[0] ?? '?').toUpperCase())
 const dimension = { xs: '2rem', sm: '3rem', md: '4rem', lg: '6rem' }
 const sizeStyle = computed(() => ({ '--mark-size': dimension[props.size] }))
@@ -40,7 +53,7 @@ const sizeStyle = computed(() => ({ '--mark-size': dimension[props.size] }))
 
 <template>
   <!-- Decorative: the name is always shown next to it. -->
-  <span v-if="shownIcon" class="source-mark" :style="sizeStyle">
+  <span v-if="shownIcon" class="source-mark" :data-fill="fills || undefined" :style="sizeStyle">
     <img :src="shownIcon" alt="" />
   </span>
   <img

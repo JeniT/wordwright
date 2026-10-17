@@ -1,4 +1,5 @@
-import type { FeedFetcher, FetchedIcon } from '@wordwright/core'
+import type { FeedFetcher } from '@wordwright/core'
+import { withShape, type ShapedIcon } from './icon-shape'
 
 /** A slow site must not hold up saving a publication; the icon is a nicety. */
 const SITE_ICON_TIMEOUT_MS = 5000
@@ -12,11 +13,13 @@ export async function fetchSiteIcon(
   feeds: FeedFetcher,
   siteUrl: string,
   signal: AbortSignal = AbortSignal.timeout(SITE_ICON_TIMEOUT_MS),
-): Promise<FetchedIcon | null> {
+): Promise<ShapedIcon | null> {
   try {
-    return await feeds.fetchIcon(
-      { url: siteUrl, title: siteUrl, description: null, siteUrl, iconUrl: null },
-      { signal },
+    return await withShape(
+      await feeds.fetchIcon(
+        { url: siteUrl, title: siteUrl, description: null, siteUrl, iconUrl: null },
+        { signal },
+      ),
     )
   } catch {
     return null

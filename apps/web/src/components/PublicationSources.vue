@@ -142,6 +142,7 @@ function shortName(address: string) {
             :id="source.id"
             :name="nameOf(source)"
             :image-url="source.iconUrl"
+            :square="source.iconSquare"
             size="sm"
             kind="source"
           />

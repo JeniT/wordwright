@@ -31,6 +31,7 @@ const ideas = useIdeas(() => props.publicationId)
         :name="publication.name"
         :image-url="publication.imageUrl"
         :site-icon-url="publication.siteIconUrl"
+        :site-icon-square="publication.siteIconSquare"
         size="sm"
       />
       <div class="min-w-0">

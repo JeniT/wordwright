@@ -180,6 +180,8 @@ export const PublicationSchema = z.object({
    * guest (`PublicationImage kind="source"`), and only when there is no uploaded picture.
    */
   siteIconUrl: z.string().nullable(),
+  /** The site icon is square to its corners, so it can fill the picture's box instead of sitting on the plate (#226). */
+  siteIconSquare: z.boolean().default(false),
   /**
    * What the publication is, who reads it and what kinds of writing go there, in Markdown, in the writer's own words. It is
    * context for the AI and shown on the publication page. Null when nobody has written one.
@@ -273,6 +275,8 @@ export const SourceSchema = z.object({
   siteUrl: z.string().nullable(),
   /** Same-origin URL of the picture we kept for it, or null (the UI then draws a placeholder). */
   iconUrl: z.string().nullable(),
+  /** The picture is square to its corners, so it can fill its box instead of sitting on the plate (#226). */
+  iconSquare: z.boolean().default(false),
   /** When we last managed to read the feed's posts; null if never. */
   lastWorkedAt: z.string().nullable().default(null),
   /** Why the latest attempt to read it failed, in words for the person; null if it didn't. */

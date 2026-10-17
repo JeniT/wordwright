@@ -16,6 +16,7 @@ import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { HttpPageInfoFetcher } from './pages/http-page-info'
 import { AccountService } from './services/accounts'
+import { backfillIconShapes } from './services/icon-backfill'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
 
@@ -93,6 +94,7 @@ const maintenance = new MaintenanceService({
     publicUrl: config.PUBLIC_URL,
   }),
 })
+void backfillIconShapes(store)
 startMaintenance({ run: () => maintenance.run(), intervalMs: 6 * 60 * 60 * 1000 })
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {

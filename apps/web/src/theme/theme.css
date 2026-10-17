@@ -672,6 +672,11 @@
     object-fit: contain;
     padding: calc(var(--mark-size, 2.5rem) * 0.12);
   }
+  /* An icon that is square to its corners (checked on the server) fills the plate; the frame stays. */
+  &[data-fill] > img {
+    padding: 0;
+    object-fit: cover;
+  }
 }
 @utility source-letter {
   display: inline-grid;

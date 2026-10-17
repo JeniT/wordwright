@@ -728,6 +728,24 @@ describe('publication site icon', () => {
     expect((await ada.get(`/api/publications/${renamed.id}/site-icon`)).status).toBe(404)
   })
 
+  it('says whether the icon is square to its corners, so it can fill the box (#226)', async () => {
+    const square = setup({
+      feeds: new FakeFeedFetcher({}, () => ({ icon: 'square' })),
+    })
+    const owner = square.client()
+    await register(owner, 'sq@example.com', 'Sq')
+    const big = await (
+      await owner.post('/api/publications', { name: 'Big', siteUrl: 'https://big.example/' })
+    ).json()
+    expect(big.siteIconSquare).toBe(true)
+
+    // The default fake icon is a single pixel: too small to fill a box.
+    const small = await (
+      await ada.post('/api/publications', { name: 'Small', siteUrl: 'https://garden.example/' })
+    ).json()
+    expect(small.siteIconSquare).toBe(false)
+  })
+
   it('drops the old icon when the new website has none', async () => {
     const created = await (
       await ada.post('/api/publications', { name: 'Garden', siteUrl: 'https://garden.example/' })

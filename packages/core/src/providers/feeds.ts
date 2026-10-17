@@ -95,6 +95,14 @@ export const TINY_PNG = Uint8Array.from(
   (c) => c.charCodeAt(0),
 )
 
+/** A real 64x64 solid PNG: big enough, and square to its corners, to fill a picture's box (#226). */
+export const SQUARE_PNG = Uint8Array.from(
+  atob(
+    'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAT0lEQVRo3u3PQQkAAAgEsAthMOMY3wi+hcEKLDX9WgQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQELgvg6cDEyXjFpgAAAABJRU5ErkJggg==',
+  ),
+  (c) => c.charCodeAt(0),
+)
+
 /** Puts feeds of comments last and applies the cap, as every adapter must. */
 export function tidyCandidates(candidates: FeedCandidate[]): FeedCandidate[] {
   const seen = new Set<string>()
@@ -107,7 +115,8 @@ export function tidyCandidates(candidates: FeedCandidate[]): FeedCandidate[] {
 
 /** What a fake knows about an address: a feed's details, or (with `advertises`) a page offering feeds. */
 type KnownFeed = Partial<FeedDetails> & {
-  icon?: boolean
+  /** `'square'` gives one that fills its box; `true` a 1x1 one that does not. */
+  icon?: boolean | 'square'
   advertises?: (Pick<FeedCandidate, 'url'> & Partial<FeedCandidate>)[]
   /** The posts it will answer with (a default single post if not given). */
   items?: FeedItem[]
@@ -194,6 +203,7 @@ export class FakeFeedFetcher implements FeedFetcher {
   async fetchIcon(feed: FeedDetails): Promise<FetchedIcon | null> {
     this.iconsFetched.push(feed.url)
     const known = this.feeds[feed.url] ?? this.fallback?.(feed.url)
-    return known?.icon ? { contentType: 'image/png', data: TINY_PNG } : null
+    if (!known?.icon) return null
+    return { contentType: 'image/png', data: known.icon === 'square' ? SQUARE_PNG : TINY_PNG }
   }
 }

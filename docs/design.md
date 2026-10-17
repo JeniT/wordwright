@@ -461,6 +461,11 @@ square, 1px `line-strong` frame, 4px corners, white background in both light and
 own rounded corners stop at its edge and never wrap someone else's artwork. The plate's white is the only
 hard-coded colour in the system, deliberately.
 
+The exception is an icon that is **square to its corners** (#226): the server checks, when it fetches the icon, that it is
+as wide as it is tall, at least 64px, and that all four corner pixels are opaque. Such an icon fills the plate (the frame
+stays, no padding), since there is nothing to protect. Rounded or irregular icons, and small ones, stay contained as above.
+The flag is `siteIconSquare` on a publication and `iconSquare` on a source (feed); pass it as `site-icon-square` or `square`.
+
 The person's own publication picture (`kind="publication"`, the default) is cropped to fill the same frame, since the writer
 chose it. When a publication has no picture but has a website whose icon we could fetch, `PublicationImage` is given
 `site-icon-url` and draws that icon as a guest (on the plate, as above); the person's picture always wins. Pictures are still fetched once and served from our own origin ([decisions.md](decisions.md)); this is only

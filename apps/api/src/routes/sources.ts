@@ -1,3 +1,4 @@
+import { withShape } from '../services/icon-shape'
 import { Hono, type MiddlewareHandler } from 'hono'
 import {
   FeedError,
@@ -81,7 +82,7 @@ export function sourceRoutes(
 
         // Read the feed first: it tells us what to call it, and refuses things that aren't feeds.
         const feed = await readFeed(offered[0]!.url, signal)
-        const icon = await feeds.fetchIcon(feed, { signal })
+        const icon = await withShape(await feeds.fetchIcon(feed, { signal }))
 
         // The checks are repeated: other requests may have run while we were waiting on the network.
         // `feed.url` can differ from `url` (a website address led to its feed).

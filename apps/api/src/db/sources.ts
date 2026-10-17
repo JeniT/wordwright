@@ -23,6 +23,7 @@ interface Row {
   description: string | null
   site_url: string | null
   icon_updated_at: string | null
+  icon_square: number | null
   last_worked_at: string | null
   last_error: string | null
 }
@@ -49,7 +50,7 @@ export class SourceStore {
     return (
       this.db
         .prepare(
-          `SELECT s.id, s.url, s.title, s.description, s.site_url, i.updated_at AS icon_updated_at,
+          `SELECT s.id, s.url, s.title, s.description, s.site_url, i.updated_at AS icon_updated_at, i.square AS icon_square,
                   f.last_worked_at, f.last_error
            FROM publication_sources s
            LEFT JOIN publication_source_icons i ON i.source_id = s.id
@@ -83,7 +84,7 @@ export class SourceStore {
     publicationId: string,
     url: string,
     details?: FeedDetails,
-    icon?: FetchedIcon | null,
+    icon?: (FetchedIcon & { square?: boolean }) | null,
   ): Source {
     const id = randomUUID()
     const now = nowIso()
@@ -105,11 +106,28 @@ export class SourceStore {
     if (icon) {
       this.db
         .prepare(
-          'INSERT INTO publication_source_icons (source_id, content_type, data, updated_at) VALUES (?, ?, ?, ?)',
+          'INSERT INTO publication_source_icons (source_id, content_type, data, updated_at, square) VALUES (?, ?, ?, ?, ?)',
         )
-        .run(id, icon.contentType, icon.data, now)
+        .run(id, icon.contentType, icon.data, now, icon.square == null ? null : +icon.square)
     }
     return this.list(publicationId).find((s) => s.id === id)!
+  }
+
+  /** Icons stored before their shape was recorded, for the startup backfill. */
+  unshapedIcons(): { sourceId: string; contentType: IconType; data: Uint8Array }[] {
+    return (
+      this.db
+        .prepare(
+          'SELECT source_id, content_type, data FROM publication_source_icons WHERE square IS NULL',
+        )
+        .all() as { source_id: string; content_type: IconType; data: Uint8Array }[]
+    ).map((r) => ({ sourceId: r.source_id, contentType: r.content_type, data: r.data }))
+  }
+
+  setIconSquare(sourceId: string, square: boolean) {
+    this.db
+      .prepare('UPDATE publication_source_icons SET square = ? WHERE source_id = ?')
+      .run(+square, sourceId)
   }
 
   getIcon(publicationId: string, id: string): SourceIcon | undefined {
@@ -220,6 +238,7 @@ function toSource(publicationId: string, r: Row): Source {
     iconUrl: r.icon_updated_at
       ? `/api/publications/${publicationId}/sources/${r.id}/icon?v=${Date.parse(r.icon_updated_at)}`
       : null,
+    iconSquare: r.icon_square === 1,
     lastWorkedAt: r.last_worked_at,
     lastError: r.last_error,
   }

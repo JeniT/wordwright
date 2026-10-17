@@ -170,6 +170,7 @@ const failedNames = computed(() =>
                 :post="post"
                 :feed-name="nameOf(byId.get(post.sourceId))"
                 :feed-icon-url="byId.get(post.sourceId)?.iconUrl"
+                :feed-icon-square="byId.get(post.sourceId)?.iconSquare"
                 :busy="busy"
                 @decide="(what) => decide.mutate({ what, post })"
               />

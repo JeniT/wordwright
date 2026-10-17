@@ -134,6 +134,7 @@ const deletePublication = useMutation({
           :name="publication.name"
           :image-url="publication.imageUrl"
           :site-icon-url="publication.siteIconUrl"
+          :site-icon-square="publication.siteIconSquare"
           size="lg"
         />
         <div v-if="isOwner" class="flex-1">

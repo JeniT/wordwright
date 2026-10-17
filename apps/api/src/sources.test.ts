@@ -239,6 +239,7 @@ describe('idea sources', () => {
       description: 'Essays on reading',
       siteUrl: 'https://slow.example/',
       iconUrl: null,
+      iconSquare: false,
       lastWorkedAt: null,
       lastError: null,
     })
@@ -275,6 +276,23 @@ describe('idea sources', () => {
     // It goes when the source does.
     await user.delete(`/api/publications/${publication}/sources/${source.id}`)
     expect((await user.get(source.iconUrl)).status).toBe(404)
+  })
+
+  it('says whether the feed’s icon is square to its corners (#226)', async () => {
+    const fetcher = new FakeFeedFetcher({
+      'https://big.example/feed': { title: 'Big', icon: 'square' },
+      'https://small.example/feed': { title: 'Small', icon: true },
+    })
+    const c = setup({ feeds: fetcher })
+    const user = c.client()
+    await register(user)
+    const publication = (await (await user.get('/api/publications')).json())[0].id
+    const add = async (url: string) =>
+      (await user.post(`/api/publications/${publication}/sources`, { url })).json()
+    expect((await add('https://big.example/feed')).iconSquare).toBe(true)
+    expect((await add('https://small.example/feed')).iconSquare).toBe(false)
+    const listed = await (await user.get(`/api/publications/${publication}/sources`)).json()
+    expect(listed.map((s: { iconSquare: boolean }) => s.iconSquare)).toEqual([true, false])
   })
 
   it('has no icon when the feed offers none', async () => {

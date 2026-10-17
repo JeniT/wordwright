@@ -70,6 +70,7 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
               :post="post"
               :feed-name="nameOf(post.sourceId)"
               :feed-icon-url="byId.get(post.sourceId)?.iconUrl"
+              :feed-icon-square="byId.get(post.sourceId)?.iconSquare"
               :busy="busy"
               @decide="(what) => decide.mutate({ what, post })"
             />

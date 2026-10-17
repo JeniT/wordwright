@@ -137,6 +137,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
               :name="p.name"
               :image-url="p.imageUrl"
               :site-icon-url="p.siteIconUrl"
+              :site-icon-square="p.siteIconSquare"
             />
             <span class="min-w-0">
               <span class="block truncate font-display text-lg font-semibold">{{ p.name }}</span>

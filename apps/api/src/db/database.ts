@@ -560,6 +560,12 @@ export const MIGRATIONS: Migration[] = [
   `
   DROP TABLE user_prompts;
   `,
+  // Whether a stored site or feed icon is square to its corners (#226), so it can fill its box. Null = not yet checked
+  // (icons stored before this): shown on the plate until the startup backfill has looked at it.
+  `
+  ALTER TABLE publication_site_icons ADD COLUMN square INTEGER CHECK (square IN (0, 1));
+  ALTER TABLE publication_source_icons ADD COLUMN square INTEGER CHECK (square IN (0, 1));
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

@@ -18,6 +18,8 @@ export interface PublicationImage {
 export interface SiteIcon {
   contentType: IconType
   data: Uint8Array
+  /** Square to its corners (see services/icon-shape.ts); absent or null = not checked. */
+  square?: boolean | null
 }
 
 /**
@@ -171,11 +173,34 @@ export class PublicationStore {
     }
     this.db
       .prepare(
-        `INSERT INTO publication_site_icons (publication_id, content_type, data, updated_at) VALUES (?, ?, ?, ?)
+        `INSERT INTO publication_site_icons (publication_id, content_type, data, updated_at, square) VALUES (?, ?, ?, ?, ?)
          ON CONFLICT(publication_id) DO UPDATE SET content_type = excluded.content_type,
-           data = excluded.data, updated_at = excluded.updated_at`,
+           data = excluded.data, updated_at = excluded.updated_at, square = excluded.square`,
       )
-      .run(publicationId, icon.contentType, icon.data, nowIso())
+      .run(
+        publicationId,
+        icon.contentType,
+        icon.data,
+        nowIso(),
+        icon.square == null ? null : +icon.square,
+      )
+  }
+
+  /** Icons stored before their shape was recorded, for the startup backfill. */
+  unshapedSiteIcons(): { publicationId: string; contentType: IconType; data: Uint8Array }[] {
+    return (
+      this.db
+        .prepare(
+          'SELECT publication_id, content_type, data FROM publication_site_icons WHERE square IS NULL',
+        )
+        .all() as { publication_id: string; content_type: IconType; data: Uint8Array }[]
+    ).map((r) => ({ publicationId: r.publication_id, contentType: r.content_type, data: r.data }))
+  }
+
+  setSiteIconSquare(publicationId: string, square: boolean) {
+    this.db
+      .prepare('UPDATE publication_site_icons SET square = ? WHERE publication_id = ?')
+      .run(+square, publicationId)
   }
 
   getSiteIcon(publicationId: string): SiteIcon | undefined {
@@ -251,7 +276,7 @@ export class PublicationStore {
     const row = this.db
       .prepare(
         `SELECT p.name, p.site_url, p.description, i.updated_at AS image_updated_at,
-           s.updated_at AS site_icon_updated_at FROM publications p
+           s.updated_at AS site_icon_updated_at, s.square AS site_icon_square FROM publications p
          LEFT JOIN publication_images i ON i.publication_id = p.id
          LEFT JOIN publication_site_icons s ON s.publication_id = p.id WHERE p.id = ?`,
       )
@@ -262,6 +287,7 @@ export class PublicationStore {
           description: string | null
           image_updated_at: string | null
           site_icon_updated_at: string | null
+          site_icon_square: number | null
         }
       | undefined
     return (
@@ -277,6 +303,7 @@ export class PublicationStore {
         siteIconUrl: row.site_icon_updated_at
           ? `/api/publications/${publicationId}/site-icon?v=${Date.parse(row.site_icon_updated_at)}`
           : null,
+        siteIconSquare: row.site_icon_square === 1,
         description: row.description,
         role,
         members: this.members(publicationId),
