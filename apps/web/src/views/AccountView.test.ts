@@ -297,19 +297,23 @@ describe('AccountView: AI assistant key', () => {
       http.get('*/api/llm', () => HttpResponse.json(noKey)),
       http.put('*/api/llm', async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
+        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: 'sk-ant-api03-A...7890' })
       }),
     )
     await renderAt('/account/ai')
-    await screen.findByText('No key yet')
+    const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
+    await waitFor(() => expect(save).toBeEnabled()) // the saved settings have loaded
+    expect(screen.getByLabelText('Anthropic API key')).toHaveAttribute('placeholder', 'sk-ant-...')
     expect(screen.queryByLabelText('Model')).toBeNull() // the provider lists models for a key
     expect(screen.getByText('Save a key to choose a model.')).toBeInTheDocument()
     const field = screen.getByLabelText('Anthropic API key')
     expect(field).toHaveAttribute('type', 'password')
     await fireEvent.update(field, '  sk-ant-secret-1234567890  ')
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
+    await fireEvent.click(save)
 
-    await screen.findByText(/Key saved \(…7890\)/)
+    // The saved key now shows, elided, in the empty field, with the way to keep it.
+    await screen.findByPlaceholderText('sk-ant-api03-A...7890')
+    expect(screen.getByText('Leave as is to keep the current one')).toBeInTheDocument()
     expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-secret-1234567890' })
     expect(screen.queryByDisplayValue(/sk-ant/)).toBeNull() // the field is cleared
     expect(await screen.findByLabelText('Model')).toBeInTheDocument()
@@ -325,17 +329,17 @@ describe('AccountView: AI assistant key', () => {
       }),
       http.put('*/api/llm', async ({ request }) => {
         await request.json()
-        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: '…7890' })
+        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: 'sk-ant-api03-A...7890' })
       }),
     )
     await renderAt('/account/ai')
     const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
     expect(save).toBeDisabled() // still loading
-    await screen.findByText('No key yet')
+    await waitFor(() => expect(save).toBeEnabled())
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-secret-1234567890')
     expect(save).toBeEnabled()
     await fireEvent.click(save)
-    await screen.findByText(/Key saved/)
+    await screen.findByPlaceholderText('sk-ant-api03-A...7890')
   })
 
   it('shows why a key was refused', async () => {
@@ -351,16 +355,17 @@ describe('AccountView: AI assistant key', () => {
       ),
     )
     await renderAt('/account/ai')
-    await screen.findByText('No key yet') // settings loaded, so Save is enabled
+    const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
+    await waitFor(() => expect(save).toBeEnabled()) // settings loaded
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-wrong-1234567890')
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
+    await fireEvent.click(save)
     expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/)
   })
 
   it('lets a user keep their key and just change the model, or remove the key', async () => {
     let sent: unknown
     let removed = false
-    const saved = { ...noKey, hasKey: true, keyHint: '…7890' }
+    const saved = { ...noKey, hasKey: true, keyHint: 'sk-ant-api03-A...7890' }
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
@@ -375,7 +380,7 @@ describe('AccountView: AI assistant key', () => {
       }),
     )
     await renderAt('/account/ai')
-    await screen.findByText(/Key saved/)
+    await screen.findByPlaceholderText('sk-ant-api03-A...7890')
     const model = await screen.findByLabelText('Model')
     // The provider's own names, not ours.
     expect(
@@ -390,12 +395,17 @@ describe('AccountView: AI assistant key', () => {
     const removeKey = screen.getByRole('button', { name: 'Remove key' })
     await fireEvent.click(removeKey) // no hold: it only asks to be pressed again
     await fireEvent.click(removeKey)
-    await screen.findByText('No key yet')
+    await screen.findByPlaceholderText('sk-ant-...')
   })
 })
 
 describe('AccountView: the model', () => {
-  const saved = { provider: 'anthropic', model: 'claude-opus-5-5', hasKey: true, keyHint: '…7890' }
+  const saved = {
+    provider: 'anthropic',
+    model: 'claude-opus-5-5',
+    hasKey: true,
+    keyHint: 'sk-ant-api03-A...7890',
+  }
 
   it('shows the current model and a way to try again when the list will not load', async () => {
     let fail = true
@@ -437,7 +447,7 @@ describe('AccountView: replacing a key while the saved model is retired', () => 
       provider: 'anthropic',
       model: 'claude-retired-1',
       hasKey: true,
-      keyHint: '…7890',
+      keyHint: 'sk-ant-api03-A...7890',
     }
     server.use(
       signedInAs(testUser),
@@ -450,7 +460,10 @@ describe('AccountView: replacing a key while the saved model is retired', () => 
     )
     await renderAt('/account/ai')
     await screen.findByText(/no longer offered/)
-    await fireEvent.update(screen.getByLabelText('New API key'), 'sk-ant-replacement-1234567890')
+    await fireEvent.update(
+      screen.getByLabelText('Anthropic API key'),
+      'sk-ant-replacement-1234567890',
+    )
     await fireEvent.click(screen.getAllByRole('button', { name: 'Save key' })[0]!)
     await waitFor(() =>
       expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-replacement-1234567890' }),

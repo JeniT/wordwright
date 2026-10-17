@@ -6,6 +6,8 @@ defineProps<{
   type?: string
   autocomplete?: string
   hint?: string
+  /** Greyed text that goes once something is typed. It shows an example or the current value, never the label. */
+  placeholder?: string
   required?: boolean
   /** Marks the hint as an error message for the field. */
   invalid?: boolean
@@ -25,6 +27,7 @@ const id = useId()
       v-model="model"
       :type="type ?? 'text'"
       :autocomplete="autocomplete"
+      :placeholder="placeholder"
       :required="required"
       :autocapitalize="autocapitalize"
       :spellcheck="spellcheck"

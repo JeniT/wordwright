@@ -99,7 +99,7 @@ test('Your AI leads with the key, keeps the long advice on help pages, and links
   expect((await key.boundingBox())!.y, 'the key comes first').toBeLessThan(
     (await limit.boundingBox())!.y,
   )
-  await expect(page.getByText('No key yet')).toBeVisible()
+  await expect(page.getByPlaceholder('sk-ant-...')).toBeVisible()
   await expect(page.getByText('Protect what you write')).toHaveCount(0)
   await expect(page.getByText('turns into a spinner')).toHaveCount(0)
 

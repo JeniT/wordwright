@@ -11,6 +11,7 @@ import {
   type ResearchProvider,
 } from '@wordwright/core'
 import type { SecretBox } from '../auth/secret-box'
+import type { StoredLlmCredential } from '../db/credentials'
 import type { Store } from '../db/store'
 
 export class LlmError extends Error {
@@ -45,7 +46,25 @@ export class LlmKeyService {
         keyHint: null,
       }
     }
-    return { provider: stored.provider, model: stored.model, hasKey: true, keyHint: stored.keyHint }
+    return {
+      provider: stored.provider,
+      model: stored.model,
+      hasKey: true,
+      keyHint: this.hint(userId, stored),
+    }
+  }
+
+  /**
+   * The key as the provider's own console shows it, start and end with the middle left out (`sk-ant-api03-Ab…`
+   * becomes `sk-ant-api03-A...xYzQ`), so the person can tell which key is saved. Worked out from the stored key
+   * when asked, so keys saved before this existed show it too; if the key can't be read, the stored last four.
+   */
+  private hint(userId: string, stored: StoredLlmCredential): string {
+    try {
+      return elide(this.d.box.decrypt(stored.encryptedKey, context(userId, stored.provider)))
+    } catch {
+      return stored.keyHint
+    }
   }
 
   /**
@@ -180,5 +199,9 @@ export class LlmKeyService {
 /** The latest models, and the one already in use (if the provider still lists it), in the provider's order. */
 const offered = (models: LLMModelInfo[], current: string | undefined) =>
   models.filter((m) => m.latest || m.id === current)
+
+/** The first 14 characters (enough to show the kind of key, `sk-ant-api03-A`), then the last four. */
+export const elide = (key: string) =>
+  key.length <= 18 ? `…${key.slice(-4)}` : `${key.slice(0, 14)}...${key.slice(-4)}`
 
 const context = (userId: string, provider: string) => `llm-key:${userId}:${provider}`

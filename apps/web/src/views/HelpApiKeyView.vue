@@ -54,8 +54,8 @@ import HelpPage from '../components/HelpPage.vue'
       </li>
     </ol>
     <p class="text-sm text-ink-soft">
-      Your key is stored encrypted, used only for your requests, and never shown again. You can
-      replace or remove it from your account page. Before you start, read the
+      Your key is stored encrypted, used only for your requests, and never shown in full again. You
+      can replace or remove it from your account page. Before you start, read the
       <RouterLink to="/help/privacy" class="link">privacy advice</RouterLink>.
     </p>
   </HelpPage>

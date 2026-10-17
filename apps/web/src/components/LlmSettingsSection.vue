@@ -29,6 +29,8 @@ const retired = computed(
   () => models.isSuccess.value && !!model.value && !offered.value.some((m) => m.id === model.value),
 )
 const apiKey = ref('')
+// The saved key as the provider's console shows it, in the empty field: it goes as soon as a new one is typed.
+const currentKey = computed(() => (props.guide ? null : (llm.data.value?.keyHint ?? null)))
 const saveLlm = useMutation({
   mutationFn: () =>
     api.saveLlmSettings({
@@ -102,17 +104,12 @@ const removeLlmKey = useMutation({
         >
       </p>
     </template>
-    <p v-if="llm.data.value && !props.guide" role="status" class="mb-3 text-sm">
-      <template v-if="llm.data.value.hasKey">Key saved ({{ llm.data.value.keyHint }})</template>
-      <template v-else>No key yet</template>
-    </p>
     <form @submit.prevent="saveLlm.mutate()">
       <TextField
         v-model="apiKey"
-        :label="llm.data.value?.hasKey && !props.guide ? 'New API key' : 'Anthropic API key'"
-        :hint="
-          llm.data.value?.hasKey && !props.guide ? 'Leave blank to keep the current one' : undefined
-        "
+        label="Anthropic API key"
+        :placeholder="currentKey ?? 'sk-ant-...'"
+        :hint="currentKey ? 'Leave as is to keep the current one' : undefined"
         type="password"
         autocomplete="off"
         :required="!llm.data.value?.hasKey"

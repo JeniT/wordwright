@@ -102,7 +102,7 @@ export const MIGRATIONS: Migration[] = [
     used_at TEXT
   );
   CREATE INDEX email_change_undos_user ON email_change_undos(user_id);
-  -- A user's own LLM credentials. The key is encrypted; only the last four characters are kept in clear.
+  -- A user's own LLM credentials. The key is encrypted; only the last four characters are kept in clear (the longer elided form shown to the owner is worked out from the key when asked).
   CREATE TABLE llm_credentials (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     provider TEXT NOT NULL,

@@ -133,8 +133,12 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-test-key-1234')
   await page.getByRole('button', { name: 'Save key' }).first().click()
-  await expect(page.getByRole('status').filter({ hasText: 'Key saved (…1234)' })).toBeVisible()
-  await expect(page.getByLabel('Anthropic API key')).toHaveCount(0) // field now says "New API key"
+  // The saved key shows elided in the empty field, as the provider's console shows it.
+  await expect(page.getByLabel('Anthropic API key')).toHaveAttribute(
+    'placeholder',
+    'sk-ant-e2e-tes...1234',
+  )
+  await expect(page.getByText('Leave as is to keep the current one')).toBeVisible()
 
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
@@ -276,7 +280,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await page.goto('/account/ai')
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-rephrase-key-5678')
   await page.getByRole('button', { name: 'Save key' }).first().click()
-  await expect(page.getByRole('status').filter({ hasText: 'Key saved (…5678)' })).toBeVisible()
+  await expect(page.getByLabel('Anthropic API key')).toHaveAttribute('placeholder', /\.\.\.5678$/)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()
@@ -374,7 +378,7 @@ test('rephrases the title once the draft is long enough, and records the option 
   await page.goto('/account/ai')
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-title-key-5678')
   await page.getByRole('button', { name: 'Save key' }).first().click()
-  await expect(page.getByRole('status').filter({ hasText: 'Key saved (…5678)' })).toBeVisible()
+  await expect(page.getByLabel('Anthropic API key')).toHaveAttribute('placeholder', /\.\.\.5678$/)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
   await page.getByRole('link', { name: 'New idea' }).click()

@@ -1823,3 +1823,14 @@ used while it is offered).
   provider says not to guess a line from an id. The service offers the latest ones plus the model the person already
   uses, if it is still supported, so nobody is forced off an older model that works while new people aren't steered to
   it. A saved model that is deprecated or retired drops out, and the page says it is no longer offered.
+
+## The saved AI key shows elided in its field
+
+The key field used to be blank with "leave blank to keep the current one" and a separate "Key saved (…1234)" line. It now
+shows the saved key as the placeholder, the way Anthropic's console lists keys (`sk-ant-api03-A...1234`: the first 14
+characters and the last four), with the hint "Leave as is to keep the current one"; with no key the placeholder is
+`sk-ant-...`, on the first-run form too. The placeholder goes when something is typed. The elided form is worked out from
+the encrypted key when settings are read (`elide` in `services/llm.ts`), so keys saved before this show it too, and
+nothing new is stored; if a key can't be decrypted, the stored last four are shown. The part shown can't be used to
+guess the key (the first 13 characters are the same for every key of that kind), and the key itself is still never sent
+back.
