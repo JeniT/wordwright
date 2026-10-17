@@ -34,7 +34,7 @@ const deleteAccount = useMutation({
 <template>
   <div v-if="session.user">
     <StepHeading>Delete account</StepHeading>
-    <DangerZone title="Delete account">
+    <DangerZone title="Delete account" hide-title>
       <p class="mb-2">
         This can't be undone.
         <RouterLink :to="{ name: 'account-download' }" class="underline"

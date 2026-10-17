@@ -21,7 +21,11 @@ describe('changing your email on the account page', () => {
     )
     await renderAt('/account/details')
     const form = (await screen.findByRole('heading', { name: 'Email address' })).closest('section')!
-    expect(form).toHaveTextContent('ada@example.com')
+    // The current address is the field's placeholder, which goes once something is typed.
+    expect(screen.getByLabelText('New email address')).toHaveAttribute(
+      'placeholder',
+      'ada@example.com',
+    )
 
     await fireEvent.update(screen.getByLabelText('New email address'), ' New@Example.com ')
     await fireEvent.update(screen.getByLabelText('Password'), 'my password')

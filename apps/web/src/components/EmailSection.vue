@@ -29,10 +29,10 @@ const change = useMutation({
 
     <!-- Has a password: ask for it, then confirm the new address by email -->
     <form v-if="session.user.hasPassword" @submit.prevent="change.mutate()">
-      <p class="mb-3 break-words">{{ session.user.email }}</p>
       <TextField
         v-model="newEmail"
         label="New email address"
+        :placeholder="session.user.email"
         hint="We'll email a link to the new address. It changes once you open it."
         type="email"
         autocomplete="email"

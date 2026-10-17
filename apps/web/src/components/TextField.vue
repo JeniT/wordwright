@@ -6,6 +6,8 @@ defineProps<{
   type?: string
   autocomplete?: string
   hint?: string
+  /** The label stays for screen readers but isn't drawn: for a field that sits under a heading saying the same thing. */
+  hideLabel?: boolean
   /** Greyed text that goes once something is typed. It shows an example or the current value, never the label. */
   placeholder?: string
   required?: boolean
@@ -21,7 +23,9 @@ const id = useId()
 
 <template>
   <div class="mb-4">
-    <label :for="id" class="mb-1 block text-sm font-medium">{{ label }}</label>
+    <label :for="id" class="mb-1 block text-sm font-medium" :class="hideLabel ? 'sr-only' : ''">{{
+      label
+    }}</label>
     <input
       :id="id"
       v-model="model"

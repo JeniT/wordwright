@@ -14,6 +14,12 @@ describe('DangerZone', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('can name its region without repeating the title as a heading', () => {
+    render(DangerZone, { props: { title: 'Delete account', hideTitle: true } })
+    expect(screen.getByRole('region', { name: 'Delete account' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading')).toBeNull()
+  })
+
   it('announces why a delete failed', () => {
     render(DangerZone, { props: { title: 'Delete thing', error: 'Try again in a minute.' } })
     expect(screen.getByRole('alert')).toHaveTextContent('Try again in a minute.')

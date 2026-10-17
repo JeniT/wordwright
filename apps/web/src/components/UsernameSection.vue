@@ -65,6 +65,7 @@ const save = useMutation({
       <TextField
         v-model="handle"
         label="Username"
+        :hide-label="!prompt"
         autocomplete="off"
         autocapitalize="none"
         :spellcheck="false"

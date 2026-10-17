@@ -23,6 +23,7 @@ const save = useMutation({
       <TextField
         v-model="name"
         label="Name"
+        hide-label
         hint="Other people see this on your notes, messages and invitations."
         autocomplete="given-name"
         :maxlength="100"

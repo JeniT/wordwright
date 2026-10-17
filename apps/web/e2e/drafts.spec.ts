@@ -536,9 +536,7 @@ test('changes the email address once the new one is confirmed', async ({ page })
   await expect(page.getByRole('status').filter({ hasText: newEmail })).toBeVisible()
 
   // Nothing has changed until the link is opened.
-  await expect(
-    page.getByRole('region', { name: 'Email address' }).getByText(oldEmail),
-  ).toBeVisible()
+  await expect(page.getByLabel('New email address')).toHaveAttribute('placeholder', oldEmail)
   const link = linkIn(
     await waitForEmail(newEmail, 'Confirm your new email address'),
     '/confirm-email-change',
@@ -547,9 +545,7 @@ test('changes the email address once the new one is confirmed', async ({ page })
   await page.goto(link!)
   await expect(page.getByText('your email address has been changed')).toBeVisible()
   await page.getByRole('link', { name: 'Back to your account' }).click()
-  await expect(
-    page.getByRole('region', { name: 'Email address' }).getByText(newEmail),
-  ).toBeVisible()
+  await expect(page.getByLabel('New email address')).toHaveAttribute('placeholder', newEmail)
   await waitForEmail(oldEmail, 'Your email address was changed')
 
   // The new address signs in; the old one no longer does.
