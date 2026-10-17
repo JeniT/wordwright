@@ -5,7 +5,9 @@ import StarterKit from '@tiptap/starter-kit'
 import { Mark } from '@tiptap/pm/model'
 import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { watch } from 'vue'
+import { computed, nextTick, useTemplateRef, watch } from 'vue'
+import { DRAFT_TOOLS } from '../lib/editor-tools'
+import EditorToolbar from './EditorToolbar.vue'
 import {
   CommentMarks,
   commentMarksKey,
@@ -17,6 +19,8 @@ import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
 
 const model = defineModel<string>({ required: true })
+/** Editing the Markdown itself in a plain text box, instead of the rich-text editor. */
+const markdownMode = defineModel<boolean>('markdownMode', { default: false })
 const props = defineProps<{
   /** The comments to mark in the text, beside the paragraphs they are about. */
   commentMarks?: CommentMarkPoint[]
@@ -38,6 +42,10 @@ const emit = defineEmits<{
 
 /** Whether the writer has put the cursor in the text yet; until then insertions go at the end. */
 let touched = false
+
+/** The Markdown box is for editing; someone who may only read the draft always sees it formatted. */
+const sourceMode = computed(() => markdownMode.value && props.editable !== false)
+const source = useTemplateRef<HTMLTextAreaElement>('source')
 
 const editor = useEditor({
   content: model.value,
@@ -121,6 +129,13 @@ const editor = useEditor({
  * The change reaches `model` like typing.
  */
 function replaceRange(from: number, to: number, text: string, expected: string): boolean {
+  if (sourceMode.value) {
+    // In the Markdown box the positions are offsets in the text itself.
+    if (to > model.value.length || model.value.slice(from, to) !== expected) return false
+    model.value = model.value.slice(0, from) + text + model.value.slice(to)
+    placeSourceCaret(from + text.length)
+    return true
+  }
   const e = editor.value
   if (!e) return false
   const size = e.state.doc.content.size
@@ -162,7 +177,7 @@ function marksInRange(from: number, to: number): readonly Mark[] | 'mixed' {
 }
 /** Whether the words between two positions have mixed formatting (see `marksInRange`). */
 function hasMixedFormatting(from: number, to: number): boolean {
-  return marksInRange(from, to) === 'mixed'
+  return !sourceMode.value && marksInRange(from, to) === 'mixed'
 }
 
 /**
@@ -171,6 +186,7 @@ function hasMixedFormatting(from: number, to: number): boolean {
  * the editor's own update, like typing.
  */
 function insertMarkdown(markdown: string, at?: number): boolean {
+  if (sourceMode.value) return insertIntoSource(markdown)
   const e = editor.value
   if (!e) return false
   // Dropped on the text: exactly there (a paragraph there is split to make room for it).
@@ -186,6 +202,7 @@ function insertMarkdown(markdown: string, at?: number): boolean {
 }
 /** Puts Markdown (a link) into the line where the cursor is, without starting a new paragraph. */
 function insertInlineMarkdown(markdown: string): boolean {
+  if (sourceMode.value) return insertIntoSource(markdown, true)
   const e = editor.value
   if (!e) return false
   if (!touched) e.commands.focus('end')
@@ -196,6 +213,7 @@ function insertInlineMarkdown(markdown: string): boolean {
 }
 /** The paragraph (or heading...) a comment is about, if it is in the text now. */
 function pointElement(id: string): HTMLElement | null {
+  if (sourceMode.value) return null // comments are not shown in the Markdown box
   const e = editor.value
   const pos = (
     e?.storage as unknown as { commentMarks: CommentMarkStorage } | undefined
@@ -221,6 +239,76 @@ function focusPoint(id: string): boolean {
   scrollPageToTop(el)
   return true
 }
+
+// ---- the Markdown box
+/** Selection in the Markdown box, in the same shape the editor reports it (offsets in the text). */
+function reportSourceSelection() {
+  const box = source.value
+  if (!box) return
+  const { selectionStart: from, selectionEnd: to } = box
+  if (from === to) return emit('selectionChange', null)
+  const text = box.value.slice(from, to)
+  emit('selectionChange', { from, to, text, sameBlock: !/\n\s*\n/.test(text) })
+}
+function placeSourceCaret(offset: number) {
+  nextTick(() => {
+    const box = source.value
+    if (!box) return
+    box.focus()
+    box.setSelectionRange(offset, offset)
+    emit('selectionChange', null)
+  })
+}
+/**
+ * Puts Markdown into the box: after the paragraph the cursor is in (at the end if the cursor has never been in the
+ * text) as its own paragraph(s), or, `inline`, right at the cursor (a link in the line being written).
+ */
+function insertIntoSource(markdown: string, inline = false): boolean {
+  const box = source.value
+  if (!box) return false
+  const text = model.value
+  const caret = touched ? box.selectionEnd : text.length
+  if (inline) {
+    model.value = text.slice(0, caret) + markdown + text.slice(caret)
+    placeSourceCaret(caret + markdown.length)
+    return true
+  }
+  const gap = text.indexOf('\n\n', caret)
+  const end = gap === -1 ? text.length : gap
+  const before = text.slice(0, end).replace(/\s+$/, '')
+  const after = text.slice(end).replace(/^\s+/, '')
+  const added = markdown.trim()
+  model.value = [before, added, after].filter(Boolean).join('\n\n')
+  placeSourceCaret((before ? before.length + 2 : 0) + added.length)
+  return true
+}
+function onSourceDragover(event: DragEvent) {
+  if (!event.dataTransfer?.types.includes(NOTE_DRAG_TYPE)) return
+  event.preventDefault() // a text box refuses what it does not know unless told otherwise
+  event.dataTransfer.dropEffect = 'copy'
+}
+function onSourceDrop(event: DragEvent) {
+  const id = event.dataTransfer?.types.includes(NOTE_DRAG_TYPE)
+    ? event.dataTransfer.getData(NOTE_DRAG_TYPE)
+    : ''
+  if (!id) return // something else: the box's own business
+  event.preventDefault()
+  // A text box cannot say where in its text a drop landed, so the note goes where the cursor is.
+  emit('noteDrop', id, undefined)
+}
+
+// Switching between the editor and the box: the box is plain text, so what is selected, and where, no longer applies.
+watch(sourceMode, (on) => {
+  emit('selectionChange', null)
+  if (on) {
+    nextTick(() => source.value?.focus())
+  } else {
+    // What was typed in the box goes into the editor, without counting as an edit of its own.
+    editor.value?.commands.setContent(model.value, { contentType: 'markdown', emitUpdate: false })
+    nextTick(() => editor.value?.commands.focus())
+  }
+})
+
 defineExpose({
   insertMarkdown,
   insertInlineMarkdown,
@@ -247,6 +335,7 @@ watch(
 
 // Reflect external changes (e.g. a draft finishing loading) without clobbering typing.
 watch(model, (value) => {
+  if (sourceMode.value) return // the box owns the text; the editor catches up when it is shown again
   if (editor.value && value !== editor.value.getMarkdown()) {
     editor.value.commands.setContent(value, { contentType: 'markdown' })
   }
@@ -254,5 +343,34 @@ watch(model, (value) => {
 </script>
 
 <template>
-  <EditorContent :editor="editor" class="prose-editor" />
+  <div>
+    <!-- Sticky, so formatting stays in reach in a long draft. -->
+    <div
+      v-if="editable !== false"
+      class="sticky top-0 z-10 mb-3 border-b border-line bg-paper py-1"
+    >
+      <EditorToolbar
+        v-model:markdown-mode="markdownMode"
+        :editor="editor"
+        :tools="DRAFT_TOOLS"
+        markdown-toggle
+      />
+    </div>
+    <EditorContent v-show="!sourceMode" :editor="editor" class="prose-editor" />
+    <textarea
+      v-if="sourceMode"
+      ref="source"
+      v-model="model"
+      class="field markdown-source"
+      aria-label="Draft body, as Markdown"
+      spellcheck="true"
+      @focus="touched = true"
+      @select="reportSourceSelection"
+      @keyup="reportSourceSelection"
+      @mouseup="reportSourceSelection"
+      @input="reportSourceSelection"
+      @dragover="onSourceDragover"
+      @drop="onSourceDrop"
+    ></textarea>
+  </div>
 </template>

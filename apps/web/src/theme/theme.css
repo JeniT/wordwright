@@ -248,7 +248,9 @@
     color: var(--color-ink);
   }
   &[aria-current='page'],
-  &[aria-current='page']:hover:not(:disabled) {
+  &[aria-current='page']:hover:not(:disabled),
+  &[aria-pressed='true'],
+  &[aria-pressed='true']:hover:not(:disabled) {
     background: var(--color-accent-wash);
     color: var(--color-accent);
   }

@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import type { Editor } from '@tiptap/vue-3'
 import { ONE_PARAGRAPH } from '@wordwright/core'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
@@ -293,6 +293,47 @@ describe('EditorView: Rephrase', () => {
       expect(within(dialog).getByText(/others aren't/)).toBeInTheDocument()
       await use()
       expect(firstParagraphHtml()).toBe('Rivers wander as banks wear away.')
+    })
+  })
+
+  describe('in Markdown mode', () => {
+    afterEach(() => localStorage.removeItem('wordwright:draft-markdown-mode'))
+
+    it('replaces the selected Markdown', async () => {
+      localStorage.setItem('wordwright:draft-markdown-mode', 'true')
+      const { saved } = mockDraft(testUser, {
+        body: 'The river **bends** because the bank erodes.',
+      })
+      await renderAt('/p/p1/drafts/d1')
+      const box = (await screen.findByRole('textbox', {
+        name: 'Draft body, as Markdown',
+      })) as HTMLTextAreaElement
+      await waitFor(() => expect(box.value).toContain('river **bends**'))
+      box.setSelectionRange(0, box.value.length)
+      await fireEvent.select(box)
+      await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+      await fireEvent.click(await rephraseButton())
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByLabelText('Current wording')).toHaveValue(
+        'The river **bends** because the bank erodes.',
+      )
+      await fireEvent.update(
+        within(dialog).getByLabelText('Current wording'),
+        'Rivers wander as banks wear away.',
+      )
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
+      await waitFor(() => expect(box.value).toBe('Rivers wander as banks wear away.'))
+      await waitFor(() => expect(saved.at(-1)?.body).toBe('Rivers wander as banks wear away.'))
+    })
+
+    it('says in place of the comments that they cannot be shown', async () => {
+      localStorage.setItem('wordwright:draft-markdown-mode', 'true')
+      mockDraft()
+      await renderAt('/p/p1/drafts/d1')
+      await fireEvent.click(await screen.findByRole('tab', { name: /^Comments/ }))
+      expect(
+        await screen.findByText('Comments cannot be shown while editing Markdown.'),
+      ).toBeInTheDocument()
     })
   })
 

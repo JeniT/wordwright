@@ -44,7 +44,33 @@ describe('DescriptionEditor', () => {
     expect([...box.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['one', 'two'])
     expect(box.querySelector('a')).toHaveAttribute('href', 'https://example.com')
     const toolbar = screen.getByRole('toolbar', { name: 'Formatting' })
-    expect(toolbar.querySelectorAll('button')).toHaveLength(5)
+    const buttons = [...toolbar.querySelectorAll('button')]
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Bold',
+      'Italic',
+      'Bulleted list',
+      'Numbered list',
+      'Link',
+    ])
+    expect(buttons.every((b) => b.textContent?.trim() === '')).toBe(true) // icons only
+    expect(buttons[0]).toHaveAttribute('title', expect.stringMatching(/^Bold \((Ctrl|⌘)\+B\)$/))
+    expect(buttons.map((b) => b.tabIndex)).toEqual([0, -1, -1, -1, -1]) // one tab stop
+  })
+
+  it('moves along the toolbar with the arrow keys, Home and End', async () => {
+    show('Words')
+    await screen.findByRole('textbox')
+    button('Bold').focus()
+    await fireEvent.keyDown(button('Bold'), { key: 'ArrowRight' })
+    expect(button('Italic')).toHaveFocus()
+    expect(button('Italic').tabIndex).toBe(0)
+    expect(button('Bold').tabIndex).toBe(-1)
+    await fireEvent.keyDown(button('Italic'), { key: 'End' })
+    expect(button('Link')).toHaveFocus()
+    await fireEvent.keyDown(button('Link'), { key: 'ArrowRight' }) // no wrap
+    expect(button('Link')).toHaveFocus()
+    await fireEvent.keyDown(button('Link'), { key: 'Home' })
+    expect(button('Bold')).toHaveFocus()
   })
 
   it('writes nothing back until the writer changes something, so untouched words are saved as they were', async () => {
@@ -77,7 +103,7 @@ describe('DescriptionEditor', () => {
     editor().commands.selectAll()
     await fireEvent.click(button('Bold'))
     expect(state.markdown).toBe('**Some words**')
-    expect(button('Bold')).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(button('Bold')).toHaveAttribute('aria-pressed', 'true'))
     expect(button('Italic')).toHaveAttribute('aria-pressed', 'false')
     await fireEvent.click(button('Bold')) // off again
     expect(state.markdown).toBe('Some words')
@@ -96,18 +122,20 @@ describe('DescriptionEditor', () => {
     expect(state.markdown).toBe('1. First\n2. Second')
   })
 
-  it('turns selected words into a link, tidying the address, with a field that takes the focus and gives it back', async () => {
+  it('turns selected words into a link, tidying the address, in a dialog that takes the focus and gives it back', async () => {
     const { editor, state } = show('Visit our site')
     await screen.findByRole('textbox')
     editor().commands.selectAll()
+    button('Link').focus() // a click focuses the button in a browser; jsdom's does not
     await fireEvent.click(button('Link'))
+    const dialog = await screen.findByRole('dialog', { name: 'Add a link' })
     const field = screen.getByLabelText('Link address')
     await waitFor(() => expect(field).toHaveFocus())
-    expect(button('Link')).toHaveAttribute('aria-expanded', 'true')
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     await fireEvent.update(field, ' example.com/about ')
     await fireEvent.click(button('Add link'))
     expect(state.markdown).toBe('[Visit our site](https://example.com/about)')
-    expect(screen.queryByLabelText('Link address')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
     await waitFor(() => expect(button('Link')).toHaveFocus())
   })
 
@@ -140,15 +168,16 @@ describe('DescriptionEditor', () => {
     expect(state.markdown).toBe('[Words](mailto:ada@example.com)')
   })
 
-  it('shows the link’s address to change or remove, and Escape closes the field', async () => {
+  it('shows the link’s address to change or remove, and Escape closes the dialog', async () => {
     const { editor, state } = show('See [home](https://example.com).')
     await screen.findByRole('textbox')
     editor().commands.setTextSelection(7) // inside "home"
     await waitFor(() => expect(button('Link')).toHaveAttribute('aria-pressed', 'true'))
     await fireEvent.click(button('Link'))
     expect(screen.getByLabelText('Link address')).toHaveValue('https://example.com')
+    expect(screen.getByRole('dialog', { name: 'Change link' })).toBeInTheDocument()
     await fireEvent.update(screen.getByLabelText('Link address'), 'https://example.org')
-    await fireEvent.click(button('Add link'))
+    await fireEvent.click(button('Change link'))
     expect(state.markdown).toBe('See [home](https://example.org).')
 
     editor().commands.setTextSelection(7)
@@ -158,7 +187,8 @@ describe('DescriptionEditor', () => {
 
     await fireEvent.click(button('Link'))
     await fireEvent.keyDown(screen.getByLabelText('Link address'), { key: 'Escape' })
-    expect(screen.queryByLabelText('Link address')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(state.markdown).toBe('See home.')
   })
 
   it('offers only what a description can show: pasted headings are flattened, and nothing is saved as HTML', async () => {

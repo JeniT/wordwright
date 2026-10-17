@@ -12,6 +12,7 @@ import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RephraseDialog from '../components/RephraseDialog.vue'
 import RichEditor from '../components/RichEditor.vue'
+import { useMarkdownMode } from '../lib/markdown-mode'
 import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import {
@@ -97,6 +98,7 @@ const conflict = computed(
 
 // ---- pulling notes into the draft
 const editor = useTemplateRef<InstanceType<typeof RichEditor>>('editor')
+const markdownMode = useMarkdownMode()
 
 // ---- citing something on the reading list: only once it has been read
 type UnreadChoice = 'read-now' | 'mark' | 'cancel'
@@ -474,6 +476,7 @@ async function requestCritique() {
         <RichEditor
           ref="editor"
           v-model="body"
+          v-model:markdown-mode="markdownMode"
           :comment-marks="markPoints"
           :active-point-id="activePointId"
           :editable="canEdit"
@@ -606,7 +609,11 @@ async function requestCritique() {
             />
           </template>
           <template #comments>
+            <p v-if="markdownMode && canEdit" class="text-sm text-ink-soft">
+              Comments cannot be shown while editing Markdown.
+            </p>
             <CommentsPanel
+              v-else
               ref="commentsPanel"
               :query="commentList"
               :comments="comments"

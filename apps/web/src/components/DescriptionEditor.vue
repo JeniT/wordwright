@@ -4,14 +4,16 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
+import { computed, useId, watch } from 'vue'
+import { DESCRIPTION_TOOLS } from '../lib/editor-tools'
+import EditorToolbar from './EditorToolbar.vue'
 
 /**
  * Where a publication description is written: a small rich-text editor, so nobody needs to know Markdown. It offers what
  * the description can show (bold, italic, links, bulleted and numbered lists, paragraphs) and reads and writes
- * Markdown, which is how the description is stored and rendered everywhere else. The toolbar is made of ordinary
- * buttons with words on them, so it works by keyboard and is read out; the usual shortcuts (Ctrl or Cmd with B, I and
- * K) work in the text. Anything else pasted in (headings, pictures, tables) is flattened to paragraphs.
+ * Markdown, which is how the description is stored and rendered everywhere else. The toolbar is the shared
+ * `EditorToolbar` (icon buttons, each named, one tab stop); the usual shortcuts (Ctrl or Cmd with B and I) work in the
+ * text. Anything else pasted in (headings, pictures, tables) is flattened to paragraphs.
  */
 const model = defineModel<string>({ required: true })
 const props = withDefaults(
@@ -30,9 +32,6 @@ const props = withDefaults(
 
 const labelId = useId()
 const hintId = useId()
-const linkInputId = useId()
-const linkInput = useTemplateRef<HTMLInputElement>('linkInput')
-const linkButton = useTemplateRef<HTMLButtonElement>('linkButton')
 
 const editor = useEditor({
   content: model.value,
@@ -87,60 +86,7 @@ watch(model, (value) => {
   }
 })
 
-const is = (name: string) => !!editor.value?.isActive(name)
-const run = (action: (chain: ReturnType<NonNullable<typeof editor.value>['chain']>) => unknown) => {
-  const e = editor.value
-  if (e) (action(e.chain().focus()) as { run: () => boolean }).run()
-}
-
-// ---- links
-const linking = ref(false)
-const address = ref('')
-const addressError = ref('')
-
-function openLink() {
-  address.value = (editor.value?.getAttributes('link').href as string | undefined) ?? ''
-  addressError.value = ''
-  linking.value = true
-  nextTick(() => linkInput.value?.focus())
-}
-function closeLink() {
-  linking.value = false
-  nextTick(() => linkButton.value?.focus())
-}
-/** `example.com` is taken to mean https://example.com; only web and email addresses are kept. */
-function tidyAddress(text: string): string | null {
-  const trimmed = text.trim()
-  if (!trimmed) return null
-  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`
-  return /^(https?:|mailto:)/i.test(withScheme) && !/\s/.test(withScheme) ? withScheme : null
-}
-function applyLink() {
-  const href = tidyAddress(address.value)
-  if (!href) {
-    addressError.value = 'Enter a web address, like https://example.com'
-    return
-  }
-  const e = editor.value
-  if (!e) return
-  // With words selected (or the cursor in a link) they become the link; with neither, the address is the text.
-  if (e.state.selection.empty && !e.isActive('link')) {
-    e.chain()
-      .focus()
-      .insertContent({ type: 'text', text: href, marks: [{ type: 'link', attrs: { href } }] })
-      .run()
-  } else {
-    e.chain().focus().extendMarkRange('link').setLink({ href }).run()
-  }
-  closeLink()
-}
-function removeLink() {
-  editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
-  closeLink()
-}
-
 const over = computed(() => model.value.length - props.maxlength)
-// The toolbar's buttons say which formatting is on at the cursor.
 defineExpose({ editor })
 </script>
 
@@ -148,91 +94,7 @@ defineExpose({ editor })
   <div class="mb-4">
     <span :id="labelId" class="mb-1 block text-sm font-medium">{{ label }}</span>
 
-    <div role="toolbar" aria-label="Formatting" class="mb-1 flex flex-wrap items-center gap-1">
-      <button
-        type="button"
-        class="btn btn-sm btn-quiet font-bold"
-        :class="{ 'bg-accent-wash': is('bold') }"
-        :aria-pressed="is('bold')"
-        @click="run((c) => c.toggleBold())"
-      >
-        Bold
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-quiet italic"
-        :class="{ 'bg-accent-wash': is('italic') }"
-        :aria-pressed="is('italic')"
-        @click="run((c) => c.toggleItalic())"
-      >
-        Italic
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-quiet"
-        :class="{ 'bg-accent-wash': is('bulletList') }"
-        :aria-pressed="is('bulletList')"
-        @click="run((c) => c.toggleBulletList())"
-      >
-        Bulleted list
-      </button>
-      <button
-        type="button"
-        class="btn btn-sm btn-quiet"
-        :class="{ 'bg-accent-wash': is('orderedList') }"
-        :aria-pressed="is('orderedList')"
-        @click="run((c) => c.toggleOrderedList())"
-      >
-        Numbered list
-      </button>
-      <button
-        ref="linkButton"
-        type="button"
-        class="btn btn-sm btn-quiet"
-        :class="{ 'bg-accent-wash': is('link') }"
-        :aria-pressed="is('link')"
-        :aria-expanded="linking"
-        @click="linking ? closeLink() : openLink()"
-      >
-        Link
-      </button>
-    </div>
-
-    <form
-      v-if="linking"
-      class="panel mb-2 flex flex-wrap items-end gap-2 p-3"
-      @submit.prevent="applyLink"
-      @keydown.esc.prevent="closeLink"
-    >
-      <div class="min-w-[14rem] flex-1">
-        <label :for="linkInputId" class="mb-1 block text-sm font-medium">Link address</label>
-        <input
-          :id="linkInputId"
-          ref="linkInput"
-          v-model="address"
-          class="field"
-          autocomplete="off"
-          autocapitalize="none"
-          :spellcheck="false"
-          :aria-invalid="!!addressError"
-          :aria-describedby="addressError ? `${linkInputId}-error` : undefined"
-          @input="addressError = ''"
-        />
-      </div>
-      <button type="submit" class="btn btn-sm btn-primary">Add link</button>
-      <button v-if="is('link')" type="button" class="btn btn-sm btn-outline" @click="removeLink">
-        Remove link
-      </button>
-      <button type="button" class="btn btn-sm btn-quiet" @click="closeLink">Cancel</button>
-      <p
-        v-if="addressError"
-        :id="`${linkInputId}-error`"
-        role="alert"
-        class="basis-full text-sm text-danger"
-      >
-        {{ addressError }}
-      </p>
-    </form>
+    <EditorToolbar :editor="editor" :tools="DESCRIPTION_TOOLS" />
 
     <EditorContent :editor="editor" class="field description-field" />
     <p v-if="hint" :id="hintId" class="mt-1 text-sm text-ink-soft">{{ hint }}</p>
