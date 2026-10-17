@@ -49,15 +49,17 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
     <template #actions>
       <RouterLink :to="to" class="link text-sm">See all posts and feeds</RouterLink>
     </template>
-    <Explain tutorial-only class="mb-4">
-      A feed is a blog, newsletter or journal we check for new posts.
-    </Explain>
     <QueryState :query="sources" what="your feeds">
-      <p v-if="!sources.data.value?.length" class="text-ink-soft">
-        No feeds yet.
-        <RouterLink :to="to" class="link">Add a blog, newsletter or journal</RouterLink> and its
-        newest posts will show up here.
-      </p>
+      <template v-if="!sources.data.value?.length">
+        <p class="text-ink-soft">
+          No feeds yet.
+          <RouterLink :to="to" class="link">Add a blog, newsletter or journal</RouterLink> and its
+          newest posts will show up here.
+        </p>
+        <Explain tutorial-only>
+          A feed is a blog, newsletter or journal we check for new posts that might inspire you.
+        </Explain>
+      </template>
       <template v-else>
         <QueryState :query="posts" what="your feeds" loading="Reading your feeds…" detail>
           <p v-if="!top.length" class="text-ink-soft">

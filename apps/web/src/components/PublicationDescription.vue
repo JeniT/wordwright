@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import type { Publication } from '@wordwright/core'
+import Explain from './Explain.vue'
 import Markdown from './Markdown.vue'
 
 /**
@@ -53,6 +54,9 @@ watch(
     >
       {{ expanded ? 'Show less' : 'Show more…' }}
     </button>
+    <Explain tutorial-only class="mt-2"
+      >Your AI reads this when it comments on your drafts.</Explain
+    >
   </section>
 </template>
 

@@ -60,7 +60,7 @@ const ideas = useIdeas(() => props.publicationId)
 
     <Explain tutorial-only class="mb-6">
       This is your publication’s home. See the latest from your feeds, then your reading, notes and
-      ideas.
+      ideas for what to write.
     </Explain>
 
     <NextStep
@@ -68,22 +68,13 @@ const ideas = useIdeas(() => props.publicationId)
       top
       :to="{ name: 'describe-publication', params: { publicationId } }"
       label="Describe this publication"
-    >
-      Say what it is for and what goes here.
-    </NextStep>
-    <Explain v-if="!publication.description" tutorial-only class="-mt-3 mb-6">
-      Your AI reads this when it comments on your drafts.
-    </Explain>
+    />
 
     <PublicationAttention :publication-id="publicationId" />
 
     <PublicationDescription :publication="publication" />
 
-    <Explain tutorial-only class="mt-6">
-      Add a note, a link or an idea without leaving the page. Notes and links go to this
-      publication’s own lists, and we look up a link’s title.
-    </Explain>
-    <QuickAdd class="mt-2" in-place :publications="[publication]" />
+    <QuickAdd class="mt-6" in-place :publications="[publication]" />
 
     <RecentPostsSummary
       :publication-id="publicationId"

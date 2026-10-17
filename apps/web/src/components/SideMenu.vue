@@ -25,7 +25,7 @@ const itemClass =
   <!-- Where you are: a way back up, and the name of the publication or idea. -->
   <div v-if="level === 'publication'" class="px-5 pb-4">
     <RouterLink :to="{ name: 'home' }" class="link text-sm">← All publications</RouterLink>
-    <div v-if="publication" class="mt-3 flex items-center gap-3">
+    <div v-if="publication" class="mt-3 flex items-start gap-3">
       <PublicationImage
         :id="publication.id"
         :name="publication.name"
@@ -35,8 +35,7 @@ const itemClass =
         size="xs"
       />
       <div class="min-w-0 flex-1">
-        <!-- A long name is cut after two lines; the link still carries the whole name. -->
-        <p class="line-clamp-2 leading-tight font-semibold break-words">
+        <p class="leading-tight font-semibold break-words">
           <RouterLink
             :to="{ name: 'publication', params: { publicationId: publication.id } }"
             class="no-underline hover:underline aria-[current=page]:underline"

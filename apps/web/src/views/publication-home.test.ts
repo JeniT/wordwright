@@ -673,9 +673,10 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     const { router } = await renderAt('/p/ada-substack')
     expect(router.currentRoute.value.name).toBe('publication')
     expect(await screen.findByText(/This is your publication’s home/)).toBeInTheDocument()
-    expect(screen.getByText(/Your AI reads this when it comments on your drafts/)).toBeVisible()
-    expect(screen.getByText(/Add a note, a link or an idea without leaving the page/)).toBeVisible()
-    expect(screen.getByText(/A feed is a blog, newsletter or journal/)).toBeVisible()
+    expect(screen.getByText(/ideas for what to write/)).toBeVisible()
+    expect(
+      await screen.findByText(/A feed is a blog, newsletter or journal .* inspire you/),
+    ).toBeVisible()
     expect(await screen.findByText(/An idea is something you want to write about/)).toBeVisible()
   })
 
@@ -686,18 +687,25 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     for (const text of [
       /This is your publication’s home/,
       /Your AI reads this/,
-      /without leaving the page/,
       /A feed is a blog/,
       /An idea is something/,
     ])
       expect(screen.queryByText(text)).toBeNull()
   })
 
-  it('leaves out the nudge’s explanation once there is a description', async () => {
-    setup(true, 'About this.')
+  it('does not say why a description matters beside the nudge', async () => {
+    setup(true)
     await renderAt('/p/ada-substack')
     await screen.findByText(/This is your publication’s home/)
     expect(screen.queryByText(/Your AI reads this/)).toBeNull()
+  })
+
+  it('says it beside an existing description, which then needs no nudge', async () => {
+    setup(true, 'About this.')
+    await renderAt('/p/ada-substack')
+    expect(
+      await screen.findByText(/Your AI reads this when it comments on your drafts/),
+    ).toBeVisible()
     expect(screen.queryByRole('link', { name: /Describe this publication/ })).toBeNull()
   })
 })

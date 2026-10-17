@@ -17,10 +17,12 @@ defineProps<{
 <template>
   <nav
     aria-label="Next step"
-    class="flex flex-wrap items-center justify-between gap-4"
-    :class="top ? 'mb-6 border-b border-line pb-4' : 'mt-12 border-t border-line pt-6'"
+    class="flex flex-wrap items-center gap-4"
+    :class="
+      top ? 'mb-6 border-b border-line pb-4' : 'mt-12 justify-between border-t border-line pt-6'
+    "
   >
-    <p class="meta max-w-md"><slot /></p>
+    <p v-if="$slots.default" class="meta max-w-md"><slot /></p>
     <RouterLink :to="to" class="btn btn-outline">
       {{ label }} <span aria-hidden="true">→</span>
     </RouterLink>
