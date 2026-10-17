@@ -62,7 +62,7 @@ describe('describing a publication: guidance and the box', () => {
     expect(calls).toEqual([])
   })
 
-  it('has no skip or cancel link (the menu is the way out), a plain link to the guidance, and no heading over the box', async () => {
+  it('links to the guidance and has no skip link: the menu is the way out', async () => {
     fakeServer()
     await renderAt('/p/ada-publication/settings/description')
     const box = await screen.findByRole('textbox', { name: 'Description' })
@@ -211,7 +211,7 @@ describe('the old describe address', () => {
     expect(router.currentRoute.value.path).toBe('/p/ada-publication/settings/description')
   })
 
-  it('can be cleared from the settings page, and needs no description to leave', async () => {
+  it('can be cleared from the settings page', async () => {
     const { calls } = fakeServer({ ...bare, description: 'Old words.' })
     await renderAt('/p/ada-publication/settings/description')
     await fireEvent.update(await screen.findByRole('textbox', { name: 'Description' }), '')

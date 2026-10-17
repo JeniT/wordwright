@@ -24,7 +24,7 @@ const save = useMutation({
 </script>
 
 <template>
-  <section aria-label="Description">
+  <div>
     <p class="mb-2">Everyone who shares this publication can change it.</p>
     <p class="mb-4">
       <RouterLink :to="{ name: 'help-description' }" class="link">
@@ -48,5 +48,5 @@ const save = useMutation({
         <SaveStatus :mutation="save" class="basis-full" />
       </div>
     </form>
-  </section>
+  </div>
 </template>
