@@ -247,10 +247,19 @@ Each kind of page gets one review of every word on it, filed as an issue labelle
 - **Landing (merging to `main`):** the local `main` checkout is shared by every session, so it may hold other
   sessions' unpushed commits. Never publish it; publish your own branch. Run these as **separate commands**, reading
   each result before the next:
-  1. `git fetch origin`, then `git rebase origin/main` in your worktree (not `main`, which may be ahead with
+  1. `git fetch origin`, then `node scripts/rebase-overlap.mjs` (it must run _before_ the rebase, while it can still
+     see what is coming in), then `git rebase origin/main` in your worktree (not `main`, which may be ahead with
      someone else's unpushed work). Resolve conflicts, keeping the other session's changes.
-  2. If the rebase pulled in other commits, rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on the rebased
-     branch. If it said the branch was already up to date, nothing has changed since your last green run: skip this.
+  2. Decide what to rerun. CI on `main` is the final gate, so a clean rebase doesn't earn a full rerun:
+     - The script said `no overlap`, the rebase had no conflicts, and nothing in `package.json`/the lockfile moved: run
+       `pnpm check` narrowly (the tests of the packages you changed, as in _Test narrowly_), then push.
+     - The script said `overlap`, or the rebase conflicted: rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on
+       the rebased branch.
+     - The branch was already up to date: nothing has changed since your last green run, so skip this.
+
+     A rare red `main` from two changes that interact without sharing a file is accepted; see step 3 and _Check CI
+     before starting a task_.
+
   3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
      Then check CI as above (`gh run list --branch main --limit 3`): the latest finished run must not be red,
      unless your push is the fix.

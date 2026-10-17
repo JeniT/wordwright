@@ -1834,3 +1834,17 @@ form is worked out from the encrypted key when settings are read (`elide` in `se
 show it too, and nothing new is stored; if a key can't be decrypted, or has too few hyphens to cut that way, only the last
 four are shown. What is shown is the constant prefix plus three characters of a key that is over a hundred long, so it
 can't be used to guess it, and the key itself is still never sent back.
+
+## Landing: CI on `main` is the final gate, not a retest after every rebase (#220)
+
+With several sessions landing close together, each rebase onto a moved `main` used to mean a full rerun of
+`pnpm check`, `pnpm build` and `pnpm test:e2e`, so one session could run the whole suite three or four times for no
+reason. Now `scripts/rebase-overlap.mjs` (run after `git fetch`, before `git rebase`) says whether what came in touches
+anything the branch changed, or a shared spot (`domain.ts`, `app.ts`, `server.ts`, `database.ts`, `package.json`, the
+lockfile, the workspace file). No overlap: a rebase can't change what the branch's tests exercise, so run `pnpm check`
+for the changed packages and push. Overlap, or any conflict: the full rerun, as before.
+
+The cost is accepted: an occasional brief red `main`, because two changes can interact without sharing a file. That is
+caught by the CI run on `main` and by the rule that the next session checks CI first and fixes a red before starting.
+Rejected: a landing lock (orders the reruns, doesn't remove them) and GitHub's merge queue (not available on a private
+personal repo). A staging branch tested in CI before `main` moves is filed as #221 for if red `main`s become frequent.

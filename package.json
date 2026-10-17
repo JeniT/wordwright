@@ -18,7 +18,8 @@
     "eval": "pnpm --filter @wordwright/evals eval",
     "eval:targets": "pnpm --filter @wordwright/evals eval:targets",
     "eval:adapter": "pnpm --filter @wordwright/evals eval:adapter",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "test:scripts": "node --test scripts/",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:scripts && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
