@@ -1583,8 +1583,11 @@ assistance ladder. This task is the service; the window is #162, the title entry
   checks the Aim has changed between the rounds it is told about, so this is friction and not a guarantee (as decided above).
 - **The window reads the saved draft.** The AI is sent the saved draft, so the draft is saved before every request, as for
   a critique. The selection's position is remembered when the button is pressed, and "Use this" replaces exactly that range
-  with plain words (any bold or link inside the selection goes with it); a passage cannot be edited while the window is open,
-  so the range cannot move.
+  with the writer's words; a passage cannot be edited while the window is open, so the range cannot move. (#244) **Formatting
+  stays where it can.** If the whole selection shares its formatting (all italic, or all one link) the new words keep it. If
+  some words are formatted and others not, there is no honest way to fit it to different words, so they go in as plain words,
+  and the window says so before "Use this" (`RichEditor.hasMixedFormatting`). The marks are set explicitly: left to the
+  editor, the words took whatever the first character happened to have. The AI still only offers plain words.
 - **Choosing an option is not using it.** An option's button only puts it in the wording field; nothing reaches the draft
   until "Use this". Using an option unchanged is allowed (a forced edit invites a stray space). The window disables "Use
   this" until the wording differs from what was selected.

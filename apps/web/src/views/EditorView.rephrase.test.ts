@@ -227,6 +227,62 @@ describe('EditorView: Rephrase', () => {
     expect(saved.at(-1)?.body ?? '').not.toContain('rivers wander')
   })
 
+  describe('formatting in the words replaced', () => {
+    /** Opens the window on the first sentence (positions 1 to 56) and replaces it with `words`. */
+    async function replaceFirstSentence(words: string) {
+      await select(1, 56)
+      await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+      await fireEvent.click(await rephraseButton())
+      const dialog = await screen.findByRole('dialog')
+      return {
+        dialog,
+        use: async () => {
+          await fireEvent.update(within(dialog).getByLabelText('Current wording'), words)
+          await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
+          await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        },
+      }
+    }
+    const firstParagraphHtml = () => document.querySelector('.ProseMirror p')!.innerHTML
+
+    it('keeps formatting that covers all of the words', async () => {
+      const { saved } = mockDraft(testUser, {
+        body: '*The river bends because the outside bank erodes faster.*\n\nIt drifts across the valley.',
+      })
+      await renderAt('/p/p1/drafts/d1')
+      const { dialog, use } = await replaceFirstSentence('Rivers wander as banks wear away.')
+      expect(within(dialog).queryByText(/formatted differently/)).toBeNull()
+      await use()
+      expect(firstParagraphHtml()).toBe('<em>Rivers wander as banks wear away.</em>')
+      await waitFor(() =>
+        expect(saved.at(-1)?.body).toContain('*Rivers wander as banks wear away.*'),
+      )
+    })
+
+    it('keeps a link that covers all of the words', async () => {
+      mockDraft(testUser, {
+        body: '[The river bends because the outside bank erodes faster.](https://example.com/rivers)\n\nIt drifts across the valley.',
+      })
+      await renderAt('/p/p1/drafts/d1')
+      const { use } = await replaceFirstSentence('Rivers wander as banks wear away.')
+      await use()
+      const link = document.querySelector('.ProseMirror p a') as HTMLAnchorElement
+      expect(link.getAttribute('href')).toBe('https://example.com/rivers')
+      expect(link.textContent).toBe('Rivers wander as banks wear away.')
+    })
+
+    it('says before it is used that mixed formatting will be lost, then replaces it with plain words', async () => {
+      mockDraft(testUser, {
+        body: '**The river** bends because the outside bank erodes faster.\n\nIt drifts across the valley.',
+      })
+      await renderAt('/p/p1/drafts/d1')
+      const { dialog, use } = await replaceFirstSentence('Rivers wander as banks wear away.')
+      expect(within(dialog).getByText(/formatted differently/)).toBeInTheDocument()
+      await use()
+      expect(firstParagraphHtml()).toBe('Rivers wander as banks wear away.')
+    })
+  })
+
   it('is not offered to someone who cannot change the draft', async () => {
     mockDraft({ ...testUser, id: 'u2', name: 'Bob Jones', email: 'bob@example.com', handle: 'bob' })
     await renderAt('/p/p1/drafts/d1')

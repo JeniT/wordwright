@@ -2,6 +2,7 @@
 import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
+import { Mark } from '@tiptap/pm/model'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { watch } from 'vue'
 import {
@@ -123,7 +124,39 @@ function replaceRange(from: number, to: number, text: string, expected: string):
   if (!e) return false
   const size = e.state.doc.content.size
   if (to > size || e.state.doc.textBetween(from, to, ' ') !== expected) return false
-  return e.chain().focus().insertContentAt({ from, to }, { type: 'text', text }).run()
+  // The marks are set outright: `insertContentAt` would give the words whatever the first character had.
+  const found = marksInRange(from, to)
+  const marks = found === 'mixed' ? [] : found
+  return e
+    .chain()
+    .focus()
+    .command(({ tr, state }) => {
+      tr.replaceWith(from, to, state.schema.text(text, marks))
+      return true
+    })
+    .run()
+}
+
+/**
+ * The formatting of the words between two positions: the marks they all share (an empty list for plain words), or
+ * 'mixed' when some have formatting that others lack. Rephrase's words keep shared formatting but can't be fitted
+ * to mixed, so the window says so before the writer uses them.
+ */
+function marksInRange(from: number, to: number): readonly Mark[] | 'mixed' {
+  const e = editor.value
+  if (!e) return []
+  let shared: readonly Mark[] | null = null
+  let mixed = false
+  e.state.doc.nodesBetween(from, to, (node) => {
+    if (!node.isText || mixed) return
+    if (shared === null) shared = node.marks
+    else if (!Mark.sameSet(shared, node.marks)) mixed = true
+  })
+  return mixed ? 'mixed' : (shared ?? [])
+}
+/** Whether the words between two positions have mixed formatting (see `marksInRange`). */
+function hasMixedFormatting(from: number, to: number): boolean {
+  return marksInRange(from, to) === 'mixed'
 }
 
 /**
@@ -182,7 +215,14 @@ function focusPoint(id: string): boolean {
   scrollPageToTop(el)
   return true
 }
-defineExpose({ insertMarkdown, insertInlineMarkdown, replaceRange, focusPoint, scrollToPoint })
+defineExpose({
+  insertMarkdown,
+  insertInlineMarkdown,
+  replaceRange,
+  hasMixedFormatting,
+  focusPoint,
+  scrollToPoint,
+})
 
 // The marks are redrawn when the points or the one being looked at change, not only when the text does.
 watch(

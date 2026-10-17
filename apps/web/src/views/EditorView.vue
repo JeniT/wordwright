@@ -222,7 +222,7 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
 // pressed; what comes back replaces exactly those words, the draft is saved, and if an option was used that is recorded.
 const selection = ref<TextSelection | null>(null)
 const rephrasing = ref<
-  | { kind: 'passage'; from: number; to: number; text: string }
+  | { kind: 'passage'; from: number; to: number; text: string; mixed: boolean }
   | { kind: 'title'; text: string }
   | null
 >(null)
@@ -236,7 +236,13 @@ function openRephrase() {
   const s = selection.value
   if (!s || rephraseProblem.value) return
   rephraseNotice.value = ''
-  rephrasing.value = { kind: 'passage', from: s.from, to: s.to, text: s.text }
+  rephrasing.value = {
+    kind: 'passage',
+    from: s.from,
+    to: s.to,
+    text: s.text,
+    mixed: !!editor.value?.hasMixedFormatting(s.from, s.to),
+  }
 }
 // The title needs no selection, but needs a draft worth titling: options come from what has been written.
 const titleProblem = computed(() => {
@@ -626,6 +632,7 @@ async function requestCritique() {
         :open="!!rephrasing"
         :kind="rephrasing?.kind ?? 'passage'"
         :wording="rephrasing?.text ?? ''"
+        :mixed-formatting="rephrasing?.kind === 'passage' && rephrasing.mixed"
         :publication-id="publicationId"
         :draft-id="id"
         :rounds="looks?.allowed"
