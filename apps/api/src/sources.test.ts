@@ -72,9 +72,11 @@ describe('idea sources', () => {
   })
 
   it('removes a source and keeps the rest in order, so later additions go last', async () => {
-    const [a, b, c] = await Promise.all(
-      ['a', 'b', 'c'].map(async (n) => (await (await add(`https://${n}.example/f`)).json()).id),
-    )
+    // One at a time: a source's place is its order of arrival, so concurrent adds would race.
+    const ids: string[] = []
+    for (const n of ['a', 'b', 'c'])
+      ids.push((await (await add(`https://${n}.example/f`)).json()).id)
+    const [a, b, c] = ids
     expect(a).toBeTruthy()
     expect((await ada.delete(`${base}/${b}`)).status).toBe(204)
     await add('https://d.example/f')
