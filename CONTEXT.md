@@ -80,7 +80,7 @@ A reviewer or non-editor member sees only the draft and their own comments, neve
 ### Home
 
 **Quick add**:
-The row of small forms on a writer's landing page for adding a new idea, a note or something to read without first opening a publication. A note or reading item lands on the chosen publication's own list, never inside an idea.
+The tabbed small forms on a writer's landing page for adding a new idea, a note or something to read without first opening a publication. A note or reading item lands on the chosen publication's own list, never inside an idea.
 _Avoid_: Capture, inbox (that word is the issue tracker's)
 
 **Pick up**:

@@ -70,7 +70,7 @@ describe('Home: Pick up (#192)', () => {
   it('is not there at all when there is nothing to pick up', async () => {
     server.use(signedInAs(testUser), publications(blog), llmSettings(true))
     await renderAt('/')
-    await screen.findByRole('heading', { name: 'Quick add' })
+    await screen.findByRole('region', { name: 'Quick add' })
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
     expect(screen.queryByRole('heading', { name: 'Pick up' })).toBeNull()
   })
@@ -109,7 +109,7 @@ describe('Home: Pick up (#192)', () => {
     await renderAt('/')
     await screen.findByRole('heading', { name: 'Get started' })
     expect(screen.queryByRole('heading', { name: 'Pick up' })).toBeNull()
-    expect(screen.queryByRole('heading', { name: 'Quick add' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Quick add' })).toBeNull()
   })
 })
 
@@ -122,7 +122,7 @@ describe('Home: Quick add (#192)', () => {
       ideasFor('ada-blog', []),
     )
     await renderAt('/')
-    await screen.findByRole('heading', { name: 'Quick add' })
+    await screen.findByRole('region', { name: 'Quick add' })
     expect(screen.queryByLabelText('Add to publication')).toBeNull()
   })
 
@@ -157,21 +157,6 @@ describe('Home: Quick add (#192)', () => {
     expect(picker).toHaveValue('ada-blog')
     await fireEvent.update(picker, 'ada-letters')
     expect(localStorage.getItem('wordwright:last-publication')).toBe('ada-letters')
-  })
-
-  it('makes New idea the main button only while the chosen publication has no ideas', async () => {
-    server.use(
-      signedInAs(testUser),
-      publications(blog, letters),
-      llmSettings(true),
-      ideasFor('ada-blog', []),
-      ideasFor('ada-letters', ['An idea']),
-    )
-    await renderAt('/')
-    const button = await screen.findByRole('button', { name: 'New idea' })
-    await waitFor(() => expect(button).toHaveClass('btn-primary'))
-    await fireEvent.update(screen.getByLabelText('Add to publication'), 'ada-letters')
-    await waitFor(() => expect(button).toHaveClass('btn-outline'))
   })
 
   it('creates an idea and goes to it', async () => {
@@ -211,8 +196,7 @@ describe('Home: Quick add (#192)', () => {
       ),
     )
     const { router } = await renderAt('/')
-    await fireEvent.click(await screen.findByRole('button', { name: 'New idea' }))
-    await fireEvent.update(screen.getByLabelText('Idea name'), 'On endings')
+    await fireEvent.update(await screen.findByLabelText('Idea name'), 'On endings')
     await fireEvent.click(screen.getByRole('button', { name: 'Create idea' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('idea'))
     expect(sent).toMatchObject({ name: 'On endings' })
@@ -250,10 +234,8 @@ describe('Home: Quick add (#192)', () => {
       }),
     )
     await renderAt('/')
-    const open = await screen.findByRole('button', { name: 'Add a note' })
-    await fireEvent.click(open)
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
     const field = screen.getByLabelText('Note')
-    expect(field).toHaveFocus()
     await fireEvent.update(field, 'A thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText(/Added to Blog’s notes./)).toBeVisible()
@@ -278,7 +260,7 @@ describe('Home: Quick add (#192)', () => {
       }),
     )
     await renderAt('/')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.com/post')
     await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     expect(await screen.findByText(/Added to Blog’s reading list./)).toBeVisible()
@@ -296,7 +278,7 @@ describe('Home: Quick add (#192)', () => {
       ),
     )
     await renderAt('/')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add a note' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
     await fireEvent.update(screen.getByLabelText('Note'), 'Words')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('That note is too long.')
@@ -319,7 +301,7 @@ describe('Home: Quick add (#192)', () => {
         ),
       )
       await renderAt('/')
-      await fireEvent.click(await screen.findByRole('button', { name: open }))
+      await fireEvent.click(await screen.findByRole('tab', { name: open }))
       await fireEvent.update(screen.getByLabelText(label), text)
       await fireEvent.click(screen.getByRole('button', { name: submit }))
       expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, that did not work.')
@@ -347,7 +329,7 @@ describe('Home: Quick add (#192)', () => {
       }),
     )
     await renderAt('/')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://a.example')
     await new Promise((r) => setTimeout(r, 300))
     expect(screen.getByLabelText('Add to publication')).toHaveValue('ada-blog')
@@ -370,7 +352,7 @@ describe('Home: Quick add (#192)', () => {
     expect(localStorage.getItem('wordwright:last-publication')).toBe('ada-letters')
   })
 
-  it('closes with Cancel or Escape and gives focus back to the button', async () => {
+  it('shows New idea first, and one form at a time as you change tab', async () => {
     server.use(
       signedInAs(testUser),
       publications(blog),
@@ -378,14 +360,22 @@ describe('Home: Quick add (#192)', () => {
       ideasFor('ada-blog', ['x']),
     )
     await renderAt('/')
-    const open = await screen.findByRole('button', { name: 'Add a note' })
-    await fireEvent.click(open)
-    expect(open).toHaveAttribute('aria-expanded', 'true')
-    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByLabelText('Note')).toBeNull()
-    await waitFor(() => expect(open).toHaveFocus())
-    await fireEvent.click(open)
-    await fireEvent.keyDown(screen.getByLabelText('Note'), { key: 'Escape' })
-    expect(screen.queryByLabelText('Note')).toBeNull()
+    const idea = await screen.findByRole('tab', { name: 'New idea' })
+    const note = screen.getByRole('tab', { name: 'Add a note' })
+    expect(idea).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Idea name')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
+    await fireEvent.click(note)
+    expect(note).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Note')).toBeVisible()
+    expect(screen.getByLabelText('Idea name')).not.toBeVisible()
+  })
+
+  it('shows the publication picker once, inside the form that is showing', async () => {
+    server.use(signedInAs(testUser), publications(blog, letters), llmSettings(true))
+    await renderAt('/')
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
+    const picker = screen.getByLabelText('Add to publication')
+    expect(picker.closest('form')).toBe(screen.getByLabelText('Note').closest('form'))
   })
 })

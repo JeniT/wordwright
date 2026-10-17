@@ -17,7 +17,7 @@ async function signUpWithPublication(page: Page) {
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Quick add' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Quick add' })).toBeVisible()
 }
 
 const noViolations = async (page: Page, what: string) =>
@@ -29,15 +29,15 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   await signUpWithPublication(page)
   // Nothing to pick up yet, so no section for it.
   await expect(page.getByRole('heading', { name: 'Pick up' })).toHaveCount(0)
-  // With no ideas, starting one is the main button.
-  await expect(page.getByRole('button', { name: 'New idea' })).toHaveClass(/btn-primary/)
+  // New idea is the tab showing first.
+  await expect(page.getByRole('tab', { name: 'New idea' })).toHaveAttribute('aria-selected', 'true')
 
-  await page.getByRole('button', { name: 'Add a note' }).click()
-  await page.getByLabel('Note').fill('Prune in late winter.')
+  await page.getByRole('tab', { name: 'Add a note' }).click()
+  await page.getByRole('textbox', { name: 'Note' }).fill('Prune in late winter.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Added to Garden notes’s notes.')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Add something to read' }).click()
+  await page.getByRole('tab', { name: 'Add something to read' }).click()
   await page.getByLabel('Web address').fill('https://example.com/pruning')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(page.getByText('Added to Garden notes’s reading list.')).toBeVisible()
@@ -49,7 +49,6 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   ).toHaveAttribute('href', 'https://example.com/pruning')
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'New idea' }).click()
   await page.getByLabel('Idea name').fill('What pruning teaches')
   await page.getByRole('button', { name: 'Create idea' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
@@ -66,13 +65,15 @@ test('is usable by keyboard and has no accessibility problems, in light, dark an
   page,
 }) => {
   await signUpWithPublication(page)
-  await page.getByRole('button', { name: 'Add a note' }).focus()
-  await page.keyboard.press('Enter')
-  await expect(page.getByLabel('Note')).toBeFocused()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: 'Add a note' })).toBeFocused()
+  // Arrow keys move between the tabs and show each one's form.
+  await page.getByRole('tab', { name: 'New idea' }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('tab', { name: 'Add a note' })).toBeFocused()
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeFocused()
 
-  await page.getByRole('button', { name: 'Add a note' }).click()
+  await page.getByRole('tab', { name: 'Add a note' }).click()
   await noViolations(page, 'home, light')
   await page.emulateMedia({ colorScheme: 'dark' })
   await noViolations(page, 'home, dark')
