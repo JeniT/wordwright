@@ -35,7 +35,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }).trim()
   const overlap = findOverlap(changedFiles(base, 'HEAD'), changedFiles(base, 'origin/main'))
   if (overlap.length === 0) {
-    console.log('no overlap: rerun pnpm check for the packages you changed, then push')
+    console.log(
+      'no overlap: run pnpm typecheck and the tests of the packages you changed, then push',
+    )
   } else {
     console.log(
       `overlap: ${overlap.join(', ')}\nrerun pnpm check, pnpm build and pnpm test:e2e after rebasing`,
