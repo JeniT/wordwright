@@ -35,35 +35,33 @@ const accept = useMutation({
 
 <template>
   <div>
-    <div>
-      <p class="mb-4">
-        <RouterLink :to="{ name: 'help-description' }" class="link">
-          See what makes a useful description
+    <p class="mb-4">
+      <RouterLink :to="{ name: 'help-description' }" class="link">
+        See what makes a useful description
+      </RouterLink>
+    </p>
+    <form @submit.prevent="accept.mutate()">
+      <DescriptionEditor
+        v-model="text"
+        label="Description"
+        hint="What it is, who reads it and what kinds of writing go there. Your AI reads it before it helps with anything here."
+      />
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="accept.isPending.value || !text.trim() || tooLong"
+        >
+          {{ accept.isPending.value ? 'Saving…' : 'Save description' }}
+        </button>
+        <RouterLink
+          :to="{ name: 'publication', params: { publicationId: publication.id } }"
+          class="link text-sm"
+        >
+          {{ publication.description ? 'Cancel' : 'Skip for now' }}
         </RouterLink>
-      </p>
-      <form @submit.prevent="accept.mutate()">
-        <DescriptionEditor
-          v-model="text"
-          label="Description"
-          hint="What it is, who reads it and what kinds of writing go there. Your AI reads it before it helps with anything here."
-        />
-        <div class="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="accept.isPending.value || !text.trim() || tooLong"
-          >
-            {{ accept.isPending.value ? 'Saving…' : 'Save description' }}
-          </button>
-          <RouterLink
-            :to="{ name: 'publication', params: { publicationId: publication.id } }"
-            class="link text-sm"
-          >
-            {{ publication.description ? 'Cancel' : 'Skip for now' }}
-          </RouterLink>
-        </div>
-        <SaveStatus :mutation="accept" saved="" class="mt-2" />
-      </form>
-    </div>
+      </div>
+      <SaveStatus :mutation="accept" saved="" class="mt-2" />
+    </form>
   </div>
 </template>
