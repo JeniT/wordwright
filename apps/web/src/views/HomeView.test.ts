@@ -278,3 +278,53 @@ describe('landing page: tutorial mode (#190)', () => {
     expect(screen.queryByText(/work on its ideas and drafts/)).toBeNull()
   })
 })
+
+describe('landing page: your role in shared publications (#228)', () => {
+  const person = (userId: string, role: 'owner' | 'member') => ({
+    userId,
+    name: userId,
+    email: `${userId}@example.com`,
+    role,
+  })
+  const publication = (id: string, name: string, role: 'owner' | 'member', people: string[]) => ({
+    id,
+    name,
+    siteUrl: null,
+    imageUrl: null,
+    siteIconUrl: null,
+    description: null,
+    role,
+    members: people.map((p, i) => person(p, i === 0 ? 'owner' : 'member')),
+  })
+
+  async function renderWith(publications: ReturnType<typeof publication>[]) {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json(publications)),
+      llmSettings(true),
+    )
+    await renderAt('/')
+    await screen.findByRole('link', { name: /Blog/ })
+  }
+
+  it('says "Owner" beside the sharing line when you own a shared publication', async () => {
+    await renderWith([publication('blog', 'Blog', 'owner', ['ada', 'bob', 'cy'])])
+    const card = screen.getByRole('link', { name: /Blog/ })
+    expect(within(card).getByText('Owner')).toBeInTheDocument()
+    expect(within(card).getByText('Shared with 2 people')).toBeInTheDocument()
+  })
+
+  it('says "Member" when you only belong to a shared publication', async () => {
+    await renderWith([publication('blog', 'Blog', 'member', ['bob', 'ada'])])
+    const card = screen.getByRole('link', { name: /Blog/ })
+    expect(within(card).getByText('Member')).toBeInTheDocument()
+    expect(within(card).getByText('Shared with 1 person')).toBeInTheDocument()
+  })
+
+  it('shows no role on a publication only you belong to', async () => {
+    await renderWith([publication('blog', 'Blog', 'owner', ['ada'])])
+    const card = screen.getByRole('link', { name: /Blog/ })
+    expect(within(card).queryByText('Owner')).toBeNull()
+    expect(within(card).queryByText('Member')).toBeNull()
+  })
+})

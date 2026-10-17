@@ -144,7 +144,11 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
               <span v-if="p.siteUrl" class="block truncate text-sm text-ink-soft">
                 {{ displayHost(p.siteUrl) }}
               </span>
+              <!-- On shared publications only: alone, you can only be the owner. -->
               <span v-if="p.members.length > 1" class="block text-sm text-ink-soft">
+                <span class="chip chip-quiet mr-1">{{
+                  p.role === 'owner' ? 'Owner' : 'Member'
+                }}</span>
                 Shared with {{ p.members.length - 1 }}
                 {{ p.members.length === 2 ? 'person' : 'people' }}
               </span>

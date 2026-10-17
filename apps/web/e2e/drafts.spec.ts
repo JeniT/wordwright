@@ -694,6 +694,12 @@ test('invites someone who has no account yet: they register from the email and j
   await page.reload()
   await expect(page.getByText(new RegExp(`${newbieEmail}, member`))).toBeVisible()
   await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
+
+  // On Home each of them sees their own role beside the sharing line (#228).
+  await newbie.goto('/')
+  await expect(newbie.getByRole('link', { name: /Shared with 1 person/ })).toContainText('Member')
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: /Shared with 1 person/ })).toContainText('Owner')
   expect(newbieProblems, "Newbie's browser problems").toEqual([])
 })
 

@@ -84,3 +84,39 @@ test('is usable by keyboard and has no accessibility problems, in light, dark an
   )
   expect(overflow, 'no sideways scroll at 390px').toBe(false)
 })
+
+test('role chips on shared publications are accessible in light, dark and on a phone (#228)', async ({
+  page,
+}) => {
+  await signUpWithPublication(page)
+  // Sharing is covered end to end in drafts.spec.ts; here only the look is under test.
+  const [mine] = (await (await page.request.get('/api/publications')).json()) as Record<
+    string,
+    unknown
+  >[]
+  const person = (userId: string, role: string) => ({
+    userId,
+    name: userId,
+    email: `${userId}@example.com`,
+    role,
+  })
+  const shared = [
+    { ...mine, members: [person('a', 'owner'), person('b', 'member')] },
+    {
+      ...mine,
+      id: 'theirs',
+      name: 'Their long publication name',
+      role: 'member',
+      members: [person('c', 'owner'), person('a', 'member')],
+    },
+  ]
+  await page.route('**/api/publications', (route) => route.fulfill({ json: shared }))
+  await page.goto('/')
+  await expect(page.getByText('Owner')).toBeVisible()
+  await expect(page.getByText('Member')).toBeVisible()
+  await noViolations(page, 'light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await noViolations(page, 'dark')
+  await page.setViewportSize({ width: 390, height: 800 })
+  await noViolations(page, 'phone')
+})
