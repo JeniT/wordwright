@@ -10,6 +10,7 @@ import { usePublication } from './usePublications'
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
  *   home    -> Publications (account settings: the gear by the person's name in the menu foot)
  *   publication -> 01 Search, 02 Read, 03 Notes, 04 Ideas, (its settings: a gear beside its name)
+ *   publication-settings -> Details, Description, Sharing, Download, Delete (plain links; the way up is the publication)
  *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, (its settings: a gear beside its name)
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
@@ -45,7 +46,24 @@ export const ACCOUNT_PAGES: Step[] = [
   { key: 'delete', label: 'Delete account', route: 'account-delete' },
 ]
 
-export type NavLevel = 'home' | 'publication' | 'idea' | 'account'
+/** A publication's settings pages. Like the account's, plain links; Delete is for owners only. */
+export interface SettingsPage extends Step {
+  ownerOnly?: boolean
+}
+export const PUBLICATION_SETTINGS_PAGES: SettingsPage[] = [
+  { key: 'details', label: 'Details', route: 'publication-settings-details' },
+  { key: 'description', label: 'Description', route: 'publication-settings-description' },
+  { key: 'sharing', label: 'Sharing', route: 'publication-settings-sharing' },
+  { key: 'download', label: 'Download', route: 'publication-settings-download' },
+  {
+    key: 'delete',
+    label: 'Delete publication',
+    route: 'publication-settings-delete',
+    ownerOnly: true,
+  },
+]
+
+export type NavLevel = 'home' | 'publication' | 'publication-settings' | 'idea' | 'account'
 
 export const stepsFor = (level: NavLevel) =>
   level === 'idea' ? IDEA_STEPS : level === 'publication' ? PUBLICATION_STEPS : []
@@ -158,6 +176,16 @@ export function useNav() {
     ACCOUNT_PAGES.map((page) => ({ ...page, to: { name: page.route } as RouteLocationRaw })),
   )
 
+  /** The publication's settings pages this person can use: members have no Delete. */
+  const settingsPages = computed(() =>
+    PUBLICATION_SETTINGS_PAGES.filter(
+      (page) => !page.ownerOnly || publication.value?.role === 'owner',
+    ).map((page) => ({
+      ...page,
+      to: { name: page.route, params: { publicationId: publicationId.value } } as RouteLocationRaw,
+    })),
+  )
+
   /** What the page is called above its title: the idea or the publication, depending on level. */
   const eyebrow = computed(() =>
     level.value === 'idea'
@@ -166,13 +194,19 @@ export function useNav() {
         ? publication.value?.name
         : level.value === 'account'
           ? 'Account settings'
-          : undefined,
+          : level.value === 'publication-settings'
+            ? 'Publication settings'
+            : undefined,
   )
 
   /** Where the name above a page's title leads: a level's pages lead back to its landing page (not from it). */
   const eyebrowTo = computed<RouteLocationRaw | undefined>(() => {
     if (level.value === 'account')
       return route.name === 'account-details' ? undefined : { name: 'account-details' }
+    if (level.value === 'publication-settings')
+      return route.name === 'publication-settings-details'
+        ? undefined
+        : { name: 'publication-settings-details', params: { publicationId: publicationId.value } }
     if (route.name === 'publication' || route.name === 'idea' || !publicationId.value)
       return undefined
     if (level.value === 'publication')
@@ -190,6 +224,7 @@ export function useNav() {
     idea,
     steps,
     accountPages,
+    settingsPages,
     stepKey,
     stepNumber: computed(() => stepNumber(level.value, stepKey.value)),
     eyebrow,

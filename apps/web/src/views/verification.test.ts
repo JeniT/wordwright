@@ -138,7 +138,7 @@ describe('inviting needs a confirmed address', () => {
       signedInAs(unverified),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await screen.findByText(/Confirm your email address to invite people/)
     expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull()
   })

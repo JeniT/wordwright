@@ -101,7 +101,7 @@ describe('the settings buttons', () => {
 
   it('are current while on the settings page', async () => {
     mockApp()
-    await renderAt('/p/ada-substack/settings')
+    await renderAt('/p/ada-substack/settings/sharing')
     const gear = await (await menu()).findByRole('link', { name: 'Publication settings' })
     expect(gear).toHaveAttribute('aria-current', 'page')
   })
@@ -328,5 +328,51 @@ describe('the old Publish step', () => {
     await renderAt('/p/ada-substack/ideas/i1/drafts')
     await screen.findByRole('heading', { level: 1, name: 'Draft' })
     expect(screen.queryByRole('link', { name: /Next:/ })).toBeNull()
+  })
+})
+
+describe('the menu in a publication’s settings', () => {
+  it('lists the pages as plain links, marks the current one, and leads back to the publication', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/settings/sharing')
+    const nav = await screen.findByRole('navigation', { name: 'Publication settings' })
+    await within(nav).findByRole('link', { name: 'Delete publication' }) // owners only, once the role is known
+    const labels = within(nav)
+      .getAllByRole('link')
+      .map((a) => a.textContent)
+    expect(labels).toEqual(['Details', 'Description', 'Sharing', 'Download', 'Delete publication'])
+    expect(within(nav).getByRole('link', { name: 'Sharing' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(within(nav).getByRole('link', { name: 'Details' })).not.toHaveAttribute('aria-current')
+    // Not a sequence: no numbers, and none of the publication's steps.
+    expect(within(nav).queryByText(/^0\d$/)).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Publication' })).toBeNull()
+    expect((await menu()).getByRole('link', { name: '← Substack' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack',
+    )
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sharing' })).toBeInTheDocument()
+  })
+
+  it('sends the bare settings address to Details', async () => {
+    mockApp()
+    const { router } = await renderAt('/p/ada-substack/settings?from=email')
+    await screen.findByRole('heading', { level: 1, name: 'Details' })
+    expect(router.currentRoute.value.fullPath).toBe('/p/ada-substack/settings/details?from=email')
+  })
+
+  it('leaves Delete out for a member, and sends them from its address to Details', async () => {
+    mockApp()
+    server.use(
+      http.get('*/api/publications', () => HttpResponse.json([{ ...publication, role: 'member' }])),
+    )
+    const { router } = await renderAt('/p/ada-substack/settings/delete')
+    await screen.findByRole('heading', { level: 1, name: 'Details' })
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/settings/details')
+    const nav = await screen.findByRole('navigation', { name: 'Publication settings' })
+    expect(within(nav).queryByRole('link', { name: 'Delete publication' })).toBeNull()
+    expect(within(nav).getAllByRole('link')).toHaveLength(4)
   })
 })

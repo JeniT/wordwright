@@ -1,7 +1,15 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { deflateSync } from 'node:zlib'
-import { expect, goTo, holdToConfirm, savesAnswered, showArrowsFor, test } from './fixtures'
+import {
+  expect,
+  goTo,
+  holdToConfirm,
+  openSettingsPage,
+  savesAnswered,
+  showArrowsFor,
+  test,
+} from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -169,16 +177,18 @@ test('edits details, changes and removes the picture, and deletes the publicatio
 
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await noViolations(page)
-  await page.getByLabel('Name', { exact: true }).fill('Final publication')
-  await page.getByLabel('Website').fill('not a url')
+  await expect(page.getByRole('heading', { level: 1, name: 'Details' })).toBeVisible()
+  await page.getByLabel('Publication name', { exact: true }).fill('Final publication')
+  await page.getByLabel(/Website/).fill('not a url')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('alert')).toContainText('Enter a web address')
-  await page.getByLabel('Website').fill('final.example.com')
+  await page.getByLabel(/Website/).fill('final.example.com')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
-  await expect(page.getByLabel('Website')).toHaveValue('https://final.example.com')
+  await expect(page.getByLabel(/Website/)).toHaveValue('https://final.example.com')
 
   // The description is written in a rich-text editor, with no Markdown to know, and survives a reload.
+  await openSettingsPage(page, 'Description')
   const description = page.getByRole('textbox', { name: 'Description' })
   await description.fill('Personal weeknotes, mostly for me.')
   await description.press('ControlOrMeta+a')
@@ -197,6 +207,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   await noViolations(page)
 
   // A non-image is refused with a reason; a real one is accepted.
+  await openSettingsPage(page, 'Details')
   await page.getByLabel('Choose a picture').setInputFiles({
     name: 'notes.txt',
     mimeType: 'image/png',
@@ -210,6 +221,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   await holdToConfirm(page, page.getByRole('button', { name: 'Remove picture' }))
   await expect(page.getByRole('main').locator('img')).toHaveCount(0)
 
+  await openSettingsPage(page, 'Delete publication')
   await page.getByRole('button', { name: 'Delete this publication' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()
   await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
@@ -233,12 +245,12 @@ test('renaming a publication changes its address, and the old address still work
   expect(oldPath).toMatch(/^\/p\/[a-z0-9]+-early-name$/)
 
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Later name')
+  await page.getByLabel('Publication name', { exact: true }).fill('Later name')
   await page.getByRole('button', { name: 'Save details' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
   const newPath = oldPath.replace('early-name', 'later-name')
-  await expect(page).toHaveURL(`${newPath}/settings`)
-  await expect(page.getByText(newPath, { exact: true })).toBeVisible()
+  await expect(page).toHaveURL(`${newPath}/settings/details`)
+  await expect(page.getByRole('heading', { level: 1, name: 'Details' })).toBeVisible()
 
   // Bookmarks and shared links to the old address end up at the new one.
   await page.goto(oldPath)
@@ -247,7 +259,7 @@ test('renaming a publication changes its address, and the old address still work
     page.getByRole('banner').getByText('Later name').filter({ visible: true }).first(),
   ).toBeVisible()
   await page.goto(`${oldPath}/settings`)
-  await expect(page).toHaveURL(`${newPath}/settings`)
+  await expect(page).toHaveURL(`${newPath}/settings/details`)
 
   // The server itself answers the old API address with a permanent redirect.
   const res = await page.request.get(`/api/publications/${oldPath.slice(3)}`, { maxRedirects: 0 })
@@ -265,6 +277,7 @@ test('changes the display name, which is then used wherever it is shown', async 
     page.getByRole('banner').getByText('Remy publication').filter({ visible: true }).first(),
   ).toBeVisible()
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
+  await openSettingsPage(page, 'Sharing')
   const member = (name: string) =>
     page
       .getByRole('main')
@@ -302,6 +315,7 @@ test('changes the display name, which is then used wherever it is shown', async 
     .getByRole('link', { name: /Remy publication/ })
     .click()
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
+  await openSettingsPage(page, 'Sharing')
   await expect(member(`${who} Reed`)).toBeVisible()
 })
 
@@ -631,6 +645,7 @@ test('writes a description with guidance on what it needs, and nothing drafts it
 
   // The settings link to the same advice, which is on its own help page.
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
+  await openSettingsPage(page, 'Description')
   await page.getByRole('link', { name: 'See what makes a useful description' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Writing a description' })).toBeVisible()
   await expect(page.getByText('What it is:', { exact: false })).toBeVisible()
@@ -643,6 +658,46 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await expect(
     page.getByRole('heading', { level: 1, name: 'Describe this publication' }),
   ).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
+  await noViolations(page)
+})
+
+test('publication settings are a menu of short pages, which fold behind the menu button on a phone', async ({
+  page,
+}) => {
+  await registerUser(page, uniqueName('Tess'))
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Publication name', { exact: true }).fill('Short pages')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
+
+  // The bare address and the gear lead to Details; each page is its own address and its own heading.
+  await expect(page).toHaveURL(/\/settings\/details$/)
+  const nav = page.getByRole('navigation', { name: 'Publication settings' })
+  await expect(nav.getByRole('link', { name: 'Details' })).toHaveAttribute('aria-current', 'page')
+  await noViolations(page)
+  for (const name of ['Description', 'Sharing', 'Download', 'Delete publication']) {
+    await openSettingsPage(page, name)
+    await expect(nav.getByRole('link', { name, exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  }
+  await noViolations(page)
+
+  // The way up is the publication itself.
+  await page.getByRole('banner').getByRole('link', { name: '← Short pages' }).click()
+  await expect(page).toHaveURL(/\/p\/[^/]+$/)
+
+  // On a phone the menu folds away behind its button, and nothing scrolls sideways.
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.getByRole('banner').getByRole('button', { name: 'Menu' }).click()
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).first().click()
+  await page.getByRole('banner').getByRole('button', { name: 'Menu' }).click()
+  await openSettingsPage(page, 'Sharing')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )

@@ -111,6 +111,15 @@ export async function openNewIdeaForm(page: Page) {
 
 export { expect }
 
+/** Opens one page of the publication's settings from its menu (the gear has already been pressed). */
+export async function openSettingsPage(page: Page, name: string) {
+  await page
+    .getByRole('navigation', { name: 'Publication settings' })
+    .getByRole('link', { name, exact: true })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name, exact: true })).toBeVisible()
+}
+
 /** Presses and holds a hold-to-confirm button (deleting or removing something) until it fires, with the mouse. */
 export async function holdToConfirm(page: Page, button: ReturnType<Page['locator']>) {
   await button.hover()

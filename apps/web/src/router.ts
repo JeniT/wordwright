@@ -12,7 +12,7 @@ declare module 'vue-router' {
     /** Pages that need more room than a column of text (the drafting page has a side column). */
     wide?: boolean
     /** Which level of the app the page belongs to, which decides what the side menu lists (see lib/nav.ts). */
-    level?: 'publication' | 'idea' | 'account'
+    level?: 'publication' | 'publication-settings' | 'idea' | 'account'
     /** The numbered step the page belongs to (a key from PUBLICATION_STEPS or IDEA_STEPS); none for settings. */
     step?: string
     /** For the drafting page: the idea it belongs to is found from the draft, not from the address. */
@@ -203,13 +203,31 @@ export const routes: RouteRecordRaw[] = [
     props: true,
     meta: { level: 'publication', tutorial: true },
   },
+  // Settings are a menu of short pages, like the account's; the bare address and the gear lead to the first.
   {
     path: '/p/:publicationId/settings',
     name: 'publication-settings',
-    component: () => import('./views/PublicationSettingsView.vue'),
-    props: true,
-    meta: { level: 'publication' },
+    redirect: (to) => ({
+      name: 'publication-settings-details',
+      params: to.params,
+      query: to.query,
+    }),
   },
+  ...(
+    [
+      ['details', 'PublicationSettingsDetailsView'],
+      ['description', 'PublicationSettingsDescriptionView'],
+      ['sharing', 'PublicationSettingsSharingView'],
+      ['download', 'PublicationSettingsDownloadView'],
+      ['delete', 'PublicationSettingsDeleteView'],
+    ] as const
+  ).map(([step, view]): RouteRecordRaw => ({
+    path: `/p/:publicationId/settings/${step}`,
+    name: `publication-settings-${step}`,
+    component: () => import(`./views/${view}.vue`),
+    props: true,
+    meta: { level: 'publication-settings', step },
+  })),
 
   // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, and its settings ———
   {

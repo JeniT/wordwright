@@ -43,12 +43,13 @@ The side menu **follows you**: what it lists depends on where you are, with a li
 are in. Numbers on the steps orient; they never lock anything, so every step is always a link, and each page ends with a
 gentle "Next: …" suggestion. Home → publication → idea:
 
-| Level       | Menu lists                                                                                                                                                         | Front door                      |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
-| Home        | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                    | `/`                             |
-| Publication | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                                   | `/p/<id>` → its landing page    |
-| Idea        | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings      | `/p/<id>/ideas/<idea>` → Notes  |
-| Account     | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** | `/account` → `/account/details` |
+| Level                | Menu lists                                                                                                                                                         | Front door                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| Home                 | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                    | `/`                                             |
+| Publication          | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                                   | `/p/<id>` → its landing page                    |
+| Idea                 | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings      | `/p/<id>/ideas/<idea>` → Notes                  |
+| Publication settings | **Details**, **Description**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}"          | `/p/<id>/settings` → `/p/<id>/settings/details` |
+| Account              | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** | `/account` → `/account/details`                 |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
@@ -305,8 +306,8 @@ tests inject fakes and nothing hits the network.
   _that_ address and clicks Join. Nobody is ever added without accepting, the owner's reply is identical
   whether or not the address has an account or is already in (so it can't be used to look people up), and
   accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
-  resend or revoke them, and make members owners (or remove other owners, or step down) from the people list in
-  the publication's settings (the invitation form says first what members and owners can do, from the wording in
+  resend or revoke them, and make members owners (or remove other owners, or step down) from the people list on
+  the publication's Sharing page (the invitation form says first what members and owners can do, from the wording in
   `apps/web/src/lib/publication-roles.ts`; invitees always join as members); each person can send 20 a day since every one emails a stranger, and any one address
   receives at most 5 a day from everyone together.
 - **Declining and blocking invitations:** every invitation email links to a page where the invitee (signed in or

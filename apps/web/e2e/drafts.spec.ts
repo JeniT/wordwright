@@ -3,7 +3,15 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Browser, Page } from '@playwright/test'
 import { e2eOutbox } from '../playwright.config'
-import { expect, goTo, holdToConfirm, test, watchForProblems, openNewIdeaForm } from './fixtures'
+import {
+  expect,
+  goTo,
+  holdToConfirm,
+  openNewIdeaForm,
+  openSettingsPage,
+  test,
+  watchForProblems,
+} from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -52,12 +60,12 @@ async function openFirstPublication(page: Page) {
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
 
-/** The first publication's settings page, where it is shared. */
-async function openSettings(page: Page) {
+/** One of the first publication's settings pages: Sharing, where it is shared, unless another is named. */
+async function openSettings(page: Page, name = 'Sharing') {
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
-  await expect(page.getByRole('heading', { name: 'Publication settings' })).toBeVisible()
+  await openSettingsPage(page, name)
 }
 
 type Mail = { to: string; subject: string; text: string }
@@ -644,12 +652,9 @@ test('resends the confirmation email, and only the newest link works', async ({ 
 /** Ada (signed in, confirmed) invites `email` from her account page, and we read the email they get. */
 async function invite(page: Page, email: string, inviter = 'Ada') {
   await openSettings(page)
-  await page
-    .getByLabel(/Invite someone to/)
-    .first()
-    .fill(email)
+  await page.getByLabel('Email address').first().fill(email)
   await page.getByRole('button', { name: 'Send invitation' }).first().click()
-  await expect(page.getByText(`emailed an invitation to ${email}`)).toBeVisible()
+  await expect(page.getByText(`Invitation sent to ${email}`)).toBeVisible()
   const mail = await waitForEmail(email, `${inviter} invited you to write together`)
   const link = linkIn(mail, '/accept-invite')
   expect(link, 'invitation link in the email').toBeTruthy()
@@ -752,7 +757,14 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
   await expect(stepDown).toContainText('Only another owner can give them back')
   await stepDown.getByRole('button', { name: 'Step down as owner' }).click()
   await expect(page.getByText('You are no longer an owner.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
+  await openSettingsPage(page, 'Details')
   await expect(page.getByRole('button', { name: 'Save details' })).toHaveCount(0)
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Publication settings' })
+      .getByRole('link', { name: 'Delete publication' }),
+  ).toHaveCount(0)
 
   // Bob is now the only owner.
   await bob.reload()
@@ -789,6 +801,7 @@ test('removing a member and leaving a publication each ask first, saying what ha
   // Cara leaves from her own page, after being told she needs a new invitation to come back.
   await cara.reload()
   await cara.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
+  await openSettingsPage(cara, 'Sharing')
   await cara.getByRole('button', { name: 'Leave', exact: true }).click()
   const leaving = cara.getByRole('dialog', { name: /^Leave / })
   await expect(leaving).toContainText('only if an owner invites you again')
@@ -1206,10 +1219,7 @@ test('declining and blocking an inviter from the email, then lifting the block',
   // Ada isn't told; the invitation just stops waiting, and a second attempt quietly does nothing.
   await page.reload()
   await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
-  await page
-    .getByLabel(/Invite someone to/)
-    .first()
-    .fill(bobEmail)
+  await page.getByLabel('Email address').first().fill(bobEmail)
   await page.getByRole('button', { name: 'Send invitation' }).first().click()
   await expect(page.getByText(`emailed an invitation to ${bobEmail}`)).toBeVisible()
   await page.reload()
@@ -1238,10 +1248,7 @@ test('declining and blocking an inviter from the email, then lifting the block',
   expect(bobProblems).toEqual([])
 
   // With the block lifted, Ada's invitation goes through again.
-  await page
-    .getByLabel(/Invite someone to/)
-    .first()
-    .fill(bobEmail)
+  await page.getByLabel('Email address').first().fill(bobEmail)
   await page.getByRole('button', { name: 'Send invitation' }).first().click()
   await page.reload()
   await expect(page.getByText('Waiting for a reply')).toBeVisible()
@@ -1462,7 +1469,7 @@ test('downloads your writing as a zip from the account page and from a publicati
   expect(account.names).toContain('drafts/meanders.md')
   await expect(page.getByText('Downloaded')).toBeVisible()
 
-  await openSettings(page)
+  await openSettings(page, 'Download')
   const publication = await downloaded(page, () =>
     page.getByRole('button', { name: 'Download as a zip' }).click(),
   )

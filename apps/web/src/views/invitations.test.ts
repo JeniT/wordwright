@@ -183,11 +183,11 @@ describe('inviting from the publication settings page', () => {
         return HttpResponse.json({ ok: true }, { status: 202 })
       }),
     )
-    await renderAt('/p/p1/settings')
-    await fireEvent.update(await screen.findByLabelText(/Invite someone to/), 'bob@example.com')
+    await renderAt('/p/p1/settings/sharing')
+    await fireEvent.update(await screen.findByLabelText('Email address'), 'bob@example.com')
     await fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
 
-    await screen.findByText(/emailed an invitation to bob@example.com/)
+    await screen.findByText(/Invitation sent to bob@example.com/)
     expect(sent).toEqual({ email: 'bob@example.com' })
     await screen.findByText('Waiting for a reply')
     expect(screen.getByText(/bob@example.com/, { selector: 'span' })).toBeInTheDocument()
@@ -213,7 +213,7 @@ describe('inviting from the publication settings page', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(
       await screen.findByRole('button', { name: 'Resend invitation to bob@example.com' }),
     )
@@ -237,8 +237,8 @@ describe('inviting from the publication settings page', () => {
         ),
       ),
     )
-    await renderAt('/p/p1/settings')
-    await fireEvent.update(await screen.findByLabelText(/Invite someone to/), 'bob@example.com')
+    await renderAt('/p/p1/settings/sharing')
+    await fireEvent.update(await screen.findByLabelText('Email address'), 'bob@example.com')
     await fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/lot of invitations/)
   })
@@ -249,13 +249,12 @@ describe('inviting from the publication settings page', () => {
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get('*/api/publications/p1/invitations', () => HttpResponse.json([])),
     )
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     const note = await screen.findByTestId('invite-roles')
-    expect(note).toHaveTextContent(/People you invite join as members/)
+    expect(note).toHaveTextContent(/Members can /)
     for (const ability of [...MEMBER_ABILITIES, ...OWNER_ABILITIES]) {
       expect(note).toHaveTextContent(ability)
     }
-    expect(note).toHaveTextContent(/make someone an owner after they join/i)
   })
 
   it('does not show it to someone who has not confirmed their address (no form to explain)', async () => {
@@ -263,7 +262,7 @@ describe('inviting from the publication settings page', () => {
       signedInAs({ ...testUser, emailVerified: false }),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
     )
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await screen.findByText(/Confirm your email address to invite people/)
     expect(screen.queryByTestId('invite-roles')).toBeNull()
   })

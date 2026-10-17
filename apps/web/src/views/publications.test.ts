@@ -384,7 +384,7 @@ describe('publication description', () => {
         return HttpResponse.json({ ...substack, description: body.description })
       }),
     )
-    await renderAt('/p/adalovelace-substack/settings')
+    await renderAt('/p/adalovelace-substack/settings/description')
     const field = await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.getByRole('button', { name: 'Save description' })).toBeDisabled()
     await fireEvent.update(field, 'Weeknotes, *mostly for me*. See [home](https://example.com).')
@@ -404,7 +404,7 @@ describe('publication description', () => {
         HttpResponse.json({ error: 'Keep the description under 5000 characters' }, { status: 400 }),
       ),
     )
-    await renderAt('/p/adalovelace-substack/settings')
+    await renderAt('/p/adalovelace-substack/settings/description')
     await fireEvent.update(await screen.findByRole('textbox', { name: 'Description' }), 'Hello')
     await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Keep the description under 5000')
@@ -415,7 +415,7 @@ describe('publication description', () => {
       signedInAs(testUser),
       listPublications([{ ...substack, description: 'A newsletter for gardeners' }]),
     )
-    await renderAt('/p/adalovelace-substack/settings')
+    await renderAt('/p/adalovelace-substack/settings/description')
     expect(await screen.findByRole('textbox', { name: 'Description' })).toHaveValue(
       'A newsletter for gardeners',
     )
@@ -433,8 +433,8 @@ describe('publication settings', () => {
         return HttpResponse.json({ iconUrl: 'data:image/png;base64,AAAA', square: false })
       }),
     )
-    await renderAt('/p/adalovelace-substack/settings')
-    const website = await screen.findByLabelText('Website')
+    await renderAt('/p/adalovelace-substack/settings/details')
+    const website = await screen.findByLabelText(/Website/)
     // The saved address is not looked up again: its icon is already shown under Picture.
     await fireEvent.focusOut(website)
     expect(asked).toBe(0)
@@ -458,14 +458,14 @@ describe('publication settings', () => {
         })
       }),
     )
-    await renderAt('/p/adalovelace-substack/settings')
-    expect(await screen.findByText('/p/adalovelace-substack')).toBeInTheDocument()
-    await fireEvent.update(screen.getByLabelText('Name'), 'Renamed')
-    await fireEvent.update(screen.getByLabelText('Website'), 'new.example.com')
+    await renderAt('/p/adalovelace-substack/settings/details')
+    await screen.findByRole('heading', { name: 'Details' })
+    await fireEvent.update(screen.getByLabelText('Publication name'), 'Renamed')
+    await fireEvent.update(screen.getByLabelText(/Website/), 'new.example.com')
     await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
     await screen.findByText('Saved')
     expect(sent).toEqual({ name: 'Renamed', siteUrl: 'new.example.com' })
-    expect(screen.getByLabelText('Website')).toHaveValue('https://new.example.com')
+    expect(screen.getByLabelText(/Website/)).toHaveValue('https://new.example.com')
   })
 
   it('clears the website when the field is emptied, and shows why a change was refused', async () => {
@@ -483,8 +483,8 @@ describe('publication settings', () => {
           : HttpResponse.json({ ...substack, siteUrl: null })
       }),
     )
-    await renderAt('/p/adalovelace-substack/settings')
-    const website = await screen.findByLabelText('Website')
+    await renderAt('/p/adalovelace-substack/settings/details')
+    const website = await screen.findByLabelText(/Website/)
     await fireEvent.update(website, 'javascript:1')
     await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Enter a web address')
@@ -509,7 +509,7 @@ describe('publication settings', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    await renderAt('/p/adalovelace-substack/settings')
+    await renderAt('/p/adalovelace-substack/settings/details')
     const file = new File([new Uint8Array([1])], 'cover.webp', { type: 'image/webp' })
     await fireEvent.change(await screen.findByLabelText('Choose a picture'), {
       target: { files: [file] },
@@ -532,7 +532,7 @@ describe('publication settings', () => {
         ),
       ),
     )
-    await renderAt('/p/adalovelace-blog/settings')
+    await renderAt('/p/adalovelace-blog/settings/details')
     const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' })
     await fireEvent.change(await screen.findByLabelText('Choose a picture'), {
       target: { files: [file] },
@@ -546,9 +546,9 @@ describe('publication settings', () => {
       listPublications([blog]),
       http.get('*/api/publications/adalovelace-blog/invitations', () => HttpResponse.json([])),
     )
-    await renderAt('/p/adalovelace-blog/settings')
+    await renderAt('/p/adalovelace-blog/settings/sharing')
     await screen.findByText(/bob@example.com, member/)
-    expect(screen.getByLabelText(/Invite someone to/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Email address')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument()
   })
 
@@ -562,7 +562,7 @@ describe('publication settings', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    const { router } = await renderAt('/p/adalovelace-blog/settings')
+    const { router } = await renderAt('/p/adalovelace-blog/settings/delete')
     await fireEvent.click(await screen.findByRole('button', { name: 'Delete this publication' }))
     expect(deleted).toBe(false) // a dialog asks first
     const dialog = screen.getByRole('dialog', { name: 'Delete this publication?' })
@@ -584,18 +584,58 @@ describe('publication settings', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    const { router } = await renderAt('/p/adalovelace-blog/settings')
-    await screen.findByRole('heading', { name: 'Publication settings' })
-    expect(screen.queryByLabelText('Name')).toBeNull()
+    const { router } = await renderAt('/p/adalovelace-blog/settings/details')
+    await screen.findByRole('heading', { level: 1, name: 'Details' })
+    expect(screen.queryByLabelText('Publication name')).toBeNull()
     expect(screen.queryByLabelText('Choose a picture')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Delete this publication' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull()
+    await router.push('/p/adalovelace-blog/settings/sharing')
+    await screen.findByRole('heading', { level: 1, name: 'Sharing' })
+    expect(screen.queryByLabelText('Email address')).toBeNull()
     await fireEvent.click(screen.getByRole('button', { name: 'Leave' }))
     expect(left).toBe(false) // it asks first
     const dialog = await screen.findByRole('dialog', { name: /^Leave / })
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Leave' }))
     await waitFor(() => expect(left).toBe(true))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
+  })
+})
+
+describe('the pages of publication settings', () => {
+  it('uses the same name and website fields as a new publication, with what renaming does', async () => {
+    server.use(signedInAs(testUser), listPublications([substack]))
+    await renderAt('/p/adalovelace-substack/settings/details')
+    const settingsLabels = [
+      (await screen.findByLabelText('Publication name')).id,
+      screen.getByLabelText('Website (optional)').id,
+    ]
+    expect(settingsLabels).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'About the website' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'About the name' })).toBeInTheDocument()
+    expect(screen.getByText('Where it gets published.')).toBeInTheDocument()
+    expect(screen.queryByText(/for example https/i)).toBeNull()
+  })
+
+  it('titles each page, with the settings as the small link above', async () => {
+    server.use(signedInAs(testUser), listPublications([substack]))
+    await renderAt('/p/adalovelace-substack/settings/sharing')
+    await screen.findByRole('heading', { level: 1, name: 'Sharing' })
+    const main = within(screen.getByRole('main'))
+    expect(main.getByRole('link', { name: 'Publication settings' })).toHaveAttribute(
+      'href',
+      '/p/adalovelace-substack/settings/details',
+    )
+    expect(main.getByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument()
+  })
+
+  it('keeps Delete on its own page, pointing to Download first', async () => {
+    server.use(signedInAs(testUser), listPublications([substack]))
+    await renderAt('/p/adalovelace-substack/settings/delete')
+    await screen.findByRole('heading', { level: 1, name: 'Delete publication' })
+    expect(screen.getByRole('link', { name: 'Download your writing' })).toHaveAttribute(
+      'href',
+      '/p/adalovelace-substack/settings/download',
+    )
+    expect(screen.queryByLabelText('Publication name')).toBeNull()
   })
 })
 
@@ -610,11 +650,13 @@ describe('renamed publications', () => {
       http.get('*/api/publications/adalovelace-blog', () => HttpResponse.json(renamed)),
       noIdeas,
     )
-    const { router } = await renderAt('/p/adalovelace-blog/settings?from=email')
+    const { router } = await renderAt('/p/adalovelace-blog/settings/details?from=email')
     await waitFor(() =>
-      expect(router.currentRoute.value.fullPath).toBe('/p/adalovelace-journal/settings?from=email'),
+      expect(router.currentRoute.value.fullPath).toBe(
+        '/p/adalovelace-journal/settings/details?from=email',
+      ),
     )
-    expect(await screen.findByText('/p/adalovelace-journal')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Details' })
   })
 
   it('moves to the new address after renaming on the settings page', async () => {
@@ -627,13 +669,13 @@ describe('renamed publications', () => {
         return HttpResponse.json(renamed)
       }),
     )
-    const { router } = await renderAt('/p/adalovelace-blog/settings')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Journal')
+    const { router } = await renderAt('/p/adalovelace-blog/settings/details')
+    await fireEvent.update(await screen.findByLabelText('Publication name'), 'Journal')
     await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
     await waitFor(() =>
-      expect(router.currentRoute.value.path).toBe('/p/adalovelace-journal/settings'),
+      expect(router.currentRoute.value.path).toBe('/p/adalovelace-journal/settings/details'),
     )
-    expect(await screen.findByText('/p/adalovelace-journal')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Details' })
     expect(await screen.findByText('Saved')).toBeInTheDocument() // the panel was kept, not rebuilt
     expect(screen.queryByRole('alert')).toBeNull()
   })

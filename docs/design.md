@@ -533,6 +533,13 @@ The principles (they are the point of the pattern; keep them when you add a page
    plain links with no numbers, because settings are not a sequence. Each page is titled with `StepHeading` ("Account
    settings" is the small link above the title) and has no `NextStep`. A new setting goes on the page it belongs to; add a
    page only if none fits (`ACCOUNT_PAGES` in `lib/nav.ts`, plus a route with `meta: { level: 'account', step }`).
+   **A publication's settings work the same way**, under a `publication-settings` level: **Details** (name, website,
+   picture), **Description**, **Sharing**, **Download** and **Delete publication** (`/p/:id/settings/details`, `/description`,
+   `/sharing`, `/download`, `/delete`; `/p/:id/settings` redirects to the first). The menu's way up is "← {publication}"
+   and its pages are plain links with no numbers (`PUBLICATION_SETTINGS_PAGES`; routes use
+   `meta: { level: 'publication-settings', step }`). A member's menu leaves out Delete, and its address sends them to
+   Details. The name and website fields are one component (`PublicationDetailsFields`) shared with New publication, so the two forms
+   can't drift apart.
 8. **A level has a landing page** (a publication's, at `/p/:publicationId`; an idea's, at `/p/:publicationId/ideas/:id`) that is none of the numbered steps: a summary of
    each step (the newest feed posts; the first items to read; the latest notes; the ideas), with **Quick add** above them for adding an idea, a note or something to read, so the sections hold no forms of their own. Nothing in the menu is current there.
    The title row has the gear at its far end. **Describe this publication**, while there is no description, is a `NextStep top` right under the title row, and the publication's description comes next, then Quick add.

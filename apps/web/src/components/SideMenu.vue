@@ -10,7 +10,7 @@ import SettingsButton from './SettingsButton.vue'
  * numbered steps; inside an idea, the idea's. Each level's settings are a gear button beside its name. A "back up" link and the thing's name sit at the top. The numbers
  * orient and never lock: every step is a link. docs/design.md explains the pattern.
  */
-const { level, publication, idea, steps, accountPages, stepKey, loading } = useNav()
+const { level, publication, idea, steps, accountPages, settingsPages, stepKey, loading } = useNav()
 
 const sharedWith = () => {
   const others = (publication.value?.members.length ?? 1) - 1
@@ -54,6 +54,24 @@ const itemClass =
       />
     </div>
   </div>
+  <div v-else-if="level === 'publication-settings'" class="px-5 pb-4">
+    <RouterLink
+      v-if="publication"
+      :to="{ name: 'publication', params: { publicationId: publication.id } }"
+      class="link text-sm break-words"
+    >
+      ← {{ publication.name }}
+    </RouterLink>
+    <div class="mt-3 flex items-center justify-between gap-2">
+      <p class="meta">Publication settings</p>
+      <SettingsButton
+        v-if="publication"
+        :to="{ name: 'publication-settings', params: { publicationId: publication.id } }"
+        label="Publication settings"
+        current
+      />
+    </div>
+  </div>
   <div v-else-if="level === 'account'" class="px-5 pb-4">
     <RouterLink :to="{ name: 'home' }" class="link text-sm">← All publications</RouterLink>
     <p class="meta mt-3">Account settings</p>
@@ -94,6 +112,26 @@ const itemClass =
     <ul>
       <li>
         <RouterLink :to="{ name: 'home' }" :class="itemClass">Publications</RouterLink>
+      </li>
+    </ul>
+  </nav>
+
+  <nav
+    v-else-if="level === 'publication-settings'"
+    aria-label="Publication settings"
+    class="px-3 pb-3"
+  >
+    <ul>
+      <li v-for="page in settingsPages" :key="page.key">
+        <RouterLink v-slot="{ href, navigate }" :to="page.to" custom>
+          <a
+            :href="href"
+            :aria-current="page.key === stepKey ? 'page' : undefined"
+            :class="itemClass"
+            @click="navigate"
+            >{{ page.label }}</a
+          >
+        </RouterLink>
       </li>
     </ul>
   </nav>

@@ -8,7 +8,6 @@ import TextField from './TextField.vue'
 
 const props = defineProps<{
   publicationId: string
-  publicationName: string
   /** Inviting needs the owner's own address to be confirmed. */
   confirmed: boolean
 }>()
@@ -45,20 +44,12 @@ const revoke = useMutation({
     </p>
     <template v-else>
       <!-- Handing someone a role is a trust decision, so what it allows is said before the address is asked for. -->
-      <div data-testid="invite-roles" class="mb-3 space-y-1 text-sm text-ink-soft">
-        <p>People you invite join as members, who can {{ MEMBER_ABILITIES_TEXT }}.</p>
-        <p>
-          Owners can also {{ OWNER_ABILITIES_TEXT }}. You can make someone an owner after they join.
-        </p>
-      </div>
+      <p data-testid="invite-roles" class="mb-3 text-sm text-ink-soft">
+        Members can {{ MEMBER_ABILITIES_TEXT }}. Owners can also {{ OWNER_ABILITIES_TEXT }}.
+      </p>
       <form class="flex items-end gap-2" @submit.prevent="invite.mutate(email)">
         <div class="flex-1">
-          <TextField
-            v-model="email"
-            :label="`Invite someone to “${publicationName}” (their email address)`"
-            type="email"
-            required
-          />
+          <TextField v-model="email" label="Email address" type="email" required />
         </div>
         <button
           type="submit"
@@ -69,7 +60,7 @@ const revoke = useMutation({
         </button>
       </form>
       <p v-if="invite.isSuccess.value" role="status" class="text-sm">
-        We've emailed an invitation to {{ lastInvited }}. They join once they accept it.
+        Invitation sent to {{ lastInvited }}.
       </p>
       <p v-if="invite.isError.value" role="alert" class="text-sm text-danger">
         {{ errorMessage(invite.error.value) }}

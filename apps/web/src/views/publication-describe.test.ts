@@ -119,7 +119,7 @@ describe('describing a publication: guidance and the box', () => {
 describe('the description in the settings and on the publication page', () => {
   it('links to the guidance from the settings instead of folding it away', async () => {
     fakeServer({ ...bare, description: 'Mine.' })
-    await renderAt('/p/ada-publication/settings')
+    await renderAt('/p/ada-publication/settings/description')
     expect(await screen.findByRole('textbox', { name: 'Description' })).toBeInTheDocument()
     expect(screen.queryByText('What makes a useful description')).toBeNull()
     expect(

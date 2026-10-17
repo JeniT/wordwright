@@ -25,6 +25,8 @@ const nav = useNav()
 const here = computed(() => {
   if (nav.level.value === 'account')
     return nav.accountPages.value.find((p) => p.key === nav.stepKey.value)?.label ?? ''
+  if (nav.level.value === 'publication-settings')
+    return nav.settingsPages.value.find((p) => p.key === nav.stepKey.value)?.label ?? ''
   const step = nav.steps.value.find((s) => s.key === nav.stepKey.value)
   return step ? `${step.number} ${step.label}` : ''
 })

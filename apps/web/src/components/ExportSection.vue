@@ -16,32 +16,23 @@ const download = useMutation({
 </script>
 
 <template>
-  <section
-    id="download"
-    :aria-labelledby="publication ? 'download-heading' : undefined"
-    :aria-label="publication ? undefined : 'Download your writing'"
-  >
-    <h2 v-if="publication" id="download-heading" class="mb-1 font-display text-xl font-semibold">
-      Download your writing
-    </h2>
-    <div v-if="!publication" class="mb-3 flex items-start gap-2">
+  <section id="download" :aria-label="publication ? 'Download' : 'Download your writing'">
+    <div class="mb-3 flex items-start gap-2">
       <p class="text-sm text-ink-soft">
-        A zip of Markdown files: your ideas, notes, reading lists and drafts. Comments, reviews,
-        brainstorming and keys aren't included.
+        <template v-if="publication"
+          >This publication as a zip of Markdown files: its ideas, notes, reading lists and drafts.
+          Comments, reviews and brainstorming aren't included.</template
+        >
+        <template v-else
+          >A zip of Markdown files: your ideas, notes, reading lists and drafts. Comments, reviews,
+          brainstorming and keys aren't included.</template
+        >
       </p>
       <InfoTip label="About what you get"
-        >Owners get every draft in a publication. Members get the drafts they edit or
-        started.</InfoTip
+        >Owners get every draft{{ publication ? '' : ' in a publication' }}. Members get the drafts
+        they edit or started.</InfoTip
       >
     </div>
-    <p v-else-if="publication.role === 'owner'" class="mb-3 text-sm text-ink-soft">
-      This publication as a zip of Markdown files: its ideas, notes, reading lists and drafts. As an
-      owner you get every draft in this publication, including other members' drafts.
-    </p>
-    <p v-else class="mb-3 text-sm text-ink-soft">
-      This publication as a zip of Markdown files: its ideas, notes, reading lists and the drafts
-      you edit or started. Other members' drafts are theirs to download.
-    </p>
     <div class="flex flex-wrap items-center gap-3">
       <button
         type="button"

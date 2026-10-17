@@ -98,11 +98,9 @@ describe('downloading your writing', () => {
       http.get('*/api/publications', () => HttpResponse.json([publication('member')])),
       http.get('*/api/publications/p1/export', () => zipReply('wordwright-p1-2026-10-14.zip')),
     )
-    await renderAt('/p/p1/settings')
-    expect(
-      await screen.findByRole('heading', { name: 'Download your writing' }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/drafts you edit or started/i)).toBeInTheDocument()
+    await renderAt('/p/p1/settings/download')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Download' })).toBeInTheDocument()
+    expect(screen.getByText(/Members get the drafts they edit or started/)).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('button', { name: 'Download as a zip' }))
     await waitFor(() => expect(saved).toEqual(['wordwright-p1-2026-10-14.zip']))
   })
@@ -113,8 +111,8 @@ describe('downloading your writing', () => {
       sourcesList(),
       http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
     )
-    await renderAt('/p/p1/settings')
-    await screen.findByRole('heading', { name: 'Download your writing' })
-    expect(screen.getByText(/every draft in this publication/i)).toBeInTheDocument()
+    await renderAt('/p/p1/settings/download')
+    await screen.findByRole('heading', { level: 1, name: 'Download' })
+    expect(screen.getByText(/Owners get every draft/)).toBeInTheDocument()
   })
 })

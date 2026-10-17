@@ -44,7 +44,7 @@ function serverWith(roles: { ada: string; bob: string }, viewer: 'owner' | 'memb
 describe('owners in the people list', () => {
   it('asks what will change before making a member an owner, then does it', async () => {
     const state = serverWith({ ada: 'owner', bob: 'member' })
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Make owner Bob' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Make Bob an owner of Joint piece?' })
@@ -62,7 +62,7 @@ describe('owners in the people list', () => {
 
   it('does nothing when the dialog is cancelled', async () => {
     const state = serverWith({ ada: 'owner', bob: 'member' })
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Make owner Bob' }))
     await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -71,7 +71,7 @@ describe('owners in the people list', () => {
 
   it('says what an owner loses when removing another owner', async () => {
     const state = serverWith({ ada: 'owner', bob: 'owner' })
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Remove as owner Bob' }))
     const dialog = await screen.findByRole('dialog', { name: 'Remove Bob as an owner?' })
     expect(within(dialog).getByText(/no longer be able to/)).toBeInTheDocument()
@@ -84,7 +84,7 @@ describe('owners in the people list', () => {
 
   it('warns people stepping down that they lose these powers themselves', async () => {
     serverWith({ ada: 'owner', bob: 'owner' })
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Step down as owner' }))
     const dialog = await screen.findByRole('dialog', { name: 'Step down as owner of Joint piece?' })
     expect(within(dialog).getByText(/only another owner can give them back/i)).toBeInTheDocument()
@@ -92,7 +92,7 @@ describe('owners in the people list', () => {
 
   it('does not offer to step down when you are the only owner, and says why', async () => {
     serverWith({ ada: 'owner', bob: 'member' })
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     const step = await screen.findByRole('button', { name: 'Step down as owner' })
     expect(step).toBeDisabled()
     expect(step).toHaveAccessibleDescription(/only owner.*make someone else an owner first/i)
@@ -100,7 +100,7 @@ describe('owners in the people list', () => {
 
   it('offers members nothing but leaving', async () => {
     serverWith({ ada: 'owner', bob: 'member' }, 'member')
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await screen.findByText('Ada Lovelace')
     expect(screen.queryByRole('button', { name: /owner/i })).toBeNull()
   })
@@ -112,7 +112,7 @@ describe('owners in the people list', () => {
         HttpResponse.json({ error: 'There must be at least one owner.' }, { status: 409 }),
       ),
     )
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Make owner Bob' }))
     await fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Make Bob an owner' }),
@@ -134,7 +134,7 @@ describe('removing someone and leaving', () => {
     serverWith({ ada: 'owner', bob: 'member' })
     const state = { removed: [] as string[] }
     deleted(state)
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Remove Bob' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Remove Bob from Joint piece?' })
@@ -152,7 +152,7 @@ describe('removing someone and leaving', () => {
     serverWith({ ada: 'owner', bob: 'member' })
     const state = { removed: [] as string[] }
     deleted(state)
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Remove Bob' }))
     await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -163,7 +163,7 @@ describe('removing someone and leaving', () => {
     serverWith({ ada: 'member', bob: 'owner' }, 'member')
     const state = { removed: [] as string[] }
     deleted(state)
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Leave' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Leave Joint piece?' })
@@ -180,7 +180,7 @@ describe('removing someone and leaving', () => {
         HttpResponse.json({ error: 'That person is already gone.' }, { status: 404 }),
       ),
     )
-    await renderAt('/p/p1/settings')
+    await renderAt('/p/p1/settings/sharing')
     await fireEvent.click(await screen.findByRole('button', { name: 'Remove Bob' }))
     await fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove Bob' }),
