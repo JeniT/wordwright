@@ -292,7 +292,8 @@
   &::placeholder {
     color: var(--color-ink-soft);
   }
-  &:hover:not(:disabled) {
+  /* Not while focused: `:hover:not(...)` outranks the focus rule below, so a hovered, focused field kept this border. */
+  &:hover:not(:disabled, :focus-visible) {
     border-color: var(--color-ink);
   }
   /* The border itself turns to the focus colour instead of adding a ring outside it. The outline stays
