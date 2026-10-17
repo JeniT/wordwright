@@ -269,8 +269,8 @@ tests inject fakes and nothing hits the network.
   Nothing yet turns these posts into ideas; that is the "Add to reading list" page (T6c).
   If a pasted website offers several feeds, the person is shown them (posts first, feeds of comments last and
   labelled, at most 10) and ticks which to add; `POST` then answers `200 {choices}` instead of `201`.
-  API: `GET/POST /api/publications/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]`, `PUT .../sources/order`
-  (all ids, new order), `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
+  API: `GET/POST /api/publications/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]`,
+  `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored
   server-side. 30-day expiry. Cross-origin writes are rejected by an `Origin` check.

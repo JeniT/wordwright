@@ -14,8 +14,8 @@ import QueryState from './QueryState.vue'
 import RecentPostRow from './RecentPostRow.vue'
 
 /**
- * A summary of the publication's feeds for a landing page: the newest few posts still waiting for a decision, with a
- * link to Search to see more, and the way to the feeds in the settings. The rows are the Search page's own (`RecentPostRow`), so a
+ * A summary of the publication's feeds for a landing page: the newest few posts still waiting for a decision, with links
+ * to Search for more and to the feeds in the settings. The rows are the Search page's own (`RecentPostRow`), so a
  * post can be added or ignored from here too. It asks for the same lists, under the same keys, as the Search page
  * (at its default period), so the two share what has been fetched and what is decided; it never asks the feeds to
  * check again.
