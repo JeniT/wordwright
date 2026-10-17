@@ -145,15 +145,15 @@ const decline = useMutation({
           <fieldset>
             <legend class="mb-2 font-medium">Decline, and</legend>
             <label class="mb-2 flex items-start gap-2">
-              <input v-model="block" type="radio" name="block" value="none" class="mt-1" />
+              <input v-model="block" type="radio" name="block" value="none" />
               <span>Just decline this one</span>
             </label>
             <label class="mb-2 flex items-start gap-2">
-              <input v-model="block" type="radio" name="block" value="sender" class="mt-1" />
+              <input v-model="block" type="radio" name="block" value="sender" />
               <span>Stop invitations from {{ preview.data.value.inviterName }}</span>
             </label>
             <label class="mb-2 flex items-start gap-2">
-              <input v-model="block" type="radio" name="block" value="all" class="mt-1" />
+              <input v-model="block" type="radio" name="block" value="all" />
               <span>Stop invitations from everyone, to {{ invitedEmail }}</span>
             </label>
           </fieldset>

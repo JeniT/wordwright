@@ -77,15 +77,15 @@ function submit() {
       <fieldset class="mt-4">
         <legend class="mb-2 text-sm font-medium">After declining</legend>
         <label class="mb-2 flex items-start gap-2 text-sm">
-          <input v-model="choice" type="radio" name="block" value="none" class="mt-1" />
+          <input v-model="choice" type="radio" name="block" value="none" />
           <span>Just decline this invitation</span>
         </label>
         <label class="mb-2 flex items-start gap-2 text-sm">
-          <input v-model="choice" type="radio" name="block" value="sender" class="mt-1" />
+          <input v-model="choice" type="radio" name="block" value="sender" />
           <span>Also stop invitations from {{ preview.data.value.inviterName }}</span>
         </label>
         <label class="mb-2 flex items-start gap-2 text-sm">
-          <input v-model="choice" type="radio" name="block" value="all" class="mt-1" />
+          <input v-model="choice" type="radio" name="block" value="all" />
           <span>Stop invitations from everyone, to {{ preview.data.value.email }}</span>
         </label>
       </fieldset>

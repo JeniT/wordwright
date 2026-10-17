@@ -57,11 +57,11 @@ const deleteAccount = useMutation({
         <fieldset class="mb-4">
           <legend class="mb-1 text-sm font-medium">After you leave</legend>
           <label class="mb-2 flex items-start gap-2 text-sm">
-            <input v-model="keepName" type="radio" name="keep-name" :value="true" class="mt-1" />
+            <input v-model="keepName" type="radio" name="keep-name" :value="true" />
             <span>Keep my display name on my notes and comments in publications that continue</span>
           </label>
           <label class="mb-2 flex items-start gap-2 text-sm">
-            <input v-model="keepName" type="radio" name="keep-name" :value="false" class="mt-1" />
+            <input v-model="keepName" type="radio" name="keep-name" :value="false" />
             <span>Show them as “a former member”</span>
           </label>
         </fieldset>
