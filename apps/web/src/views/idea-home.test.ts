@@ -279,11 +279,10 @@ describe('an idea’s landing page', () => {
   })
 
   describe('notes', () => {
-    it('says so when there are none, and still offers the form', async () => {
+    it('says so when there are none', async () => {
       fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1')
       expect(await screen.findByText('No notes yet.')).toBeInTheDocument()
-      expect(screen.getByLabelText('Add a note')).toBeInTheDocument()
     })
 
     it('shows the five most recent, and links to all of them', async () => {
@@ -301,12 +300,19 @@ describe('an idea’s landing page', () => {
       )
     })
 
-    it('adds a note without leaving the page', async () => {
+    it('adds a note from Quick add without leaving the page', async () => {
       fakeIdea({ notes: [note(1)] })
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
       await screen.findByText('Note 1')
-      await fireEvent.update(screen.getByLabelText('Add a note'), 'A new thought')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      const quick = within(screen.getByRole('region', { name: 'Quick add' }))
+      // An idea's Quick add has no New idea tab: a new idea belongs to the publication.
+      expect(quick.getAllByRole('tab').map((t) => t.textContent?.trim())).toEqual([
+        'Add a note',
+        'Add something to read',
+      ])
+      await fireEvent.update(quick.getByLabelText('Note'), 'A new thought')
+      await fireEvent.click(quick.getByRole('button', { name: 'Add note' }))
+      expect(await screen.findByText(/Note added/)).toBeInTheDocument()
       const list = await screen.findByRole('list', { name: 'Recent notes' })
       await waitFor(() =>
         expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('A new thought'),

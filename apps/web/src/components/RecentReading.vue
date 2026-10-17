@@ -3,12 +3,11 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { readingRoute, useReadingList } from '../lib/reading'
-import AddLinkForm from './AddLinkForm.vue'
 import LandingSection from './LandingSection.vue'
 import QueryState from './QueryState.vue'
 
 /**
- * A summary of a reading list for a landing page: the first few items still to read, a box to add one, and a link
+ * A summary of a reading list for a landing page: the first few items still to read, and a link
  * to the whole list. It shares the list's query, so an item added here is on the Read page at once.
  */
 const props = defineProps<{
@@ -43,19 +42,17 @@ const host = (url: string) => {
     :title="title ?? 'Read'"
   >
     <template #actions>
-      <RouterLink :to="to" class="link text-sm">
-        See the reading list<span v-if="unread.length" class="meta"> ({{ unread.length }})</span>
-      </RouterLink>
+      <RouterLink :to="to" class="link text-sm"> See the reading list </RouterLink>
     </template>
     <QueryState :query="list" what="the reading list">
-      <p v-if="!top.length" class="mb-4 text-ink-soft">
+      <p v-if="!top.length" class="text-ink-soft">
         {{
           list.links.value?.length
             ? 'You have read everything on the list.'
             : 'Nothing on the reading list yet.'
         }}
       </p>
-      <ul v-else class="panel mb-4 divide-y divide-line" aria-label="To read">
+      <ul v-else class="panel divide-y divide-line" aria-label="To read">
         <li v-for="link in top" :key="link.id">
           <RouterLink
             :to="readingRoute({ publicationId, ideaId }, link.id)"
@@ -70,6 +67,5 @@ const host = (url: string) => {
         </li>
       </ul>
     </QueryState>
-    <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" />
   </LandingSection>
 </template>

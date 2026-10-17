@@ -100,6 +100,15 @@ export async function goTo(page: Page, step: string) {
   if (href) await expect(page).toHaveURL((url) => url.pathname === href)
 }
 
+/**
+ * Opens the full new-idea form (name and first notes) from a publication: through the Ideas step, since the landing
+ * page's Quick add makes an idea from a name alone.
+ */
+export async function openNewIdeaForm(page: Page) {
+  await goTo(page, 'Ideas')
+  await page.getByRole('link', { name: 'New idea' }).click()
+}
+
 export { expect }
 
 /** Presses and holds a hold-to-confirm button (deleting or removing something) until it fires, with the mouse. */

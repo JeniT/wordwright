@@ -43,7 +43,7 @@ const any = computed(() => {
 const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
 const line = (s: SnapshotReviews) => {
   const parts = [
-    s.open ? `${s.open} reading` : '',
+    s.open ? `${s.open} still reading` : '',
     s.ended ? `${s.ended} finished` : '',
     s.closed ? `${s.closed} closed` : '',
     s.unresolved ? `${s.unresolved} ${s.unresolved === 1 ? 'comment' : 'comments'} to answer` : '',

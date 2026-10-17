@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test } from './fixtures'
+import { expect, goTo, test, openNewIdeaForm } from './fixtures'
 
 // The side menu follows you: home, then a publication's three steps, then an idea's four. See docs/design.md.
 
@@ -15,7 +15,7 @@ async function signUpWithIdea(page: Page) {
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Garden notes')
   await page.getByRole('button', { name: 'Create publication' }).click()
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('What pruning teaches')
   await page.getByLabel('Expand on your idea here').fill('A cut is a question.')
   await page.getByRole('button', { name: 'Save idea' }).click()
@@ -133,12 +133,16 @@ test('leads through a publication and an idea step by step, without ever locking
   await noViolations(page, 'Publication landing page')
 
   // A note can be jotted down there, and shows at once, and on the Notes step too.
-  await page.getByLabel('Add a note').fill('Prune in late winter.')
+  await page.getByRole('tab', { name: 'Add a note' }).click()
+  await page.getByLabel('Note', { exact: true }).fill('Prune in late winter.')
   await page.getByRole('button', { name: 'Add note' }).click()
   const recent = page.getByRole('list', { name: 'Recent notes' })
   await expect(recent.getByText('Prune in late winter.')).toBeVisible()
-  await expect(page.getByLabel('Add a note')).toHaveValue('')
-  await page.getByRole('link', { name: /See all notes/ }).click()
+  await expect(page.getByLabel('Note', { exact: true })).toHaveValue('')
+  await page
+    .getByRole('region', { name: 'Notes' })
+    .getByRole('link', { name: /See all notes/ })
+    .click()
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   await expect(page.getByText('Prune in late winter.')).toBeVisible()
 
@@ -171,7 +175,8 @@ test('leads through a publication and an idea step by step, without ever locking
   await noViolations(page, 'Idea landing page with reading')
 
   // A note can be jotted down there, then a draft started and opened.
-  await page.getByLabel('Add a note').fill('Cut above a bud.')
+  await page.getByRole('tab', { name: 'Add a note' }).click()
+  await page.getByLabel('Note', { exact: true }).fill('Cut above a bud.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(
     page.getByRole('list', { name: 'Recent notes' }).getByText('Cut above a bud.'),

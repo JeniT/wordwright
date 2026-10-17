@@ -5,16 +5,24 @@ import { RouterLink, useRouter } from 'vue-router'
 import type { Publication } from '@wordwright/core'
 import { api } from '../lib/api'
 import { lastPublicationId, rememberPublication } from '../lib/last-publication'
-import { invalidateRoots, useRecentDrafts } from '../lib/queries'
+import { invalidateRoots, refreshNotesEverywhere, useRecentDrafts } from '../lib/queries'
+import { readingBackRoute } from '../lib/reading'
 import SaveStatus from './SaveStatus.vue'
 import TabPanels from './TabPanels.vue'
 import TextField from './TextField.vue'
 
 /**
- * Add an idea, a note or something to read without first opening a publication (#192). A note or reading item goes
- * to the publication's own list, never into an idea.
+ * Add an idea, a note or something to read without first opening the place it goes (#192). On Home a note or reading
+ * item goes to the chosen publication's own list, never into an idea. On a publication's landing page `publications`
+ * is just that publication (so there is no picker); on an idea's, `ideaId` names the idea, notes and reading items go
+ * to it, and there is no "New idea" tab.
  */
-const props = defineProps<{ publications: Publication[] }>()
+const props = defineProps<{
+  publications: Publication[]
+  ideaId?: string
+  /** On the page it adds to (a landing page): the result is showing below, so the message needn't say where it went. */
+  inPlace?: boolean
+}>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
@@ -22,7 +30,7 @@ type Kind = 'idea' | 'note' | 'reading'
 
 // Which publication: the one just picked, else the one last worked in, else the one with the newest draft to pick up
 // (nothing records when a publication's content last changed), else the first.
-const recentDrafts = useRecentDrafts()
+const recentDrafts = useRecentDrafts(() => props.publications.length > 1)
 const chosen = ref<string>()
 const isKnown = (id: string | null | undefined): id is string =>
   !!id && props.publications.some((p) => p.id === id)
@@ -40,12 +48,13 @@ function pick(event: Event) {
   rememberPublication(id)
 }
 
-const tabs: { id: Kind; label: string }[] = [
+const allTabs: { id: Kind; label: string }[] = [
   { id: 'idea', label: 'New idea' },
   { id: 'note', label: 'Add a note' },
   { id: 'reading', label: 'Add something to read' },
 ]
-const tab = ref<Kind>('idea')
+const tabs = props.ideaId ? allTabs.filter((t) => t.id !== 'idea') : allTabs
+const tab = ref<Kind>(tabs[0]!.id)
 const forms = ref<Partial<Record<Kind, HTMLFormElement>>>({})
 const focusField = (kind: Kind) =>
   forms.value[kind]?.querySelector<HTMLElement>('input, textarea')?.focus()
@@ -75,20 +84,24 @@ const createIdea = useMutation({
   },
 })
 const addNote = useMutation({
-  mutationFn: () => api.addIdeaNote(selectedId.value, null, noteText.value),
+  mutationFn: () => api.addIdeaNote(selectedId.value, props.ideaId ?? null, noteText.value),
   onSuccess: async () => {
     added.value = { kind: 'note', publication: selected.value }
     noteText.value = ''
-    await invalidateRoots(queryClient, 'notes')
+    await refreshNotesEverywhere(queryClient)
     focusField('note')
   },
 })
 const addReading = useMutation({
-  mutationFn: () => api.addPublicationLink(selectedId.value, { url: readingUrl.value }),
+  mutationFn: async () => {
+    if (props.ideaId)
+      await api.addIdeaLink(selectedId.value, props.ideaId, { url: readingUrl.value })
+    else await api.addPublicationLink(selectedId.value, { url: readingUrl.value })
+  },
   onSuccess: async () => {
     added.value = { kind: 'reading', publication: selected.value }
     readingUrl.value = ''
-    await invalidateRoots(queryClient, 'reading')
+    await invalidateRoots(queryClient, 'reading', 'idea', 'ideas')
     focusField('reading')
   },
 })
@@ -96,7 +109,7 @@ const mutations = { idea: createIdea, note: addNote, reading: addReading }
 const submitLabels: Record<Kind, string> = {
   idea: 'Create idea',
   note: 'Add note',
-  reading: 'Add to reading list',
+  reading: 'Add something to read',
 }
 const busy = computed(
   () => createIdea.isPending.value || addNote.isPending.value || addReading.isPending.value,
@@ -104,7 +117,7 @@ const busy = computed(
 </script>
 
 <template>
-  <section class="mb-10 panel p-5" aria-label="Quick add">
+  <section class="panel p-5" aria-label="Quick add">
     <TabPanels v-model="tab" :tabs="tabs" label="Quick add">
       <template v-for="kind in tabs.map((t) => t.id)" :key="kind" #[kind]>
         <form
@@ -134,6 +147,7 @@ const busy = computed(
               v-model="noteText"
               class="field"
               rows="3"
+              maxlength="20000"
               required
             ></textarea>
           </div>
@@ -157,19 +171,36 @@ const busy = computed(
           </div>
           <p v-if="added && added.kind === kind" role="status" class="mt-3">
             <template v-if="added.kind === 'note'"
-              >Added to {{ added.publication.name }}’s notes.
+              >{{
+                inPlace
+                  ? 'Note added.'
+                  : `Added to ${ideaId ? 'this idea’s' : `${added.publication.name}’s`} notes.`
+              }}
               <RouterLink
-                :to="{ name: 'publication-notes', params: { publicationId: added.publication.id } }"
+                :to="
+                  ideaId
+                    ? {
+                        name: 'idea-notes',
+                        params: { publicationId: added.publication.id, id: ideaId },
+                      }
+                    : { name: 'publication-notes', params: { publicationId: added.publication.id } }
+                "
                 class="link"
-                >Open the notes</RouterLink
+                >{{ inPlace ? 'See all notes' : 'Open the notes' }}</RouterLink
               ></template
             >
             <template v-else
-              >Added to {{ added.publication.name }}’s reading list.
+              >{{
+                inPlace
+                  ? 'Added.'
+                  : `Added to ${ideaId ? 'this idea’s' : `${added.publication.name}’s`} reading list.`
+              }}
               <RouterLink
-                :to="{ name: 'read', params: { publicationId: added.publication.id } }"
+                :to="
+                  readingBackRoute({ publicationId: added.publication.id, ideaId: ideaId ?? null })
+                "
                 class="link"
-                >Open the reading list</RouterLink
+                >{{ inPlace ? 'See the reading list' : 'Open the reading list' }}</RouterLink
               ></template
             >
           </p>

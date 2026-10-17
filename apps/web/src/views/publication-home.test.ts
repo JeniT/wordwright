@@ -97,11 +97,12 @@ describe('a publication’s landing page', () => {
     }
     afterEach(() => vi.restoreAllMocks())
 
-    it('invites a description when there is none, linking to where it is drafted or written', async () => {
+    it('has no description area when there is none: the invitation is the one at the top', async () => {
       describedAs(null)
       await renderAt('/p/ada-substack')
-      const link = await screen.findByRole('link', { name: 'Add a description' })
-      expect(link).toHaveAttribute('href', '/p/ada-substack/describe')
+      await screen.findByRole('heading', { level: 1, name: 'Substack' })
+      expect(screen.queryByRole('link', { name: 'Add a description' })).toBeNull()
+      expect(screen.queryByRole('region', { name: 'About this publication' })).toBeNull()
       expect(screen.queryByRole('button', { name: /Show/ })).toBeNull()
     })
 
@@ -138,11 +139,10 @@ describe('a publication’s landing page', () => {
   })
 
   describe('notes', () => {
-    it('says so when there are none, and still offers the form', async () => {
+    it('says so when there are none', async () => {
       fakeHome()
       await renderAt('/p/ada-substack')
       expect(await screen.findByText('No notes yet.')).toBeInTheDocument()
-      expect(screen.getByLabelText('Add a note')).toBeInTheDocument()
     })
 
     it('shows the five most recent, newest first, and links to all of them', async () => {
@@ -158,36 +158,6 @@ describe('a publication’s landing page', () => {
         'href',
         '/p/ada-substack/notes',
       )
-      expect(screen.getByText('(7)')).toBeInTheDocument()
-    })
-
-    it('adds a note without leaving the page, and it appears at the top', async () => {
-      const sent = fakeHome([note(1)])
-      await renderAt('/p/ada-substack')
-      await screen.findByText('Note 1')
-      await fireEvent.update(screen.getByLabelText('Add a note'), 'A new thought')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
-      await waitFor(() => expect(sent).toEqual(['A new thought']))
-      const list = await screen.findByRole('list', { name: 'Recent notes' })
-      // The list is refreshed once the note is saved, so wait for it rather than read it the moment it exists.
-      await waitFor(() =>
-        expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('A new thought'),
-      )
-      expect(screen.getByLabelText('Add a note')).toHaveValue('')
-    })
-
-    it('says what went wrong when a note can’t be added, and keeps the words', async () => {
-      fakeHome()
-      server.use(
-        http.post('*/api/publications/ada-substack/notes', () =>
-          HttpResponse.json({ error: 'Too many notes' }, { status: 409 }),
-        ),
-      )
-      await renderAt('/p/ada-substack')
-      await fireEvent.update(await screen.findByLabelText('Add a note'), 'Keep me')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
-      expect(await screen.findByText('Too many notes')).toBeInTheDocument()
-      expect(screen.getByLabelText('Add a note')).toHaveValue('Keep me')
     })
 
     it('says when the notes can’t be loaded', async () => {
@@ -203,7 +173,7 @@ describe('a publication’s landing page', () => {
   })
 
   describe('ideas', () => {
-    it('lists them with their draft counts, and links to each, to all, and to a new one', async () => {
+    it('lists them with their draft counts, and links to each and to all (new ones start in Quick add)', async () => {
       fakeHome([], [idea('i1', 'Why rivers meander', 2), idea('i2', 'Lakes', 1)])
       await renderAt('/p/ada-substack')
       const link = await screen.findByRole('link', { name: /Why rivers meander/ })
@@ -213,17 +183,13 @@ describe('a publication’s landing page', () => {
         'href',
         '/p/ada-substack/ideas',
       )
-      expect(screen.getByRole('link', { name: 'New idea' })).toHaveAttribute(
-        'href',
-        '/p/ada-substack/ideas/new',
-      )
+      expect(screen.queryByRole('link', { name: 'New idea' })).toBeNull()
     })
 
-    it('says so when there are none, and still offers a new idea', async () => {
+    it('says so when there are none', async () => {
       fakeHome()
       await renderAt('/p/ada-substack')
       expect(await screen.findByText(/No ideas yet/)).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: 'New idea' })).toBeInTheDocument()
     })
 
     it('says when the ideas can’t be loaded', async () => {
@@ -303,7 +269,7 @@ describe('a publication’s landing page: search', () => {
       'https://s1.example/p1',
     )
     expect(within(list).getAllByText(/Alpha Notes/)).toHaveLength(5)
-    expect(screen.getByRole('link', { name: 'See more and set up feeds' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'See all posts and feeds' })).toHaveAttribute(
       'href',
       '/p/ada-substack/search',
     )
@@ -475,11 +441,10 @@ describe('a publication’s landing page: read', () => {
     return state
   }
 
-  it('says when the list is empty, and still offers the form', async () => {
+  it('says when the list is empty', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
-    expect(screen.getByLabelText('Web address')).toBeInTheDocument()
   })
 
   it('shows the first five still to read, each leading to its reading page, and links to the list', async () => {
@@ -506,36 +471,6 @@ describe('a publication’s landing page: read', () => {
     )
   })
 
-  it('adds an item without leaving the page, and checks the address like the Read page does', async () => {
-    fakeHome()
-    const state = fakeReading([])
-    await renderAt('/p/ada-substack')
-    await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
-    await waitFor(() => expect(state.added).toEqual(['example.org/new']))
-    const list = await screen.findByRole('list', { name: 'To read' })
-    expect(within(list).getByText('Title of example.org/new')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
-  })
-
-  it('says what went wrong when an address is refused, and keeps what was typed', async () => {
-    fakeHome()
-    fakeReading([])
-    server.use(
-      http.post('*/api/publications/ada-substack/reading', () =>
-        HttpResponse.json(
-          { error: 'Enter a web address, like https://example.com' },
-          { status: 400 },
-        ),
-      ),
-    )
-    await renderAt('/p/ada-substack')
-    await fireEvent.update(await screen.findByLabelText('Web address'), 'rubbish')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
-    expect(await screen.findByText(/Enter a web address/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Web address')).toHaveValue('rubbish')
-  })
-
   it('says when the list can’t be loaded', async () => {
     fakeHome()
     server.use(
@@ -545,5 +480,224 @@ describe('a publication’s landing page: read', () => {
     )
     await renderAt('/p/ada-substack')
     expect(await screen.findByText(/couldn't load the reading list/)).toBeInTheDocument()
+  })
+})
+
+describe('a publication’s landing page: the top, and the menu', () => {
+  it('puts the settings gear at the far end of the title row', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    await screen.findByRole('heading', { level: 1, name: 'Substack' })
+    const main = within(screen.getByRole('main'))
+    const gear = main.getByRole('link', { name: 'Publication settings' })
+    expect(gear).toHaveAttribute('href', '/p/ada-substack/settings')
+    // It follows the title block as a sibling, so the row's free space sits between them.
+    const row = main.getByRole('heading', { level: 1 }).closest('div')!.parentElement!
+    expect(row.lastElementChild).toBe(gear)
+  })
+
+  it('offers to describe the publication before anything else when it has no description', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    const nudge = await screen.findByRole('navigation', { name: 'Next step' })
+    expect(within(nudge).getByRole('link', { name: /Describe this publication/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/describe',
+    )
+    const main = screen.getByRole('main')
+    const position = main.compareDocumentPosition(nudge)
+    expect(position & Node.DOCUMENT_POSITION_CONTAINED_BY).toBeTruthy()
+    // Before the Quick add panel and the first section.
+    const quick = screen.getByRole('region', { name: 'Quick add' })
+    expect(nudge.compareDocumentPosition(quick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows a count under every step in the menu, and its website as a plain link', async () => {
+    fakeHome([note(1), note(2)], [idea('i1', 'Lakes', 1)])
+    server.use(
+      http.get('*/api/publications/ada-substack/sources', () =>
+        HttpResponse.json([source('s1', 'A feed')]),
+      ),
+      http.get('*/api/publications/ada-substack/reading', () =>
+        HttpResponse.json([
+          {
+            id: 'r1',
+            url: 'https://a.example/1',
+            title: 'One',
+            authors: [],
+            readAt: null,
+            origin: 'entered',
+            tags: [],
+          },
+          {
+            id: 'r2',
+            url: 'https://a.example/2',
+            title: 'Two',
+            authors: [],
+            readAt: '2026-01-01T00:00:00Z',
+            origin: 'entered',
+            tags: [],
+          },
+        ]),
+      ),
+    )
+    await renderAt('/p/ada-substack')
+    const menu = within(await screen.findByRole('banner'))
+    await menu.findByText('2 notes')
+    expect(menu.getByText('1 feed')).toBeInTheDocument()
+    expect(menu.getByText('1 to read')).toBeInTheDocument()
+    expect(menu.getByText('1 idea')).toBeInTheDocument()
+    const site = menu.getByRole('link', { name: /Website/ })
+    expect(site).toHaveAttribute('href', 'https://substack.example/ada')
+    expect(menu.queryByText(/substack\.example/)).toBeNull()
+  })
+})
+
+describe('a publication’s landing page: Quick add', () => {
+  it('has the tabs, with no publication picker, and starts on New idea', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    const quick = within(await screen.findByRole('region', { name: 'Quick add' }))
+    expect(quick.getAllByRole('tab').map((t) => t.textContent?.trim())).toEqual([
+      'New idea',
+      'Add a note',
+      'Add something to read',
+    ])
+    expect(quick.getByRole('tab', { name: 'New idea' })).toHaveAttribute('aria-selected', 'true')
+    expect(quick.queryByLabelText('Add to publication')).toBeNull()
+  })
+
+  it('adds a note to the publication’s own notes, which then show in the section below', async () => {
+    const sent = fakeHome([note(1)])
+    await renderAt('/p/ada-substack')
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
+    await fireEvent.update(screen.getByLabelText('Note'), 'A new thought')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+    await waitFor(() => expect(sent).toEqual(['A new thought']))
+    expect(await screen.findByText(/Note added/)).toBeInTheDocument()
+    const list = await screen.findByRole('list', { name: 'Recent notes' })
+    await waitFor(() =>
+      expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('A new thought'),
+    )
+  })
+
+  it('adds something to read, and says what went wrong when it is refused', async () => {
+    fakeHome()
+    const added: string[] = []
+    server.use(
+      http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json([])),
+      http.post('*/api/publications/ada-substack/reading', async ({ request }) => {
+        const { url } = (await request.json()) as { url: string }
+        if (url === 'https://bad.example')
+          return HttpResponse.json(
+            { error: 'Enter a web address, like https://example.com' },
+            { status: 400 },
+          )
+        added.push(url)
+        return HttpResponse.json([], { status: 201 })
+      }),
+    )
+    await renderAt('/p/ada-substack')
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.update(screen.getByLabelText('Web address'), 'https://bad.example')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add something to read' }))
+    expect(await screen.findByText(/Enter a web address/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Web address')).toHaveValue('https://bad.example')
+    await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add something to read' }))
+    await waitFor(() => expect(added).toEqual(['https://example.org/new']))
+    expect(await screen.findByText(/Added\./)).toBeInTheDocument()
+  })
+
+  it('the sections below no longer carry forms of their own', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    await screen.findByRole('region', { name: 'Quick add' })
+    for (const name of ['Search', 'Read', 'Notes', 'Ideas'])
+      expect(within(screen.getByRole('region', { name })).queryByRole('textbox')).toBeNull()
+  })
+})
+
+describe('a publication’s landing page: who you are here', () => {
+  const shared = {
+    ...publication,
+    members: [
+      ...publication.members,
+      { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'member' },
+    ],
+  }
+  const serve = (pub: typeof publication) =>
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([pub])),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
+    )
+
+  it('shows the person’s role on a shared publication', async () => {
+    serve(shared)
+    await renderAt('/p/ada-substack')
+    const main = within(await screen.findByRole('main'))
+    expect(await main.findByText('Owner')).toBeInTheDocument()
+    expect(main.getByText(/Shared with 1 person/)).toBeInTheDocument()
+  })
+
+  it('says Member for a member', async () => {
+    serve({ ...shared, role: 'member' })
+    await renderAt('/p/ada-substack')
+    expect(await within(await screen.findByRole('main')).findByText('Member')).toBeInTheDocument()
+  })
+
+  it('shows no role when the publication is not shared', async () => {
+    serve(publication)
+    await renderAt('/p/ada-substack')
+    await screen.findByRole('heading', { level: 1, name: 'Substack' })
+    const main = within(screen.getByRole('main'))
+    expect(main.queryByText('Owner')).toBeNull()
+    expect(main.queryByText(/Shared with/)).toBeNull()
+  })
+})
+
+describe('a publication’s landing page: tutorial mode (#229)', () => {
+  const setup = (tutorialMode: boolean, description: string | null = null) =>
+    server.use(
+      signedInAs({ ...testUser, tutorialMode }),
+      http.get('*/api/publications', () => HttpResponse.json([{ ...publication, description }])),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+      http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
+    )
+
+  it('writes out what the page, Quick add, the nudge, feeds and ideas are, when it is on', async () => {
+    server.use(signedInAs({ ...testUser, tutorialMode: true })) // (setup's own is replaced below, same user)
+    setup(true)
+    const { router } = await renderAt('/p/ada-substack')
+    expect(router.currentRoute.value.name).toBe('publication')
+    expect(await screen.findByText(/This is your publication’s home/)).toBeInTheDocument()
+    expect(screen.getByText(/Your AI reads this when it comments on your drafts/)).toBeVisible()
+    expect(screen.getByText(/Add a note, a link or an idea without leaving the page/)).toBeVisible()
+    expect(screen.getByText(/A feed is a blog, newsletter or journal/)).toBeVisible()
+    expect(await screen.findByText(/An idea is something you want to write about/)).toBeVisible()
+  })
+
+  it('says none of it when it is off', async () => {
+    setup(false)
+    await renderAt('/p/ada-substack')
+    await screen.findByRole('heading', { level: 1, name: 'Substack' })
+    for (const text of [
+      /This is your publication’s home/,
+      /Your AI reads this/,
+      /without leaving the page/,
+      /A feed is a blog/,
+      /An idea is something/,
+    ])
+      expect(screen.queryByText(text)).toBeNull()
+  })
+
+  it('leaves out the nudge’s explanation once there is a description', async () => {
+    setup(true, 'About this.')
+    await renderAt('/p/ada-substack')
+    await screen.findByText(/This is your publication’s home/)
+    expect(screen.queryByText(/Your AI reads this/)).toBeNull()
+    expect(screen.queryByRole('link', { name: /Describe this publication/ })).toBeNull()
   })
 })

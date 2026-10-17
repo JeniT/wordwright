@@ -7,6 +7,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
 import { queryKeys, useSources } from '../lib/queries'
 import { useDecidePosts } from '../lib/recent-posts'
+import Explain from './Explain.vue'
 import LandingSection from './LandingSection.vue'
 import QueryState from './QueryState.vue'
 import RecentPostRow from './RecentPostRow.vue'
@@ -46,8 +47,11 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
 <template>
   <LandingSection level="publication" step="search" title="Search">
     <template #actions>
-      <RouterLink :to="to" class="link text-sm">See more and set up feeds</RouterLink>
+      <RouterLink :to="to" class="link text-sm">See all posts and feeds</RouterLink>
     </template>
+    <Explain tutorial-only class="mb-4">
+      A feed is a blog, newsletter or journal we check for new posts.
+    </Explain>
     <QueryState :query="sources" what="your feeds">
       <p v-if="!sources.data.value?.length" class="text-ink-soft">
         No feeds yet.

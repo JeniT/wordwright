@@ -108,7 +108,7 @@ describe('what is waiting, on the publication’s landing page (#159)', () => {
     const [meanders, tides] = Array.from(list.querySelectorAll(':scope > li'))
     expect(meanders).toHaveTextContent('Reviews finished, comments to answer')
     expect(meanders).toHaveTextContent('1 finished, 2 comments to answer')
-    expect(tides).toHaveTextContent('1 reading')
+    expect(tides).toHaveTextContent('1 still reading')
     expect(tides).not.toHaveTextContent('comments to answer')
     expect(tides).not.toHaveTextContent('Reviews finished')
   })

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
-import { RouterLink } from 'vue-router'
 import type { Publication } from '@wordwright/core'
 import Markdown from './Markdown.vue'
 
@@ -40,31 +39,20 @@ watch(
 </script>
 
 <template>
-  <section aria-label="About this publication" class="mt-4">
-    <template v-if="description">
-      <div :id="bodyId" ref="body" class="description" :class="{ clamped: !expanded }">
-        <Markdown :text="description" />
-      </div>
-      <button
-        v-if="overflows || expanded"
-        type="button"
-        class="link mt-1 text-sm"
-        :aria-expanded="expanded"
-        :aria-controls="bodyId"
-        @click="expanded = !expanded"
-      >
-        {{ expanded ? 'Show less' : 'Show more…' }}
-      </button>
-    </template>
-    <p v-else class="text-sm text-ink-soft">
-      Say what this publication is for, who reads it and what kinds of writing go here.
-      <RouterLink
-        :to="{ name: 'describe-publication', params: { publicationId: publication.id } }"
-        class="link"
-      >
-        Add a description
-      </RouterLink>
-    </p>
+  <section v-if="description" aria-label="About this publication" class="mt-4">
+    <div :id="bodyId" ref="body" class="description" :class="{ clamped: !expanded }">
+      <Markdown :text="description" />
+    </div>
+    <button
+      v-if="overflows || expanded"
+      type="button"
+      class="link mt-1 text-sm"
+      :aria-expanded="expanded"
+      :aria-controls="bodyId"
+      @click="expanded = !expanded"
+    >
+      {{ expanded ? 'Show less' : 'Show more…' }}
+    </button>
   </section>
 </template>
 

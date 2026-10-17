@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute } from 'vue-router'
-import { useDraft, useIdea, useIdeas } from './queries'
+import { api } from './api'
+import { useDraft, useIdea, useIdeaNotes, useIdeas, useSources } from './queries'
 import { usePublication } from './usePublications'
 
 /**
@@ -100,13 +102,43 @@ export function useNav() {
     () => publicationId.value,
     () => level.value === 'publication',
   )
+  // Counts for the quiet line under each step. They share their queries with the pages (and the landing page's
+  // summaries), so showing them costs one request each, once.
+  const atPublication = () => level.value === 'publication'
+  const atIdea = () => level.value === 'idea' && !!ideaId.value
+  const feeds = useSources(() => publicationId.value, atPublication)
+  const reading = useQuery({
+    queryKey: ['reading', () => publicationId.value],
+    queryFn: () => api.listPublicationReading(publicationId.value),
+    enabled: atPublication,
+  })
+  const publicationNotes = useIdeaNotes(
+    () => publicationId.value,
+    () => null,
+    atPublication,
+  ).notes
+  const ideaNotes = useIdeaNotes(
+    () => publicationId.value,
+    () => ideaId.value,
+    atIdea,
+  ).notes
 
   /** The quiet line under a step: a count, where we already know one. */
   function metaFor(step: Step) {
-    if (level.value === 'publication' && step.key === 'ideas' && ideas.data.value)
-      return plural(ideas.data.value.length, 'idea', 'ideas')
+    if (level.value === 'publication') {
+      if (step.key === 'search' && feeds.data.value)
+        return plural(feeds.data.value.length, 'feed', 'feeds')
+      if (step.key === 'read' && reading.data.value)
+        return `${reading.data.value.filter((l) => !l.readAt).length} to read`
+      if (step.key === 'notes' && publicationNotes.data.value)
+        return plural(publicationNotes.data.value.length, 'note', 'notes')
+      if (step.key === 'ideas' && ideas.data.value)
+        return plural(ideas.data.value.length, 'idea', 'ideas')
+    }
     if (level.value === 'idea' && idea.data.value) {
       if (step.key === 'research') return plural(idea.data.value.links.length, 'source', 'sources')
+      if (step.key === 'notes' && ideaNotes.data.value)
+        return plural(ideaNotes.data.value.length, 'note', 'notes')
       if (step.key === 'draft') return plural(idea.data.value.drafts.length, 'draft', 'drafts')
     }
     return ''

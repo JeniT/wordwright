@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Browser, Page } from '@playwright/test'
 import { e2eOutbox } from '../playwright.config'
-import { expect, goTo, holdToConfirm, test, watchForProblems } from './fixtures'
+import { expect, goTo, holdToConfirm, test, watchForProblems, openNewIdeaForm } from './fixtures'
 
 const PASSWORD = 'a perfectly good password'
 
@@ -105,7 +105,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await openFirstPublication(page)
 
   // Every draft develops an idea, so writing starts from one.
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -283,7 +283,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await expect(page.getByLabel('Anthropic API key')).toHaveAttribute('placeholder', /\.\.\.5678$/)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers bend')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -381,7 +381,7 @@ test('rephrases the title once the draft is long enough, and records the option 
   await expect(page.getByLabel('Anthropic API key')).toHaveAttribute('placeholder', /\.\.\.5678$/)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers bend')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -445,7 +445,7 @@ test('closing the Rephrase window with Escape changes nothing and returns to the
 }) => {
   await registerUser(page)
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers bend')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -688,7 +688,7 @@ test('invites someone who has no account yet: they register from the email and j
   await expect(newbie.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   // Accepting proved they own the address, so there is no "please confirm" banner.
   await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
-  await expect(newbie.getByText('Shared with 1 person')).toBeVisible()
+  await expect(newbie.getByRole('banner').getByText('Shared with 1 person')).toBeVisible()
 
   // Ada now sees them as a member, and the invitation is no longer pending.
   await page.reload()
@@ -826,7 +826,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -902,7 +902,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -959,7 +959,7 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -1078,7 +1078,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
   const publicationUrl = page.url()
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')
@@ -1150,7 +1150,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   // While Rae is reading, Bob's landing page lists the copy; once she ends, it flags the draft.
   await bob.goto(publicationUrl)
   const reviews = bob.getByRole('list', { name: 'Drafts sent for review' })
-  await expect(reviews).toContainText('1 reading, 1 comment to answer')
+  await expect(reviews).toContainText('1 still reading, 1 comment to answer')
   await expect(reviews).not.toContainText('Reviews finished')
   await rae.getByRole('button', { name: 'End review' }).click()
   await expect(rae.getByTestId('review-ended')).toBeVisible()
@@ -1162,7 +1162,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   // The draft page says the same per copy; resolving the comment clears the flag.
   await bob.goto(draftUrl)
   await bob.getByText(/Send this draft for review/).click()
-  await expect(bob.getByTestId('snapshot-line')).toContainText('0 reading, 1 finished')
+  await expect(bob.getByTestId('snapshot-line')).toContainText('0 still reading, 1 finished')
   await bob.getByRole('tab', { name: /^Comments/ }).click()
   await bob
     .getByRole('switch', { name: /Resolved/ })
@@ -1269,7 +1269,7 @@ test('invites someone who already has an account; the link only works for that a
   await bobPage.goto(link)
   await bobPage.getByRole('button', { name: /^Join / }).click()
   await expect(bobPage.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
-  await expect(bobPage.getByText('Shared with 1 person')).toBeVisible()
+  await expect(bobPage.getByRole('banner').getByText('Shared with 1 person')).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
@@ -1428,7 +1428,7 @@ test('downloads your writing as a zip from the account page and from a publicati
 }) => {
   await registerUser(page, 'Ada')
   await openFirstPublication(page)
-  await page.getByRole('link', { name: 'New idea' }).click()
+  await openNewIdeaForm(page)
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await page.getByRole('button', { name: 'Save idea' }).click()
   await goTo(page, 'Draft')

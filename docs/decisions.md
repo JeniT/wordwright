@@ -932,6 +932,13 @@ nothing. The idea's name in the menu and above each step's title links to the la
 
 **Landing page look (#111).** The title is the publication's name with its picture and website beside it, not "Overview". Sections are numbered like the menu's steps, with a light rule above each (`LandingSection`, shared with the idea landing page). The publication's name in the menu, and above a step's title, links to the landing page; so does "← publication" in the idea menu.
 
+**Landing pages, third round (#229).** Quick add (Home's tabbed panel) now also opens a publication's and an idea's landing page, so
+adding something is one way in one place: the Read and Notes sections lost their own boxes and the Ideas section lost its
+"New idea" button, and the sections are plain summaries like Search. Rejected: keeping a form per section (three different
+form styles, and the page read as a stack of forms). The menu shows a count under every step that has something to count
+(feeds, to read, notes, ideas), which costs one shared query each, fetched only at that level. A long publication name is
+cut after two lines and the website is the word "Website" in the menu, because an address can be any length.
+
 ## Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
 
 Links are added by address alone; the server fetches the page and keeps its `<title>` (or `og:title`) as the link's

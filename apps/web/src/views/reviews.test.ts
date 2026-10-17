@@ -403,7 +403,7 @@ describe('asking someone to review a draft', () => {
       'Sending again makes a new copy',
     )
     expect(await screen.findByTestId('snapshot-line')).toHaveTextContent(
-      '1 reading, 2 finished, 3 comments to answer',
+      '1 still reading, 2 finished, 3 comments to answer',
     )
     expect(screen.getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
     await fireEvent.update(

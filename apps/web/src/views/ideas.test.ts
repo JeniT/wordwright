@@ -68,10 +68,6 @@ describe('ideas on the publication page', () => {
     expect(link).toHaveAttribute('href', '/p/ada-substack/ideas/i1')
     expect(link).toHaveTextContent('2 drafts')
     expect(screen.getByRole('link', { name: /Tides/ })).toHaveTextContent('1 draft')
-    expect(screen.getByRole('link', { name: 'New idea' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/ideas/new',
-    )
   })
 
   it('has an empty state', async () => {
@@ -1619,7 +1615,7 @@ describe('idea page', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
         expect(screen.getByRole('button', { name: 'Move to…' })).toBeInTheDocument()
         await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-        expect(screen.getByLabelText('Move to')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Move to')).toBeInTheDocument()
         expect(screen.queryByLabelText('Add a tag')).toBeNull()
       })
 

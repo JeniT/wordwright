@@ -145,7 +145,7 @@ describe('removing someone and leaving', () => {
 
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove Bob' }))
     await waitFor(() => expect(state.removed).toEqual(['u2']))
-    expect(screen.queryByRole('dialog')).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
   it('does nothing when the removal is cancelled', async () => {

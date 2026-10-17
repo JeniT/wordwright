@@ -568,10 +568,11 @@ test('shows the description at the top of the publication page, clamped with Sho
   await page.getByLabel('Publication name', { exact: true }).fill('Weeknotes')
   await page.getByRole('button', { name: 'Create publication' }).click()
   const about = page.getByRole('region', { name: 'About this publication' })
-  await expect(about.getByRole('link', { name: 'Add a description' })).toBeVisible()
+  // With no description there is one invitation, at the top, and no empty description area.
+  await expect(about).toHaveCount(0)
 
   // The box to write in is the first thing on the describe page; saving goes back to the publication.
-  await about.getByRole('link', { name: 'Add a description' }).click()
+  await page.getByRole('link', { name: /Describe this publication/ }).click()
   const paragraphs = Array.from(
     { length: 12 },
     (_, i) => `Paragraph ${i + 1} about the publication.`,

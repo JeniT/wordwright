@@ -336,7 +336,7 @@ describe('publication page', () => {
     // The publication's name, website and settings are in the side menu, which says whose publication this is.
     const menu = within(await screen.findByRole('banner'))
     await menu.findByRole('link', { name: 'Publication settings' })
-    const site = menu.getByRole('link', { name: /ada\.substack\.com/ })
+    const site = menu.getByRole('link', { name: /Website/ })
     expect(site).toHaveAttribute('href', 'https://ada.substack.com/about')
     expect(site).toHaveAttribute('rel', 'noopener noreferrer')
     expect(menu.getByRole('link', { name: 'Publication settings' })).toHaveAttribute(

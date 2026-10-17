@@ -2,6 +2,7 @@
 import { RouterLink, useRouter } from 'vue-router'
 import IdeaGate from '../components/IdeaGate.vue'
 import LandingSection from '../components/LandingSection.vue'
+import QuickAdd from '../components/QuickAdd.vue'
 import RecentNotes from '../components/RecentNotes.vue'
 import RecentReading from '../components/RecentReading.vue'
 import RecentRefine from '../components/RecentRefine.vue'
@@ -40,6 +41,14 @@ const showResearch = () =>
         />
       </div>
     </div>
+
+    <QuickAdd
+      v-if="publication"
+      class="mt-6"
+      in-place
+      :publications="[publication]"
+      :idea-id="id"
+    />
 
     <!-- Unread reading comes first; the AI box is for when there is nothing left to read. -->
     <RecentReading

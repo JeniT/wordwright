@@ -138,7 +138,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'publication',
     component: () => import('./views/PublicationHomeView.vue'),
     props: true,
-    meta: { level: 'publication' },
+    meta: { level: 'publication', tutorial: true },
   },
   {
     path: '/p/:publicationId/search',

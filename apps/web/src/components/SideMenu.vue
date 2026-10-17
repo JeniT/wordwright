@@ -2,7 +2,6 @@
 import NewTabLink from './NewTabLink.vue'
 import { RouterLink } from 'vue-router'
 import { useNav } from '../lib/nav'
-import { displayHost } from '../lib/usePublications'
 import PublicationImage from './PublicationImage.vue'
 import SettingsButton from './SettingsButton.vue'
 
@@ -36,17 +35,17 @@ const itemClass =
         size="xs"
       />
       <div class="min-w-0 flex-1">
-        <p class="leading-tight font-semibold break-words">
+        <!-- A long name is cut after two lines; the link still carries the whole name. -->
+        <p class="line-clamp-2 leading-tight font-semibold break-words">
           <RouterLink
             :to="{ name: 'publication', params: { publicationId: publication.id } }"
             class="no-underline hover:underline aria-[current=page]:underline"
             >{{ publication.name }}</RouterLink
           >
         </p>
-        <p v-if="publication.siteUrl" class="meta truncate">
-          <NewTabLink :href="publication.siteUrl" class="link">{{
-            displayHost(publication.siteUrl)
-          }}</NewTabLink>
+        <!-- Always "Website", never the address: an address can be any length and the menu is narrow. -->
+        <p v-if="publication.siteUrl" class="meta">
+          <NewTabLink :href="publication.siteUrl" class="link">Website</NewTabLink>
         </p>
         <p v-if="sharedWith()" class="meta">{{ sharedWith() }}</p>
       </div>

@@ -122,10 +122,11 @@ export function useIdeas(publicationId: Get<string>, enabled: Get<boolean> = () 
   })
 }
 
-export function useSources(publicationId: Get<string>) {
+export function useSources(publicationId: Get<string>, enabled: Get<boolean> = () => true) {
   return useQuery({
     queryKey: computed(() => queryKeys.sources(publicationId())),
     queryFn: () => api.listSources(publicationId()),
+    enabled,
   })
 }
 
@@ -199,11 +200,16 @@ export function useResolveComment(
 }
 
 /** An idea's notes, or (`ideaId` null) the publication's own, with the ways the cache is changed without asking again. */
-export function useIdeaNotes(publicationId: Get<string>, ideaId: Get<string | null | undefined>) {
+export function useIdeaNotes(
+  publicationId: Get<string>,
+  ideaId: Get<string | null | undefined>,
+  enabled: Get<boolean> = () => true,
+) {
   const queryClient = useQueryClient()
   const notes = useQuery({
     queryKey: computed(() => queryKeys.notes(publicationId(), ideaId())),
     queryFn: () => api.listIdeaNotes(publicationId(), ideaId() ?? null),
+    enabled,
   })
   const key = () => queryKeys.notes(publicationId(), ideaId())
   /** Keeps what the server answered (or the notes as the change left them). */
@@ -219,6 +225,10 @@ export function useIdeaNotes(publicationId: Get<string>, ideaId: Get<string | nu
 }
 
 /** The drafts the person edits, newest first, across their publications (Home's "Pick up", #192). */
-export function useRecentDrafts() {
-  return useQuery({ queryKey: queryKeys.recentDrafts(), queryFn: () => api.listRecentDrafts() })
+export function useRecentDrafts(enabled: Get<boolean> = () => true) {
+  return useQuery({
+    queryKey: queryKeys.recentDrafts(),
+    queryFn: () => api.listRecentDrafts(),
+    enabled,
+  })
 }

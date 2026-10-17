@@ -262,7 +262,7 @@ describe('Home: Quick add (#192)', () => {
     await renderAt('/')
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.com/post')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add something to read' }))
     expect(await screen.findByText(/Added to Blog’s reading list./)).toBeVisible()
     expect(sent).toMatchObject([{ url: 'https://example.com/post' }])
   })
@@ -287,7 +287,13 @@ describe('Home: Quick add (#192)', () => {
 
   it.each([
     ['New idea', 'Idea name', 'Create idea', 'ideas', 'Words'],
-    ['Add something to read', 'Web address', 'Add to reading list', 'reading', 'https://a.example'],
+    [
+      'Add something to read',
+      'Web address',
+      'Add something to read',
+      'reading',
+      'https://a.example',
+    ],
   ])(
     'says what went wrong when %s fails, and keeps what was typed',
     async (open, label, submit, path, text) => {
@@ -333,7 +339,7 @@ describe('Home: Quick add (#192)', () => {
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://a.example')
     await new Promise((r) => setTimeout(r, 300))
     expect(screen.getByLabelText('Add to publication')).toHaveValue('ada-blog')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add something to read' }))
     await screen.findByText(/Added to Blog’s reading list/)
     expect(posted).toEqual(['ada-blog'])
   })

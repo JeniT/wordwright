@@ -181,13 +181,14 @@ test('the publication’s own page summarises the feeds and the reading list, an
   await page.getByRole('link', { name: 'Gathering', exact: true }).first().click()
   const search = page.getByRole('region', { name: 'Search' })
   await expect(search.getByRole('link', { name: /A post in Feed of read\.example/ })).toBeVisible()
-  await expect(search.getByRole('link', { name: 'See more and set up feeds' })).toBeVisible()
+  await expect(search.getByRole('link', { name: 'See all posts and feeds' })).toBeVisible()
 
   // A link can be added to the reading list from here, and is on the Read step too.
   const read = page.getByRole('region', { name: 'Read' })
   await expect(read.getByText('Nothing on the reading list yet.')).toBeVisible()
-  await read.getByLabel('Web address').fill('example.org/meanders')
-  await read.getByRole('button', { name: 'Add link' }).click()
+  await page.getByRole('tab', { name: 'Add something to read' }).click()
+  await page.getByLabel('Web address').fill('https://example.org/meanders')
+  await page.getByRole('button', { name: 'Add something to read' }).click()
   const item = read.getByRole('link', { name: /Fake title for example\.org/ })
   await expect(item).toBeVisible()
   await noViolations(page, 'publication page with feeds and reading list')

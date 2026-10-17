@@ -493,7 +493,7 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Idea        | how to develop it                | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**                                            | Beside the idea's name, in the menu and on its landing page        |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
-**Quick add**, **Pick up**, then the publications. _Quick add_ is three tabs (**New idea**, **Add a note**, **Add something to
+**Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add something to
 read**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
 is showing on arrival, every time, so there is always a form and no Cancel. A publication picker
 sits inside the form that is showing, above its field, and only when there is more than one; it starts at the publication last worked in (saved in `localStorage` when a
@@ -513,7 +513,8 @@ The principles (they are the point of the pattern; keep them when you add a page
 
 1. **Numbers orient; they never gate.** Every step is a link, always enabled. Nothing is locked, greyed out or
    "completed for you". The numbers are decoration (`aria-hidden`); an ordered list conveys the order.
-2. **State is a count, not progress**: "2 sources", "1 draft" under a step, where we already know it. No progress bars.
+2. **State is a count, not progress**: "2 feeds", "3 to read", "5 notes", "1 idea" under each of a publication's steps, and "2 sources", "5 notes", "1 draft" under an idea's (Refine has nothing to count). No progress bars.
+   In the menu a long name is cut after two lines, and the website is always the words "Website" with the new-tab icon, never the address.
 3. **See where you are in two places**: the current step is marked in the menu (`aria-current`, a filled badge and an
    edge) and in the page title, with the publication or idea name above it (`StepHeading`).
 4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 03 Refine →"), an outline button, never the
@@ -533,14 +534,14 @@ The principles (they are the point of the pattern; keep them when you add a page
    settings" is the small link above the title) and has no `NextStep`. A new setting goes on the page it belongs to; add a
    page only if none fits (`ACCOUNT_PAGES` in `lib/nav.ts`, plus a route with `meta: { level: 'account', step }`).
 8. **A level has a landing page** (a publication's, at `/p/:publicationId`; an idea's, at `/p/:publicationId/ideas/:id`) that is none of the numbered steps: a summary of
-   each step with its quick action (the newest feed posts; the reading list and a form to add to it; the latest notes and a form to add one; the ideas). Nothing in the menu is current there.
-   The publication's description comes first.
+   each step (the newest feed posts; the first items to read; the latest notes; the ideas), with **Quick add** above them for adding an idea, a note or something to read, so the sections hold no forms of their own. Nothing in the menu is current there.
+   The title row has the gear at its far end. **Describe this publication**, while there is no description, is a `NextStep top` right under the title row, and the publication's description comes next, then Quick add.
    Panels reuse the step pages' components, and, like the steps, visiting spends nothing. The page is titled with the
    publication's name (`h1`) beside its picture and website link, then the publication's description (Markdown, clamped to about eight lines with a
    **Show more…** / **Show less** button that appears only when text is hidden; an invitation to add one when empty); each section is a `LandingSection`: the step's number
    (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
    actions on the right of the heading. An idea's page is titled with the idea's name (the publication above it, as a way
-   up) and summarises Research (the unread reading list while there is any; otherwise the box to ask the AI, which waits for
+   up), has Quick add (Add a note, Add something to read: no New idea, and they go to the idea) and summarises Research (the unread reading list while there is any; otherwise the box to ask the AI, which waits for
    its button), Notes (shown by the same `NoteCard` as the Notes step), Refine (the AI's latest message and a box to
    reply, or the invitation to start) and Draft (its drafts, and **Start a draft**).
 9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NewTabLink from '../components/NewTabLink.vue'
 import { RouterLink } from 'vue-router'
+import Explain from '../components/Explain.vue'
 import NextStep from '../components/NextStep.vue'
 import LandingSection from '../components/LandingSection.vue'
 import PublicationAttention from '../components/PublicationAttention.vue'
@@ -14,6 +15,7 @@ import SettingsButton from '../components/SettingsButton.vue'
 import { useIdeas } from '../lib/queries'
 import { displayHost } from '../lib/usePublications'
 import QueryState from '../components/QueryState.vue'
+import QuickAdd from '../components/QuickAdd.vue'
 
 /**
  * A publication's landing page: a short summary of each of its steps, with the quick action for each. It is not a
@@ -25,7 +27,7 @@ const ideas = useIdeas(() => props.publicationId)
 
 <template>
   <PublicationGate v-slot="{ publication }" :publication-id="publicationId">
-    <div class="mb-2 flex items-center gap-4">
+    <div class="mb-4 flex items-center gap-4">
       <PublicationImage
         :id="publication.id"
         :name="publication.name"
@@ -34,25 +36,54 @@ const ideas = useIdeas(() => props.publicationId)
         :site-icon-square="publication.siteIconSquare"
         size="sm"
       />
-      <div class="min-w-0">
-        <div class="flex items-center gap-2">
-          <h1 class="h1 break-words">{{ publication.name }}</h1>
-          <SettingsButton
-            :to="{ name: 'publication-settings', params: { publicationId } }"
-            label="Publication settings"
-          />
-        </div>
+      <div class="min-w-0 flex-1">
+        <h1 class="h1 break-words">{{ publication.name }}</h1>
         <p v-if="publication.siteUrl" class="meta truncate">
           <NewTabLink :href="publication.siteUrl" class="link">{{
             displayHost(publication.siteUrl)
           }}</NewTabLink>
         </p>
+        <!-- On shared publications only: alone, you can only be the owner (as on Home). -->
+        <p v-if="publication.members.length > 1" class="meta">
+          <span class="chip chip-quiet mr-1">{{
+            publication.role === 'owner' ? 'Owner' : 'Member'
+          }}</span>
+          Shared with {{ publication.members.length - 1 }}
+          {{ publication.members.length === 2 ? 'person' : 'people' }}
+        </p>
       </div>
+      <SettingsButton
+        :to="{ name: 'publication-settings', params: { publicationId } }"
+        label="Publication settings"
+      />
     </div>
+
+    <Explain tutorial-only class="mb-6">
+      This is your publication’s home. See the latest from your feeds, then your reading, notes and
+      ideas.
+    </Explain>
+
+    <NextStep
+      v-if="!publication.description"
+      top
+      :to="{ name: 'describe-publication', params: { publicationId } }"
+      label="Describe this publication"
+    >
+      Say what it is for and what goes here.
+    </NextStep>
+    <Explain v-if="!publication.description" tutorial-only class="-mt-3 mb-6">
+      Your AI reads this when it comments on your drafts.
+    </Explain>
 
     <PublicationAttention :publication-id="publicationId" />
 
     <PublicationDescription :publication="publication" />
+
+    <Explain tutorial-only class="mt-6">
+      Add a note, a link or an idea without leaving the page. Notes and links go to this
+      publication’s own lists, and we look up a link’s title.
+    </Explain>
+    <QuickAdd class="mt-2" in-place :publications="[publication]" />
 
     <RecentPostsSummary
       :publication-id="publicationId"
@@ -79,14 +110,15 @@ const ideas = useIdeas(() => props.publicationId)
         >
           See all ideas
         </RouterLink>
-        <RouterLink :to="{ name: 'new-idea', params: { publicationId } }" class="btn btn-outline">
-          New idea
-        </RouterLink>
       </template>
       <QueryState :query="ideas" what="ideas">
-        <p v-if="!ideas.data.value?.length" class="text-ink-soft">
-          No ideas yet. When a group of notes feels like something you’d write about, start an idea.
-        </p>
+        <template v-if="!ideas.data.value?.length">
+          <p class="text-ink-soft">No ideas yet.</p>
+          <Explain tutorial-only>
+            An idea is something you want to write about. It keeps its own notes, reading and
+            drafts.
+          </Explain>
+        </template>
         <ul v-else class="panel divide-y divide-line">
           <li v-for="idea in ideas.data.value" :key="idea.id">
             <RouterLink
@@ -102,13 +134,5 @@ const ideas = useIdeas(() => props.publicationId)
         </ul>
       </QueryState>
     </LandingSection>
-
-    <NextStep
-      v-if="!publication.description"
-      :to="{ name: 'describe-publication', params: { publicationId } }"
-      label="Describe this publication"
-    >
-      Say what it is for, who reads it and what goes here.
-    </NextStep>
   </PublicationGate>
 </template>

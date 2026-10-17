@@ -106,7 +106,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
   </section>
 
   <template v-if="hasPublication && publications.data.value">
-    <QuickAdd :publications="publications.data.value" />
+    <QuickAdd class="mb-10" :publications="publications.data.value" />
     <PickUp />
   </template>
 
