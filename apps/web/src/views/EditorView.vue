@@ -11,6 +11,7 @@ import ReviewersPanel from '../components/ReviewersPanel.vue'
 import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RephraseDialog from '../components/RephraseDialog.vue'
+import NewTabLink from '../components/NewTabLink.vue'
 import RichEditor from '../components/RichEditor.vue'
 import { useMarkdownMode } from '../lib/markdown-mode'
 import TabPanels from '../components/TabPanels.vue'
@@ -489,9 +490,7 @@ async function requestCritique() {
           Ctrl or ⌘ and click a link to open it.
         </p>
         <p v-if="canEdit" class="mt-2 text-xs text-ink-soft">
-          <RouterLink :to="{ name: 'help-formatting' }" target="_blank" class="underline">
-            Formatting and shortcuts
-          </RouterLink>
+          <NewTabLink to="/help/formatting" class="underline">Formatting and shortcuts</NewTabLink>
         </p>
 
         <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
