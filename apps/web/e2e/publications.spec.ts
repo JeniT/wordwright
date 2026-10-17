@@ -585,14 +585,17 @@ test('shows the description at the top of the publication page, clamped with Sho
   // With no description there is one invitation, at the top, and no empty description area.
   await expect(about).toHaveCount(0)
 
-  // The box to write in is the first thing on the describe page; saving goes back to the publication.
+  // The box to write in is the first thing on the Description page, which stays put when saved.
   await page.getByRole('link', { name: /Describe this publication/ }).click()
+  await expect(page).toHaveURL(/\/settings\/description$/)
   const paragraphs = Array.from(
     { length: 12 },
     (_, i) => `Paragraph ${i + 1} about the publication.`,
   )
   await page.getByRole('textbox', { name: 'Description' }).fill(paragraphs.join('\n\n'))
   await page.getByRole('button', { name: 'Save description' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  await page.getByRole('banner').getByRole('link', { name: /^← / }).click()
   await expect(page).toHaveURL(/\/p\/[^/]+$/)
 
   await expect(about.getByText('Paragraph 1 about')).toBeVisible()
@@ -622,9 +625,7 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await page.getByLabel(/Website/).fill('garden.example')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await page.getByRole('link', { name: 'Describe this publication' }).click()
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Describe this publication' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Description' })).toBeVisible()
   const describeUrl = page.url()
 
   // The advice is a link, not a panel above the box, and there is no AI drafting from posts.
@@ -638,6 +639,8 @@ test('writes a description with guidance on what it needs, and nothing drafts it
 
   await page.getByRole('textbox', { name: 'Description' }).fill('Garden essays, by me, for me.')
   await page.getByRole('button', { name: 'Save description' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible()
+  await page.getByRole('banner').getByRole('link', { name: /^← / }).click()
   const about = page.getByRole('region', { name: 'About this publication' })
   await expect(about.getByText('Garden essays, by me, for me.')).toBeVisible()
   await expect(about.getByText('AI draft', { exact: true })).toHaveCount(0)
@@ -651,13 +654,12 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await expect(page.getByText('What it is:', { exact: false })).toBeVisible()
   await noViolations(page)
 
-  // The describe page on a phone, in dark mode.
+  // The Description page on a phone, in dark mode, and the old address leading to it.
   await page.setViewportSize({ width: 390, height: 800 })
   await page.emulateMedia({ colorScheme: 'dark' })
-  await page.goto(describeUrl)
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Describe this publication' }),
-  ).toBeVisible()
+  await page.goto(describeUrl.replace('/settings/description', '/describe'))
+  await expect(page).toHaveURL(describeUrl)
+  await expect(page.getByRole('heading', { level: 1, name: 'Description' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )

@@ -197,13 +197,13 @@ export const routes: RouteRecordRaw[] = [
     props: true,
     meta: { level: 'publication', step: 'ideas' },
   },
+  // The description used to have a page of its own; it is a settings page now.
   {
     path: '/p/:publicationId/describe',
     name: 'describe-publication',
-    component: () => import('./views/PublicationDescribeView.vue'),
-    props: true,
-    meta: { level: 'publication', tutorial: true },
+    redirect: (to) => ({ name: 'publication-settings-description', params: to.params }),
   },
+
   // Settings are a menu of short pages, like the account's; the bare address and the gear lead to the first.
   {
     path: '/p/:publicationId/settings',
@@ -227,7 +227,11 @@ export const routes: RouteRecordRaw[] = [
     name: `publication-settings-${step}`,
     component: () => import(`./views/${view}.vue`),
     props: true,
-    meta: { level: 'publication-settings', step },
+    meta: {
+      level: 'publication-settings',
+      step,
+      ...(step === 'description' && { tutorial: true }),
+    },
   })),
 
   // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, and its settings ———

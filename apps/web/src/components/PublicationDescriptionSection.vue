@@ -24,16 +24,19 @@ const save = useMutation({
 </script>
 
 <template>
-  <section aria-labelledby="description-heading">
-    <h2 id="description-heading" class="mb-3 font-display text-xl font-semibold">Description</h2>
-    <p class="mb-3">Everyone who shares this publication can change it.</p>
+  <section aria-label="Description">
+    <p class="mb-2">Everyone who shares this publication can change it.</p>
     <p class="mb-4">
       <RouterLink :to="{ name: 'help-description' }" class="link">
         See what makes a useful description
       </RouterLink>
     </p>
     <form @submit.prevent="save.mutate()">
-      <DescriptionEditor v-model="text" label="Description" />
+      <DescriptionEditor
+        v-model="text"
+        label="Description"
+        hint="What it is, who reads it and what kinds of writing go there. Your AI reads it before it helps with anything here."
+      />
       <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"

@@ -66,7 +66,7 @@ const ideas = useIdeas(() => props.publicationId)
     <NextStep
       v-if="!publication.description"
       top
-      :to="{ name: 'describe-publication', params: { publicationId } }"
+      :to="{ name: 'publication-settings-description', params: { publicationId } }"
       label="Describe this publication"
     />
 

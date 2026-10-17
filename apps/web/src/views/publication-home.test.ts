@@ -502,7 +502,7 @@ describe('a publication’s landing page: the top, and the menu', () => {
     const nudge = await screen.findByRole('navigation', { name: 'Next step' })
     expect(within(nudge).getByRole('link', { name: /Describe this publication/ })).toHaveAttribute(
       'href',
-      '/p/ada-substack/describe',
+      '/p/ada-substack/settings/description',
     )
     const main = screen.getByRole('main')
     const position = main.compareDocumentPosition(nudge)

@@ -49,28 +49,24 @@ function fakeServer(
 }
 
 describe('describing a publication: guidance and the box', () => {
-  it('costs nothing and sends nothing to anyone, and can be skipped', async () => {
+  it('costs nothing and sends nothing to anyone', async () => {
     const { calls } = fakeServer()
     let posted = 0
     server.use(http.post('*/api/*', () => (posted++, HttpResponse.json({}))))
-    await renderAt('/p/ada-publication/describe')
+    await renderAt('/p/ada-publication/settings/description')
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Describe this publication' }),
+      await screen.findByRole('heading', { level: 1, name: 'Description' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Skip for now' })).toHaveAttribute(
-      'href',
-      '/p/ada-publication',
-    )
     expect(screen.queryByText(/Draft from a few posts/)).toBeNull() // writing it is the only way
     expect(posted).toBe(0)
     expect(calls).toEqual([])
   })
 
-  it('has one way out, a plain link to the guidance, and no heading over the box', async () => {
+  it('has no skip or cancel link (the menu is the way out), a plain link to the guidance, and no heading over the box', async () => {
     fakeServer()
-    await renderAt('/p/ada-publication/describe')
+    await renderAt('/p/ada-publication/settings/description')
     const box = await screen.findByRole('textbox', { name: 'Description' })
-    expect(screen.queryByRole('link', { name: /← Garden notes/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Skip for now|Cancel/ })).toBeNull()
     expect(screen.queryByRole('heading', { level: 2, name: 'The description' })).toBeNull()
     expect(screen.queryByText('What makes a useful description')).toBeNull() // no panel of advice
     expect(
@@ -83,15 +79,15 @@ describe('describing a publication: guidance and the box', () => {
   it('says what the page is for only in tutorial mode', async () => {
     fakeServer()
     server.use(signedInAs({ ...testUser, tutorialMode: true }))
-    const { router } = await renderAt('/p/ada-publication/describe')
+    const { router } = await renderAt('/p/ada-publication/settings/description')
     await screen.findByRole('textbox', { name: 'Description' })
-    expect(router.currentRoute.value.name).toBe('describe-publication')
+    expect(router.currentRoute.value.name).toBe('publication-settings-description')
     expect(screen.getByText(/given to your AI, so it knows what you are writing for/)).toBeVisible()
   })
 
   it('keeps that line away otherwise, and never says "assistants"', async () => {
     fakeServer()
-    await renderAt('/p/ada-publication/describe')
+    await renderAt('/p/ada-publication/settings/description')
     await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.queryByText(/so it knows what you are writing for/)).toBeNull()
     expect(document.body).not.toHaveTextContent(/assistant/i)
@@ -99,7 +95,7 @@ describe('describing a publication: guidance and the box', () => {
 
   it('saves what is written in the box', async () => {
     const { calls } = fakeServer()
-    const { router } = await renderAt('/p/ada-publication/describe')
+    await renderAt('/p/ada-publication/settings/description')
     await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.queryByText(/AI draft/)).toBeNull() // nothing is marked as the AI's
     const save = screen.getByRole('button', { name: 'Save description' })
@@ -109,7 +105,7 @@ describe('describing a publication: guidance and the box', () => {
       'Personal weeknotes, mostly for me.',
     )
     await fireEvent.click(save)
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-publication'))
+    await screen.findByText('Saved') // it stays here: the menu is the way out
     expect(calls).toEqual([
       { path: 'save', body: { description: 'Personal weeknotes, mostly for me.' } },
     ])
@@ -195,7 +191,7 @@ describe('the publication page after creating', () => {
     const next = await screen.findByRole('navigation', { name: 'Next step' })
     expect(within(next).getByRole('link', { name: /Describe this publication/ })).toHaveAttribute(
       'href',
-      '/p/ada-publication/describe',
+      '/p/ada-publication/settings/description',
     )
   })
 
@@ -204,5 +200,22 @@ describe('the publication page after creating', () => {
     await renderAt('/p/ada-publication')
     await screen.findByRole('region', { name: 'About this publication' })
     expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
+  })
+})
+
+describe('the old describe address', () => {
+  it('leads to the Description page in the settings', async () => {
+    fakeServer()
+    const { router } = await renderAt('/p/ada-publication/describe')
+    await screen.findByRole('heading', { level: 1, name: 'Description' })
+    expect(router.currentRoute.value.path).toBe('/p/ada-publication/settings/description')
+  })
+
+  it('can be cleared from the settings page, and needs no description to leave', async () => {
+    const { calls } = fakeServer({ ...bare, description: 'Old words.' })
+    await renderAt('/p/ada-publication/settings/description')
+    await fireEvent.update(await screen.findByRole('textbox', { name: 'Description' }), '')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
+    await waitFor(() => expect(calls).toEqual([{ path: 'save', body: { description: '' } }]))
   })
 })
