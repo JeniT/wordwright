@@ -233,12 +233,12 @@ function fakeFeeds(sources: ReturnType<typeof source>[], posts: ReturnType<typeo
 }
 
 describe('a publication’s landing page: search', () => {
-  it('says there are no feeds, and leads to where to add one', async () => {
+  it('says there are no feeds, and leads to Search through the section’s link', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     const region = await screen.findByRole('region', { name: 'Search' })
-    expect(await within(region).findByText(/No feeds yet/)).toBeInTheDocument()
-    expect(within(region).getByRole('link', { name: /Add a blog/ })).toHaveAttribute(
+    expect(await within(region).findByText('No feeds yet.')).toBeInTheDocument()
+    expect(within(region).getByRole('link', { name: 'See all posts and feeds' })).toHaveAttribute(
       'href',
       '/p/ada-substack/search',
     )

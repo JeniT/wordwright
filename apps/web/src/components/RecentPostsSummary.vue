@@ -51,11 +51,7 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
     </template>
     <QueryState :query="sources" what="your feeds">
       <template v-if="!sources.data.value?.length">
-        <p class="text-ink-soft">
-          No feeds yet.
-          <RouterLink :to="to" class="link">Add a blog, newsletter or journal</RouterLink> and its
-          newest posts will show up here.
-        </p>
+        <p class="text-ink-soft">No feeds yet.</p>
         <Explain tutorial-only>
           A feed is a blog, newsletter or journal we check for new posts that might inspire you.
         </Explain>
