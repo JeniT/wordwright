@@ -111,6 +111,18 @@ export async function openNewIdeaForm(page: Page) {
 
 export { expect }
 
+/** From any page of a publication: Search, then its way to the feeds in the settings. */
+export async function openFeeds(page: Page) {
+  await goTo(page, 'Search')
+  await page.getByRole('link', { name: /^(Set up feeds →|Manage feeds)$/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Feeds' })).toBeVisible()
+}
+
+/** From a page of the publication's settings: back up to the publication's own page. */
+export async function leaveSettings(page: Page) {
+  await page.getByRole('banner').getByRole('link', { name: /^← / }).click()
+}
+
 /** Opens one page of the publication's settings from its menu (the gear has already been pressed). */
 export async function openSettingsPage(page: Page, name: string) {
   await page

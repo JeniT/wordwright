@@ -7,7 +7,6 @@ import {
   PostRefsSchema,
   RECENT_DAYS_MAX,
   SourceInputSchema,
-  SourceOrderSchema,
   type FeedFetcher,
 } from '@wordwright/core'
 import type { FeedItemService } from '../services/feed-items'
@@ -143,19 +142,6 @@ export function sourceRoutes(
             refresh: c.req.query('refresh') === 'true',
           }),
         )
-      })
-
-      // Registered before `/:id` so that "order" is not taken for an id.
-      .put('/order', validateJson(SourceOrderSchema), (c) => {
-        const publicationId = param(c, 'publicationId')
-        const ok = store.transaction(() => sources.reorder(publicationId, c.req.valid('json').ids))
-        if (!ok) {
-          throw fail(
-            409,
-            'The list has changed since you opened it. Reload the page and try again.',
-          )
-        }
-        return c.json(sources.list(publicationId))
       })
 
       .delete('/:id', (c) => {

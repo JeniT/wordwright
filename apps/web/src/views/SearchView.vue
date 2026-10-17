@@ -1,27 +1,33 @@
 <script setup lang="ts">
 import NextStep from '../components/NextStep.vue'
 import PublicationGate from '../components/PublicationGate.vue'
-import PublicationSources from '../components/PublicationSources.vue'
+import FeedsLink from '../components/FeedsLink.vue'
 import RecentPosts from '../components/RecentPosts.vue'
 import StepHeading from '../components/StepHeading.vue'
+import { useSources } from '../lib/queries'
 
 /**
  * Step 01 of a publication: look for things worth writing about. Recent posts from the feeds, which can be added to
- * the reading list, and the feeds themselves.
+ * the reading list. The feeds themselves are set up in the publication's settings.
  */
-defineProps<{ publicationId: string }>()
+const props = defineProps<{ publicationId: string }>()
+const sources = useSources(() => props.publicationId)
 </script>
 
 <template>
   <PublicationGate v-slot="{ publication }" :publication-id="publicationId">
     <StepHeading>Search</StepHeading>
-    <p class="mb-8 text-ink-soft">
-      Where ideas for {{ publication.name }} can come from. Choose the blogs, newsletters, news and
-      journals you’d like to look through for things worth writing about, and add what looks good to
-      the reading list.
+    <p class="mb-4 text-ink-soft">
+      Recent posts from {{ publication.name }}’s feeds. Add the ones worth reading to the reading
+      list.
+    </p>
+    <p v-if="sources.isSuccess.value" class="mb-8">
+      <FeedsLink
+        :publication-id="publicationId"
+        :has-feeds="(sources.data.value?.length ?? 0) > 0"
+      />
     </p>
     <RecentPosts :publication-id="publicationId" />
-    <PublicationSources :publication-id="publicationId" />
     <NextStep :to="{ name: 'read', params: { publicationId } }" label="Next: 02 Read">
       Read what you’ve gathered on the reading list and take notes from it.
     </NextStep>

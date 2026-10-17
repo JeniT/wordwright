@@ -1,6 +1,14 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, showReadItems, showArrowsFor, test } from './fixtures'
+import {
+  expect,
+  goTo,
+  leaveSettings,
+  openFeeds,
+  showArrowsFor,
+  showReadItems,
+  test,
+} from './fixtures'
 
 async function signUpWithPublication(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -123,13 +131,15 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
   page,
 }) => {
   await signUpWithPublication(page)
-  await goTo(page, 'Search')
+  await openFeeds(page)
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
-  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await feeds.getByRole('button', { name: 'Add feed' }).click()
   await expect(
     feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
   ).toBeVisible()
+  await leaveSettings(page)
+  await goTo(page, 'Search')
 
   // The newest posts, with a decision to make about each.
   const recent = page.getByRole('region', { name: 'Recent posts' })
@@ -169,19 +179,19 @@ test('the publication’s own page summarises the feeds and the reading list, an
   page,
 }) => {
   await signUpWithPublication(page)
-  await goTo(page, 'Search')
+  await openFeeds(page)
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
-  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await feeds.getByRole('button', { name: 'Add feed' }).click()
   await expect(
     feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
   ).toBeVisible()
 
   // The publication's page shows what is waiting in the feeds, and leads to Search.
-  await page.getByRole('link', { name: 'Gathering', exact: true }).first().click()
+  await leaveSettings(page)
   const search = page.getByRole('region', { name: 'Search' })
   await expect(search.getByRole('link', { name: /A post in Feed of read\.example/ })).toBeVisible()
-  await expect(search.getByRole('link', { name: 'See all posts and feeds' })).toBeVisible()
+  await expect(search.getByRole('link', { name: 'See all posts' })).toBeVisible()
 
   // A link can be added to the reading list from here, and is on the Read step too.
   const read = page.getByRole('region', { name: 'Read' })
@@ -206,18 +216,18 @@ test('a post can be added or ignored from the publication’s own page, and the 
   page,
 }) => {
   await signUpWithPublication(page)
-  await goTo(page, 'Search')
+  await openFeeds(page)
   const feeds = page.getByRole('region', { name: 'Feeds' })
   for (const feed of ['one.example/feed', 'two.example/feed']) {
     await feeds.getByLabel('Add a feed').fill(feed)
-    await feeds.getByRole('button', { name: 'Add source' }).click()
+    await feeds.getByRole('button', { name: 'Add feed' }).click()
     await expect(
       feeds.getByRole('listitem').filter({ hasText: `Feed of ${feed.split('/')[0]}` }),
     ).toBeVisible()
   }
 
   // The same rows as the Search page, with icon buttons.
-  await page.getByRole('link', { name: 'Gathering', exact: true }).first().click()
+  await leaveSettings(page)
   const search = page.getByRole('region', { name: 'Search' })
   const rows = search.getByRole('listitem')
   await expect(rows).toHaveCount(2)
@@ -243,15 +253,17 @@ test('a post can be added or ignored from the publication’s own page, and the 
 
 test('a post that is added or ignored moves to the end of the recent posts', async ({ page }) => {
   await signUpWithPublication(page)
-  await goTo(page, 'Search')
+  await openFeeds(page)
   const feeds = page.getByRole('region', { name: 'Feeds' })
   for (const feed of ['one.example/feed', 'two.example/feed', 'three.example/feed']) {
     await feeds.getByLabel('Add a feed').fill(feed)
-    await feeds.getByRole('button', { name: 'Add source' }).click()
+    await feeds.getByRole('button', { name: 'Add feed' }).click()
     await expect(
       feeds.getByRole('listitem').filter({ hasText: `Feed of ${feed.split('/')[0]}` }),
     ).toBeVisible()
   }
+  await leaveSettings(page)
+  await goTo(page, 'Search')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   const rows = recent.getByRole('listitem')
   await expect(rows).toHaveCount(3)
@@ -340,10 +352,15 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
 }) => {
   await signUpWithPublication(page)
   // A feed, and its newest post added to the reading list.
-  await goTo(page, 'Search')
+  await openFeeds(page)
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
-  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await feeds.getByRole('button', { name: 'Add feed' }).click()
+  await expect(
+    feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
+  ).toBeVisible()
+  await leaveSettings(page)
+  await goTo(page, 'Search')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   const title = 'A post in Feed of read.example'
   await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()

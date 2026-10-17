@@ -794,6 +794,8 @@ The editor's drop cursor (a line in the accent colour) shows where it will land.
 
 ## Idea sources: an ordered list of feeds, edited by any member
 
+> **Ordering removed in #242** (see _Feeds are a settings page_, at the end of this file). Kept as the record of why it was built.
+
 Idea generation will scan RSS feeds, so each publication holds a list of feed URLs (D2: RSS first). Order is the
 priority later used to rank posts, so it is stored as a dense `position` and changed by sending the whole list of
 ids (`PUT .../sources/order`) rather than "move X to N": the server refuses (409) unless the ids are exactly the
@@ -1913,8 +1915,7 @@ Publication settings were one long page, with a second page (`/describe`) for th
   can't drift apart. Wording follows the creation form: "Website (optional)", hint "Where it gets published." (the example
   address was dropped from both), the "About the website" info icon, and in settings an info icon on the name saying that
   renaming changes the address. The picture stays its own section: creation sends it with the form, settings saves at once.
-- **Still to come:** the Description page absorbs `/describe` (#241) and Feeds becomes a page (#242). Until then the
-  Description page holds the form the old settings page had, and feeds stay on Search. Feeds are not in the menu yet.
+- **Then:** the Description page absorbed `/describe` (#241) and Feeds became a page (#242).
 - Download repeats the account page's text for one publication, minus keys (keys belong to accounts, not publications).
 
 ## The description has one page, in the settings (#241)
@@ -1925,3 +1926,21 @@ and the publication page's "Describe this publication" step links straight there
 stays on the page** with "Saved", and "Skip for now" / "Cancel" are gone: the menu is the way out, and nothing needs a
 description to carry on. It can also be cleared (the old page could only replace it). Its route has `meta.tutorial`, so
 the one tutorial line (what the page is for) shows in tutorial mode.
+
+## Feeds are a settings page, listed alphabetically (#242)
+
+Feeds are configuration, like the description, so they moved off the Search step into publication settings
+(`/p/:id/settings/feeds`, between Description and Sharing). This reverses the decision that they are managed on Search;
+**Search keeps only Recent posts**, with a way to the feeds: a "Set up feeds →" button while there are none (the thing to do
+next), and a quiet "Manage feeds" link once there are some. The landing page's Search section has the same two. Any member
+can still add and remove them.
+
+- **No reordering.** The order was meant to rank posts, but Recent posts has always been sorted by date; the order only broke
+  ties, and a drag list is a lot of interface for that. Feeds are now **alphabetical by the name shown** (sorted in the
+  browser). `PUT …/sources/order`, `SourceOrderSchema`, the store's `reorder`, the tests and the drag e2e are gone; the
+  `position` column stays (migrations are append-only) and records the order added, which is the tie-break.
+- **The add form sits above the list**, since in settings the thing you come to do is add one; an empty list then reads
+  "No feeds yet. Add one above."
+- **"Feed" in the words people see, "source" in the code.** The glossary term is **Feed** (CONTEXT.md); `Source`,
+  `PublicationSources` and the API paths keep their names, since renaming them is churn for no gain.
+- The failed-feed line still says "Open its recent posts for details", because each feed's own recent posts stay on its row.

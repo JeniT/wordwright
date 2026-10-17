@@ -53,6 +53,7 @@ export interface SettingsPage extends Step {
 export const PUBLICATION_SETTINGS_PAGES: SettingsPage[] = [
   { key: 'details', label: 'Details', route: 'publication-settings-details' },
   { key: 'description', label: 'Description', route: 'publication-settings-description' },
+  { key: 'feeds', label: 'Feeds', route: 'publication-settings-feeds' },
   { key: 'sharing', label: 'Sharing', route: 'publication-settings-sharing' },
   { key: 'download', label: 'Download', route: 'publication-settings-download' },
   {

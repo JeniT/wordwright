@@ -462,9 +462,6 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(SourceItemsSchema, 'GET', `/publications/${publicationId}/sources/${id}/items`),
     removeSource: (publicationId: string, id: string) =>
       act('DELETE', `/publications/${publicationId}/sources/${id}`),
-    /** `ids` is every source, in the new order. Answers with the list as saved. */
-    reorderSources: (publicationId: string, ids: string[]) =>
-      get(SourceListSchema, 'PUT', `/publications/${publicationId}/sources/order`, { ids }),
 
     // brainstorming: one conversation per idea, shared by the publication's members
     getConversation: (publicationId: string, ideaId: string) =>

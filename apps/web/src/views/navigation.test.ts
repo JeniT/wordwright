@@ -340,7 +340,14 @@ describe('the menu in a publication’s settings', () => {
     const labels = within(nav)
       .getAllByRole('link')
       .map((a) => a.textContent)
-    expect(labels).toEqual(['Details', 'Description', 'Sharing', 'Download', 'Delete publication'])
+    expect(labels).toEqual([
+      'Details',
+      'Description',
+      'Feeds',
+      'Sharing',
+      'Download',
+      'Delete publication',
+    ])
     expect(within(nav).getByRole('link', { name: 'Sharing' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -373,6 +380,6 @@ describe('the menu in a publication’s settings', () => {
     expect(router.currentRoute.value.path).toBe('/p/ada-substack/settings/details')
     const nav = await screen.findByRole('navigation', { name: 'Publication settings' })
     expect(within(nav).queryByRole('link', { name: 'Delete publication' })).toBeNull()
-    expect(within(nav).getAllByRole('link')).toHaveLength(4)
+    expect(within(nav).getAllByRole('link')).toHaveLength(5)
   })
 })

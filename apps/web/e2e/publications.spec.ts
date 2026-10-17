@@ -5,9 +5,9 @@ import {
   expect,
   goTo,
   holdToConfirm,
+  leaveSettings,
+  openFeeds,
   openSettingsPage,
-  savesAnswered,
-  showArrowsFor,
   test,
 } from './fixtures'
 
@@ -406,21 +406,31 @@ test('publication pages for a signed-in user have no detectable accessibility vi
   await noViolations(page) // the publication page
 })
 
-test('manages the ordered list of feeds on the Search page', async ({ page }) => {
+test('manages the feeds in the publication settings, which are listed alphabetically', async ({
+  page,
+}) => {
   await registerUser(page, uniqueName('Tess'))
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Reading list')
   await page.getByRole('button', { name: 'Create publication' }).click()
-  await goTo(page, 'Search')
 
+  // With no feeds, the landing page and Search both lead to setting them up.
+  await expect(
+    page.getByRole('region', { name: 'Search' }).getByText('No feeds yet.'),
+  ).toBeVisible()
+  await page
+    .getByRole('region', { name: 'Search' })
+    .getByRole('link', { name: 'Set up feeds →' })
+    .click()
+  await expect(page).toHaveURL(/\/settings\/feeds$/)
   const sources = page.getByRole('region', { name: 'Feeds' })
-  await expect(sources.getByText('No sources yet')).toBeVisible()
+  await expect(sources.getByText('No feeds yet. Add one above.')).toBeVisible()
   const add = async (address: string) => {
     await sources.getByLabel('Add a feed').fill(address)
-    await sources.getByRole('button', { name: 'Add source' }).click()
+    await sources.getByRole('button', { name: 'Add feed' }).click()
   }
 
-  // Bad addresses are explained; good ones are read, named and added at the end.
+  // Bad addresses are explained; good ones are read, named and added.
   await add('not a feed')
   await expect(sources.getByRole('alert')).toContainText('web address of a feed')
   await add('nothing.example/notafeed')
@@ -443,75 +453,23 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
   expect(await icon.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1)
   await noViolations(page)
 
+  // Alphabetical, not in the order added, and nothing to drag.
   const hosts = async () =>
     (await sources.getByRole('listitem').allInnerTexts()).map((t) => t.match(/\w+\.example/)![0])
-  expect(await hosts()).toEqual(['one.example', 'two.example', 'three.example'])
+  expect(await hosts()).toEqual(['one.example', 'three.example', 'two.example'])
+  await expect(page.getByRole('button', { name: /^Reorder / })).toHaveCount(0)
 
-  // Reordering works from the keyboard and keeps focus on the moved source.
-  const up = sources.getByRole('button', { name: 'Move Feed of three.example up' })
-  await expect(up).toHaveCount(0) // the arrows appear when a feed's grip is pressed
-  await showArrowsFor(sources, 'Reorder Feed of three.example')
-  await up.focus()
-  await page.keyboard.press('Enter')
-  await expect.poll(hosts).toEqual(['one.example', 'three.example', 'two.example'])
-  await expect(up).toBeFocused() // still on the source that moved, so Enter can move it again
-  await page.keyboard.press('Enter')
-  await expect.poll(hosts).toEqual(['three.example', 'one.example', 'two.example'])
-
-  await savesAnswered(page)
-
-  // ...and by dragging a source by its grip (with the list in view: the page above it is long, and a drag
-  // that has to scroll partway through is not what is being tested).
-  await sources.getByRole('listitem').first().scrollIntoViewIfNeeded()
-  await sources
-    .getByRole('listitem')
-    .nth(2)
-    .getByTestId('rail')
-    .dragTo(sources.getByRole('listitem').first(), {
-      sourcePosition: { x: 3, y: 3 },
-      targetPosition: { x: 40, y: 3 },
-    })
-  await expect.poll(hosts).toEqual(['two.example', 'three.example', 'one.example'])
-  await savesAnswered(page)
-
-  // A move shows at once, even when the server is slow to save it. The server is held (`release` lets it answer)
-  // rather than slowed by a timer, and only the saves that pass through the route are counted: an earlier save
-  // (the drag above) may still be answering, and must not be mistaken for one of these.
-  let asked = 0
-  let saved = 0
-  let release!: () => void
-  const held = new Promise<void>((resolve) => (release = resolve))
-  await page.route('**/sources/order', async (route) => {
-    asked++
-    await held
-    const response = await route.fetch()
-    await route.fulfill({ response })
-    saved++
-  })
-  await showArrowsFor(sources, 'Reorder Feed of one.example')
-  await sources.getByRole('button', { name: 'Move Feed of one.example up' }).click()
-  await expect(async () =>
-    expect(await hosts()).toEqual(['two.example', 'one.example', 'three.example']),
-  ).toPass()
-  await expect.poll(() => asked).toBe(1)
-  // Quick moves in a row show at once too, and the server is asked one at a time: the second
-  // save is only sent after the first has been answered, with the order as it is by then.
-  await sources.getByRole('button', { name: 'Move Feed of three.example up' }).click()
-  await sources.getByRole('button', { name: 'Move Feed of three.example up' }).click()
-  await expect.poll(hosts).toEqual(['three.example', 'two.example', 'one.example'])
-  await page.waitForTimeout(300) // time enough for a second request to be sent, if one were going to be
-  expect(asked).toBe(1)
-  release()
-  await expect.poll(() => saved).toBe(2)
-  expect(asked).toBe(2)
-  expect(await hosts()).toEqual(['three.example', 'two.example', 'one.example'])
-  await page.unroute('**/sources/order')
-
-  // The order, and removals, survive a reload.
+  // Removals survive a reload.
   await holdToConfirm(page, sources.getByRole('button', { name: 'Remove Feed of three.example' }))
-  await expect.poll(hosts).toEqual(['two.example', 'one.example'])
+  await expect.poll(hosts).toEqual(['one.example', 'two.example'])
   await page.reload()
-  await expect.poll(hosts).toEqual(['two.example', 'one.example'])
+  await expect.poll(hosts).toEqual(['one.example', 'two.example'])
+
+  // Search now offers a quiet link instead of a button, and the menu has the page between Description and Sharing.
+  await leaveSettings(page)
+  await goTo(page, 'Search')
+  await expect(page.getByRole('link', { name: 'Manage feeds' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Set up feeds →' })).toHaveCount(0)
 })
 
 test('pasting a site that offers several feeds asks which to add', async ({ page }) => {
@@ -519,11 +477,11 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Choosing feeds')
   await page.getByRole('button', { name: 'Create publication' }).click()
-  await goTo(page, 'Search')
+  await openFeeds(page)
 
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('several.site.example')
-  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await feeds.getByRole('button', { name: 'Add feed' }).click()
 
   const choice = feeds.getByRole('group', { name: /more than one feed/ })
   await expect(choice.getByLabel(/Comments/)).toBeVisible() // comments are listed, and labelled
@@ -548,11 +506,11 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Posts to read')
   await page.getByRole('button', { name: 'Create publication' }).click()
-  await goTo(page, 'Search')
+  await openFeeds(page)
 
   const feeds = page.getByRole('region', { name: 'Feeds' })
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
-  await feeds.getByRole('button', { name: 'Add source' }).click()
+  await feeds.getByRole('button', { name: 'Add feed' }).click()
   const row = feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' })
 
   let asked = 0
@@ -568,7 +526,9 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await noViolations(page)
   expect(asked).toBe(1)
 
-  // The same post is in the combined list at the top, with its feed's name.
+  // The same post is in the combined list on Search, with its feed's name.
+  await leaveSettings(page)
+  await goTo(page, 'Search')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   await expect(recent.getByRole('link', { name: /A post in Feed of read.example/ })).toBeVisible()
   await expect(recent.getByRole('listitem')).toContainText('Feed of read.example')

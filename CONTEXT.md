@@ -14,6 +14,10 @@ _Avoid_: Profile, venue, workspace, account
 The writer's own account of a publication: what it is, who reads it and what kinds of writing go there. Shown at the top of the publication and given to your AI so it knows what the writing is for. Optional, and written by the people who work in the publication.
 _Avoid_: Bio, about, brief
 
+**Feed**:
+An RSS or Atom link that a publication looks through for recent posts, which the writer can add to the reading list. Any member can add or remove them, in the publication's settings; they are listed alphabetically, with no order of priority.
+_Avoid_: Source (in what people see), subscription
+
 **Publication picture**:
 The image an owner chooses for a publication. Always shown in preference to the site icon.
 _Avoid_: Avatar, logo

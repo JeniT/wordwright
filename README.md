@@ -43,13 +43,13 @@ The side menu **follows you**: what it lists depends on where you are, with a li
 are in. Numbers on the steps orient; they never lock anything, so every step is always a link, and each page ends with a
 gentle "Next: …" suggestion. Home → publication → idea:
 
-| Level                | Menu lists                                                                                                                                                         | Front door                                      |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
-| Home                 | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                    | `/`                                             |
-| Publication          | **01 Search** (feeds, recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                                   | `/p/<id>` → its landing page                    |
-| Idea                 | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings      | `/p/<id>/ideas/<idea>` → Notes                  |
-| Publication settings | **Details**, **Description**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}"          | `/p/<id>/settings` → `/p/<id>/settings/details` |
-| Account              | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** | `/account` → `/account/details`                 |
+| Level                | Menu lists                                                                                                                                                           | Front door                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Home                 | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                      | `/`                                             |
+| Publication          | **01 Search** (recent posts), **02 Read** (reading list), **03 Notes**, **04 Ideas**; a gear beside the name for settings                                            | `/p/<id>` → its landing page                    |
+| Idea                 | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings        | `/p/<id>/ideas/<idea>` → Notes                  |
+| Publication settings | **Details**, **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}" | `/p/<id>/settings` → `/p/<id>/settings/details` |
+| Account              | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account**   | `/account` → `/account/details`                 |
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
@@ -242,10 +242,11 @@ tests inject fakes and nothing hits the network.
   `/api/publications/:id/image` to members only. The type is decided by the file's bytes (not what the browser
   claims); SVG is refused because it can carry script. The browser first shrinks a PNG, JPEG or WebP over 1 MB or
   512px on its longest side (so a phone photo works as it is); GIFs are not touched, and the server's limits don't change. Each person can own up to 25 publications.
-- **Search: the publication's feeds**: each publication keeps an ordered list of RSS/Atom feeds (up to 50), managed on the publication's
-  **Search** page (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) by any member: paste a feed link, or the address of a site that has one, and the server reads
-  it to show the feed's title, description and picture (its own logo, else the site's icon); drag a source by
-  its grip, or use the arrow buttons, to change its priority; remove it. Addresses are tidied (https assumed,
+- **Feeds**: each publication keeps a list of RSS/Atom feeds (up to 50), managed on the **Feeds** page of the publication's
+  settings (`/p/<id>/settings/feeds`) by any member: paste a feed link, or the address of a site that has one, and the server reads
+  it to show the feed's title, description and picture (its own logo, else the site's icon). They are listed alphabetically
+  (there is no order to keep); remove one. **Search** (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) shows their
+  posts, and offers "Set up feeds →" while there are none and "Manage feeds" after. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
   At the top of the Search page, **Recent posts** is one list of the newest posts from all the feeds, newest

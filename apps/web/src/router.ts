@@ -218,6 +218,7 @@ export const routes: RouteRecordRaw[] = [
     [
       ['details', 'PublicationSettingsDetailsView'],
       ['description', 'PublicationSettingsDescriptionView'],
+      ['feeds', 'PublicationSettingsFeedsView'],
       ['sharing', 'PublicationSettingsSharingView'],
       ['download', 'PublicationSettingsDownloadView'],
       ['delete', 'PublicationSettingsDeleteView'],

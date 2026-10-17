@@ -9,7 +9,7 @@ import type {
   Source,
 } from '@wordwright/core'
 import { nowIso } from './database'
-import { renumber, reorder } from './ordering'
+import { renumber } from './ordering'
 
 export interface SourceIcon {
   contentType: IconType
@@ -208,15 +208,6 @@ export class SourceStore {
         this.list(publicationId).map((s) => s.id),
       )
     return removed
-  }
-
-  /**
-   * Puts the sources in the given order. Returns false, changing nothing, unless `ids` names
-   * exactly the publication's current sources (so a stale screen can't silently drop or resurrect any).
-   */
-  reorder(publicationId: string, ids: string[]): boolean {
-    const current = this.list(publicationId).map((s) => s.id)
-    return reorder(this.db, TABLE, scopeOf(publicationId), current, ids)
   }
 
   private renumber(publicationId: string, ids: string[]) {

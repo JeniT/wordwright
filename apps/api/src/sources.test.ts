@@ -89,26 +89,13 @@ describe('idea sources', () => {
     expect(c).toBeTruthy()
   })
 
-  it('reorders: the new order is what the list then returns', async () => {
-    const ids: string[] = []
-    for (const n of ['a', 'b', 'c'])
-      ids.push((await (await add(`https://${n}.example/f`)).json()).id)
-    const res = await ada.put(`${base}/order`, { ids: [ids[2], ids[0], ids[1]] })
-    expect(res.status).toBe(200)
-    const expected = ['https://c.example/f', 'https://a.example/f', 'https://b.example/f']
-    expect((await res.json()).map((s: { url: string }) => s.url)).toEqual(expected)
-    expect(await urls()).toEqual(expected)
-  })
-
-  it('refuses an order that is out of date, changing nothing', async () => {
+  it('has no way to reorder: feeds stay in the order they were added', async () => {
     const ids: string[] = []
     for (const n of ['a', 'b']) ids.push((await (await add(`https://${n}.example/f`)).json()).id)
-    const before = await urls()
-    for (const bad of [[ids[0]], [ids[0], ids[0]], [ids[0], ids[1], 'nope'], [ids[0], 'nope']]) {
-      expect((await ada.put(`${base}/order`, { ids: bad })).status).toBe(409)
-    }
-    expect((await ada.put(`${base}/order`, { ids: 'a' })).status).toBe(400)
-    expect(await urls()).toEqual(before)
+    expect(
+      (await ada.put(`${base}/order`, { ids: [ids[1], ids[0]] })).status,
+    ).toBeGreaterThanOrEqual(404)
+    expect(await urls()).toEqual(['https://a.example/f', 'https://b.example/f'])
   })
 
   it('lets any member of the publication read and change the list', async () => {
@@ -116,10 +103,8 @@ describe('idea sources', () => {
     await sharePublication(ctx, ada, base.split('/')[3]!, bob, 'bob@example.com')
 
     expect(await list(bob)).toHaveLength(1)
-    const added = await (await add('https://b.example/f', bob)).json()
+    await (await add('https://b.example/f', bob)).json()
     expect(await urls()).toEqual(['https://a.example/f', 'https://b.example/f'])
-    expect((await bob.put(`${base}/order`, { ids: [added.id, id] })).status).toBe(200)
-    expect(await urls()).toEqual(['https://b.example/f', 'https://a.example/f'])
     expect((await bob.delete(`${base}/${id}`)).status).toBe(204)
     expect(await urls()).toEqual(['https://b.example/f'])
   })

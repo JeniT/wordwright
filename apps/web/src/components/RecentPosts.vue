@@ -24,12 +24,12 @@ const windowName = computed(
   () => WINDOWS.find(([d]) => d === days.value)?.[1] ?? `${days.value} days`,
 )
 
-// The same list the feeds section shows; it supplies each post's feed name and logo.
+// The publication’s feeds; they supply each post's feed name and logo.
 const sources = useSources(() => props.publicationId)
 const byId = computed(() => new Map((sources.data.value ?? []).map((s) => [s.id, s])))
 const nameOf = (s: Source | undefined) => s?.title ?? s?.url.replace(/^https?:\/\//, '') ?? 'a feed'
 
-// The feeds are part of the key: adding, removing or reordering one asks again (the server mostly
+// The feeds are part of the key: adding or removing one asks again (the server mostly
 // answers from what it has kept).
 const feedKey = computed(() => (sources.data.value ?? []).map((s) => s.id).join(','))
 const posts = useQuery({
@@ -133,9 +133,7 @@ const failedNames = computed(() =>
     </p>
 
     <QueryState :query="sources" what="your feeds">
-      <p v-if="!sources.data.value?.length" class="text-sm text-ink-soft">
-        Add a feed below and its newest posts will show up here.
-      </p>
+      <p v-if="!sources.data.value?.length" class="text-sm text-ink-soft">No feeds yet.</p>
       <template v-else>
         <QueryState :query="posts" what="your feeds" loading="Reading your feeds…" detail>
           <template v-if="shown">
@@ -188,7 +186,7 @@ const failedNames = computed(() =>
             </p>
             <p v-if="shown.undated" class="mt-2 text-sm text-ink-soft">
               {{ shown.undated }} {{ shown.undated === 1 ? 'post has' : 'posts have' }} no date, so
-              can’t be placed in time. Open a feed’s own recent posts below to see
+              can’t be placed in time. Open a feed’s recent posts under Manage feeds to see
               {{ shown.undated === 1 ? 'it' : 'them' }}.
             </p>
           </template>

@@ -233,15 +233,16 @@ function fakeFeeds(sources: ReturnType<typeof source>[], posts: ReturnType<typeo
 }
 
 describe('a publication’s landing page: search', () => {
-  it('says there are no feeds, and leads to Search through the section’s link', async () => {
+  it('says there are no feeds, and leads to setting them up', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     const region = await screen.findByRole('region', { name: 'Search' })
     expect(await within(region).findByText('No feeds yet.')).toBeInTheDocument()
-    expect(within(region).getByRole('link', { name: 'See all posts and feeds' })).toHaveAttribute(
+    expect(within(region).getByRole('link', { name: 'Set up feeds →' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/search',
+      '/p/ada-substack/settings/feeds',
     )
+    expect(within(region).queryByRole('link', { name: 'See all posts' })).toBeNull()
   })
 
   it('shows the five newest posts still waiting, not those already decided, and links to Search', async () => {
@@ -269,10 +270,16 @@ describe('a publication’s landing page: search', () => {
       'https://s1.example/p1',
     )
     expect(within(list).getAllByText(/Alpha Notes/)).toHaveLength(5)
-    expect(screen.getByRole('link', { name: 'See all posts and feeds' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'See all posts' })).toHaveAttribute(
       'href',
       '/p/ada-substack/search',
     )
+    // With feeds, setting them up is a quiet link, not a button.
+    expect(screen.getByRole('link', { name: 'Manage feeds' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/settings/feeds',
+    )
+    expect(screen.queryByRole('link', { name: 'Set up feeds →' })).toBeNull()
   })
 
   it('shows each post as the Search page does, with its authors, summary and icon buttons', async () => {

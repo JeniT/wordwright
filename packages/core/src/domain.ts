@@ -306,7 +306,7 @@ export const SourceItemsSchema = z.object({
 })
 export type SourceItems = z.infer<typeof SourceItemsSchema>
 
-/** The list in priority order: the first source matters most. */
+/** The publication's feeds, in the order they were added. */
 export const SourceListSchema = z.array(SourceSchema)
 
 export const SourceInputSchema = z.object({ url: FeedUrlSchema })
@@ -384,12 +384,6 @@ export const PostDecisionSchema = z.object({
   ),
 })
 export type PostDecision = z.infer<typeof PostDecisionSchema>
-
-/** Every source id, in the new order. Must name exactly the sources the publication has. */
-export const SourceOrderSchema = z.object({
-  ids: z.array(z.string()).max(MAX_SOURCES_PER_PUBLICATION),
-})
-export type SourceOrder = z.infer<typeof SourceOrderSchema>
 
 // ---- Invitations (how people join a shared publication) ---------------------
 

@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import type { Source, SourceChoices } from '@wordwright/core'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
-import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
+import { invalidateRoots, useSources } from '../lib/queries'
 import SourceItems from './SourceItems.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import PublicationImage from './PublicationImage.vue'
-import ReorderableList from './ReorderableList.vue'
 import TextField from './TextField.vue'
 import QueryState from './QueryState.vue'
 
@@ -16,14 +15,19 @@ const props = defineProps<{ publicationId: string }>()
 
 const queryClient = useQueryClient()
 const sources = useSources(() => props.publicationId)
-const setList = (list: Source[]) =>
-  queryClient.setQueryData(queryKeys.sources(props.publicationId), list)
 
 const url = ref('')
 const notice = ref('') // announced politely to screen readers after each change
 
 /** What to call a source: its own title, or failing that its address without the "https://". */
 const nameOf = (source: Source) => source.title ?? shortName(source.url)
+
+// Alphabetical by the name shown: there is no order to keep, so a feed is easy to find as the list grows.
+const sorted = computed(() =>
+  [...(sources.data.value ?? [])].sort((a, b) =>
+    nameOf(a).localeCompare(nameOf(b), undefined, { sensitivity: 'base' }),
+  ),
+)
 
 // A website that offers several feeds comes back as choices instead of being added.
 const choices = ref<SourceChoices['choices']>([])
@@ -88,23 +92,6 @@ const remove = useMutation({
   },
 })
 
-const move = useMutation({
-  mutationFn: (ids: string[]) => api.reorderSources(props.publicationId, ids),
-  onSuccess: setList,
-  // The list on screen may be out of date (the 409 says so); show the server's.
-  onError: () => invalidateRoots(queryClient, 'sources'),
-})
-
-/** Saves a new order; true if it was saved. */
-async function saveOrder(ids: string[]) {
-  try {
-    await move.mutateAsync(ids)
-  } catch {
-    return false // the error is shown below
-  }
-  return true
-}
-
 /** "example.com/feed" is easier to scan than "https://example.com/feed". */
 function shortName(address: string) {
   try {
@@ -117,66 +104,10 @@ function shortName(address: string) {
 </script>
 
 <template>
-  <section aria-labelledby="sources-heading">
-    <h2 id="sources-heading" class="mb-1 font-display text-xl font-semibold">Feeds</h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      RSS feeds to look through for things that could spark ideas. Posts from feeds higher in the
-      list will be shown first: drag a feed by its dotted strip, or use the arrow buttons that
-      appear when you point at the list, to change the order.
-    </p>
+  <section aria-label="Feeds">
+    <p class="mb-4 text-ink-soft">RSS feeds to look through for things that could spark ideas.</p>
 
-    <QueryState :query="sources" what="the sources" loading="Loading sources…">
-      <p v-if="!sources.data.value?.length" class="text-sm text-ink-soft">
-        No sources yet. Paste the address of a blog, newsletter or news feed below to start your
-        list.
-      </p>
-      <ReorderableList
-        v-else
-        class="mb-4"
-        :items="sources.data.value"
-        :item-label="nameOf"
-        :save="(ids) => saveOrder(ids)"
-      >
-        <template #default="{ item: source, index }">
-          <PublicationImage
-            :id="source.id"
-            :name="nameOf(source)"
-            :image-url="source.iconUrl"
-            :square="source.iconSquare"
-            size="sm"
-            kind="source"
-          />
-          <div class="min-w-0 flex-1">
-            <p class="break-words font-medium">
-              <span class="sr-only">{{ index + 1 }}. </span>{{ nameOf(source) }}
-            </p>
-            <p v-if="source.description" class="line-clamp-2 break-words text-sm text-ink-soft">
-              {{ source.description }}
-            </p>
-            <p class="break-all text-xs text-ink-soft" :title="source.url">
-              {{ shortName(source.url) }}
-            </p>
-            <p v-if="source.lastError" class="text-sm text-danger">
-              We couldn’t read this feed on the last try. Open its recent posts for details, or
-              remove it.
-            </p>
-            <SourceItems :publication-id="publicationId" :source="source" :name="nameOf(source)" />
-          </div>
-        </template>
-        <template #actions="{ item: source }">
-          <HoldButton
-            tip="Press and hold, or tap twice, to remove this feed"
-            verb="Remove"
-            class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-            :disabled="remove.isPending.value"
-            :aria-label="`Remove ${nameOf(source)}`"
-            @confirm="remove.mutate(source)"
-          >
-            <Icon name="remove" />
-          </HoldButton>
-        </template>
-      </ReorderableList>
-
+    <QueryState :query="sources" what="the feeds" loading="Loading feeds…">
       <form @submit.prevent="submitAddress">
         <TextField
           v-model="url"
@@ -186,16 +117,16 @@ function shortName(address: string) {
           autocapitalize="none"
           :spellcheck="false"
           required
-          hint="Paste an RSS or Atom link, or the address of a site that has one, for example https://example.com/feed. It goes at the end of the list."
+          hint="Paste an RSS link, or the address of a site that has one"
         />
         <button type="submit" class="btn btn-outline" :disabled="add.isPending.value">
-          {{ add.isPending.value ? 'Reading the feed…' : 'Add source' }}
+          {{ add.isPending.value ? 'Reading the feed…' : 'Add feed' }}
         </button>
       </form>
 
       <form
         v-if="choices.length"
-        class="mt-4 rounded-ctl border border-line bg-surface p-4"
+        class="my-4 rounded-ctl border border-line bg-surface p-4"
         @submit.prevent="addChosen.mutate(chosen)"
       >
         <fieldset>
@@ -254,14 +185,51 @@ function shortName(address: string) {
       <p v-if="add.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(add.error.value) }}
       </p>
+
+      <p v-if="!sources.data.value?.length" class="mt-6 text-ink-soft">
+        No feeds yet. Add one above.
+      </p>
+      <ul v-else class="panel mt-6 divide-y divide-line" aria-label="Your feeds">
+        <li v-for="source in sorted" :key="source.id" class="flex items-start gap-3 p-3">
+          <PublicationImage
+            :id="source.id"
+            :name="nameOf(source)"
+            :image-url="source.iconUrl"
+            :square="source.iconSquare"
+            size="sm"
+            kind="source"
+          />
+          <div class="min-w-0 flex-1">
+            <p class="break-words font-medium">{{ nameOf(source) }}</p>
+            <p v-if="source.description" class="line-clamp-2 break-words text-sm text-ink-soft">
+              {{ source.description }}
+            </p>
+            <p class="break-all text-xs text-ink-soft" :title="source.url">
+              {{ shortName(source.url) }}
+            </p>
+            <p v-if="source.lastError" class="text-sm text-danger">
+              We couldn’t read this feed on the last try. Open its recent posts for details, or
+              remove it.
+            </p>
+            <SourceItems :publication-id="publicationId" :source="source" :name="nameOf(source)" />
+          </div>
+          <HoldButton
+            tip="Press and hold, or tap twice, to remove this feed"
+            verb="Remove"
+            class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
+            :disabled="remove.isPending.value"
+            :aria-label="`Remove ${nameOf(source)}`"
+            @confirm="remove.mutate(source)"
+          >
+            <Icon name="remove" />
+          </HoldButton>
+        </li>
+      </ul>
       <p v-if="remove.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(remove.error.value) }}
       </p>
-      <p v-if="move.isError.value" role="alert" class="mt-2 text-danger">
-        {{ errorMessage(move.error.value) }}
-      </p>
     </QueryState>
-    <!-- Not role="status": the settings page already has one for "Saved", and pages should have one each. -->
+    <!-- Not role="status": the page already has one for "Saved", and pages should have one each. -->
     <p aria-live="polite" aria-atomic="true" class="sr-only">{{ notice }}</p>
   </section>
 </template>
