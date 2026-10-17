@@ -31,7 +31,7 @@ const props = defineProps<{
   draftId: string
   /** How many rounds this window allows: the writer's critique-looks setting. */
   rounds?: number
-  /** The passage has some words formatted differently from others, which what is used will replace as plain words. */
+  /** Only some of the passage's words are formatted (bold, italic, linked), so new wording goes in plain. */
   mixedFormatting?: boolean
   /** Runs before each request, to save the draft: the AI reads the saved draft. */
   prepare?: () => Promise<unknown>
@@ -172,8 +172,8 @@ function use() {
           {{ wordingIssue }}
         </p>
         <p v-if="mixedFormatting" class="mb-3 text-sm text-ink-soft">
-          Some of these words are formatted differently from others (bold, italic or a link). What
-          you use will replace them as plain words.
+          Some of these words are bold, italic or linked, and others aren't. Using new wording will
+          make them all plain.
         </p>
 
         <label for="rephrase-aim" class="mt-3 mb-1 block text-sm font-medium">

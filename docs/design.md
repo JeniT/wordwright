@@ -182,7 +182,7 @@ Rephrase (the button beside Save and Critique, enabled only while words inside o
 reason beside it when not) opens a **modal dialog** on top of the draft. It is built with `lib/modal.ts` (`useModal`,
 shared with `ConfirmDialog`): focus goes in (to the Aim, since the wording is filled in), Tab stays inside, Escape and
 Cancel close it, and focus returns to the Rephrase button. It is `max-w-2xl`, scrolls inside itself (`max-h-[90vh]`) and
-fits a 390px phone. Order, top to bottom: the **current wording** (editable), the **Aim** ("What should it do?"), the
+fits a 390px phone. Order, top to bottom: the **current wording** (editable; a line under it says when only some of the words are bold, italic or linked, because new wording goes in plain, #244), the **Aim** ("What should it do?"), the
 **Generate options** `AiButton` with "Round n of N" beside it and, in words, why it is disabled when it is, the options,
 then **Cancel** and **Use this**. Nothing leaves the window until Use this.
 

@@ -251,13 +251,25 @@ describe('EditorView: Rephrase', () => {
       })
       await renderAt('/p/p1/drafts/d1')
       const { dialog, use } = await replaceFirstSentence('Rivers wander as banks wear away.')
-      expect(within(dialog).queryByText(/formatted differently/)).toBeNull()
+      expect(within(dialog).queryByText(/others aren't/)).toBeNull()
       await use()
       expect(firstParagraphHtml()).toBe('<em>Rivers wander as banks wear away.</em>')
       await waitFor(async () => expect(await rephraseButton()).toBeDisabled()) // the cursor follows them; nothing is selected
       await waitFor(() =>
         expect(saved.at(-1)?.body).toContain('*Rivers wander as banks wear away.*'),
       )
+    })
+
+    it('ignores a space beside formatted words', async () => {
+      mockDraft(testUser, {
+        body: '*The river bends because the outside bank erodes faster.* It drifts.\n\nIt drifts across the valley.',
+      })
+      await renderAt('/p/p1/drafts/d1')
+      await select(1, 57) // the sentence and the space after it
+      await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+      await fireEvent.click(await rephraseButton())
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).queryByText(/others aren't/)).toBeNull()
     })
 
     it('keeps a link that covers all of the words', async () => {
@@ -278,7 +290,7 @@ describe('EditorView: Rephrase', () => {
       })
       await renderAt('/p/p1/drafts/d1')
       const { dialog, use } = await replaceFirstSentence('Rivers wander as banks wear away.')
-      expect(within(dialog).getByText(/formatted differently/)).toBeInTheDocument()
+      expect(within(dialog).getByText(/others aren't/)).toBeInTheDocument()
       await use()
       expect(firstParagraphHtml()).toBe('Rivers wander as banks wear away.')
     })

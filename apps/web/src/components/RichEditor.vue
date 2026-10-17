@@ -149,8 +149,12 @@ function marksInRange(from: number, to: number): readonly Mark[] | 'mixed' {
   if (!e) return []
   let shared: readonly Mark[] | null = null
   let mixed = false
-  e.state.doc.nodesBetween(from, to, (node) => {
+  e.state.doc.nodesBetween(from, to, (node, pos) => {
     if (!node.isText || mixed) return
+    // Only the selected part of the node counts, and spaces beside formatted words don't, or selecting "a word "
+    // would read as mixed.
+    const inside = node.text!.slice(Math.max(from - pos, 0), to - pos)
+    if (!inside.trim()) return
     if (shared === null) shared = node.marks
     else if (!Mark.sameSet(shared, node.marks)) mixed = true
   })
