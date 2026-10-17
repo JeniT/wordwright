@@ -566,6 +566,12 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE publication_site_icons ADD COLUMN square INTEGER CHECK (square IN (0, 1));
   ALTER TABLE publication_source_icons ADD COLUMN square INTEGER CHECK (square IN (0, 1));
   `,
+  // The square check now samples just inside the edge, so a logo with a faint border line counts as square. Flags
+  // worked out by the first rule are stale: clear them, and the startup backfill looks again.
+  `
+  UPDATE publication_site_icons SET square = NULL;
+  UPDATE publication_source_icons SET square = NULL;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

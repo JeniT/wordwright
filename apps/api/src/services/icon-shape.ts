@@ -5,6 +5,8 @@ import sharp from 'sharp'
 const MIN_SIDE = 64
 /** A corner this opaque counts as solid; a little under full tolerates anti-aliasing. */
 const OPAQUE = 250
+/** How far in from the edge the corners are sampled, as a share of the side (at least 2px). */
+const EDGE_MARGIN = 0.01
 const MAX_PIXELS = 2048 * 2048
 
 /**
@@ -34,12 +36,15 @@ async function rasterIsSquare(bytes: Buffer): Promise<boolean> {
 
 function cornersAreSolid(width: number, height: number, alphaAt: (x: number, y: number) => number) {
   if (width !== height || width < MIN_SIDE) return false
-  const last = width - 1
+  // Just inside the edge, not on it: a square logo often has a faint anti-aliased line along its border, but a rounded
+  // icon still has transparent corners a couple of pixels in unless its radius is too small to see.
+  const near = Math.max(2, Math.ceil(width * EDGE_MARGIN))
+  const far = width - 1 - near
   return [
-    [0, 0],
-    [last, 0],
-    [0, last],
-    [last, last],
+    [near, near],
+    [far, near],
+    [near, far],
+    [far, far],
   ].every(([x, y]) => alphaAt(x!, y!) >= OPAQUE)
 }
 

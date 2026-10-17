@@ -462,7 +462,7 @@ own rounded corners stop at its edge and never wrap someone else's artwork. The 
 hard-coded colour in the system, deliberately.
 
 The exception is an icon that is **square to its corners** (#226): the server checks, when it fetches the icon, that it is
-as wide as it is tall, at least 64px, and that all four corner pixels are opaque. Such an icon fills the plate (the frame
+as wide as it is tall, at least 64px, and that all four corners (sampled just inside the edge) are opaque. Such an icon fills the plate (the frame
 stays, no padding), since there is nothing to protect. Rounded or irregular icons, and small ones, stay contained as above.
 The flag is `siteIconSquare` on a publication and `iconSquare` on a source (feed); pass it as `site-icon-square` or `square`.
 

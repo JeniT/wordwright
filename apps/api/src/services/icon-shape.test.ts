@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import { isSquareIcon } from './icon-shape'
@@ -14,11 +16,15 @@ function raw(
   return sharp(data, { raw: { width: w, height: h, channels: 4 } })
 }
 const solid = (): [number, number, number, number] => [20, 120, 80, 255]
-/** Transparent corners, like a rounded icon. */
+/** Transparent corners, like a rounded icon (a quarter circle of a fifth of the side cut from each corner). */
 const rounded =
   (size: number) =>
-  (x: number, y: number): [number, number, number, number] =>
-    (x === 0 || x === size - 1) && (y === 0 || y === size - 1) ? [0, 0, 0, 0] : solid()
+  (x: number, y: number): [number, number, number, number] => {
+    const r = size / 5
+    const dx = Math.max(r - 0.5 - Math.min(x, size - 1 - x), 0)
+    const dy = Math.max(r - 0.5 - Math.min(y, size - 1 - y), 0)
+    return dx * dx + dy * dy > r * r ? [0, 0, 0, 0] : solid()
+  }
 
 /** A .ico with one entry holding `image` (a PNG), as many sites serve. */
 function icoWithPng(png: Buffer, w: number, h: number) {
@@ -71,15 +77,27 @@ describe('isSquareIcon', () => {
     expect(await isSquareIcon(png, 'image/png')).toBe(false)
   })
 
-  it('accepts anti-aliased corners that are nearly opaque, but not faint ones', async () => {
-    const nearly = await raw(64, 64, (x, y) => (x === 0 && y === 0 ? [20, 120, 80, 250] : solid()))
-      .png()
-      .toBuffer()
-    const faint = await raw(64, 64, (x, y) => (x === 0 && y === 0 ? [20, 120, 80, 249] : solid()))
-      .png()
-      .toBuffer()
+  it('accepts corners that are nearly opaque, but not faint ones', async () => {
+    const corner = (alpha: number) => (x: number, y: number) =>
+      x < 8 && y < 8 ? ([20, 120, 80, alpha] as [number, number, number, number]) : solid()
+    const nearly = await raw(64, 64, corner(250)).png().toBuffer()
+    const faint = await raw(64, 64, corner(249)).png().toBuffer()
     expect(await isSquareIcon(nearly, 'image/png')).toBe(true)
     expect(await isSquareIcon(faint, 'image/png')).toBe(false)
+  })
+
+  it('looks past a one-pixel translucent edge, which a square logo can have', async () => {
+    const edge = await raw(64, 64, (x, y) =>
+      x === 0 || y === 0 || x === 63 || y === 63 ? [20, 120, 80, 100] : solid(),
+    )
+      .png()
+      .toBuffer()
+    expect(await isSquareIcon(edge, 'image/png')).toBe(true)
+  })
+
+  it("is true for a real square logo whose edge is a translucent line (a site's favicon.ico)", () => {
+    const logo = readFileSync(join(__dirname, 'fixtures/square-logo-translucent-edge.ico'))
+    return expect(isSquareIcon(logo, 'image/x-icon')).resolves.toBe(true)
   })
 
   it('is false when it is not as wide as it is tall', async () => {

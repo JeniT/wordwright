@@ -1852,8 +1852,8 @@ personal-account repo; not checked). A staging branch tested in CI before `main`
 
 #177 drew every site icon contained on a light plate, never cropped. That is right for rounded or irregular icons, but a
 square one then looks small in its box. An icon now fills the box when it is **square to its corners**: as wide as it is
-tall, at least 64px a side (smaller would be blurry stretched), and all four corner pixels with alpha of 250 or more (a
-little under full tolerates anti-aliasing). The frame stays; everything else stays on the plate. Wrong answers are safe
+tall, at least 64px a side (smaller would be blurry stretched), and all four corners, sampled just inside the edge (2px in, or 1% of the side),
+with alpha of 250 or more (a little under full tolerates anti-aliasing). The frame stays; everything else stays on the plate. Wrong answers are safe
 ones (the plate), so anything unreadable counts as not square.
 
 It is checked **on the server when the icon is fetched** (`services/icon-shape.ts`) and stored as a flag next to the icon,
@@ -1883,3 +1883,9 @@ writer's own picture still wins over it.
 
 Rejected: fetching on every keystroke (needless visits to other people's sites) and a "Fetch icon" button for now (add one
 only if blur proves slow or flaky).
+
+**Amendment: sample just inside the edge.** A first real logo (a square with a one-pixel, half-transparent border line)
+failed the exact-corner check, because that line is faint at the corner pixel itself. The corners are now sampled 2px in
+(1% of the side for larger icons): a faint edge line is ignored, while a rounded icon still has transparent corners there.
+Only a rounded corner with a radius under about 7px at 256px would now read as square, which looks square anyway. The
+stored flags from the first rule were cleared by a migration, so the startup backfill recomputes them.
