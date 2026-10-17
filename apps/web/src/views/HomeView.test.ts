@@ -49,7 +49,7 @@ describe('landing page: connecting an AI key', () => {
           provider: 'anthropic',
           model: 'claude-sonnet-5-5',
           hasKey: saved,
-          keyHint: saved ? 'sk-ant-api03-A...7890' : null,
+          keyHint: saved ? 'sk-ant-api03-AbC...7890' : null,
         }),
       ),
       http.put('*/api/llm', async ({ request }) => {
@@ -59,7 +59,7 @@ describe('landing page: connecting an AI key', () => {
           provider: 'anthropic',
           model: 'claude-sonnet-5-5',
           hasKey: true,
-          keyHint: 'sk-ant-api03-A...7890',
+          keyHint: 'sk-ant-api03-AbC...7890',
         })
       }),
     )

@@ -50,7 +50,7 @@ describe('LLM settings', () => {
       provider: 'anthropic',
       model: 'claude-haiku-5-5',
       hasKey: true,
-      keyHint: 'sk-ant-good-ke...7890',
+      keyHint: 'sk-ant-good-key...7890',
     })
     // The key is checked by listing the models it can use, which spends no tokens (#206).
     expect(ctx.modelCalls).toHaveLength(1)
@@ -76,7 +76,7 @@ describe('LLM settings', () => {
     expect(stored.encryptedKey).not.toContain(GOOD_KEY)
     expect(stored.keyHint).toBe('…7890') // what is kept in clear
     // Shown the way the provider's console shows it: the start and the last four, never the middle.
-    expect((await (await client.get('/api/llm')).json()).keyHint).toBe('sk-ant-good-ke...7890')
+    expect((await (await client.get('/api/llm')).json()).keyHint).toBe('sk-ant-good-key...7890')
   })
 
   it('rejects a key the provider refuses, and saves nothing', async () => {
@@ -112,7 +112,7 @@ describe('LLM settings', () => {
     })
     expect(await (await client.get('/api/llm')).json()).toMatchObject({
       hasKey: true,
-      keyHint: 'sk-ant-good-ke...7890',
+      keyHint: 'sk-ant-good-key...7890',
     })
   })
 
@@ -129,7 +129,7 @@ describe('LLM settings', () => {
     expect(await res.json()).toMatchObject({
       model: 'claude-opus-5-5',
       hasKey: true,
-      keyHint: 'sk-ant-good-ke...7890',
+      keyHint: 'sk-ant-good-key...7890',
     })
     expect(ctx.llmCalls).toHaveLength(calls) // no provider call needed
   })
@@ -446,8 +446,13 @@ describe('using the key', () => {
 })
 
 describe('elide', () => {
-  it('keeps the first 14 characters and the last four', () => {
-    expect(elide('sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz1234')).toBe('sk-ant-api03-A...1234')
+  it('keeps up to three characters after the third hyphen, and the last four', () => {
+    expect(elide('sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz1234')).toBe('sk-ant-api03-AbC...1234')
+    expect(elide('sk-ant-usr-1VTxxxxxxxxxxxxxxxxxxxxxxxQgAA')).toBe('sk-ant-usr-1VT...QgAA')
+  })
+
+  it('shows only the end of a key with fewer than three hyphens', () => {
+    expect(elide('abcdefghijklmnopqrstuvwxyz1234')).toBe('…1234')
   })
 
   it('shows only the end of a key too short to hide a middle', () => {

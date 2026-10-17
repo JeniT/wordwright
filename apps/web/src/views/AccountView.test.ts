@@ -297,7 +297,7 @@ describe('AccountView: AI assistant key', () => {
       http.get('*/api/llm', () => HttpResponse.json(noKey)),
       http.put('*/api/llm', async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: 'sk-ant-api03-A...7890' })
+        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: 'sk-ant-api03-AbC...7890' })
       }),
     )
     await renderAt('/account/ai')
@@ -312,7 +312,7 @@ describe('AccountView: AI assistant key', () => {
     await fireEvent.click(save)
 
     // The saved key now shows, elided, in the empty field, with the way to keep it.
-    await screen.findByPlaceholderText('sk-ant-api03-A...7890')
+    await screen.findByPlaceholderText('sk-ant-api03-AbC...7890')
     expect(screen.getByText('Leave as is to keep the current one')).toBeInTheDocument()
     expect(sent).toEqual({ provider: 'anthropic', apiKey: 'sk-ant-secret-1234567890' })
     expect(screen.queryByDisplayValue(/sk-ant/)).toBeNull() // the field is cleared
@@ -329,7 +329,7 @@ describe('AccountView: AI assistant key', () => {
       }),
       http.put('*/api/llm', async ({ request }) => {
         await request.json()
-        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: 'sk-ant-api03-A...7890' })
+        return HttpResponse.json({ ...noKey, hasKey: true, keyHint: 'sk-ant-api03-AbC...7890' })
       }),
     )
     await renderAt('/account/ai')
@@ -339,7 +339,7 @@ describe('AccountView: AI assistant key', () => {
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-secret-1234567890')
     expect(save).toBeEnabled()
     await fireEvent.click(save)
-    await screen.findByPlaceholderText('sk-ant-api03-A...7890')
+    await screen.findByPlaceholderText('sk-ant-api03-AbC...7890')
   })
 
   it('shows why a key was refused', async () => {
@@ -365,7 +365,7 @@ describe('AccountView: AI assistant key', () => {
   it('lets a user keep their key and just change the model, or remove the key', async () => {
     let sent: unknown
     let removed = false
-    const saved = { ...noKey, hasKey: true, keyHint: 'sk-ant-api03-A...7890' }
+    const saved = { ...noKey, hasKey: true, keyHint: 'sk-ant-api03-AbC...7890' }
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
@@ -380,7 +380,7 @@ describe('AccountView: AI assistant key', () => {
       }),
     )
     await renderAt('/account/ai')
-    await screen.findByPlaceholderText('sk-ant-api03-A...7890')
+    await screen.findByPlaceholderText('sk-ant-api03-AbC...7890')
     const model = await screen.findByLabelText('Model')
     // The provider's own names, not ours.
     expect(
@@ -404,7 +404,7 @@ describe('AccountView: the model', () => {
     provider: 'anthropic',
     model: 'claude-opus-5-5',
     hasKey: true,
-    keyHint: 'sk-ant-api03-A...7890',
+    keyHint: 'sk-ant-api03-AbC...7890',
   }
 
   it('shows the current model and a way to try again when the list will not load', async () => {
@@ -447,7 +447,7 @@ describe('AccountView: replacing a key while the saved model is retired', () => 
       provider: 'anthropic',
       model: 'claude-retired-1',
       hasKey: true,
-      keyHint: 'sk-ant-api03-A...7890',
+      keyHint: 'sk-ant-api03-AbC...7890',
     }
     server.use(
       signedInAs(testUser),

@@ -365,7 +365,7 @@ logged (user id and error code only, never the link).
 There is deliberately **no server-wide LLM key**: each user saves their own Anthropic API key under
 _Account → AI assistant_, so usage is billed to them. Keys are checked with a 1-token call before
 being saved, encrypted with AES-256-GCM (bound to the user, so a copied ciphertext won't decrypt for
-anyone else), shown back only with its middle left out, as `sk-ant-api03-A...1234` (the start and last four, as Anthropic's console does; worked out when asked, not stored), and deleted with the account. Requests in a shared publication
+anyone else), shown back only with its middle left out, as `sk-ant-api03-AbC...1234` (cut where Anthropic's console cuts it, plus the last four; worked out when asked, not stored), and deleted with the account. Requests in a shared publication
 run on the _requester's_ key.
 
 - `KEY_ENCRYPTION_SECRET` (32+ chars, required in production) encrypts the keys. **Back it up**: if it's

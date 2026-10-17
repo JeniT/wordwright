@@ -454,7 +454,7 @@ describe('a member asked to review', () => {
           provider: 'anthropic',
           model: 'claude-sonnet-5-5',
           hasKey: true,
-          keyHint: 'sk-ant-api03-A...7890',
+          keyHint: 'sk-ant-api03-AbC...7890',
         }),
       ),
       http.get('*/api/reviews', () =>

@@ -55,8 +55,8 @@ export class LlmKeyService {
   }
 
   /**
-   * The key as the provider's own console shows it, start and end with the middle left out (`sk-ant-api03-Ab…`
-   * becomes `sk-ant-api03-A...xYzQ`), so the person can tell which key is saved. Worked out from the stored key
+   * The key as the provider's own console shows it, start and end with the middle left out (`sk-ant-api03-AbCdEf…`
+   * becomes `sk-ant-api03-AbC...xYzQ`), so the person can tell which key is saved. Worked out from the stored key
    * when asked, so keys saved before this existed show it too; if the key can't be read, the stored last four.
    */
   private hint(userId: string, stored: StoredLlmCredential): string {
@@ -200,8 +200,17 @@ export class LlmKeyService {
 const offered = (models: LLMModelInfo[], current: string | undefined) =>
   models.filter((m) => m.latest || m.id === current)
 
-/** The first 14 characters (enough to show the kind of key, `sk-ant-api03-A`), then the last four. */
-export const elide = (key: string) =>
-  key.length <= 18 ? `…${key.slice(-4)}` : `${key.slice(0, 14)}...${key.slice(-4)}`
+/**
+ * Cut where the provider's console does: after the third character following the third hyphen (`sk-ant-api03-AbC`),
+ * then the last four. A key too short or oddly formed to hide a middle shows only its last four.
+ */
+export const elide = (key: string) => {
+  let hyphens = 0
+  const third = [...key].findIndex((c) => c === '-' && ++hyphens === 3)
+  const keep = third < 0 ? -1 : third + 1 + 3
+  return keep < 0 || keep + 4 >= key.length
+    ? `…${key.slice(-4)}`
+    : `${key.slice(0, keep)}...${key.slice(-4)}`
+}
 
 const context = (userId: string, provider: string) => `llm-key:${userId}:${provider}`

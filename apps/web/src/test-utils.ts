@@ -49,7 +49,7 @@ export const server = setupServer(
       provider: 'anthropic',
       model: 'claude-sonnet-5-5',
       hasKey: true,
-      keyHint: 'sk-ant-api03-A...7890',
+      keyHint: 'sk-ant-api03-AbC...7890',
     }),
   ),
   // The models the provider offers the saved key (the account page lists them).
@@ -137,7 +137,7 @@ export const llmSettings = (hasKey: boolean) =>
       provider: 'anthropic',
       model: 'claude-sonnet-5-5',
       hasKey,
-      keyHint: hasKey ? 'sk-ant-api03-A...7890' : null,
+      keyHint: hasKey ? 'sk-ant-api03-AbC...7890' : null,
     }),
   )
 
