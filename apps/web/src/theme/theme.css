@@ -295,8 +295,11 @@
   &:hover:not(:disabled) {
     border-color: var(--color-ink);
   }
-  &:focus {
-    border-color: var(--color-accent);
+  /* The border itself turns to the focus colour instead of adding a ring outside it. The outline stays
+     (transparent) so forced-colours mode still draws one. */
+  &:focus-visible {
+    border-color: var(--color-focus);
+    outline-color: transparent;
   }
   &:disabled {
     background: var(--color-sunken);
