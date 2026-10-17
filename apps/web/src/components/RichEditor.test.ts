@@ -60,7 +60,6 @@ describe('RichEditor toolbar', () => {
     ])
     const styles = within(toolbar).getByRole('group', { name: 'Text style' })
     expect(within(styles).getAllByRole('button')).toHaveLength(3)
-    expect(button('Heading 2')).toHaveAttribute('title', expect.stringMatching(/^Heading 2 \(/))
   })
 
   it('has no toolbar for someone who may only read the draft', async () => {
@@ -133,6 +132,7 @@ describe('RichEditor toolbar', () => {
     await fireEvent.click(more)
     expect(more).toHaveAttribute('aria-expanded', 'true')
     const menu = screen.getByRole('group', { name: 'More formatting' })
+    await waitFor(() => expect(within(menu).getAllByRole('button')[0]).toHaveFocus()) // into the menu
     expect(within(menu).getByRole('button', { name: 'Link' })).toBeInTheDocument()
     await fireEvent.keyDown(more, { key: 'Escape' })
     expect(screen.queryByRole('group', { name: 'More formatting' })).toBeNull()
@@ -146,6 +146,7 @@ describe('RichEditor in Markdown mode', () => {
     expect(box().value).toBe('Some **bold** words')
     expect(screen.queryByRole('button', { name: 'Bold' })).toBeNull() // the formatting buttons are hidden
     expect(button('Edit as Markdown')).toHaveAttribute('aria-pressed', 'true')
+    expect(button('Edit as Markdown').tabIndex).toBe(0) // the toggle is the bar's tab stop, so the keyboard can reach it
     await fireEvent.update(box(), 'Some **bold** words and a [link](https://example.com)')
     expect(state.markdown).toBe('Some **bold** words and a [link](https://example.com)')
   })

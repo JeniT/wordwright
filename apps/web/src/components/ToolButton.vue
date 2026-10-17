@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { vTip } from '../lib/tip'
 import Icon from './Icon.vue'
 
-/** One icon-only button of an editor toolbar: named by its label, with a tooltip, and pressed when it is on. */
+/** One icon-only button of an editor toolbar: named by its label, with a tooltip (`v-tip`), and pressed when it is on. */
 defineProps<{
   label: string
   title: string
@@ -21,7 +22,7 @@ defineEmits<{ press: [] }>()
     type="button"
     class="btn btn-sm btn-icon btn-ghost"
     :aria-label="label"
-    :title="title"
+    v-tip="title"
     :aria-pressed="popup === 'true' ? undefined : pressed"
     :aria-haspopup="popup"
     :aria-expanded="popup === 'true' ? expanded : undefined"

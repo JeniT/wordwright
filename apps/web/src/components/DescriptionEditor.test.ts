@@ -53,7 +53,6 @@ describe('DescriptionEditor', () => {
       'Link',
     ])
     expect(buttons.every((b) => b.textContent?.trim() === '')).toBe(true) // icons only
-    expect(buttons[0]).toHaveAttribute('title', expect.stringMatching(/^Bold \((Ctrl|⌘)\+B\)$/))
     expect(buttons.map((b) => b.tabIndex)).toEqual([0, -1, -1, -1, -1]) // one tab stop
   })
 

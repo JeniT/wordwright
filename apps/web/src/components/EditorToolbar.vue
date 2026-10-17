@@ -33,11 +33,12 @@ function measure() {
   const width = bar.value?.clientWidth ?? 0
   if (!width) return // not laid out (or not in a browser): show everything
   const toggle = props.markdownToggle ? SLOT : 0
+  const grouped = props.tools.some((name) => TOOLS[name].group) ? 8 : 0 // a group's border and padding
   const all = props.tools.length
   fitting.value =
-    all * SLOT + toggle <= width
+    all * SLOT + toggle + grouped <= width
       ? null
-      : Math.max(1, Math.floor((width - toggle - SLOT - 12) / SLOT))
+      : Math.max(1, Math.floor((width - toggle - grouped - SLOT - 12) / SLOT))
 }
 let observer: ResizeObserver | undefined
 onMounted(() => {
@@ -61,12 +62,20 @@ function chunks(names: ToolName[]): { group?: string; names: ToolName[] }[] {
 }
 
 const active = (tool: Tool) => !!props.editor && tool.isActive(props.editor)
+/** What a tool's button shows: the same wherever it sits (the bar, a group or the More menu). */
+const toolProps = (name: ToolName) => ({
+  label: TOOLS[name].label,
+  title: toolTitle(TOOLS[name]),
+  icon: TOOLS[name].icon,
+  pressed: active(TOOLS[name]),
+  popup: name === 'link' ? ('dialog' as const) : undefined,
+})
 
 // ---- the one tab stop
 const roving = ref('')
 const order = computed(() => [
-  ...shown.value,
-  ...(hidden.value.length ? ['more'] : []),
+  // In Markdown mode the formatting buttons are not there, so the toggle is the bar's tab stop.
+  ...(markdownMode.value ? [] : [...shown.value, ...(hidden.value.length ? ['more'] : [])]),
   ...(props.markdownToggle ? ['markdown'] : []),
 ])
 const tabStop = computed(() => (order.value.includes(roving.value) ? roving.value : order.value[0]))
@@ -93,7 +102,7 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault()
   bar.value?.querySelector<HTMLElement>(`[data-roving="${order.value[next]}"]`)?.focus()
 }
-const stop = (key: string) => ({
+const rovingProps = (key: string) => ({
   'data-roving': key,
   tabindex: tabindexOf(key),
   onFocus: () => (roving.value = key),
@@ -101,6 +110,16 @@ const stop = (key: string) => ({
 
 // ---- the More menu
 const moreOpen = ref(false)
+function toggleMore() {
+  moreOpen.value = !moreOpen.value
+  // Into the menu, so the keyboard follows what it opened.
+  if (moreOpen.value)
+    nextTick(() =>
+      bar.value
+        ?.querySelector<HTMLElement>('[role="group"][aria-label="More formatting"] button')
+        ?.focus(),
+    )
+}
 function closeMore(refocus: boolean) {
   moreOpen.value = false
   if (refocus)
@@ -175,11 +194,7 @@ function removeLink() {
             <ToolButton
               v-for="name in chunk.names"
               :key="name"
-              :label="TOOLS[name].label"
-              :title="toolTitle(TOOLS[name])"
-              :icon="TOOLS[name].icon"
-              :pressed="active(TOOLS[name])"
-              v-bind="stop(name)"
+              v-bind="{ ...toolProps(name), ...rovingProps(name) }"
               @press="press(name)"
             />
           </span>
@@ -187,12 +202,7 @@ function removeLink() {
             <ToolButton
               v-for="name in chunk.names"
               :key="name"
-              :label="TOOLS[name].label"
-              :title="toolTitle(TOOLS[name])"
-              :icon="TOOLS[name].icon"
-              :pressed="active(TOOLS[name])"
-              :popup="name === 'link' ? 'dialog' : undefined"
-              v-bind="stop(name)"
+              v-bind="{ ...toolProps(name), ...rovingProps(name) }"
               @press="press(name)"
             />
           </template>
@@ -207,8 +217,8 @@ function removeLink() {
             popup="true"
             :expanded="moreOpen"
             :aria-controls="`${barId}-more`"
-            v-bind="stop('more')"
-            @press="moreOpen = !moreOpen"
+            v-bind="rovingProps('more')"
+            @press="toggleMore"
           />
           <div
             v-if="moreOpen"
@@ -220,11 +230,7 @@ function removeLink() {
             <ToolButton
               v-for="name in hidden"
               :key="name"
-              :label="TOOLS[name].label"
-              :title="toolTitle(TOOLS[name])"
-              :icon="TOOLS[name].icon"
-              :pressed="active(TOOLS[name])"
-              :popup="name === 'link' ? 'dialog' : undefined"
+              v-bind="toolProps(name)"
               @press="press(name)"
             />
           </div>
@@ -238,7 +244,7 @@ function removeLink() {
         title="Edit as Markdown"
         icon="markdown"
         :pressed="markdownMode"
-        v-bind="stop('markdown')"
+        v-bind="rovingProps('markdown')"
         @press="markdownMode = !markdownMode"
       />
     </div>

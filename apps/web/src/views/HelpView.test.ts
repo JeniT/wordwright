@@ -1,5 +1,6 @@
 import { fireEvent, screen, within } from '@testing-library/vue'
 import { describe, expect, it } from 'vitest'
+import { TOOLS } from '../lib/editor-tools'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 import { http, HttpResponse } from 'msw'
 
@@ -135,7 +136,12 @@ describe('Help', () => {
     ).toBeVisible()
     const main = screen.getByRole('main')
     expect(within(main).getByText(/Edit as Markdown/)).toBeInTheDocument()
-    expect(within(main).getByText(/Ctrl\+B/)).toBeInTheDocument()
+    // The shortcuts it lists are the ones on the buttons' tooltips.
+    for (const tool of Object.values(TOOLS)) {
+      if (tool.shortcut) {
+        expect(main.textContent, tool.label).toContain(tool.shortcut.replace('Mod', 'Ctrl'))
+      }
+    }
     expect(within(main).getByText(/Comments from a critique can’t be shown/)).toBeInTheDocument()
   })
 })
