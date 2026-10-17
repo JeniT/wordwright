@@ -180,7 +180,7 @@ function removeLink() {
       ref="bar"
       role="toolbar"
       aria-label="Formatting"
-      class="relative flex items-center gap-1"
+      class="relative flex items-center gap-1 overflow-x-clip"
       @keydown="onKeydown"
     >
       <template v-if="!markdownMode">
