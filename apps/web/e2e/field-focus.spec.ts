@@ -15,3 +15,14 @@ test('a field keeps its focus border while the pointer is over it', async ({ pag
   await expect(first).toBeFocused()
   expect(await border(first)).not.toBe(hoverOnly)
 })
+
+test('an invalid field keeps its error border while the pointer is over it', async ({ page }) => {
+  await page.goto('/register')
+  const field = page.locator('input.field').first()
+  await field.evaluate((e) => e.setAttribute('aria-invalid', 'true'))
+  const border = () => field.evaluate((e) => getComputedStyle(e).borderTopColor)
+  await page.mouse.move(0, 0)
+  const atRest = await border()
+  await field.hover()
+  expect(await border()).toBe(atRest)
+})

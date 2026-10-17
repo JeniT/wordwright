@@ -292,8 +292,8 @@
   &::placeholder {
     color: var(--color-ink-soft);
   }
-  /* Not while focused: `:hover:not(...)` outranks the focus rule below, so a hovered, focused field kept this border. */
-  &:hover:not(:disabled, :focus-visible) {
+  /* Not while focused: `:hover:not(...)` outranks the focus rule below, so a hovered, focused field kept this border. An invalid field keeps its error border. */
+  &:hover:not(:disabled, :focus-visible, [aria-invalid='true']) {
     border-color: var(--color-ink);
   }
   /* The border itself turns to the focus colour instead of adding a ring outside it. The outline stays
