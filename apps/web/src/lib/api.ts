@@ -62,6 +62,7 @@ import {
   type PublicationRole,
   type PublicationDescriptionInput,
   type PublicationUpdate,
+  SiteIconPreviewSchema,
   type RegisterInput,
   type RephraseRequest,
   type SendMessageInput,
@@ -195,6 +196,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     getPublication: (id: string) => get(PublicationSchema, 'GET', `/publications/${id}`),
     createPublication: (input: PublicationInput) =>
       get(PublicationSchema, 'POST', '/publications', input),
+    previewSiteIcon: (siteUrl: string) =>
+      get(SiteIconPreviewSchema, 'POST', '/publications/site-icon-preview', { siteUrl }),
     updatePublication: (id: string, changes: PublicationUpdate) =>
       get(PublicationSchema, 'PATCH', `/publications/${id}`, changes),
     setPublicationDescription: (id: string, input: PublicationDescriptionInput) =>

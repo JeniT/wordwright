@@ -236,6 +236,99 @@ describe('new publication', () => {
   })
 })
 
+describe('the website icon on the new publication form (#224)', () => {
+  const iconUrl = 'data:image/png;base64,AAAA'
+  const setUp = (answer: () => Response | Promise<Response>) => {
+    const asked: string[] = []
+    server.use(
+      signedInAs(testUser),
+      listPublications([]),
+      noIdeas,
+      http.post('*/api/publications/site-icon-preview', async ({ request }) => {
+        asked.push(((await request.json()) as { siteUrl: string }).siteUrl)
+        return answer()
+      }),
+    )
+    return asked
+  }
+  const shown = () => document.querySelector('img[src^="data:"]')
+
+  it('shows the icon when the person leaves the website field, before anything is saved', async () => {
+    const asked = setUp(() => HttpResponse.json({ iconUrl, square: false }))
+    await renderAt('/publications/new')
+    const website = await screen.findByLabelText(/Website/)
+    await fireEvent.update(website, 'ada.substack.com')
+    expect(asked).toEqual([]) // not while typing
+    await fireEvent.focusOut(website)
+    await waitFor(() => expect(shown()).toHaveAttribute('src', iconUrl))
+    expect(asked).toEqual(['ada.substack.com'])
+    // Leaving again without changing it asks nothing more.
+    await fireEvent.focusOut(website)
+    expect(asked).toHaveLength(1)
+  })
+
+  it('stays quiet when there is no icon or the look fails, and drops it when the address is cleared', async () => {
+    const answers = [
+      () => HttpResponse.json({ iconUrl: null, square: false }),
+      () => HttpResponse.json({ error: 'nope' }, { status: 429 }),
+      () => HttpResponse.json({ iconUrl, square: true }),
+    ]
+    setUp(() => answers.shift()!())
+    await renderAt('/publications/new')
+    const website = await screen.findByLabelText(/Website/)
+    await fireEvent.update(website, 'one.example')
+    await fireEvent.focusOut(website)
+    await fireEvent.update(website, 'two.example')
+    await fireEvent.focusOut(website)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(shown()).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    await fireEvent.update(website, 'three.example')
+    await fireEvent.focusOut(website)
+    await waitFor(() => expect(shown()).not.toBeNull())
+    await fireEvent.update(website, '')
+    await fireEvent.focusOut(website)
+    await waitFor(() => expect(shown()).toBeNull())
+  })
+
+  it('never lets a slow answer for an earlier address replace the current one', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((r) => (release = r))
+    let calls = 0
+    setUp(async () => {
+      if (++calls === 1) {
+        await gate
+        return HttpResponse.json({ iconUrl: 'data:image/png;base64,OLD', square: false })
+      }
+      return HttpResponse.json({ iconUrl: 'data:image/png;base64,NEW', square: false })
+    })
+    await renderAt('/publications/new')
+    const website = await screen.findByLabelText(/Website/)
+    await fireEvent.update(website, 'old.example')
+    await fireEvent.focusOut(website)
+    await fireEvent.update(website, 'new.example')
+    await fireEvent.focusOut(website)
+    await waitFor(() => expect(shown()).toHaveAttribute('src', 'data:image/png;base64,NEW'))
+    release()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(shown()).toHaveAttribute('src', 'data:image/png;base64,NEW')
+  })
+
+  it('lets a picture the writer chooses win over the icon', async () => {
+    setUp(() => HttpResponse.json({ iconUrl, square: false }))
+    URL.createObjectURL = () => 'blob:own'
+    await renderAt('/publications/new')
+    const website = await screen.findByLabelText(/Website/)
+    await fireEvent.update(website, 'ada.substack.com')
+    await fireEvent.focusOut(website)
+    await waitFor(() => expect(shown()).not.toBeNull())
+    const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' })
+    await fireEvent.change(screen.getByLabelText(/Picture/), { target: { files: [file] } })
+    await waitFor(() => expect(shown()).toBeNull())
+  })
+})
+
 describe('publication page', () => {
   it('shows the publication and links out to its website', async () => {
     server.use(signedInAs(testUser), listPublications([substack]), noIdeas)
@@ -330,6 +423,27 @@ describe('publication description', () => {
 })
 
 describe('publication settings', () => {
+  it('shows the icon of a changed website before saving it (#224)', async () => {
+    let asked = 0
+    server.use(
+      signedInAs(testUser),
+      listPublications([substack]),
+      http.post('*/api/publications/site-icon-preview', () => {
+        asked++
+        return HttpResponse.json({ iconUrl: 'data:image/png;base64,AAAA', square: false })
+      }),
+    )
+    await renderAt('/p/adalovelace-substack/settings')
+    const website = await screen.findByLabelText('Website')
+    // The saved address is not looked up again: its icon is already shown under Picture.
+    await fireEvent.focusOut(website)
+    expect(asked).toBe(0)
+    await fireEvent.update(website, 'https://other.example')
+    await fireEvent.focusOut(website)
+    expect(await screen.findByText('Icon found for this address')).toBeInTheDocument()
+    expect(asked).toBe(1)
+  })
+
   it('lets the owner change the name and website, showing the address as stored', async () => {
     let sent: unknown
     server.use(

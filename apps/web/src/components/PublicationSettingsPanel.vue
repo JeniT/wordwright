@@ -3,6 +3,7 @@ import type { Publication } from '@wordwright/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useSiteIconPreview } from '../lib/site-icon-preview'
 import { api, errorMessage } from '../lib/api'
 import { displayHost } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
@@ -34,6 +35,7 @@ const isOwner = computed(() => props.publication.role === 'owner')
 // ---- details
 const name = ref(props.publication.name)
 const siteUrl = ref(props.publication.siteUrl ?? '')
+const siteIcon = useSiteIconPreview()
 const saveDetails = useMutation({
   mutationFn: () =>
     api.updatePublication(props.publication.id, {
@@ -41,6 +43,7 @@ const saveDetails = useMutation({
       siteUrl: siteUrl.value.trim() || null,
     }),
   onSuccess: async (saved) => {
+    siteIcon.look('') // the saved icon is shown in Picture now
     siteUrl.value = saved.siteUrl ?? '' // shows the address as stored, e.g. with https:// added
     if (saved.id !== props.publication.id) {
       // The new name gave the publication a new address. Until the page has moved there, the list
@@ -108,7 +111,19 @@ const deletePublication = useMutation({
           label="Website"
           autocomplete="off"
           hint="Where it gets published, for example https://yourname.substack.com. Leave empty for none."
+          @focusout="siteIcon.look(siteUrl, publication.siteUrl)"
         />
+        <p v-if="siteIcon.icon.value" class="meta -mt-2 mb-4 flex items-center gap-2">
+          <PublicationImage
+            :id="publication.id"
+            :name="publication.name"
+            kind="source"
+            :image-url="siteIcon.icon.value.iconUrl"
+            :square="siteIcon.icon.value.square"
+            size="xs"
+          />
+          Icon found for this address
+        </p>
         <div class="flex flex-wrap items-center gap-3">
           <button type="submit" class="btn btn-primary" :disabled="saveDetails.isPending.value">
             {{ saveDetails.isPending.value ? 'Saving…' : 'Save details' }}

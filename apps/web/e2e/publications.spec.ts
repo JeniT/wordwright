@@ -70,6 +70,9 @@ test("shows the website's icon when there is no picture, and the person's own pi
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Garden notes')
   await page.getByLabel(/Website/).fill('garden.example')
+  // Leaving the field shows the icon at once, before anything is created.
+  await page.getByLabel('Publication name', { exact: true }).focus()
+  await expect(page.locator('main img[src^="data:image/"]')).toBeVisible()
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(/garden-notes$/)
   const icon = page.getByRole('banner').locator('img').filter({ visible: true }).first()

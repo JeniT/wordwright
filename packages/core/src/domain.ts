@@ -201,6 +201,18 @@ export const PublicationInputSchema = z.object({
   siteUrl: SiteUrlSchema.nullish(),
 })
 export type PublicationInput = z.infer<typeof PublicationInputSchema>
+/**
+ * A look at what a website's icon would be, before anything is saved (#224). The icon comes back as a data URL, for
+ * showing only: creating or updating a publication fetches it again, so what is stored never comes from the client.
+ */
+export const SiteIconPreviewInputSchema = z.object({ siteUrl: SiteUrlSchema })
+export type SiteIconPreviewInput = z.infer<typeof SiteIconPreviewInputSchema>
+export const SiteIconPreviewSchema = z.object({
+  iconUrl: z.string().nullable(),
+  /** Square to its corners, so it would fill the picture's box (#226). */
+  square: z.boolean(),
+})
+export type SiteIconPreview = z.infer<typeof SiteIconPreviewSchema>
 /** Omitted fields are left alone; `siteUrl: null` clears it. */
 export const PublicationUpdateSchema = z.object({
   name: NameSchema.optional(),

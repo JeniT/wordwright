@@ -7,6 +7,7 @@ import ImageField from '../components/ImageField.vue'
 import PublicationImage from '../components/PublicationImage.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
+import { useSiteIconPreview } from '../lib/site-icon-preview'
 
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -24,6 +25,8 @@ function pick(file: File) {
   preview.value = URL.createObjectURL(file)
 }
 onBeforeUnmount(() => preview.value && URL.revokeObjectURL(preview.value))
+
+const siteIcon = useSiteIconPreview()
 
 const create = useMutation({
   mutationFn: async () => {
@@ -69,13 +72,21 @@ const create = useMutation({
         label="Website (optional)"
         autocomplete="off"
         hint="Where it gets published, for example https://yourname.substack.com."
+        @focusout="siteIcon.look(siteUrl)"
       />
       <Explain label="About the website" class="-mt-2 mb-4">
         We fetch the site’s icon from this address and use it until you add a picture.
       </Explain>
 
       <div class="mb-6 flex items-center gap-4">
-        <PublicationImage id="preview" :name="name || '?'" :image-url="preview" size="lg" />
+        <PublicationImage
+          id="preview"
+          :name="name || '?'"
+          :image-url="preview"
+          :site-icon-url="siteIcon.icon.value?.iconUrl"
+          :site-icon-square="siteIcon.icon.value?.square"
+          size="lg"
+        />
         <div class="flex-1">
           <ImageField
             label="Picture (optional)"

@@ -643,6 +643,62 @@ describe('several owners', () => {
   })
 })
 
+describe('site icon preview (#224)', () => {
+  const preview = (client: TestClient, siteUrl: string) =>
+    client.post('/api/publications/site-icon-preview', { siteUrl })
+
+  it('shows the icon for an address that is not saved yet, and saves nothing', async () => {
+    const feeds = new FakeFeedFetcher({}, () => ({ icon: 'square' }))
+    const ctx = setup({ feeds })
+    const ada = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    const before = await (await ada.get('/api/publications')).json()
+
+    const res = await preview(ada, 'garden.example')
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.iconUrl).toMatch(/^data:image\/png;base64,/)
+    expect(body.square).toBe(true)
+    expect(feeds.iconsFetched).toEqual(['https://garden.example'])
+    expect(await (await ada.get('/api/publications')).json()).toEqual(before)
+  })
+
+  it('says there is no icon, rather than failing, when the site has none or cannot be reached', async () => {
+    const feeds = new FakeFeedFetcher({})
+    const none = setup({ feeds })
+    const ada = none.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    expect(await (await preview(ada, 'https://plain.example/')).json()).toEqual({
+      iconUrl: null,
+      square: false,
+    })
+    vi.spyOn(feeds, 'fetchIcon').mockRejectedValue(new Error('network down'))
+    expect((await preview(ada, 'https://down.example/')).status).toBe(200)
+  })
+
+  it('needs a sign-in and a plausible web address', async () => {
+    const feeds = new FakeFeedFetcher({})
+    const ctx = setup({ feeds })
+    expect((await preview(ctx.client(), 'https://garden.example/')).status).toBe(401)
+    const ada = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    expect((await preview(ada, 'javascript:1')).status).toBe(400)
+    expect((await ada.post('/api/publications/site-icon-preview', {})).status).toBe(400)
+    expect(feeds.iconsFetched).toEqual([])
+  })
+
+  it('is throttled like adding a feed, because each look makes the server visit a site', async () => {
+    const ctx = setup({ feeds: new FakeFeedFetcher({}) })
+    const ada = ctx.client()
+    await register(ada, 'ada@example.com', 'Ada')
+    const statuses: number[] = []
+    for (let i = 0; i < 40; i++)
+      statuses.push((await preview(ada, `https://s${i}.example/`)).status)
+    expect(statuses).toContain(429)
+    expect(statuses[0]).toBe(200)
+  })
+})
+
 describe('publication site icon', () => {
   let ctx: ReturnType<typeof setup>
   let fetcher: FakeFeedFetcher

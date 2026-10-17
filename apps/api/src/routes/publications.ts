@@ -8,6 +8,8 @@ import {
   MemberRoleInputSchema,
   PublicationDescriptionInputSchema,
   PublicationInputSchema,
+  SiteIconPreviewInputSchema,
+  type SiteIconPreview,
   PublicationUpdateSchema,
 } from '@wordwright/core'
 import { requireMember, type AppEnv } from '../auth/middleware'
@@ -93,6 +95,23 @@ export function publicationRoutes({
   return (
     new Hono<AppEnv>()
       .get('/', (c) => c.json(store.publications.listForUser(c.get('user').id)))
+
+      // What a website's icon would be, for the form to show before anything is saved (#224). It only looks: nothing is
+      // stored, and saving fetches again. Throttled like the other places a person's typing sends the server out.
+      .post('/site-icon-preview', validateJson(SiteIconPreviewInputSchema), async (c) => {
+        const user = c.get('user')
+        if (!feedLimiter.allow(user.id)) {
+          throw fail(429, 'Too many attempts. Try again in a little while.')
+        }
+        const icon = await fetchSiteIcon(feeds, c.req.valid('json').siteUrl)
+        const preview: SiteIconPreview = icon
+          ? {
+              iconUrl: `data:${icon.contentType};base64,${Buffer.from(icon.data).toString('base64')}`,
+              square: icon.square,
+            }
+          : { iconUrl: null, square: false }
+        return c.json(preview)
+      })
 
       .post('/', validateJson(PublicationInputSchema), async (c) => {
         const user = c.get('user')

@@ -1866,3 +1866,20 @@ mask). A JPEG has no transparency, so it is square when its sides match.
 Icons stored before the flag have it null and are shown on the plate; `backfillIconShapes` records it in the background
 at startup, and is a no-op once done. Rejected: checking in the browser with a canvas (work on every display, and not
 shared with the feed icons) and a library for ICO (one more dependency for a short parser).
+
+## The website's icon is shown before saving (#224)
+
+The site icon (#177) used to appear only after a publication was created or its website changed. Now the website field
+looks the icon up when the person **leaves** it (blur, not each keystroke, and no button: the page does the step), and
+shows it in the picture tile of the new publication form; in the settings, a small "Icon found for this address" line
+under the field appears for an address that differs from the saved one (the saved icon is already shown under Picture).
+
+`POST /api/publications/site-icon-preview` takes `{ siteUrl }` and answers `{ iconUrl, square }`, where `iconUrl` is a
+data URL (or null). It only looks: nothing is stored, and creating or saving fetches the icon again on the server, so
+**what is stored never comes from the client**. It reuses `fetchSiteIcon` (same address guard, 5-second timeout, size and
+type rules) and the feed throttle (30 an hour per person), answering 429 past it. Silence is the failure mode: no icon,
+an error or a throttle just leaves the tile as it was. A reply for an address that has since changed is dropped. The
+writer's own picture still wins over it.
+
+Rejected: fetching on every keystroke (needless visits to other people's sites) and a "Fetch icon" button for now (add one
+only if blur proves slow or flaky).
