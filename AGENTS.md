@@ -248,14 +248,17 @@ Each kind of page gets one review of every word on it, filed as an issue labelle
   sessions' unpushed commits. Never publish it; publish your own branch. Run these as **separate commands**, reading
   each result before the next:
   1. `git fetch origin`, then `node scripts/rebase-overlap.mjs` (it must run _before_ the rebase, while it can still
-     see what is coming in), then `git rebase origin/main` in your worktree (not `main`, which may be ahead with
-     someone else's unpushed work). Resolve conflicts, keeping the other session's changes.
-  2. Decide what to rerun. CI on `main` is the final gate, so a clean rebase doesn't earn a full rerun:
-     - The script said `no overlap`, the rebase had no conflicts, and nothing in `package.json`/the lockfile moved: run
-       `pnpm check` narrowly (the tests of the packages you changed, as in _Test narrowly_), then push.
-     - The script said `overlap`, or the rebase conflicted: rerun `pnpm check`, `pnpm build` and `pnpm test:e2e` on
-       the rebased branch.
-     - The branch was already up to date: nothing has changed since your last green run, so skip this.
+     see what is coming in; it exits 1 when there is overlap, which is an answer, not a failure: note it and carry on),
+     then `git rebase origin/main` in your worktree (not `main`, which may be ahead with someone else's unpushed
+     work). Resolve conflicts, keeping the other session's changes.
+  2. Decide what to rerun, using the script's answer from step 1. CI on `main` is the final gate, so a clean rebase
+     doesn't earn a full rerun:
+     - The rebase said the branch was already up to date: nothing has changed since your last green run, so skip this.
+     - The script said `overlap` (it also counts changes to shared files such as `domain.ts`, `package.json` and the
+       lockfile; the list is `SHARED_SPOTS` in the script), or the rebase conflicted: rerun `pnpm check`,
+       `pnpm build` and `pnpm test:e2e` on the rebased branch.
+     - Otherwise (`no overlap`, no conflicts): run `pnpm typecheck` and the tests of the packages you changed (as in
+       _Test narrowly_), then push.
 
      A rare red `main` from two changes that interact without sharing a file is accepted; see step 3 and _Check CI
      before starting a task_.
