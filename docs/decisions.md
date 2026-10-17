@@ -246,12 +246,12 @@ description in** (#146: the first version opened on a two-step flow that led wit
 main path). Under the box is a **collapsed** section, "Draft from a few posts": the picker from #134 (the publication's recent posts
 and/or pasted links, from this publication or similar ones), what is sent, and **Draft a description**. A draft fills the box, closes the
 section and moves focus to the box, to read, change and use. A note says a draft replaces what is in the box when there is
-something there. The page is reached from the new-publication form (**Create and describe it**), from the publication page's
-invitation, and from the publication settings, so it can be done later.
+something there. The page is reached from the publication page's next step and invitation, and from the publication settings, so it can be done later.
 
-- **Opt-in beside "Create publication", not a step in the way.** The first plan put it between creating and arriving. It
-  is a second button instead: describing is optional, and a forced extra screen would have been the default for every
-  publication (and for 25 existing tests). Making it the default later is a one-line change.
+- **Opt-in from the publication page, not a step in the way.** The first plan put it between creating and arriving, then
+  a second button beside "Create publication". Two buttons for one action was the wrong shape (#213): there is one
+  **Create publication**, and the new publication's page ends with a "Describe this publication" next step until it has a
+  description. Describing is optional, and a forced extra screen would have been the default for every publication.
 - **Plain words about what is sent** sit above the picker: the text of the chosen posts goes to the writer's own
   provider, with their own key, only when **Draft a description** is pressed. Visiting costs nothing.
 - **Marked as the AI's, with evidence, until accepted.** `DescriptionOrigin` shows the "AI draft" mark (the highlighter,

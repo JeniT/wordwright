@@ -138,16 +138,54 @@ describe('the new publication form', () => {
   it('creates and goes to the publication as before', async () => {
     setUp()
     const { router } = await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Garden notes')
+    await fireEvent.update(await screen.findByLabelText('Publication name'), 'Garden notes')
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-publication'))
   })
 
-  it('can go on to describe it, which is a choice, not a step in the way', async () => {
+  it('has one way to create, and leaves describing to the publication page', async () => {
     setUp()
+    await renderAt('/publications/new')
+    await screen.findByLabelText('Publication name')
+    expect(screen.queryByRole('button', { name: /describe/i })).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Create publication' })).toHaveLength(1)
+  })
+
+  it('shows what a publication is and why we ask for the website only in tutorial mode', async () => {
+    setUp()
+    server.use(signedInAs({ ...testUser, tutorialMode: true }))
     const { router } = await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Garden notes')
-    await fireEvent.click(screen.getByRole('button', { name: 'Create and describe it' }))
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-publication/describe'))
+    await screen.findByLabelText('Publication name')
+    expect(router.currentRoute.value.name).toBe('new-publication')
+    expect(screen.getByText(/keeps its ideas and drafts together/)).toBeVisible()
+    expect(screen.getByText(/fetch the site’s icon/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'About the website' })).toBeNull()
+  })
+
+  it('keeps the website explanation behind an icon, and the purpose line away, otherwise', async () => {
+    setUp()
+    await renderAt('/publications/new')
+    await screen.findByLabelText('Publication name')
+    expect(screen.queryByText(/keeps its ideas and drafts together/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'About the website' })).toBeInTheDocument()
+  })
+})
+
+describe('the publication page after creating', () => {
+  it('offers describing as its next step, until it has a description', async () => {
+    fakeServer()
+    await renderAt('/p/ada-publication')
+    const next = await screen.findByRole('navigation', { name: 'Next step' })
+    expect(within(next).getByRole('link', { name: /Describe this publication/ })).toHaveAttribute(
+      'href',
+      '/p/ada-publication/describe',
+    )
+  })
+
+  it('does not offer it once there is one', async () => {
+    fakeServer({ ...bare, description: 'Mine.' })
+    await renderAt('/p/ada-publication')
+    await screen.findByRole('region', { name: 'About this publication' })
+    expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
   })
 })

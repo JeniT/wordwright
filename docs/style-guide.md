@@ -213,3 +213,15 @@ The crit of [#190](https://github.com/JeniT/wordwright/issues/190), as a model f
 | A “Your publications” heading and button over an empty list                                  | Don’t explain or show what the screen lacks       | Shown only once there is a publication (kept, hidden, as the page’s `h1`)                                           |
 | Step 1 body text normal, step 2 body text small and soft                                     | Text in sibling blocks is styled alike            | Both normal                                                                                                         |
 | Three small paragraphs above the key field                                                   | No small print; length limits                     | A link to how to get a key, then “AI functions use Anthropic, which will bill you for your use.” and a privacy link |
+
+## Worked example: the new publication page
+
+The crit of [#213](https://github.com/JeniT/wordwright/issues/213).
+
+| Was                                                                                | Rule it broke                                  | Now                                                                                                                |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Three sentences of intro, ending “You can describe it as you create it, or later.” | Skippable text off the page; explains a button | One sentence in tutorial mode only, the same as Home’s “About publications”                                        |
+| “Its address will be /p/…”                                                         | Fails the skip test                            | Cut                                                                                                                |
+| “Create publication” beside “Create and describe it”                               | One name for one action                        | One “Create publication”; describing is the new publication’s next step                                            |
+| “← Your publications” beside “Cancel”                                              | Two ways out                                   | “Cancel”                                                                                                           |
+| “…but its picture couldn't be uploaded: … Go to your publication or try again.”    | Errors say what happened, then what to do      | “Your publication was created, but we couldn’t upload its picture. {reason} Try again, or go to your publication.” |

@@ -13,7 +13,7 @@ async function signUpWithIdea(page: Page) {
   await page.getByLabel('Password').fill('a perfectly good password')
   await page.getByRole('button', { name: 'Create account' }).click()
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Garden notes')
+  await page.getByLabel('Publication name', { exact: true }).fill('Garden notes')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await page.getByRole('link', { name: 'New idea' }).click()
   await page.getByLabel("What's your core idea?").fill('What pruning teaches')

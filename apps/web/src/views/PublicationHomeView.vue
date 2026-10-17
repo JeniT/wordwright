@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import NextStep from '../components/NextStep.vue'
 import LandingSection from '../components/LandingSection.vue'
 import PublicationAttention from '../components/PublicationAttention.vue'
 import PublicationDescription from '../components/PublicationDescription.vue'
@@ -100,5 +101,13 @@ const ideas = useIdeas(() => props.publicationId)
         </ul>
       </QueryState>
     </LandingSection>
+
+    <NextStep
+      v-if="!publication.description"
+      :to="{ name: 'describe-publication', params: { publicationId } }"
+      label="Describe this publication"
+    >
+      Say what it is for, who reads it and what goes here.
+    </NextStep>
   </PublicationGate>
 </template>

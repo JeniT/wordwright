@@ -68,7 +68,7 @@ test("shows the website's icon when there is no picture, and the person's own pi
 
   // A website and no picture: the site's icon stands in, drawn as another site's image (on its plate).
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Garden notes')
+  await page.getByLabel('Publication name', { exact: true }).fill('Garden notes')
   await page.getByLabel(/Website/).fill('garden.example')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(/garden-notes$/)
@@ -80,7 +80,7 @@ test("shows the website's icon when there is no picture, and the person's own pi
   // The same website with a picture: the picture is shown, not the icon.
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Allotment')
+  await page.getByLabel('Publication name', { exact: true }).fill('Allotment')
   await page.getByLabel(/Website/).fill('allotment.example')
   await page
     .getByLabel(/Picture/)
@@ -96,7 +96,7 @@ test('a picture bigger than the app keeps is shrunk for the writer, not refused'
 }) => {
   await registerUser(page, uniqueName('Una'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Big picture')
+  await page.getByLabel('Publication name', { exact: true }).fill('Big picture')
   await page
     .getByLabel(/Picture/)
     .setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: solidPng(1600, 1200) })
@@ -123,9 +123,8 @@ test('creates a publication with a website and picture, and opens its page', asy
 
   await page.getByRole('link', { name: 'New publication' }).click()
   await expect(page.getByRole('heading', { name: 'New publication' })).toBeVisible()
-  await page.getByLabel('Name', { exact: true }).fill('My Substack')
-  // The shareable address is previewed as you type.
-  await expect(page.getByText(`/p/${handle}-my-substack`)).toBeVisible()
+  await page.getByLabel('Publication name', { exact: true }).fill('My Substack')
+  await expect(page.getByText(`/p/${handle}-my-substack`)).toHaveCount(0) // the address is not a thing to edit
   await page.getByLabel(/Website/).fill('pat.substack.com')
   await page
     .getByLabel(/Picture/)
@@ -158,7 +157,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
 }) => {
   await registerUser(page, uniqueName('Quinn'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Draft publication')
+  await page.getByLabel('Publication name', { exact: true }).fill('Draft publication')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Draft publication').filter({ visible: true }).first(),
@@ -222,7 +221,7 @@ test('renaming a publication changes its address, and the old address still work
   const who = uniqueName('Reese')
   await registerUser(page, who)
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Early name')
+  await page.getByLabel('Publication name', { exact: true }).fill('Early name')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Early name').filter({ visible: true }).first(),
@@ -257,7 +256,7 @@ test('changes the display name, which is then used wherever it is shown', async 
   const who = uniqueName('Remy')
   await registerUser(page, who)
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Remy publication')
+  await page.getByLabel('Publication name', { exact: true }).fill('Remy publication')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Remy publication').filter({ visible: true }).first(),
@@ -312,7 +311,7 @@ test('changes the username: existing publications keep their address, new ones u
   const after = uniqueName('writer').toLowerCase()
   await registerUser(page, who)
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('First publication')
+  await page.getByLabel('Publication name', { exact: true }).fill('First publication')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(`/p/${before}-first-publication`)
 
@@ -341,7 +340,7 @@ test('changes the username: existing publications keep their address, new ones u
     page.getByRole('main').getByRole('link', { name: /First publication/ }),
   ).toHaveAttribute('href', `/p/${before}-first-publication`)
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Second publication')
+  await page.getByLabel('Publication name', { exact: true }).fill('Second publication')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page).toHaveURL(`/p/${after}-second-publication`)
 
@@ -367,7 +366,7 @@ test('two people can each have a publication called "Substack", with different a
     [bobPage, bob],
   ] as const) {
     await p.getByRole('link', { name: 'New publication' }).click()
-    await p.getByLabel('Name', { exact: true }).fill('Substack')
+    await p.getByLabel('Publication name', { exact: true }).fill('Substack')
     await p.getByRole('button', { name: 'Create publication' }).click()
     await expect(p).toHaveURL(new RegExp(`/p/${who.toLowerCase()}-substack$`))
   }
@@ -384,7 +383,7 @@ test('publication pages for a signed-in user have no detectable accessibility vi
   await registerUser(page, uniqueName('Sam'))
   await noViolations(page) // the list, with the API key set-up and the first-publication prompt
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Sam writing')
+  await page.getByLabel('Publication name', { exact: true }).fill('Sam writing')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await noViolations(page) // the publication page
@@ -393,7 +392,7 @@ test('publication pages for a signed-in user have no detectable accessibility vi
 test('manages the ordered list of feeds on the Search page', async ({ page }) => {
   await registerUser(page, uniqueName('Tess'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Reading list')
+  await page.getByLabel('Publication name', { exact: true }).fill('Reading list')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
 
@@ -501,7 +500,7 @@ test('manages the ordered list of feeds on the Search page', async ({ page }) =>
 test('pasting a site that offers several feeds asks which to add', async ({ page }) => {
   await registerUser(page, uniqueName('Wren'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Choosing feeds')
+  await page.getByLabel('Publication name', { exact: true }).fill('Choosing feeds')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
 
@@ -530,7 +529,7 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
 test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await registerUser(page, uniqueName('Pia'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Posts to read')
+  await page.getByLabel('Publication name', { exact: true }).fill('Posts to read')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await goTo(page, 'Search')
 
@@ -563,7 +562,7 @@ test('shows the description at the top of the publication page, clamped with Sho
 }) => {
   await registerUser(page, uniqueName('Robin'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Weeknotes')
+  await page.getByLabel('Publication name', { exact: true }).fill('Weeknotes')
   await page.getByRole('button', { name: 'Create publication' }).click()
   const about = page.getByRole('region', { name: 'About this publication' })
   await expect(about.getByRole('link', { name: 'Add a description' })).toBeVisible()
@@ -601,9 +600,10 @@ test('writes a description with guidance on what it needs, and nothing drafts it
 }) => {
   await registerUser(page, uniqueName('Sam'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Garden notes')
+  await page.getByLabel('Publication name', { exact: true }).fill('Garden notes')
   await page.getByLabel(/Website/).fill('garden.example')
-  await page.getByRole('button', { name: 'Create and describe it' }).click()
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await page.getByRole('link', { name: 'Describe this publication' }).click()
   await expect(
     page.getByRole('heading', { level: 1, name: 'Describe this publication' }),
   ).toBeVisible()

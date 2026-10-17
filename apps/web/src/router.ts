@@ -129,6 +129,8 @@ export const routes: RouteRecordRaw[] = [
     path: '/publications/new',
     name: 'new-publication',
     component: () => import('./views/NewPublicationView.vue'),
+    // A page of the home level: no `level`, so the menu stays the home menu.
+    meta: { tutorial: true },
   },
   // ——— A publication: its landing page, its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
   {

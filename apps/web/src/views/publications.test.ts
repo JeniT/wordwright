@@ -108,7 +108,7 @@ describe('publication list (home)', () => {
 })
 
 describe('new publication', () => {
-  it('previews the address, then creates the publication and opens it', async () => {
+  it('creates the publication and opens it', async () => {
     let sent: unknown
     server.use(
       signedInAs(testUser),
@@ -120,8 +120,10 @@ describe('new publication', () => {
       }),
     )
     const { router } = await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), "Ada's Weekly Letters!")
-    expect(screen.getByText('/p/adalovelace-adas-weekly-letters')).toBeInTheDocument()
+    await fireEvent.update(
+      await screen.findByLabelText('Publication name'),
+      "Ada's Weekly Letters!",
+    )
     await fireEvent.update(screen.getByLabelText(/Website/), ' ada.substack.com ')
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
 
@@ -141,7 +143,7 @@ describe('new publication', () => {
       }),
     )
     await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Blog')
+    await fireEvent.update(await screen.findByLabelText('Publication name'), 'Blog')
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
     await waitFor(() => expect(sent).toEqual({ name: 'Blog', siteUrl: null }))
   })
@@ -161,7 +163,7 @@ describe('new publication', () => {
       }),
     )
     const { router } = await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Substack')
+    await fireEvent.update(await screen.findByLabelText('Publication name'), 'Substack')
     const file = new File([new Uint8Array([1, 2, 3])], 'cover.png', { type: 'image/png' })
     await fireEvent.change(screen.getByLabelText(/Picture/), { target: { files: [file] } })
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
@@ -193,7 +195,7 @@ describe('new publication', () => {
       ),
     )
     const { router } = await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Blog')
+    await fireEvent.update(await screen.findByLabelText('Publication name'), 'Blog')
     await fireEvent.update(screen.getByLabelText(/Website/), 'javascript:1')
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Enter a web address')
@@ -218,13 +220,15 @@ describe('new publication', () => {
       ),
     )
     await renderAt('/publications/new')
-    await fireEvent.update(await screen.findByLabelText('Name'), 'Substack')
+    await fireEvent.update(await screen.findByLabelText('Publication name'), 'Substack')
     const file = new File([new Uint8Array([1])], 'cover.png', { type: 'image/png' })
     await fireEvent.change(screen.getByLabelText(/Picture/), { target: { files: [file] } })
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('Your publication was created, but its picture')
+    expect(alert).toHaveTextContent(
+      'Your publication was created, but we couldn’t upload its picture',
+    )
     expect(alert).toHaveTextContent('too large')
     await fireEvent.click(screen.getByRole('button', { name: 'Create publication' }))
     await screen.findByRole('alert')

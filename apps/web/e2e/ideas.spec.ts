@@ -19,7 +19,7 @@ async function signUpWithPublication(page: Page) {
   await page.getByLabel('Password').fill('a perfectly good password')
   await page.getByRole('button', { name: 'Create account' }).click()
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Weekly letters')
+  await page.getByLabel('Publication name', { exact: true }).fill('Weekly letters')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
@@ -957,7 +957,7 @@ test('moves an idea with its draft to another publication, and opens it there', 
   // A second publication to move to.
   await page.goto('/')
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Elsewhere')
+  await page.getByLabel('Publication name', { exact: true }).fill('Elsewhere')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   const second = idOf()

@@ -23,7 +23,7 @@ async function fillSignUp(page: Page, name: string, username = uniqueUsername())
 /** From the landing page, creates a publication named "<name>'s writing" and opens it. */
 async function createFirstPublication(page: Page, name: string) {
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill(`${name}'s writing`)
+  await page.getByLabel('Publication name', { exact: true }).fill(`${name}'s writing`)
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Wordwright' }).click()
@@ -1388,7 +1388,7 @@ test('a new account chooses a username, connects an API key, then creates its fi
 
   // Then they create (and set up) their first publication; the checklist is gone when they come back.
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Grace letters')
+  await page.getByLabel('Publication name', { exact: true }).fill('Grace letters')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await expect(
     page.getByRole('banner').getByText('Grace letters').filter({ visible: true }).first(),
@@ -1401,7 +1401,7 @@ test('a new account chooses a username, connects an API key, then creates its fi
 test('first-run steps can be done in the other order', async ({ page }) => {
   await registerUser(page, 'Katherine', { withPublication: false })
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Name', { exact: true }).fill('Orbits')
+  await page.getByLabel('Publication name', { exact: true }).fill('Orbits')
   await page.getByRole('button', { name: 'Create publication' }).click()
   await page.goto('/')
   await expect(page.getByText('Create your first publication · done')).toBeVisible()
