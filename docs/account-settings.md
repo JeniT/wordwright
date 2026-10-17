@@ -60,10 +60,10 @@ The **Brainstorming prompt** section is removed (see _Decisions_).
 
 ### Display
 
-| Section       | Words                                                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| Appearance    | Legend "Light mode, dark mode, or follow your device". ⓘ "Applies on this device."                       |
-| Tutorial mode | The switch "Tutorial mode", the line "Explains each page as you go." and the link "About tutorial mode". |
+| Section       | Words                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Appearance    | No legend: the options are "System", "Light mode" and "Dark mode". ⓘ beside the heading "Applies on this device." |
+| Tutorial mode | The switch "Tutorial mode", the line "Explains each page as you go." and the link "About tutorial mode".          |
 
 ### Sign-in and security
 

@@ -9,8 +9,8 @@ withDefaults(defineProps<{ label?: string }>(), { label: 'Appearance' })
 const { choice, choose } = useTheme()
 const options: { value: ThemeChoice; label: string }[] = [
   { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Light mode' },
+  { value: 'dark', label: 'Dark mode' },
 ]
 </script>
 

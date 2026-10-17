@@ -24,16 +24,14 @@ describe('AccountView', () => {
     )
     await renderAt('/account/display')
     const group = await screen.findByRole('radiogroup', {
-      name: 'Light mode, dark mode, or follow your device',
+      name: 'Appearance',
     })
     expect(
       within(screen.getByRole('main')).getByRole('radiogroup', {
-        name: 'Light mode, dark mode, or follow your device',
+        name: 'Appearance',
       }),
     ).toBe(group)
-    expect(
-      screen.getAllByRole('radiogroup', { name: 'Light mode, dark mode, or follow your device' }),
-    ).toHaveLength(1)
+    expect(screen.getAllByRole('radiogroup', { name: 'Appearance' })).toHaveLength(1)
   })
 
   describe('tutorial mode', () => {
