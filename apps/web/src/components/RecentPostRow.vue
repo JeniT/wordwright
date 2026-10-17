@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import type { RecentPost } from '@wordwright/core'
 import type { PostDecision } from '../lib/recent-posts'
 import Icon from './Icon.vue'
@@ -66,14 +67,9 @@ const when = (iso: string) =>
     <!-- Waiting for a decision: everything needed to make one. -->
     <template v-else>
       <div class="min-w-0 flex-1">
-        <a
-          :href="post.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="break-words font-medium underline"
-        >
-          {{ post.title }}<span class="sr-only"> (opens in a new tab)</span>
-        </a>
+        <NewTabLink :href="post.url" class="break-words font-medium underline">{{
+          post.title
+        }}</NewTabLink>
         <p class="meta break-words">
           {{ feedName }}
           <template v-if="post.authors.length"> · {{ post.authors.join(', ') }}</template>

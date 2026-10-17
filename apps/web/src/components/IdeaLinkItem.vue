@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@wordwright/core'
@@ -153,16 +154,13 @@ function saveLink() {
       <div class="min-w-0 flex-1 px-4 py-3">
         <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
           <div class="min-w-[14rem] flex-1">
-            <a
+            <NewTabLink
               :id="`reading-item-${link.id}`"
               :href="link.url"
-              target="_blank"
-              rel="noopener noreferrer"
               class="line-clamp-2 break-words underline"
               :title="label()"
+              >{{ label() }}</NewTabLink
             >
-              {{ label() }}<span class="sr-only"> (opens in a new tab)</span>
-            </a>
             <p class="meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
               <span v-if="link.title" class="truncate">{{ host() }}</span>
               <!-- The highlighter marks anything the AI, not the writer, put here. -->

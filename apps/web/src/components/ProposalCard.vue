@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, useId } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -70,9 +71,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
       </p>
       <p class="mb-2 break-all text-sm">
         {{ address }}
-        <a :href="address" target="_blank" rel="noopener noreferrer" class="ml-1 underline">
-          Open the page<span class="sr-only"> (opens in a new tab)</span>
-        </a>
+        <NewTabLink :href="address" class="ml-1 underline">Open the page</NewTabLink>
       </p>
       <dl class="mb-3 space-y-1 text-sm">
         <div v-if="reading.fetchedTitle !== null">

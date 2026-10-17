@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -82,26 +83,18 @@ const removeLlmKey = useMutation({
     </div>
     <template v-if="props.guide">
       <p class="mb-3">
-        <RouterLink to="/help/api-key" target="_blank" class="link"
-          >How to get an API key (opens in a new tab)</RouterLink
-        >
+        <NewTabLink to="/help/api-key" class="link">How to get an API key</NewTabLink>
       </p>
       <p class="mb-3">
         AI functions use Anthropic, which will bill you for your use.
-        <RouterLink to="/help/privacy" target="_blank" class="link"
-          >Read the privacy advice (opens in a new tab)</RouterLink
-        >
+        <NewTabLink to="/help/privacy" class="link">Read the privacy advice</NewTabLink>
       </p>
     </template>
     <template v-else>
       <p class="mb-1">Your AI uses your own Anthropic key, so Anthropic bills you, not us.</p>
       <p class="mb-3 flex flex-wrap gap-x-4 text-sm">
-        <RouterLink to="/help/api-key" target="_blank" class="link"
-          >How to get an API key<span class="sr-only"> (opens in a new tab)</span></RouterLink
-        >
-        <RouterLink to="/help/privacy" target="_blank" class="link"
-          >Privacy advice<span class="sr-only"> (opens in a new tab)</span></RouterLink
-        >
+        <NewTabLink to="/help/api-key" class="link">How to get an API key</NewTabLink>
+        <NewTabLink to="/help/privacy" class="link">Privacy advice</NewTabLink>
       </p>
     </template>
     <form @submit.prevent="saveLlm.mutate()">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { Source } from '@wordwright/core'
 import { ref, watch } from 'vue'
@@ -55,9 +56,7 @@ const when = (iso: string) =>
           </p>
           <ul v-else class="space-y-1">
             <li v-for="item in posts.data.value.items.slice(0, SHOWN)" :key="item.id">
-              <a :href="item.url" target="_blank" rel="noopener noreferrer" class="underline">
-                {{ item.title }}<span class="sr-only"> (opens in a new tab)</span>
-              </a>
+              <NewTabLink :href="item.url" class="underline">{{ item.title }}</NewTabLink>
               <span v-if="item.publishedAt || item.authors.length" class="text-ink-soft">
                 ·
                 {{

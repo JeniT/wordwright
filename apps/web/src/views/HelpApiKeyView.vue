@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from '../components/NewTabLink.vue'
 import { RouterLink } from 'vue-router'
 import HelpPage from '../components/HelpPage.vue'
 </script>
@@ -15,8 +16,8 @@ import HelpPage from '../components/HelpPage.vue'
         <span class="step-num" aria-hidden="true">01</span>
         <p class="min-w-0">
           Sign in to the
-          <a href="https://console.anthropic.com/" target="_blank" rel="noopener" class="link"
-            >Anthropic Console<span class="sr-only"> (opens in a new tab)</span></a
+          <NewTabLink href="https://console.anthropic.com/" class="link"
+            >Anthropic Console</NewTabLink
           >. A Claude chat account won’t work here, so you may need to sign up.
         </p>
       </li>
@@ -31,12 +32,8 @@ import HelpPage from '../components/HelpPage.vue'
         <span class="step-num" aria-hidden="true">03</span>
         <p class="min-w-0">
           Open
-          <a
-            href="https://console.anthropic.com/settings/keys"
-            target="_blank"
-            rel="noopener"
-            class="link"
-            >API keys<span class="sr-only"> (opens in a new tab)</span></a
+          <NewTabLink href="https://console.anthropic.com/settings/keys" class="link"
+            >API keys</NewTabLink
           >
           and choose “Create key”. Give it a name you’ll recognise, like “Wordwright”.
         </p>

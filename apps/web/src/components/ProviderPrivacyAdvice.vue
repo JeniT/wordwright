@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 /** `level` is the heading level: 3 under a settings section's h2, 2 on the privacy help page, which has an h1. */
 withDefaults(defineProps<{ level?: 2 | 3 }>(), { level: 3 })
 </script>
@@ -14,20 +15,14 @@ withDefaults(defineProps<{ level?: 2 | 3 }>(), { level: 3 })
         <strong>Use an API key from the Console, not a Claude chat subscription.</strong> API use is
         under Anthropic's commercial terms, which say retained data is never used to train its
         models without your permission. See the
-        <a href="https://privacy.claude.com" target="_blank" rel="noopener" class="underline"
-          >Privacy Center</a
-        >
+        <NewTabLink href="https://privacy.claude.com" class="underline">Privacy Center</NewTabLink>
         for the current wording.
       </li>
       <li>
         <strong>Know how long it is kept.</strong> By default Anthropic deletes API inputs and
         outputs within 30 days, and you can check or change your settings at
-        <a
-          href="https://platform.claude.com/settings/privacy"
-          target="_blank"
-          rel="noopener"
-          class="underline"
-          >platform.claude.com/settings/privacy</a
+        <NewTabLink href="https://platform.claude.com/settings/privacy" class="underline"
+          >platform.claude.com/settings/privacy</NewTabLink
         >. Shorter “zero data retention” arrangements exist but need an agreement with Anthropic.
       </li>
       <li>

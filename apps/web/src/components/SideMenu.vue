@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import { RouterLink } from 'vue-router'
 import { useNav } from '../lib/nav'
 import { displayHost } from '../lib/usePublications'
@@ -42,10 +43,9 @@ const itemClass =
           >
         </p>
         <p v-if="publication.siteUrl" class="meta truncate">
-          <a :href="publication.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
-            {{ displayHost(publication.siteUrl) }}
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
+          <NewTabLink :href="publication.siteUrl" class="link">{{
+            displayHost(publication.siteUrl)
+          }}</NewTabLink>
         </p>
         <p v-if="sharedWith()" class="meta">{{ sharedWith() }}</p>
       </div>

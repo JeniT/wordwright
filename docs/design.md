@@ -269,13 +269,23 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
 - A **quiet** page (`meta.quiet`, the editor) shows warn notices but holds info notices back, so nothing interrupts writing.
 - A notice that can fail says so in a `role="alert"` line with what to do next, and stays.
 
+### Links that open in a new tab
+
+- Use `NewTabLink` for every one. It adds the **new-tab icon** (`Icon name="external"`) after the link text, a tooltip
+  (“Opens in a new tab”) and hidden words “(opens in a new tab)” for screen readers, so the wording and the icon are
+  written once. Never write `target="_blank"` or the words in a component.
+- The words are never shown on the page. The icon is a convention, so there is no legend; `detail` adds to the spoken
+  name where several links read the same (“Open the page”).
+- **Exception:** links inside a person's own writing (rendered notes and drafts, and the editors, which open a link on
+  Ctrl or ⌘ and click) carry no icon, so prose stays clean. The editor's hint line says how to open them.
+
 ### On a help page
 
 - Linked from where it is needed by a **plain link in words** (“How to get an API key”), never by an icon, so it reads
   and is found like any other link.
 - **Opens in the same tab,** with a Back link to where they were. **Except** from a screen holding unsaved input
-  (for example connecting your AI key): there it opens in a new tab, and the link says so (“How to get an API key (opens
-  in a new tab)”), so nothing typed is lost.
+  (for example connecting your AI key): there it opens in a new tab, and the link says so with the new-tab icon (see
+  _Links that open in a new tab_), so nothing typed is lost.
 - One topic per page, steps numbered 01, 02 as elsewhere, a title that names the task.
 - **Is there a help area yet? Yes.** `/help` lists the pages; each is a view (`HelpApiKeyView`, `HelpPrivacyView`)
   inside `HelpPage`, which supplies the title and a **Back** link (to the page the person was on, or **All help** when

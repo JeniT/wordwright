@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from './NewTabLink.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, useId } from 'vue'
 import type { ResearchItem, ResearchRun } from '@wordwright/core'
@@ -106,9 +107,9 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
           <p class="break-words font-medium">{{ name(item) }}</p>
           <p class="break-all text-sm">
             {{ item.url }}
-            <a :href="item.url" target="_blank" rel="noopener noreferrer" class="ml-1 underline">
-              Open the page<span class="sr-only"> “{{ name(item) }}” (opens in a new tab)</span>
-            </a>
+            <NewTabLink :href="item.url" :detail="`“${name(item)}”`" class="ml-1 underline"
+              >Open the page</NewTabLink
+            >
           </p>
           <p
             v-if="item.fetchedTitle && item.title && item.title !== item.fetchedTitle"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from '../components/NewTabLink.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -237,9 +238,7 @@ const add = useMutation({
     <section aria-labelledby="page-heading" class="mb-8">
       <h2 id="page-heading" class="sr-only">The page</h2>
       <p class="mb-2">
-        <a :href="item.url" target="_blank" rel="noopener noreferrer" class="underline">
-          Open the page<span class="sr-only"> (opens in a new tab)</span>
-        </a>
+        <NewTabLink :href="item.url" class="underline">Open the page</NewTabLink>
         <span class="block truncate text-sm text-ink-soft">{{ item.url }}</span>
       </p>
       <p class="mb-3 text-sm text-ink-soft">

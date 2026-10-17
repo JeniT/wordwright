@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NewTabLink from '../components/NewTabLink.vue'
 import { RouterLink } from 'vue-router'
 import NextStep from '../components/NextStep.vue'
 import LandingSection from '../components/LandingSection.vue'
@@ -41,10 +42,9 @@ const ideas = useIdeas(() => props.publicationId)
           />
         </div>
         <p v-if="publication.siteUrl" class="meta truncate">
-          <a :href="publication.siteUrl" target="_blank" rel="noopener noreferrer" class="link">
-            {{ displayHost(publication.siteUrl) }}
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
+          <NewTabLink :href="publication.siteUrl" class="link">{{
+            displayHost(publication.siteUrl)
+          }}</NewTabLink>
         </p>
       </div>
     </div>
