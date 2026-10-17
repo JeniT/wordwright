@@ -157,7 +157,9 @@ describe('the new publication form', () => {
     const { router } = await renderAt('/publications/new')
     await screen.findByLabelText('Publication name')
     expect(router.currentRoute.value.name).toBe('new-publication')
-    expect(screen.getByText(/keep your research, notes and ideas for each publication together/)).toBeVisible()
+    expect(
+      screen.getByText(/keep your research, notes and ideas for each publication together/),
+    ).toBeVisible()
     expect(screen.getByText(/fetch the site’s icon/)).toBeVisible()
     expect(screen.queryByRole('button', { name: 'About the website' })).toBeNull()
   })
@@ -166,7 +168,9 @@ describe('the new publication form', () => {
     setUp()
     await renderAt('/publications/new')
     await screen.findByLabelText('Publication name')
-    expect(screen.queryByText(/keep your research, notes and ideas for each publication together/)).toBeNull()
+    expect(
+      screen.queryByText(/keep your research, notes and ideas for each publication together/),
+    ).toBeNull()
     expect(screen.getByRole('button', { name: 'About the website' })).toBeInTheDocument()
   })
 })
