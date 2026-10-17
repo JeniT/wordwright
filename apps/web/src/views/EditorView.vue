@@ -488,6 +488,11 @@ async function requestCritique() {
         <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-ink-soft">
           Ctrl or ⌘ and click a link to open it.
         </p>
+        <p v-if="canEdit" class="mt-2 text-xs text-ink-soft">
+          <RouterLink :to="{ name: 'help-formatting' }" target="_blank" class="underline">
+            Formatting and shortcuts
+          </RouterLink>
+        </p>
 
         <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
           <button

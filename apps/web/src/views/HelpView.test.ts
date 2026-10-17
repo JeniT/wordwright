@@ -124,4 +124,18 @@ describe('Help', () => {
     expect(within(main).getByText(/river engineering/)).toBeInTheDocument()
     expect(main).not.toHaveTextContent(/assistant/i)
   })
+
+  it('explains the draft’s formatting buttons and Markdown mode on their own page, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    await fireEvent.click(within(list).getByRole('link', { name: 'Formatting your draft' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Formatting your draft' }),
+    ).toBeVisible()
+    const main = screen.getByRole('main')
+    expect(within(main).getByText(/Edit as Markdown/)).toBeInTheDocument()
+    expect(within(main).getByText(/Ctrl\+B/)).toBeInTheDocument()
+    expect(within(main).getByText(/Comments from a critique can’t be shown/)).toBeInTheDocument()
+  })
 })

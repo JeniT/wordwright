@@ -1527,3 +1527,98 @@ test('signed-in pages have no detectable accessibility violations', async ({ pag
   await expect(page.getByRole('heading', { name: 'Your AI key' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })
+
+test('formats a draft with the toolbar, adds a link in a dialog, and edits it as Markdown', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await registerUser(page)
+  await openFirstPublication(page)
+  await openNewIdeaForm(page)
+  await page.getByLabel("What's your core idea?").fill('Formatting')
+  await page.getByRole('button', { name: 'Save idea' }).click()
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Formatting')
+  const bodyBox = page.getByRole('textbox', { name: 'Draft body', exact: true })
+  await bodyBox.click()
+  await page.keyboard.type('A heading')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('Some words to link and to make bold.')
+
+  // The toolbar is one tab stop, named buttons with the arrow keys along it.
+  const toolbar = page.getByRole('toolbar', { name: 'Formatting' })
+  await expect(toolbar).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the toolbar').toEqual([])
+  await page.getByRole('button', { name: 'Paragraph' }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('button', { name: 'Heading 2' })).toBeFocused()
+
+  // The heading control.
+  await bodyBox.getByText('A heading').click()
+  await page.getByRole('button', { name: 'Heading 2' }).click()
+  await expect(bodyBox.getByRole('heading', { level: 2, name: 'A heading' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Heading 2' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  // Bold, by the button.
+  await bodyBox.getByText('Some words').click({ clickCount: 3 })
+  await page.getByRole('button', { name: 'Bold' }).click()
+  await expect(bodyBox.locator('strong')).toHaveText('Some words to link and to make bold.')
+
+  // A link, from a dialog that takes the focus and gives it back.
+  await page.getByRole('button', { name: 'Link' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Add a link' })
+  await expect(dialog.getByLabel('Link address')).toBeFocused()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the link dialog').toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await page.getByRole('button', { name: 'Link' }).click()
+  await dialog.getByLabel('Link address').fill('example.com/words')
+  await dialog.getByRole('button', { name: 'Add link' }).click()
+  await expect(bodyBox.locator('a')).toHaveAttribute('href', 'https://example.com/words')
+
+  // Markdown: the same words, plain, and back; the toggle is remembered in this browser.
+  await page.getByRole('button', { name: 'Edit as Markdown' }).click()
+  const source = page.getByRole('textbox', { name: 'Draft body, as Markdown' })
+  await expect(source).toBeFocused()
+  await expect(source).toHaveValue(
+    /^## A heading\n\n\[\*\*Some words to link and to make bold\.\*\*\]/,
+  )
+  await expect(page.getByRole('button', { name: 'Bold' })).toHaveCount(0)
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the Markdown box').toEqual([])
+  await source.press('End')
+  await source.press('Control+End')
+  await page.keyboard.type('\n\nAdded as Markdown.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
+  await page.getByRole('tab', { name: /^Comments/ }).click()
+  await expect(page.getByText('Comments cannot be shown while editing Markdown.')).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('textbox', { name: 'Draft body, as Markdown' })).toHaveValue(
+    /Added as Markdown\./,
+  )
+  await page.getByRole('button', { name: 'Edit as Markdown' }).click()
+  await expect(bodyBox.getByRole('heading', { level: 2, name: 'A heading' })).toBeVisible()
+  await expect(bodyBox).toContainText('Added as Markdown.')
+
+  // Dark mode, and a phone: the buttons that do not fit move into a More menu, with no sideways scroll.
+  await page.emulateMedia({ colorScheme: 'dark' })
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the toolbar in dark').toEqual([])
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 390, height: 800 })
+  const more = page.getByRole('button', { name: 'More formatting' })
+  await expect(more).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  )
+  await more.click()
+  await expect(
+    page.getByRole('group', { name: 'More formatting' }).getByRole('button', { name: 'Link' }),
+  ).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the More menu').toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(more).toBeFocused()
+})

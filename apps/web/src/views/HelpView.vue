@@ -25,6 +25,11 @@ const pages = [
     about: 'What to say about your publication so your AI knows what you are writing for.',
   },
   {
+    name: 'help-formatting',
+    title: 'Formatting your draft',
+    about: 'The formatting buttons, their shortcuts, and editing the Markdown itself.',
+  },
+  {
     name: 'help-tutorial-mode',
     title: 'About tutorial mode',
     about: 'The explanations written out on the page while you are getting to know the site.',

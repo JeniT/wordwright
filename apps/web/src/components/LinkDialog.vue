@@ -63,43 +63,44 @@ function submit() {
       class="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       @click.self="emit('cancel')"
     >
-      <form
+      <div
         ref="dialog"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
         class="panel w-full max-w-md p-6"
-        @submit.prevent="submit"
       >
-        <h2 :id="titleId" class="mb-3 font-display text-xl font-semibold">
-          {{ address ? 'Change link' : 'Add a link' }}
-        </h2>
-        <label :for="inputId" class="mb-1 block text-sm font-medium">Link address</label>
-        <input
-          :id="inputId"
-          ref="input"
-          v-model="value"
-          class="field"
-          autocomplete="off"
-          autocapitalize="none"
-          :spellcheck="false"
-          :aria-invalid="!!error"
-          :aria-describedby="error ? `${inputId}-error` : undefined"
-          @input="error = ''"
-        />
-        <p v-if="error" :id="`${inputId}-error`" role="alert" class="mt-1 text-sm text-danger">
-          {{ error }}
-        </p>
-        <div class="mt-5 flex flex-wrap justify-end gap-3">
-          <button type="button" class="btn btn-neutral" @click="emit('cancel')">Cancel</button>
-          <button v-if="address" type="button" class="btn btn-outline" @click="emit('remove')">
-            Remove link
-          </button>
-          <button type="submit" class="btn btn-primary">
-            {{ address ? 'Change link' : 'Add link' }}
-          </button>
-        </div>
-      </form>
+        <form @submit.prevent="submit">
+          <h2 :id="titleId" class="mb-3 font-display text-xl font-semibold">
+            {{ address ? 'Change link' : 'Add a link' }}
+          </h2>
+          <label :for="inputId" class="mb-1 block text-sm font-medium">Link address</label>
+          <input
+            :id="inputId"
+            ref="input"
+            v-model="value"
+            class="field"
+            autocomplete="off"
+            autocapitalize="none"
+            :spellcheck="false"
+            :aria-invalid="!!error"
+            :aria-describedby="error ? `${inputId}-error` : undefined"
+            @input="error = ''"
+          />
+          <p v-if="error" :id="`${inputId}-error`" role="alert" class="mt-1 text-sm text-danger">
+            {{ error }}
+          </p>
+          <div class="mt-5 flex flex-wrap justify-end gap-3">
+            <button type="button" class="btn btn-neutral" @click="emit('cancel')">Cancel</button>
+            <button v-if="address" type="button" class="btn btn-outline" @click="emit('remove')">
+              Remove link
+            </button>
+            <button type="submit" class="btn btn-primary">
+              {{ address ? 'Change link' : 'Add link' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </Teleport>
 </template>

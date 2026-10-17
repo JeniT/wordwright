@@ -120,7 +120,7 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                                                                                                                                                                                                                                                                                                                                 |
 | `btn btn-quiet`                                                   | Low-emphasis text actions (the editor toolbar) and reorder grips. Keeps a faint outline                                                                                                                                                                                                                                                                                                                                                        |
 | `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                                                                                                                                                                                                                                                                                                                                    |
-| `btn-ghost`                                                       | An icon-only button with no border or fill at rest, the icon in `ink-soft`; `hover-wash` fill on hover and focus (`line` on a recessed strip); `accent-wash` and an accent icon when it is the current page (`aria-current`). Add `btn-ghost-danger` for Remove (raspberry on hover, focus and while armed)                                                                                                                                    |
+| `btn-ghost`                                                       | An icon-only button with no border or fill at rest, the icon in `ink-soft`; `hover-wash` fill on hover and focus (`line` on a recessed strip); `accent-wash` and an accent icon when it is the current page (`aria-current`) or a toggle that is on (`aria-pressed`). Add `btn-ghost-danger` for Remove (raspberry on hover, focus and while armed)                                                                                            |
 | `btn-icon`                                                        | With `btn-sm btn-ghost`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                                                                                                                                                                                                                                                                                                                                        |
 | `AiButton` (with a `btn` variant)                                 | Every button that makes an AI request, or leads straight to one: see _AI buttons_ below                                                                                                                                                                                                                                                                                                                                                        |
 | `switch` (+ `SwitchField`)                                        | The on/off state of one thing, saved when flipped (Read, Keep, Show read). Never a checkbox: see _Actions and lists_                                                                                                                                                                                                                                                                                                                           |
@@ -157,13 +157,29 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
 - **Adding one:** tag the API function `@ai` in `lib/api.ts`, use `AiButton` where it is called, and list it in
   `lib/ai-buttons.test.ts`, which fails when an AI call is used by a component without the pattern.
 
-### The description editor
+### The editors' toolbar, link dialog and Markdown mode
+
+Both editors share **`EditorToolbar`** (`role="toolbar"`, "Formatting"): **icon-only buttons** (`btn btn-sm btn-icon btn-ghost` + `Icon`), each with an
+`aria-label` and a tooltip that gives its shortcut ("Bold (Ctrl+B)", ⌘ on a Mac), and `aria-pressed` for what is on at the cursor (pressed shows
+as `accent-wash` and an accent icon, like the current page). The bar is **one tab stop**; the arrow keys, Home and End move along it. Each editor
+chooses its tools (`DESCRIPTION_TOOLS`, `DRAFT_TOOLS` in `lib/editor-tools.ts`); adding a tool is one entry there and an icon in `Icon`.
+
+- **Draft** (`RichEditor`): a three-way text-style control (Paragraph, Heading 2, Heading 3: a `role="group"` of buttons, not a menu), then Bold,
+  Italic, Inline code, Quote, Bulleted list, Numbered list, Code block, Link, and at the far right **Edit as Markdown**. It is **sticky** at the
+  top of the draft, and absent for someone who may only read it. There is no Heading 1 (the title is separate), strike-through or rule button.
+- **Description** (`DescriptionEditor`): Bold, Italic, Bulleted list, Numbered list, Link. Nothing else, since the page shows no more.
+- **Narrow screens:** the buttons that do not fit the width move into a **More** menu (a disclosure of the same buttons; Escape closes it and
+  returns focus to its button). The bar never wraps or scrolls. The Markdown button stays in view.
+- **Link dialog** (`LinkDialog`, built with `useModal`): "Add a link" or "Change link" with one field, Cancel, Remove link when the cursor is in a
+  link, and the "Enter a web address…" error inline. Focus goes to the field and returns to the button; Escape cancels.
+- **Markdown mode** (drafts only): the button swaps the editor for a monospace `<textarea>` with the same Markdown (`aria-pressed`; remembered in
+  this browser, in `localStorage`, never account data). The formatting buttons hide; the comments tab says "Comments cannot be shown while editing
+  Markdown."; Rephrase and the notes and links from the side bar still work, on offsets in the text and at the cursor. Switching back loads the text
+  into the editor without counting as an edit.
 
 `DescriptionEditor` is a small rich-text field for short, formatted text (today the publication description), so people don't have to know
-Markdown: a toolbar of five worded buttons (Bold, Italic, Bulleted list, Numbered list, Link; `aria-pressed` shows what is on) above a
-`field`-styled text box that looks like the text it makes (it uses the `markdown` reading styles), with the app's own focus outline. The link
-address is a small form that takes focus and gives it back. It reads and writes Markdown. Use it for any other short formatted text; the draft
-editor (`RichEditor`) is the long-form one.
+Markdown: the toolbar above a `field`-styled text box that looks like the text it makes (it uses the `markdown` reading styles), with the app's
+own focus outline. It reads and writes Markdown. Use it for any other short formatted text; the draft editor (`RichEditor`) is the long-form one.
 
 ### Comment marks in the editor
 
