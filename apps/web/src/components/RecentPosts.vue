@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { RECENT_DAYS_DEFAULT, type Source } from '@wordwright/core'
+import { type Source } from '@wordwright/core'
 import { computed, ref, watch } from 'vue'
+import { useTutorialMode } from '../lib/tutorial'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
 import { useDecidePosts } from '../lib/recent-posts'
@@ -20,7 +21,11 @@ const WINDOWS = [
   [90, 'the last 3 months'],
   [365, 'the last year'],
 ] as const
-const days = ref<number>(RECENT_DAYS_DEFAULT)
+// A shorter default than the landing page's summary: this page is where the newest posts get decided about.
+const days = ref<number>(7)
+const tutorial = useTutorialMode()
+const ABOUT =
+  'This list contains the posts from the feeds you’re subscribed to. Either add them to your reading list or ignore them. Ignored posts are moved to the end of the list in case you want to reconsider them.'
 const windowName = computed(
   () => WINDOWS.find(([d]) => d === days.value)?.[1] ?? `${days.value} days`,
 )
@@ -112,11 +117,11 @@ const failedNames = computed(() =>
         >
           Recent posts
         </h2>
-        <Explain label="About ignoring posts">
-          Ignored posts move to the end of the list, where you can reconsider them.
+        <Explain v-if="!tutorial" label="About recent posts">
+          {{ ABOUT }}
         </Explain>
       </div>
-      <div class="flex items-end gap-2">
+      <div class="ml-auto flex items-end gap-2">
         <div>
           <label for="recent-days" class="mb-1 block text-sm font-medium">Show posts from</label>
           <select id="recent-days" v-model.number="days" class="field field-compact">
@@ -133,6 +138,8 @@ const failedNames = computed(() =>
         </button>
       </div>
     </div>
+    <Explain v-if="tutorial" class="mb-3">{{ ABOUT }}</Explain>
+
     <QueryState :query="sources" what="your feeds">
       <p v-if="!sources.data.value?.length" class="text-ink-soft">No feeds yet.</p>
       <template v-else>

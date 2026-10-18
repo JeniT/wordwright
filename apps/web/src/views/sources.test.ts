@@ -271,19 +271,20 @@ describe('the Search page: tutorial mode (#260)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Search' })
   }
 
-  it('writes out what the page is for, and what Ignore does, when it is on', async () => {
+  it('writes out what the list is, under its heading, when it is on', async () => {
     await setup(true)
-    expect(await screen.findByText(/The newest posts from your feeds/)).toBeVisible()
-    expect(screen.getByText(/Ignored posts move to the end of the list/)).toBeVisible()
-    expect(screen.getByText(/Read what you’ve gathered on the reading list/)).toBeVisible()
-    expect(screen.queryByRole('button', { name: 'About ignoring posts' })).toBeNull()
-  })
-
-  it('keeps the page-purpose lines off, and Ignore behind an icon, when it is off', async () => {
-    await setup(false)
-    expect(await screen.findByRole('button', { name: 'About ignoring posts' })).toBeVisible()
+    expect(
+      await screen.findByText(/This list contains the posts from the feeds you’re subscribed to/),
+    ).toBeVisible()
     expect(screen.queryByText(/The newest posts from your feeds/)).toBeNull()
     expect(screen.queryByText(/Read what you’ve gathered/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'About recent posts' })).toBeNull()
+  })
+
+  it('keeps it behind an icon when it is off', async () => {
+    await setup(false)
+    expect(await screen.findByRole('button', { name: 'About recent posts' })).toBeVisible()
+    expect(document.querySelector('.tutorial-note')).toBeNull()
   })
 })
 
@@ -349,21 +350,21 @@ describe('recent posts from all the feeds', () => {
     )
   })
 
-  it('asks for the last month, and again for a different period when it is changed', async () => {
+  it('asks for the last week, and again for a different period when it is changed', async () => {
     fakeSources([A, B])
     const asked = fakeRecent()
     await openSearch()
     await section()
-    await waitFor(() => expect(asked).toEqual(['?days=30']))
-    await fireEvent.update(screen.getByLabelText('Show posts from'), '7')
-    await waitFor(() => expect(asked).toEqual(['?days=30', '?days=7']))
+    await waitFor(() => expect(asked).toEqual(['?days=7']))
+    await fireEvent.update(screen.getByLabelText('Show posts from'), '30')
+    await waitFor(() => expect(asked).toEqual(['?days=7', '?days=30']))
   })
 
   it('says nothing was posted in the period, and suggests a longer one', async () => {
     fakeSources([A])
     fakeRecent(() => HttpResponse.json(answer({ posts: [] })))
     await openSearch()
-    expect(await screen.findByText(/Nothing has been posted in the last month/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nothing has been posted in the last week/)).toBeInTheDocument()
   })
 
   it('leads to setting up feeds when there are none, without asking for posts', async () => {
@@ -428,7 +429,7 @@ describe('recent posts from all the feeds', () => {
     await within(recent).findByText('Newest from Beta')
     await fireEvent.click(within(recent).getByRole('button', { name: 'Check for new posts' }))
     expect(await within(recent).findByText('Brand new')).toBeInTheDocument()
-    expect(asked.at(-1)).toBe('?days=30&refresh=true')
+    expect(asked.at(-1)).toBe('?days=7&refresh=true')
   })
 })
 
@@ -744,7 +745,7 @@ describe('paging through the recent posts', () => {
     await within(recent).findByText('Post number 1')
     await fireEvent.click(above(recent).getByRole('button', { name: /Next/ }))
     expect(titles(recent)[0]).toBe('6')
-    await fireEvent.update(screen.getByLabelText('Show posts from'), '7')
+    await fireEvent.update(screen.getByLabelText('Show posts from'), '30')
     await waitFor(() => expect(titles(recent)[0]).toBe('1'))
     expect(above(recent).getByText('Posts 1–5 of 25')).toBeInTheDocument()
   })
