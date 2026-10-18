@@ -330,8 +330,14 @@ describe('asking someone to review a draft', () => {
             description: null,
             role,
             members: [
-              { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role },
-              { userId: 'u2', name: 'Bob Jones', email: 'bob@example.com', role: 'member' },
+              { userId: 'u1', name: 'Ada Lovelace', handle: 'ada', email: 'ada@example.com', role },
+              {
+                userId: 'u2',
+                name: 'Bob Jones',
+                handle: 'bob',
+                email: 'bob@example.com',
+                role: 'member',
+              },
             ],
           },
         ]),

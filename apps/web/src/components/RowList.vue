@@ -48,7 +48,10 @@ defineSlots<{
         <div v-if="bare" class="min-w-0 flex-1">
           <slot :item="item" :index="index" />
         </div>
-        <div v-else class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
+        <div
+          v-else
+          class="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2"
+        >
           <slot :item="item" :index="index" />
           <span v-if="$slots.actions" class="flex shrink-0 flex-wrap items-center gap-1">
             <slot name="actions" :item="item" :index="index" />

@@ -180,8 +180,20 @@ describe('the brainstorm page', () => {
               description: null,
               role: 'owner',
               members: [
-                { userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' },
-                { userId: 'u2', name: 'Bo', email: 'bo@example.com', role: 'member' },
+                {
+                  userId: 'u1',
+                  name: 'Ada',
+                  handle: 'ada',
+                  email: 'ada@example.com',
+                  role: 'owner',
+                },
+                {
+                  userId: 'u2',
+                  name: 'Bo',
+                  handle: 'bouser',
+                  email: 'bo@example.com',
+                  role: 'member',
+                },
               ],
             },
           ]),

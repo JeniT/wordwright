@@ -16,7 +16,13 @@ useMockServer()
 vi.mock('../components/DescriptionEditor.vue', () => import('../testing/description-editor-stub'))
 beforeEach(() => server.use(llmSettings(true), sourcesList()))
 
-const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
+const owner = {
+  userId: 'u1',
+  name: 'Ada Lovelace',
+  handle: 'ada',
+  email: 'ada@example.com',
+  role: 'owner',
+}
 const bare = {
   id: 'ada-publication',
   name: 'Garden notes',

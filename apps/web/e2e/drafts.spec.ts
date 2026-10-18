@@ -689,7 +689,9 @@ test('invites someone who has no account yet: they register from the email and j
 
   // Ada now sees them as a member, and the invitation is no longer pending.
   await page.reload()
-  await expect(page.getByText(new RegExp(`${newbieEmail}, member`))).toBeVisible()
+  const people = page.getByRole('list', { name: 'People' })
+  await expect(people.getByText('member')).toBeVisible()
+  await expect(people).not.toContainText(newbieEmail)
   await expect(page.getByText('Waiting for a reply')).toHaveCount(0)
 
   // On Home each of them sees their own role beside the sharing line (#228).

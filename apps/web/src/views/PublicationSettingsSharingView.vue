@@ -20,7 +20,10 @@ const session = useSessionStore()
           <div class="mb-3 flex flex-wrap items-center gap-2">
             <h2 id="people-heading" class="font-display text-xl font-semibold">People</h2>
             <!-- Only worth saying when there is someone else to say it about. -->
-            <Explain v-if="publication.members.length > 1" label="About owners">
+            <Explain
+              v-if="publication.role === 'owner' && publication.members.length > 1"
+              label="About owners"
+            >
               Owners can also {{ OWNER_ABILITIES_TEXT }}.
             </Explain>
           </div>

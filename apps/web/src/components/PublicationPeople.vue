@@ -79,7 +79,8 @@ const confirmLabel = computed(() => {
     <template #default="{ item: m }">
       <span class="min-w-0 flex-1 break-words">
         {{ m.name }}
-        <span class="text-ink-soft">({{ m.email }}, {{ m.role }})</span>
+        <span v-if="m.handle" class="text-ink-soft">({{ m.handle }})</span>
+        <span class="chip chip-quiet ml-1 capitalize">{{ m.role }}</span>
       </span>
       <p
         v-if="isMe(m) && isOwner && onlyOwner && publication.members.length > 1"

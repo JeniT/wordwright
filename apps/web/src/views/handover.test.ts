@@ -5,9 +5,9 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer({ warm: ['draft'] })
 
-const ada = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com' }
-const bob = { userId: 'u2', name: 'Bob Jones', email: 'bob@example.com' }
-const cy = { userId: 'u3', name: 'Cy Young', email: 'cy@example.com' }
+const ada = { userId: 'u1', name: 'Ada Lovelace', handle: 'ada', email: 'ada@example.com' }
+const bob = { userId: 'u2', name: 'Bob Jones', handle: 'bob', email: 'bob@example.com' }
+const cy = { userId: 'u3', name: 'Cy Young', handle: 'cyuser', email: 'cy@example.com' }
 
 const draft = {
   id: 'd1',

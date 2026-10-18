@@ -308,6 +308,7 @@ describe('landing page: your role in shared publications (#228)', () => {
   const person = (userId: string, role: 'owner' | 'member') => ({
     userId,
     name: userId,
+    handle: `${userId}user`,
     email: `${userId}@example.com`,
     role,
   })

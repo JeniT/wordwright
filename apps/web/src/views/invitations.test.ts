@@ -24,7 +24,9 @@ const publication = {
   siteIconUrl: null,
   description: null,
   role: 'owner',
-  members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }],
+  members: [
+    { userId: 'u1', name: 'Ada Lovelace', handle: 'ada', email: 'ada@example.com', role: 'owner' },
+  ],
 }
 
 describe('accept-invitation page', () => {

@@ -243,12 +243,17 @@ export class PublicationStore {
     return (
       this.db
         .prepare(
-          `SELECT u.id, u.name, u.email, m.role FROM publication_members m
+          `SELECT u.id, u.name, u.handle, m.role FROM publication_members m
            JOIN users u ON u.id = m.user_id WHERE m.publication_id = ?
            ORDER BY m.joined_at, m.rowid`,
         )
-        .all(publicationId) as { id: string; name: string; email: string; role: PublicationRole }[]
-    ).map((r) => ({ userId: r.id, name: r.name, email: r.email, role: r.role }))
+        .all(publicationId) as {
+        id: string
+        name: string
+        handle: string | null
+        role: PublicationRole
+      }[]
+    ).map((r) => ({ userId: r.id, name: r.name, handle: r.handle, role: r.role }))
   }
 
   countOwnedBy(userId: string): number {

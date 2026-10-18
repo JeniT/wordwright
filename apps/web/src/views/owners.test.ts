@@ -6,8 +6,8 @@ import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } fr
 useMockServer()
 beforeEach(() => server.use(sourcesList()))
 
-const ada = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com' }
-const bob = { userId: 'u2', name: 'Bob', email: 'bob@example.com' }
+const ada = { userId: 'u1', name: 'Ada Lovelace', handle: 'ada', email: 'ada@example.com' }
+const bob = { userId: 'u2', name: 'Bob', handle: 'bob', email: 'bob@example.com' }
 const publication = (viewer: 'owner' | 'member', roles: { ada: string; bob: string }) => ({
   id: 'p1',
   name: 'Joint piece',
@@ -108,6 +108,26 @@ describe('owners in the people list', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(2)
     expect(within(list).getByRole('button', { name: 'Remove Bob' })).toHaveClass('btn')
     expect(within(list).queryByRole('link')).toBeNull()
+  })
+
+  it('names people by username with a role chip, and never shows an address', async () => {
+    serverWith({ ada: 'owner', bob: 'member' })
+    await renderAt('/p/p1/settings/sharing')
+    const list = await screen.findByRole('list', { name: 'People' })
+    const row = within(list).getByText(/Bob/).closest('li')!
+    expect(row).toHaveTextContent('(bob)')
+    expect(within(row).getByText('member')).toHaveClass('chip')
+    expect(within(list).getByText('owner')).toHaveClass('chip')
+    expect(list).not.toHaveTextContent('@example.com')
+  })
+
+  it('gives a member just the list of people, with no text about what owners can do', async () => {
+    serverWith({ ada: 'owner', bob: 'member' }, 'member')
+    server.use(signedInAs({ ...testUser, tutorialMode: true }))
+    await renderAt('/p/p1/settings/sharing')
+    await screen.findByRole('list', { name: 'People' })
+    expect(screen.queryByText(/Owners can also/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'About owners' })).toBeNull()
   })
 
   describe('what owners can do', () => {

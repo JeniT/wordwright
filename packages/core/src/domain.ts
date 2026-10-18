@@ -155,7 +155,8 @@ export type PublicationRole = z.infer<typeof PublicationRoleSchema>
 export const PublicationMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  email: z.string(),
+  /** Their username, which is what other members see; their address stays private to them. */
+  handle: HandleSchema.nullable(),
   role: PublicationRoleSchema,
 })
 export type PublicationMember = z.infer<typeof PublicationMemberSchema>

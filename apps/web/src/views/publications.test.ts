@@ -22,8 +22,20 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-const owner = { userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role: 'owner' }
-const member = { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'member' }
+const owner = {
+  userId: 'u1',
+  name: 'Ada Lovelace',
+  handle: 'ada',
+  email: 'ada@example.com',
+  role: 'owner',
+}
+const member = {
+  userId: 'u2',
+  name: 'Bob',
+  handle: 'bob',
+  email: 'bob@example.com',
+  role: 'member',
+}
 
 const substack = {
   id: 'adalovelace-substack',
@@ -547,7 +559,10 @@ describe('publication settings', () => {
       http.get('*/api/publications/adalovelace-blog/invitations', () => HttpResponse.json([])),
     )
     await renderAt('/p/adalovelace-blog/settings/sharing')
-    await screen.findByText(/bob@example.com, member/)
+    const row = (await screen.findByText(/Bob/)).closest('li')!
+    expect(row).toHaveTextContent('(bob)')
+    expect(within(row).getByText('member')).toHaveClass('chip')
+    expect(row).not.toHaveTextContent('bob@example.com')
     expect(screen.getByLabelText('Email address')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument()
   })
@@ -573,7 +588,7 @@ describe('publication settings', () => {
 
   it('gives a member a read-only view and a way to leave', async () => {
     let left = false
-    const bob = { ...owner, userId: 'u2', name: 'Bob', email: 'bob@example.com' }
+    const bob = { ...owner, userId: 'u2', name: 'Bob', handle: 'bob', email: 'bob@example.com' }
     const me = { ...owner, role: 'member' }
     const shared = { ...blog, role: 'member', members: [bob, me] }
     server.use(

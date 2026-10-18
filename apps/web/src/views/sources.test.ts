@@ -13,7 +13,7 @@ const publication = (role: 'owner' | 'member') => ({
   siteIconUrl: null,
   description: null,
   role,
-  members: [{ userId: 'u1', name: 'Ada Lovelace', email: 'ada@example.com', role }],
+  members: [{ userId: 'u1', name: 'Ada Lovelace', handle: 'ada', email: 'ada@example.com', role }],
 })
 const source = (id: string, host: string, extra = {}) => ({
   id,

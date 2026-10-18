@@ -97,7 +97,7 @@ test('role chips on shared publications are accessible in light, dark and on a p
   const person = (userId: string, role: string) => ({
     userId,
     name: userId,
-    email: `${userId}@example.com`,
+    handle: `${userId}user`,
     role,
   })
   const shared = [

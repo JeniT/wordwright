@@ -13,7 +13,7 @@ const publication = {
   siteIconUrl: null,
   description: null,
   role: 'owner',
-  members: [{ userId: 'u1', name: 'Ada', email: 'ada@example.com', role: 'owner' }],
+  members: [{ userId: 'u1', name: 'Ada', handle: 'ada', email: 'ada@example.com', role: 'owner' }],
 }
 const note = (n: number, text = `Note ${n}`) => ({
   id: `n${n}`,
@@ -638,7 +638,7 @@ describe('a publication’s landing page: who you are here', () => {
     ...publication,
     members: [
       ...publication.members,
-      { userId: 'u2', name: 'Bob', email: 'bob@example.com', role: 'member' },
+      { userId: 'u2', name: 'Bob', handle: 'bob', email: 'bob@example.com', role: 'member' },
     ],
   }
   const serve = (pub: typeof publication) =>

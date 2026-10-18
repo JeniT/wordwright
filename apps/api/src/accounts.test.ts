@@ -522,6 +522,9 @@ describe('account deletion', () => {
       carolUser.id,
     ])
     expect(view.members.find((m: { userId: string }) => m.userId === bobUser.id).role).toBe('owner')
+    // Other members see a username, never an address.
+    for (const m of view.members)
+      expect(Object.keys(m).sort()).toEqual(['handle', 'name', 'role', 'userId'])
     expect(await (await bob.get(`/api/publications/${shared.id}/ideas`)).json()).toHaveLength(1)
     expect(store.users.findByEmail('ada@example.com')).toBeUndefined()
   })
