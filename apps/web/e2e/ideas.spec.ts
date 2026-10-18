@@ -265,7 +265,7 @@ test('removes links and deletes an idea, which asks first', async ({ page }) => 
   await page.getByRole('banner').getByRole('link', { name: 'Idea settings' }).click()
   await page.getByRole('button', { name: 'Delete idea' }).click()
   await noViolations(page, 'delete dialog')
-  await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete idea' }).click()
   await expect(page.getByText('No ideas yet')).toBeVisible()
 })
 

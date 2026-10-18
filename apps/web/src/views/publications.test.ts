@@ -578,10 +578,10 @@ describe('publication settings', () => {
       }),
     )
     const { router } = await renderAt('/p/adalovelace-blog/settings/delete')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Delete this publication' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Delete publication' }))
     expect(deleted).toBe(false) // a dialog asks first
     const dialog = screen.getByRole('dialog', { name: 'Delete this publication?' })
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, delete it' }))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete publication' }))
     await waitFor(() => expect(router.currentRoute.value.path).toBe('/'))
     await screen.findByRole('heading', { name: 'Create your first publication' })
   })

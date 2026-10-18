@@ -588,7 +588,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    and its pages are plain links with no numbers (`PUBLICATION_SETTINGS_PAGES`; routes use
    `meta: { level: 'publication-settings', step }`). A member's menu leaves out Delete, and its address sends them to
    Details. The name and website fields are one component (`PublicationDetailsFields`) shared with New publication, so the two forms
-   can't drift apart.
+   can't drift apart. **An idea's settings are one page, not a menu**, because it has only a name and a delete (`/p/:id/ideas/:id/settings`, under the `idea` level): its Save button reads "Save idea" and swaps to "Saving…" as Details does, "Saved" sits underneath, and its delete box, like the others, leads with "Download your writing" first.
 8. **A level has a landing page** (a publication's, at `/p/:publicationId`; an idea's, at `/p/:publicationId/ideas/:id`) that is none of the numbered steps: a summary of
    each step (the newest feed posts; the first items to read; the latest notes; the ideas), with **Quick add** above them for adding an idea, a note or something to read, so the sections hold no forms of their own. Nothing in the menu is current there.
    The title row has the gear at its far end. **Describe this publication**, while there is no description, is a `NextStep top` right under the title row, and the publication's description comes next, then Quick add.

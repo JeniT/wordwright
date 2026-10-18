@@ -311,7 +311,7 @@ describe('idea page', () => {
       }),
     ])
     await fireEvent.update(await screen.findByLabelText("What's your core idea?"), 'Meanders')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Save idea' }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Saved'))
     expect(sent).toEqual({ name: 'Meanders' }) // the notes have their own routes
     // The menu, which names the idea, follows the change.
@@ -324,8 +324,54 @@ describe('idea page', () => {
         HttpResponse.json({ error: 'Describe your idea in a few words' }, { status: 400 }),
       ),
     ])
-    await fireEvent.click(await screen.findByRole('button', { name: 'Save' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Save idea' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Describe your idea')
+  })
+
+  it('says it is loading until the idea arrives', async () => {
+    let arrive: () => void = () => {}
+    const held = new Promise<void>((resolve) => (arrive = resolve))
+    server.use(
+      signedInAs(testUser),
+      listPublications,
+      http.get(ideaUrl, async () => {
+        await held
+        return HttpResponse.json(idea)
+      }),
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+    )
+    void renderAt('/p/ada-substack/ideas/i1/settings')
+    expect((await screen.findAllByText('Loading…')).length).toBeGreaterThan(0)
+    arrive()
+    expect(await screen.findByLabelText("What's your core idea?")).toHaveValue('Why rivers meander')
+  })
+
+  it('says it is saving on the button while the save runs', async () => {
+    let finish: () => void = () => {}
+    const held = new Promise<void>((resolve) => (finish = resolve))
+    await openAt('/settings', [
+      http.patch(ideaUrl, async () => {
+        await held
+        return HttpResponse.json(idea)
+      }),
+    ])
+    await fireEvent.click(await screen.findByRole('button', { name: 'Save idea' }))
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
+    finish()
+    await screen.findByRole('button', { name: 'Save idea' })
+  })
+
+  it('says what deleting takes with it, and points to the download first', async () => {
+    await openAt('/settings')
+    const box = await screen.findByRole('region', { name: 'Delete idea' })
+    expect(
+      within(box).getByText(/This can’t be undone\. Its notes, reading items and drafts go too\./),
+    ).toBeInTheDocument()
+    expect(within(box).getByRole('link', { name: 'Download your writing' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/settings/download',
+    )
+    expect(within(box).queryByText(/links/)).toBeNull()
   })
 
   it('shows a link by its title, with just its host beneath (one link per item), and by its address when it has no title', async () => {
@@ -2070,13 +2116,16 @@ describe('idea page', () => {
       }),
     ])
     await fireEvent.click(await screen.findByRole('button', { name: 'Delete idea' }))
-    const dialog = screen.getByRole('dialog', { name: 'Delete this idea?' })
+    const dialog = screen.getByRole('dialog', { name: 'Delete “Why rivers meander”?' })
+    expect(dialog).toHaveTextContent(
+      'This can’t be undone. Its notes, reading items and drafts go too.',
+    )
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(deleted).toBe(false)
 
     await fireEvent.click(screen.getByRole('button', { name: 'Delete idea' }))
     await fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, delete it' }),
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete idea' }),
     )
     await waitFor(() => expect(deleted).toBe(true))
     expect(await screen.findByRole('heading', { name: 'Ideas' })).toBeInTheDocument()

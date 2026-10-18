@@ -10,6 +10,10 @@ A web app that supports a writer's journey from idea to published writing, with 
 A place where the writer publishes: a Substack, a blog, a magazine, a newsletter or similar. It holds ideas and drafts, with people who work in it.
 _Avoid_: Profile, venue, workspace, account
 
+**Idea**:
+The writer's one-sentence statement of what they want to write about. Its name is the core idea, in their own words; it holds the idea's own notes, reading items, brainstorming and drafts, and belongs to a publication.
+_Avoid_: Topic, title (that is a draft's), subject
+
 **Description**:
 The writer's own account of a publication: what it is, who reads it and what kinds of writing go there. Shown at the top of the publication and given to your AI so it knows what the writing is for. Optional, and written by the people who work in the publication.
 _Avoid_: Bio, about, brief

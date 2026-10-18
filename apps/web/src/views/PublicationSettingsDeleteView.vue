@@ -58,7 +58,7 @@ const deletePublication = useMutation({
         </p>
         <template #action>
           <button type="button" class="btn btn-danger-solid" @click="confirmingDelete = true">
-            Delete this publication
+            Delete publication
           </button>
         </template>
       </DangerZone>
@@ -66,7 +66,7 @@ const deletePublication = useMutation({
       <ConfirmDialog
         :open="confirmingDelete"
         title="Delete this publication?"
-        confirm-label="Yes, delete it"
+        confirm-label="Delete publication"
         busy-label="Deleting…"
         :busy="deletePublication.isPending.value"
         @confirm="deletePublication.mutate()"

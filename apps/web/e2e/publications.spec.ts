@@ -230,8 +230,8 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   await expect(page.getByRole('main').locator('img')).toHaveCount(0)
 
   await openSettingsPage(page, 'Delete publication')
-  await page.getByRole('button', { name: 'Delete this publication' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Yes, delete it' }).click()
+  await page.getByRole('button', { name: 'Delete publication' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete publication' }).click()
   await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
   await expect(page.getByRole('main').getByRole('link', { name: /Final publication/ })).toHaveCount(
     0,

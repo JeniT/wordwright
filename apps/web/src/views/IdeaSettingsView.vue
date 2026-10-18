@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import DangerZone from '../components/DangerZone.vue'
 import IdeaGate from '../components/IdeaGate.vue'
@@ -53,41 +53,50 @@ const remove = useMutation({
 
 <template>
   <IdeaGate :id="id" v-slot="{ idea: loaded }" :publication-id="publicationId">
-    <StepHeading>Idea settings</StepHeading>
+    <div class="max-w-xl">
+      <StepHeading>Idea settings</StepHeading>
 
-    <form class="mb-10" @submit.prevent="save.mutate()">
-      <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
-      <div class="flex items-center gap-3">
-        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">Save</button>
-        <SaveStatus :mutation="save" saving="Saving…" />
-      </div>
-    </form>
+      <form class="mb-10" @submit.prevent="save.mutate()">
+        <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
+            {{ save.isPending.value ? 'Saving…' : 'Save idea' }}
+          </button>
+          <SaveStatus :mutation="save" class="basis-full" />
+        </div>
+      </form>
 
-    <DangerZone
-      title="Delete this idea"
-      :error="remove.isError.value ? errorMessage(remove.error.value) : undefined"
-    >
-      <p class="mb-3 text-sm">
-        This permanently deletes the idea, its links and
-        {{ loaded.drafts.length ? 'all its drafts' : 'any drafts' }}.
-      </p>
-      <template #action>
-        <button type="button" class="btn btn-danger-solid" @click="confirmingDelete = true">
-          Delete idea
-        </button>
-      </template>
-    </DangerZone>
+      <DangerZone
+        title="Delete idea"
+        :error="remove.isError.value ? errorMessage(remove.error.value) : undefined"
+      >
+        <p class="mb-3">
+          This can’t be undone. Its notes, reading items and drafts go too.
+          <RouterLink
+            :to="{ name: 'publication-settings-download', params: { publicationId } }"
+            class="underline"
+            >Download your writing</RouterLink
+          >
+          first.
+        </p>
+        <template #action>
+          <button type="button" class="btn btn-danger-solid" @click="confirmingDelete = true">
+            Delete idea
+          </button>
+        </template>
+      </DangerZone>
 
-    <ConfirmDialog
-      :open="confirmingDelete"
-      title="Delete this idea?"
-      confirm-label="Yes, delete it"
-      busy-label="Deleting…"
-      :busy="remove.isPending.value"
-      @confirm="remove.mutate()"
-      @cancel="confirmingDelete = false"
-    >
-      “{{ loaded.name }}” will be deleted along with its links and drafts. This can't be undone.
-    </ConfirmDialog>
+      <ConfirmDialog
+        :open="confirmingDelete"
+        :title="`Delete “${loaded.name}”?`"
+        confirm-label="Delete idea"
+        busy-label="Deleting…"
+        :busy="remove.isPending.value"
+        @confirm="remove.mutate()"
+        @cancel="confirmingDelete = false"
+      >
+        This can’t be undone. Its notes, reading items and drafts go too.
+      </ConfirmDialog>
+    </div>
   </IdeaGate>
 </template>
