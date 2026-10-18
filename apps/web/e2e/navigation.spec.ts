@@ -165,8 +165,8 @@ test('leads through a publication and an idea step by step, without ever locking
   // A reading item brings the reading list in place of the AI box.
   await page.getByRole('link', { name: 'See the reading list' }).click()
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add link' }).click()
-  await expect(page.getByRole('link', { name: 'Take notes' })).toBeVisible()
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await expect(page.getByRole('link', { name: /^Fake title for / })).toBeVisible()
   await page.getByRole('banner').getByRole('link', { name: 'What pruning teaches' }).click()
   await expect(page.getByRole('list', { name: 'To read' })).toBeVisible()
   await expect(page.getByLabel('What areas do you want to research?')).toHaveCount(0)
@@ -294,8 +294,8 @@ test('the menu folds away at every width while reading a source, so two windows 
   await signUpWithIdea(page)
   await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add link' }).click()
-  await page.getByRole('link', { name: 'Take notes' }).click()
+  await page.getByRole('button', { name: 'Add item' }).click()
+  await page.getByRole('link', { name: /^Fake title for / }).click()
   const menuButton = page.getByRole('button', { name: 'Menu', exact: true })
   await expect(menuButton).toBeVisible() // on a laptop, where it is otherwise hidden
   await expect(page.getByRole('navigation', { name: 'Idea' })).toBeHidden()

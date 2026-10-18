@@ -67,7 +67,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   // Nothing is on the reading list until pages are added.
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(
-    page.getByRole('link', { name: /Fake title for research\.example\.org/ }),
+    page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
   ).toHaveCount(0)
   await page.getByRole('link', { name: 'Start research' }).click()
 
@@ -88,7 +88,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   // The reading list has them, marked, with the AI's reason kept.
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(
-    page.getByRole('link', { name: /Fake title for research\.example\.org/ }),
+    page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
   ).toBeVisible()
   await expect(page.getByText('Found by research')).toHaveCount(2)
   await expect(page.getByText('Why the AI suggested it (unchecked):').first()).toBeVisible()

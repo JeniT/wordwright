@@ -86,7 +86,8 @@ describe('reading page', () => {
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
-    expect(await screen.findAllByRole('link', { name: 'Take notes' })).toHaveLength(2)
+    expect(await screen.findByRole('link', { name: 'A paper' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Take notes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: /^Keep:/ })).not.toBeInTheDocument()
   })
 
@@ -188,10 +189,12 @@ describe('reading page', () => {
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
-    const [first, second] = await screen.findAllByRole('link', { name: 'Take notes' })
+    const first = await screen.findByRole('link', { name: 'A paper' })
     expect(first).toHaveAttribute('href', readingPath('l1'))
-    expect(second).toHaveAttribute('href', readingPath('l2'))
-    expect(first).toHaveAccessibleDescription(/A paper/) // so each one says which item it is for
+    expect(screen.getByRole('link', { name: 'https://example.org/other' })).toHaveAttribute(
+      'href',
+      readingPath('l2'),
+    )
   })
 
   describe('the notes', () => {
@@ -587,7 +590,7 @@ describe('reading page', () => {
       ])
       const box = await screen.findByLabelText('Web address')
       await fireEvent.update(box, 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       const status = await screen.findByRole('status')
       await waitFor(() => expect(status).toHaveTextContent('Added “Fetched title”'))
       expect(sent).toEqual([{ url: 'example.org/new' }])
@@ -605,7 +608,7 @@ describe('reading page', () => {
         http.post(`${ideaUrl}/links`, () => HttpResponse.json(added(''), { status: 201 })),
       ])
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       expect(await screen.findByText(/Added “https:\/\/example\.org\/new”/)).toBeInTheDocument()
     })
 
@@ -617,7 +620,7 @@ describe('reading page', () => {
       ])
       const box = await screen.findByLabelText('Web address')
       await fireEvent.update(box, 'example.org/paper')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       expect(await screen.findByText('That link is already in this idea.')).toBeInTheDocument()
       expect(box).toHaveValue('example.org/paper')
       expect(screen.queryByText(/to the reading list\./)).toBeNull()

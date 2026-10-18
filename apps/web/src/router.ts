@@ -153,7 +153,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'read',
     component: () => import('./views/ReadView.vue'),
     props: true,
-    meta: { level: 'publication', step: 'read' },
+    meta: { level: 'publication', step: 'read', tutorial: true },
   },
   // Inspiration was split into Search and Read; the old addresses still land on the right one.
   {

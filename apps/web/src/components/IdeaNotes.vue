@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
@@ -15,6 +15,7 @@ import MoveFields from './MoveFields.vue'
 import MoveNotesDetails from './MoveNotesDetails.vue'
 import NoteCard from './NoteCard.vue'
 import ReorderableList from './ReorderableList.vue'
+import TagButton from './TagButton.vue'
 import TagEditor from './TagEditor.vue'
 import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
@@ -99,6 +100,17 @@ const save = useMutation({
 })
 
 /** Gives a note exactly these tags (one more or one fewer than before, each time the person presses Enter). */
+// ---- the tag field of one note at a time; closing it puts focus back on its icon
+const taggingId = ref<string | null>(null)
+const tagButtons = new Map<string, { focus: () => void }>()
+function setTagButton(id: string, el: unknown) {
+  if (el) tagButtons.set(id, el as { focus: () => void })
+  else tagButtons.delete(id)
+}
+function stopTagging(id: string) {
+  taggingId.value = null
+  void nextTick(() => tagButtons.get(id)?.focus())
+}
 async function saveTags(note: IdeaNote, tags: string[]) {
   const saved = await api.setIdeaNoteTags(props.publicationId, props.ideaId, note.id, tags)
   setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === saved.id ? saved : n)))
@@ -579,6 +591,8 @@ const label = (note: IdeaNote) => {
                   :tags="note.tags"
                   :suggestions="usedTags"
                   :save="(tags) => saveTags(note, tags)"
+                  :open="taggingId === note.id"
+                  @close="stopTagging(note.id)"
                 />
               </template>
             </NoteCard>
@@ -596,6 +610,12 @@ const label = (note: IdeaNote) => {
             >
               <Icon name="edit" />
             </button>
+            <TagButton
+              :ref="(el) => setTagButton(note.id, el)"
+              :label="label(note)"
+              :open="taggingId === note.id"
+              @toggle="taggingId === note.id ? stopTagging(note.id) : (taggingId = note.id)"
+            />
             <button
               v-tip="'Move'"
               type="button"

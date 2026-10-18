@@ -283,7 +283,7 @@ const add = useMutation({
           @update:model-value="addLink.isError.value && addLink.reset()"
         />
         <button type="submit" class="btn btn-outline" :disabled="addLink.isPending.value">
-          {{ addLink.isPending.value ? 'Adding…' : 'Add to reading list' }}
+          {{ addLink.isPending.value ? 'Adding…' : 'Add item' }}
         </button>
       </form>
       <p role="status" class="mt-2 text-sm">

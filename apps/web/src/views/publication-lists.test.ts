@@ -34,6 +34,7 @@ type Link = {
   why: string | null
   kept?: boolean
   addedAt?: string
+  tags?: string[]
 }
 const link = (id: string, title: string, extra: Partial<Link> = {}): Link => ({
   id,
@@ -162,13 +163,23 @@ describe('the publication’s reading list', () => {
     expect(screen.queryByRole('region', { name: 'Reading list' })).not.toBeInTheDocument()
   })
 
-  it('says it is empty, and what the list is for', async () => {
+  it('says it is empty, and where to add or find something', async () => {
     await renderAt('/p/ada-substack/reading')
-    expect(
-      await screen.findByRole('heading', { level: 2, name: 'Reading list' }),
-    ).toBeInTheDocument()
-    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
-    expect(screen.getByText(/before any one idea/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nothing to read yet\. Add a web address above/)).toBeVisible()
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Search' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/search',
+    )
+    // The page is titled "Read"; the list's own heading is for screen readers only.
+    expect(screen.getByRole('heading', { level: 2, name: 'Reading list' })).toHaveClass('sr-only')
+  })
+
+  it('puts the box for a new item above the list', async () => {
+    fakePublication({ links: [link('l1', 'A paper')] })
+    await renderAt('/p/ada-substack/read')
+    const box = await screen.findByLabelText('Web address')
+    const title = await screen.findByRole('link', { name: 'A paper' })
+    expect(box.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('shows loading, and says what went wrong loading, and tries again', async () => {
@@ -188,22 +199,34 @@ describe('the publication’s reading list', () => {
     expect(await screen.findByText('A paper')).toBeInTheDocument()
   })
 
-  it('lists the items, with a way to take notes on each at the publication’s own reading page', async () => {
+  it('lists the items; a title opens the item’s own reading page, the host opens the article', async () => {
     fakePublication({ links: [link('l1', 'A paper', { authors: ['Bo'] }), link('l2', '')] })
     await renderAt('/p/ada-substack/reading')
-    expect(await screen.findByText('A paper')).toBeInTheDocument()
-    const [first, second] = await screen.findAllByRole('link', { name: 'Take notes' })
-    expect(first).toHaveAttribute('href', '/p/ada-substack/reading/l1')
-    expect(second).toHaveAttribute('href', '/p/ada-substack/reading/l2')
+    expect(await screen.findByRole('link', { name: 'A paper' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/reading/l1',
+    )
+    expect(screen.queryByRole('link', { name: 'Take notes' })).not.toBeInTheDocument()
+    const item = screen.getByRole('link', { name: 'A paper' }).closest('li')!
+    const article = within(item).getByRole('link', { name: /example\.org/ })
+    expect(article).toHaveAttribute('href', 'https://example.org/l1')
+    expect(article).toHaveAttribute('target', '_blank')
   })
 
   it('adds an item by its address, clearing the field, and keeps what was typed when it fails', async () => {
     const state = fakePublication()
     await renderAt('/p/ada-substack/reading')
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
     expect(await screen.findByText('Title of https://example.org/new')).toBeInTheDocument()
     expect(state.added).toEqual(['https://example.org/new'])
+    expect(
+      await screen.findByText(/Added “Title of https:\/\/example\.org\/new”\./),
+    ).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Open it' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/),
+    )
     await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
 
     server.use(
@@ -215,7 +238,7 @@ describe('the publication’s reading list', () => {
       ),
     )
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
     expect(await screen.findByText(/already in this publication/)).toBeInTheDocument()
     expect(screen.getByLabelText('Web address')).toHaveValue('https://example.org/new')
   })
@@ -230,7 +253,7 @@ describe('the publication’s reading list', () => {
     await waitFor(() => expect(state.links[0]!.readAt).toBeNull())
 
     // Removing is held (a screen reader's activation asks twice), and says nothing is lost silently.
-    const remove = screen.getByRole('button', { name: 'Remove link to Another' })
+    const remove = screen.getByRole('button', { name: 'Remove Another' })
     await fireEvent.click(remove)
     expect(state.links).toHaveLength(2)
     await fireEvent.click(remove)
@@ -266,7 +289,7 @@ describe('the publication’s reading list', () => {
       fakePublication({ links: [link('l2', 'Already read', { readAt: read })] })
       await renderAt('/p/ada-substack/reading')
       expect(await screen.findByText('Everything on the list has been read.')).toBeInTheDocument()
-      expect(screen.queryByText('Nothing on the reading list yet.')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Nothing to read yet/)).not.toBeInTheDocument()
     })
 
     it('offer no tick when none has been read, and a truly empty list says so', async () => {
@@ -303,11 +326,11 @@ describe('the publication’s reading list', () => {
     })
   })
 
-  it('says what stays and what goes after a month, briefly', async () => {
+  it('has no intro on the page; the purpose is written out only in tutorial mode', async () => {
     await renderAt('/p/ada-substack/reading')
-    expect(
-      await screen.findByText(/Links you add stay; links from your feeds go after a month/),
-    ).toBeInTheDocument()
+    await screen.findByText(/Nothing to read yet/)
+    expect(screen.queryByText(/Read here and take notes as you go/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/go after a month/)).not.toBeInTheDocument()
   })
 
   it('has a Keep tick on each item, saved when it is changed', async () => {
@@ -318,9 +341,9 @@ describe('the publication’s reading list', () => {
     const first = await screen.findByRole('switch', { name: 'Keep: A paper' })
     expect(first).not.toBeChecked()
     expect(screen.getByRole('switch', { name: 'Keep: Another' })).toBeChecked()
-    // Only an item that isn't kept says when it will go (a month after it was added), and on what date.
-    expect(screen.getAllByText(/Removed from this list on/)).toHaveLength(1)
-    expect(screen.getByText('Removed from this list on 1 Feb unless kept')).toBeInTheDocument()
+    // Each says how long it stays: an item that isn't kept, until a month after it was added.
+    expect(screen.getByText('Kept until 1 Feb')).toBeInTheDocument()
+    expect(screen.getByText('Kept forever')).toBeInTheDocument()
 
     await fireEvent.click(first)
     await waitFor(() => expect(state.links[0]!.kept).toBe(true))
@@ -338,8 +361,28 @@ describe('the publication’s reading list', () => {
     await renderAt('/p/ada-substack/reading')
     const box = await screen.findByRole('switch', { name: 'Keep: A paper' })
     await fireEvent.click(box)
-    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t save that')
     await waitFor(() => expect(box).not.toBeChecked())
+  })
+
+  it('keeps the tag icon with the other icon buttons, whether or not the item has tags', async () => {
+    fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another', { tags: ['rivers'] })] })
+    await renderAt('/p/ada-substack/read')
+    for (const name of ['A paper', 'Another']) {
+      const tag = await screen.findByRole('button', { name: `Add tags to ${name}` })
+      const edit = screen.getByRole('button', { name: `Edit ${name}` })
+      expect(tag.parentElement).toBe(edit.parentElement)
+    }
+    // An untagged item takes no room for tags until the icon is pressed.
+    const first = screen.getByRole('link', { name: 'A paper' }).closest('li')!
+    expect(within(first).queryByRole('list', { name: 'Tags' })).toBeNull()
+    const second = screen.getByRole('link', { name: 'Another' }).closest('li')!
+    expect(within(second).getByRole('list', { name: 'Tags' })).toHaveTextContent('rivers')
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Add tags to A paper' }))
+    expect(screen.getByLabelText('Add a tag to A paper')).toHaveFocus()
+    await fireEvent.click(screen.getByRole('button', { name: 'Done tagging A paper' }))
+    expect(screen.getByRole('button', { name: 'Add tags to A paper' })).toHaveFocus()
   })
 
   it('shows where an item came from: the AI’s with the highlighter, a feed’s without', async () => {
@@ -418,11 +461,11 @@ describe('moving reading items', () => {
     const f = fake()
     await open()
     await tick('Another')
-    await fireEvent.click(screen.getByRole('button', { name: 'Move link to A paper' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Move A paper' }))
     const dialog = screen.getByRole('dialog', { name: 'Move A paper' })
-    expect(within(dialog).getByRole('button', { name: 'Move link' })).toBeDisabled() // no place yet
+    expect(within(dialog).getByRole('button', { name: 'Move item' })).toBeDisabled() // no place yet
     await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move link' }))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move item' }))
     await waitFor(() => expect(f.moves).toEqual([{ ids: ['l1'], to: { ideaId: 'i1' } }]))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
@@ -455,7 +498,7 @@ describe('moving reading items', () => {
       'Moved 2 items and 5 notes to “Rivers”.',
     )
     expect(f.moves).toEqual([{ ids: ['l1', 'l2'], to: { ideaId: 'i1' } }])
-    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+    expect(await screen.findByText(/Nothing to read yet/)).toBeInTheDocument()
   })
 
   it('puts them back with Undo', async () => {
@@ -553,7 +596,7 @@ describe('moving reading items', () => {
   it('has no toolbar for an empty list', async () => {
     fake([])
     await renderAt('/p/ada-substack/reading')
-    await screen.findByText('Nothing on the reading list yet.')
+    await screen.findByText(/Nothing to read yet/)
     expect(screen.queryByRole('button', { name: 'Move to…' })).not.toBeInTheDocument()
   })
 })
@@ -706,21 +749,21 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     screen
       .getAllByRole('checkbox', { name: /^Select Link/ })
       .map((c) => c.getAttribute('aria-label')!.replace('Select ', ''))
-  const selectAll = () => screen.getByRole('checkbox', { name: 'Select all links on this page' })
+  const selectAll = () => screen.getByRole('checkbox', { name: 'Select all items on this page' })
 
   it('pages the list five at a time, with where you are, and keeps the filter ahead of the paging', async () => {
     fakePublication({ links: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })] })
     await renderAt('/p/ada-substack/reading')
     await screen.findByText('Link 1')
     expect(titles()).toEqual(['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5'])
-    expect(screen.getAllByText('Links 1–5 of 7').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Items 1–5 of 7').length).toBeGreaterThan(0)
     await fireEvent.click(screen.getAllByRole('button', { name: /^Next/ })[0]!)
     expect(titles()).toEqual(['Link 6', 'Link 7'])
     // A new filter starts again at the first page, and the count is of the filtered list.
     await openFilters()
     await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
     expect(titles()).toHaveLength(5)
-    expect(screen.getAllByText('Links 1–5 of 8').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Items 1–5 of 8').length).toBeGreaterThan(0)
   })
 
   it('shows no page controls for a list that fits on one page', async () => {
@@ -764,12 +807,12 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 1' }))
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 3' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
-    const dialog = screen.getByRole('dialog', { name: 'Remove 2 links?' })
+    const dialog = screen.getByRole('dialog', { name: 'Remove 2 items?' })
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(state.links).toHaveLength(3)
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
     await fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, remove them' }),
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove 2 items' }),
     )
     await waitFor(() => expect(state.links.map((l) => l.id)).toEqual(['l2']))
     await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
@@ -788,9 +831,9 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     await fireEvent.click(selectAll())
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
     await fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, remove them' }),
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove 2 items' }),
     )
-    expect(await screen.findByText(/Couldn't remove all of those links/)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn’t remove all of those items/)).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
     expect(screen.getByRole('checkbox', { name: 'Select Link 2' })).toBeChecked()
   })
@@ -802,11 +845,11 @@ describe('selecting, bulk actions and pages on the reading list', () => {
       ],
     })
     await renderAt('/p/ada-substack/reading')
-    const item = (await screen.findByRole('link', { name: /A paper/ })).closest('li')!
+    const item = (await screen.findByRole('link', { name: 'A paper' })).closest('li')!
     expect(within(item).getByText('example.org')).toBeInTheDocument()
-    expect(within(item).queryByText(/long\/path/)).not.toBeInTheDocument() // one link, not two
+    expect(within(item).queryByText(/long\/path/)).not.toBeInTheDocument() // one link for the article, not two
     expect(within(item).getByText('From a feed')).toHaveClass('chip-quiet')
-    expect(within(item).getAllByRole('link')).toHaveLength(2) // the title, and Take notes
+    expect(within(item).getAllByRole('link')).toHaveLength(2) // the title, and the host (the article)
   })
 })
 
@@ -858,7 +901,7 @@ describe('reading an item of the publication’s own list', () => {
   it('adds another page to the publication’s reading list, and offers to read it', async () => {
     const { state } = open()
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/more')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
     const read = await screen.findByRole('link', { name: 'Read it and take notes' })
     expect(state.added).toEqual(['https://example.org/more'])
     expect(read).toHaveAttribute('href', expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/))
@@ -1271,5 +1314,30 @@ describe('the publication’s notes', () => {
     await fireEvent.click(del)
     await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())
     expect(state.notes.map((n) => n.id)).toEqual(['n2'])
+  })
+})
+
+describe('the Read page: tutorial mode (#262)', () => {
+  const setup = async (user: typeof testUser) => {
+    fakePublication({ links: [link('l1', 'A paper')] })
+    server.use(signedInAs(user))
+    // The route 'read' is this kind of page (see tutorial-routes.test.ts).
+    await renderAt('/p/ada-substack/read')
+    await screen.findByRole('link', { name: 'A paper' })
+  }
+
+  it('writes out what the page is for and how to read an item, when it is on', async () => {
+    await setup({ ...testUser, tutorialMode: true })
+    expect(screen.getByText(/Read here and take notes as you go/)).toBeVisible()
+    expect(screen.getByText(/Select a title to read it beside your notes/)).toBeVisible()
+    expect(screen.getByText(/We look up its title for you/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'About adding an item' })).toBeNull()
+  })
+
+  it('keeps the same words behind an info icon, and the page-purpose lines off, when it is off', async () => {
+    await setup({ ...testUser, tutorialMode: false })
+    expect(screen.queryByText(/Read here and take notes as you go/)).toBeNull()
+    expect(screen.queryByText(/Select a title to read it beside your notes/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'About adding an item' })).toBeInTheDocument()
   })
 })

@@ -11,9 +11,10 @@ defineProps<{ publicationId: string }>()
 <template>
   <PublicationGate :publication-id="publicationId">
     <StepHeading>Read</StepHeading>
-    <ReadingList :publication-id="publicationId" :idea-id="null" />
-    <NextStep :to="{ name: 'publication-notes', params: { publicationId } }" label="Next: 03 Notes">
-      Notes you take from your reading are kept together, ready to group into ideas.
-    </NextStep>
+    <ReadingList :publication-id="publicationId" :idea-id="null" quiet-heading />
+    <NextStep
+      :to="{ name: 'publication-notes', params: { publicationId } }"
+      label="Next: 03 Notes"
+    />
   </PublicationGate>
 </template>

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import NewTabLink from './NewTabLink.vue'
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import { readingRoute, useReadingActions } from '../lib/reading'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
+import TagButton from './TagButton.vue'
 import TagEditor from './TagEditor.vue'
 import SwitchField from './SwitchField.vue'
 import TextField from './TextField.vue'
@@ -26,6 +27,12 @@ const props = defineProps<{
 const emit = defineEmits<{ remove: []; select: [on: boolean]; move: [] }>()
 const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
 const { setRead, setKept, setTags, update: save } = useReadingActions(owner)
+const tagging = ref(false)
+const tagButton = useTemplateRef<InstanceType<typeof TagButton>>('tagButton')
+function stopTagging() {
+  tagging.value = false
+  void nextTick(() => tagButton.value?.focus())
+}
 const saveTags = (tags: string[]) => setTags.mutateAsync({ linkId: props.link.id, tags })
 
 /** What the link is called: its title, or failing that the address itself. */
@@ -111,7 +118,7 @@ function saveLink() {
     >
       <TextField
         v-model="url"
-        label="Web address of this link"
+        label="Web address of this item"
         required
         autocomplete="off"
         autocapitalize="none"
@@ -122,14 +129,14 @@ function saveLink() {
       />
       <TextField
         v-model="title"
-        label="Title of this link (optional)"
+        label="Title of this item (optional)"
         autocomplete="off"
         :maxlength="200"
         hint="Leave this blank to look the title up again."
       />
       <div class="flex gap-2">
         <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
-          {{ save.isPending.value ? 'Saving…' : 'Save link' }}
+          {{ save.isPending.value ? 'Saving…' : 'Save item' }}
         </button>
         <button
           type="button"
@@ -154,14 +161,16 @@ function saveLink() {
       <div class="min-w-0 flex-1 px-4 py-3">
         <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
           <div class="min-w-[14rem] flex-1">
-            <NewTabLink
+            <RouterLink
               :id="`reading-item-${link.id}`"
-              :href="link.url"
+              :to="readingRoute(owner(), link.id)"
               class="line-clamp-2 break-words underline"
-              >{{ label() }}</NewTabLink
+              >{{ label() }}</RouterLink
             >
             <p class="meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span v-if="link.title" class="truncate">{{ host() }}</span>
+              <NewTabLink :href="link.url" :detail="label()" class="truncate underline">{{
+                host()
+              }}</NewTabLink>
               <!-- The highlighter marks anything the AI, not the writer, put here. -->
               <span v-if="aiOrigin[link.origin]" class="chip chip-ai">{{
                 aiOrigin[link.origin]
@@ -172,28 +181,27 @@ function saveLink() {
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <RouterLink
-              :to="readingRoute(owner(), link.id)"
-              class="btn btn-sm btn-neutral"
-              :aria-describedby="`reading-item-${link.id}`"
-            >
-              Take notes
-            </RouterLink>
             <button
               ref="editButton"
               v-tip="'Edit'"
               type="button"
               class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Edit link to ${label()}`"
+              :aria-label="`Edit ${label()}`"
               @click="startEditing"
             >
               <Icon name="edit" />
             </button>
+            <TagButton
+              ref="tagButton"
+              :label="label()"
+              :open="tagging"
+              @toggle="tagging ? stopTagging() : (tagging = true)"
+            />
             <button
               v-tip="'Move'"
               type="button"
               class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Move link to ${label()}`"
+              :aria-label="`Move ${label()}`"
               @click="emit('move')"
             >
               <Icon name="move" />
@@ -202,14 +210,21 @@ function saveLink() {
               :tip="removeHint()"
               verb="Remove"
               class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-              :aria-label="`Remove link to ${label()}`"
+              :aria-label="`Remove ${label()}`"
               @confirm="emit('remove')"
             >
               <Icon name="remove" />
             </HoldButton>
           </div>
         </div>
-        <TagEditor :label="label()" :tags="link.tags" :suggestions="knownTags" :save="saveTags" />
+        <TagEditor
+          :label="label()"
+          :tags="link.tags"
+          :suggestions="knownTags"
+          :save="saveTags"
+          :open="tagging"
+          @close="stopTagging"
+        />
         <p v-if="link.why" class="mt-2 text-sm text-ink-soft">
           <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
         </p>
@@ -232,8 +247,8 @@ function saveLink() {
             :disabled="setKept.isPending.value"
             @update:model-value="toggleKept"
           />
-          <p v-if="!ideaId && !link.kept && dropsOn()" class="meta">
-            Removed from this list on {{ dropsOn() }} unless kept
+          <p v-if="!ideaId && (link.kept || dropsOn())" class="meta">
+            {{ link.kept ? 'Kept forever' : `Kept until ${dropsOn()}` }}
           </p>
         </div>
         <p
@@ -241,7 +256,7 @@ function saveLink() {
           role="alert"
           class="mt-1 text-sm text-danger"
         >
-          Couldn't save that. Please try again.
+          Sorry, we couldn’t save that. Please try again.
         </p>
       </div>
     </div>

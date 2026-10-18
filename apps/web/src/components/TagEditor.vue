@@ -4,13 +4,13 @@ import { MAX_NOTE_TAGS } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import Icon from './Icon.vue'
 import TagEntry from './TagEntry.vue'
-import { vTip } from '../lib/tip'
 
 /**
- * The tags of one note or link, shown under it. A small label button opens a field: type a tag and press Enter, again
- * and again (each is saved at once, and the field stays), then press the tick when done. While the field is open each
- * tag has a small × to take it off. `save` stores the complete set of tags and rejects with what went wrong. Used on
- * quotations as well: tagging changes none of their words.
+ * The tags of one note or link, shown under it. Pressing its `TagButton` (among the item's icon buttons) opens a
+ * field: type a tag and press Enter, again and again (each is saved at once, and the field stays), then press the
+ * button again, or Escape, when done. While the field is open each tag has a small × to take it off. `save` stores
+ * the complete set of tags and rejects with what went wrong. Used on quotations as well: tagging changes none of
+ * their words.
  */
 const props = defineProps<{
   /** What these tags belong to, for the buttons' names ("Erosion loops."). */
@@ -18,9 +18,10 @@ const props = defineProps<{
   tags: readonly string[]
   suggestions?: readonly string[]
   save: (tags: string[]) => Promise<unknown>
+  open: boolean
 }>()
+const emit = defineEmits<{ close: [] }>()
 
-const open = ref(false)
 const problem = ref('')
 /** What is shown: the saved tags plus any change still being saved, so each Enter shows at once. */
 const shown = ref<string[]>([...props.tags])
@@ -62,22 +63,21 @@ function remove(tag: string) {
 }
 
 const entry = useTemplateRef<InstanceType<typeof TagEntry>>('entry')
-const opener = useTemplateRef<HTMLButtonElement>('opener')
-async function show() {
-  open.value = true
-  await nextTick()
-  entry.value?.focus()
-}
-async function hide() {
-  open.value = false
-  problem.value = ''
-  await nextTick()
-  opener.value?.focus()
-}
+watch(
+  () => props.open,
+  async (open) => {
+    if (!open) {
+      problem.value = ''
+      return
+    }
+    await nextTick()
+    entry.value?.focus()
+  },
+)
 </script>
 
 <template>
-  <div class="mt-1">
+  <div v-if="shown.length || open || problem" class="mt-1">
     <div class="flex flex-wrap items-center gap-1">
       <ul v-if="shown.length" aria-label="Tags" class="flex flex-wrap gap-1">
         <li
@@ -97,37 +97,14 @@ async function hide() {
           </button>
         </li>
       </ul>
-      <button
-        v-if="!open"
-        ref="opener"
-        v-tip="`Add tags to ${label}`"
-        type="button"
-        class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
-        :aria-label="`Add tags to ${label}`"
-        aria-expanded="false"
-        @click="show"
-      >
-        <Icon name="label" :size="14" />
-      </button>
-      <template v-else>
-        <TagEntry
-          ref="entry"
-          :label="`Add a tag to ${label}`"
-          :suggestions="suggestions"
-          @add="add"
-          @escape="hide"
-        />
-        <button
-          v-tip="`Done tagging ${label}`"
-          type="button"
-          class="btn btn-sm btn-icon btn-ghost !min-h-7 !w-7"
-          :aria-label="`Done tagging ${label}`"
-          aria-expanded="true"
-          @click="hide"
-        >
-          <Icon name="check" :size="14" />
-        </button>
-      </template>
+      <TagEntry
+        v-if="open"
+        ref="entry"
+        :label="`Add a tag to ${label}`"
+        :suggestions="suggestions"
+        @add="add"
+        @escape="emit('close')"
+      />
     </div>
     <p v-if="problem" role="alert" class="mt-1 text-xs text-danger">{{ problem }}</p>
   </div>

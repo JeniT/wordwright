@@ -531,7 +531,7 @@ draft: a note goes into one piece, and putting it back is how it goes into anoth
 
 ## Reading an item: the page opens in its own tab, the notes stay here (T32, decision D4)
 
-Each reading-list item has a **Take notes** page. It shows the item, an **Open the page** link (`target="_blank"`,
+Each reading-list item has its own page (the item's title in the list opens it; the host name beneath the title opens the article, in a new tab: #262). It shows the item, an **Open the page** link (`target="_blank"`,
 `rel="noopener noreferrer"`), a "I have read this" checkbox (the same say-so as on the idea page), the notes already
 taken from this item, and a box to add another. A note added here is sent with `readingItemId`, so it has origin
 `reading`, names the item in its origin line ("From reading “Title”", and Ada as a chip) and appears among the idea's notes too.

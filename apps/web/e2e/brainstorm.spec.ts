@@ -170,13 +170,17 @@ test('the coach passes on an address the writer gave: it is checked, shown besid
 
   // Nothing is on the reading list until it is accepted.
   await goTo(page, 'Research')
-  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toHaveCount(0)
+  await expect(
+    page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
+  ).toHaveCount(0)
 
   await goTo(page, 'Refine')
   await page.getByRole('button', { name: /^Accept: / }).click()
   await expect(page.getByText('Added to the reading list by Pru.')).toBeVisible()
   await goTo(page, 'Research')
-  await expect(page.getByRole('link', { name: /Fake title for example\.org/ })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
+  ).toBeVisible()
   await expect(page.getByText('Suggested in brainstorming')).toBeVisible()
   await expect(page.getByText('You said it bears on this idea.')).toBeVisible()
 })

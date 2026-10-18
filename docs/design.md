@@ -116,7 +116,7 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `btn` + `btn-primary`                                             | The one main action on a screen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `btn btn-outline`                                                 | A secondary action that matters (e.g. Brainstorm, Open)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `btn btn-neutral`                                                 | Everything else: Cancel, Add link, Previous/Next                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `btn btn-neutral`                                                 | Everything else: Cancel, Previous/Next                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `btn btn-quiet`                                                   | Low-emphasis text actions and reorder grips. Keeps a faint outline                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -322,14 +322,14 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 
 **Checkbox, switch, button or link**
 
-| It...                                             | Use                                 | Examples                                     |
-| ------------------------------------------------- | ----------------------------------- | -------------------------------------------- |
-| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this link, Select all                 |
-| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                   |
-| sets a view option for the list                   | **switch** or a select, on the left | Show read items                              |
-| does something or opens something                 | **button**                          | Take notes, Edit, Remove, Move to…, Add link |
-| goes somewhere                                    | **link** (underlined)               | The title                                    |
-| changes which of a few views or forms is showing  | **tab** (`TabPanels`)               | Notes / Reading list / Comments; Quick add   |
+| It...                                             | Use                                 | Examples                                   |
+| ------------------------------------------------- | ----------------------------------- | ------------------------------------------ |
+| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this link, Select all               |
+| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                 |
+| sets a view option for the list                   | **switch** or a select, on the left | Show read items                            |
+| does something or opens something                 | **button**                          | Edit, Tag, Remove, Move to…, Add item      |
+| goes somewhere                                    | **link** (underlined)               | The title                                  |
+| changes which of a few views or forms is showing  | **tab** (`TabPanels`)               | Notes / Reading list / Comments; Quick add |
 
 - **Tabs show, buttons act, segmented controls set.** If clicking does nothing but change what is displayed (nothing is
   saved or sent), it is a tab, not a button. If it chooses a value for a setting (System / Light / Dark), it is a
@@ -343,11 +343,11 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 
 **Icons or text**
 
-- **Text** for an action that is the row's main verb, is unfamiliar, or has no standard icon (Take notes, Move to…, Add
-  link), and for everything in a list's toolbar. (The editors' formatting toolbar is the exception: icon-only, since its buttons are
+- **Text** for an action that is the row's main verb, is unfamiliar, or has no standard icon (Move to…, Add
+  item), and for everything in a list's toolbar. (The editors' formatting toolbar is the exception: icon-only, since its buttons are
   the familiar formatting symbols; see the editors' toolbar below.)
 - **Icon only** (`btn btn-sm btn-icon btn-ghost` + `Icon`, no border) for actions that repeat on every row, are rare, and have a
-  universal icon: Edit (pencil), Remove (bin). Always an `aria-label` that names the item ("Remove link to A paper") and
+  universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove link to A paper") and
   a tooltip (`v-tip`, below); a 36px target.
 - **Tooltip on an icon-only button: `v-tip`, not `title`** (`lib/tip.ts`; on a `HoldButton`, its `tip` prop). The browser's `title`
   shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
@@ -361,8 +361,8 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 | Level          | Style                                            | For                                                           |
 | -------------- | ------------------------------------------------ | ------------------------------------------------------------- |
 | Primary        | `btn-primary`, one per screen area               | The page's main action (not in a list)                        |
-| Section action | `btn-outline` (accent)                           | The thing the list is for: Add link                           |
-| Row's verb     | `btn-neutral btn-sm`                             | Take notes                                                    |
+| Section action | `btn-outline` (accent)                           | The thing the list is for: Add item                           |
+| Row's verb     | `btn-neutral btn-sm`                             | (a row's title is a link; it needs no button)                 |
 | Row utilities  | `btn-ghost btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
 | Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Tag…, Move to…, Remove N (opens a dialog)                     |
 

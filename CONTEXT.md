@@ -19,8 +19,12 @@ An RSS or Atom link that a publication looks through for recent posts, which the
 _Avoid_: Source (in what people see), subscription
 
 **Reading list**:
-The publication's own list of posts and articles to read, from which notes are taken. Posts from its feeds are added to it; ideas have their own.
+The publication's own list of reading items, from which notes are taken. Posts from its feeds are added to it; ideas have their own.
 _Avoid_: Library, bookmarks
+
+**Reading item**:
+One post or article on a reading list, shown by its title, with whether it has been read and its tags. Its title opens its own page, where notes are taken from it; the host name beneath the title opens the article itself. On the publication's list it is also _kept_ (stays on the list for ever) or not (it goes a month after it was added); items the writer adds are kept from the start. Notes taken from it mark it read.
+_Avoid_: Link, source, bookmark (in what people see)
 
 **Publication picture**:
 The image an owner chooses for a publication. Always shown in preference to the site icon.

@@ -274,9 +274,14 @@ describe('idea page', () => {
 
   it('shows the idea’s links on the Research step', async () => {
     await open()
-    const link = await screen.findByRole('link', { name: /A paper/ })
-    expect(link).toHaveAttribute('href', 'https://example.org/paper')
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    // The title opens the item's page for notes; the host name beneath it opens the article itself.
+    expect(await screen.findByRole('link', { name: 'A paper' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas/i1/reading/l1',
+    )
+    const article = screen.getByRole('link', { name: /example\.org.*A paper/ })
+    expect(article).toHaveAttribute('href', 'https://example.org/paper')
+    expect(article).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   it('shows its drafts, in order, on the Draft step', async () => {
@@ -344,13 +349,12 @@ describe('idea page', () => {
       ),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
-    const titled = await screen.findByRole('link', { name: /A paper/ })
-    expect(titled).toHaveAttribute('href', 'https://example.org/paper')
+    const titled = await screen.findByRole('link', { name: 'A paper' })
     expect(titled).not.toHaveTextContent('https://example.org/paper')
     expect(titled.closest('li')).toHaveTextContent('example.org')
-    expect(screen.getAllByRole('link', { name: /A paper/ })).toHaveLength(1)
-    const untitled = screen.getByRole('link', { name: /example\.org\/untitled/ })
-    expect(untitled).toHaveAttribute('href', 'https://example.org/untitled')
+    expect(screen.getAllByRole('link', { name: 'A paper' })).toHaveLength(1) // the host's name adds the title
+    const untitled = screen.getByRole('link', { name: 'https://example.org/untitled' })
+    expect(untitled).toHaveAttribute('href', '/p/ada-substack/ideas/i1/reading/l2')
     expect(untitled.textContent).toContain('https://example.org/untitled')
   })
 
@@ -449,7 +453,7 @@ describe('idea page', () => {
         ),
       ])
       await fireEvent.click(await screen.findByRole('switch', { name: 'Read: A paper' }))
-      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t save that')
       expect(screen.getByRole('switch', { name: 'Read: A paper' })).not.toBeChecked()
     })
   })
@@ -478,11 +482,11 @@ describe('idea page', () => {
       ])
       expect(screen.queryByLabelText(/Title/)).toBeNull() // adding a link doesn't ask for a title
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
 
       await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
       expect(sent).toEqual({ url: 'example.org/new' })
-      expect(await screen.findByRole('link', { name: /Fetched title/ })).toBeInTheDocument()
+      expect(await screen.findByRole('link', { name: 'Fetched title' })).toBeInTheDocument()
     })
 
     it.each([
@@ -497,7 +501,7 @@ describe('idea page', () => {
         ])
         const field = await screen.findByLabelText('Web address')
         await fireEvent.update(field, 'example.org/paper')
-        await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+        await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
 
         const hint = await screen.findByText(message)
         expect(hint).toHaveClass('text-danger')
@@ -515,7 +519,7 @@ describe('idea page', () => {
       ])
       const field = await screen.findByLabelText('Web address')
       await fireEvent.update(field, 'example.org/paper')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add link' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       await screen.findByText('That link is already in this idea.')
       await fireEvent.update(field, 'example.org/paper2')
       expect(screen.queryByText('That link is already in this idea.')).toBeNull()
@@ -561,10 +565,10 @@ describe('idea page', () => {
 
     it('shows each link’s tags, and a filter once any link has one', async () => {
       await openTagged()
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       await openFilters()
-      const filter = screen.getByRole('group', { name: 'Show links with a tag' })
+      const filter = screen.getByRole('group', { name: 'Show items with a tag' })
       expect(
         within(filter)
           .getAllByRole('button')
@@ -575,45 +579,45 @@ describe('idea page', () => {
         'part 2',
       ])
       await fireEvent.click(within(filter).getByRole('button', { name: 'part 2' }))
-      expect(screen.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
-      expect(screen.queryByRole('link', { name: /Other/ })).toBeNull()
+      expect(screen.getByRole('link', { name: 'A paper' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Other' })).toBeNull()
       await fireEvent.click(within(filter).getByRole('button', { name: 'background' }))
-      expect(screen.getByRole('link', { name: /Third/ })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Third' })).toBeInTheDocument()
       await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
-      expect(screen.getByRole('link', { name: /Other/ })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Other' })).toBeInTheDocument()
     })
 
     it('folds the filters behind a funnel button, which says what is filtering while they are closed', async () => {
       await openTagged()
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       const funnel = screen.getByRole('button', { name: 'Filter' })
       expect(funnel).toHaveAttribute('aria-expanded', 'false')
-      expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+      expect(screen.queryByRole('group', { name: 'Show items with a tag' })).toBeNull()
       await fireEvent.click(funnel)
       expect(funnel).toHaveAttribute('aria-expanded', 'true')
       await fireEvent.click(
-        within(screen.getByRole('group', { name: 'Show links with a tag' })).getByRole('button', {
+        within(screen.getByRole('group', { name: 'Show items with a tag' })).getByRole('button', {
           name: 'part 2',
         }),
       )
       await fireEvent.click(screen.getByRole('button', { name: 'Close the filters' }))
-      expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+      expect(screen.queryByRole('group', { name: 'Show items with a tag' })).toBeNull()
       // Still filtering, and the header says so.
       expect(screen.getByRole('button', { name: 'Filter (on: part 2)' })).toBeInTheDocument()
       expect(screen.getByText('part 2', { selector: '.chip' })).toBeInTheDocument()
-      expect(screen.queryByRole('link', { name: /Other/ })).toBeNull()
+      expect(screen.queryByRole('link', { name: 'Other' })).toBeNull()
     })
 
     it('selects only the links showing, not the ones a filter hides', async () => {
       await openTagged()
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       await openFilters()
       await fireEvent.click(
-        within(screen.getByRole('group', { name: 'Show links with a tag' })).getByRole('button', {
+        within(screen.getByRole('group', { name: 'Show items with a tag' })).getByRole('button', {
           name: 'background',
         }),
       )
-      await fireEvent.click(screen.getByRole('checkbox', { name: 'Select all links on this page' }))
+      await fireEvent.click(screen.getByRole('checkbox', { name: 'Select all items on this page' }))
       expect(screen.getByText('2 selected')).toBeInTheDocument() // A paper and Third, not Other
       expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
       expect(screen.getByRole('checkbox', { name: 'Select Third' })).toBeChecked()
@@ -622,8 +626,8 @@ describe('idea page', () => {
 
     it('has no filter, and no funnel, while nothing is tagged or read', async () => {
       await open()
-      await screen.findByRole('link', { name: /A paper/ })
-      expect(screen.queryByRole('group', { name: 'Show links with a tag' })).toBeNull()
+      await screen.findByRole('link', { name: 'A paper' })
+      expect(screen.queryByRole('group', { name: 'Show items with a tag' })).toBeNull()
       expect(screen.queryByRole('button', { name: /^Filter/ })).toBeNull()
     })
 
@@ -658,9 +662,9 @@ describe('idea page', () => {
 
     it('is not part of the edit form any more, which is for the address and title', async () => {
       await openTagged()
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit A paper' }))
       expect(screen.queryByLabelText(/^Tags for/)).toBeNull()
-      expect(screen.getByLabelText('Title of this link (optional)')).toBeInTheDocument()
+      expect(screen.getByLabelText('Title of this item (optional)')).toBeInTheDocument()
     })
 
     it('says why a tag could not be saved, and takes it off again', async () => {
@@ -719,7 +723,7 @@ describe('idea page', () => {
 
     it('has Tag… in the header only once links are selected', async () => {
       await openWith(two)
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       expect(screen.queryByRole('button', { name: 'Tag…' })).toBeNull()
       await fireEvent.click(tick('A paper'))
       expect(tagButton()).toBeEnabled()
@@ -748,23 +752,23 @@ describe('idea page', () => {
           })
         }),
       ])
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       await fireEvent.click(tick('A paper'))
       await fireEvent.click(tick('Other'))
       await fireEvent.click(tagButton())
-      const panel = screen.getByRole('form', { name: 'Tag 2 links' })
+      const panel = screen.getByRole('form', { name: 'Tag 2 items' })
       const drop = within(panel).getByRole('button', { name: 'Remove “background”' })
       expect(drop).toHaveAttribute('title', 'On 1 of the 2 selected')
       await fireEvent.click(drop)
       await fireEvent.update(screen.getByLabelText('Add a tag'), 'part 2')
       await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
-      await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 links' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Tag 2 items' }))
       await waitFor(() =>
         expect(sent).toEqual([{ ids: ['l1', 'l2'], add: ['part 2'], remove: ['background'] }]),
       )
       await waitFor(() => expect(screen.queryByLabelText('Add a tag')).toBeNull())
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
-      expect(screen.getByText('Tagged 2 links.')).toBeInTheDocument()
+      expect(screen.getByText('Tagged 2 items.')).toBeInTheDocument()
       expect(screen.getByText('2 selected')).toBeInTheDocument() // the header is back, with the choice kept
     })
 
@@ -774,12 +778,12 @@ describe('idea page', () => {
           HttpResponse.json({ error: 'A link can have up to 10 tags' }, { status: 409 }),
         ),
       ])
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       await fireEvent.click(tick('A paper'))
       await fireEvent.click(tagButton())
       await fireEvent.update(screen.getByLabelText('Add a tag'), 'x')
       await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
-      await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 item' }))
       expect(await screen.findByText('A link can have up to 10 tags')).toBeInTheDocument()
       expect(screen.getByRole('list', { name: 'Tags to add' })).toHaveTextContent('x')
     })
@@ -797,7 +801,7 @@ describe('idea page', () => {
         }),
       )
       await renderAt('/p/ada-substack/read')
-      await screen.findByRole('link', { name: /A paper/ })
+      await screen.findByRole('link', { name: 'A paper' })
       await fireEvent.click(tick('Other'))
       await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
       expect(screen.queryByRole('button', { name: 'Tag…' })).toBeNull() // the move form has the header
@@ -806,17 +810,17 @@ describe('idea page', () => {
       expect(screen.queryByLabelText('Move to')).toBeNull()
       await fireEvent.update(screen.getByLabelText('Add a tag'), 'later')
       await fireEvent.keyDown(screen.getByLabelText('Add a tag'), { key: 'Enter' })
-      await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 link' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Tag 1 item' }))
       await waitFor(() => expect(sent).toEqual([{ ids: ['l2'], add: ['later'], remove: [] }]))
     })
   })
 
   describe('editing a link', () => {
     const edit = async () => {
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit link to A paper' }))
+      await fireEvent.click(await screen.findByRole('button', { name: 'Edit A paper' }))
       return {
-        address: screen.getByLabelText('Web address of this link'),
-        title: screen.getByLabelText('Title of this link (optional)'),
+        address: screen.getByLabelText('Web address of this item'),
+        title: screen.getByLabelText('Title of this item (optional)'),
       }
     }
 
@@ -851,16 +855,20 @@ describe('idea page', () => {
       const { address, title } = await edit()
       await fireEvent.update(address, 'example.org/better')
       await fireEvent.update(title, 'Better title')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Save item' }))
 
-      expect(await screen.findByRole('link', { name: /Better title/ })).toHaveAttribute(
+      expect(await screen.findByRole('link', { name: 'Better title' })).toHaveAttribute(
+        'href',
+        '/p/ada-substack/ideas/i1/reading/l1',
+      )
+      expect(screen.getByRole('link', { name: /example\.org.*Better title/ })).toHaveAttribute(
         'href',
         'https://example.org/better',
       )
       expect(sent).toEqual({ url: 'example.org/better', title: 'Better title' })
       // Back to reading the list, with focus returned to the Edit button.
       await waitFor(() =>
-        expect(screen.getByRole('button', { name: 'Edit link to Better title' })).toHaveFocus(),
+        expect(screen.getByRole('button', { name: 'Edit Better title' })).toHaveFocus(),
       )
     })
 
@@ -872,7 +880,7 @@ describe('idea page', () => {
       ])
       const { address } = await edit()
       await fireEvent.update(address, 'example.org/other')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save link' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Save item' }))
       const hint = await screen.findByText('That link is already in this idea.')
       expect(hint).toHaveClass('text-danger')
       expect(address).toHaveValue('example.org/other')
@@ -889,15 +897,15 @@ describe('idea page', () => {
       const { address } = await edit()
       await fireEvent.update(address, 'example.org/changed')
       await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-      expect(screen.queryByLabelText('Web address of this link')).toBeNull()
-      expect(screen.getByRole('link', { name: /A paper/ })).toHaveAttribute(
+      expect(screen.queryByLabelText('Web address of this item')).toBeNull()
+      expect(screen.getByRole('link', { name: 'A paper' })).toHaveAttribute(
         'href',
-        'https://example.org/paper',
+        '/p/ada-substack/ideas/i1/reading/l1',
       )
 
-      await fireEvent.click(screen.getByRole('button', { name: 'Edit link to A paper' }))
-      await fireEvent.keyDown(screen.getByLabelText('Web address of this link'), { key: 'Escape' })
-      await waitFor(() => expect(screen.queryByRole('button', { name: 'Save link' })).toBeNull())
+      await fireEvent.click(screen.getByRole('button', { name: 'Edit A paper' }))
+      await fireEvent.keyDown(screen.getByLabelText('Web address of this item'), { key: 'Escape' })
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Save item' })).toBeNull())
       expect(saved).toBe(false)
     })
   })
@@ -911,7 +919,7 @@ describe('idea page', () => {
       }),
     ])
     // Removing is held, like deleting anything that can't be got back; a screen reader's activation asks twice.
-    const remove = await screen.findByRole('button', { name: 'Remove link to A paper' })
+    const remove = await screen.findByRole('button', { name: 'Remove A paper' })
     await fireEvent.click(remove)
     expect(removed).toBe(false)
     await fireEvent.click(remove)
@@ -1999,7 +2007,7 @@ describe('idea page', () => {
       http.get(ideaUrl, () => HttpResponse.json({ ...idea, links: [], drafts: [] })),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
-    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+    expect(await screen.findByText(/Nothing to read yet/)).toBeInTheDocument()
   })
 
   it('asks before deleting, then returns to the publication', async () => {

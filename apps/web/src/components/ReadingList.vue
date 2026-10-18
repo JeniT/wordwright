@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { IdeaLink } from '@wordwright/core'
+import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
@@ -9,6 +10,7 @@ import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
+import Explain from './Explain.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveFields from './MoveFields.vue'
@@ -18,8 +20,8 @@ import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
 
 /**
- * The reading list of an idea, or (no `ideaId`) of the publication: the items, with a box to add one. The items open
- * on a page of their own (`Take notes`) where notes are taken from them.
+ * The reading list of an idea, or (no `ideaId`) of the publication: a box to add an item, then the items. A title
+ * opens the item's own page, where notes are taken from it; the host name under it opens the article itself.
  */
 const props = defineProps<{
   publicationId: string
@@ -58,6 +60,11 @@ watch([showRead, tagFilter], () => {
   clearSelection()
   paging.first()
 })
+/** A new item is unread and untagged: show it, whatever was filtering the list. */
+function showAdded() {
+  tagFilter.value = null
+  paging.first()
+}
 const readCount = computed(() => (list.links.value ?? []).filter((l) => l.readAt).length)
 /** What is filtering the list, for the funnel to say while the filters are folded away. */
 const filterSummary = computed(() => {
@@ -72,7 +79,7 @@ const shown = computed(() =>
 
 // ---- pages: filter first, then page. A new page or filter clears the selection, so what an action will touch is
 // always on screen.
-const paging = usePaging(() => shown.value, 'links')
+const paging = usePaging(() => shown.value, 'items')
 const heading = useTemplateRef<HTMLElement>('heading')
 watch(paging.page, clearSelection)
 /** From the bottom of the list the next page starts a long way up, so go back to the top of it. */
@@ -123,7 +130,7 @@ function applyTags() {
     { ids, add: tagAdd.value, remove: tagRemove.value },
     {
       onSuccess: () => {
-        announcement.value = `Tagged ${ids.length} ${ids.length === 1 ? 'link' : 'links'}.`
+        announcement.value = `Tagged ${ids.length} ${ids.length === 1 ? 'item' : 'items'}.`
         tagging.value = false
       },
     },
@@ -201,7 +208,7 @@ const confirmLabel = computed(() =>
   tagging.value
     ? list.tagMany.isPending.value
       ? 'Tagging…'
-      : `Tag ${chosen.value.length} ${chosen.value.length === 1 ? 'link' : 'links'}`
+      : `Tag ${chosen.value.length} ${chosen.value.length === 1 ? 'item' : 'items'}`
     : mover.moveReading.isPending.value || dest.makeIdea.isPending
       ? 'Moving…'
       : `Move ${plural(chosen.value.length)}`,
@@ -243,20 +250,17 @@ function removeChosen() {
     >
       Reading list
     </h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      <template v-if="ideaId">
-        Articles, papers or earlier posts that this idea builds on or responds to. Mark each one
-        Read when you have read it, even if you read it somewhere else.
-      </template>
-      <template v-else>
-        Things to read for this publication, before any one idea: read them, take notes, and later
-        gather the notes into an idea. Links you add stay; links from your feeds go after a month
-        unless you switch Keep on.
-      </template>
+    <p v-if="ideaId" class="mb-3 text-sm text-ink-soft">
+      Articles, papers or earlier posts that this idea builds on or responds to. Mark each one Read
+      when you have read it, even if you read it somewhere else.
     </p>
+    <Explain v-else tutorial-only class="mb-4">
+      Read here and take notes as you go. Later you can gather the notes into ideas.
+    </Explain>
 
     <QueryState :query="list" what="the reading list" loading="Loading the reading list…">
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
+      <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" @added="showAdded" />
       <div
         v-if="mover.outcome.value"
         role="status"
@@ -279,9 +283,16 @@ function removeChosen() {
       </p>
 
       <p v-if="!list.links.value?.length" class="mb-4 text-ink-soft">
-        Nothing on the reading list yet.
+        <template v-if="ideaId">Nothing to read yet. Add a web address above.</template>
+        <template v-else>
+          Nothing to read yet. Add a web address above, or find something in
+          <RouterLink :to="{ name: 'search', params: { publicationId } }" class="underline">
+            Search</RouterLink
+          >.
+        </template>
       </p>
       <template v-else>
+        <Explain tutorial-only class="mb-3"> Select a title to read it beside your notes. </Explain>
         <PageNav
           v-if="paging.pageCount.value > 1"
           v-bind="paging.nav.value"
@@ -296,7 +307,7 @@ function removeChosen() {
             :total="shown.length"
             :selected="chosen.length"
             :selected-on-page="chosenOnPage"
-            noun="links"
+            noun="items"
             :can-filter="usedTags.length > 0 || readCount > 0"
             :filter-summary="filterSummary"
             :form-open="formOpen"
@@ -308,7 +319,7 @@ function removeChosen() {
             @cancel="cancelForm"
           >
             <template #filters>
-              <TagFilter v-model="tagFilter" :tags="usedTags" noun="links" class="!mb-0" />
+              <TagFilter v-model="tagFilter" :tags="usedTags" noun="items" class="!mb-0" />
               <SwitchField
                 v-if="readCount"
                 v-model="showRead"
@@ -336,7 +347,7 @@ function removeChosen() {
                 v-if="tagging"
                 v-model:add="tagAdd"
                 v-model:remove="tagRemove"
-                noun="link"
+                noun="item"
                 :count="chosen.length"
                 :carried="carried"
                 :suggestions="usedTags"
@@ -348,7 +359,7 @@ function removeChosen() {
                 publication-label="The publication’s reading list"
                 :allow-new="!ideaId"
                 new-idea-hint="In your own words. The items you move become its reading list."
-                explain-label="About moving links"
+                explain-label="About moving items"
               >
                 Each goes with the notes you took from it, and keeps whether you have read it.
               </MoveFields>
@@ -388,20 +399,18 @@ function removeChosen() {
         />
       </template>
       <p v-if="list.remove.isError.value" role="alert" class="mb-3 text-danger">
-        Couldn't remove that link. Please try again.
+        Sorry, we couldn’t remove that item. Please try again.
       </p>
       <p v-if="list.removeMany.isError.value" role="alert" class="mb-3 text-danger">
-        Couldn't remove all of those links. The ones that are left are still selected below; please
-        try again.
+        Sorry, we couldn’t remove all of those items. The ones that are left are still selected
+        below. Please try again.
       </p>
-
-      <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" />
     </QueryState>
     <ConfirmDialog
       :open="!!movingOne"
       :title="movingOne ? `Move ${movingOne.title || movingOne.url}` : ''"
       :confirm-label="
-        mover.moveReading.isPending.value || dest.makeIdea.isPending ? 'Moving…' : 'Move link'
+        mover.moveReading.isPending.value || dest.makeIdea.isPending ? 'Moving…' : 'Move item'
       "
       confirm-tone="primary"
       :can-confirm="canMove"
@@ -415,8 +424,8 @@ function removeChosen() {
         :from-idea="!!ideaId"
         publication-label="The publication’s reading list"
         :allow-new="!ideaId"
-        new-idea-hint="In your own words. The link you move becomes its reading list."
-        explain-label="About moving a link"
+        new-idea-hint="In your own words. The item you move becomes its reading list."
+        explain-label="About moving an item"
       >
         It goes with the notes you took from it, and keeps whether you have read it.
       </MoveFields>
@@ -426,14 +435,14 @@ function removeChosen() {
     </ConfirmDialog>
     <ConfirmDialog
       :open="confirmingRemoveChosen"
-      :title="`Remove ${chosen.length} ${chosen.length === 1 ? 'link' : 'links'}?`"
-      confirm-label="Yes, remove them"
+      :title="`Remove ${chosen.length} ${chosen.length === 1 ? 'item' : 'items'}?`"
+      :confirm-label="`Remove ${plural(chosen.length)}`"
       busy-label="Removing…"
       :busy="list.removeMany.isPending.value"
       @confirm="removeChosen"
       @cancel="confirmingRemoveChosen = false"
     >
-      The selected links will be removed from the reading list. This can't be undone.
+      The selected items will be removed from the reading list. This can't be undone.
     </ConfirmDialog>
   </section>
 </template>

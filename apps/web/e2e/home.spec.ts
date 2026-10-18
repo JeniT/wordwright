@@ -45,7 +45,7 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   // The note and the item are in the publication's own lists.
   await page.getByRole('link', { name: 'Open the reading list' }).click()
   await expect(
-    page.getByRole('link', { name: /Fake title for example.com/ }).first(),
+    page.getByRole('link', { name: /^example\.com Fake title for example\.com/ }),
   ).toHaveAttribute('href', 'https://example.com/pruning')
 
   await page.goto('/')
