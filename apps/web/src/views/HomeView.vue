@@ -26,6 +26,10 @@ const hasKey = computed(() => !!llm.data.value?.hasKey)
 const loaded = computed(() => !!publications.data.value && (!!llm.data.value || llm.isError.value))
 // Known to be empty (not merely still loading), so the list's own heading row gives way to the checklist.
 const noneYet = computed(() => !!publications.data.value && !hasPublication.value)
+// Joined someone else's publication and started none: there is nothing for them to create, only a key to add.
+const onlyJoined = computed(
+  () => hasPublication.value && !publications.data.value?.some((p) => p.role === 'owner'),
+)
 const needsSetup = computed(() => loaded.value && (!hasPublication.value || !hasKey.value))
 // Drafts other people have asked this person to read and comment on (a member of a publication may be asked to).
 const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
@@ -41,7 +45,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
   <section v-if="needsSetup" class="mb-10 panel p-5" aria-labelledby="setup-heading">
     <h2 id="setup-heading" class="mb-4 font-display text-xl font-semibold">Get started</h2>
     <ol class="space-y-6">
-      <li class="flex items-start gap-4" data-step="publication">
+      <li v-if="!onlyJoined" class="flex items-start gap-4" data-step="publication">
         <span
           class="step-num step-num-lg"
           :class="{ 'step-num-current': hasPublication }"
@@ -67,7 +71,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
           class="step-num step-num-lg"
           :class="{ 'step-num-current': hasKey }"
           aria-hidden="true"
-          >{{ hasKey ? '' : '02' }}<Icon v-if="hasKey" name="check" :size="18"
+          >{{ hasKey ? '' : onlyJoined ? '01' : '02' }}<Icon v-if="hasKey" name="check" :size="18"
         /></span>
         <div class="min-w-0 flex-1">
           <QueryState v-if="llm.isError.value" :query="llm" what="your AI key settings" />

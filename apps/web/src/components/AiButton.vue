@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
 import { computed, useAttrs, useId } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { queryKeys } from '../lib/queries'
 import { aiHint } from '../lib/ai'
@@ -11,7 +12,8 @@ import Icon from './Icon.vue'
  * button's own `btn` classes, an AI icon beside the label, and a spinner in the icon's place while it works. The
  * label never changes, so the button keeps its width. The icon is explained in words as a tooltip and as the
  * button's description; while busy the button is disabled, `aria-busy`, and `busyText` is read out. Under reduced
- * motion the mark stays still. Buttons that make no AI call never use this. See docs/design.md.
+ * motion the mark stays still. With no key saved yet, a link to where one is added sits beside it (the button still
+ * works; the server's own error says the same if it is pressed). Buttons that make no AI call never use this. See docs/design.md.
  */
 defineOptions({ inheritAttrs: false })
 const props = withDefaults(
@@ -22,6 +24,8 @@ const attrs = useAttrs()
 const hintId = useId()
 const llm = useQuery({ queryKey: queryKeys.llm(), queryFn: () => api.getLlmSettings() })
 const hint = computed(() => aiHint(llm.data.value?.provider))
+// Only once the settings have loaded and say there is no key, so it never flashes for someone who has one.
+const noKey = computed(() => llm.data.value?.hasKey === false)
 const describedBy = computed(() => [attrs['aria-describedby'], hintId].filter(Boolean).join(' '))
 </script>
 
@@ -38,6 +42,9 @@ const describedBy = computed(() => [attrs['aria-describedby'], hintId].filter(Bo
     <Icon v-else name="ai" />
     <slot />
   </button>
+  <span v-if="noKey" class="meta">
+    <RouterLink :to="{ name: 'account-ai' }" class="link">Add your AI key</RouterLink> to use this
+  </span>
   <span :id="hintId" class="sr-only">{{ hint }}</span>
   <span aria-live="polite" class="sr-only">{{ props.busy ? props.busyText : '' }}</span>
 </template>

@@ -154,6 +154,31 @@ describe('landing page: connecting an AI key', () => {
     expect(within(steps[1]!).getByLabelText('Anthropic API key')).toBeVisible()
   })
 
+  it('asks a person who only joined a publication for the key, and nothing else', async () => {
+    const joined = {
+      id: 'shared',
+      name: 'Joint piece',
+      siteUrl: null,
+      imageUrl: null,
+      siteIconUrl: null,
+      description: null,
+      role: 'member',
+      members: [],
+    }
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([joined])),
+      llmSettings(false),
+    )
+    await renderAt('/')
+    await screen.findByLabelText('Anthropic API key')
+    const steps = screen.getAllByRole('listitem').filter((li) => li.dataset.step)
+    expect(steps).toHaveLength(1)
+    expect(steps[0]).toHaveAttribute('data-step', 'key')
+    expect(screen.queryByText('Create your first publication')).toBeNull()
+    expect(screen.getByRole('link', { name: /Joint piece/ })).toBeVisible()
+  })
+
   it('numbers the two steps when neither is done, and neither blocks the other', async () => {
     server.use(signedInAs(testUser), noPublications, llmSettings(false))
     await renderAt('/')

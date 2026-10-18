@@ -53,6 +53,16 @@ describe('reviewers (#157)', () => {
     draftId = (await createDraft(ada, publication, { title: 'Meanders', body: 'Rivers bend.' })).id
   })
 
+  describe('registering from the link', () => {
+    it('leaves a new reviewer able to ask which review they were just given, so the page can open it', async () => {
+      const { rae, token } = await joinAsReviewer()
+      const [review] = await reviewsOf(rae)
+      const res = await rae.post('/api/review-invitations/accept', { token })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ reviewId: review!.id })
+    })
+  })
+
   describe('inviting', () => {
     it('emails a link saying what is asked and that only the draft will be seen', async () => {
       const token = await invite('rev@example.com')

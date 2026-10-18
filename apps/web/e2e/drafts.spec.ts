@@ -680,8 +680,8 @@ test('invites someone who has no account yet: they register from the email and j
   await newbie.getByLabel('Password').fill(PASSWORD)
   await newbie.getByRole('button', { name: 'Create account' }).click()
 
-  // Registering brings them straight back to the invitation, where they choose to join.
-  await newbie.getByRole('button', { name: /^Join / }).click()
+  // Registering from the invitation page joins them at once: there is no button to press.
+  await expect(newbie.getByRole('button', { name: /^Join / })).toHaveCount(0)
   await expect(newbie.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   // Accepting proved they own the address, so there is no "please confirm" banner.
   await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
@@ -694,6 +694,11 @@ test('invites someone who has no account yet: they register from the email and j
 
   // On Home each of them sees their own role beside the sharing line (#228).
   await newbie.goto('/')
+  // They joined rather than started a publication, so the only step left is the AI key.
+  await expect(newbie.getByRole('heading', { name: 'Create your first publication' })).toHaveCount(
+    0,
+  )
+  await expect(newbie.getByLabel('Anthropic API key')).toBeVisible()
   await expect(newbie.getByRole('link', { name: /Shared with 1 person/ })).toContainText('Member')
   await page.goto('/')
   await expect(page.getByRole('link', { name: /Shared with 1 person/ })).toContainText('Owner')
@@ -711,7 +716,6 @@ async function joinFrom(page: Page, browser: Browser, name: string) {
   await them.getByLabel('Username').fill(uniqueUsername())
   await them.getByLabel('Password').fill(PASSWORD)
   await them.getByRole('button', { name: 'Create account' }).click()
-  await them.getByRole('button', { name: /^Join / }).click()
   await expect(them.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   return them
 }
@@ -1002,10 +1006,8 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   await rae.getByLabel('Choose a password').fill(PASSWORD)
   await rae.getByRole('button', { name: 'Read the draft' }).click()
 
-  // Her whole app is her reviews. She reads the copy as sent, without Ada's later line.
-  await expect(rae.getByRole('heading', { name: 'Drafts to review' })).toBeVisible()
+  // She lands on the draft she was asked to read, not on a list. Her whole app is her reviews.
   await expect(rae.getByRole('link', { name: 'Account' })).toHaveCount(0)
-  await rae.getByRole('link', { name: 'Meanders' }).click()
   await expect(rae.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
   await expect(rae.getByText('Added after sending.')).toHaveCount(0)
   await expect(rae.getByRole('textbox', { name: 'Draft body' })).toHaveAttribute(
@@ -1051,7 +1053,6 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   await sam.getByLabel('What should we call you?').fill('Sam')
   await sam.getByLabel('Choose a password').fill(PASSWORD)
   await sam.getByRole('button', { name: 'Read the draft' }).click()
-  await sam.getByRole('link', { name: 'Meanders' }).click()
   // Sending again made a new copy, so Sam's includes what Ada added after Rae's was sent.
   await expect(sam.getByText('Added after sending.', { exact: true })).toBeVisible()
   await page.reload()
@@ -1140,7 +1141,6 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await rae.getByLabel('What should we call you?').fill('Rae')
   await rae.getByLabel('Choose a password').fill(PASSWORD)
   await rae.getByRole('button', { name: 'Read the draft' }).click()
-  await rae.getByRole('link', { name: 'Meanders' }).click()
   await rae.getByRole('textbox', { name: 'Your comment' }).fill('Which rivers?')
   await rae.getByRole('button', { name: 'Add comment' }).click()
   await expect(rae.getByText('Which rivers?')).toBeVisible()

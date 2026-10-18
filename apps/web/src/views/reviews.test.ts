@@ -195,7 +195,11 @@ describe('following the emailed link', () => {
         body = await request.json()
         return HttpResponse.json(reviewer, { status: 201 })
       }),
+      http.post('*/api/review-invitations/accept', () => HttpResponse.json({ reviewId: 'r1' })),
       http.get('*/api/reviews', () => HttpResponse.json([summary()])),
+      http.get('*/api/reviews/r1', () =>
+        HttpResponse.json({ ...summary(), draft: null, comments: [] }),
+      ),
     )
     const { router } = await renderAt('/review-invite?token=tok')
     expect(await screen.findByText(/would like your comments on/)).toBeTruthy()
@@ -205,7 +209,7 @@ describe('following the emailed link', () => {
     await fireEvent.update(screen.getByLabelText('What should we call you?'), 'Rae')
     await fireEvent.update(screen.getByLabelText('Choose a password'), 'a long enough password')
     await fireEvent.click(screen.getByRole('button', { name: 'Read the draft' }))
-    await waitFor(() => expect(router.currentRoute.value.name).toBe('reviews'))
+    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/reviews/r1'))
     expect(body).toEqual({ token: 'tok', name: 'Rae', password: 'a long enough password' })
   })
 
@@ -221,6 +225,19 @@ describe('following the emailed link', () => {
     const { router } = await renderAt('/review-invite?token=tok')
     await fireEvent.click(await screen.findByRole('button', { name: 'Read the draft' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('review'))
+  })
+
+  it('opens the review at once for someone who has just signed in from the invitation page', async () => {
+    server.use(
+      signedInAs({ ...testUser, email: 'rae@example.com' }),
+      preview,
+      http.post('*/api/review-invitations/accept', () => HttpResponse.json({ reviewId: 'r1' })),
+      http.get('*/api/reviews/r1', () =>
+        HttpResponse.json({ ...summary(), draft: null, comments: [] }),
+      ),
+    )
+    const { router } = await renderAt('/review-invite?token=tok&join=1')
+    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/reviews/r1'))
   })
 
   it('names the problem when signed in as someone else', async () => {

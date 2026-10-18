@@ -1,7 +1,8 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { render, screen } from '@testing-library/vue'
 import { describe, expect, it } from 'vitest'
-import { useMockServer } from '../test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { llmSettings, server, useMockServer } from '../test-utils'
 import AiButton from './AiButton.vue'
 
 useMockServer()
@@ -10,7 +11,15 @@ function show(props: Record<string, unknown> = {}, attrs: Record<string, unknown
   return render(AiButton, {
     props: { ...props, ...attrs },
     slots: { default: 'Critique' },
-    global: { plugins: [VueQueryPlugin] },
+    global: {
+      plugins: [
+        VueQueryPlugin,
+        createRouter({
+          history: createMemoryHistory(),
+          routes: [{ path: '/account/ai', name: 'account-ai', component: { template: '<p />' } }],
+        }),
+      ],
+    },
   })
 }
 const button = () => screen.getByRole('button', { name: 'Critique' })
@@ -56,5 +65,20 @@ describe('AiButton', () => {
     show({}, { 'aria-describedby': 'looks' })
     expect(button().getAttribute('aria-describedby')?.split(' ')[0]).toBe('looks')
     expect(button()).toHaveAttribute('type', 'button')
+  })
+
+  it('with no key saved, points to where one is added and still works', async () => {
+    server.use(llmSettings(false))
+    show()
+    const link = await screen.findByRole('link', { name: 'Add your AI key' })
+    expect(link).toHaveAttribute('href', '/account/ai')
+    expect(button()).toBeEnabled()
+  })
+
+  it('with a key, or before the settings load, shows no such link', async () => {
+    server.use(llmSettings(true))
+    show()
+    await screen.findByText('Uses your Anthropic key, so it costs tokens')
+    expect(screen.queryByRole('link', { name: 'Add your AI key' })).toBeNull()
   })
 })

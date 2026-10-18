@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
@@ -29,12 +29,33 @@ const accept = useMutation({
   },
 })
 
-/** Where to come back to after signing in or registering. */
-const here = computed(() => `/accept-invite?token=${encodeURIComponent(token)}`)
+/**
+ * Where to come back to after signing in or registering. `join=1` says they came through the sign-in or sign-up
+ * this page sent them to, so they are joined at once; someone who was already signed in still presses the button.
+ */
+const here = computed(() => `/accept-invite?token=${encodeURIComponent(token)}&join=1`)
+const cameFromSignIn = route.query.join === '1'
 const invitedEmail = computed(() => preview.data.value?.email ?? '')
 const wrongAccount = computed(() => !!session.user && session.user.email !== invitedEmail.value)
 const invalid = computed(
   () => !token || (preview.isError.value && preview.error.value instanceof ApiError),
+)
+// Joins once the invitation has loaded and they are signed in as the person it was sent to. A failure leaves the
+// button below, with the reason, so they can try again.
+watch(
+  () => [preview.data.value, session.user] as const,
+  () => {
+    if (
+      cameFromSignIn &&
+      preview.data.value &&
+      !wrongAccount.value &&
+      session.user &&
+      accept.isIdle.value
+    ) {
+      accept.mutate()
+    }
+  },
+  { immediate: true },
 )
 </script>
 

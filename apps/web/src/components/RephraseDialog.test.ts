@@ -2,6 +2,7 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { REPHRASE } from '@wordwright/core'
 import { llmSettings, server, useMockServer } from '../test-utils'
 import RephraseDialog from './RephraseDialog.vue'
@@ -44,6 +45,10 @@ function show(props: Record<string, unknown> = {}) {
     global: {
       plugins: [
         [VueQueryPlugin, { queryClientConfig: { defaultOptions: { queries: { retry: false } } } }],
+        createRouter({
+          history: createMemoryHistory(),
+          routes: [{ path: '/account/ai', name: 'account-ai', component: { template: '<p />' } }],
+        }),
       ],
     },
   })
@@ -246,7 +251,12 @@ describe('RephraseDialog', () => {
     )
     show()
     await ask('Plainer for someone new')
-    expect(await screen.findByRole('alert')).toHaveTextContent('Add your Anthropic API key')
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Add your Anthropic API key')
+    expect(within(alert).getByRole('link', { name: 'Add your AI key' })).toHaveAttribute(
+      'href',
+      '/account/ai',
+    )
     expect(screen.queryByRole('list', { name: 'Options' })).toBeNull()
     expect(generate()).toBeEnabled() // nothing was spent or counted
     await fireEvent.click(generate())

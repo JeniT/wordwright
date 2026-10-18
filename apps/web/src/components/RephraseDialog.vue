@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
 import { computed, ref, useId, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   CRITIQUE_ROUNDS_DEFAULT,
   REPHRASE,
@@ -10,7 +11,7 @@ import {
   type RephraseResult,
   type RephraseRound,
 } from '@wordwright/core'
-import { api, errorMessage } from '../lib/api'
+import { ApiError, api, errorMessage } from '../lib/api'
 import { useModal } from '../lib/modal'
 import AiButton from './AiButton.vue'
 import RephraseOptions from './RephraseOptions.vue'
@@ -99,6 +100,12 @@ const generate = useMutation({
     announcement.value = `${made.options.length} options. Round ${asked.value.length} of ${limit.value}.`
   },
 })
+const needsKey = computed(
+  () =>
+    generate.error.value instanceof ApiError &&
+    generate.error.value.status === 409 &&
+    /API key/i.test(generate.error.value.message),
+)
 
 watch(
   () => props.open,
@@ -216,6 +223,9 @@ function use() {
         </p>
         <p v-if="generate.isError.value" role="alert" class="mb-3 text-danger">
           {{ errorMessage(generate.error.value) }}
+          <RouterLink v-if="needsKey" :to="{ name: 'account-ai' }" class="underline"
+            >Add your AI key</RouterLink
+          >
         </p>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 

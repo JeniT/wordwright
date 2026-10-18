@@ -37,6 +37,10 @@ _Avoid_: Admin
 **Member**:
 A person who works in a publication. An owner is also a member._Avoid_: Collaborator, user, publication editor
 
+**Invitation**:
+An emailed offer, addressed to an email address, to join a publication as a member. Accepted from the link in the email or, once signed in with that address, from Home.
+_Avoid_: Invite (in text people read)
+
 **Reviewer**:
 A person invited by email to read and comment on a draft, without being a member of its publication. Has a reviewer-only account, which can be upgraded to a full one.
 _Avoid_: Guest, commenter, viewer

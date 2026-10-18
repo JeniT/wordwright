@@ -189,7 +189,7 @@ tests inject fakes and nothing hits the network.
   `{emails, memberIds}`), which freezes its title and body as a **snapshot**; everyone asked reviews that copy, not later
   edits, and the dialog says so (sending again makes a new copy). People by email get a 7-day link (`/review-invite`)
   bound to that address, with the same quiet `202`, throttles and blocks as publication invitations; a new person makes a
-  **reviewer-only account** with just a name and password (no username, no publication), and every route outside
+  **reviewer-only account** with just a name and password (no username, no publication) and lands on the review itself, and every route outside
   `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. Members of the
   publication can be asked directly and find the review on their home page. A review is _open_, _ended_ (the reviewer
   pressed **End review**: the editor is emailed once, "X has finished reviewing Y and left N comments") or _closed_
@@ -304,7 +304,8 @@ tests inject fakes and nothing hits the network.
   lines of config (`OidcProvider`); others implement `IdentityProvider`.
 - **Sharing is by invitation.** An owner (with a confirmed address) enters an email; we send a link valid
   for 7 days that works whether or not the person has an account yet. The invitee signs in or signs up with
-  _that_ address and clicks Join. Nobody is ever added without accepting, the owner's reply is identical
+  _that_ address (a new person is joined as soon as they have; someone already signed in sees a Join button, and the
+  sign-in link carries `join=1` so the page knows which). Nobody is ever added without opening the link, the owner's reply is identical
   whether or not the address has an account or is already in (so it can't be used to look people up), and
   accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
   resend or revoke them, and make members owners (or remove other owners, or step down) from the people list on

@@ -39,7 +39,7 @@ describe('accept-invitation page', () => {
     const url = new URL(signUp.getAttribute('href')!, 'http://x')
     expect(url.pathname).toBe('/register')
     expect(url.searchParams.get('email')).toBe('bob@example.com')
-    expect(url.searchParams.get('next')).toBe('/accept-invite?token=abc')
+    expect(url.searchParams.get('next')).toBe('/accept-invite?token=abc&join=1')
     expect(screen.getByRole('link', { name: 'I already have one' }).getAttribute('href')).toContain(
       '/login',
     )
@@ -109,7 +109,7 @@ describe('sign-up and sign-in from an invitation', () => {
     expect(await screen.findByLabelText('Email')).toHaveValue('bob@example.com')
   })
 
-  it('returns to the invitation after registering', async () => {
+  const registeringAsBob = () => {
     let signedIn = false
     server.use(
       http.get('*/api/auth/me', () =>
@@ -122,15 +122,55 @@ describe('sign-up and sign-in from an invitation', () => {
       previewOk,
       noPublications,
     )
-    const { router } = await renderAt(
-      '/register?email=bob%40example.com&next=%2Faccept-invite%3Ftoken%3Dabc',
-    )
+  }
+  const fillRegistration = async () => {
     await fireEvent.update(await screen.findByLabelText('What should we call you?'), 'Bob')
     await fireEvent.update(screen.getByLabelText('Username'), 'bob')
     await fireEvent.update(screen.getByLabelText('Password'), 'a good password')
     await fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+  }
+
+  it('joins at once after registering from the invitation page, with no button to press', async () => {
+    registeringAsBob()
+    let accepted = 0
+    server.use(
+      http.post('*/api/invitations/accept', () => {
+        accepted++
+        return HttpResponse.json({ publicationId: 'p1' })
+      }),
+      http.get('*/api/publications/p1/ideas', () => HttpResponse.json([])),
+    )
+    const { router } = await renderAt(
+      '/register?email=bob%40example.com&next=%2Faccept-invite%3Ftoken%3Dabc%26join%3D1',
+    )
+    await fillRegistration()
+    await waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/p/p1'))
+    expect(accepted).toBe(1)
+  })
+
+  it('without the sign-in marker, registering still ends at the button', async () => {
+    registeringAsBob()
+    const { router } = await renderAt(
+      '/register?email=bob%40example.com&next=%2Faccept-invite%3Ftoken%3Dabc',
+    )
+    await fillRegistration()
     await screen.findByRole('button', { name: 'Join Joint piece' })
     expect(router.currentRoute.value.fullPath).toBe('/accept-invite?token=abc')
+  })
+
+  it('stays on the page with the reason, and the button to retry, if joining fails', async () => {
+    registeringAsBob()
+    server.use(
+      http.post('*/api/invitations/accept', () =>
+        HttpResponse.json({ error: 'This invitation is invalid or has expired' }, { status: 400 }),
+      ),
+    )
+    await renderAt(
+      '/register?email=bob%40example.com&next=%2Faccept-invite%3Ftoken%3Dabc%26join%3D1',
+    )
+    await fillRegistration()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/invalid or has expired/)
+    expect(screen.getByRole('button', { name: 'Join Joint piece' })).toBeEnabled()
   })
 
   it('ignores a "next" that points to another site', async () => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import TextField from '../components/TextField.vue'
@@ -25,7 +25,9 @@ const preview = useQuery({
   retry: false,
 })
 const invitedEmail = computed(() => preview.data.value?.email ?? '')
-const here = computed(() => `/review-invite?token=${encodeURIComponent(token)}`)
+// `join=1` marks a return from the sign-in this page sent them to: the review opens at once (see AcceptInviteView).
+const here = computed(() => `/review-invite?token=${encodeURIComponent(token)}&join=1`)
+const cameFromSignIn = route.query.join === '1'
 const wrongAccount = computed(() => !!session.user && session.user.email !== invitedEmail.value)
 const invalid = computed(
   () => !token || (preview.isError.value && preview.error.value instanceof ApiError),
@@ -34,11 +36,20 @@ const invalid = computed(
 const name = ref('')
 const password = ref('')
 const create = useMutation({
-  mutationFn: () => api.registerReviewer({ token, name: name.value, password: password.value }),
-  onSuccess: async (user) => {
+  mutationFn: async () => {
+    const user = await api.registerReviewer({
+      token,
+      name: name.value,
+      password: password.value,
+    })
+    // Registering has already added the review; accepting again just says which one it is.
+    const { reviewId } = await api.acceptReviewInvitation(token)
+    return { user, reviewId }
+  },
+  onSuccess: async ({ user, reviewId }) => {
     queryClient.clear()
     session.set(user)
-    await router.push({ name: 'reviews' })
+    await router.push({ name: 'review', params: { id: reviewId } })
   },
 })
 const accept = useMutation({
@@ -48,6 +59,22 @@ const accept = useMutation({
     await router.push({ name: 'review', params: { id: reviewId } })
   },
 })
+
+watch(
+  () => [preview.data.value, session.user] as const,
+  () => {
+    if (
+      cameFromSignIn &&
+      preview.data.value &&
+      !wrongAccount.value &&
+      session.user &&
+      accept.isIdle.value
+    ) {
+      accept.mutate()
+    }
+  },
+  { immediate: true },
+)
 
 const block = ref<'none' | 'sender' | 'all'>('none')
 const declined = ref(false)
