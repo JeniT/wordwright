@@ -295,7 +295,7 @@ describe('reading page', () => {
     await renderAt('/p/ada-substack/ideas/i1/research')
     await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select A paper' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-    const picker = await screen.findByLabelText('Move to')
+    const picker = await screen.findByLabelText(/^Move( .*)? to$/)
     expect(
       within(picker)
         .getAllByRole('option')
@@ -342,7 +342,7 @@ describe('reading page', () => {
       await screen.findByRole('checkbox', { name: /^Select note “An idea note/ }),
     )
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-    const picker = await screen.findByLabelText('Move to')
+    const picker = await screen.findByLabelText(/^Move( .*)? to$/)
     expect(
       within(picker)
         .getAllByRole('option')

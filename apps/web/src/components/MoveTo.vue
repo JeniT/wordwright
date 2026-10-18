@@ -2,7 +2,6 @@
 import { computed, watch } from 'vue'
 import { errorMessage } from '../lib/api'
 import { NEW_IDEA, OTHER_PUBLICATION, type useMoveDestination } from '../lib/move'
-import Explain from './Explain.vue'
 
 /**
  * The picker for where to move reading items or notes: the publication's own list (when moving from an idea), the other
@@ -17,8 +16,8 @@ const props = defineProps<{
   publicationLabel: string
   /** Whether a new idea can be made to move into. */
   allowNew: boolean
-  /** What happens to the new idea ("The items you move become its reading list."). */
-  newIdeaHint: string
+  /** The label of the first select: "Move to", or with a count ("Move 4 notes to"). */
+  label?: string
 }>()
 // What was chosen belongs to the page; this only edits it.
 const destination = defineModel<string>('destination', { required: true })
@@ -37,7 +36,7 @@ const otherName = computed(() => props.dest.otherPublication?.name ?? '')
     We couldn't load your ideas, so there's nowhere to move to. Reload the page to try again.
   </p>
   <div v-else class="flex flex-wrap items-center gap-x-3 gap-y-2">
-    <label for="move-to" class="text-sm font-medium">Move to</label>
+    <label for="move-to" class="text-sm font-medium">{{ label ?? 'Move to' }}</label>
     <select id="move-to" v-model="destination" class="field field-compact max-w-full !w-auto">
       <option value="" disabled>Choose where…</option>
       <option v-if="fromIdea" value="publication">{{ publicationLabel }}</option>
@@ -89,7 +88,6 @@ const otherName = computed(() => props.dest.otherPublication?.name ?? '')
         autocomplete="off"
         required
       />
-      <Explain label="About the new idea">{{ newIdeaHint }}</Explain>
     </template>
     <p v-if="dest.makeIdea.isError" role="alert" class="w-full text-sm text-danger">
       {{ errorMessage(dest.makeIdea.error) }}

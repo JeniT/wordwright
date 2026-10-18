@@ -355,11 +355,9 @@ function removeChosen() {
                 :from-idea="!!ideaId"
                 publication-label="The publication’s reading list"
                 :allow-new="!ideaId"
-                new-idea-hint="In your own words. The items you move become its reading list."
-                explain-label="About moving items"
-              >
-                Each goes with the notes you took from it, and keeps whether you have read it.
-              </MoveFields>
+                :count="chosen.length"
+                noun="item"
+              />
               <p
                 v-if="tagging ? list.tagMany.isError.value : mover.moveReading.isError.value"
                 role="alert"
@@ -421,11 +419,7 @@ function removeChosen() {
         :from-idea="!!ideaId"
         publication-label="The publication’s reading list"
         :allow-new="!ideaId"
-        new-idea-hint="In your own words. The item you move becomes its reading list."
-        explain-label="About moving an item"
-      >
-        It goes with the notes you took from it, and keeps whether you have read it.
-      </MoveFields>
+      />
       <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-danger">
         {{ errorMessage(mover.moveReading.error.value) }}
       </p>

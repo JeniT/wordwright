@@ -1663,7 +1663,7 @@ describe('idea page', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
         expect(screen.getByRole('button', { name: 'Move to…' })).toBeInTheDocument()
         await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-        expect(await screen.findByLabelText('Move to')).toBeInTheDocument()
+        expect(await screen.findByLabelText('Move 1 note to')).toBeInTheDocument()
         expect(screen.queryByLabelText('Add a tag')).toBeNull()
       })
 

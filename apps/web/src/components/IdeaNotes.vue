@@ -522,17 +522,12 @@ const label = (note: IdeaNote) => {
                     :from-idea="!!ideaId"
                     publication-label="The publication’s notes"
                     allow-new
-                    new-idea-hint="In your own words. The notes you move become its first notes."
-                    explain-label="About moving notes"
-                  >
-                    They keep the order you arranged them in, along with their tags and whether they
-                    are quotations. They are moved, not copied.
-                  </MoveFields>
+                    :count="chosen.length"
+                    noun="note"
+                  />
                   <MoveNotesDetails
                     v-if="chosen.length && dest.chosen"
                     v-model:bring-all="bringAll"
-                    :count="movingIds.length"
-                    :destination="dest.name"
                     :source-count="sourceIds.length"
                     :others-count="othersFromSources.length"
                   />
@@ -700,16 +695,10 @@ const label = (note: IdeaNote) => {
         :from-idea="!!ideaId"
         publication-label="The publication’s notes"
         allow-new
-        new-idea-hint="In your own words. The note you move becomes its first note."
-        explain-label="About moving a note"
-      >
-        It keeps its tags and whether it is a quotation. It is moved, not copied.
-      </MoveFields>
+      />
       <MoveNotesDetails
         v-if="dest.chosen"
         v-model:bring-all="bringAll"
-        :count="movingIds.length"
-        :destination="dest.name"
         :source-count="sourceIds.length"
         :others-count="othersFromSources.length"
       />

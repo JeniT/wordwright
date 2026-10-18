@@ -302,7 +302,7 @@ test('moves reading items, with their notes, between the publication and an idea
   await page.getByRole('checkbox', { name: /^Select Fake title for example\.org/ }).check()
   await page.getByRole('checkbox', { name: /^Select Fake title for example\.com/ }).check()
   await page.getByRole('button', { name: 'Move to…' }).click()
-  await page.getByLabel('Move to').selectOption({ label: 'A new idea…' })
+  await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'A new idea…' })
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
   await noViolations(page, 'choosing where to move reading items')
   await page.getByRole('button', { name: 'Move 2 items' }).click()
@@ -332,7 +332,7 @@ test('moves reading items, with their notes, between the publication and an idea
   // And one goes back to the publication's own list, then back again with Undo.
   await page.getByRole('checkbox', { name: /^Select Fake title for example\.com/ }).check()
   await page.getByRole('button', { name: 'Move to…' }).click()
-  await page.getByLabel('Move to').selectOption({ label: 'The publication’s reading list' })
+  await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'The publication’s reading list' })
   await page.getByRole('button', { name: 'Move 1 item' }).click()
   await expect(
     page.getByText('Moved 1 item to the publication’s reading list.', { exact: false }),
@@ -384,10 +384,11 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await page.getByRole('checkbox', { name: /^Select note “The feed made me think/ }).check()
   await page.getByRole('checkbox', { name: /^Select note “Bends migrate/ }).check()
   await page.getByRole('button', { name: 'Move to…' }).click()
-  await page.getByLabel('Move to').selectOption({ label: 'A new idea…' })
+  await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'A new idea…' })
   await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await expect(page.getByText('2 notes will move to “Why rivers meander”.')).toBeVisible()
-  await expect(page.getByText(/The page they were taken from will be copied/)).toBeVisible()
+  await expect(
+    page.getByText('The page they were taken from will be copied to its reading list.'),
+  ).toBeVisible()
   await noViolations(page, 'moving notes to a new idea')
   await page.getByRole('button', { name: 'Move 2 notes' }).click()
   await expect(page.getByText(/^Moved 2 notes to “Why rivers meander”\./)).toBeVisible()
@@ -416,7 +417,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   // And a note can go on to another place: back to the publication, with Undo to put it where it was.
   await page.getByRole('checkbox', { name: /^Select note “Bends migrate/ }).check()
   await page.getByRole('button', { name: 'Move to…' }).click()
-  await page.getByLabel('Move to').selectOption({ label: 'The publication’s notes' })
+  await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'The publication’s notes' })
   await page.getByRole('button', { name: 'Move 1 note' }).click()
   await expect(page.getByText(/^Moved 1 note to the publication’s notes\./)).toBeVisible()
   await expect(notes.getByText('Bends migrate downstream.')).toHaveCount(0)
@@ -446,7 +447,7 @@ test('moves a note into another of the writer’s publications, and puts it back
 
   await page.goto(`/p/${first}/notes`)
   await page.getByRole('button', { name: /^Move note “Belongs elsewhere/ }).click()
-  await page.getByLabel('Move to').selectOption({ label: 'Another publication…' })
+  await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'Another publication…' })
   await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
   await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
   await noViolations(page, 'choosing another publication to move to')
@@ -461,7 +462,7 @@ test('moves a note into another of the writer’s publications, and puts it back
 
   // Moved again, it is there.
   await page.getByRole('button', { name: /^Move note “Belongs elsewhere/ }).click()
-  await page.getByLabel('Move to').selectOption({ label: 'Another publication…' })
+  await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'Another publication…' })
   await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
   await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
   await page.getByRole('dialog').getByRole('button', { name: 'Move 1 note' }).click()

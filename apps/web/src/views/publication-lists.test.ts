@@ -485,8 +485,21 @@ describe('moving reading items', () => {
   const openMove = () => fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
   const chooseDestination = async (value: string) => {
     await openMove()
-    await fireEvent.update(await screen.findByLabelText('Move to'), value)
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), value)
   }
+
+  it('counts the items in the toolbar form’s label, and has no explanation icons', async () => {
+    fake()
+    await open()
+    await tick('A paper')
+    await tick('Another')
+    await openMove()
+    expect(await screen.findByLabelText('Move 2 items to')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^About / })).toBeNull()
+    await fireEvent.update(screen.getByLabelText('Move 2 items to'), '__new')
+    expect(await screen.findByLabelText("What's your core idea?")).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'About the new idea' })).toBeNull()
+  })
 
   it('moves one item from its own Move button, whatever else is ticked', async () => {
     const f = fake()
@@ -495,6 +508,7 @@ describe('moving reading items', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Move A paper' }))
     const dialog = screen.getByRole('dialog', { name: 'Move A paper' })
     expect(within(dialog).getByRole('button', { name: 'Move item' })).toBeDisabled() // no place yet
+    // The title names the item, so the label stays plain.
     await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Move item' }))
     await waitFor(() => expect(f.moves).toEqual([{ ids: ['l1'], to: { ideaId: 'i1' } }]))
@@ -514,7 +528,7 @@ describe('moving reading items', () => {
     expect(screen.queryByRole('button', { name: /^Tag/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeDisabled() // no place chosen yet
-    await fireEvent.update(await screen.findByLabelText('Move to'), 'i1')
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), 'i1')
     expect(screen.getByRole('button', { name: 'Move 2 items' })).toBeEnabled()
   })
 
@@ -596,7 +610,7 @@ describe('moving reading items', () => {
       await within(screen.getByRole('region', { name: 'Reading list' })).findByRole('alert'),
     ).toHaveTextContent('An idea can have up to 50 links')
     expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
-    expect(screen.getByLabelText('Move to')).toHaveValue('i1')
+    expect(screen.getByLabelText(/^Move( .*)? to$/)).toHaveValue('i1')
   })
 
   it('says so, and offers nowhere to move to, when the ideas could not be loaded', async () => {
@@ -610,7 +624,7 @@ describe('moving reading items', () => {
     await tick('A paper')
     await openMove()
     expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load your ideas")
-    expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Move( .*)? to$/)).not.toBeInTheDocument()
   })
 
   it('closes the move form on Cancel, and keeps what was selected', async () => {
@@ -619,7 +633,7 @@ describe('moving reading items', () => {
     await tick('A paper')
     await openMove()
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Move( .*)? to$/)).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
     expect(screen.getByText('1 selected')).toBeInTheDocument()
   })
@@ -665,7 +679,7 @@ describe('moving to another publication', () => {
   it('offers no way into another publication to someone who has only one', async () => {
     fake([publication])
     await start()
-    const select = await screen.findByLabelText('Move to')
+    const select = await screen.findByLabelText(/^Move( .*)? to$/)
     expect(within(select).queryByRole('option', { name: /Another publication/ })).toBeNull()
     expect(screen.queryByLabelText('Which publication')).toBeNull()
   })
@@ -673,7 +687,7 @@ describe('moving to another publication', () => {
   it('adds an optional step for someone with several: a publication, then somewhere in it', async () => {
     const f = fake()
     await start()
-    const select = await screen.findByLabelText('Move to')
+    const select = await screen.findByLabelText(/^Move( .*)? to$/)
     // Nothing changes for the common move: the ideas are listed as before.
     expect(screen.queryByLabelText('Which publication')).toBeNull()
     await fireEvent.update(select, '__other')
@@ -700,7 +714,7 @@ describe('moving to another publication', () => {
   it('puts them back with Undo, asking the publication they went to', async () => {
     const f = fake()
     await start()
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), '__other')
     await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
     await fireEvent.update(await screen.findByLabelText('Move into'), 'p1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
@@ -721,7 +735,7 @@ describe('moving to another publication', () => {
       ),
     )
     await start()
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), '__other')
     await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
     expect(await screen.findByRole('alert')).toHaveTextContent("couldn't load the ideas of “Poems”")
     expect(screen.queryByLabelText('Move into')).toBeNull()
@@ -732,7 +746,7 @@ describe('moving to another publication', () => {
     fake()
     server.use(http.get('*/api/publications/ada-poems/ideas', () => new Promise(() => {})))
     await start()
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), '__other')
     await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
     expect(await screen.findByText('Loading its ideas…')).toBeInTheDocument()
   })
@@ -759,7 +773,7 @@ describe('moving to another publication', () => {
       }),
     )
     await start()
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), '__other')
     await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
     await fireEvent.update(await screen.findByLabelText('Move into'), '__new')
     await fireEvent.update(screen.getByLabelText("What's your core idea?"), 'Odes')
@@ -1024,7 +1038,7 @@ describe('moving notes', () => {
   const moveTo = async (value: string) => {
     const button = screen.queryByRole('button', { name: 'Move to…' }) // gone once the form has taken over
     if (button) await fireEvent.click(button)
-    await fireEvent.update(await screen.findByLabelText('Move to'), value)
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), value)
   }
   const says = () => document.querySelector('[data-move-says]')
 
@@ -1040,19 +1054,20 @@ describe('moving notes', () => {
     expect(screen.getByRole('button', { name: 'Move 1 note' })).toBeEnabled()
   })
 
-  it('says plainly what will move, including that sources are copied and originals stay', async () => {
+  it('counts the notes in the label, and says only that their pages are copied', async () => {
     fake()
     await open()
     await tick('Typed thought')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
+    expect(await screen.findByLabelText('Move 1 note to')).toBeInTheDocument()
     await moveTo('i1')
-    expect(says()).toHaveTextContent('1 note will move to “Rivers”.')
-    expect(says()).not.toHaveTextContent('copied') // it has no source
+    expect(says()).toBeNull() // it has no source
     await tick('From the paper')
-    expect(says()).toHaveTextContent('2 notes will move to “Rivers”.')
+    expect(screen.getByLabelText('Move 2 notes to')).toBeInTheDocument()
     expect(says()).toHaveTextContent(
-      'The page they were taken from will be copied to its reading list',
+      /^The page they were taken from will be copied to its reading list\.$/,
     )
-    expect(says()).toHaveTextContent('the originals stay where they are')
+    expect(document.body).not.toHaveTextContent('will move to')
   })
 
   it('moves notes into another publication, with the source copied there', async () => {
@@ -1066,10 +1081,10 @@ describe('moving notes', () => {
     await open()
     await tick('Typed thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
-    await fireEvent.update(await screen.findByLabelText('Move to'), '__other')
+    await fireEvent.update(await screen.findByLabelText(/^Move( .*)? to$/), '__other')
     await fireEvent.update(await screen.findByLabelText('Which publication'), 'ada-poems')
     await fireEvent.update(await screen.findByLabelText('Move into'), 'publication')
-    expect(says()).toHaveTextContent('1 note will move to “Poems”’s notes.')
+    expect(screen.getByLabelText('Move 1 note to')).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
     await waitFor(() => expect(f.moves).toHaveLength(1))
     expect(f.moves[0]).toMatchObject({ to: { ideaId: null, publicationId: 'ada-poems' } })
@@ -1087,7 +1102,7 @@ describe('moving notes', () => {
       'Moved 2 notes to “Rivers”. 1 source was copied so the notes keep it.',
     )
     expect(f.moves).toEqual([{ ids: ['n1', 'n2'], to: { ideaId: 'i1' } }])
-    await waitFor(() => expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()) // the form is done with
+    await waitFor(() => expect(screen.queryByLabelText(/^Move( .*)? to$/)).not.toBeInTheDocument()) // the form is done with
 
     await fireEvent.click(within(status).getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(f.moves).toHaveLength(2))
@@ -1180,7 +1195,7 @@ describe('moving notes', () => {
     await tick('Typed thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByLabelText('Move to')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Move( .*)? to$/)).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: /^Select note “Typed thought/ })).toBeChecked()
   })
 
@@ -1215,8 +1230,8 @@ describe('moving notes', () => {
     await fireEvent.click(screen.getByRole('button', { name: /^Move note “Only one/ }))
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'Move 1 note' })).toBeDisabled() // no place yet
-    await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
-    expect(says()).toHaveTextContent('1 note will move to “Rivers”.')
+    await fireEvent.update(await within(dialog).findByLabelText(/^Move( .*)? to$/), 'i1')
+    expect(says()).toBeNull() // no page to copy
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Move 1 note' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Moved 1 note to “Rivers”.')
     expect(f.moves).toEqual([{ ids: ['n1'], to: { ideaId: 'i1' } }])
@@ -1229,7 +1244,7 @@ describe('moving notes', () => {
     await tick('Typed thought')
     await fireEvent.click(screen.getByRole('button', { name: /^Move note “From the paper/ }))
     const dialog = screen.getByRole('dialog')
-    await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
+    await fireEvent.update(await within(dialog).findByLabelText(/^Move( .*)? to$/), 'i1')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Move 1 note' }))
     await waitFor(() => expect(f.moves).toHaveLength(1))
     expect(f.moves[0]).toEqual({ ids: ['n2'], to: { ideaId: 'i1' } })

@@ -229,7 +229,7 @@ on the page. Move it to an info icon or a help page, or cut it.
 | Where                   | Use it for                                                                                                                                              | Examples from the app                                                                                                                                                     |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **On the page**         | What the person needs to act or avoid a mistake _now_: the next step, what they will lose, what a field expects when that isn't obvious                 | The `NextStep` line. “This can’t be undone.” in a delete dialog. A hint under a field: “The address of the site”.                                                         |
-| **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Move to… “About the new idea”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”.                                               |
+| **Behind an info icon** | A short explanation of one control or term that most people won't need every time: why we ask, what a setting changes, what a button will spend or send | The `InfoTip` on Tag… “About tagging several at once”. The AI button's own tooltip: “Uses your Anthropic key, so it costs tokens”.                                        |
 | **Tutorial mode**       | The same explanations written out on the page, for people new to the site, switched off once they know their way round                                  | Next to a Critique button: what a critique is and that it sends the draft to your AI. See _Tutorial mode_ below.                                                          |
 | **On a help page**      | Anything longer than a short paragraph, anything with steps followed outside the app, anything people come back to                                      | Getting an API key from a provider (`/help/api-key`; the key screen holds only a link to it); what the AI mark means and why critiques are limited (`/help/ai-settings`). |
 
@@ -255,7 +255,7 @@ A form that clears itself still owes the person some sign that it worked, but no
 
 - **Text only, two sentences at most**, about one control or term. No links or buttons inside: the tip closes when the
   pointer or focus leaves, so they can't be reached. If it needs a link, it is a help page.
-- **Keyboard and touch:** the icon is a real button with a name (`label`, “About the new idea”), reached by Tab. The
+- **Keyboard and touch:** the icon is a real button with a name (`label`, “About tagging several at once”), reached by Tab. The
   tip shows on hover or focus, which a tap gives, and is the icon's description for screen readers.
 - **Dismissable, hoverable, persistent (WCAG 1.4.13):** Escape closes the tip without moving focus, and it shows again
   on the next hover or focus. The pointer can move from the icon onto the tip without it closing.
