@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/vue'
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
@@ -371,16 +371,21 @@ describe('the menu in a publication’s settings', () => {
     expect(router.currentRoute.value.fullPath).toBe('/p/ada-substack/settings/details?from=email')
   })
 
-  it('leaves Delete out for a member, and sends them from its address to Details', async () => {
+  it('leaves Details and Delete out for a member, and sends them from either address to Description', async () => {
     mockApp()
     server.use(
       http.get('*/api/publications', () => HttpResponse.json([{ ...publication, role: 'member' }])),
     )
     const { router } = await renderAt('/p/ada-substack/settings/delete')
-    await screen.findByRole('heading', { level: 1, name: 'Details' })
-    expect(router.currentRoute.value.path).toBe('/p/ada-substack/settings/details')
+    await screen.findByRole('heading', { level: 1, name: 'Description' })
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/settings/description')
     const nav = await screen.findByRole('navigation', { name: 'Publication settings' })
     expect(within(nav).queryByRole('link', { name: 'Delete publication' })).toBeNull()
-    expect(within(nav).getAllByRole('link')).toHaveLength(5)
+    expect(within(nav).queryByRole('link', { name: 'Details' })).toBeNull()
+    expect(within(nav).getAllByRole('link')).toHaveLength(4)
+    await router.push('/p/ada-substack/settings/details')
+    await waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/p/ada-substack/settings/description'),
+    )
   })
 })

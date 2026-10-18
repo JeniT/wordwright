@@ -228,7 +228,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       level: 'publication-settings',
       step,
-      ...((step === 'description' || step === 'sharing') && { tutorial: true }),
+      ...(step === 'sharing' && { tutorial: true }),
     },
   })),
 
@@ -340,6 +340,12 @@ export const routes: RouteRecordRaw[] = [
     path: '/help/description',
     name: 'help-description',
     component: () => import('./views/HelpDescriptionView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/feeds',
+    name: 'help-feeds',
+    component: () => import('./views/HelpFeedsView.vue'),
     meta: { open: true },
   },
   {

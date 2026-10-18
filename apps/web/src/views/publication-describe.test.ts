@@ -75,27 +75,23 @@ describe('describing a publication: guidance and the box', () => {
     expect(screen.queryByRole('link', { name: /Skip for now|Cancel/ })).toBeNull()
     expect(screen.queryByRole('heading', { level: 2, name: 'The description' })).toBeNull()
     expect(screen.queryByText('What makes a useful description')).toBeNull() // no panel of advice
-    expect(
-      screen.getByRole('link', { name: 'See what makes a useful description' }),
-    ).toHaveAttribute('href', '/help/description')
-    expect(box).toHaveAccessibleDescription(/Your AI reads it before it helps with anything here/)
+    const link = screen.getByRole('link', { name: /See what makes a useful description/ })
+    expect(link).toHaveAttribute('href', '/help/description')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveTextContent('opens in a new tab')
+    expect(box).toHaveAccessibleDescription(
+      /^This description is passed to your AI as context for your writing\./,
+    )
     expect(screen.queryByPlaceholderText(/few sentences/)).toBeNull()
   })
 
-  it('says what the page is for only in tutorial mode', async () => {
+  it('has no tutorial text, even in tutorial mode, and does not draw the label', async () => {
     fakeServer()
     server.use(signedInAs({ ...testUser, tutorialMode: true }))
-    const { router } = await renderAt('/p/ada-publication/settings/description')
-    await screen.findByRole('textbox', { name: 'Description' })
-    expect(router.currentRoute.value.name).toBe('publication-settings-description')
-    expect(screen.getByText(/given to your AI, so it knows what you are writing for/)).toBeVisible()
-  })
-
-  it('keeps that line away otherwise, and never says "assistants"', async () => {
-    fakeServer()
     await renderAt('/p/ada-publication/settings/description')
     await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.queryByText(/so it knows what you are writing for/)).toBeNull()
+    expect(screen.getByText('Description', { selector: 'label' })).toHaveClass('sr-only')
     expect(document.body).not.toHaveTextContent(/assistant/i)
   })
 
@@ -125,9 +121,9 @@ describe('the description in the settings and on the publication page', () => {
     expect(await screen.findByRole('textbox', { name: 'Description' })).toBeInTheDocument()
     expect(screen.queryByText('What makes a useful description')).toBeNull()
     expect(
-      screen.getByRole('link', { name: 'See what makes a useful description' }),
+      screen.getByRole('link', { name: /See what makes a useful description/ }),
     ).toHaveAttribute('href', '/help/description')
-    expect(screen.getByText('Everyone who shares this publication can change it.')).toBeVisible()
+    expect(screen.queryByText('Everyone who shares this publication can change it.')).toBeNull()
     expect(screen.queryByText(/first thing people see/)).toBeNull()
   })
 

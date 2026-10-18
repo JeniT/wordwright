@@ -7,6 +7,7 @@ import { invalidateRoots, useSources } from '../lib/queries'
 import SourceItems from './SourceItems.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
+import NewTabLink from './NewTabLink.vue'
 import PublicationImage from './PublicationImage.vue'
 import TextField from './TextField.vue'
 import QueryState from './QueryState.vue'
@@ -105,10 +106,8 @@ function shortName(address: string) {
 
 <template>
   <section aria-label="Feeds">
-    <p class="mb-4 text-ink-soft">RSS feeds to look through for things that could spark ideas.</p>
-
     <QueryState :query="sources" what="the feeds" loading="Loading feeds…">
-      <form @submit.prevent="submitAddress">
+      <form class="flex items-start gap-2" @submit.prevent="submitAddress">
         <TextField
           v-model="url"
           label="Add a feed"
@@ -117,9 +116,16 @@ function shortName(address: string) {
           autocapitalize="none"
           :spellcheck="false"
           required
-          hint="Paste an RSS link, or the address of a site that has one"
-        />
-        <button type="submit" class="btn btn-outline" :disabled="add.isPending.value">
+          class="min-w-0 flex-1"
+        >
+          <template #hint>
+            This feed will be used to find posts that might inspire you with new ideas of things to
+            write about. Paste the address of an RSS feed or a website with an RSS feed.
+            <NewTabLink to="/help/feeds" class="link">See how to find feeds.</NewTabLink>
+          </template>
+        </TextField>
+        <!-- The label above the field is as tall as mt-6, so the button lines up with the box, not the hint. -->
+        <button type="submit" class="btn btn-outline mt-6 shrink-0" :disabled="add.isPending.value">
           {{ add.isPending.value ? 'Reading the feed…' : 'Add feed' }}
         </button>
       </form>

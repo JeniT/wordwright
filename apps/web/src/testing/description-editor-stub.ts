@@ -12,22 +12,25 @@ export default defineComponent({
     modelValue: { type: String, required: true },
     label: { type: String, default: '' },
     hint: { type: String, default: '' },
+    hideLabel: { type: Boolean, default: false },
   },
   emits: ['update:modelValue'],
-  setup(props, { emit }) {
+  setup(props, { emit, slots }) {
     const id = useId()
     const hintId = useId()
     return () =>
       h('div', [
-        h('label', { for: id }, props.label),
+        h('label', { for: id, class: props.hideLabel ? 'sr-only' : '' }, props.label),
         h('textarea', {
           id,
-          'aria-describedby': props.hint ? hintId : undefined,
+          'aria-describedby': props.hint || slots.hint ? hintId : undefined,
           value: props.modelValue,
           onInput: (event: Event) =>
             emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
         }),
-        props.hint ? h('p', { id: hintId }, props.hint) : null,
+        props.hint || slots.hint
+          ? h('p', { id: hintId }, slots.hint ? slots.hint() : props.hint)
+          : null,
       ])
   },
 })

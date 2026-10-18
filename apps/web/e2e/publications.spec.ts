@@ -433,6 +433,19 @@ test('manages the feeds in the publication settings, which are listed alphabetic
   await expect(page).toHaveURL(/\/settings\/feeds$/)
   const sources = page.getByRole('region', { name: 'Feeds' })
   await expect(sources.getByText('No feeds yet. Add one above.')).toBeVisible()
+
+  // The hint links to the help on finding feeds, which opens in a new tab; the Add feed button sits beside the field.
+  const field = page.getByLabel('Add a feed')
+  const addButton = page.getByRole('button', { name: 'Add feed' })
+  const [fieldBox, buttonBox] = [await field.boundingBox(), await addButton.boundingBox()]
+  expect(buttonBox!.x).toBeGreaterThan(fieldBox!.x + fieldBox!.width - 1)
+  expect(Math.abs(buttonBox!.y - fieldBox!.y)).toBeLessThan(4)
+  const popup = page.waitForEvent('popup')
+  await page.getByRole('link', { name: /See how to find feeds/ }).click()
+  const help = await popup
+  await expect(help.getByRole('heading', { level: 1, name: 'Finding feeds' })).toBeVisible()
+  await noViolations(help)
+  await help.close()
   const add = async (address: string) => {
     await sources.getByLabel('Add a feed').fill(address)
     await sources.getByRole('button', { name: 'Add feed' }).click()
@@ -598,7 +611,7 @@ test('writes a description with guidance on what it needs, and nothing drafts it
 
   // The advice is a link, not a panel above the box, and there is no AI drafting from posts.
   await expect(
-    page.getByRole('link', { name: 'See what makes a useful description' }),
+    page.getByRole('link', { name: /See what makes a useful description/ }),
   ).toBeVisible()
   await expect(page.locator('details')).toHaveCount(0)
   await expect(page.getByText('Draft from a few posts')).toHaveCount(0)
@@ -617,10 +630,13 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   // The settings link to the same advice, which is on its own help page.
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
   await openSettingsPage(page, 'Description')
-  await page.getByRole('link', { name: 'See what makes a useful description' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Writing a description' })).toBeVisible()
-  await expect(page.getByText('What it is:', { exact: false })).toBeVisible()
-  await noViolations(page)
+  const popup = page.waitForEvent('popup') // the link opens the help in a new tab
+  await page.getByRole('link', { name: /See what makes a useful description/ }).click()
+  const help = await popup
+  await expect(help.getByRole('heading', { level: 1, name: 'Writing a description' })).toBeVisible()
+  await expect(help.getByText('What it is:', { exact: false })).toBeVisible()
+  await noViolations(help)
+  await help.close()
 
   // The Description page on a phone, in dark mode, and the old address leading to it.
   await page.setViewportSize({ width: 390, height: 800 })

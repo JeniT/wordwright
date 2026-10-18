@@ -2,15 +2,16 @@
 import { PUBLICATION_DESCRIPTION_MAX, type Publication } from '@wordwright/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
 import { useSavedValue } from '../lib/forms'
+import NewTabLink from './NewTabLink.vue'
 import SaveStatus from './SaveStatus.vue'
 import DescriptionEditor from './DescriptionEditor.vue'
 
-/** Everyone who works in the publication can write this, so there is no owner-only branch. */
+/** Everyone who works in the publication can write this, so there is no owner-only branch (the page says what it is for). */
 const props = defineProps<{ publication: Publication }>()
 const queryClient = useQueryClient()
+const helpPath = '/help/description'
 
 const text = useSavedValue(() => props.publication.description ?? '', '')
 const changed = computed(() => text.value.trim() !== (props.publication.description ?? ''))
@@ -25,18 +26,13 @@ const save = useMutation({
 
 <template>
   <div>
-    <p class="mb-2">Everyone who shares this publication can change it.</p>
-    <p class="mb-4">
-      <RouterLink :to="{ name: 'help-description' }" class="link">
-        See what makes a useful description
-      </RouterLink>
-    </p>
     <form @submit.prevent="save.mutate()">
-      <DescriptionEditor
-        v-model="text"
-        label="Description"
-        hint="What it is, who reads it and what kinds of writing go there. Your AI reads it before it helps with anything here."
-      />
+      <DescriptionEditor v-model="text" label="Description" hide-label>
+        <template #hint>
+          This description is passed to your AI as context for your writing.
+          <NewTabLink :to="helpPath" class="link">See what makes a useful description.</NewTabLink>
+        </template>
+      </DescriptionEditor>
       <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"

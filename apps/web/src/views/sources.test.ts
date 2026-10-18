@@ -220,34 +220,36 @@ describe('feeds in the settings', () => {
     expect(screen.queryByRole('button', { name: /^Reorder / })).toBeNull() // there is no order to keep
   })
 
-  it('puts the form to add a feed above the list', async () => {
+  it('puts the form to add a feed above the list, with the button beside the field and the help link in the hint', async () => {
     fakeSources()
     await openFeeds()
     const field = await screen.findByLabelText('Add a feed')
     const list = screen.getByRole('list', { name: 'Your feeds' })
     expect(field.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(
-      screen.getByText('Paste an RSS link, or the address of a site that has one'),
-    ).toBeVisible()
+    expect(field).toHaveAccessibleDescription(
+      /^This feed will be used to find posts that might inspire you/,
+    )
+    const help = screen.getByRole('link', { name: /See how to find feeds/ })
+    expect(help).toHaveAttribute('href', '/help/feeds')
+    expect(help).toHaveAttribute('target', '_blank')
+    expect(help).toHaveTextContent('opens in a new tab')
+    // The button is in the same row as the field, not under it.
+    expect(screen.getByRole('button', { name: 'Add feed' }).parentElement).toBe(
+      field.closest('form'),
+    )
+    expect(field.closest('form')).toHaveClass('flex')
   })
 
-  it('says what the page is for only in tutorial mode', async () => {
+  it('has no page-purpose line or intro, even in tutorial mode', async () => {
     fakeSources([A])
     server.use(
       signedInAs({ ...testUser, tutorialMode: true }),
       http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
     )
-    const { router } = await renderAt('/p/adalovelace-blog/settings/feeds')
-    await screen.findByText('Alpha Notes')
-    expect(router.currentRoute.value.name).toBe('publication-settings-feeds')
-    expect(screen.getByText(/You can then add them to your reading list/)).toBeVisible()
-  })
-
-  it('keeps that line away otherwise', async () => {
-    fakeSources([A])
-    await openFeeds()
+    await renderAt('/p/adalovelace-blog/settings/feeds')
     await screen.findByText('Alpha Notes')
     expect(screen.queryByText(/You can then add them to your reading list/)).toBeNull()
+    expect(screen.queryByText(/RSS feeds to look through/)).toBeNull()
   })
 })
 

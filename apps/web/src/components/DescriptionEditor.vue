@@ -4,7 +4,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { computed, useId, watch } from 'vue'
+import { computed, useId, useSlots, watch } from 'vue'
 import { DESCRIPTION_TOOLS } from '../lib/editor-tools'
 import EditorToolbar from './EditorToolbar.vue'
 
@@ -19,17 +19,22 @@ const model = defineModel<string>({ required: true })
 const props = withDefaults(
   defineProps<{
     label: string
+    /** The label stays for screen readers but isn't drawn, for a page whose title already says it. */
+    hideLabel?: boolean
     hint?: string
     placeholder?: string
     maxlength?: number
   }>(),
   {
+    hideLabel: false,
     hint: undefined,
     placeholder: '',
     maxlength: PUBLICATION_DESCRIPTION_MAX,
   },
 )
 
+const slots = useSlots()
+const hasHint = !!props.hint || !!slots.hint
 const labelId = useId()
 const hintId = useId()
 
@@ -60,7 +65,7 @@ const editor = useEditor({
       role: 'textbox',
       'aria-multiline': 'true',
       'aria-labelledby': labelId,
-      ...(props.hint ? { 'aria-describedby': hintId } : {}),
+      ...(hasHint ? { 'aria-describedby': hintId } : {}),
       class: 'markdown description-editor',
     },
     handleDOMEvents: {
@@ -92,12 +97,16 @@ defineExpose({ editor })
 
 <template>
   <div class="mb-4">
-    <span :id="labelId" class="mb-1 block text-sm font-medium">{{ label }}</span>
+    <span :id="labelId" class="mb-1 block text-sm font-medium" :class="{ 'sr-only': hideLabel }">{{
+      label
+    }}</span>
 
     <EditorToolbar :editor="editor" :tools="DESCRIPTION_TOOLS" />
 
     <EditorContent :editor="editor" class="field description-field" />
-    <p v-if="hint" :id="hintId" class="mt-1 text-sm text-ink-soft">{{ hint }}</p>
+    <p v-if="hasHint" :id="hintId" class="mt-1 text-sm text-ink-soft">
+      <slot name="hint">{{ hint }}</slot>
+    </p>
     <p v-if="over > 0" role="alert" class="mt-1 text-sm text-danger">
       This is {{ over }} {{ over === 1 ? 'character' : 'characters' }} over the limit of
       {{ maxlength }}. Shorten it to save it.

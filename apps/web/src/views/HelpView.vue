@@ -25,6 +25,12 @@ const pages = [
     about: 'What to say about your publication so your AI knows what you are writing for.',
   },
   {
+    name: 'help-feeds',
+    title: 'Finding feeds',
+    about:
+      'How to find the address of a site’s feed, so Wordwright can look for posts to inspire you.',
+  },
+  {
     name: 'help-formatting',
     title: 'Formatting your draft',
     about: 'The formatting buttons, their shortcuts, and editing the Markdown itself.',

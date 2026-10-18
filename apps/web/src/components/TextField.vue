@@ -17,6 +17,10 @@ defineProps<{
   spellcheck?: boolean
   maxlength?: number
 }>()
+defineSlots<{
+  /** A hint with a link in it; for plain words use the `hint` prop. */
+  hint?(): unknown
+}>()
 const model = defineModel<string>({ required: true })
 const id = useId()
 </script>
@@ -37,18 +41,18 @@ const id = useId()
       :spellcheck="spellcheck"
       :maxlength="maxlength"
       :aria-invalid="invalid || undefined"
-      :aria-describedby="hint ? `${id}-hint` : undefined"
+      :aria-describedby="hint || $slots.hint ? `${id}-hint` : undefined"
       class="field"
     />
     <!-- Live, so a changing hint (e.g. "That username is taken") is read out as the person types. -->
     <p
-      v-if="hint"
+      v-if="hint || $slots.hint"
       :id="`${id}-hint`"
       aria-live="polite"
       class="mt-1 text-sm"
       :class="invalid ? 'text-danger' : 'text-ink-soft'"
     >
-      {{ hint }}
+      <slot name="hint">{{ hint }}</slot>
     </p>
   </div>
 </template>

@@ -45,12 +45,12 @@ export const ACCOUNT_PAGES: Step[] = [
   { key: 'delete', label: 'Delete account', route: 'account-delete' },
 ]
 
-/** A publication's settings pages. Like the account's, plain links; Delete is for owners only. */
+/** A publication's settings pages. Like the account's, plain links; Details and Delete are for owners only. */
 export interface SettingsPage extends Step {
   ownerOnly?: boolean
 }
 export const PUBLICATION_SETTINGS_PAGES: SettingsPage[] = [
-  { key: 'details', label: 'Details', route: 'publication-settings-details' },
+  { key: 'details', label: 'Details', route: 'publication-settings-details', ownerOnly: true },
   { key: 'description', label: 'Description', route: 'publication-settings-description' },
   { key: 'feeds', label: 'Feeds', route: 'publication-settings-feeds' },
   { key: 'sharing', label: 'Sharing', route: 'publication-settings-sharing' },
@@ -170,7 +170,7 @@ export function useNav() {
     ACCOUNT_PAGES.map((page) => ({ ...page, to: { name: page.route } as RouteLocationRaw })),
   )
 
-  /** The publication's settings pages this person can use: members have no Delete. */
+  /** The publication's settings pages this person can use: members have no Details (nothing there is theirs to change) or Delete. */
   const settingsPages = computed(() =>
     PUBLICATION_SETTINGS_PAGES.filter(
       (page) => !page.ownerOnly || publication.value?.role === 'owner',
@@ -197,10 +197,10 @@ export function useNav() {
   const eyebrowTo = computed<RouteLocationRaw | undefined>(() => {
     if (level.value === 'account')
       return route.name === 'account-details' ? undefined : { name: 'account-details' }
-    if (level.value === 'publication-settings')
-      return route.name === 'publication-settings-details'
-        ? undefined
-        : { name: 'publication-settings-details', params: { publicationId: publicationId.value } }
+    if (level.value === 'publication-settings') {
+      const first = settingsPages.value[0]
+      return !first || route.name === first.route ? undefined : first.to
+    }
     if (route.name === 'publication' || route.name === 'idea' || !publicationId.value)
       return undefined
     if (level.value === 'publication')

@@ -600,7 +600,9 @@ describe('publication settings', () => {
       }),
     )
     const { router } = await renderAt('/p/adalovelace-blog/settings/details')
-    await screen.findByRole('heading', { level: 1, name: 'Details' })
+    // Nothing on Details is a member's to change, so they are sent to the first page that is theirs.
+    await screen.findByRole('heading', { level: 1, name: 'Description' })
+    expect(router.currentRoute.value.path).toBe('/p/adalovelace-blog/settings/description')
     expect(screen.queryByLabelText('Publication name')).toBeNull()
     expect(screen.queryByLabelText('Choose a picture')).toBeNull()
     await router.push('/p/adalovelace-blog/settings/sharing')

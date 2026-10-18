@@ -14,11 +14,11 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const { publication } = usePublication(() => props.publicationId)
 
-// Only owners can delete. A member who types the address is sent to the first page instead.
+// Only owners can delete. A member who types the address is sent to the first page that is theirs instead.
 watchEffect(() => {
   if (publication.value && publication.value.role !== 'owner')
     void router.replace({
-      name: 'publication-settings-details',
+      name: 'publication-settings-description',
       params: { publicationId: props.publicationId },
     })
 })

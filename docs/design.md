@@ -510,7 +510,7 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Home                 | which **publication** to work on             | Publications                                                                                                                                                               | Beside your name in the menu foot                                                       |
 | Publication          | what to gather                               | **01 Search** (recent posts), **02 Read** (the reading list), **03 Notes**                                                                                                 | Beside the publication's name, in the menu and on its landing page                      |
 | Account              | which **setting** to change                  | **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** (plain links, no numbers; way up "← All publications") | The gear in the menu foot, current across the whole group                               |
-| Publication settings | which **setting** of a publication to change | **Details**, **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only; plain links, no numbers; way up "← {publication}")                | The gear beside the menu's "Publication settings" label, current across the whole group |
+| Publication settings | which **setting** of a publication to change | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only; plain links, no numbers; way up "← {publication}")  | The gear beside the menu's "Publication settings" label, current across the whole group |
 | Idea                 | how to develop it                            | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**                                            | Beside the idea's name, in the menu and on its landing page                             |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
@@ -556,7 +556,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    page only if none fits (`ACCOUNT_PAGES` in `lib/nav.ts`, plus a route with `meta: { level: 'account', step }`).
    **A publication's settings work the same way**, under a `publication-settings` level: **Details** (name, website,
    picture), **Description**, **Feeds**, **Sharing**, **Download** and **Delete publication** (`/p/:id/settings/details`, `/description`,
-   `/sharing`, `/download`, `/delete`; `/p/:id/settings` redirects to the first). The menu's way up is "← {publication}"
+   `/sharing`, `/download`, `/delete`; `/p/:id/settings` redirects to the first the person can see: Details and Delete are for owners, so a member starts at Description). The menu's way up is "← {publication}"
    and its pages are plain links with no numbers (`PUBLICATION_SETTINGS_PAGES`; routes use
    `meta: { level: 'publication-settings', step }`). A member's menu leaves out Delete, and its address sends them to
    Details. The name and website fields are one component (`PublicationDetailsFields`) shared with New publication, so the two forms

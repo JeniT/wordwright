@@ -756,8 +756,12 @@ test('an owner makes a member an owner, then steps down; the last owner cannot',
   await stepDown.getByRole('button', { name: 'Step down as owner' }).click()
   await expect(page.getByText('You are no longer an owner.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
-  await openSettingsPage(page, 'Details')
-  await expect(page.getByRole('button', { name: 'Save details' })).toHaveCount(0)
+  // A member has no Details page: nothing on it is theirs to change.
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Publication settings' })
+      .getByRole('link', { name: 'Details' }),
+  ).toHaveCount(0)
   await expect(
     page
       .getByRole('navigation', { name: 'Publication settings' })
