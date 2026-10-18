@@ -240,7 +240,12 @@ function removeChosen() {
   <section aria-labelledby="links-heading" class="mb-10">
     <QueryState :query="list" what="the reading list" loading="Loading the reading list…">
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
-      <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" @added="showAdded" />
+      <AddLinkForm
+        class="mb-6"
+        :publication-id="publicationId"
+        :idea-id="ideaId"
+        @added="showAdded"
+      />
       <h2
         id="links-heading"
         ref="heading"

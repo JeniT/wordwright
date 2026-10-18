@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { readingRoute, useReadingActions, useReadingList } from '../lib/reading'
+import FieldWithAction from './FieldWithAction.vue'
 import TextField from './TextField.vue'
 
 /**
@@ -33,8 +34,8 @@ function submit() {
 </script>
 
 <template>
-  <form class="mb-6" @submit.prevent="submit">
-    <div class="flex items-start gap-2">
+  <form @submit.prevent="submit">
+    <FieldWithAction action="Add item" busy-text="Adding…" :busy="add.isPending.value">
       <TextField
         v-model="linkUrl"
         label="Web address"
@@ -44,14 +45,9 @@ function submit() {
         :spellcheck="false"
         :invalid="add.isError.value"
         :hint="add.isError.value ? errorMessage(add.error.value) : 'We will look up its title.'"
-        class="min-w-0 flex-1 !mb-0"
         @update:model-value="add.isError.value && add.reset()"
       />
-      <!-- Level with the field: the label above it is 1.5rem tall. -->
-      <button type="submit" class="btn btn-outline mt-6" :disabled="add.isPending.value">
-        {{ add.isPending.value ? 'Adding…' : 'Add item' }}
-      </button>
-    </div>
+    </FieldWithAction>
     <p aria-live="polite" class="mt-2 text-sm">
       <template v-if="justAdded">
         Added “{{ justAdded.label }}”.

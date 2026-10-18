@@ -2,12 +2,14 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import type { IdeaLink, Publication } from '@wordwright/core'
+import type { Publication } from '@wordwright/core'
 import { api } from '../lib/api'
 import { lastPublicationId, rememberPublication } from '../lib/last-publication'
 import { invalidateRoots, refreshNotesEverywhere, useRecentDrafts } from '../lib/queries'
 import { useQuoteTick } from '../lib/quote-tick'
-import { readingBackRoute, readingRoute } from '../lib/reading'
+import { readingBackRoute } from '../lib/reading'
+import AddLinkForm from './AddLinkForm.vue'
+import FieldWithAction from './FieldWithAction.vue'
 import QuoteTick from './QuoteTick.vue'
 import SaveStatus from './SaveStatus.vue'
 import TabPanels from './TabPanels.vue'
@@ -19,17 +21,17 @@ import TextField from './TextField.vue'
  * is just that publication (so there is no picker); on an idea's, `ideaId` names the idea, notes and reading items go
  * to it, and there is no "New idea" tab.
  *
- * On a reading item's page (`fromItem`) it is the place to take notes from that item: "Add a note" comes first and
- * every note carries the item and, if ticked, the quotation flag; "Add something to read" says which item it added so
- * the writer can go on to it.
+ * On a reading item's page (`readingItemId`) it is the place to take notes from that item: "Add a note" comes first and
+ * every note carries the item and, if ticked, the quotation flag; "Add something to read" is the same form as at the
+ * top of a reading list (`AddLinkForm`), so the two say and look alike.
  */
 const props = defineProps<{
   publications: Publication[]
   ideaId?: string
   /** On the page it adds to (a landing page): the result is showing below, so the message needn't say where it went. */
   inPlace?: boolean
-  /** The reading item this is open beside, with the items on its list now (to tell which one an add made). */
-  fromItem?: { id: string; known: IdeaLink[] }
+  /** The reading item this is open beside. */
+  readingItemId?: string
 }>()
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -62,7 +64,7 @@ const allTabs: { id: Kind; label: string }[] = [
   { id: 'reading', label: 'Add something to read' },
 ]
 // Beside a reading item the note is what the writer came to do, so it comes first.
-const ordered = props.fromItem
+const ordered = props.readingItemId
   ? [...allTabs.filter((t) => t.id !== 'idea'), ...allTabs.filter((t) => t.id === 'idea')]
   : allTabs
 const tabs = props.ideaId ? ordered.filter((t) => t.id !== 'idea') : ordered
@@ -79,7 +81,6 @@ const readingUrl = ref('')
 const added = ref<{
   kind: 'note' | 'reading'
   publication: Publication
-  item?: { id: string; label: string }
 }>()
 
 // Pick up may finish loading while someone types (the form locks the publication on first input) or after they
@@ -106,8 +107,8 @@ const addNote = useMutation({
       selectedId.value,
       props.ideaId ?? null,
       noteText.value,
-      props.fromItem
-        ? { readingItemId: props.fromItem.id, quote: quote.isQuote.value || undefined }
+      props.readingItemId
+        ? { readingItemId: props.readingItemId, quote: quote.isQuote.value || undefined }
         : {},
     ),
   onSuccess: async () => {
@@ -117,23 +118,19 @@ const addNote = useMutation({
     // Taking a note from an item marks it read, which its list shows too.
     await Promise.all([
       refreshNotesEverywhere(queryClient),
-      props.fromItem ? invalidateRoots(queryClient, 'reading') : undefined,
+      props.readingItemId ? invalidateRoots(queryClient, 'reading') : undefined,
     ])
     focusField('note')
   },
 })
 const addReading = useMutation({
   mutationFn: async () => {
-    const saved = props.ideaId
-      ? await api.addIdeaLink(selectedId.value, props.ideaId, { url: readingUrl.value })
-      : await api.addPublicationLink(selectedId.value, { url: readingUrl.value })
-    // Which item the add made: the one that was not on the list before.
-    const known = new Set(props.fromItem?.known.map((l) => l.id))
-    const item = (Array.isArray(saved) ? saved : saved.links).find((l) => !known.has(l.id))
-    return item ? { id: item.id, label: item.title || item.url } : undefined
+    if (props.ideaId)
+      await api.addIdeaLink(selectedId.value, props.ideaId, { url: readingUrl.value })
+    else await api.addPublicationLink(selectedId.value, { url: readingUrl.value })
   },
-  onSuccess: async (item) => {
-    added.value = { kind: 'reading', publication: selected.value, item }
+  onSuccess: async () => {
+    added.value = { kind: 'reading', publication: selected.value }
     readingUrl.value = ''
     await invalidateRoots(queryClient, 'reading', 'idea', 'ideas')
     focusField('reading')
@@ -143,8 +140,7 @@ const mutations = { idea: createIdea, note: addNote, reading: addReading }
 const submitLabels: Record<Kind, string> = {
   idea: 'Create idea',
   note: 'Add note',
-  // The name the reading lists use for the same action (#262).
-  reading: props.fromItem ? 'Add item' : 'Add something to read',
+  reading: 'Add something to read',
 }
 const busy = computed(
   () => createIdea.isPending.value || addNote.isPending.value || addReading.isPending.value,
@@ -155,7 +151,14 @@ const busy = computed(
   <section class="panel p-5" aria-label="Quick add">
     <TabPanels v-model="tab" :tabs="tabs" label="Quick add">
       <template v-for="kind in tabs.map((t) => t.id)" :key="kind" #[kind]>
+        <!-- On an item's page the reading tab is the form that sits above a reading list, so they match. -->
+        <AddLinkForm
+          v-if="kind === 'reading' && readingItemId"
+          :publication-id="selectedId"
+          :idea-id="ideaId ?? null"
+        />
         <form
+          v-else
           :ref="(el) => (forms[kind] = el as HTMLFormElement)"
           @submit.prevent="mutations[kind].mutate()"
           @input="chosen ??= selectedId"
@@ -174,7 +177,16 @@ const busy = computed(
               <option v-for="p in publications" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
           </div>
-          <TextField v-if="kind === 'idea'" v-model="ideaName" label="Idea name" required />
+          <FieldWithAction
+            v-if="kind === 'idea'"
+            :action="submitLabels.idea"
+            busy-text="Creating…"
+            :busy="busy"
+            :primary="!readingItemId"
+            class="mb-4"
+          >
+            <TextField v-model="ideaName" label="Idea name" required />
+          </FieldWithAction>
           <div v-else-if="kind === 'note'" class="mb-4">
             <label for="quick-add-note" class="mb-1 block text-sm font-medium">Note</label>
             <textarea
@@ -184,30 +196,26 @@ const busy = computed(
               rows="3"
               maxlength="20000"
               required
-              @paste="props.fromItem && quote.onPaste($event)"
+              @paste="props.readingItemId && quote.onPaste($event)"
             ></textarea>
             <QuoteTick
-              v-if="fromItem"
+              v-if="readingItemId"
               v-model="quote.isQuote.value"
               class="mt-2"
               :ticked-by-paste="quote.tickedByPaste.value"
               @ticked="quote.tickedByPaste.value = false"
             />
           </div>
-          <!-- On an item's page a bare address (example.org/new) is accepted, as in the reading lists, so no url type. -->
           <TextField
             v-else
             v-model="readingUrl"
             label="Web address"
-            :type="fromItem ? 'text' : 'url'"
+            type="url"
             autocomplete="off"
-            autocapitalize="none"
-            :spellcheck="false"
-            :hint="fromItem ? 'For example, https://example.org/article' : undefined"
             required
           />
           <div class="flex flex-wrap items-center gap-3">
-            <button type="submit" class="btn btn-primary" :disabled="busy">
+            <button v-if="kind !== 'idea'" type="submit" class="btn btn-primary" :disabled="busy">
               {{ submitLabels[kind] }}
             </button>
             <SaveStatus
@@ -217,7 +225,7 @@ const busy = computed(
             />
           </div>
           <p v-if="added && added.kind === kind" role="status" class="mt-3">
-            <template v-if="added.kind === 'note' && fromItem">Note added.</template>
+            <template v-if="added.kind === 'note' && readingItemId">Note added.</template>
             <template v-else-if="added.kind === 'note'"
               >{{
                 inPlace
@@ -235,19 +243,6 @@ const busy = computed(
                 "
                 class="link"
                 >{{ inPlace ? 'See all notes' : 'Open the notes' }}</RouterLink
-              ></template
-            >
-            <template v-else-if="fromItem && added.item"
-              >Added “{{ added.item.label }}”.
-              <RouterLink
-                :to="
-                  readingRoute(
-                    { publicationId: added.publication.id, ideaId: ideaId ?? null },
-                    added.item.id,
-                  )
-                "
-                class="link"
-                >Read it</RouterLink
               ></template
             >
             <template v-else

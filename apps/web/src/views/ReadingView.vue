@@ -174,9 +174,9 @@ function toggleRead(read: boolean) {
         <h2 id="page-heading" class="sr-only">The page</h2>
         <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div class="min-w-[16rem] flex-1">
-            <NewTabLink :href="item.url" class="btn btn-primary">Open the page</NewTabLink>
-            <div class="mt-1 flex flex-wrap items-center gap-x-2">
-              <span class="meta break-all">{{ displayHost(item.url) }}</span>
+            <p class="meta mb-1 break-all">{{ displayHost(item.url) }}</p>
+            <div class="flex flex-wrap items-center gap-x-2">
+              <NewTabLink :href="item.url" class="btn btn-primary">Open the page</NewTabLink>
               <Explain label="About opening the page">
                 Arrange this page and the page you’re reading side-by-side in a split view to make
                 taking notes easier.
@@ -204,7 +204,7 @@ function toggleRead(read: boolean) {
         in-place
         :publications="[publication]"
         :idea-id="id"
-        :from-item="{ id: linkId, known: list.links.value ?? [] }"
+        :reading-item-id="linkId"
       />
 
       <section aria-labelledby="reading-notes-heading">

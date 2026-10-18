@@ -376,9 +376,9 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(page.getByText('Enter a web address, like https://example.com')).toBeVisible()
   await page.getByLabel('Web address', { exact: true }).fill('example.org/authored')
   await page.getByRole('button', { name: 'Add item' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Added “' })).toBeVisible()
+  await expect(page.getByText(/Added “/)).toBeVisible()
   // The authors the page names are found along with its title.
-  await page.getByRole('link', { name: 'Read it' }).click()
+  await page.getByRole('link', { name: /^Open “/ }).click()
   await expect(page.getByText('By Ada Author and Bo Writer')).toBeVisible()
   await page.goBack()
   await noViolations(page, 'reading page after adding another page')

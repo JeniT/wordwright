@@ -65,7 +65,7 @@ const open = (linkId = 'l1', extra: Parameters<typeof server.use> = []) => {
 }
 
 describe('reading page', () => {
-  it('opens the page in a new tab, with a button that stands out and the site’s name under it', async () => {
+  it('opens the page in a new tab, with a button that stands out and the site’s name above it', async () => {
     await open()
     expect(await screen.findByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
     const page = screen.getByRole('link', { name: /Open the page/ })
@@ -73,7 +73,8 @@ describe('reading page', () => {
     expect(page).toHaveAttribute('target', '_blank')
     expect(page).toHaveAttribute('rel', 'noopener noreferrer')
     expect(page).toHaveClass('btn', 'btn-primary')
-    expect(screen.getByText('example.org')).toBeInTheDocument()
+    const host = screen.getByText('example.org')
+    expect(host.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // The explanation is behind an icon, not a paragraph.
     expect(document.querySelector('.tutorial-note')).toBeNull()
     expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
@@ -89,6 +90,37 @@ describe('reading page', () => {
     const tabs = screen.getByRole('tablist', { name: 'Quick add' })
     expect(page.compareDocumentPosition(read) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(read.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('has the add button beside its field, in the same form as above a reading list', async () => {
+    await open()
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    const field = screen.getByLabelText('Web address')
+    const button = screen.getByRole('button', { name: 'Add item' })
+    // One row: the field and the button share a parent that holds nothing else.
+    expect(field.closest('div.flex')).toBe(button.closest('div.flex'))
+    expect(field).toHaveAccessibleDescription('We will look up its title.')
+  })
+
+  it('has Create idea beside the Idea name field, on the publication’s own item', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+      http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(idea.links)),
+      http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/ada-substack/reading/l1')
+    await fireEvent.click(await screen.findByRole('tab', { name: 'New idea' }))
+    const field = screen.getByLabelText('Idea name')
+    expect(field.closest('div.flex')).toBe(
+      screen.getByRole('button', { name: 'Create idea' }).closest('div.flex'),
+    )
+  })
+
+  it('leaves out the hint under the quotation tick: what it does is in the explanation', async () => {
+    await open()
+    await screen.findByRole('checkbox', { name: 'This is a quotation' })
+    expect(screen.queryByText('It can’t be edited afterwards.')).not.toBeInTheDocument()
   })
 
   it('starts again on Add a note when the writer goes on to another item', async () => {
@@ -659,14 +691,14 @@ describe('reading page', () => {
       ])
       await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
       const box = await screen.findByLabelText('Web address')
-      expect(box).toHaveAccessibleDescription('For example, https://example.org/article')
+      expect(box).toHaveAccessibleDescription('We will look up its title.')
       await fireEvent.update(box, 'example.org/new')
       await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       const status = (await screen.findByText(/Added “Fetched title”\./)).closest('p')!
-      expect(status).toHaveAttribute('role', 'status')
+      expect(status).toHaveAttribute('aria-live', 'polite')
       expect(sent).toEqual([{ url: 'example.org/new' }])
       expect(box).toHaveValue('')
-      expect(within(status).getByRole('link', { name: 'Read it' })).toHaveAttribute(
+      expect(within(status).getByRole('link', { name: 'Open “Fetched title”' })).toHaveAttribute(
         'href',
         readingPath('l3'),
       )

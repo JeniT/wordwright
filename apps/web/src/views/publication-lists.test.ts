@@ -935,7 +935,7 @@ describe('reading an item of the publication’s own list', () => {
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/more')
     await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
-    const read = await screen.findByRole('link', { name: 'Read it' })
+    const read = await screen.findByRole('link', { name: /^Open “/ })
     expect(state.added).toEqual(['https://example.org/more'])
     expect(read).toHaveAttribute('href', expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/))
   })
