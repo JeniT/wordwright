@@ -82,6 +82,7 @@ A verb and what it acts on, in sentence case. The label says what _will happen_.
   buttons for it. If the page already has one, the second goes.
   - Before: “Start a publication” in the first-run steps, “New publication” beside the list.
   - After: “New publication” in both, and only one of them on the page at a time.
+  - The agreed names are listed under _Names of actions_ below.
 
 ### Links
 
@@ -184,6 +185,20 @@ The domain words are in [CONTEXT.md](../CONTEXT.md), each with the words _not_ t
 | email address                   | email (as a noun for the address)                  |
 | Couldn’t                        | Failed, Error, Unable to                           |
 | Try again later                 | Please retry                                       |
+
+### Names of actions
+
+An action that appears in more than one place has one name, used for every control that does it: the button, the
+tab that opens its form, an icon-only button's tooltip, and the start of its accessible name. Before naming a control,
+search the app for the action; if it is here, use this name. Add new ones here when you agree them.
+
+| Action                                         | Name                    | Notes                                                                                                                                                                                                                                                      |
+| ---------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Put a post or article on a reading list (#272) | **Add to reading list** | The form's button, the Quick add tab _and_ its button, the research result's accept button, and the tick on recent posts and Search results. An icon-only tick's tooltip is the name, and its accessible name is “Add to reading list: {title}”. No “the”. |
+
+Quick add's other tabs follow a different pattern, on purpose: the tab is “Add a note” and its button “Add note”, the
+tab “New idea” and its button “Create idea”. Those are two names for the tab and the button, not one for the action, so
+don't copy that pattern for a new action: give the tab and the button the same name.
 
 ## Checklist for a content crit
 
