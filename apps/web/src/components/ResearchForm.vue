@@ -67,7 +67,7 @@ function submit() {
       >
         Research
       </AiButton>
-      <p class="min-w-0 flex-1 basis-64 text-ink-soft">
+      <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
         This will send this publication’s description and this idea’s title and notes, reading list,
         and the areas you want to research to your AI. It will not send your drafts.
       </p>
