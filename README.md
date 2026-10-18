@@ -244,7 +244,7 @@ tests inject fakes and nothing hits the network.
   512px on its longest side (so a phone photo works as it is); GIFs are not touched, and the server's limits don't change. Each person can own up to 25 publications.
 - **Feeds**: each publication keeps a list of RSS/Atom feeds (up to 50), managed on the **Feeds** page of the publication's
   settings (`/p/<id>/settings/feeds`) by any member: paste a feed link, or the address of a site that has one, and the server reads
-  it to show the feed's title, description and picture (its own logo, else the site's icon). They are listed alphabetically
+  it to show the feed's title, description and picture (the site's icon, else the feed's own logo, which is often too wide to read at icon size). They are listed alphabetically
   (there is no order to keep); remove one. **Search** (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) shows their
   posts, and offers "Set up feeds →" while there are none and "Manage feeds" after. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
@@ -262,14 +262,14 @@ tests inject fakes and nothing hits the network.
   that isn't ticked **Keep** is dropped, silently, a month after it was put on that list (`PUT
 /api/publications/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
   item onto the publication starts its month again.
-  Each feed also has its own **Recent posts** preview (opened on request): the latest posts as the feed lists them (title,
+  The posts are the latest as each feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
   hours, asks again with `ETag`/`If-Modified-Since` so an unchanged feed costs little, leaves a feed that failed
   alone for 30 minutes, and shows when it last worked and why it stopped. Reads are capped at 120 an hour per person.
   Nothing yet turns these posts into ideas; that is the "Add to reading list" page (T6c).
   If a pasted website offers several feeds, the person is shown them (posts first, feeds of comments last and
   labelled, at most 10) and ticks which to add; `POST` then answers `200 {choices}` instead of `201`.
-  API: `GET/POST /api/publications/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]`,
+  API: `GET/POST /api/publications/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]` (one feed's posts; the app no longer shows them per feed),
   `DELETE .../sources/:sourceId`. `FAKE_FEEDS=true` (development/e2e only) makes every
   `*.example` address a feed instead of using the network.
 - **Sessions:** random token in an `HttpOnly`, `SameSite=Lax` cookie; only its SHA-256 is stored

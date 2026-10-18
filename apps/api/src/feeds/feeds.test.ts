@@ -345,6 +345,11 @@ function startSite() {
         'application/rss+xml',
         `<rss><channel><title>L</title><link>${base}/site</link><image><url>${base}/logo.png</url></image></channel></rss>`,
       )
+    if (path === '/feed-logo-site-without-icon')
+      return send(
+        'application/rss+xml',
+        `<rss><channel><title>L</title><link>${base}/plain</link><image><url>${base}/logo.png</url></image></channel></rss>`,
+      )
     if (path === '/feed-with-fake-logo')
       return send(
         'application/rss+xml',
@@ -471,10 +476,21 @@ describe('HttpFeedFetcher', () => {
     })
   })
 
-  it('takes the logo the feed names', async () => {
+  it('prefers the website’s icon to the logo the feed names, which is usually too wide to read as an icon', async () => {
     const feed = await fetcher.inspect(`${site.base}/feed-with-logo`)
+    expect(feed.iconUrl).toBe(`${site.base}/logo.png`)
+    site.requests.length = 0
     const icon = await fetcher.fetchIcon(feed)
     expect(icon?.contentType).toBe('image/png')
+    expect(site.requests).toContain('/site-icon.png')
+    expect(site.requests).not.toContain('/logo.png')
+  })
+
+  it('uses the logo the feed names when the website has no usable icon', async () => {
+    const feed = await fetcher.inspect(`${site.base}/feed-logo-site-without-icon`)
+    site.requests.length = 0
+    expect((await fetcher.fetchIcon(feed))?.contentType).toBe('image/png')
+    expect(site.requests).toContain('/logo.png')
   })
 
   it('falls back to the website’s icon when the feed has none', async () => {

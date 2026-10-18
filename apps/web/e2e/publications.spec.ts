@@ -522,7 +522,9 @@ test('pasting a site that offers several feeds asks which to add', async ({ page
   await expect(feeds.getByLabel('Add a feed')).toHaveValue('')
 })
 
-test('shows the recent posts of a feed, only when asked', async ({ page }) => {
+test('a feed’s posts are listed on Search with their feed’s name, not under the feed in the settings', async ({
+  page,
+}) => {
   await registerUser(page, uniqueName('Pia'))
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Posts to read')
@@ -533,21 +535,11 @@ test('shows the recent posts of a feed, only when asked', async ({ page }) => {
   await feeds.getByLabel('Add a feed').fill('read.example/feed')
   await feeds.getByRole('button', { name: 'Add feed' }).click()
   const row = feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' })
-
-  let asked = 0
-  page.on('request', (r) => {
-    if (r.url().includes('/items')) asked++
-  })
   await expect(row).toBeVisible()
-  expect(asked).toBe(0) // not read until someone looks
-
-  await row.getByText('Recent posts').click()
-  const post = row.getByRole('link', { name: /A post in Feed of read.example/ })
-  await expect(post).toHaveAttribute('href', 'https://read.example/post-1')
+  await expect(row.getByText('Recent posts')).toHaveCount(0)
+  await expect(feeds.getByRole('link', { name: /A post in Feed of read.example/ })).toHaveCount(0)
   await noViolations(page)
-  expect(asked).toBe(1)
 
-  // The same post is in the combined list on Search, with its feed's name.
   await leaveSettings(page)
   await goTo(page, 'Search')
   const recent = page.getByRole('region', { name: 'Recent posts' })

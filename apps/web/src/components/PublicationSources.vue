@@ -4,7 +4,6 @@ import type { Source, SourceChoices } from '@wordwright/core'
 import { computed, ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, useSources } from '../lib/queries'
-import SourceItems from './SourceItems.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import NewTabLink from './NewTabLink.vue'
@@ -214,10 +213,8 @@ function shortName(address: string) {
               {{ shortName(source.url) }}
             </p>
             <p v-if="source.lastError" class="text-sm text-danger">
-              We couldn’t read this feed on the last try. Open its recent posts for details, or
-              remove it.
+              We couldn’t read this feed on the last try. Check its address, or remove it.
             </p>
-            <SourceItems :publication-id="publicationId" :source="source" :name="nameOf(source)" />
           </div>
           <HoldButton
             tip="Press and hold, or tap twice, to remove this feed"

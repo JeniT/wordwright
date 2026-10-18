@@ -240,6 +240,13 @@ describe('feeds in the settings', () => {
     expect(field.closest('form')).toHaveClass('flex')
   })
 
+  it('marks a feed in the list whose last read failed', async () => {
+    fakeSources([{ ...A, lastError: 'It moved.' } as typeof A, B])
+    await openFeeds()
+    await screen.findByText('Alpha Notes')
+    expect(screen.getAllByText(/couldn’t read this feed on the last try/)).toHaveLength(1)
+  })
+
   it('has no page-purpose line or intro, even in tutorial mode', async () => {
     fakeSources([A])
     server.use(
@@ -712,143 +719,6 @@ describe('paging through the recent posts', () => {
     await fireEvent.update(screen.getByLabelText('Show posts from'), '7')
     await waitFor(() => expect(titles(recent)[0]).toBe('1'))
     expect(above(recent).getByText('Posts 1–5 of 25')).toBeInTheDocument()
-  })
-})
-
-describe('recent posts of a feed', () => {
-  const posts = (extra = {}) => ({
-    items: [
-      {
-        id: 'p1',
-        title: 'Why notes matter',
-        url: 'https://a.example/why-notes',
-        summary: 'A short start',
-        authors: ['Ada Lovelace'],
-        publishedAt: '2026-10-09T10:00:00.000Z',
-      },
-      {
-        id: 'p2',
-        title: 'Second post',
-        url: 'https://a.example/second',
-        summary: null,
-        authors: [],
-        publishedAt: null,
-      },
-    ],
-    checkedAt: '2026-10-10T10:00:00.000Z',
-    lastWorkedAt: '2026-10-10T10:00:00.000Z',
-    lastError: null,
-    ...extra,
-  })
-  /** Records the sources whose posts were asked for. */
-  function fakeItems(
-    answer: () => Response | Promise<Response> = () => HttpResponse.json(posts()),
-  ) {
-    const asked: string[] = []
-    server.use(
-      http.get('*/api/publications/:id/sources/:sourceId/items', ({ params }) => {
-        asked.push(params.sourceId as string)
-        return answer()
-      }),
-    )
-    return asked
-  }
-  const open = async (name: string) => {
-    await fireEvent.click(
-      within(await screen.findByText(name).then((el) => el.closest('li')!)).getByText(
-        'Recent posts',
-      ),
-    )
-  }
-
-  it('asks for nothing until someone opens a feed’s recent posts, then lists them as links', async () => {
-    fakeSources([A, B])
-    const asked = fakeItems()
-    await openFeeds()
-    await screen.findByText('Alpha Notes')
-    expect(asked).toEqual([])
-    await open('Alpha Notes')
-    const link = await screen.findByRole('link', { name: /Why notes matter/ })
-    expect(link).toHaveAttribute('href', 'https://a.example/why-notes')
-    expect(link).toHaveAttribute('target', '_blank')
-    expect(screen.getByText(/Ada Lovelace, /)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Second post/ })).toBeInTheDocument()
-    expect(asked).toEqual(['s1'])
-  })
-
-  it('says it is reading while it waits, and says when a feed has no posts', async () => {
-    fakeSources([A])
-    let release = () => {}
-    const gate = new Promise<void>((resolve) => (release = resolve))
-    fakeItems(async () => {
-      await gate
-      return HttpResponse.json(posts({ items: [] }))
-    })
-    await openFeeds()
-    await open('Alpha Notes')
-    expect(await screen.findByText('Reading the feed…')).toBeInTheDocument()
-    release()
-    expect(await screen.findByText('This feed has no posts in it yet.')).toBeInTheDocument()
-  })
-
-  it('shows why it failed and tries again on request', async () => {
-    fakeSources([A])
-    let fail = true
-    fakeItems(() =>
-      fail
-        ? HttpResponse.json({ error: 'Something went wrong. Try again.' }, { status: 500 })
-        : HttpResponse.json(posts()),
-    )
-    await openFeeds()
-    await open('Alpha Notes')
-    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
-    fail = false
-    await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    expect(await screen.findByRole('link', { name: /Why notes matter/ })).toBeInTheDocument()
-  })
-
-  it('says a feed that has stopped working has, and keeps showing its older posts', async () => {
-    fakeSources([A])
-    fakeItems(() =>
-      HttpResponse.json(
-        posts({
-          lastError: 'That address doesn’t look like an RSS or Atom feed.',
-          lastWorkedAt: '2026-09-01T10:00:00.000Z',
-        }),
-      ),
-    )
-    await openFeeds()
-    await open('Alpha Notes')
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We couldn’t read this feed just now',
-    )
-    expect(screen.getByRole('alert')).toHaveTextContent('It last worked on')
-    expect(screen.getByRole('link', { name: /Why notes matter/ })).toBeInTheDocument()
-  })
-
-  it('marks a feed in the list whose last read failed', async () => {
-    fakeSources([{ ...A, lastError: 'It moved.' } as typeof A, B])
-    await openFeeds()
-    await screen.findByText('Alpha Notes')
-    expect(screen.getAllByText(/couldn’t read this feed on the last try/)).toHaveLength(1)
-  })
-
-  it('shows only the latest few, and says how many more there are', async () => {
-    fakeSources([A])
-    const many = Array.from({ length: 8 }, (_, i) => ({
-      id: `m${i}`,
-      title: `Post ${i}`,
-      url: `https://a.example/${i}`,
-      summary: null,
-      authors: [],
-      publishedAt: null,
-    }))
-    fakeItems(() => HttpResponse.json(posts({ items: many })))
-    await openFeeds()
-    await open('Alpha Notes')
-    await screen.findByRole('link', { name: /Post 0/ })
-    expect(screen.queryByRole('link', { name: /Post 5/ })).not.toBeInTheDocument()
-    expect(screen.getByText('and 3 more')).toBeInTheDocument()
   })
 })
 

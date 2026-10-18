@@ -108,16 +108,20 @@ export class HttpFeedFetcher implements FeedFetcher {
     feed: FeedDetails,
     options: { signal?: AbortSignal } = {},
   ): Promise<FetchedIcon | null> {
+    // The site's own icon (its favicon) comes first: a feed's logo is usually a wide wordmark that is unreadable at icon
+    // size. The feed's own image is the fallback, for a feed with no site or a site with no usable icon.
     const candidates = new Set<string>()
-    if (feed.iconUrl) candidates.add(feed.iconUrl)
     if (feed.siteUrl) {
-      // Feeds often have no logo of their own; the site's icon is the next best thing.
       const page = await this.get(feed.siteUrl, this.maxBytes, options.signal).catch(() => null)
       if (page)
         for (const href of parseHtmlLinks(page.body.toString('utf8'), page.url).icons)
           candidates.add(href)
       candidates.add(new URL('/favicon.ico', feed.siteUrl).href)
     }
+    const fromSite = [...candidates].slice(0, 4)
+    candidates.clear()
+    for (const href of fromSite) candidates.add(href)
+    if (feed.iconUrl) candidates.add(feed.iconUrl)
     for (const candidate of [...candidates].slice(0, 5)) {
       const response = await this.get(candidate, MAX_ICON_BYTES, options.signal).catch(() => null)
       if (!response) continue

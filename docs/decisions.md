@@ -879,7 +879,7 @@ ignored goes to the **end** of the list (the server sorts, so the cap and the pa
 post still waiting, and decided posts follow in the order they were decided (an ignore's time, or when the item went on a
 list), so the latest decision is last. Deciding keeps you on the same page, where the next waiting post takes its place.
 
-Pictures: the feed's own logo, else the site's `apple-touch-icon`/`icon`, else `/favicon.ico`. They are fetched
+Pictures: the site's `apple-touch-icon`/`icon`, else `/favicon.ico`, else the feed's own logo (#258: a feed's logo is usually a wide wordmark, such as the Guardian's, that can't be read at icon size; icons already stored stay until refetched). They are fetched
 once, sniffed by their bytes (PNG, JPEG, GIF, WebP, ICO; never SVG, 256 KB max) and stored in the database, then
 served from our own origin like publication pictures. Pointing browsers at the other site's image directly would tell
 that site who is looking at the list and when. Failure to get a picture never blocks adding: a lettered tile
@@ -1988,3 +1988,7 @@ The draft editor had no toolbar (formatting was keyboard shortcuts or typed Mark
 - **`/p/:id/ideas` and `/p/:id/ideas/new` redirect to the landing page.** New ideas start in Quick add's New idea tab (a name alone); the separate
   "New idea" form, which also took first notes, is gone. The API still accepts `notes` on creating an idea.
 - Leaving an idea's settings (deleting it), a failed idea, the end of Notes and a bulk move all land on the landing page now.
+
+## Feeds settings: no posts under each feed (#258)
+
+The settings list is just the feeds. A feed's posts are on Search, in one list with the feed's name, so showing them again under each feed was a second, slower way to the same thing. The failed-feed line now says to check the address or remove the feed, since the error detail was shown only in that preview. `GET …/sources/:sourceId/items` stays in the API for now, unused by the app; remove it if nothing needs it.

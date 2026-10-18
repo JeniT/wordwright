@@ -45,7 +45,6 @@ import {
   type MoveTarget,
   PostDecisionSchema,
   RecentPostsSchema,
-  SourceItemsSchema,
   SourceListSchema,
   SourceSchema,
   UserSchema,
@@ -465,8 +464,6 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
         posts,
       }),
     /** The feed's recent posts: the server's kept copy, or a fresh read if that is old. */
-    sourceItems: (publicationId: string, id: string) =>
-      get(SourceItemsSchema, 'GET', `/publications/${publicationId}/sources/${id}/items`),
     removeSource: (publicationId: string, id: string) =>
       act('DELETE', `/publications/${publicationId}/sources/${id}`),
 
