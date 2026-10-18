@@ -370,6 +370,29 @@ describe('the publication’s reading list', () => {
     await waitFor(() => expect(box).not.toBeChecked())
   })
 
+  it('puts the title and the icon buttons on one row, and the host and the switches on the next', async () => {
+    fakePublication({ links: [link('l1', 'A paper')] })
+    await renderAt('/p/ada-substack/read')
+    const title = await screen.findByRole('link', { name: 'A paper' })
+    const firstRow = title.parentElement!
+    expect(firstRow).toContainElement(screen.getByRole('button', { name: 'Edit A paper' }))
+    expect(firstRow).not.toContainElement(screen.getByRole('switch', { name: 'Read: A paper' }))
+    const secondRow = screen
+      .getByRole('switch', { name: 'Read: A paper' })
+      .closest('.justify-between')!
+    expect(secondRow).toContainElement(screen.getByRole('link', { name: /^example\.org / }))
+    expect(secondRow).toContainElement(screen.getByRole('switch', { name: 'Keep: A paper' }))
+  })
+
+  it('has icon-only buttons in the list header with no border', async () => {
+    fakePublication({ links: [link('l1', 'A paper', { tags: ['rivers'] })] })
+    await renderAt('/p/ada-substack/read')
+    expect(await screen.findByRole('button', { name: 'Filter' })).toHaveClass('btn-ghost')
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select A paper' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Tag…' }))
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('btn-ghost')
+  })
+
   it('keeps the tag icon with the other icon buttons, whether or not the item has tags', async () => {
     fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another', { tags: ['rivers'] })] })
     await renderAt('/p/ada-substack/read')

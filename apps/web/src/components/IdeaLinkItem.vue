@@ -158,84 +158,82 @@ function saveLink() {
         />
       </div>
       <div class="min-w-0 flex-1 px-4 py-3">
-        <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-          <div class="min-w-[14rem] flex-1">
-            <RouterLink
-              :id="`reading-item-${link.id}`"
-              :to="readingRoute(owner(), link.id)"
-              class="line-clamp-2 break-words underline"
-              >{{ label() }}</RouterLink
+        <div class="flex items-start justify-between gap-3">
+          <RouterLink
+            :id="`reading-item-${link.id}`"
+            :to="readingRoute(owner(), link.id)"
+            class="line-clamp-2 min-w-0 flex-1 break-words underline"
+            >{{ label() }}</RouterLink
+          >
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              ref="editButton"
+              v-tip="'Edit'"
+              type="button"
+              class="btn btn-sm btn-icon btn-ghost"
+              :aria-label="`Edit ${label()}`"
+              @click="startEditing"
             >
-            <p class="meta mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <NewTabLink :href="link.url" :detail="label()" class="truncate underline">{{
-                host()
-              }}</NewTabLink>
-              <!-- The highlighter marks anything the AI, not the writer, put here. -->
-              <span v-if="aiOrigin[link.origin]" class="chip chip-ai">{{
-                aiOrigin[link.origin]
-              }}</span>
-            </p>
+              <Icon name="edit" />
+            </button>
+            <TagButton
+              ref="tagButton"
+              :label="label()"
+              :open="tagging"
+              @toggle="tagging ? stopTagging() : (tagging = true)"
+            />
+            <button
+              v-tip="'Move'"
+              type="button"
+              class="btn btn-sm btn-icon btn-ghost"
+              :aria-label="`Move ${label()}`"
+              @click="emit('move')"
+            >
+              <Icon name="move" />
+            </button>
+            <HoldButton
+              :tip="removeHint()"
+              verb="Remove"
+              class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
+              :aria-label="`Remove ${label()}`"
+              @confirm="emit('remove')"
+            >
+              <Icon name="remove" />
+            </HoldButton>
           </div>
-          <div class="flex shrink-0 flex-col items-end gap-1">
-            <div class="flex items-center gap-2">
-              <button
-                ref="editButton"
-                v-tip="'Edit'"
-                type="button"
-                class="btn btn-sm btn-icon btn-ghost"
-                :aria-label="`Edit ${label()}`"
-                @click="startEditing"
-              >
-                <Icon name="edit" />
-              </button>
-              <TagButton
-                ref="tagButton"
-                :label="label()"
-                :open="tagging"
-                @toggle="tagging ? stopTagging() : (tagging = true)"
-              />
-              <button
-                v-tip="'Move'"
-                type="button"
-                class="btn btn-sm btn-icon btn-ghost"
-                :aria-label="`Move ${label()}`"
-                @click="emit('move')"
-              >
-                <Icon name="move" />
-              </button>
-              <HoldButton
-                :tip="removeHint()"
-                verb="Remove"
-                class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-                :aria-label="`Remove ${label()}`"
-                @confirm="emit('remove')"
-              >
-                <Icon name="remove" />
-              </HoldButton>
-            </div>
-            <div class="flex flex-wrap items-center justify-end gap-x-4">
-              <SwitchField
-                ref="readSwitch"
-                :model-value="!!link.readAt"
-                label="Read"
-                :name="`Read: ${label()}`"
-                :disabled="setRead.isPending.value"
-                @update:model-value="toggleRead"
-              />
-              <!-- Only the publication's own list drops items after a month; this one is to stay. -->
-              <SwitchField
-                v-if="!ideaId"
-                ref="keepSwitch"
-                :model-value="!!link.kept"
-                label="Keep"
-                :name="`Keep: ${label()}`"
-                :disabled="setKept.isPending.value"
-                @update:model-value="toggleKept"
-              />
-              <p v-if="!ideaId && (link.kept || dropsOn())" class="meta">
-                {{ link.kept ? 'Kept forever' : `Kept until ${dropsOn()}` }}
-              </p>
-            </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <p class="meta flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <NewTabLink :href="link.url" :detail="label()" class="truncate underline">{{
+              host()
+            }}</NewTabLink>
+            <!-- The highlighter marks anything the AI, not the writer, put here. -->
+            <span v-if="aiOrigin[link.origin]" class="chip chip-ai">{{
+              aiOrigin[link.origin]
+            }}</span>
+          </p>
+          <div class="flex flex-wrap items-center justify-end gap-x-4">
+            <SwitchField
+              ref="readSwitch"
+              :model-value="!!link.readAt"
+              label="Read"
+              :name="`Read: ${label()}`"
+              :disabled="setRead.isPending.value"
+              @update:model-value="toggleRead"
+            />
+            <!-- Only the publication's own list drops items after a month; this one is to stay. -->
+            <SwitchField
+              v-if="!ideaId"
+              ref="keepSwitch"
+              :model-value="!!link.kept"
+              label="Keep"
+              :name="`Keep: ${label()}`"
+              :disabled="setKept.isPending.value"
+              @update:model-value="toggleKept"
+            />
+            <p v-if="!ideaId && (link.kept || dropsOn())" class="meta">
+              {{ link.kept ? 'Kept forever' : `Kept until ${dropsOn()}` }}
+            </p>
           </div>
         </div>
         <TagEditor

@@ -102,7 +102,7 @@ watch(
           <button
             v-tip="'Cancel'"
             type="button"
-            class="btn btn-sm btn-icon btn-neutral"
+            class="btn btn-sm btn-icon btn-ghost"
             aria-label="Cancel"
             @click="emit('cancel')"
           >
@@ -120,8 +120,8 @@ watch(
             <button
               v-tip="'Filter'"
               type="button"
-              class="btn btn-sm btn-icon btn-neutral"
-              :class="{ '!border-accent !bg-accent-wash': filterSummary }"
+              class="btn btn-sm btn-icon btn-ghost"
+              :class="{ '!bg-accent-wash !text-accent': filterSummary }"
               :aria-expanded="filtersOpen"
               :aria-controls="filtersId"
               :aria-label="filterSummary ? `Filter (on: ${filterSummary})` : 'Filter'"
