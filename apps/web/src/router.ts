@@ -174,7 +174,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'publication-reading-item',
     component: () => import('./views/ReadingView.vue'),
     props: true,
-    meta: { level: 'publication', step: 'read', compact: true },
+    meta: { level: 'publication', step: 'read', compact: true, tutorial: true },
   },
   {
     path: '/p/:publicationId/notes',
@@ -259,7 +259,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'reading',
     component: () => import('./views/ReadingView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'research', compact: true },
+    meta: { level: 'idea', step: 'research', compact: true, tutorial: true },
   },
   {
     path: '/p/:publicationId/ideas/:id/notes',

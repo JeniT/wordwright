@@ -66,11 +66,11 @@ test('reads and takes notes before there is an idea: a publication reading list 
     page.getByRole('heading', { level: 1, name: /Fake title for example\.org/ }),
   ).toBeVisible()
   await expect(page.getByRole('link', { name: /Back to the reading list/ })).toBeVisible()
-  await page.getByLabel('Add a note from this page').fill('Rivers tire of straight lines.')
+  await page.getByLabel('Note', { exact: true }).fill('Rivers tire of straight lines.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Rivers tire of straight lines.')).toBeVisible()
-  await page.getByLabel('Add a note from this page').fill('Erosion outside, deposition inside.')
-  await page.getByRole('checkbox', { name: /direct quote/ }).check()
+  await page.getByLabel('Note', { exact: true }).fill('Erosion outside, deposition inside.')
+  await page.getByRole('checkbox', { name: /quotation/ }).check()
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Erosion outside, deposition inside.')).toBeVisible()
   await noViolations(page, 'publication reading page')
@@ -310,7 +310,7 @@ test('moves reading items, with their notes, between the publication and an idea
     .getByRole('link', { name: /^Fake title for / })
     .first()
     .click()
-  await page.getByLabel('Add a note from this page').fill('Rivers tire of straight lines.')
+  await page.getByLabel('Note', { exact: true }).fill('Rivers tire of straight lines.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Rivers tire of straight lines.')).toBeVisible()
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
@@ -388,7 +388,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   // Read it, taking two notes, and jot one down of the writer's own.
   await page.getByRole('link', { name: title, exact: true }).click()
   for (const text of ['The feed made me think about erosion.', 'Bends migrate downstream.']) {
-    await page.getByLabel('Add a note from this page').fill(text)
+    await page.getByLabel('Note', { exact: true }).fill(text)
     await page.getByRole('button', { name: 'Add note' }).click()
     await expect(page.getByText(text)).toBeVisible()
   }

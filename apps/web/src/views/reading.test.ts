@@ -65,18 +65,104 @@ const open = (linkId = 'l1', extra: Parameters<typeof server.use> = []) => {
 }
 
 describe('reading page', () => {
-  it('opens the page in a new tab and says why it is not shown here', async () => {
+  it('opens the page in a new tab, with a button that stands out and the site’s name under it', async () => {
     await open()
     expect(await screen.findByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
     const page = screen.getByRole('link', { name: /Open the page/ })
     expect(page).toHaveAttribute('href', 'https://example.org/paper')
     expect(page).toHaveAttribute('target', '_blank')
     expect(page).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getByText(/can't be shown inside another page/)).toBeInTheDocument()
+    expect(page).toHaveClass('btn', 'btn-primary')
+    expect(screen.getByText('example.org')).toBeInTheDocument()
+    // The explanation is behind an icon, not a paragraph.
+    expect(document.querySelector('.tutorial-note')).toBeNull()
     expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/ideas/i1/research',
     )
+  })
+
+  it('puts the Read switch beside the button that opens the page, and the add panel after them', async () => {
+    await open()
+    const page = await screen.findByRole('link', { name: /Open the page/ })
+    const read = screen.getByRole('switch', { name: 'Read' })
+    const tabs = screen.getByRole('tablist', { name: 'Quick add' })
+    expect(page.compareDocumentPosition(read) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(read.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('starts again on Add a note when the writer goes on to another item', async () => {
+    const { router } = await open()
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.update(screen.getByLabelText('Web address'), 'example.org/new')
+    await router.push(readingPath('l2'))
+    await screen.findByRole('heading', { level: 1, name: 'https://example.org/other' })
+    expect(screen.getByRole('tab', { name: 'Add a note' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Web address')).toHaveValue('')
+  })
+
+  it('opens on Add a note, then Add something to read; an idea’s page has no New idea tab', async () => {
+    await open()
+    await screen.findByRole('heading', { level: 1, name: 'A paper' })
+    const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Add a note', 'Add something to read'])
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  describe('in tutorial mode', () => {
+    /** Tutorial mode on, and the kinds of page the app is told have been seen (the route's name). */
+    const tutorial = () => {
+      const seen: string[] = []
+      return {
+        seen,
+        handlers: [
+          signedInAs({ ...testUser, tutorialMode: true }),
+          http.get('*/api/account/tutorial', () =>
+            HttpResponse.json({ on: true, seen: [], answered: false }),
+          ),
+          http.post('*/api/account/tutorial/seen', async ({ request }) => {
+            seen.push(((await request.json()) as { kind: string }).kind)
+            return HttpResponse.json({ on: true, seen, answered: false })
+          }),
+        ],
+      }
+    }
+
+    it('writes out how to take notes beside the page, and what a quotation is', async () => {
+      const { seen, handlers } = tutorial()
+      await open('l1', handlers)
+      await screen.findByRole('heading', { level: 1, name: 'A paper' })
+      await waitFor(() => expect(seen).toEqual(['reading']))
+      expect(
+        screen.getByText(
+          'Arrange this page and the page you’re reading side-by-side in a split view to make taking notes easier.',
+        ),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(/You can’t edit notes that are marked as quotes\./),
+      ).toBeInTheDocument()
+    })
+
+    it('does the same on the publication’s own reading item, which also offers a New idea tab', async () => {
+      const { seen, handlers } = tutorial()
+      server.use(
+        ...handlers,
+        signedInAs({ ...testUser, tutorialMode: true }),
+        http.get('*/api/publications', () => HttpResponse.json([publication])),
+        http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(idea.links)),
+        http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
+      )
+      await renderAt('/p/ada-substack/reading/l1')
+      await screen.findByRole('heading', { level: 1, name: 'A paper' })
+      await waitFor(() => expect(seen).toEqual(['publication-reading-item']))
+      expect(screen.getByText(/in a split view/)).toBeInTheDocument()
+      const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
+      expect(tabs.map((t) => t.textContent?.trim())).toEqual([
+        'Add a note',
+        'Add something to read',
+        'New idea',
+      ])
+    })
   })
 
   it('is reached from the idea’s reading list, which has no Keep tick (only the publication’s list drops items)', async () => {
@@ -221,7 +307,7 @@ describe('reading page', () => {
           HttpResponse.json([note('n1', 'One.', 'l1'), note('n2', 'Two.', 'l1')]),
         ),
       ])
-      const box = await screen.findByLabelText('Add a note from this page')
+      const box = await screen.findByLabelText('Note')
       const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
@@ -247,7 +333,7 @@ describe('reading page', () => {
           .map((li) => li.querySelector('p')?.textContent)
       await screen.findByText('Oldest.')
       expect(texts()).toEqual(['Middle.', 'Oldest.'])
-      await fireEvent.update(screen.getByLabelText('Add a note from this page'), 'Newest.')
+      await fireEvent.update(screen.getByLabelText('Note'), 'Newest.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       await waitFor(() => expect(texts()).toEqual(['Newest.', 'Middle.', 'Oldest.']))
     })
@@ -303,9 +389,8 @@ describe('reading page', () => {
           return HttpResponse.json(created, { status: 201 })
         }),
       ])
-      const box = await screen.findByLabelText('Add a note from this page')
+      const box = await screen.findByLabelText('Note')
       const button = screen.getByRole('button', { name: 'Add note' })
-      expect(button).toBeDisabled() // nothing to add yet
       await fireEvent.update(box, '  “Meanders grow.”  ')
       await fireEvent.click(button)
       await waitFor(() =>
@@ -330,8 +415,8 @@ describe('reading page', () => {
           return HttpResponse.json(created, { status: 201 })
         }),
       ])
-      const box = await screen.findByLabelText('Add a note from this page')
-      const isQuote = screen.getByRole('checkbox', { name: /This is a direct quote/ })
+      const box = await screen.findByLabelText('Note')
+      const isQuote = screen.getByRole('checkbox', { name: /This is a quotation/ })
       expect(isQuote).not.toBeChecked() // a note is the writer's own words unless they say otherwise
       await fireEvent.update(box, 'Meanders grow.')
       await fireEvent.click(isQuote)
@@ -339,10 +424,13 @@ describe('reading page', () => {
       const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(list.querySelector('blockquote')).toHaveTextContent('Meanders grow.')
       expectOrigin(list, 'Quoted from “A paper”', 'Ada')
-      expect(screen.getByRole('checkbox', { name: /This is a direct quote/ })).not.toBeChecked()
+      expect(screen.getByRole('checkbox', { name: /This is a quotation/ })).not.toBeChecked()
 
       await fireEvent.update(box, 'So bends move.')
-      await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }))
+      // The button is busy until the notes have been read again.
+      const again = screen.getByRole('button', { name: 'Add note' })
+      await waitFor(() => expect(again).toBeEnabled())
+      await fireEvent.click(again)
       await waitFor(() => expect(list.querySelectorAll('li')).toHaveLength(2))
       expect(sent).toEqual([
         { text: 'Meanders grow.', readingItemId: 'l1', quote: true },
@@ -354,20 +442,20 @@ describe('reading page', () => {
     describe('pasting', () => {
       const paste = (box: HTMLElement, text: string) =>
         fireEvent.paste(box, { clipboardData: { getData: () => text } })
-      const quoteBox = () => screen.getByRole('checkbox', { name: /This is a direct quote/ })
+      const quoteBox = () => screen.getByRole('checkbox', { name: /This is a quotation/ })
 
-      it('ticks "This is a direct quote" when words are pasted into the empty box, and says so', async () => {
+      it('ticks "This is a quotation" when words are pasted into the empty box, and says so', async () => {
         await open()
-        const box = await screen.findByLabelText('Add a note from this page')
+        const box = await screen.findByLabelText('Note')
         expect(quoteBox()).not.toBeChecked()
         await paste(box, 'Meanders grow because banks erode.')
         expect(quoteBox()).toBeChecked()
-        expect(screen.getByText(/Ticked because you pasted this/)).toBeInTheDocument()
+        expect(screen.getByText(/Ticked because you pasted it/)).toBeInTheDocument()
       })
 
       it('can be unticked, and then stays unticked; the message goes', async () => {
         await open()
-        const box = await screen.findByLabelText('Add a note from this page')
+        const box = await screen.findByLabelText('Note')
         await paste(box, 'Pasted words.')
         await fireEvent.click(quoteBox())
         expect(quoteBox()).not.toBeChecked()
@@ -376,9 +464,7 @@ describe('reading page', () => {
 
       it('also ticks it when everything already in the box is pasted over', async () => {
         await open()
-        const box = (await screen.findByLabelText(
-          'Add a note from this page',
-        )) as HTMLTextAreaElement
+        const box = (await screen.findByLabelText('Note')) as HTMLTextAreaElement
         await fireEvent.update(box, 'My own first thoughts.')
         box.setSelectionRange(0, box.value.length)
         await paste(box, 'Replacement words.')
@@ -387,9 +473,7 @@ describe('reading page', () => {
 
       it("does not tick it for typing, for a paste into the middle of the writer's words, or for nothing", async () => {
         await open()
-        const box = (await screen.findByLabelText(
-          'Add a note from this page',
-        )) as HTMLTextAreaElement
+        const box = (await screen.findByLabelText('Note')) as HTMLTextAreaElement
         await fireEvent.update(box, 'Typed by hand.')
         expect(quoteBox()).not.toBeChecked()
         box.setSelectionRange(5, 5)
@@ -413,7 +497,7 @@ describe('reading page', () => {
             return HttpResponse.json(created, { status: 201 })
           }),
         ])
-        const box = await screen.findByLabelText('Add a note from this page')
+        const box = await screen.findByLabelText('Note')
         await paste(box, 'Pasted words.') // the paste event comes first; then the words arrive in the box
         await fireEvent.update(box, 'Pasted words.')
         await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
@@ -441,20 +525,13 @@ describe('reading page', () => {
           return HttpResponse.json({ ...idea, links: idea.links })
         }),
       ])
-      const read = await screen.findByRole('switch', { name: 'I have read this' })
+      const read = await screen.findByRole('switch', { name: 'Read' })
       expect(read).not.toBeChecked()
-      await fireEvent.update(
-        await screen.findByLabelText('Add a note from this page'),
-        'A thought.',
-      )
+      await fireEvent.update(await screen.findByLabelText('Note'), 'A thought.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
-      await waitFor(() =>
-        expect(screen.getByRole('switch', { name: 'I have read this' })).toBeChecked(),
-      )
-      await fireEvent.click(screen.getByRole('switch', { name: 'I have read this' }))
-      await waitFor(() =>
-        expect(screen.getByRole('switch', { name: 'I have read this' })).not.toBeChecked(),
-      )
+      await waitFor(() => expect(screen.getByRole('switch', { name: 'Read' })).toBeChecked())
+      await fireEvent.click(screen.getByRole('switch', { name: 'Read' }))
+      await waitFor(() => expect(screen.getByRole('switch', { name: 'Read' })).not.toBeChecked())
     })
 
     it('keeps what was typed, and says what went wrong, when a note could not be saved', async () => {
@@ -463,7 +540,7 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'That note is too long.' }, { status: 400 }),
         ),
       ])
-      const box = await screen.findByLabelText('Add a note from this page')
+      const box = await screen.findByLabelText('Note')
       await fireEvent.update(box, 'Some words')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       expect(await screen.findByText('That note is too long.')).toBeInTheDocument()
@@ -495,7 +572,7 @@ describe('reading page', () => {
       expect(screen.getByLabelText('Authors')).toHaveValue('')
       await fireEvent.update(field, 'A better title')
       await fireEvent.update(screen.getByLabelText('Authors'), ' Ada Author,Bo Writer , ')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
       expect(
         await screen.findByRole('heading', { level: 1, name: 'A better title' }),
       ).toBeInTheDocument()
@@ -526,24 +603,16 @@ describe('reading page', () => {
       await edit()
       expect(screen.getByLabelText('Authors')).toHaveValue('Ada Author')
       await fireEvent.update(screen.getByLabelText('Authors'), '')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
       await waitFor(() => expect(sent).toEqual([expect.objectContaining({ authors: [] })]))
     })
 
-    it('say what is not known, and what to do about it', async () => {
+    it('say nothing about what is not known: the address stands in for the title', async () => {
       await open('l2')
-      expect(await screen.findByText(/couldn't find this page's title/)).toBeInTheDocument()
-      expect(screen.getByText(/We don't know who wrote it/)).toBeInTheDocument()
+      await screen.findByRole('heading', { level: 1, name: 'https://example.org/other' })
+      expect(screen.queryByText(/couldn.t find this page.s title/)).toBeNull()
+      expect(screen.queryByText(/who wrote it/)).toBeNull()
       expect(screen.queryByText(/^By /)).toBeNull()
-    })
-
-    it('say nothing about what is known', async () => {
-      await open('l1', [
-        http.get(ideaUrl, () => HttpResponse.json(detailed('A paper', ['Ada Author']))),
-      ])
-      await screen.findByText('By Ada Author')
-      expect(screen.queryByText(/couldn't find this page's title/)).toBeNull()
-      expect(screen.queryByText(/We don't know who wrote it/)).toBeNull()
     })
 
     it('can be cancelled, with Escape too, leaving them as they were', async () => {
@@ -564,7 +633,7 @@ describe('reading page', () => {
       await edit()
       await fireEvent.update(screen.getByLabelText('Title'), 'Typed')
       await fireEvent.update(screen.getByLabelText('Authors'), 'Typed Name')
-      await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
       await waitFor(() => expect(screen.getByLabelText('Title')).toBeInvalid())
       expect(screen.getByLabelText('Title')).toHaveValue('Typed')
       expect(screen.getByLabelText('Authors')).toHaveValue('Typed Name')
@@ -588,14 +657,16 @@ describe('reading page', () => {
           return HttpResponse.json(added('Fetched title'), { status: 201 })
         }),
       ])
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
       const box = await screen.findByLabelText('Web address')
+      expect(box).toHaveAccessibleDescription('For example, https://example.org/article')
       await fireEvent.update(box, 'example.org/new')
       await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
-      const status = await screen.findByRole('status')
-      await waitFor(() => expect(status).toHaveTextContent('Added “Fetched title”'))
+      const status = (await screen.findByText(/Added “Fetched title”\./)).closest('p')!
+      expect(status).toHaveAttribute('role', 'status')
       expect(sent).toEqual([{ url: 'example.org/new' }])
       expect(box).toHaveValue('')
-      expect(within(status).getByRole('link', { name: 'Read it and take notes' })).toHaveAttribute(
+      expect(within(status).getByRole('link', { name: 'Read it' })).toHaveAttribute(
         'href',
         readingPath('l3'),
       )
@@ -607,6 +678,7 @@ describe('reading page', () => {
       await open('l1', [
         http.post(`${ideaUrl}/links`, () => HttpResponse.json(added(''), { status: 201 })),
       ])
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
       await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       expect(await screen.findByText(/Added “https:\/\/example\.org\/new”/)).toBeInTheDocument()
@@ -618,12 +690,12 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
         ),
       ])
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
       const box = await screen.findByLabelText('Web address')
       await fireEvent.update(box, 'example.org/paper')
       await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
       expect(await screen.findByText('That link is already in this idea.')).toBeInTheDocument()
       expect(box).toHaveValue('example.org/paper')
-      expect(screen.queryByText(/to the reading list\./)).toBeNull()
     })
   })
 
@@ -643,14 +715,12 @@ describe('reading page', () => {
           })
         }),
       ])
-      const box = await screen.findByRole('switch', { name: 'I have read this' })
+      const box = await screen.findByRole('switch', { name: 'Read' })
       expect(box).not.toBeChecked()
       await fireEvent.click(box)
       await waitFor(() => expect(sent).toEqual([{ read: true }]))
-      await waitFor(() =>
-        expect(screen.getByRole('switch', { name: 'I have read this' })).toBeChecked(),
-      )
-      await fireEvent.click(screen.getByRole('switch', { name: 'I have read this' }))
+      await waitFor(() => expect(screen.getByRole('switch', { name: 'Read' })).toBeChecked())
+      await fireEvent.click(screen.getByRole('switch', { name: 'Read' }))
       await waitFor(() => expect(sent).toEqual([{ read: true }, { read: false }]))
     })
 
@@ -663,7 +733,7 @@ describe('reading page', () => {
           }),
         ),
       ])
-      expect(await screen.findByRole('switch', { name: 'I have read this' })).toBeChecked()
+      expect(await screen.findByRole('switch', { name: 'Read' })).toBeChecked()
     })
 
     it('says so when it could not be saved, and leaves it as it was', async () => {
@@ -672,18 +742,16 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'boom' }, { status: 500 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('switch', { name: 'I have read this' }))
-      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save that")
-      expect(screen.getByRole('switch', { name: 'I have read this' })).not.toBeChecked()
+      await fireEvent.click(await screen.findByRole('switch', { name: 'Read' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t save that')
+      expect(screen.getByRole('switch', { name: 'Read' })).not.toBeChecked()
     })
   })
 
   describe('when the item is not there', () => {
     it('says it may have been removed, and goes back to the idea', async () => {
       await open('gone')
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        "We couldn't open that reading-list item",
-      )
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t open that')
       expect(screen.getByRole('link', { name: 'Back to the reading list' })).toHaveAttribute(
         'href',
         '/p/ada-substack/ideas/i1/research',
@@ -694,7 +762,7 @@ describe('reading page', () => {
       await open('l1', [
         http.get(ideaUrl, () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
       ])
-      expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't open that")
+      expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load this item")
     })
   })
 })

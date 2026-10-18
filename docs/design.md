@@ -514,7 +514,7 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Idea                 | how to develop it                            | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**                                            | Beside the idea's name, in the menu and on its landing page                             |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
-**Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add something to
+**Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add something to read says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add something to
 read**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
 is showing on arrival, every time, so there is always a form and no Cancel. A publication picker
 sits inside the form that is showing, above its field, and only when there is more than one; it starts at the publication last worked in (saved in `localStorage` when a

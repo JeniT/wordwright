@@ -880,22 +880,23 @@ describe('reading an item of the publication’s own list', () => {
   it('says so when the item is not on the list', async () => {
     fakePublication()
     await renderAt('/p/ada-substack/reading/nope')
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      "couldn't open that reading-list item",
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('couldn’t open that')
     expect(screen.getByRole('link', { name: 'Back to the reading list' })).toBeInTheDocument()
   })
 
   it('takes a note from the item as one of the publication’s notes, and a quote word for word', async () => {
     const { state } = open()
-    await fireEvent.update(await screen.findByLabelText('Add a note from this page'), 'My thought')
+    await fireEvent.update(await screen.findByLabelText('Note'), 'My thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText('My thought')).toBeInTheDocument()
     expect(state.sentNotes).toEqual([{ text: 'My thought', readingItemId: 'l1' }])
 
-    await fireEvent.update(screen.getByLabelText('Add a note from this page'), 'Exact words')
-    await fireEvent.click(screen.getByRole('checkbox', { name: /direct quote/ }))
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }))
+    await fireEvent.update(screen.getByLabelText('Note'), 'Exact words')
+    await fireEvent.click(screen.getByRole('checkbox', { name: /quotation/ }))
+    // The button is busy until the notes have been read again.
+    const again = screen.getByRole('button', { name: 'Add note' })
+    await waitFor(() => expect(again).toBeEnabled())
+    await fireEvent.click(again)
     await waitFor(() => expect(state.sentNotes).toHaveLength(2))
     expect(state.sentNotes[1]).toEqual({ text: 'Exact words', readingItemId: 'l1', quote: true })
     const items = within(
@@ -906,16 +907,17 @@ describe('reading an item of the publication’s own list', () => {
 
   it('adds another page to the publication’s reading list, and offers to read it', async () => {
     const { state } = open()
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/more')
     await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
-    const read = await screen.findByRole('link', { name: 'Read it and take notes' })
+    const read = await screen.findByRole('link', { name: 'Read it' })
     expect(state.added).toEqual(['https://example.org/more'])
     expect(read).toHaveAttribute('href', expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/))
   })
 
   it('marks it read, and edits its title and authors', async () => {
     const { state } = open()
-    await fireEvent.click(await screen.findByRole('switch', { name: 'I have read this' }))
+    await fireEvent.click(await screen.findByRole('switch', { name: 'Read' }))
     await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
 
     server.use(
@@ -928,7 +930,7 @@ describe('reading an item of the publication’s own list', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Edit title and authors' }))
     await fireEvent.update(screen.getByLabelText('Title'), 'A better title')
     await fireEvent.update(screen.getByLabelText('Authors'), 'Bo Writer, Cy Author')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save details' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(
       await screen.findByRole('heading', { level: 1, name: 'A better title' }),
     ).toBeInTheDocument()

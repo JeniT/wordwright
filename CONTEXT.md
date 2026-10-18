@@ -22,6 +22,14 @@ _Avoid_: Source (in what people see), subscription
 The publication's own list of reading items, from which notes are taken. Posts from its feeds are added to it; ideas have their own.
 _Avoid_: Library, bookmarks
 
+**Note**:
+A piece of the writer's thinking kept for later: their own words, or words from a reading item. It belongs to an idea, or to the publication before there is one, and can be tagged, moved and put into a draft.
+_Avoid_: Snippet, highlight
+
+**Quotation**:
+A note marked as someone else's exact words. It is kept word for word, so it cannot be edited, and goes into a draft as a quotation with a link to its reading item. Pasting into an empty note ticks it, and says so.
+_Avoid_: Direct quote, quote (in what people see)
+
 **Reading item**:
 One post or article on a reading list, shown by its title, with whether it has been read and its tags. Its title opens its own page, where notes are taken from it; the host name beneath the title opens the article itself. On the publication's list it is also _kept_ (stays on the list for ever) or not (it goes a month after it was added); items the writer adds are kept from the start. Notes taken from it mark it read.
 _Avoid_: Link, source, bookmark (in what people see)
@@ -96,7 +104,7 @@ A reviewer or non-editor member sees only the draft and their own comments, neve
 ### Home
 
 **Quick add**:
-The tabbed small forms for adding a new idea, a note or something to read without first opening the place it goes. On a writer's landing page they add to the chosen publication's own list, never inside an idea; on a publication's landing page, to that publication; on an idea's, a note or reading item to that idea (there is no New idea tab).
+The tabbed small forms for adding a new idea, a note or something to read without first opening the place it goes. On a writer's landing page they add to the chosen publication's own list, never inside an idea; on a publication's landing page, to that publication; on an idea's, a note or reading item to that idea (there is no New idea tab). On a reading item's own page they take a note from that item (first tab), add another reading item, or (on a publication's item only) start an idea.
 _Avoid_: Capture, inbox (that word is the issue tracker's)
 
 **Pick up**:
