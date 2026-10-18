@@ -201,6 +201,16 @@ describe('an idea’s landing page', () => {
       expect(region.querySelector('h2')).toHaveTextContent(/^01\s*Research$/)
     })
 
+    it('puts what is sent in the same row as the button, to its right', async () => {
+      fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Research' })
+      const button = await within(region).findByRole('button', { name: 'Research' })
+      const note = within(region).getByText(/^This will send this publication’s description/)
+      expect(button.parentElement).toBe(note.parentElement)
+      expect(button.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     it('has the same box as the Research page: an example only, and one line on what is sent', async () => {
       fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1')
@@ -213,7 +223,9 @@ describe('an idea’s landing page', () => {
       expect(within(region).queryByText(/You can research other areas afterwards/)).toBeNull()
       expect(within(region).queryByText(/up to a minute/)).toBeNull()
       expect(
-        within(region).getByText(/^Sent to your AI provider: .* Never your drafts\.$/),
+        within(region).getByText(
+          /^This will send this publication’s description and this idea’s title and notes, reading list, and the areas you want to research to your AI\. It will not send your drafts\.$/,
+        ),
       ).toBeVisible()
     })
 
@@ -226,7 +238,9 @@ describe('an idea’s landing page', () => {
       })
       await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Research' })
-      expect(within(region).getByText(/Sent to your AI provider/)).toBeInTheDocument()
+      expect(
+        within(region).getByText(/^This will send this publication’s description/),
+      ).toBeInTheDocument()
     })
 
     it('starts the research only when the button is pressed, then shows the results', async () => {
@@ -406,8 +420,13 @@ describe('an idea’s landing page', () => {
       expect(within(region).queryByText('Talk it through')).toBeNull()
       // What leaves the system is said next to the button, in one line.
       expect(
-        within(region).getByText(/^Sent to your AI provider: .* Never your drafts\.$/),
+        within(region).getByText(
+          /^This will send this publication’s description and this idea’s title and notes and reading list to your AI\. It will not send your drafts\.$/,
+        ),
       ).toBeVisible()
+      expect(button.parentElement).toBe(
+        within(region).getByText(/^This will send this publication’s description/).parentElement,
+      )
       expect(state.requests).toEqual([]) // nothing started by looking
       await fireEvent.click(button)
       // The AI makes the first move on the Refine page, so the person enters nothing here.
@@ -509,12 +528,12 @@ describe('an idea’s landing page: tutorial mode (#232)', () => {
     await screen.findByRole('region', { name: 'Draft' })
   }
   const texts = [
-    /^This is your idea’s home\. Gather reading and notes, ask your AI to research and refine it, then start a draft\.$/,
-    /^Describe the areas you want to look into and your AI will suggest pages worth reading, including some that may not agree with you\. Nothing joins the reading list until you add it\.$/,
+    /^This is your idea’s home\. Gather reading and notes, ask your AI to help you research and refine it, then start a draft\.$/,
+    /^Describe the areas you want to look into and your AI will suggest some pages worth reading\. You can choose whether to add them to your reading list\.$/,
     /^Read the articles on this idea’s reading list and take notes on them\. Items can be tagged and moved to another idea\.$/,
     /^Review, tag and arrange your notes\. They are what you draw on when you write\.$/,
-    /^Your AI opens by asking the questions that matter most for this idea, and you answer\. It adds the points you make to your notes, and you decide on anything else it suggests\.$/,
-    /^Write in the editor, where you can also ask for a critique or rephrase a passage\. The words are always yours\.$/,
+    /^Use your AI to help you refine your idea\. It will ask you questions and add the points you make to your notes\.$/,
+    /^Write your draft\. You can ask for human reviews as well as getting your AI to critique or suggest options to rephrase a short passage\.$/,
   ]
 
   it('writes out what the page and each step are for', async () => {

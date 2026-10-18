@@ -57,19 +57,21 @@ function submit() {
       For example: how fast river bends move, and what engineers have learned from straightening
       rivers.
     </p>
-    <p class="mb-3 text-ink-soft">
-      Sent to your AI provider: the idea’s title and notes, the addresses on its reading list, and
-      what you write here. Never your drafts.
-    </p>
-    <AiButton
-      type="submit"
-      class="btn btn-primary"
-      :busy="search.isPending.value"
-      busy-text="Searching the web. This can take up to a minute."
-      :disabled="!areas.trim()"
-    >
-      Research
-    </AiButton>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <AiButton
+        type="submit"
+        class="btn btn-primary"
+        :busy="search.isPending.value"
+        busy-text="Searching the web. This can take up to a minute."
+        :disabled="!areas.trim()"
+      >
+        Research
+      </AiButton>
+      <p class="min-w-0 flex-1 basis-64 text-ink-soft">
+        This will send this publication’s description and this idea’s title and notes, reading list,
+        and the areas you want to research to your AI. It will not send your drafts.
+      </p>
+    </div>
     <p v-if="search.isPending.value" class="mt-2 text-sm text-ink-soft">
       Searching the web. This can take up to a minute.
     </p>

@@ -47,8 +47,8 @@ const showResearch = () =>
     </div>
 
     <Explain tutorial-only class="mt-4">
-      This is your idea’s home. Gather reading and notes, ask your AI to research and refine it,
-      then start a draft.
+      This is your idea’s home. Gather reading and notes, ask your AI to help you research and
+      refine it, then start a draft.
     </Explain>
 
     <QuickAdd
@@ -63,7 +63,7 @@ const showResearch = () =>
       level="idea"
       step="research"
       title="Research"
-      explain="Describe the areas you want to look into and your AI will suggest pages worth reading, including some that may not agree with you. Nothing joins the reading list until you add it."
+      explain="Describe the areas you want to look into and your AI will suggest some pages worth reading. You can choose whether to add them to your reading list."
     >
       <template #actions>
         <RouterLink
@@ -101,7 +101,7 @@ const showResearch = () =>
       level="idea"
       step="draft"
       title="Draft"
-      explain="Write in the editor, where you can also ask for a critique or rephrase a passage. The words are always yours."
+      explain="Write your draft. You can ask for human reviews as well as getting your AI to critique or suggest options to rephrase a short passage."
     >
       <template #actions>
         <RouterLink

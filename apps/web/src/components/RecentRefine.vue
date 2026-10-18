@@ -63,18 +63,18 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
     level="idea"
     step="refine"
     title="Refine"
-    explain="Your AI opens by asking the questions that matter most for this idea, and you answer. It adds the points you make to your notes, and you decide on anything else it suggests."
+    explain="Use your AI to help you refine your idea. It will ask you questions and add the points you make to your notes."
   >
     <template #actions>
       <RouterLink :to="refineRoute" class="link text-sm">See the conversation</RouterLink>
     </template>
     <QueryState :query="conversation" what="the conversation" loading="Loading the conversation…">
-      <div v-if="empty">
-        <p class="mb-3 text-ink-soft">
-          Sent to your AI provider: the idea, its notes and links, and the publication’s details.
-          Never your drafts.
-        </p>
+      <div v-if="empty" class="flex flex-wrap items-center gap-x-4 gap-y-2">
         <AiButton class="btn btn-primary" @click="start">Refine with your AI</AiButton>
+        <p class="min-w-0 flex-1 basis-64 text-ink-soft">
+          This will send this publication’s description and this idea’s title and notes and reading
+          list to your AI. It will not send your drafts.
+        </p>
       </div>
       <template v-else>
         <div v-if="latest" class="panel-sunken mb-4 p-3">
