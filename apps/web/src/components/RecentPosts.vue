@@ -107,21 +107,23 @@ const failedNames = computed(() =>
 
 <template>
   <section aria-labelledby="recent-heading" class="mb-10">
-    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <h2
-          id="recent-heading"
-          ref="heading"
-          tabindex="-1"
-          class="font-display text-xl font-semibold focus:outline-none"
-        >
-          Recent posts
-        </h2>
-        <Explain v-if="!tutorial" label="About recent posts">
-          {{ ABOUT }}
-        </Explain>
+    <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+      <!-- The heading and, in tutorial mode, the note under it: the note wraps beside the controls, not across them. -->
+      <div class="min-w-48 flex-1 basis-80">
+        <div class="flex items-center gap-2">
+          <h2
+            id="recent-heading"
+            ref="heading"
+            tabindex="-1"
+            class="font-display text-xl font-semibold leading-tight focus:outline-none"
+          >
+            Recent posts
+          </h2>
+          <Explain v-if="!tutorial" label="About recent posts">{{ ABOUT }}</Explain>
+        </div>
+        <Explain v-if="tutorial" class="mt-1">{{ ABOUT }}</Explain>
       </div>
-      <div class="ml-auto flex items-end gap-2">
+      <div class="ml-auto flex shrink-0 items-end gap-2">
         <div>
           <label for="recent-days" class="mb-1 block text-sm font-medium">Show posts from</label>
           <select id="recent-days" v-model.number="days" class="field field-compact">
@@ -138,8 +140,6 @@ const failedNames = computed(() =>
         </button>
       </div>
     </div>
-    <Explain v-if="tutorial" class="mb-3">{{ ABOUT }}</Explain>
-
     <QueryState :query="sources" what="your feeds">
       <p v-if="!sources.data.value?.length" class="text-ink-soft">No feeds yet.</p>
       <template v-else>
