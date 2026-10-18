@@ -139,7 +139,7 @@ describe('reading page', () => {
         ),
       ).toBeInTheDocument()
       expect(
-        screen.getByText(/You can’t edit notes that are marked as quotes\./),
+        screen.getByText(/You can’t edit notes that are marked as quotations\./),
       ).toBeInTheDocument()
     })
 

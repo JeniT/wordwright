@@ -28,8 +28,8 @@ defineEmits<{ ticked: [] }>()
     </p>
     <div class="ml-6 flex">
       <Explain label="About quotations">
-        You can’t edit notes that are marked as quotes. They can be inserted directly as quotes into
-        your drafts.
+        You can’t edit notes that are marked as quotations. They can be inserted directly as
+        quotations into your drafts.
       </Explain>
     </div>
   </div>

@@ -349,6 +349,9 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 - **Icon only** (`btn btn-sm btn-icon btn-ghost` + `Icon`, no border) for actions that repeat on every row, are rare, and have a
   universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove A paper") and
   a tooltip (`v-tip`, below); a 36px target.
+- **A single-use action on a page** may be icon-only too, when the icon is as universal and the action is quiet: the pencil
+  beside a reading item's title (Edit title and authors). The same rules apply: an `aria-label` that says what it does,
+  a tooltip, and a 36px target.
 - **Tooltip on an icon-only button: `v-tip`, not `title`** (`lib/tip.ts`; on a `HoldButton`, its `tip` prop). The browser's `title`
   shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
   pointer moves onto it, goes on Escape (focus stays), and is `aria-hidden`: the `aria-label` is the name, the tooltip a
