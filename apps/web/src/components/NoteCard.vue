@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
-import { noteOriginPhrase } from '../lib/note-label'
+import { noteOrigin } from '../lib/note-label'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteTags from './NoteTags.vue'
 import NoteText from './NoteText.vue'
@@ -22,7 +22,7 @@ defineSlots<{ tags?(): unknown }>()
     </div>
     <p v-if="!hideOrigin" class="meta max-w-full sm:max-w-[16rem] sm:text-right">
       <NoteOrigin
-        :phrase="noteOriginPhrase(note, readingList)"
+        v-bind="noteOrigin(note, readingList)"
         :author-name="note.authorName"
         class="sm:justify-end"
       />

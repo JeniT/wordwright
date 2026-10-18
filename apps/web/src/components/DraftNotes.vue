@@ -7,7 +7,7 @@ import { api, errorMessage } from '../lib/api'
 import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
-import { noteOriginPhrase } from '../lib/note-label'
+import { noteOrigin } from '../lib/note-label'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
@@ -122,10 +122,7 @@ const label = (note: IdeaNote) => {
             <NoteText :note="note" />
             <NoteTags :tags="note.tags" />
             <p class="mt-1 text-xs text-ink-soft">
-              <NoteOrigin
-                :phrase="noteOriginPhrase(note, readingList)"
-                :author-name="note.authorName"
-              />
+              <NoteOrigin v-bind="noteOrigin(note, readingList)" :author-name="note.authorName" />
             </p>
             <button
               v-if="!onlyEditor"
@@ -161,10 +158,7 @@ const label = (note: IdeaNote) => {
           >
             <NoteText :note="note" />
             <p class="mt-1 text-xs text-ink-soft">
-              <NoteOrigin
-                :phrase="noteOriginPhrase(note, readingList)"
-                :author-name="note.authorName"
-              />
+              <NoteOrigin v-bind="noteOrigin(note, readingList)" :author-name="note.authorName" />
             </p>
             <button
               type="button"

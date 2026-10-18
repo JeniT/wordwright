@@ -92,10 +92,10 @@ test('reads and takes notes before there is an idea: a publication reading list 
   const quote = page
     .getByRole('listitem')
     .filter({ hasText: 'Erosion outside, deposition inside.' })
-  await expect(quote).toContainText('Quoted from “Fake title for example.org')
+  await expect(quote).toContainText('From Fake title for example.org')
   await expect(
     page.getByRole('listitem').filter({ hasText: 'Rivers tire of straight lines.' }),
-  ).toContainText('From reading “Fake title for example.org')
+  ).toContainText('From Fake title for example.org')
 
   // Add one of their own: it goes to the top, under the form, and stays there.
   await page.getByLabel('Note', { exact: true }).fill('A thought of my own')
@@ -406,7 +406,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Bends migrate downstream.')).toBeVisible()
   await expect(
-    notes.getByText(/From reading “A post in Feed of read.example”/).first(),
+    notes.getByRole('link', { name: /A post in Feed of read.example/ }).first(),
   ).toBeVisible()
   await goTo(page, 'Research')
   await showReadItems(page)

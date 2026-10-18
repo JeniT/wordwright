@@ -11,7 +11,7 @@ import SwitchField from '../components/SwitchField.vue'
 import TextField from '../components/TextField.vue'
 import { errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
-import { nameList, noteOriginPhrase } from '../lib/note-label'
+import { nameList, noteOrigin } from '../lib/note-label'
 import { readingBackRoute, useReadingList } from '../lib/reading'
 import { displayHost, usePublication } from '../lib/usePublications'
 import { vTip } from '../lib/tip'
@@ -242,7 +242,7 @@ function toggleRead(read: boolean) {
                 </div>
                 <p class="meta max-w-full sm:max-w-[16rem] sm:text-right">
                   <NoteOrigin
-                    :phrase="noteOriginPhrase(note, list.links.value ?? [])"
+                    v-bind="noteOrigin(note, list.links.value ?? [])"
                     :author-name="note.authorName"
                     class="sm:justify-end"
                   />

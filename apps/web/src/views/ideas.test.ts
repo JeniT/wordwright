@@ -1129,7 +1129,7 @@ describe('idea page', () => {
       expect(within(region()).getByText('Exact words.').closest('blockquote')).not.toBeNull()
       expect(within(region()).getByText('Erosion loops.').closest('blockquote')).toBeNull()
       const items = within(region()).getAllByRole('listitem')
-      expectOrigin(items[1]!, 'Quoted from “A paper”', 'Ada')
+      expectOrigin(items[1]!, 'From A paper', 'Ada')
       expect(within(region()).getByRole('button', { name: /^Delete note “Exact/ })).toBeVisible()
     })
 
@@ -1141,7 +1141,7 @@ describe('idea page', () => {
       await open()
       await screen.findByText('A quote.')
       const items = within(region()).getAllByRole('listitem')
-      expectOrigin(items[0]!, 'From reading “A paper”', 'Ada')
+      expectOrigin(items[0]!, 'From A paper', 'Ada')
       expectOrigin(items[1]!, 'From reading', 'Ada')
     })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nameList, originPhrase } from './note-label'
+import { noteOrigin, nameList, originPhrase } from './note-label'
 
 const source = { title: 'A paper', url: 'https://example.org/paper' }
 
@@ -9,41 +9,31 @@ describe('what a note is, without saying who took it', () => {
     expect(originPhrase('brainstorm', null)).toBe('From brainstorming')
   })
 
-  it('names the page a note from reading was taken from, by its address if it has no title', () => {
-    expect(originPhrase('reading', source)).toBe('From reading “A paper”')
-    expect(originPhrase('reading', { ...source, title: '' })).toBe(
-      'From reading “https://example.org/paper”',
-    )
-  })
-
-  it('says a quotation is quoted', () => {
-    expect(originPhrase('reading', source, true)).toBe('Quoted from “A paper”')
+  it('says only "From" when the page is there to link to', () => {
+    expect(originPhrase('reading', source)).toBe('From')
   })
 
   it('still says reading when the page has been removed from the reading list', () => {
     expect(originPhrase('reading', null)).toBe('From reading')
-    expect(originPhrase('reading', null, true)).toBe('Quoted while reading')
+  })
+})
+
+describe('the origin of a note', () => {
+  const note = (over = {}) =>
+    ({ origin: 'reading', readingItemId: 'l1', quote: false, ...over }) as never
+  const list = [{ id: 'l1', ...source }] as never
+
+  it('gives the page to link to, whether or not the note is a quotation', () => {
+    expect(noteOrigin(note(), list)).toEqual({ phrase: 'From', source: list[0] })
+    expect(noteOrigin(note({ quote: true }), list).phrase).toBe('From')
   })
 
-  it('never uses "by", which would read as the author of the page', () => {
-    for (const origin of ['entered', 'brainstorm', 'reading'] as const) {
-      expect(originPhrase(origin, source, true)).not.toMatch(/\bby\b/)
-    }
-  })
-
-  it('names the authors of the page after its title, so "by" is always the piece\'s author', () => {
-    const by = (authors: string[]) => originPhrase('reading', { ...source, authors }, true)
-    expect(by([])).toBe('Quoted from “A paper”')
-    expect(by(['Ada Author'])).toBe('Quoted from “A paper”, by Ada Author')
-    expect(by(['Ada Author', 'Bo Writer'])).toBe(
-      'Quoted from “A paper”, by Ada Author and Bo Writer',
-    )
-    expect(originPhrase('reading', { ...source, authors: ['Ada Author'] })).toBe(
-      'From reading “A paper”, by Ada Author',
-    )
-    expect(originPhrase('brainstorm', { ...source, authors: ['Ada Author'] })).toBe(
-      'From brainstorming',
-    )
+  it('has no page to link to once its item is gone, or for a note that is not from reading', () => {
+    expect(noteOrigin(note(), [])).toEqual({ phrase: 'From reading', source: null })
+    expect(noteOrigin(note({ origin: 'entered', readingItemId: null }), list)).toEqual({
+      phrase: 'Added',
+      source: null,
+    })
   })
 })
 

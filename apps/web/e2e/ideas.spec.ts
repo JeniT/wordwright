@@ -408,9 +408,8 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(list.getByRole('listitem')).toHaveCount(2)
   // The newest is first, right under the box, so a note just added is in sight.
   await expect(list.getByRole('listitem').first()).toContainText('So the bend moves downstream.')
-  await expect(list).toContainText(
-    'From reading “Meanders, explained”, by Pat Writer and Quinn Scribe',
-  )
+  await expect(list).toContainText('From Meanders, explained')
+  await expect(list).not.toContainText('Pat Writer') // the page's authors are on the page, not on each note
   await expect(list).not.toContainText('by Ida') // the chip is who took the note, not who wrote the page
   // Taking notes from a page marks it read (it can still be unticked).
   await expect(page.getByRole('switch', { name: 'Read' })).toBeChecked()
@@ -432,9 +431,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
-  await expect(
-    notes.getByText('From reading “Meanders, explained”, by Pat Writer and Quinn Scribe').first(),
-  ).toBeVisible()
+  await expect(notes.getByRole('link', { name: /^Meanders, explained/ }).first()).toBeVisible()
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
 })
 
@@ -704,7 +701,7 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByText(/^Quoted from/)).toBeVisible()
+  await expect(notes.locator('blockquote')).toBeVisible()
   await expect(notes.getByRole('button', { name: /^Edit note “Meanders/ })).toHaveCount(0)
   await expect(notes.getByRole('button', { name: /^Edit note “Erosion/ })).toBeVisible()
   await noViolations(page, 'notes with a quotation')

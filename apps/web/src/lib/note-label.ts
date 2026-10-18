@@ -6,25 +6,22 @@ export function nameList(names: readonly string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 }
 
+/** The page a note was taken from, for the link in its origin line. */
+export type OriginSource = { title: string; url: string }
+
 /**
  * What a note is and where it came from, without saying who took it (that is shown as a name chip beside this).
- * "By <name>" is deliberately not used: it would read as the author of the piece being quoted.
+ * A note from a page says only "From", and the page's title follows as a link (see `NoteOrigin`); whether it was a
+ * quotation is shown by its quote mark, and the page's authors are on the page itself.
  */
-export function originPhrase(
-  origin: NoteOrigin,
-  source: { title: string; url: string; authors?: readonly string[] } | null,
-  quote = false,
-): string {
-  if (origin === 'reading') {
-    if (!source) return quote ? 'Quoted while reading' : 'From reading'
-    const by = source.authors?.length ? `, by ${nameList(source.authors)}` : ''
-    return `${quote ? 'Quoted from' : 'From reading'} “${source.title || source.url}”${by}`
-  }
+export function originPhrase(origin: NoteOrigin, source: OriginSource | null): string {
+  if (origin === 'reading') return source ? 'From' : 'From reading'
   return origin === 'brainstorm' ? 'From brainstorming' : 'Added'
 }
 
-/** A note's origin phrase. The item it was taken from may have been removed since; it still says reading. */
-export function noteOriginPhrase(note: IdeaNote, readingList: readonly IdeaLink[]): string {
+/** What `NoteOrigin` shows for a note. The item it was taken from may have been removed since; it still says reading. */
+export function noteOrigin(note: IdeaNote, readingList: readonly IdeaLink[]) {
   const item = readingList.find((l) => l.id === note.readingItemId)
-  return originPhrase(note.origin, item ?? null, note.quote)
+  const source = note.origin === 'reading' && item ? item : null
+  return { phrase: originPhrase(note.origin, source), source }
 }

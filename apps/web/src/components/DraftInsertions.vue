@@ -16,6 +16,7 @@ const insertions = useQuery({
 const rows = computed(() =>
   (insertions.data.value ?? []).map((i) => ({
     ...i,
+    source: i.origin === 'option' ? null : i.source,
     words:
       i.origin === 'option'
         ? `${i.option?.kind === 'title' ? 'A title' : 'Words'} that began as an AI option, for “${i.option?.aim ?? ''}”`
@@ -42,7 +43,7 @@ const rows = computed(() =>
           “{{ row.text.length > 120 ? `${row.text.slice(0, 120)}…` : row.text }}”
         </p>
         <p class="text-xs text-ink-soft">
-          <NoteOrigin :phrase="row.words" :author-name="row.by" />
+          <NoteOrigin :phrase="row.words" :source="row.source" :author-name="row.by" />
           <template v-if="row.kept !== null">
             ·
             <span :class="row.kept ? '' : 'font-medium text-accent-strong'">{{

@@ -4,7 +4,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
-import { noteOriginPhrase } from '../lib/note-label'
+import { noteOrigin } from '../lib/note-label'
 import { useIdeaNotes } from '../lib/queries'
 import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
@@ -661,7 +661,7 @@ const label = (note: IdeaNote) => {
               </div>
               <p v-if="editingId !== note.id" class="meta sm:text-right">
                 <NoteOrigin
-                  :phrase="noteOriginPhrase(note, readingList)"
+                  v-bind="noteOrigin(note, readingList)"
                   :author-name="note.authorName"
                   class="sm:justify-end"
                 />

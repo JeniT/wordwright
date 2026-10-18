@@ -404,12 +404,14 @@ row; their background is solid, a disabled one included (`btn-rail`). A list is
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
 **A note's row (`NoteCard`, `NoteText`).** Notes are shown in full, so a row can be tall: the list is `align-top`, which
-puts the buttons at the top of the row, not centred. Where a note came from (“From reading…”, “Quoted from…”, “Added”
-and the name of the person who took it) is `meta` text in a column at the right, under the row's buttons on the Notes
-pages and alone on rows with no buttons (Recent notes, a reading item's notes); on a phone it wraps under the note.
-Tags stay under the note's text. A **quotation** is set apart by a `quote-mark`, an opening curly quote in the same
-small outlined box as a step number, to the left of its text (hidden from screen readers: the text is in a
-`blockquote`). It is never a left border. The Notes page's own form is above the list and puts a new note first;
+puts the buttons at the top of the row, not centred. Where a note came from (“From” and the page's title as a link that opens in a new tab,
+“From brainstorming”, “Added”, then the name of the person who took it) is `meta` text in a column at the right, under
+the row's buttons on the Notes pages and alone on rows with no buttons (Recent notes, a reading item's notes); on a phone
+it wraps under the note. It does not say the page's authors (the reading item's page does) or whether the note is a
+quotation (its mark does). Tags stay under the note's text. A **quotation** is set apart by a `quote-mark`, a large
+opening curly quote hanging before its first line. It is bare, with no box, so it is never mistaken for a control beside
+the select box (hidden from screen readers: the text is in a `blockquote`). It is never a left border. The Notes page's
+own form is above the list and puts a new note first;
 notes that arrive any other way go last.
 
 **Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a publication's landing page

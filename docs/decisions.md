@@ -2001,3 +2001,11 @@ The settings list is just the feeds. A feed's posts are on Search, in one list w
   opens a dialog (`ConfirmDialog`, `canConfirm` keeps its button off until a place is chosen) holding the same form as the toolbar's (`MoveFields`,
   `MoveNotesDetails`, `MoveIdeasFields`), and moves that row alone, whatever else is ticked. The reading list keeps its toolbar for a single item, as its
   funnel also holds the Show read items switch.
+
+## A note's origin line says "From", and links to the page (#274 follow-up)
+
+A note taken from a reading item says "From" and the item's title, as a link to the page that opens in a new tab; it
+no longer says "From reading" or "Quoted from", nor the page's authors, nor puts the title in quotation marks. A
+quotation is shown by its quote mark and the authors are on the reading item's own page, so the line only has to say
+where to go. This replaces the "By means the piece's author" wording above. If the item has been removed from the list
+the line says "From reading", with nothing to link to.

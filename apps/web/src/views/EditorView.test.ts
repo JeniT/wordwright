@@ -698,7 +698,7 @@ describe('the notes beside the draft', () => {
     await notes.findByText('Erosion loops.')
     expect(notes.getByText('Added')).toBeInTheDocument()
     expect(notes.getByText('From brainstorming')).toBeInTheDocument()
-    expect(notes.getByText('From reading “A paper”')).toBeInTheDocument()
+    expect(notes.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
     expect(notes.getAllByText('Bob')[0]).toHaveClass('rounded-full') // the person, as a chip, not "by Bob"
     expect(notes.queryByText('Already used.')).toBeNull()
   })
@@ -790,7 +790,7 @@ describe('the notes beside the draft', () => {
         ],
       })
       await renderAt('/p/p1/drafts/d1')
-      expect(await screen.findByText('Quoted from “A paper”')).toBeInTheDocument()
+      expect(await screen.findByRole('link', { name: /A paper/ })).toBeInTheDocument()
       await fireEvent.click(
         await screen.findByRole('button', { name: /^Add note “Meanders grow\.” to the draft/ }),
       )
@@ -1170,7 +1170,7 @@ describe('the notes beside the draft', () => {
       const rows = within(summary).getAllByRole('listitem')
       expectOrigin(rows[0]!, 'From brainstorming', 'Ada')
       expect(rows[0]).toHaveTextContent('Still as inserted')
-      expectOrigin(rows[1]!, 'From reading “A paper”', 'Bob')
+      expectOrigin(rows[1]!, 'From A paper', 'Bob')
       expect(rows[1]).toHaveTextContent('Edited or removed since')
     })
 
