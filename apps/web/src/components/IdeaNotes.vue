@@ -69,6 +69,7 @@ const add = useMutation({
   onSuccess: async (note) => {
     draft.value = ''
     prependNote(note)
+    announcement.value = 'Note added.'
     await refreshAround()
     addBox.value?.querySelector('textarea')?.focus()
   },

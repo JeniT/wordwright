@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NewTabLink from '../components/NewTabLink.vue'
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, onBeforeUnmount, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
@@ -46,6 +46,20 @@ const itemNotes = computed(() =>
 )
 
 const label = computed(() => item.value?.title || item.value?.url || '')
+
+/**
+ * The note just taken is marked for a moment, so the eye finds it under the form. It is only a mark: screen readers
+ * are told "Note added" by the form, and a person who looks away misses nothing.
+ */
+const MARK_MS = 2500
+const markedNoteId = ref<string | null>(null)
+let unmark: ReturnType<typeof setTimeout> | undefined
+function markNewNote(noteId: string) {
+  markedNoteId.value = noteId
+  clearTimeout(unmark)
+  unmark = setTimeout(() => (markedNoteId.value = null), MARK_MS)
+}
+onBeforeUnmount(() => clearTimeout(unmark))
 
 // ---- the title: often missing, when it couldn't be looked up from the page
 const title = ref('')
@@ -205,6 +219,7 @@ function toggleRead(read: boolean) {
         :publications="[publication]"
         :idea-id="id"
         :reading-item-id="linkId"
+        @note-added="markNewNote"
       />
 
       <section aria-labelledby="reading-notes-heading">
@@ -216,7 +231,12 @@ function toggleRead(read: boolean) {
           <p v-if="!itemNotes.length" class="mb-4 text-ink-soft">No notes from this page yet.</p>
           <RowList v-else :items="itemNotes" label="Notes from this page" bare class="mb-4">
             <template #default="{ item: note }">
-              <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 py-3">
+              <div
+                class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 border-l-4 px-4 py-3 transition-colors duration-1000"
+                :class="
+                  note.id === markedNoteId ? 'border-accent bg-accent-wash' : 'border-transparent'
+                "
+              >
                 <div class="min-w-[12rem] flex-1">
                   <NoteText :note="note" />
                 </div>

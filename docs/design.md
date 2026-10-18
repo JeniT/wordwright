@@ -240,6 +240,17 @@ on the page. Move it to an info icon or a help page, or cut it.
 - What the AI button will spend or send is already said by its mark (see _AI buttons_) and its tooltip; don't repeat it
   as a sentence on the page. Something the person **can't take back** is on the page, before the action.
 
+### Feedback after adding something
+
+A form that clears itself still owes the person some sign that it worked, but not a message that sits there for good.
+
+- **The result is on screen** (a note added above its own list, newest first): no visible words. A hidden polite status says
+  "Note added." for screen readers, and the new row is marked for a couple of seconds (`accent-wash` and an accent edge,
+  fading; the highlighter is for the AI only). Nothing depends on seeing the mark.
+- **The result is somewhere else** (Quick add's "Added to X's notes", the reading form's "Added “X”. Open “X”"): the words
+  and their link stay, since they point to something not on the page, and go as soon as the person starts the next entry
+  or changes tab. Never a timer on text.
+
 ### Behind an info icon (`InfoTip`)
 
 - **Text only, two sentences at most**, about one control or term. No links or buttons inside: the tip closes when the

@@ -18,6 +18,11 @@ const list = useReadingList(owner)
 
 const linkUrl = ref('')
 const justAdded = ref<{ id: string; label: string } | null>(null)
+// The message points to the list, so it stays until the next address is started, then goes.
+function typing() {
+  justAdded.value = null
+  if (add.isError.value) add.reset()
+}
 // On failure what was typed stays in the field, with the reason shown under it.
 function submit() {
   const before = new Set(list.links.value?.map((l) => l.id))
@@ -45,7 +50,7 @@ function submit() {
         :spellcheck="false"
         :invalid="add.isError.value"
         :hint="add.isError.value ? errorMessage(add.error.value) : 'We will look up its title.'"
-        @update:model-value="add.isError.value && add.reset()"
+        @update:model-value="typing"
       />
     </FieldWithAction>
     <p aria-live="polite" class="mt-2 text-sm">

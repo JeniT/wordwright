@@ -123,6 +123,67 @@ describe('reading page', () => {
     expect(screen.queryByText('It can’t be edited afterwards.')).not.toBeInTheDocument()
   })
 
+  describe('after a note is added', () => {
+    const saved: ReturnType<typeof note>[] = []
+    const addNote = async () => {
+      saved.length = 0
+      await open('l1', [
+        http.get(notesUrl, () => HttpResponse.json(saved)),
+        http.post(notesUrl, async ({ request }) => {
+          const body = (await request.json()) as { text: string }
+          const created = note('n1', body.text, 'l1')
+          saved.push(created)
+          return HttpResponse.json(created, { status: 201 })
+        }),
+      ])
+      await fireEvent.update(await screen.findByLabelText('Note'), 'A thought.')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      return await screen.findByText('Note added.')
+    }
+
+    it('says so to a screen reader only: the note is in the list right below', async () => {
+      const said = await addNote()
+      expect(said).toHaveAttribute('role', 'status')
+      expect(said).toHaveClass('sr-only')
+    })
+
+    it('marks the new note for a moment, then lets it go', async () => {
+      await addNote()
+      const row = (await screen.findByText('A thought.')).closest('div.border-l-4')!
+      expect(row).toHaveClass('bg-accent-wash')
+      await waitFor(() => expect(row).not.toHaveClass('bg-accent-wash'), { timeout: 4000 })
+    })
+  })
+
+  it('takes away “Added …” under the reading form once the next address is started', async () => {
+    await open('l1', [
+      http.post(`${ideaUrl}/links`, () =>
+        HttpResponse.json(
+          {
+            ...idea,
+            links: [
+              ...idea.links,
+              {
+                id: 'l3',
+                url: 'https://example.org/new',
+                title: 'New one',
+                readAt: null,
+                origin: 'entered',
+              },
+            ],
+          },
+          { status: 201 },
+        ),
+      ),
+    ])
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+    expect(await screen.findByText(/Added “New one”/)).toBeInTheDocument()
+    await fireEvent.update(screen.getByLabelText('Web address'), 'h')
+    expect(screen.queryByText(/Added “New one”/)).not.toBeInTheDocument()
+  })
+
   it('starts again on Add a note when the writer goes on to another item', async () => {
     const { router } = await open()
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))

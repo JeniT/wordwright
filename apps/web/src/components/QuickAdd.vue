@@ -33,6 +33,7 @@ const props = defineProps<{
   /** The reading item this is open beside. */
   readingItemId?: string
 }>()
+const emit = defineEmits<{ 'note-added': [noteId: string] }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
@@ -111,9 +112,10 @@ const addNote = useMutation({
         ? { readingItemId: props.readingItemId, quote: quote.isQuote.value || undefined }
         : {},
     ),
-  onSuccess: async () => {
+  onSuccess: async (note) => {
     added.value = { kind: 'note', publication: selected.value }
     noteText.value = ''
+    emit('note-added', note.id)
     quote.reset()
     // Taking a note from an item marks it read, which its list shows too.
     await Promise.all([
@@ -136,6 +138,14 @@ const addReading = useMutation({
     focusField('reading')
   },
 })
+/**
+ * "Added to …" points to a place that isn't on screen, so it stays until the person starts the next entry, then goes.
+ * The publication they saw is kept (the form locks it on first input, see above).
+ */
+function typing() {
+  chosen.value ??= selectedId.value
+  added.value = undefined
+}
 const mutations = { idea: createIdea, note: addNote, reading: addReading }
 const submitLabels: Record<Kind, string> = {
   idea: 'Create idea',
@@ -161,7 +171,7 @@ const busy = computed(
           v-else
           :ref="(el) => (forms[kind] = el as HTMLFormElement)"
           @submit.prevent="mutations[kind].mutate()"
-          @input="chosen ??= selectedId"
+          @input="typing()"
         >
           <div v-if="publications.length > 1 && tab === kind" class="mb-4">
             <label for="quick-add-publication" class="mb-1 block text-sm font-medium"
@@ -224,7 +234,12 @@ const busy = computed(
               :saving="kind === 'idea' ? 'Creating…' : 'Adding…'"
             />
           </div>
-          <p v-if="added && added.kind === kind" role="status" class="mt-3">
+          <!-- Beside a reading item the new note is right there in its list, so the words are for screen readers only. -->
+          <p
+            v-if="added && added.kind === kind"
+            role="status"
+            :class="added.kind === 'note' && readingItemId ? 'sr-only' : 'mt-3'"
+          >
             <template v-if="added.kind === 'note' && readingItemId">Note added.</template>
             <template v-else-if="added.kind === 'note'"
               >{{

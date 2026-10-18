@@ -45,7 +45,11 @@ const revoke = useMutation({
     </p>
     <template v-else>
       <p class="mb-3">Invite new members.</p>
-      <form class="flex items-end gap-2" @submit.prevent="invite.mutate(email)">
+      <form
+        class="flex items-end gap-2"
+        @submit.prevent="invite.mutate(email)"
+        @input="!invite.isPending.value && invite.reset()"
+      >
         <div class="flex-1">
           <TextField v-model="email" label="Email address" type="email" required />
         </div>

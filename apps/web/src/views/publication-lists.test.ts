@@ -924,10 +924,11 @@ describe('reading an item of the publication’s own list', () => {
     await fireEvent.click(again)
     await waitFor(() => expect(state.sentNotes).toHaveLength(2))
     expect(state.sentNotes[1]).toEqual({ text: 'Exact words', readingItemId: 'l1', quote: true })
-    const items = within(
-      await within(await screen.findByRole('main')).findByRole('list'),
-    ).getAllByRole('listitem')
-    expectOrigin(items[0]!, 'Quoted from “A paper”', 'Ada')
+    const list = await within(await screen.findByRole('main')).findByRole('list')
+    // The notes are read again after the add, so the newest turns up first a moment later.
+    await waitFor(() =>
+      expectOrigin(within(list).getAllByRole('listitem')[0]!, 'Quoted from “A paper”', 'Ada'),
+    )
   })
 
   it('adds another page to the publication’s reading list, and offers to read it', async () => {

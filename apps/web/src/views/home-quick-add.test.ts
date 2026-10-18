@@ -245,6 +245,9 @@ describe('Home: Quick add (#192)', () => {
     )
     expect(sent).toMatchObject([{ text: 'A thought' }])
     expect(screen.getByLabelText('Note')).toHaveValue('')
+    // It points to notes that are not on this page, so it stays until the next note is started.
+    await fireEvent.update(screen.getByLabelText('Note'), 'Another')
+    expect(screen.queryByText(/Added to Blog’s notes./)).not.toBeInTheDocument()
   })
 
   it('adds something to read to the publication’s reading list', async () => {
