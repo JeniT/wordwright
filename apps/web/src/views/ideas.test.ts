@@ -12,7 +12,7 @@ import {
   expectOrigin,
 } from '../test-utils'
 
-useMockServer({ warm: ['publication-ideas'] })
+useMockServer({ warm: ['publication'] })
 
 const publication = {
   id: 'ada-substack',
@@ -228,44 +228,11 @@ describe('moving ideas to another publication', () => {
   })
 })
 
-describe('new idea page', () => {
-  it('asks for the core idea and notes, then opens the new idea', async () => {
-    let sent: unknown
-    server.use(
-      signedInAs(testUser),
-      listPublications,
-      http.post('*/api/publications/ada-substack/ideas', async ({ request }) => {
-        sent = await request.json()
-        return HttpResponse.json(idea, { status: 201 })
-      }),
-      http.get(ideaUrl, () => HttpResponse.json(idea)),
-      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
-    )
+describe('the old new idea page', () => {
+  it('leads to the publication’s page, where Quick add starts ideas', async () => {
+    server.use(signedInAs(testUser), listPublications)
     const { router } = await renderAt('/p/ada-substack/ideas/new')
-    await fireEvent.update(
-      await screen.findByLabelText("What's your core idea?"),
-      'Why rivers meander',
-    )
-    await fireEvent.update(screen.getByLabelText('Expand on your idea here'), 'Erosion loops.')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save idea' }))
-
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1'))
-    expect(sent).toEqual({ name: 'Why rivers meander', notes: 'Erosion loops.' })
-  })
-
-  it("shows the server's explanation and keeps what was typed", async () => {
-    server.use(
-      signedInAs(testUser),
-      listPublications,
-      http.post('*/api/publications/ada-substack/ideas', () =>
-        HttpResponse.json({ error: 'Describe your idea in a few words' }, { status: 400 }),
-      ),
-    )
-    await renderAt('/p/ada-substack/ideas/new')
-    await fireEvent.update(await screen.findByLabelText("What's your core idea?"), 'x')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save idea' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Describe your idea')
-    expect(screen.getByLabelText("What's your core idea?")).toHaveValue('x')
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack'))
   })
 })
 

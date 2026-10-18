@@ -133,7 +133,7 @@ export const routes: RouteRecordRaw[] = [
     // A page of the home level: no `level`, so the menu stays the home menu.
     meta: { tutorial: true },
   },
-  // ——— A publication: its landing page, its four steps (01 Search, 02 Read, 03 Notes, 04 Ideas) and its settings ———
+  // ——— A publication: its landing page, its three steps (01 Search, 02 Read, 03 Notes) and its settings ———
   {
     path: '/p/:publicationId',
     name: 'publication',
@@ -183,19 +183,16 @@ export const routes: RouteRecordRaw[] = [
     props: true,
     meta: { level: 'publication', step: 'notes' },
   },
+  // Ideas used to have a page of their own; they are listed on the landing page now (new ones start in Quick add).
   {
     path: '/p/:publicationId/ideas',
     name: 'publication-ideas',
-    component: () => import('./views/PublicationIdeasView.vue'),
-    props: true,
-    meta: { level: 'publication', step: 'ideas' },
+    redirect: (to) => ({ name: 'publication', params: to.params }),
   },
   {
     path: '/p/:publicationId/ideas/new',
     name: 'new-idea',
-    component: () => import('./views/NewIdeaView.vue'),
-    props: true,
-    meta: { level: 'publication', step: 'ideas' },
+    redirect: (to) => ({ name: 'publication', params: to.params }),
   },
   // The description used to have a page of its own; it is a settings page now.
   {

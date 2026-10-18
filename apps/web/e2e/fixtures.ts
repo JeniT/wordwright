@@ -101,12 +101,32 @@ export async function goTo(page: Page, step: string) {
 }
 
 /**
- * Opens the full new-idea form (name and first notes) from a publication: through the Ideas step, since the landing
- * page's Quick add makes an idea from a name alone.
+ * Makes an idea in the publication whose page (or a page beneath it) is open, and opens it. Without `notes` it goes
+ * the way a person does, through Quick add's New idea tab; with them it asks the API (Quick add takes a name alone).
  */
-export async function openNewIdeaForm(page: Page) {
-  await goTo(page, 'Ideas')
-  await page.getByRole('link', { name: 'New idea' }).click()
+export async function createIdea(page: Page, name: string, notes?: string) {
+  // (Right after creating a publication the address may not have changed yet.)
+  await expect(page).toHaveURL(/\/p\/[^/]+/)
+  const publicationId = new URL(page.url()).pathname.split('/')[2]
+  if (notes === undefined) {
+    await page.goto(`/p/${publicationId}`)
+    await page.getByRole('tab', { name: 'New idea' }).click()
+    await page.getByLabel('Idea name').fill(name)
+    await page.getByRole('button', { name: 'Create idea' }).click()
+  } else {
+    const made = await page.request.post(`/api/publications/${publicationId}/ideas`, {
+      data: { name, notes },
+    })
+    expect(made.ok(), await made.text()).toBe(true)
+    await page.goto(`/p/${publicationId}/ideas/${((await made.json()) as { id: string }).id}`)
+  }
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+}
+
+/** Back to the publication's own page, where its ideas are listed, from any page beneath it. */
+export async function goToIdeas(page: Page) {
+  await page.goto(`/p/${new URL(page.url()).pathname.split('/')[2]}`)
+  await expect(page.getByRole('region', { name: 'Ideas', exact: true })).toBeVisible()
 }
 
 export { expect }

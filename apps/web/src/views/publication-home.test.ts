@@ -70,17 +70,28 @@ describe('a publication’s landing page', () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     const notes = await screen.findByRole('region', { name: 'Notes' })
-    const ideas = screen.getByRole('region', { name: 'Ideas' })
-    expect(screen.getByRole('region', { name: 'Search' }).querySelector('h2')).toHaveTextContent(
+    expect(screen.getByRole('region', { name: 'Search' }).querySelector('h3')).toHaveTextContent(
       /^01\s*Search$/,
     )
-    expect(screen.getByRole('region', { name: 'Read' }).querySelector('h2')).toHaveTextContent(
+    expect(screen.getByRole('region', { name: 'Read' }).querySelector('h3')).toHaveTextContent(
       /^02\s*Read$/,
     )
-    expect(notes.querySelector('h2')).toHaveTextContent(/^03\s*Notes$/)
-    expect(ideas.querySelector('h2')).toHaveTextContent(/^04\s*Ideas$/)
+    expect(notes.querySelector('h3')).toHaveTextContent(/^03\s*Notes$/)
     // The numbers are decoration: the headings are named without them.
-    expect(screen.getByRole('heading', { level: 2, name: 'Notes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Notes' })).toBeInTheDocument()
+  })
+
+  it('lists the ideas first, unnumbered, and the three steps under “Stuck for ideas?”', async () => {
+    fakeHome()
+    await renderAt('/p/ada-substack')
+    const ideas = await screen.findByRole('region', { name: 'Ideas' })
+    expect(ideas.querySelector('h2')).toHaveTextContent(/^Ideas$/)
+    const stuck = screen.getByRole('region', { name: 'Stuck for ideas?' })
+    for (const name of ['Search', 'Read', 'Notes'])
+      expect(within(stuck).getByRole('region', { name })).toBeInTheDocument()
+    expect(ideas.compareDocumentPosition(stuck) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const quick = screen.getByRole('region', { name: 'Quick add' })
+    expect(quick.compareDocumentPosition(ideas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   describe('description', () => {
@@ -173,16 +184,13 @@ describe('a publication’s landing page', () => {
   })
 
   describe('ideas', () => {
-    it('lists them with their draft counts, and links to each and to all (new ones start in Quick add)', async () => {
+    it('lists them with their draft counts, and links to each (new ones start in Quick add)', async () => {
       fakeHome([], [idea('i1', 'Why rivers meander', 2), idea('i2', 'Lakes', 1)])
       await renderAt('/p/ada-substack')
       const link = await screen.findByRole('link', { name: /Why rivers meander/ })
       expect(link).toHaveTextContent('2 drafts')
       expect(screen.getByRole('link', { name: /Lakes/ })).toHaveTextContent('1 draft')
-      expect(screen.getByRole('link', { name: 'See all ideas' })).toHaveAttribute(
-        'href',
-        '/p/ada-substack/ideas',
-      )
+      expect(screen.queryByRole('link', { name: 'See all ideas' })).toBeNull()
       expect(screen.queryByRole('link', { name: 'New idea' })).toBeNull()
     })
 
@@ -553,7 +561,7 @@ describe('a publication’s landing page: the top, and the menu', () => {
     await menu.findByText('2 notes')
     expect(menu.getByText('1 feed')).toBeInTheDocument()
     expect(menu.getByText('1 to read')).toBeInTheDocument()
-    expect(menu.getByText('1 idea')).toBeInTheDocument()
+    expect(menu.queryByText('1 idea')).toBeNull()
     const site = menu.getByRole('link', { name: /Website/ })
     expect(site).toHaveAttribute('href', 'https://substack.example/ada')
     expect(menu.queryByText(/substack\.example/)).toBeNull()
@@ -680,11 +688,17 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     const { router } = await renderAt('/p/ada-substack')
     expect(router.currentRoute.value.name).toBe('publication')
     expect(await screen.findByText(/This is your publication’s home/)).toBeInTheDocument()
-    expect(screen.getByText(/ideas for what to write/)).toBeVisible()
+    expect(screen.getByText(/Start with your ideas/)).toBeVisible()
     expect(
       await screen.findByText(/A feed is a blog, newsletter or journal .* inspire you/),
     ).toBeVisible()
     expect(await screen.findByText(/An idea is something you want to write about/)).toBeVisible()
+    for (const text of [
+      /First look for recent articles or news stories for inspiration/,
+      /Second, read the articles or news stories on this reading list/,
+      /Third, review, tag and arrange your notes/,
+    ])
+      expect(screen.getByText(text)).toBeVisible()
   })
 
   it('says none of it when it is off', async () => {
@@ -696,6 +710,9 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
       /Your AI reads this/,
       /A feed is a blog/,
       /An idea is something/,
+      /First look for recent articles/,
+      /Second, read the articles/,
+      /Third, review, tag and arrange/,
     ])
       expect(screen.queryByText(text)).toBeNull()
   })

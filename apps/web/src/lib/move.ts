@@ -345,7 +345,7 @@ export function useMoveIdeasFlow(publicationId: () => string, ideas: () => { id:
           void router.push(
             ids.length === 1
               ? { name: 'idea', params: { publicationId: to, id: ids[0]! } }
-              : { name: 'publication-ideas', params: { publicationId: to } },
+              : { name: 'publication', params: { publicationId: to } },
           )
         },
       },

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, holdToConfirm, test, openNewIdeaForm } from './fixtures'
+import { expect, goTo, holdToConfirm, test, createIdea } from './fixtures'
 
 /** Signs up, optionally connects an AI key (any key works with the fake AI), and creates an idea to talk about. */
 async function setUp(page: Page, { withKey = true } = {}) {
@@ -19,10 +19,7 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Weekly letters')
   await page.getByRole('button', { name: 'Create publication' }).click()
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion loops.\nSecond line.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion loops.\nSecond line.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()

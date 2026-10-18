@@ -22,7 +22,7 @@ const idea = useIdea(
       Try reloading the page.
     </p>
     <RouterLink
-      :to="{ name: 'publication-ideas', params: { publicationId } }"
+      :to="{ name: 'publication', params: { publicationId } }"
       class="link mt-3 inline-block"
     >
       Back to the publication

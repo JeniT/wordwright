@@ -3,13 +3,13 @@ import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { api } from './api'
-import { useDraft, useIdea, useIdeaNotes, useIdeas, useSources } from './queries'
+import { useDraft, useIdea, useIdeaNotes, useSources } from './queries'
 import { usePublication } from './usePublications'
 
 /**
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
  *   home    -> Publications (account settings: the gear by the person's name in the menu foot)
- *   publication -> 01 Search, 02 Read, 03 Notes, 04 Ideas, (its settings: a gear beside its name)
+ *   publication -> 01 Search, 02 Read, 03 Notes, (its settings: a gear beside its name)
  *   publication-settings -> Details, Description, Sharing, Download, Delete (plain links; the way up is the publication)
  *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, (its settings: a gear beside its name)
  * The numbers orient; they never lock anything, so every step is always a link.
@@ -26,7 +26,6 @@ export const PUBLICATION_STEPS: Step[] = [
   { key: 'search', label: 'Search', route: 'search' },
   { key: 'read', label: 'Read', route: 'read' },
   { key: 'notes', label: 'Notes', route: 'publication-notes' },
-  { key: 'ideas', label: 'Ideas', route: 'publication-ideas' },
 ]
 
 export const IDEA_STEPS: Step[] = [
@@ -79,7 +78,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /**
  * What the side menu and step headings need to know about the current page. Reads only what pages already load
- * (the publications list, the idea, the ideas list), so it adds little: TanStack Query shares them by key.
+ * (the publications list, the idea), so it adds little: TanStack Query shares them by key.
  */
 export function useNav() {
   const route = useRoute()
@@ -105,21 +104,17 @@ export function useNav() {
     const declared = route.meta.level
     if (declared === 'account') return 'account'
     if (!declared || !publicationId.value) return 'home'
-    // A draft that belongs to no idea sits with the publication's ideas.
+    // A draft that belongs to no idea sits with the publication.
     if (declared === 'idea' && !ideaId.value && !draftLoading.value) return 'publication'
     return declared
   })
   const stepKey = computed(() =>
-    route.meta.level === 'idea' && level.value === 'publication' ? 'ideas' : route.meta.step,
+    route.meta.level === 'idea' && level.value === 'publication' ? undefined : route.meta.step,
   )
 
   const idea = useIdea(
     () => publicationId.value,
     () => ideaId.value,
-  )
-  const ideas = useIdeas(
-    () => publicationId.value,
-    () => level.value === 'publication',
   )
   // Counts for the quiet line under each step. They share their queries with the pages (and the landing page's
   // summaries), so showing them costs one request each, once.
@@ -151,8 +146,6 @@ export function useNav() {
         return `${reading.data.value.filter((l) => !l.readAt).length} to read`
       if (step.key === 'notes' && publicationNotes.data.value)
         return plural(publicationNotes.data.value.length, 'note', 'notes')
-      if (step.key === 'ideas' && ideas.data.value)
-        return plural(ideas.data.value.length, 'idea', 'ideas')
     }
     if (level.value === 'idea' && idea.data.value) {
       if (step.key === 'research') return plural(idea.data.value.links.length, 'source', 'sources')

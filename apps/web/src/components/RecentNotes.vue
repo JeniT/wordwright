@@ -19,6 +19,8 @@ const props = defineProps<{
   ideaId: string | null
   /** The notes page this summarises. */
   to: RouteLocationRaw
+  nested?: boolean
+  explain?: string
 }>()
 const SHOWN = 5
 
@@ -36,7 +38,13 @@ const recent = computed(() =>
 </script>
 
 <template>
-  <LandingSection :level="ideaId ? 'idea' : 'publication'" step="notes" title="Notes">
+  <LandingSection
+    :level="ideaId ? 'idea' : 'publication'"
+    step="notes"
+    title="Notes"
+    :nested="nested"
+    :explain="explain"
+  >
     <template #actions>
       <RouterLink :to="to" class="link text-sm"> See all notes </RouterLink>
     </template>

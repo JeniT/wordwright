@@ -20,7 +20,12 @@ import RecentPostRow from './RecentPostRow.vue'
  * (at its default period), so the two share what has been fetched and what is decided; it never asks the feeds to
  * check again.
  */
-const props = defineProps<{ publicationId: string; to: RouteLocationRaw }>()
+const props = defineProps<{
+  publicationId: string
+  to: RouteLocationRaw
+  nested?: boolean
+  explain?: string
+}>()
 const SHOWN = 5
 
 const sources = useSources(() => props.publicationId)
@@ -46,7 +51,13 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
 </script>
 
 <template>
-  <LandingSection level="publication" step="search" title="Search">
+  <LandingSection
+    level="publication"
+    step="search"
+    title="Search"
+    :nested="nested"
+    :explain="explain"
+  >
     <template #actions>
       <RouterLink v-if="sources.data.value?.length" :to="to" class="link text-sm"
         >See all posts</RouterLink

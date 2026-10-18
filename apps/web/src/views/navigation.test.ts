@@ -125,7 +125,7 @@ describe('the settings buttons', () => {
 })
 
 describe('the menu in a publication', () => {
-  it('lists its four steps in order, marks the current one, and says how to get back up', async () => {
+  it('lists its three steps in order, marks the current one, and says how to get back up', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
     const nav = await screen.findByRole('navigation', { name: 'Publication' })
@@ -136,7 +136,7 @@ describe('the menu in a publication', () => {
     expect(text(steps[0]!)).toBe('01Search')
     expect(text(steps[1]!)).toBe('02Read')
     expect(text(steps[2]!)).toBe('03Notes')
-    expect(text(steps[3]!)).toMatch(/^04Ideas/)
+    expect(steps).toHaveLength(3)
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current')
     expect(within(nav).queryByRole('link', { name: 'Publication settings' })).toBeNull()
@@ -145,14 +145,12 @@ describe('the menu in a publication', () => {
     expect(header.queryByText(/Shared with/)).toBeNull()
   })
 
-  it('counts the ideas under the Ideas step', async () => {
+  it('has no Ideas step: the old address leads to the landing page, where they are listed', async () => {
     mockApp()
-    await renderAt('/p/ada-substack/ideas')
-    expect(
-      await within(await screen.findByRole('navigation', { name: 'Publication' })).findByText(
-        '2 ideas',
-      ),
-    ).toBeInTheDocument()
+    const { router } = await renderAt('/p/ada-substack/ideas')
+    const nav = await screen.findByRole('navigation', { name: 'Publication' })
+    expect(router.currentRoute.value.name).toBe('publication')
+    expect(within(nav).queryByRole('link', { name: /Ideas/ })).toBeNull()
   })
 
   it('links the publication’s name, in the menu and above a step’s title, to its own page', async () => {
@@ -252,11 +250,14 @@ describe('step pages', () => {
     )
   })
 
-  it('have no "next" on the Ideas step, where you choose', async () => {
+  it('lead on from the publication’s Notes to its ideas, on the landing page', async () => {
     mockApp()
-    await renderAt('/p/ada-substack/ideas')
-    await screen.findByRole('heading', { level: 1, name: 'Ideas' })
-    expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
+    await renderAt('/p/ada-substack/notes')
+    const next = within(await screen.findByRole('navigation', { name: 'Next step' }))
+    expect(next.getByRole('link', { name: /Next: your ideas/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack',
+    )
   })
 })
 

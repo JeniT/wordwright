@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test, openNewIdeaForm } from './fixtures'
+import { expect, goTo, test, createIdea } from './fixtures'
 
 // The side menu follows you: home, then a publication's three steps, then an idea's four. See docs/design.md.
 
@@ -15,10 +15,7 @@ async function signUpWithIdea(page: Page) {
   await page.getByRole('link', { name: 'New publication' }).click()
   await page.getByLabel('Publication name', { exact: true }).fill('Garden notes')
   await page.getByRole('button', { name: 'Create publication' }).click()
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('What pruning teaches')
-  await page.getByLabel('Expand on your idea here').fill('A cut is a question.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'What pruning teaches', 'A cut is a question.')
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -95,19 +92,17 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(page.getByRole('heading', { level: 1, name: 'Idea settings' })).toBeVisible()
   await noViolations(page, 'Idea settings')
 
-  // Up a level: the publication's own page, then its steps, Ideas being the choice of what to work on next.
+  // Up a level: the publication's own page, then its steps.
   await page.getByRole('link', { name: '← Garden notes' }).click()
   const publication = page.getByRole('navigation', { name: 'Publication' })
   await expect(page.getByRole('heading', { level: 1, name: 'Garden notes' })).toBeVisible()
-  await goTo(page, 'Ideas')
-  await expect(publication.getByRole('link', { name: /^Ideas/ })).toHaveAttribute(
-    'aria-current',
-    'page',
-  )
-  await expect(page.getByRole('heading', { level: 1, name: 'Ideas' })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Next step' })).toHaveCount(0) // a choice, not a next
-  await expect(publication.getByText('1 idea')).toBeVisible()
-  await noViolations(page, 'Ideas step')
+  // The ideas are listed on the publication's own page, not behind a step.
+  await expect(publication.getByRole('link', { name: /Ideas/ })).toHaveCount(0)
+  await expect(
+    page
+      .getByRole('region', { name: 'Ideas', exact: true })
+      .getByRole('link', { name: /What pruning teaches/ }),
+  ).toBeVisible()
   await goTo(page, 'Search')
   await noViolations(page, 'Search step')
   await next(page, /Next: 02 Read/).click()
@@ -148,7 +143,10 @@ test('leads through a publication and an idea step by step, without ever locking
 
   // Its ideas are listed, and lead on.
   await page.goBack()
-  await page.getByRole('link', { name: /What pruning teaches/ }).click()
+  await page
+    .locator('#main')
+    .getByRole('link', { name: /What pruning teaches/ })
+    .click()
 
   // An idea opens on its own page too, which is none of the steps either.
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
@@ -193,7 +191,10 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
   await page.emulateMedia({ colorScheme: 'dark' })
   await signUpWithIdea(page)
   await page.getByRole('link', { name: '← Garden notes' }).click()
-  await page.getByRole('link', { name: /What pruning teaches/ }).click()
+  await page
+    .locator('#main')
+    .getByRole('link', { name: /What pruning teaches/ })
+    .click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   await noViolations(page, 'Idea landing page in dark mode')
   for (const step of ['Research', 'Notes', 'Refine', 'Draft']) {
@@ -249,7 +250,10 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   expect(await fits()).toBe(true)
   await menuButton.click()
   await page.getByRole('link', { name: '← Garden notes' }).click()
-  await page.getByRole('link', { name: /What pruning teaches/ }).click()
+  await page
+    .locator('#main')
+    .getByRole('link', { name: /What pruning teaches/ })
+    .click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   expect(await fits()).toBe(true)
   await noViolations(page, 'idea landing page on a phone')

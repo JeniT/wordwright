@@ -7,7 +7,7 @@ import {
   expect,
   goTo,
   holdToConfirm,
-  openNewIdeaForm,
+  createIdea,
   openSettingsPage,
   test,
   watchForProblems,
@@ -113,9 +113,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await openFirstPublication(page)
 
   // Every draft develops an idea, so writing starts from one.
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
@@ -291,9 +289,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await expect(page.getByLabel('Anthropic API key')).toHaveAttribute('placeholder', /\.\.\.5678$/)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers bend')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers bend')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Why rivers bend')
@@ -389,9 +385,7 @@ test('rephrases the title once the draft is long enough, and records the option 
   await expect(page.getByLabel('Anthropic API key')).toHaveAttribute('placeholder', /\.\.\.5678$/)
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers bend')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers bend')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   const titleField = page.getByLabel('Title', { exact: true })
@@ -453,9 +447,7 @@ test('closing the Rephrase window with Escape changes nothing and returns to the
 }) => {
   await registerUser(page)
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers bend')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers bend')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   const bodyBox = page.getByRole('textbox', { name: 'Draft body' })
@@ -840,9 +832,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
@@ -916,9 +906,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
@@ -973,9 +961,7 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
@@ -1092,9 +1078,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await confirmEmail(page, adaEmail)
   await openFirstPublication(page)
   const publicationUrl = page.url()
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
@@ -1436,9 +1420,7 @@ test('downloads your writing as a zip from the account page and from a publicati
 }) => {
   await registerUser(page, 'Ada')
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
@@ -1534,9 +1516,7 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   test.setTimeout(90_000)
   await registerUser(page)
   await openFirstPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Formatting')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Formatting')
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'Add a draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Formatting')

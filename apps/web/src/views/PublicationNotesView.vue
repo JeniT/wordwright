@@ -28,7 +28,7 @@ const reading = useReadingList(() => ({ publicationId: props.publicationId, idea
         publication’s reading list</RouterLink
       >.
     </p>
-    <NextStep :to="{ name: 'publication-ideas', params: { publicationId } }" label="Next: 04 Ideas">
+    <NextStep :to="{ name: 'publication', params: { publicationId } }" label="Next: your ideas">
       When a group of notes feels like something you’d write about, start an idea.
     </NextStep>
   </PublicationGate>

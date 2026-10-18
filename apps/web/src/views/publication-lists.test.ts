@@ -127,7 +127,7 @@ function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof no
 }
 
 describe('the publication’s menu', () => {
-  it('leads to its four steps, which include the reading list and the notes', async () => {
+  it('leads to its three steps, which include the reading list and the notes', async () => {
     fakePublication()
     await renderAt('/p/ada-substack')
     const menu = within(await screen.findByRole('navigation', { name: 'Publication' }))
@@ -140,10 +140,7 @@ describe('the publication’s menu', () => {
       'href',
       '/p/ada-substack/notes',
     )
-    expect(menu.getByRole('link', { name: 'Ideas' })).toHaveAttribute(
-      'href',
-      '/p/ada-substack/ideas',
-    )
+    expect(menu.queryByRole('link', { name: 'Ideas' })).toBeNull()
   })
 })
 

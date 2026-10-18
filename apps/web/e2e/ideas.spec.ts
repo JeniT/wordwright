@@ -8,7 +8,7 @@ import {
   holdToConfirm,
   showArrowsFor,
   test,
-  openNewIdeaForm,
+  createIdea,
 } from './fixtures'
 
 async function signUpWithPublication(page: Page) {
@@ -38,10 +38,7 @@ const noViolations = async (page: Page, what: string) =>
 /** Signs up with a publication and creates the idea "Why rivers meander" (with its first note), ending on the idea's page. */
 async function startIdea(page: Page) {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
 }
 
@@ -50,12 +47,7 @@ test('captures an idea, and its first note is kept as a note', async ({ page }) 
   await expect(page.getByText('No ideas yet')).toBeVisible()
   await noViolations(page, 'publication page')
 
-  await openNewIdeaForm(page)
-  await noViolations(page, 'new idea page')
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
-  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
 
   // Brainstorming has its own step, Refine (see brainstorm.spec.ts).
   await expect(
@@ -277,10 +269,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -339,10 +328,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
 test('on a phone the notes slide in over the draft', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 })
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Tides')
-  await page.getByLabel('Expand on your idea here').fill('The moon pulls the sea.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Tides', 'The moon pulls the sea.')
   await startDraft(page)
 
   const open = page.getByRole('button', { name: 'Notes and comments' })
@@ -362,10 +348,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
 test('reads a reading-list item and takes notes from it, on a phone too', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 })
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -453,10 +436,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Research')
   await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
@@ -523,10 +503,7 @@ test('with tutorial mode on, a tip is written out on the page instead of behind 
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/)
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
@@ -548,10 +525,7 @@ test('with tutorial mode on, a tip is written out on the page instead of behind 
 test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {
   await signUpWithPublication(page)
   await turnTutorialModeOff(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -620,10 +594,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -686,10 +657,7 @@ test('a direct quote cannot be edited, and goes into a draft as a blockquote wit
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -749,9 +717,7 @@ test('a link to something on the reading list goes in only once it has been read
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add link' }).click()
@@ -806,10 +772,7 @@ test('a link to something on the reading list goes in only once it has been read
 
 test('notes can be merged into one, and one note cut in two', async ({ page }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
@@ -854,9 +817,7 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Research')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add link' }).click()
@@ -892,10 +853,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   page,
 }) => {
   await signUpWithPublication(page)
-  await openNewIdeaForm(page)
-  await page.getByLabel("What's your core idea?").fill('Why rivers meander')
-  await page.getByLabel('Expand on your idea here').fill('Erosion on the outside of each bend.')
-  await page.getByRole('button', { name: 'Save idea' }).click()
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()

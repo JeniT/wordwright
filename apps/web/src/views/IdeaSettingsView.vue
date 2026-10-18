@@ -45,7 +45,7 @@ const remove = useMutation({
   onSuccess: async () => {
     queryClient.removeQueries({ queryKey: queryKeys.idea(props.publicationId, props.id) })
     await refreshLists()
-    await router.push({ name: 'publication-ideas', params: { publicationId: props.publicationId } })
+    await router.push({ name: 'publication', params: { publicationId: props.publicationId } })
   },
   onSettled: () => (confirmingDelete.value = false),
 })

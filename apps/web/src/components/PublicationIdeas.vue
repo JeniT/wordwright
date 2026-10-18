@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import ListToolbar from '../components/ListToolbar.vue'
-import PublicationGate from '../components/PublicationGate.vue'
-import StepHeading from '../components/StepHeading.vue'
+import ListToolbar from './ListToolbar.vue'
+import Explain from './Explain.vue'
+import LandingSection from './LandingSection.vue'
 import { errorMessage } from '../lib/api'
 import { ideaMoveContents, nameList, plural, useMoveIdeasFlow } from '../lib/move'
 import { useIdeas } from '../lib/queries'
-import QueryState from '../components/QueryState.vue'
-import RowList from '../components/RowList.vue'
+import QueryState from './QueryState.vue'
+import RowList from './RowList.vue'
 
-/** Step 03 of a publication: choose which idea to work on next. */
+/**
+ * The publication's ideas, for its landing page: all of them, to choose what to work on next, with the toolbar for
+ * moving some to another publication. New ideas start in Quick add, above.
+ */
 const props = defineProps<{ publicationId: string }>()
 const ideas = useIdeas(() => props.publicationId)
 const flow = useMoveIdeasFlow(
@@ -19,18 +22,14 @@ const flow = useMoveIdeasFlow(
 </script>
 
 <template>
-  <PublicationGate :publication-id="publicationId">
-    <StepHeading>Ideas</StepHeading>
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-      <p class="max-w-prose text-ink-soft">Choose what to work on next.</p>
-      <RouterLink :to="{ name: 'new-idea', params: { publicationId } }" class="btn btn-primary">
-        New idea
-      </RouterLink>
-    </div>
+  <LandingSection title="Ideas">
     <QueryState :query="ideas" what="ideas">
-      <p v-if="!ideas.data.value?.length" class="text-ink-soft">
-        No ideas yet. When one occurs to you, note it down here, then draft it from there.
-      </p>
+      <template v-if="!ideas.data.value?.length">
+        <p class="text-ink-soft">No ideas yet.</p>
+        <Explain tutorial-only>
+          An idea is something you want to write about. It keeps its own notes, reading and drafts.
+        </Explain>
+      </template>
       <RowList v-else :items="ideas.data.value" label="Ideas" bare class="mb-4">
         <template #toolbar>
           <!-- The whole list is one page, so the page and the total are the same. -->
@@ -127,5 +126,5 @@ const flow = useMoveIdeasFlow(
         </template>
       </RowList>
     </QueryState>
-  </PublicationGate>
+  </LandingSection>
 </template>

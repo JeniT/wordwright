@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import {
   expect,
   goTo,
+  goToIdeas,
   leaveSettings,
   openFeeds,
   showArrowsFor,
@@ -321,8 +322,11 @@ test('moves reading items, with their notes, between the publication and an idea
   await expect(page.getByText('Nothing on the reading list yet.')).toBeVisible()
 
   // They are on the idea, with the note.
-  await goTo(page, 'Ideas')
-  await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await goToIdeas(page)
+  await page
+    .getByRole('region', { name: 'Ideas', exact: true })
+    .getByRole('link', { name: /Why rivers meander/ })
+    .click()
   // Wait for the idea itself: until then the menu is still the publication's, and its Notes link goes to the wrong place.
   await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
   await goTo(page, 'Notes')
@@ -395,8 +399,11 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await expect(page.getByText('Bends migrate downstream.')).toHaveCount(0)
 
   // The idea has the notes, and the post they came from on its reading list (the original is still on the publication's).
-  await goTo(page, 'Ideas')
-  await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await goToIdeas(page)
+  await page
+    .getByRole('region', { name: 'Ideas', exact: true })
+    .getByRole('link', { name: /Why rivers meander/ })
+    .click()
   await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()

@@ -20,6 +20,8 @@ const props = defineProps<{
   /** An idea keeps its reading list under Research. */
   step?: 'read' | 'research'
   title?: string
+  nested?: boolean
+  explain?: string
 }>()
 const SHOWN = 5
 
@@ -41,6 +43,8 @@ const host = (url: string) => {
     :level="ideaId ? 'idea' : 'publication'"
     :step="step ?? 'read'"
     :title="title ?? 'Read'"
+    :nested="nested"
+    :explain="explain"
   >
     <template #actions>
       <RouterLink :to="to" class="link text-sm"> See the reading list </RouterLink>
