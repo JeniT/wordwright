@@ -170,8 +170,10 @@ describe('the publication’s reading list', () => {
       'href',
       '/p/ada-substack/search',
     )
-    // The page is titled "Read"; the list's own heading is for screen readers only.
-    expect(screen.getByRole('heading', { level: 2, name: 'Reading list' })).toHaveClass('sr-only')
+    // The list's heading comes after the box for a new item.
+    const box = screen.getByLabelText('Web address')
+    const heading = screen.getByRole('heading', { level: 2, name: 'Reading list' })
+    expect(box.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('puts the box for a new item above the list', async () => {
@@ -180,6 +182,9 @@ describe('the publication’s reading list', () => {
     const box = await screen.findByLabelText('Web address')
     const title = await screen.findByRole('link', { name: 'A paper' })
     expect(box.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // The button sits in the same row as the field, and the hint is the one line.
+    expect(box.closest('.flex')).toContainElement(screen.getByRole('button', { name: 'Add item' }))
+    expect(screen.getByText('We will look up its title.')).toBeInTheDocument()
   })
 
   it('shows loading, and says what went wrong loading, and tries again', async () => {
@@ -385,7 +390,7 @@ describe('the publication’s reading list', () => {
     expect(screen.getByRole('button', { name: 'Add tags to A paper' })).toHaveFocus()
   })
 
-  it('shows where an item came from: the AI’s with the highlighter, a feed’s without', async () => {
+  it('shows where an item came from only when the AI put it there, with the highlighter', async () => {
     fakePublication({
       links: [
         link('l1', 'From research', { origin: 'research', why: 'It argues the opposite' }),
@@ -395,8 +400,9 @@ describe('the publication’s reading list', () => {
     await renderAt('/p/ada-substack/read')
     const research = (await screen.findByText('Found by research')).closest('span')!
     expect(research).toHaveClass('chip-ai')
-    const feed = screen.getByText('From a feed', { selector: '.chip' })
-    expect(feed).not.toHaveClass('chip-ai')
+    // An item from a feed says nothing: that is where most of them come from.
+    expect(screen.getByRole('link', { name: 'From a feed' })).toBeInTheDocument()
+    expect(screen.queryByText('From a feed', { selector: '.chip' })).toBeNull()
   })
 })
 
@@ -838,7 +844,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     expect(screen.getByRole('checkbox', { name: 'Select Link 2' })).toBeChecked()
   })
 
-  it('puts a link’s facts under it, plain: the host as text, where it came from as a flat chip', async () => {
+  it('puts a link’s facts under it, plain: the host, and no chip for an item from a feed', async () => {
     fakePublication({
       links: [
         link('l1', 'A paper', { url: 'https://www.example.org/a/long/path', origin: 'feed' }),
@@ -848,7 +854,7 @@ describe('selecting, bulk actions and pages on the reading list', () => {
     const item = (await screen.findByRole('link', { name: 'A paper' })).closest('li')!
     expect(within(item).getByText('example.org')).toBeInTheDocument()
     expect(within(item).queryByText(/long\/path/)).not.toBeInTheDocument() // one link for the article, not two
-    expect(within(item).getByText('From a feed')).toHaveClass('chip-quiet')
+    expect(within(item).queryByText('From a feed')).not.toBeInTheDocument()
     expect(within(item).getAllByRole('link')).toHaveLength(2) // the title, and the host (the article)
   })
 })
@@ -1326,18 +1332,17 @@ describe('the Read page: tutorial mode (#262)', () => {
     await screen.findByRole('link', { name: 'A paper' })
   }
 
-  it('writes out what the page is for and how to read an item, when it is on', async () => {
+  it('writes out one note under the heading, and nothing else, when it is on', async () => {
     await setup({ ...testUser, tutorialMode: true })
-    expect(screen.getByText(/Read here and take notes as you go/)).toBeVisible()
-    expect(screen.getByText(/Select a title to read it beside your notes/)).toBeVisible()
-    expect(screen.getByText(/We look up its title for you/)).toBeVisible()
-    expect(screen.queryByRole('button', { name: 'About adding an item' })).toBeNull()
+    expect(
+      screen.getByText(/This is your reading list\. Click through to take notes/),
+    ).toBeVisible()
+    expect(screen.getByText(/move them to an idea’s reading list/)).toBeVisible()
   })
 
-  it('keeps the same words behind an info icon, and the page-purpose lines off, when it is off', async () => {
+  it('says nothing of it when it is off, and has no other tutorial text on the page', async () => {
     await setup({ ...testUser, tutorialMode: false })
-    expect(screen.queryByText(/Read here and take notes as you go/)).toBeNull()
-    expect(screen.queryByText(/Select a title to read it beside your notes/)).toBeNull()
-    expect(screen.getByRole('button', { name: 'About adding an item' })).toBeInTheDocument()
+    expect(screen.queryByText(/This is your reading list/)).toBeNull()
+    expect(screen.queryByRole('button', { name: /^About/ })).toBeNull()
   })
 })

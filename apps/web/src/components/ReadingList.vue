@@ -10,7 +10,6 @@ import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
-import Explain from './Explain.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveFields from './MoveFields.vue'
@@ -26,8 +25,6 @@ import QueryState from './QueryState.vue'
 const props = defineProps<{
   publicationId: string
   ideaId: string | null
-  /** The page already has this as its title; keep the heading for screen readers only. */
-  quietHeading?: boolean
 }>()
 const list = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 
@@ -241,26 +238,21 @@ function removeChosen() {
 
 <template>
   <section aria-labelledby="links-heading" class="mb-10">
-    <h2
-      id="links-heading"
-      ref="heading"
-      tabindex="-1"
-      class="mb-1 font-display text-xl font-semibold"
-      :class="{ 'sr-only': quietHeading }"
-    >
-      Reading list
-    </h2>
-    <p v-if="ideaId" class="mb-3 text-sm text-ink-soft">
-      Articles, papers or earlier posts that this idea builds on or responds to. Mark each one Read
-      when you have read it, even if you read it somewhere else.
-    </p>
-    <Explain v-else tutorial-only class="mb-4">
-      Read here and take notes as you go. Later you can gather the notes into ideas.
-    </Explain>
-
     <QueryState :query="list" what="the reading list" loading="Loading the reading list…">
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
       <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" @added="showAdded" />
+      <h2
+        id="links-heading"
+        ref="heading"
+        tabindex="-1"
+        class="mb-1 font-display text-xl font-semibold"
+      >
+        Reading list
+      </h2>
+      <p v-if="ideaId" class="mb-3 text-sm text-ink-soft">
+        Articles, papers or earlier posts that this idea builds on or responds to. Mark each one
+        Read when you have read it, even if you read it somewhere else.
+      </p>
       <div
         v-if="mover.outcome.value"
         role="status"
@@ -292,7 +284,6 @@ function removeChosen() {
         </template>
       </p>
       <template v-else>
-        <Explain tutorial-only class="mb-3"> Select a title to read it beside your notes. </Explain>
         <PageNav
           v-if="paging.pageCount.value > 1"
           v-bind="paging.nav.value"

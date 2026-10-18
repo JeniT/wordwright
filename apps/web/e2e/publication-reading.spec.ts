@@ -152,13 +152,14 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
   await expect(recent.getByRole('button', { name: /^Add to the reading list/ })).toHaveCount(0)
   await noViolations(page, 'recent posts after adding')
 
-  // It is on the publication's reading list (on Read), marked as from a feed.
+  // It is on the publication's reading list (on Read), with no chip: most items come from a feed.
   await goTo(page, 'Read')
   const item = page
     .getByRole('region', { name: 'Reading list' })
     .getByRole('listitem')
     .filter({ hasText: title })
-  await expect(item).toContainText('From a feed')
+  await expect(item).toBeVisible()
+  await expect(item).not.toContainText('From a feed')
   await goTo(page, 'Search')
 
   // Reconsidering takes it off again.

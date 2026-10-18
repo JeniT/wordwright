@@ -59,13 +59,12 @@ function startEditing() {
   return start('link')
 }
 
-/** Where an item came from, when it wasn't the writer. The AI's are marked with the highlighter; a feed's are not. */
+/** Where an item came from, when the AI, not the writer, put it here (marked with the highlighter). */
 const aiOrigin: Partial<Record<ReadingOrigin, string>> = {
   brainstorm: 'Suggested in brainstorming',
   research: 'Found by research',
   idea_generation: 'From idea generation',
 }
-const otherOrigin: Partial<Record<ReadingOrigin, string>> = { feed: 'From a feed' }
 
 // Whether it has been read is the writer's say-so (they may have read it offline). A switch flips at once; if
 // saving fails it goes back to what is saved.
@@ -175,46 +174,68 @@ function saveLink() {
               <span v-if="aiOrigin[link.origin]" class="chip chip-ai">{{
                 aiOrigin[link.origin]
               }}</span>
-              <span v-else-if="otherOrigin[link.origin]" class="chip chip-quiet">{{
-                otherOrigin[link.origin]
-              }}</span>
             </p>
           </div>
-          <div class="flex shrink-0 items-center gap-2">
-            <button
-              ref="editButton"
-              v-tip="'Edit'"
-              type="button"
-              class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Edit ${label()}`"
-              @click="startEditing"
-            >
-              <Icon name="edit" />
-            </button>
-            <TagButton
-              ref="tagButton"
-              :label="label()"
-              :open="tagging"
-              @toggle="tagging ? stopTagging() : (tagging = true)"
-            />
-            <button
-              v-tip="'Move'"
-              type="button"
-              class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Move ${label()}`"
-              @click="emit('move')"
-            >
-              <Icon name="move" />
-            </button>
-            <HoldButton
-              :tip="removeHint()"
-              verb="Remove"
-              class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-              :aria-label="`Remove ${label()}`"
-              @confirm="emit('remove')"
-            >
-              <Icon name="remove" />
-            </HoldButton>
+          <div class="flex shrink-0 flex-col items-end gap-1">
+            <div class="flex items-center gap-2">
+              <button
+                ref="editButton"
+                v-tip="'Edit'"
+                type="button"
+                class="btn btn-sm btn-icon btn-ghost"
+                :aria-label="`Edit ${label()}`"
+                @click="startEditing"
+              >
+                <Icon name="edit" />
+              </button>
+              <TagButton
+                ref="tagButton"
+                :label="label()"
+                :open="tagging"
+                @toggle="tagging ? stopTagging() : (tagging = true)"
+              />
+              <button
+                v-tip="'Move'"
+                type="button"
+                class="btn btn-sm btn-icon btn-ghost"
+                :aria-label="`Move ${label()}`"
+                @click="emit('move')"
+              >
+                <Icon name="move" />
+              </button>
+              <HoldButton
+                :tip="removeHint()"
+                verb="Remove"
+                class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
+                :aria-label="`Remove ${label()}`"
+                @confirm="emit('remove')"
+              >
+                <Icon name="remove" />
+              </HoldButton>
+            </div>
+            <div class="flex flex-wrap items-center justify-end gap-x-4">
+              <SwitchField
+                ref="readSwitch"
+                :model-value="!!link.readAt"
+                label="Read"
+                :name="`Read: ${label()}`"
+                :disabled="setRead.isPending.value"
+                @update:model-value="toggleRead"
+              />
+              <!-- Only the publication's own list drops items after a month; this one is to stay. -->
+              <SwitchField
+                v-if="!ideaId"
+                ref="keepSwitch"
+                :model-value="!!link.kept"
+                label="Keep"
+                :name="`Keep: ${label()}`"
+                :disabled="setKept.isPending.value"
+                @update:model-value="toggleKept"
+              />
+              <p v-if="!ideaId && (link.kept || dropsOn())" class="meta">
+                {{ link.kept ? 'Kept forever' : `Kept until ${dropsOn()}` }}
+              </p>
+            </div>
           </div>
         </div>
         <TagEditor
@@ -228,29 +249,6 @@ function saveLink() {
         <p v-if="link.why" class="mt-2 text-sm text-ink-soft">
           <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
         </p>
-        <div class="mt-1 flex flex-wrap items-center gap-x-6">
-          <SwitchField
-            ref="readSwitch"
-            :model-value="!!link.readAt"
-            label="Read"
-            :name="`Read: ${label()}`"
-            :disabled="setRead.isPending.value"
-            @update:model-value="toggleRead"
-          />
-          <!-- Only the publication's own list drops items after a month; this one is to stay. -->
-          <SwitchField
-            v-if="!ideaId"
-            ref="keepSwitch"
-            :model-value="!!link.kept"
-            label="Keep"
-            :name="`Keep: ${label()}`"
-            :disabled="setKept.isPending.value"
-            @update:model-value="toggleKept"
-          />
-          <p v-if="!ideaId && (link.kept || dropsOn())" class="meta">
-            {{ link.kept ? 'Kept forever' : `Kept until ${dropsOn()}` }}
-          </p>
-        </div>
         <p
           v-if="setRead.isError.value || setKept.isError.value"
           role="alert"
