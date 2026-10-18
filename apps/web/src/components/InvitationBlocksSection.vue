@@ -4,6 +4,7 @@ import { useTemplateRef, watch } from 'vue'
 import { api } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
+import RowList from './RowList.vue'
 import SaveStatus from './SaveStatus.vue'
 import SwitchField from './SwitchField.vue'
 
@@ -54,13 +55,16 @@ const unblock = useMutation({
         <p v-if="blocks.data.value.senders.length === 0" class="text-sm text-ink-soft">
           No one blocked. Use Decline in an invitation email to block its sender.
         </p>
-        <ul v-else class="mb-2 space-y-1">
-          <li
-            v-for="sender in blocks.data.value.senders"
-            :key="sender.id"
-            class="flex items-center justify-between gap-3 text-sm"
-          >
-            <span>{{ sender.name }}</span>
+        <RowList
+          v-else
+          :items="blocks.data.value.senders"
+          label="Blocked senders"
+          class="mb-2 text-sm"
+        >
+          <template #default="{ item: sender }">
+            <span class="min-w-0 flex-1">{{ sender.name }}</span>
+          </template>
+          <template #actions="{ item: sender }">
             <button
               type="button"
               class="btn btn-outline btn-sm"
@@ -70,8 +74,8 @@ const unblock = useMutation({
             >
               Unblock
             </button>
-          </li>
-        </ul>
+          </template>
+        </RowList>
         <SaveStatus :mutation="[setAll, unblock]" saved="" class="mt-2" />
       </template>
     </QueryState>

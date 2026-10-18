@@ -7,6 +7,7 @@ import { queryKeys, invalidateRoots } from '../lib/queries'
 import ConfirmDialog from './ConfirmDialog.vue'
 import Icon from './Icon.vue'
 import QueryState from './QueryState.vue'
+import RowList from './RowList.vue'
 import SaveStatus from './SaveStatus.vue'
 
 const queryClient = useQueryClient()
@@ -41,13 +42,9 @@ const devicesWord = (n: number) => `${n} other ${n === 1 ? 'device' : 'devices'}
     <h2 id="devices-heading" class="mb-1 font-display text-xl font-semibold">Devices</h2>
     <p class="mb-3 text-sm text-ink-soft">Sign out a device you've lost or shared.</p>
     <QueryState :query="devices" what="your devices">
-      <ul class="panel mb-3 divide-y divide-line">
-        <li
-          v-for="device in devices.data.value"
-          :key="device.id"
-          class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3"
-        >
-          <div class="min-w-0">
+      <RowList :items="devices.data.value ?? []" label="Devices" class="mb-3">
+        <template #default="{ item: device }">
+          <div class="min-w-0 flex-1">
             <p class="font-medium">
               {{ device.deviceLabel }}
               <span v-if="device.current" class="chip chip-quiet ml-1">This device</span>
@@ -56,6 +53,8 @@ const devicesWord = (n: number) => `${n} other ${n === 1 ? 'device' : 'devices'}
               Last used <time :datetime="device.lastUsedAt">{{ when(device.lastUsedAt) }}</time>
             </p>
           </div>
+        </template>
+        <template #actions="{ item: device }">
           <button
             v-if="!device.current"
             type="button"
@@ -67,8 +66,8 @@ const devicesWord = (n: number) => `${n} other ${n === 1 ? 'device' : 'devices'}
             <Icon name="sign-out" :size="16" />
             Sign out
           </button>
-        </li>
-      </ul>
+        </template>
+      </RowList>
       <p v-if="!others.length" class="mb-3 text-sm text-ink-soft">Only this device is signed in</p>
       <button
         v-else

@@ -7,6 +7,7 @@ import { queryKeys } from '../lib/queries'
 import { usePublication } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
+import RowList from './RowList.vue'
 
 /**
  * Sending the draft for review. The draft's title and body are frozen as a snapshot, and the people asked (by email, or
@@ -145,17 +146,20 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
             {{ s.unresolved }} {{ s.unresolved === 1 ? 'comment' : 'comments' }} to answer
           </li>
         </ul>
-        <ul v-if="list.data.value?.reviewers.length" class="mb-3 space-y-2" aria-label="Reviewers">
-          <li
-            v-for="r in list.data.value.reviewers"
-            :key="r.id"
-            class="flex flex-wrap items-center gap-x-3 gap-y-1"
-          >
-            <span>
+        <RowList
+          v-if="list.data.value?.reviewers.length"
+          :items="list.data.value.reviewers"
+          label="Reviewers"
+          class="mb-3"
+        >
+          <template #default="{ item: r }">
+            <span class="min-w-0 flex-1">
               <strong>{{ r.name }}</strong> · {{ stateLabel[r.state] }} · {{ r.commentCount }}
               {{ r.commentCount === 1 ? 'comment' : 'comments' }} · sent
               {{ when(r.sentAt) }}
             </span>
+          </template>
+          <template #actions="{ item: r }">
             <button
               v-if="r.state === 'open'"
               type="button"
@@ -166,8 +170,8 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
             >
               Close review
             </button>
-          </li>
-        </ul>
+          </template>
+        </RowList>
         <button
           v-if="anyOpen"
           type="button"
@@ -177,17 +181,15 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
         >
           Stop accepting reviews
         </button>
-        <ul
+        <RowList
           v-if="list.data.value?.pending.length"
-          class="space-y-2"
-          aria-label="Invitations waiting"
+          :items="list.data.value.pending"
+          label="Invitations waiting"
         >
-          <li
-            v-for="p in list.data.value.pending"
-            :key="p.id"
-            class="flex flex-wrap items-center gap-x-3 gap-y-1"
-          >
-            <span>{{ p.email }} · waiting for a reply</span>
+          <template #default="{ item: p }">
+            <span class="min-w-0 flex-1">{{ p.email }} · waiting for a reply</span>
+          </template>
+          <template #actions="{ item: p }">
             <button
               type="button"
               class="btn btn-sm btn-neutral"
@@ -197,8 +199,8 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
             >
               Withdraw
             </button>
-          </li>
-        </ul>
+          </template>
+        </RowList>
       </QueryState>
     </div>
   </details>

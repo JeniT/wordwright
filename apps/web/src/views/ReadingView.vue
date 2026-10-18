@@ -13,6 +13,7 @@ import { invalidateRoots, useIdeaNotes } from '../lib/queries'
 import { nameList, noteOriginPhrase } from '../lib/note-label'
 import { readingBackRoute, readingRoute, useReadingList } from '../lib/reading'
 import QueryState from '../components/QueryState.vue'
+import RowList from '../components/RowList.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
 /** Reading one item of an idea's reading list, or (no `id`) of the publication's own, and taking notes from it. */
@@ -349,17 +350,19 @@ const add = useMutation({
         <p v-if="!itemNotes.length" class="mb-4 text-ink-soft">
           No notes from this page yet. Add the first above.
         </p>
-        <ul v-else class="mb-4 divide-y divide-line rounded-ctl border border-line bg-surface">
-          <li v-for="note in itemNotes" :key="note.id" class="px-4 py-3">
-            <NoteText :note="note" />
-            <p class="mt-1 text-xs text-ink-soft">
-              <NoteOrigin
-                :phrase="noteOriginPhrase(note, list.links.value ?? [])"
-                :author-name="note.authorName"
-              />
-            </p>
-          </li>
-        </ul>
+        <RowList v-else :items="itemNotes" label="Notes from this page" bare class="mb-4">
+          <template #default="{ item: note }">
+            <div class="px-4 py-3">
+              <NoteText :note="note" />
+              <p class="mt-1 text-xs text-ink-soft">
+                <NoteOrigin
+                  :phrase="noteOriginPhrase(note, list.links.value ?? [])"
+                  :author-name="note.authorName"
+                />
+              </p>
+            </div>
+          </template>
+        </RowList>
       </QueryState>
     </section>
   </article>

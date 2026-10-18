@@ -8,6 +8,7 @@ import RecentReading from '../components/RecentReading.vue'
 import RecentRefine from '../components/RecentRefine.vue'
 import ResearchForm from '../components/ResearchForm.vue'
 import SettingsButton from '../components/SettingsButton.vue'
+import RowList from '../components/RowList.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
 import { usePublication } from '../lib/usePublications'
 
@@ -107,8 +108,8 @@ const showResearch = () =>
       <p v-if="!idea.drafts.length" class="text-ink-soft">
         No drafts yet. Start one when you’re ready to write.
       </p>
-      <ol v-else class="panel divide-y divide-line" aria-label="Drafts">
-        <li v-for="draft in idea.drafts" :key="draft.id">
+      <RowList v-else :items="idea.drafts" label="Drafts" ordered bare>
+        <template #default="{ item: draft }">
           <RouterLink
             :to="{ name: 'draft', params: { publicationId, id: draft.id } }"
             class="flex items-baseline justify-between gap-3 px-4 py-3 no-underline hover:bg-sunken"
@@ -118,8 +119,8 @@ const showResearch = () =>
               {{ new Date(draft.updatedAt).toLocaleDateString() }}
             </time>
           </RouterLink>
-        </li>
-      </ol>
+        </template>
+      </RowList>
     </LandingSection>
   </IdeaGate>
 </template>

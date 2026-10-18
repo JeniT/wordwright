@@ -27,4 +27,12 @@ describe('RowList', () => {
     render(RowList, { props: { items }, slots: { default: slots.default } })
     expect(screen.getAllByRole('listitem')[0]!.querySelector('span.shrink-0')).toBeNull()
   })
+
+  it('in bare mode lets the content fill the row, with no padding or actions zone of its own', () => {
+    render(RowList, { props: { items, bare: true }, slots })
+    const row = screen.getAllByRole('listitem')[0]!
+    expect(row).toHaveTextContent('Row a')
+    expect(row).not.toHaveTextContent('Act a')
+    expect(row.querySelector('.px-3')).toBeNull()
+  })
 })

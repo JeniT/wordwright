@@ -7,6 +7,7 @@ import { useIdeaNotes } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import NoteCard from './NoteCard.vue'
 import QueryState from './QueryState.vue'
+import RowList from './RowList.vue'
 
 /**
  * A summary of notes for a landing page: the latest few, and a link to all of them (adding is Quick add's job). It shares
@@ -41,11 +42,13 @@ const recent = computed(() =>
     </template>
     <QueryState :query="notes" what="the notes">
       <p v-if="!recent.length" class="text-ink-soft">No notes yet.</p>
-      <ul v-else class="panel divide-y divide-line" aria-label="Recent notes">
-        <li v-for="note in recent" :key="note.id" class="flex px-4 py-3">
-          <NoteCard :note="note" :reading-list="reading.links.value ?? []" />
-        </li>
-      </ul>
+      <RowList v-else :items="recent" label="Recent notes" bare>
+        <template #default="{ item: note }">
+          <div class="flex px-4 py-3">
+            <NoteCard :note="note" :reading-list="reading.links.value ?? []" />
+          </div>
+        </template>
+      </RowList>
     </QueryState>
   </LandingSection>
 </template>

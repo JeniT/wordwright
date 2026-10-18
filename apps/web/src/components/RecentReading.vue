@@ -5,6 +5,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { readingRoute, useReadingList } from '../lib/reading'
 import LandingSection from './LandingSection.vue'
 import QueryState from './QueryState.vue'
+import RowList from './RowList.vue'
 
 /**
  * A summary of a reading list for a landing page: the first few items still to read, and a link
@@ -52,8 +53,8 @@ const host = (url: string) => {
             : 'Nothing on the reading list yet.'
         }}
       </p>
-      <ul v-else class="panel divide-y divide-line" aria-label="To read">
-        <li v-for="link in top" :key="link.id">
+      <RowList v-else :items="top" label="To read" bare>
+        <template #default="{ item: link }">
           <RouterLink
             :to="readingRoute({ publicationId, ideaId }, link.id)"
             class="block px-4 py-3 no-underline hover:bg-sunken"
@@ -64,8 +65,8 @@ const host = (url: string) => {
               }}<template v-if="link.authors.length"> · {{ link.authors.join(', ') }}</template>
             </span>
           </RouterLink>
-        </li>
-      </ul>
+        </template>
+      </RowList>
     </QueryState>
   </LandingSection>
 </template>

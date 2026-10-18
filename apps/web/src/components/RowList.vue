@@ -13,6 +13,11 @@ defineProps<{
   label?: string
   /** Numbered rows, for a list whose order means something. */
   ordered?: boolean
+  /**
+   * The row's content fills the row itself (no padding, no actions zone), for rows that are one whole link or that
+   * set their own padding.
+   */
+  bare?: boolean
   /** Extra attributes for a row's `li` (a class, drag handlers). */
   rowAttrs?: (item: T) => Record<string, unknown>
 }>()
@@ -40,7 +45,10 @@ defineSlots<{
         v-bind="rowAttrs?.(item)"
       >
         <slot name="rail" :item="item" :index="index" />
-        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
+        <div v-if="bare" class="min-w-0 flex-1">
+          <slot :item="item" :index="index" />
+        </div>
+        <div v-else class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
           <slot :item="item" :index="index" />
           <span v-if="$slots.actions" class="flex shrink-0 flex-wrap items-center gap-1">
             <slot name="actions" :item="item" :index="index" />

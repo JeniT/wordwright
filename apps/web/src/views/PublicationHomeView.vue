@@ -15,6 +15,7 @@ import SettingsButton from '../components/SettingsButton.vue'
 import { useIdeas } from '../lib/queries'
 import { displayHost } from '../lib/usePublications'
 import QueryState from '../components/QueryState.vue'
+import RowList from '../components/RowList.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 
 /**
@@ -110,8 +111,8 @@ const ideas = useIdeas(() => props.publicationId)
             drafts.
           </Explain>
         </template>
-        <ul v-else class="panel divide-y divide-line">
-          <li v-for="idea in ideas.data.value" :key="idea.id">
+        <RowList v-else :items="ideas.data.value" label="Ideas" bare>
+          <template #default="{ item: idea }">
             <RouterLink
               :to="{ name: 'idea', params: { publicationId, id: idea.id } }"
               class="flex items-baseline justify-between gap-3 px-4 py-3 no-underline hover:bg-sunken"
@@ -121,8 +122,8 @@ const ideas = useIdeas(() => props.publicationId)
                 {{ idea.draftCount }} {{ idea.draftCount === 1 ? 'draft' : 'drafts' }}
               </span>
             </RouterLink>
-          </li>
-        </ul>
+          </template>
+        </RowList>
       </QueryState>
     </LandingSection>
   </PublicationGate>
