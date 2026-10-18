@@ -442,7 +442,7 @@ function removeChosen() {
       @confirm="removeChosen"
       @cancel="confirmingRemoveChosen = false"
     >
-      The selected items will be removed from the reading list. This can't be undone.
+      The selected items will be removed from the reading list. This can’t be undone.
     </ConfirmDialog>
   </section>
 </template>

@@ -99,7 +99,6 @@ const save = useMutation({
   },
 })
 
-/** Gives a note exactly these tags (one more or one fewer than before, each time the person presses Enter). */
 // ---- the tag field of one note at a time; closing it puts focus back on its icon
 const taggingId = ref<string | null>(null)
 const tagButtons = new Map<string, { focus: () => void }>()
@@ -111,6 +110,7 @@ function stopTagging(id: string) {
   taggingId.value = null
   void nextTick(() => tagButtons.get(id)?.focus())
 }
+/** Gives a note exactly these tags (one more or one fewer than before, each time the person presses Enter). */
 async function saveTags(note: IdeaNote, tags: string[]) {
   const saved = await api.setIdeaNoteTags(props.publicationId, props.ideaId, note.id, tags)
   setNotes((old: IdeaNote[] | undefined) => old?.map((n) => (n.id === saved.id ? saved : n)))

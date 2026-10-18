@@ -62,7 +62,7 @@ function submit() {
       <template v-if="justAdded">
         Added “{{ justAdded.label }}”.
         <RouterLink :to="readingRoute(owner(), justAdded.id)" class="underline">
-          Open it
+          Open “{{ justAdded.label }}”
         </RouterLink>
       </template>
     </p>

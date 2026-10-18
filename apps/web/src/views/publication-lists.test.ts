@@ -223,7 +223,7 @@ describe('the publication’s reading list', () => {
     expect(
       await screen.findByText(/Added “Title of https:\/\/example\.org\/new”\./),
     ).toBeInTheDocument()
-    expect(await screen.findByRole('link', { name: 'Open it' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /^Open “Title of/ })).toHaveAttribute(
       'href',
       expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/),
     )

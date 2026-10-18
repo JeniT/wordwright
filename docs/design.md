@@ -324,7 +324,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 
 | It...                                             | Use                                 | Examples                                   |
 | ------------------------------------------------- | ----------------------------------- | ------------------------------------------ |
-| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this link, Select all               |
+| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this item, Select all               |
 | sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                 |
 | sets a view option for the list                   | **switch** or a select, on the left | Show read items                            |
 | does something or opens something                 | **button**                          | Edit, Tag, Remove, Move to…, Add item      |
@@ -347,7 +347,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
   item), and for everything in a list's toolbar. (The editors' formatting toolbar is the exception: icon-only, since its buttons are
   the familiar formatting symbols; see the editors' toolbar below.)
 - **Icon only** (`btn btn-sm btn-icon btn-ghost` + `Icon`, no border) for actions that repeat on every row, are rare, and have a
-  universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove link to A paper") and
+  universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove A paper") and
   a tooltip (`v-tip`, below); a 36px target.
 - **Tooltip on an icon-only button: `v-tip`, not `title`** (`lib/tip.ts`; on a `HoldButton`, its `tip` prop). The browser's `title`
   shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
@@ -362,7 +362,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 | -------------- | ------------------------------------------------ | ------------------------------------------------------------- |
 | Primary        | `btn-primary`, one per screen area               | The page's main action (not in a list)                        |
 | Section action | `btn-outline` (accent)                           | The thing the list is for: Add item                           |
-| Row's verb     | `btn-neutral btn-sm`                             | (a row's title is a link; it needs no button)                 |
+| Row's verb     | `btn-neutral btn-sm`                             | Only where a row has one main verb a title link can't carry   |
 | Row utilities  | `btn-ghost btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
 | Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Tag…, Move to…, Remove N (opens a dialog)                     |
 
