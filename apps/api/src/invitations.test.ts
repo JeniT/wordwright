@@ -380,6 +380,86 @@ describe('accepting', () => {
   })
 })
 
+describe('invitations waiting for the signed-in person', () => {
+  /** Bob has an account whose address is confirmed, and Ada has invited him. */
+  async function invitedBob(confirmed = true) {
+    const w = await world()
+    const bob = w.ctx.client()
+    await register(bob, 'bob@example.com', 'Bob')
+    if (confirmed) verifyAccounts(w.ctx, 'bob@example.com')
+    await w.invite('bob@example.com')
+    return { ...w, bob }
+  }
+  const mine = async (c: TestClient) => (await c.get('/api/invitations/mine')).json()
+
+  it('lists what is waiting for their confirmed address, without the link', async () => {
+    const { bob } = await invitedBob()
+    expect(await mine(bob)).toEqual([
+      expect.objectContaining({
+        publicationName: "Ada Lovelace's writing",
+        inviterName: 'Ada Lovelace',
+      }),
+    ])
+  })
+
+  it('shows an unconfirmed account the same empty list as one with nothing waiting, and no way in', async () => {
+    const { bob, ctx, publicationId, ada } = await invitedBob(false)
+    expect(await mine(bob)).toEqual([])
+    const [pending] = await (await ada.get(`/api/publications/${publicationId}/invitations`)).json()
+    expect((await bob.post(`/api/invitations/mine/${pending.id}/accept`, {})).status).toBe(404)
+    expect((await bob.get(`/api/publications/${publicationId}`)).status).toBe(404)
+    const stranger = ctx.client()
+    await register(stranger, 'carol@example.com', 'Carol')
+    expect(await mine(stranger)).toEqual([])
+  })
+
+  it('needs sign-in', async () => {
+    const { ctx } = await invitedBob()
+    expect((await ctx.client().get('/api/invitations/mine')).status).toBe(401)
+  })
+
+  it('accepting joins them as a member and takes it off the list', async () => {
+    const { bob, publicationId } = await invitedBob()
+    const [{ id }] = await mine(bob)
+    const res = await bob.post(`/api/invitations/mine/${id}/accept`, {})
+    expect(await res.json()).toEqual({ publicationId })
+    expect((await (await bob.get(`/api/publications/${publicationId}`)).json()).role).toBe('member')
+    expect(await mine(bob)).toEqual([])
+    expect((await bob.post(`/api/invitations/mine/${id}/accept`, {})).status).toBe(404)
+  })
+
+  it("won't let someone else accept or decline it", async () => {
+    const { ctx, bob } = await invitedBob()
+    const [{ id }] = await mine(bob)
+    const carol = ctx.client()
+    await register(carol, 'carol@example.com', 'Carol')
+    verifyAccounts(ctx, 'carol@example.com')
+    expect((await carol.post(`/api/invitations/mine/${id}/accept`, {})).status).toBe(404)
+    expect((await carol.post(`/api/invitations/mine/${id}/decline`, {})).status).toBe(404)
+    expect(await mine(bob)).toHaveLength(1)
+  })
+
+  it('declining removes it, tells the inviter nothing, and can stop future ones from that person', async () => {
+    const { bob, ada, publicationId, invite } = await invitedBob()
+    const [{ id }] = await mine(bob)
+    expect(
+      (await bob.post(`/api/invitations/mine/${id}/decline`, { block: 'sender' })).status,
+    ).toBe(200)
+    expect(await mine(bob)).toEqual([])
+    expect(await (await ada.get(`/api/publications/${publicationId}/invitations`)).json()).toEqual(
+      [],
+    )
+    await invite('bob@example.com') // a blocked sender: same quiet answer, nothing arrives
+    expect(await mine(bob)).toEqual([])
+  })
+
+  it('leaves out expired invitations', async () => {
+    const { ctx, bob } = await invitedBob()
+    ctx.clock.now = new Date(ctx.clock.now.getTime() + 7 * 24 * 3600 * 1000 + 1000)
+    expect(await mine(bob)).toEqual([])
+  })
+})
+
 describe('cleanup', () => {
   it('removes invitations addressed to someone when they delete their account', async () => {
     const { ctx, invite } = await world()

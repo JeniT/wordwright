@@ -28,6 +28,8 @@ export const queryKeys = {
   /** Tutorial mode's seen pages and answered offer (#198). */
   tutorial: () => ['tutorial'] as const,
   reviews: () => ['reviews'] as const,
+  /** Invitations to join a publication that are waiting for this person. */
+  myInvitations: () => ['my-invitations'] as const,
   /** The drafts Home offers to pick up again. */
   recentDrafts: () => ['recent-drafts'] as const,
   review: (id: string) => ['review', id] as const,
@@ -60,6 +62,7 @@ export type QueryRoot =
   | 'idea'
   | 'idea-move-preview'
   | 'ideas'
+  | 'my-invitations'
   | 'notes'
   | 'reading'
   | 'recent-drafts'

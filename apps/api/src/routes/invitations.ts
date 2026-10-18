@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import {
   DeclineInvitationInputSchema,
+  DeclineMyInvitationInputSchema,
   InviteInputSchema,
   InvitationTokenInputSchema,
   SetBlockAllInputSchema,
@@ -103,6 +104,28 @@ export function invitationRoutes(invitations: InvitationService, accounts: Accou
         }
         return c.body(null, 204)
       })
+      // What is waiting for the signed-in person (Home offers it without the emailed link).
+      .get('/mine', requireUser(accounts), (c) => c.json(invitations.mine(c.get('user'))))
+      .post('/mine/:id/accept', requireUser(accounts), (c) => {
+        try {
+          return c.json(invitations.acceptMine(c.get('user'), param(c, 'id')))
+        } catch (err) {
+          return toHttpError(err)
+        }
+      })
+      .post(
+        '/mine/:id/decline',
+        requireUser(accounts),
+        validateJson(DeclineMyInvitationInputSchema),
+        (c) => {
+          try {
+            invitations.declineMine(c.get('user'), param(c, 'id'), c.req.valid('json').block)
+          } catch (err) {
+            return toHttpError(err)
+          }
+          return c.json({ ok: true })
+        },
+      )
       .post('/accept', requireUser(accounts), validateJson(InvitationTokenInputSchema), (c) => {
         try {
           return c.json(invitations.accept(c.get('user'), c.req.valid('json').token))

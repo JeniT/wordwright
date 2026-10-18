@@ -1,7 +1,13 @@
 import { firstAvailable, suggestHandle } from '@wordwright/core'
-import type { Invitation, InvitationBlocks, InvitationPreview } from '@wordwright/core'
+import type {
+  Invitation,
+  InvitationBlocks,
+  InvitationPreview,
+  MyInvitation,
+} from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
+import type { InvitationRecord } from '../db/invitations'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { sendInBackground } from '../mail/background'
@@ -127,6 +133,12 @@ export class InvitationService {
         'This invitation was sent to a different email address. Sign in with the address it was sent to.',
       )
     }
+    this.join(user, usable)
+    return { publicationId: usable.publicationId }
+  }
+
+  private join(user: UserRecord, usable: InvitationRecord) {
+    const { store } = this.d
     store.transaction(() => {
       if (!store.publications.roleOf(usable.publicationId, user.id)) {
         store.publications.addMember(usable.publicationId, user.id, 'member')
@@ -144,7 +156,46 @@ export class InvitationService {
         store.users.clearHandleChosen(user.id)
       }
     })
-    return { publicationId: usable.publicationId }
+  }
+
+  /**
+   * What is waiting for the signed-in person, so Home can offer it without the emailed link. Only for an address
+   * they have confirmed (the link proves the inbox; a typed-in address does not), and an unconfirmed account gets
+   * the same empty answer as one with nothing waiting.
+   */
+  mine(user: UserRecord): MyInvitation[] {
+    if (!user.emailVerified) return []
+    return this.d.store.invitations.listPendingForEmail(user.email, this.now()).map((r) => ({
+      id: r.id,
+      publicationName: r.publicationName,
+      inviterName: r.inviterName,
+      expiresAt: r.expiresAt.toISOString(),
+    }))
+  }
+
+  acceptMine(user: UserRecord, id: string): { publicationId: string } {
+    const inv = this.usableMine(user, id)
+    this.join(user, inv)
+    return { publicationId: inv.publicationId }
+  }
+
+  declineMine(user: UserRecord, id: string, block: 'none' | 'sender' | 'all'): void {
+    this.decide(this.usableMine(user, id), block)
+  }
+
+  /** Anything that isn't theirs, or isn't waiting, is simply not found. */
+  private usableMine(user: UserRecord, id: string): InvitationRecord {
+    const inv = this.d.store.invitations.findById(id)
+    if (
+      !user.emailVerified ||
+      !inv ||
+      inv.email !== user.email ||
+      inv.acceptedBy !== null ||
+      inv.expiresAt <= this.now()
+    ) {
+      throw new InvitationError('not_found', 'Not found')
+    }
+    return inv
   }
 
   /**
@@ -153,8 +204,11 @@ export class InvitationService {
    * is already pending. The inviter is not told: the invitation just stops being pending.
    */
   decline(token: string, block: 'none' | 'sender' | 'all'): void {
+    this.decide(this.usable(token), block)
+  }
+
+  private decide(inv: InvitationRecord, block: 'none' | 'sender' | 'all'): void {
     const { store } = this.d
-    const inv = this.usable(token)
     store.transaction(() => {
       store.invitations.deletePending(inv.id)
       if (block === 'sender') store.invitations.addBlock(inv.email, inv.invitedBy)

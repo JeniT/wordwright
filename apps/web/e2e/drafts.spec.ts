@@ -1265,6 +1265,31 @@ test('invites someone who already has an account; the link only works for that a
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
+test('an invited person with a confirmed address sees the invitation on Home and joins from there', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  const bobPage = await (await browser.newContext()).newPage()
+  const bobProblems = watchForProblems(bobPage)
+  const bobEmail = await registerUser(bobPage, 'Bob')
+  await confirmEmail(bobPage, bobEmail)
+
+  await invite(page, bobEmail)
+
+  // Bob never opens the email: it is waiting on his Home page.
+  await bobPage.goto('/')
+  const panel = bobPage.getByRole('region', { name: 'Invitations' })
+  await expect(panel).toContainText('Ada invited you to write together')
+  expect((await new AxeBuilder({ page: bobPage }).analyze()).violations).toEqual([])
+  await panel.getByRole('button', { name: /^Join / }).click()
+  await expect(bobPage.getByRole('banner')).toContainText("Ada's writing")
+  await bobPage.goto('/')
+  await expect(bobPage.getByRole('region', { name: 'Invitations' })).toHaveCount(0)
+  expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
 test('revoking an invitation stops its link working', async ({ page, browser }) => {
   const adaEmail = await registerUser(page, 'Ada')
   await confirmEmail(page, adaEmail)

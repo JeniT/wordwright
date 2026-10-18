@@ -43,6 +43,8 @@ export const server = setupServer(
   http.get('*/api/account/tutorial', () =>
     HttpResponse.json({ on: false, seen: [], answered: false }),
   ),
+  // Home asks for invitations waiting for the person; none unless a test says otherwise.
+  http.get('*/api/invitations/mine', () => HttpResponse.json([])),
   // The AI buttons read which provider's key they spend; a key is set unless a test says otherwise.
   http.get('*/api/llm', () =>
     HttpResponse.json({

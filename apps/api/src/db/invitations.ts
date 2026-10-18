@@ -14,6 +14,19 @@ export interface InvitationRecord {
   acceptedBy: string | null
 }
 
+function toRecord(row: Record<string, string | null>): InvitationRecord {
+  return {
+    id: row.id!,
+    publicationId: row.publication_id!,
+    publicationName: row.publication_name!,
+    invitedBy: row.invited_by!,
+    inviterName: row.inviter_name!,
+    email: row.email!,
+    expiresAt: new Date(row.expires_at!),
+    acceptedBy: row.accepted_by ?? null,
+  }
+}
+
 /** Callers pass the *hash* of the secret token; the token itself is never stored. */
 export class InvitationStore {
   constructor(private readonly db: DatabaseSync) {}
@@ -49,29 +62,26 @@ export class InvitationStore {
     return id
   }
 
+  private recordSql(where: string) {
+    return `SELECT i.id, i.publication_id, i.invited_by, i.email, i.expires_at, i.accepted_by,
+                   p.name AS publication_name, u.name AS inviter_name
+            FROM invitations i
+            JOIN publications p ON p.id = i.publication_id
+            JOIN users u ON u.id = i.invited_by
+            WHERE ${where}
+            ORDER BY i.created_at DESC, i.rowid DESC`
+  }
+
   findByTokenHash(tokenHash: string): InvitationRecord | undefined {
-    const row = this.db
-      .prepare(
-        `SELECT i.id, i.publication_id, i.invited_by, i.email, i.expires_at, i.accepted_by,
-                p.name AS publication_name, u.name AS inviter_name
-         FROM invitations i
-         JOIN publications p ON p.id = i.publication_id
-         JOIN users u ON u.id = i.invited_by
-         WHERE i.token_hash = ?`,
-      )
-      .get(tokenHash) as Record<string, string | null> | undefined
-    return (
-      row && {
-        id: row.id!,
-        publicationId: row.publication_id!,
-        publicationName: row.publication_name!,
-        invitedBy: row.invited_by!,
-        inviterName: row.inviter_name!,
-        email: row.email!,
-        expiresAt: new Date(row.expires_at!),
-        acceptedBy: row.accepted_by ?? null,
-      }
-    )
+    const row = this.db.prepare(this.recordSql('i.token_hash = ?')).get(tokenHash) as
+      Record<string, string | null> | undefined
+    return row && toRecord(row)
+  }
+
+  findById(id: string): InvitationRecord | undefined {
+    const row = this.db.prepare(this.recordSql('i.id = ?')).get(id) as
+      Record<string, string | null> | undefined
+    return row && toRecord(row)
   }
 
   /** Pending (unaccepted, unexpired) invitations for a publication, newest first. */
@@ -89,6 +99,15 @@ export class InvitationStore {
         expires_at: string
       }[]
     ).map((r) => ({ id: r.id, email: r.email, expiresAt: r.expires_at }))
+  }
+
+  /** Pending (unaccepted, unexpired) invitations addressed to this email, newest first. */
+  listPendingForEmail(email: string, now: Date): InvitationRecord[] {
+    return (
+      this.db
+        .prepare(this.recordSql('i.email = ? AND i.accepted_at IS NULL AND i.expires_at > ?'))
+        .all(email, now.toISOString()) as Record<string, string | null>[]
+    ).map(toRecord)
   }
 
   markAccepted(id: string, userId: string) {

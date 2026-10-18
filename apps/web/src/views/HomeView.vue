@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
+import PendingInvitations from '../components/PendingInvitations.vue'
 import PickUp from '../components/PickUp.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import PublicationImage from '../components/PublicationImage.vue'
@@ -41,6 +42,8 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
   <div v-if="session.user && !session.user.handleChosen" class="mb-10 panel p-5">
     <UsernameSection prompt />
   </div>
+  <!-- Invitations to join a publication, above the checklist: joining one settles its first step. -->
+  <PendingInvitations />
   <!-- First run: two steps that never block each other. Gone once both are done. -->
   <section v-if="needsSetup" class="mb-10 panel p-5" aria-labelledby="setup-heading">
     <h2 id="setup-heading" class="mb-4 font-display text-xl font-semibold">Get started</h2>

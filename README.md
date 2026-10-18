@@ -307,7 +307,10 @@ tests inject fakes and nothing hits the network.
   _that_ address (a new person is joined as soon as they have; someone already signed in sees a Join button, and the
   sign-in link carries `join=1` so the page knows which). Nobody is ever added without opening the link, the owner's reply is identical
   whether or not the address has an account or is already in (so it can't be used to look people up), and
-  accepting from the emailed link also confirms the invitee's address. Owners see pending invitations and can
+  accepting from the emailed link also confirms the invitee's address. Someone whose address is already confirmed also
+  sees their pending invitations on Home (`GET /invitations/mine`, then `POST /invitations/mine/:id/accept` or
+  `/decline`), so they needn't find the email; an unconfirmed account gets the same empty list as one with nothing
+  waiting, because a typed-in address does not prove the inbox. Owners see pending invitations and can
   resend or revoke them, and make members owners (or remove other owners, or step down) from the people list on
   the publication's Sharing page (the page says what members and owners can do behind info icons beside the People and Invitations headings, from the wording in
   `apps/web/src/lib/publication-roles.ts`; invitees always join as members; every row of both lists is the shared `RowList`); each person can send 20 a day since every one emails a stranger, and any one address

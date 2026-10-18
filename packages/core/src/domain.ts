@@ -406,6 +406,20 @@ export const InvitationPreviewSchema = z.object({
 })
 export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>
 
+/** An invitation waiting for the signed-in person, listed on Home so they needn't find the emailed link. */
+export const MyInvitationSchema = z.object({
+  id: z.string(),
+  publicationName: z.string(),
+  inviterName: z.string(),
+  expiresAt: z.string(),
+})
+export type MyInvitation = z.infer<typeof MyInvitationSchema>
+/** Declining one of those: optionally also stop invitations from the sender, or from everyone. */
+export const DeclineMyInvitationInputSchema = z.object({
+  block: z.enum(['none', 'sender', 'all']).default('none'),
+})
+export type DeclineMyInvitationInput = z.input<typeof DeclineMyInvitationInputSchema>
+
 export const InvitationTokenInputSchema = z.object({ token: z.string().min(1).max(200) })
 /** What happens, besides declining this one invitation. */
 export const DeclineInvitationInputSchema = z.object({

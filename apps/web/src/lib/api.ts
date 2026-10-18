@@ -27,6 +27,7 @@ import {
   IdeaSchema,
   IdeaSummarySchema,
   InvitationBlocksSchema,
+  MyInvitationSchema,
   InvitationPreviewSchema,
   InvitationSchema,
   LlmModelsSchema,
@@ -222,6 +223,12 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     setBlockAllInvitations: (blocked: boolean) =>
       act('PUT', '/invitations/blocks/all', { blocked }),
     unblockInviter: (senderId: string) => act('DELETE', `/invitations/blocks/senders/${senderId}`),
+    /** Invitations waiting for this person's confirmed address, so Home can offer them without the emailed link. */
+    listMyInvitations: () => get(MyInvitationSchema.array(), 'GET', '/invitations/mine'),
+    acceptMyInvitation: (id: string) =>
+      get(AcceptInvitationResultSchema, 'POST', `/invitations/mine/${id}/accept`, {}),
+    declineMyInvitation: (id: string, block: 'none' | 'sender' | 'all') =>
+      act('POST', `/invitations/mine/${id}/decline`, { block }),
     acceptInvitation: (token: string) =>
       get(AcceptInvitationResultSchema, 'POST', '/invitations/accept', { token }),
     /** What is waiting on this person in the publication: offers, and the reviews of drafts they edit. */
