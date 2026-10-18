@@ -194,7 +194,7 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   await description.press('ControlOrMeta+a')
   await page.getByRole('button', { name: 'Bold' }).click()
   await expect(page.getByRole('button', { name: 'Bold' })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: 'Link' }).click()
+  await page.getByRole('button', { name: 'Link', exact: true }).click()
   await page.getByLabel('Link address').fill('example.com')
   await page.getByRole('button', { name: 'Add link' }).click()
   await expect(description.locator('a')).toHaveAttribute('href', 'https://example.com')
@@ -205,6 +205,14 @@ test('edits details, changes and removes the picture, and deletes the publicatio
   await expect(description.locator('strong')).toHaveText('Personal weeknotes, mostly for me.')
   await expect(description.locator('a')).toHaveAttribute('href', 'https://example.com')
   await noViolations(page)
+
+  // Focus looks like any field: the border changes, with no ring inside it. Remove link is for when the cursor is in a link.
+  await description.focus()
+  await expect(description).toHaveCSS('outline-color', 'rgba(0, 0, 0, 0)')
+  await description.locator('a').click()
+  await page.getByRole('button', { name: 'Remove link' }).click()
+  await expect(description.locator('a')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Remove link' })).toBeDisabled()
 
   // A non-image is refused with a reason; a real one is accepted.
   await openSettingsPage(page, 'Details')

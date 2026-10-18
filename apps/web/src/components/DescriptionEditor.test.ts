@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue'
 import type { Editor } from '@tiptap/vue-3'
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
@@ -51,9 +51,10 @@ describe('DescriptionEditor', () => {
       'Bulleted list',
       'Numbered list',
       'Link',
+      'Remove link',
     ])
     expect(buttons.every((b) => b.textContent?.trim() === '')).toBe(true) // icons only
-    expect(buttons.map((b) => b.tabIndex)).toEqual([0, -1, -1, -1, -1]) // one tab stop
+    expect(buttons.map((b) => b.tabIndex)).toEqual([0, -1, -1, -1, -1, -1]) // one tab stop
   })
 
   it('moves along the toolbar with the arrow keys, Home and End', async () => {
@@ -65,7 +66,7 @@ describe('DescriptionEditor', () => {
     expect(button('Italic').tabIndex).toBe(0)
     expect(button('Bold').tabIndex).toBe(-1)
     await fireEvent.keyDown(button('Italic'), { key: 'End' })
-    expect(button('Link')).toHaveFocus()
+    expect(button('Link')).toHaveFocus() // Remove link is off, outside a link, so the arrows skip it
     await fireEvent.keyDown(button('Link'), { key: 'ArrowRight' }) // no wrap
     expect(button('Link')).toHaveFocus()
     await fireEvent.keyDown(button('Link'), { key: 'Home' })
@@ -181,13 +182,46 @@ describe('DescriptionEditor', () => {
 
     editor().commands.setTextSelection(7)
     await fireEvent.click(button('Link'))
-    await fireEvent.click(button('Remove link'))
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove link' }),
+    )
     expect(state.markdown).toBe('See home.')
 
     await fireEvent.click(button('Link'))
     await fireEvent.keyDown(screen.getByLabelText('Link address'), { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(state.markdown).toBe('See home.')
+  })
+
+  it('removes a link with a button that is only on while the cursor or selection is in one', async () => {
+    const { editor, state } = show('See [home](https://example.com) now.')
+    await screen.findByRole('textbox')
+    expect(button('Remove link')).toBeDisabled()
+    editor().commands.setTextSelection(7) // inside "home", nothing selected
+    await waitFor(() => expect(button('Remove link')).toBeEnabled())
+    await fireEvent.click(button('Remove link'))
+    expect(state.markdown).toBe('See home now.') // the whole link goes
+    await waitFor(() => expect(button('Remove link')).toBeDisabled())
+  })
+
+  it('takes the link off only the selected words when some are selected', async () => {
+    const { editor, state } = show('See [one two three](https://example.com) now.')
+    await screen.findByRole('textbox')
+    editor().commands.setTextSelection({ from: 9, to: 12 }) // "two"
+    await waitFor(() => expect(button('Remove link')).toBeEnabled())
+    await fireEvent.click(button('Remove link'))
+    expect(state.markdown).toBe(
+      'See [one](https://example.com) two [three](https://example.com) now.',
+    )
+  })
+
+  it('also enables Remove link when the selection only partly covers a link', async () => {
+    const { editor, state } = show('Plain [linked](https://example.com) words')
+    await screen.findByRole('textbox')
+    editor().commands.setTextSelection({ from: 4, to: 10 }) // "in lin", across the start of the link
+    await waitFor(() => expect(button('Remove link')).toBeEnabled())
+    await fireEvent.click(button('Remove link'))
+    expect(state.markdown).toBe('Plain lin[ked](https://example.com) words')
   })
 
   it('offers only what a description can show: pasted headings are flattened, and nothing is saved as HTML', async () => {

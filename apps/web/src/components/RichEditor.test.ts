@@ -56,6 +56,7 @@ describe('RichEditor toolbar', () => {
       'Numbered list',
       'Code block',
       'Link',
+      'Remove link',
       'Edit as Markdown',
     ])
     const styles = within(toolbar).getByRole('group', { name: 'Text style' })

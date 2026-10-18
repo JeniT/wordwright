@@ -16,6 +16,7 @@ export type ToolName =
   | 'orderedList'
   | 'codeBlock'
   | 'link'
+  | 'unlink'
 
 export interface Tool {
   label: string
@@ -25,11 +26,21 @@ export interface Tool {
   /** Tools of one group sit together and are announced as a group (the text styles are a choice of one). */
   group?: string
   isActive: (editor: Editor) => boolean
+  /** An action, not a state: it is never "pressed", and is off when it would do nothing. */
+  isDisabled?: (editor: Editor) => boolean
   /** Not set for the link, which asks for an address first (see EditorToolbar). */
   run?: (chain: Chain) => Chain
 }
 
 const STYLES = 'Text style'
+
+/** Whether any of the selection, or the cursor, is in a link. */
+function inLink(editor: Editor): boolean {
+  const { from, to, empty } = editor.state.selection
+  const link = editor.schema.marks.link
+  if (!link) return false
+  return empty ? editor.isActive('link') : editor.state.doc.rangeHasMark(from, to, link)
+}
 
 /** Every button the editors' toolbars can show. Which ones an editor shows is its own choice (see EditorToolbar). */
 export const TOOLS: Record<ToolName, Tool> = {
@@ -112,10 +123,25 @@ export const TOOLS: Record<ToolName, Tool> = {
     icon: 'link',
     isActive: (e) => e.isActive('link'),
   },
+  unlink: {
+    label: 'Remove link',
+    icon: 'unlink',
+    isActive: () => false,
+    isDisabled: (e) => !inLink(e),
+    // With words selected only they lose the link; with just the cursor in one, the whole link goes.
+    run: (c) => c.unsetLink(),
+  },
 }
 
 /** The toolbar of the short description field. */
-export const DESCRIPTION_TOOLS: ToolName[] = ['bold', 'italic', 'bulletList', 'orderedList', 'link']
+export const DESCRIPTION_TOOLS: ToolName[] = [
+  'bold',
+  'italic',
+  'bulletList',
+  'orderedList',
+  'link',
+  'unlink',
+]
 
 /** The toolbar of the draft. */
 export const DRAFT_TOOLS: ToolName[] = [
@@ -130,6 +156,7 @@ export const DRAFT_TOOLS: ToolName[] = [
   'orderedList',
   'codeBlock',
   'link',
+  'unlink',
 ]
 
 const onMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)

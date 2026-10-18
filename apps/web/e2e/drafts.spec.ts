@@ -1569,13 +1569,13 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   await expect(bodyBox.locator('strong')).toHaveText('Some words to link and to make bold.')
 
   // A link, from a dialog that takes the focus and gives it back.
-  await page.getByRole('button', { name: 'Link' }).click()
+  await page.getByRole('button', { name: 'Link', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Add a link' })
   await expect(dialog.getByLabel('Link address')).toBeFocused()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'the link dialog').toEqual([])
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
-  await page.getByRole('button', { name: 'Link' }).click()
+  await page.getByRole('button', { name: 'Link', exact: true }).click()
   await dialog.getByLabel('Link address').fill('example.com/words')
   await dialog.getByRole('button', { name: 'Add link' }).click()
   await expect(bodyBox.locator('a')).toHaveAttribute('href', 'https://example.com/words')
@@ -1616,7 +1616,9 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   )
   await more.click()
   await expect(
-    page.getByRole('group', { name: 'More formatting' }).getByRole('button', { name: 'Link' }),
+    page
+      .getByRole('group', { name: 'More formatting' })
+      .getByRole('button', { name: 'Link', exact: true }),
   ).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'the More menu').toEqual([])
   await page.keyboard.press('Escape')

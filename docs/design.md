@@ -165,11 +165,13 @@ as `accent-wash` and an accent icon, like the current page). The bar is **one ta
 chooses its tools (`DESCRIPTION_TOOLS`, `DRAFT_TOOLS` in `lib/editor-tools.ts`); adding a tool is one entry there and an icon in `Icon`.
 
 - **Draft** (`RichEditor`): a three-way text-style control (Paragraph, Heading 2, Heading 3: a `role="group"` of buttons, not a menu), then Bold,
-  Italic, Inline code, Quote, Bulleted list, Numbered list, Code block, Link, and at the far right **Edit as Markdown**. It is **sticky** at the
+  Italic, Inline code, Quote, Bulleted list, Numbered list, Code block, Link, Remove link, and at the far right **Edit as Markdown**. It is **sticky** at the
   top of the draft, and absent for someone who may only read it. There is no Heading 1 (the title is separate), strike-through or rule button.
-- **Description** (`DescriptionEditor`): Bold, Italic, Bulleted list, Numbered list, Link. Nothing else, since the page shows no more.
+- **Description** (`DescriptionEditor`): Bold, Italic, Bulleted list, Numbered list, Link, Remove link. Nothing else, since the page shows no more.
 - **Narrow screens:** the buttons that do not fit the width move into a **More** menu (a disclosure of the same buttons; Escape closes it and
   returns focus to its button). The bar never wraps or scrolls. The Markdown button stays in view.
+- **Remove link** is an action, not a state (no `aria-pressed`): it is disabled unless the cursor or some of the selection is in a link, and the
+  arrow keys skip it while it is. With words selected only they lose the link; with just the cursor in a link, the whole link goes.
 - **Link dialog** (`LinkDialog`, built with `useModal`): "Add a link" or "Change link" with one field, Cancel, Remove link when the cursor is in a
   link, and the "Enter a web address…" error inline. Focus goes to the field and returns to the button; Escape cancels.
 - **Markdown mode** (drafts only): the button swaps the editor for a monospace `<textarea>` with the same Markdown (`aria-pressed`; remembered in
@@ -178,8 +180,8 @@ chooses its tools (`DESCRIPTION_TOOLS`, `DRAFT_TOOLS` in `lib/editor-tools.ts`);
   into the editor without counting as an edit.
 
 `DescriptionEditor` is a small rich-text field for short, formatted text (today the publication description), so people don't have to know
-Markdown: the toolbar above a `field`-styled text box that looks like the text it makes (it uses the `markdown` reading styles), with the app's
-own focus outline. It reads and writes Markdown. Use it for any other short formatted text; the draft editor (`RichEditor`) is the long-form one.
+Markdown: the toolbar above a `field`-styled text box that looks like the text it makes (it uses the `markdown` reading styles). Its focus
+looks like any field: the border turns to the focus colour, with no ring inside it (the outlines stay, transparent, for forced-colours mode). It reads and writes Markdown. Use it for any other short formatted text; the draft editor (`RichEditor`) is the long-form one.
 
 ### Comment marks in the editor
 

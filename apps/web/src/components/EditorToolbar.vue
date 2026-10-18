@@ -68,6 +68,8 @@ const toolProps = (name: ToolName) => ({
   title: toolTitle(TOOLS[name]),
   icon: TOOLS[name].icon,
   pressed: active(TOOLS[name]),
+  momentary: !!TOOLS[name].isDisabled,
+  disabled: !!props.editor && !!TOOLS[name].isDisabled?.(props.editor),
   popup: name === 'link' ? ('dialog' as const) : undefined,
 })
 
@@ -75,7 +77,13 @@ const toolProps = (name: ToolName) => ({
 const roving = ref('')
 const order = computed(() => [
   // In Markdown mode the formatting buttons are not there, so the toggle is the bar's tab stop.
-  ...(markdownMode.value ? [] : [...shown.value, ...(hidden.value.length ? ['more'] : [])]),
+  // (A button that is off cannot take focus, so the arrows pass it by.)
+  ...(markdownMode.value
+    ? []
+    : [
+        ...shown.value.filter((name) => !toolProps(name).disabled),
+        ...(hidden.value.length ? ['more'] : []),
+      ]),
   ...(props.markdownToggle ? ['markdown'] : []),
 ])
 const tabStop = computed(() => (order.value.includes(roving.value) ? roving.value : order.value[0]))
@@ -169,7 +177,8 @@ function applyLink(href: string) {
   closeLink()
 }
 function removeLink() {
-  props.editor?.chain().focus().extendMarkRange('link').unsetLink().run()
+  // As the toolbar button does: just the selected words if some are selected, else the whole link.
+  props.editor?.chain().focus().unsetLink().run()
   closeLink()
 }
 </script>

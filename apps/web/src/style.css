@@ -176,8 +176,14 @@
 .description-field {
   cursor: text;
 }
+/* Like any field: the border turns to the focus colour, with no ring inside it. The outlines stay (transparent) so
+   forced-colours mode still draws one. */
 .description-field:focus-within {
-  border-color: var(--color-accent);
+  border-color: var(--color-focus);
+  outline: 3px solid transparent;
+}
+.description-editor:focus-visible {
+  outline-color: transparent;
 }
 .description-editor {
   min-height: 9rem; /* the text keeps the app's own focus outline */
