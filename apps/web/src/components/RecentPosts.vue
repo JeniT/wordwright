@@ -105,7 +105,7 @@ const failedNames = computed(() =>
 
 <template>
   <section aria-labelledby="recent-heading" class="mb-10">
-    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2">
         <h2
           id="recent-heading"
