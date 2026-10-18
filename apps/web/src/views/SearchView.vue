@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import Explain from '../components/Explain.vue'
 import NextStep from '../components/NextStep.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import FeedsLink from '../components/FeedsLink.vue'
 import RecentPosts from '../components/RecentPosts.vue'
 import StepHeading from '../components/StepHeading.vue'
+import { RECENT_POSTS_ABOUT } from '../lib/recent-posts'
 import { useSources } from '../lib/queries'
 
 /**
@@ -24,6 +26,7 @@ const sources = useSources(() => props.publicationId)
         :has-feeds="(sources.data.value?.length ?? 0) > 0"
       />
     </div>
+    <Explain tutorial-only class="-mt-3 mb-6">{{ RECENT_POSTS_ABOUT }}</Explain>
     <RecentPosts :publication-id="publicationId" />
     <NextStep :to="{ name: 'read', params: { publicationId } }" label="Next: 02 Read" />
   </PublicationGate>

@@ -4,6 +4,10 @@ import { computed, ref } from 'vue'
 import { api } from './api'
 import { invalidateRoots } from './queries'
 
+/** What the list is, once, for the icon beside "Recent posts" and for tutorial mode under the page title. */
+export const RECENT_POSTS_ABOUT =
+  'This list contains recent posts from the feeds you’re subscribed to. Either add them to your reading list or ignore them. Ignored posts are moved to the end of the list in case you want to reconsider them.'
+
 export type PostDecision = 'add' | 'ignore' | 'reconsider'
 
 /**

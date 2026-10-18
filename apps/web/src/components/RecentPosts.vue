@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { useTutorialMode } from '../lib/tutorial'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
-import { useDecidePosts } from '../lib/recent-posts'
+import { RECENT_POSTS_ABOUT, useDecidePosts } from '../lib/recent-posts'
 import { PAGE_SIZE } from '../lib/paging'
 import Explain from './Explain.vue'
 import PageNav from './PageNav.vue'
@@ -24,8 +24,6 @@ const WINDOWS = [
 // A shorter default than the landing page's summary: this page is where the newest posts get decided about.
 const days = ref<number>(7)
 const tutorial = useTutorialMode()
-const ABOUT =
-  'This list contains the posts from the feeds you’re subscribed to. Either add them to your reading list or ignore them. Ignored posts are moved to the end of the list in case you want to reconsider them.'
 const windowName = computed(
   () => WINDOWS.find(([d]) => d === days.value)?.[1] ?? `${days.value} days`,
 )
@@ -107,23 +105,20 @@ const failedNames = computed(() =>
 
 <template>
   <section aria-labelledby="recent-heading" class="mb-10">
-    <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
-      <!-- The heading and, in tutorial mode, the note under it: the note wraps beside the controls, not across them. -->
-      <div class="min-w-48 flex-1 basis-80">
-        <div class="flex items-center gap-2">
-          <h2
-            id="recent-heading"
-            ref="heading"
-            tabindex="-1"
-            class="font-display text-xl font-semibold leading-tight focus:outline-none"
-          >
-            Recent posts
-          </h2>
-          <Explain v-if="!tutorial" label="About recent posts">{{ ABOUT }}</Explain>
-        </div>
-        <Explain v-if="tutorial" class="mt-1">{{ ABOUT }}</Explain>
+    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <h2
+          id="recent-heading"
+          ref="heading"
+          tabindex="-1"
+          class="font-display text-xl font-semibold focus:outline-none"
+        >
+          Recent posts
+        </h2>
+        <!-- In tutorial mode the same text is written out under the page title (SearchView). -->
+        <Explain v-if="!tutorial" label="About recent posts">{{ RECENT_POSTS_ABOUT }}</Explain>
       </div>
-      <div class="ml-auto flex shrink-0 items-end gap-2">
+      <div class="ml-auto flex items-end gap-2">
         <div>
           <label for="recent-days" class="mb-1 block text-sm font-medium">Show posts from</label>
           <select id="recent-days" v-model.number="days" class="field field-compact">

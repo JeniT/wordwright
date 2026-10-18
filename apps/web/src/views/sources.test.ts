@@ -274,7 +274,9 @@ describe('the Search page: tutorial mode (#260)', () => {
   it('writes out what the list is, under its heading, when it is on', async () => {
     await setup(true)
     expect(
-      await screen.findByText(/This list contains the posts from the feeds you’re subscribed to/),
+      await screen.findByText(
+        /This list contains recent posts from the feeds you’re subscribed to/,
+      ),
     ).toBeVisible()
     expect(screen.queryByText(/The newest posts from your feeds/)).toBeNull()
     expect(screen.queryByText(/Read what you’ve gathered/)).toBeNull()
