@@ -250,14 +250,11 @@ describe('step pages', () => {
     )
   })
 
-  it('lead on from the publication’s Notes to its ideas, on the landing page', async () => {
+  it('end the publication’s Notes without a next step: ideas start from the landing page', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
-    const next = within(await screen.findByRole('navigation', { name: 'Next step' }))
-    expect(next.getByRole('link', { name: /Next: your ideas/ })).toHaveAttribute(
-      'href',
-      '/p/ada-substack',
-    )
+    await screen.findByRole('heading', { level: 1, name: 'Notes' })
+    expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
   })
 })
 

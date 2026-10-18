@@ -405,7 +405,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       publicationId: string,
       id: string | null,
       text: string,
-      source: { readingItemId?: string; quote?: boolean } = {},
+      source: { readingItemId?: string; quote?: boolean; first?: boolean } = {},
     ) => get(IdeaNoteSchema, 'POST', notesPath(publicationId, id), { text, ...source }),
     updateIdeaNote: (publicationId: string, id: string | null, noteId: string, text: string) =>
       get(IdeaNoteSchema, 'PATCH', `${notesPath(publicationId, id)}/${noteId}`, { text }),

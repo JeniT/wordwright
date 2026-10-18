@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
+import { noteOriginPhrase } from '../lib/note-label'
 import { useIdeaNotes } from '../lib/queries'
 import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
@@ -14,6 +16,7 @@ import ListToolbar from './ListToolbar.vue'
 import MoveFields from './MoveFields.vue'
 import MoveNotesDetails from './MoveNotesDetails.vue'
 import NoteCard from './NoteCard.vue'
+import NoteOrigin from './NoteOrigin.vue'
 import ReorderableList from './ReorderableList.vue'
 import TagButton from './TagButton.vue'
 import TagEditor from './TagEditor.vue'
@@ -36,7 +39,7 @@ const props = defineProps<{
 const {
   notes,
   set: setNotes,
-  append: appendNote,
+  prepend: prependNote,
   refreshIdea: refreshAround,
 } = useIdeaNotes(
   () => props.publicationId,
@@ -60,10 +63,12 @@ const visibleNotes = computed(() =>
 const draft = ref('')
 const addBox = ref<HTMLElement>()
 const add = useMutation({
-  mutationFn: () => api.addIdeaNote(props.publicationId, props.ideaId, draft.value),
+  // The form is above the list, so its note goes first: it appears right under the form.
+  mutationFn: () =>
+    api.addIdeaNote(props.publicationId, props.ideaId, draft.value, { first: true }),
   onSuccess: async (note) => {
     draft.value = ''
-    appendNote(note)
+    prependNote(note)
     await refreshAround()
     addBox.value?.querySelector('textarea')?.focus()
   },
@@ -399,16 +404,25 @@ const label = (note: IdeaNote) => {
     >
       Notes
     </h2>
-    <p class="mb-3 text-sm text-ink-soft">
-      One thought to a note, like index cards. Drag them by the dotted strip, or click it for
-      arrows, to put them in order. To delete a note, press and hold its bin.
-      <template v-if="!ideaId">
-        These notes belong to the publication, not to any one idea yet.
-      </template>
-    </p>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
     <QueryState :query="notes" what="the notes" loading="Loading notes…">
+      <form ref="addBox" class="mb-6" @submit.prevent="add.mutate()">
+        <TextAreaField
+          v-model="draft"
+          label="Note"
+          :rows="3"
+          :maxlength="20000"
+          :hint="add.isError.value ? errorMessage(add.error.value) : undefined"
+        />
+        <button
+          type="submit"
+          class="btn btn-outline"
+          :disabled="add.isPending.value || !draft.trim()"
+        >
+          {{ add.isPending.value ? 'Adding…' : 'Add note' }}
+        </button>
+      </form>
       <div
         v-if="mover.outcome.value"
         role="status"
@@ -430,7 +444,12 @@ const label = (note: IdeaNote) => {
         {{ errorMessage(mover.undoNotes.error.value) }}
       </p>
       <p v-if="!notes.data.value?.length" class="mb-4 text-ink-soft">
-        No notes yet. Jot down your first thought below.
+        No notes yet. Add one above<template v-if="!ideaId"
+          >, or take notes from an item in
+          <RouterLink :to="{ name: 'read', params: { publicationId } }" class="link"
+            >your reading list</RouterLink
+          ></template
+        >.
       </p>
       <div v-else ref="list" class="mb-4">
         <p v-if="!visibleNotes.length" class="text-ink-soft">No notes have this tag.</p>
@@ -440,6 +459,7 @@ const label = (note: IdeaNote) => {
           :item-label="label"
           :save="saveOrder"
           :keep-toolbar="!!tagFilter"
+          align-top
         >
           <template #toolbar>
             <ListToolbar
@@ -552,7 +572,7 @@ const label = (note: IdeaNote) => {
                 :hint="save.isError.value ? errorMessage(save.error.value) : undefined"
               />
               <p class="mb-4 -mt-2 text-sm text-ink-soft">
-                To cut this note in two, put the cursor where it should be cut and press
+                Put the cursor where the note should be cut, then press
                 <button
                   type="button"
                   class="underline"
@@ -584,7 +604,7 @@ const label = (note: IdeaNote) => {
                 </button>
               </div>
             </form>
-            <NoteCard v-else :note="note" :reading-list="readingList">
+            <NoteCard v-else :note="note" :reading-list="readingList" hide-origin>
               <template #tags>
                 <TagEditor
                   :label="label(note)"
@@ -598,76 +618,70 @@ const label = (note: IdeaNote) => {
             </NoteCard>
           </template>
           <template #actions="{ item: note }">
-            <button
-              v-if="!note.quote"
-              v-tip="'Edit'"
-              type="button"
-              class="btn btn-sm btn-icon btn-ghost"
-              :data-edit-button="note.id"
-              :disabled="editingId === note.id"
-              :aria-label="`Edit ${label(note)}`"
-              @click="startEditing(note)"
-            >
-              <Icon name="edit" />
-            </button>
-            <TagButton
-              :ref="(el) => setTagButton(note.id, el)"
-              :label="label(note)"
-              :open="taggingId === note.id"
-              @toggle="taggingId === note.id ? stopTagging(note.id) : (taggingId = note.id)"
-            />
-            <button
-              v-tip="'Move'"
-              type="button"
-              class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Move ${label(note)}`"
-              @click="startMovingOne(note)"
-            >
-              <Icon name="move" />
-            </button>
-            <HoldButton
-              tip="Press and hold, or tap twice, to delete this note"
-              verb="Delete"
-              class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-              :disabled="remove.isPending.value"
-              :aria-label="`Delete ${label(note)}`"
-              @confirm="remove.mutate(note.id)"
-            >
-              <Icon name="remove" />
-            </HoldButton>
+            <div class="flex max-w-full flex-col items-end gap-1 sm:max-w-[16rem]">
+              <div class="flex flex-wrap items-center justify-end gap-1">
+                <button
+                  v-if="!note.quote"
+                  v-tip="'Edit'"
+                  type="button"
+                  class="btn btn-sm btn-icon btn-ghost"
+                  :data-edit-button="note.id"
+                  :disabled="editingId === note.id"
+                  :aria-label="`Edit ${label(note)}`"
+                  @click="startEditing(note)"
+                >
+                  <Icon name="edit" />
+                </button>
+                <TagButton
+                  :ref="(el) => setTagButton(note.id, el)"
+                  :label="label(note)"
+                  :open="taggingId === note.id"
+                  @toggle="taggingId === note.id ? stopTagging(note.id) : (taggingId = note.id)"
+                />
+                <button
+                  v-tip="'Move'"
+                  type="button"
+                  class="btn btn-sm btn-icon btn-ghost"
+                  :aria-label="`Move ${label(note)}`"
+                  @click="startMovingOne(note)"
+                >
+                  <Icon name="move" />
+                </button>
+                <HoldButton
+                  tip="Press and hold, or tap twice, to delete this note"
+                  verb="Delete"
+                  class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
+                  :disabled="remove.isPending.value"
+                  :aria-label="`Delete ${label(note)}`"
+                  @confirm="remove.mutate(note.id)"
+                >
+                  <Icon name="remove" />
+                </HoldButton>
+              </div>
+              <p v-if="editingId !== note.id" class="meta sm:text-right">
+                <NoteOrigin
+                  :phrase="noteOriginPhrase(note, readingList)"
+                  :author-name="note.authorName"
+                  class="sm:justify-end"
+                />
+              </p>
+            </div>
           </template>
         </ReorderableList>
         <p v-if="merge.isError.value" role="alert" class="mt-2 text-danger">
           {{ errorMessage(merge.error.value) }}
         </p>
         <p v-if="removeChosen.isError.value" role="alert" class="mt-2 text-danger">
-          Couldn't delete all of those notes. The ones that are left are still selected; please try
+          Sorry, we couldn’t delete all of those notes. The ones left are still selected. Please try
           again.
         </p>
         <p v-if="move.isError.value" role="alert" class="mt-2 text-danger">
           {{ errorMessage(move.error.value) }}
         </p>
         <p v-if="remove.isError.value" role="alert" class="mt-2 text-danger">
-          Couldn't delete that note. Please try again.
+          Sorry, we couldn’t delete that note. Please try again.
         </p>
       </div>
-
-      <form ref="addBox" @submit.prevent="add.mutate()">
-        <TextAreaField
-          v-model="draft"
-          label="Add a note"
-          :rows="3"
-          :maxlength="20000"
-          :hint="add.isError.value ? errorMessage(add.error.value) : undefined"
-        />
-        <button
-          type="submit"
-          class="btn btn-outline"
-          :disabled="add.isPending.value || !draft.trim()"
-        >
-          {{ add.isPending.value ? 'Adding…' : 'Add note' }}
-        </button>
-      </form>
     </QueryState>
     <ConfirmDialog
       :open="!!movingOne"
@@ -705,14 +719,13 @@ const label = (note: IdeaNote) => {
     <ConfirmDialog
       :open="confirmingDeleteChosen"
       :title="`Delete ${chosen.length} ${chosen.length === 1 ? 'note' : 'notes'}?`"
-      confirm-label="Yes, delete them"
+      :confirm-label="`Delete ${plural(chosen.length)}`"
       busy-label="Deleting…"
       :busy="removeChosen.isPending.value"
       @confirm="removeChosen.mutate(chosenIds)"
       @cancel="confirmingDeleteChosen = false"
     >
-      The selected notes will be deleted from the {{ ideaId ? 'idea' : 'publication' }}. This can't
-      be undone.
+      This can’t be undone.
     </ConfirmDialog>
   </section>
 </template>

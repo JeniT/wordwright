@@ -683,6 +683,27 @@
 }
 
 /*
+ * The mark that sets a quotation apart in a list of notes: the same small outlined box as a step number, holding an
+ * opening curly quote. Decorative (the text sits in a blockquote), so it is hidden from screen readers.
+ */
+@utility quote-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 1.75rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-style: normal;
+  line-height: 1;
+  padding-top: 0.6rem;
+}
+
+/*
  * Pictures and logos from other websites are never shown bare. A source's icon sits on a fixed-size light plate
  * (a square, hairline-framed, barely rounded): contained not cropped, with its own white background so dark marks
  * stay legible in dark mode. The app's own corner radius never wraps another site's artwork.

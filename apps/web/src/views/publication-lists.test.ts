@@ -105,12 +105,14 @@ function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof no
         text: string
         readingItemId?: string
         quote?: boolean
+        first?: boolean
       }
       state.sentNotes.push(body)
       const made = note(`m${state.notes.length + 1}`, body.text, body.readingItemId ?? null, {
         quote: !!body.quote,
       })
-      state.notes.push(made)
+      if (body.first) state.notes.unshift(made)
+      else state.notes.push(made)
       return HttpResponse.json(made, { status: 201 })
     }),
     http.delete(`${base}/notes/:noteId`, ({ params }) => {
@@ -1260,7 +1262,7 @@ describe('deleting selected notes', () => {
     expect(state.notes).toHaveLength(3)
     await fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }))
     await fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, delete them' }),
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete 2 notes' }),
     )
     await waitFor(() => expect(state.notes.map((n) => n.id)).toEqual(['n2']))
     await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())
@@ -1283,14 +1285,46 @@ describe('deleting selected notes', () => {
 })
 
 describe('the publication’s notes', () => {
-  it('says there are none yet, and that they belong to the publication', async () => {
+  it('says there are none yet, and where to take some from', async () => {
     fakePublication()
     await renderAt('/p/ada-substack/notes')
     expect(await screen.findByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
-    expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
-    expect(
-      screen.getByText(/belong to the publication, not to any one idea yet/),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/No notes yet\. Add one above, or take notes/)).toBeVisible()
+    expect(screen.getByRole('link', { name: 'your reading list' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/read',
+    )
+    expect(screen.queryByText(/belong to the publication/)).toBeNull()
+  })
+
+  it('has the add form above the list, and nothing after the list', async () => {
+    fakePublication({ notes: [note('n1', 'One'), note('n2', 'Two')] })
+    await renderAt('/p/ada-substack/notes')
+    const box = await screen.findByLabelText('Note')
+    const list = within(screen.getByRole('main')).getAllByRole('list')[0]!
+    expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
+    expect(screen.queryByText(/start an idea/)).toBeNull()
+  })
+
+  it('puts the origin line and name in the column under the row’s buttons', async () => {
+    fakePublication({ links: [link('l1', 'A paper')], notes: [note('n1', 'From it', 'l1')] })
+    await renderAt('/p/ada-substack/notes')
+    const edit = await screen.findByRole('button', { name: /^Edit note “From it/ })
+    const column = edit.parentElement!.parentElement!
+    expectOrigin(column, 'From reading “A paper”', 'Ada')
+  })
+
+  it('sets a quotation apart with a quote mark, not a left border', async () => {
+    fakePublication({
+      links: [link('l1', 'A paper')],
+      notes: [note('n1', 'Exact words', 'l1', { quote: true })],
+    })
+    await renderAt('/p/ada-substack/notes')
+    const quote = (await screen.findByText('Exact words')).closest('blockquote')!
+    expect(quote.querySelector('.quote-mark')).toHaveTextContent('“')
+    expect(quote.querySelector('.quote-mark')).toHaveAttribute('aria-hidden', 'true')
+    expect(quote).not.toHaveClass('border-l-4')
   })
 
   it('lists them with the reading item each came from', async () => {
@@ -1326,10 +1360,10 @@ describe('the publication’s notes', () => {
   it('adds a note of the publication’s own', async () => {
     const state = fakePublication()
     await renderAt('/p/ada-substack/notes')
-    await fireEvent.update(await screen.findByLabelText('Add a note'), 'Something I noticed')
+    await fireEvent.update(await screen.findByLabelText('Note'), 'Something I noticed')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText('Something I noticed')).toBeInTheDocument()
-    expect(state.sentNotes).toEqual([{ text: 'Something I noticed' }])
+    expect(state.sentNotes).toEqual([{ text: 'Something I noticed', first: true }])
   })
 
   it('puts notes in order and deletes them, as an idea’s notes can', async () => {
@@ -1345,6 +1379,30 @@ describe('the publication’s notes', () => {
     await fireEvent.click(del)
     await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())
     expect(state.notes.map((n) => n.id)).toEqual(['n2'])
+  })
+})
+
+describe('the publication’s Notes page: tutorial mode', () => {
+  const setup = async (tutorialMode: boolean) => {
+    fakePublication({ notes: [note('n1', 'One')] })
+    server.use(signedInAs({ ...testUser, tutorialMode }))
+    // The route 'publication-notes' is this kind of page (see tutorial-routes.test.ts).
+    await renderAt('/p/ada-substack/notes')
+    await screen.findByText('One')
+  }
+
+  it('writes out what the notes are, and that they can be tagged, put in order and moved', async () => {
+    await setup(true)
+    expect(
+      screen.getByText(
+        /^These are notes that you’ve made\. You can add tags to help group them, drag them into order, and move them to become notes on new or current ideas\.$/,
+      ),
+    ).toBeVisible()
+  })
+
+  it('says nothing of it when it is off', async () => {
+    await setup(false)
+    expect(screen.queryByText(/These are notes that you’ve made/)).toBeNull()
   })
 })
 

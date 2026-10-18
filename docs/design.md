@@ -391,6 +391,15 @@ row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
 
+**A note's row (`NoteCard`, `NoteText`).** Notes are shown in full, so a row can be tall: the list is `align-top`, which
+puts the buttons at the top of the row, not centred. Where a note came from (“From reading…”, “Quoted from…”, “Added”
+and the name of the person who took it) is `meta` text in a column at the right, under the row's buttons on the Notes
+pages and alone on rows with no buttons (Recent notes, a reading item's notes); on a phone it wraps under the note.
+Tags stay under the note's text. A **quotation** is set apart by a `quote-mark`, an opening curly quote in the same
+small outlined box as a step number, to the left of its text (hidden from screen readers: the text is in a
+`blockquote`). It is never a left border. The Notes page's own form is above the list and puts a new note first;
+notes that arrive any other way go last.
+
 **Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
 ("Add to the reading list: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗

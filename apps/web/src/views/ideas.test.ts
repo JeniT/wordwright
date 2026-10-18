@@ -1018,10 +1018,10 @@ describe('idea page', () => {
       server.use(
         http.get(notesUrl, () => HttpResponse.json(state.notes)),
         http.post(notesUrl, async ({ request }) => {
-          const body = (await request.json()) as { text: string }
+          const body = (await request.json()) as { text: string; first?: boolean }
           state.sent.push(body)
           const created = note(`n${state.notes.length + 1}`, body.text.trim())
-          state.notes = [...state.notes, created]
+          state.notes = body.first ? [created, ...state.notes] : [...state.notes, created]
           return HttpResponse.json(created, { status: 201 })
         }),
         http.patch(`${notesUrl}/:noteId`, async ({ request, params }) => {
@@ -1165,9 +1165,58 @@ describe('idea page', () => {
       expect(screen.queryByText('A former member')).toBeNull()
     })
 
-    it('says so when there are no notes', async () => {
+    it('says so when there are no notes, with no link to a reading list of its own', async () => {
       await open()
-      expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
+      expect(await screen.findByText(/^No notes yet\. Add one above\.$/)).toBeInTheDocument()
+    })
+
+    it('has the add form above the list, and leads on to Refine with just the button', async () => {
+      fakeNotes()
+      await open()
+      const box = await screen.findByLabelText('Note')
+      expect(
+        box.compareDocumentPosition(within(region()).getAllByRole('list')[0]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+      const next = within(screen.getByRole('navigation', { name: 'Next step' }))
+      expect(next.getByRole('link', { name: /Next: 03 Refine/ })).toBeInTheDocument()
+      expect(screen.queryByText(/Happy with the notes/)).toBeNull()
+    })
+
+    describe('in tutorial mode', () => {
+      // The route 'idea-notes' is this kind of page (see tutorial-routes.test.ts).
+      const tutorial = async (on: boolean) => {
+        fakeNotes()
+        // Set up in full here: `open` puts its own signed-in user ahead of any handler passed to it.
+        server.use(
+          signedInAs(on ? { ...testUser, tutorialMode: true } : testUser),
+          listPublications,
+          http.get(ideaUrl, () => HttpResponse.json(idea)),
+          http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+          http.get('*/api/account/tutorial', () =>
+            HttpResponse.json({ on, seen: [], answered: false }),
+          ),
+          http.post('*/api/account/tutorial/seen', () =>
+            HttpResponse.json({ on, seen: [], answered: false }),
+          ),
+        )
+        await renderAt('/p/ada-substack/ideas/i1/notes')
+        await screen.findByText('Erosion loops.')
+      }
+
+      it('writes out what the notes are, and that they can be tagged, put in order and moved', async () => {
+        await tutorial(true)
+        expect(
+          screen.getByText(
+            /^These are the notes for this idea\. You can add tags to help group them, drag them into order, and move them to other ideas\.$/,
+          ),
+        ).toBeVisible()
+      })
+
+      it('says nothing of it when it is off', async () => {
+        await tutorial(false)
+        expect(screen.queryByText(/These are the notes for this idea/)).toBeNull()
+      })
     })
 
     it('explains when the notes cannot be loaded, and tries again', async () => {
@@ -1190,11 +1239,11 @@ describe('idea page', () => {
       expect(await screen.findByText('Erosion loops.')).toBeInTheDocument()
     })
 
-    it('adds a note, shows it last, and clears the box ready for the next', async () => {
+    it('adds a note at the top, under the form, and clears the box ready for the next', async () => {
       const state = fakeNotes()
       await open()
       await screen.findByText('Erosion loops.')
-      const box = screen.getByLabelText('Add a note')
+      const box = screen.getByLabelText('Note')
       expect(screen.getByRole('button', { name: 'Add note' })).toBeDisabled() // nothing to add yet
       await fireEvent.update(box, 'Oxbow lakes form when a loop is cut off.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
@@ -1202,8 +1251,10 @@ describe('idea page', () => {
       expect(
         await screen.findByText('Oxbow lakes form when a loop is cut off.'),
       ).toBeInTheDocument()
-      expect(state.sent).toEqual([{ text: 'Oxbow lakes form when a loop is cut off.' }])
-      expect(texts().at(-1)).toBe('Oxbow lakes form when a loop is cut off.')
+      expect(state.sent).toEqual([
+        { text: 'Oxbow lakes form when a loop is cut off.', first: true },
+      ])
+      expect(texts()[0]).toBe('Oxbow lakes form when a loop is cut off.')
       expect(box).toHaveValue('')
       await waitFor(() => expect(box).toHaveFocus())
     })
@@ -1216,7 +1267,7 @@ describe('idea page', () => {
         ),
       )
       await open()
-      const box = await screen.findByLabelText('Add a note')
+      const box = await screen.findByLabelText('Note')
       await fireEvent.update(box, 'One too many')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       expect(await screen.findByText('An idea can have up to 200 notes.')).toBeInTheDocument()

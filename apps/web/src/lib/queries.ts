@@ -219,10 +219,12 @@ export function useIdeaNotes(
   const set = (all: IdeaNote[] | ((old: IdeaNote[] | undefined) => IdeaNote[] | undefined)) =>
     queryClient.setQueryData<IdeaNote[]>(key(), all)
   const append = (note: IdeaNote) => set((old) => [...(old ?? []), note])
+  const prepend = (note: IdeaNote) => set((old) => [note, ...(old ?? [])])
   return {
     notes,
     set,
     append,
+    prepend,
     refreshIdea: () => refreshIdea(queryClient, publicationId(), ideaId()),
   }
 }

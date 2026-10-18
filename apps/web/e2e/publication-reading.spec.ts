@@ -1,15 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import {
-  expect,
-  goTo,
-  goToIdeas,
-  leaveSettings,
-  openFeeds,
-  showArrowsFor,
-  showReadItems,
-  test,
-} from './fixtures'
+import { expect, goTo, goToIdeas, leaveSettings, openFeeds, showReadItems, test } from './fixtures'
 
 async function signUpWithPublication(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -106,21 +97,12 @@ test('reads and takes notes before there is an idea: a publication reading list 
     page.getByRole('listitem').filter({ hasText: 'Rivers tire of straight lines.' }),
   ).toContainText('From reading “Fake title for example.org')
 
-  // Add one of their own, put it first, and it stays that way.
-  await page.getByLabel('Add a note').fill('A thought of my own')
+  // Add one of their own: it goes to the top, under the form, and stays there.
+  await page.getByLabel('Note', { exact: true }).fill('A thought of my own')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
-  const own = page.getByRole('listitem').filter({ hasText: 'A thought of my own' })
-  await expect(own).toBeVisible()
-  await showArrowsFor(own, /Reorder note “A thought of my own”/)
-  await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
-  await own.getByRole('button', { name: /Move note “A thought of my own” up/ }).click()
-  await expect
-    .poll(async () =>
-      (await page.getByRole('main').getByRole('listitem').first().innerText()).includes(
-        'A thought',
-      ),
-    )
-    .toBe(true)
+  await expect(page.getByRole('main').getByRole('listitem').first()).toContainText(
+    'A thought of my own',
+  )
   await page.reload()
   await expect(page.getByRole('main').getByRole('listitem').first()).toContainText(
     'A thought of my own',
@@ -394,7 +376,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   }
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
   await goTo(page, 'Notes')
-  await page.getByLabel('Add a note', { exact: true }).fill('An unrelated thought')
+  await page.getByLabel('Note', { exact: true }).fill('An unrelated thought')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   await expect(page.getByText('An unrelated thought')).toBeVisible()
 
@@ -450,7 +432,7 @@ test('moves a note into another of the writer’s publications, and puts it back
   const idOf = () => new URL(page.url()).pathname.split('/')[2]!
   const first = idOf()
   await goTo(page, 'Notes')
-  await page.getByLabel('Add a note', { exact: true }).fill('Belongs elsewhere')
+  await page.getByLabel('Note', { exact: true }).fill('Belongs elsewhere')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   await expect(page.getByText('Belongs elsewhere')).toBeVisible()
 

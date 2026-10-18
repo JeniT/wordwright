@@ -27,6 +27,8 @@ const props = defineProps<{
   save: (ids: string[], moved: T) => Promise<boolean>
   /** Keep the toolbar for a single row (see `RowList`): for a list that can be filtered. */
   keepToolbar?: boolean
+  /** Line each row's content and buttons up at the top (see `RowList`). */
+  alignTop?: boolean
 }>()
 
 defineSlots<{
@@ -278,7 +280,13 @@ const rowAttrs = (item: T) => ({
 
 <template>
   <div ref="root" @focusout="onFocusOut">
-    <RowList :items="shown" ordered :row-attrs="rowAttrs" :keep-toolbar="keepToolbar">
+    <RowList
+      :items="shown"
+      ordered
+      :row-attrs="rowAttrs"
+      :keep-toolbar="keepToolbar"
+      :align-top="alignTop"
+    >
       <template v-if="$slots.toolbar" #toolbar><slot name="toolbar" /></template>
       <template #rail="{ item, index }">
         <div

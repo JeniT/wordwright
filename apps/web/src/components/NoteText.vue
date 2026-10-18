@@ -5,9 +5,10 @@ defineProps<{ note: Pick<IdeaNote, 'text' | 'quote'> }>()
 </script>
 
 <template>
-  <!-- A direct quotation is set apart, as it will be in the draft. -->
-  <blockquote v-if="note.quote" class="border-l-4 border-line-strong pl-3 text-ink italic">
-    <p class="whitespace-pre-wrap break-words">{{ note.text }}</p>
+  <!-- A direct quotation is set apart by a quote mark in a box; the blockquote tells a screen reader. -->
+  <blockquote v-if="note.quote" class="flex items-start gap-3 text-ink italic">
+    <span class="quote-mark" aria-hidden="true">“</span>
+    <p class="min-w-0 flex-1 whitespace-pre-wrap break-words">{{ note.text }}</p>
   </blockquote>
   <p v-else class="whitespace-pre-wrap break-words">{{ note.text }}</p>
 </template>

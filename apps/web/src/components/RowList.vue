@@ -25,6 +25,8 @@ defineProps<{
    * act on in bulk; a list that can be filtered needs it to stay so the filter can be changed.
    */
   keepToolbar?: boolean
+  /** Line the content and actions up at the top of the row, for rows that can be tall (a long note). */
+  alignTop?: boolean
 }>()
 
 defineSlots<{
@@ -55,7 +57,8 @@ defineSlots<{
         </div>
         <div
           v-else
-          class="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2"
+          class="flex min-h-14 min-w-0 flex-1 flex-wrap gap-x-3 gap-y-2 px-3 py-2"
+          :class="alignTop ? 'items-start' : 'items-center'"
         >
           <slot :item="item" :index="index" />
           <span v-if="$slots.actions" class="flex shrink-0 flex-wrap items-center gap-1">

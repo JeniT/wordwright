@@ -54,6 +54,21 @@ describe('idea notes', () => {
     expect(all[0]!.authorName).toBe('Ada')
   })
 
+  it('puts a note at the top when asked, and keeps adding the others at the end', async () => {
+    await add('a')
+    await add('b')
+    const top = await ada.post(notes(), { text: 'top', first: true })
+    expect(top.status).toBe(201)
+    await ada.post(notes(), { text: 'second top', first: true })
+    await add('last')
+    expect((await list()).map((n) => n.text)).toEqual(['second top', 'top', 'a', 'b', 'last'])
+    // The order can still be changed afterwards.
+    const all = await list()
+    const ids = all.map((n) => n.id).reverse()
+    expect((await ada.put(`${notes()}/order`, { ids })).status).toBe(200)
+    expect((await list()).map((n) => n.text)).toEqual(['last', 'b', 'a', 'top', 'second top'])
+  })
+
   it('edits a note, and says what is wrong with an empty or oversized one', async () => {
     const note = await add('Draft thought')
     const edited = await (

@@ -199,16 +199,19 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
   // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByLabel('Note', { exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
-  await expect(notes.getByLabel('Add a note')).toHaveValue('')
+  await expect(notes.getByLabel('Note', { exact: true })).toHaveValue('')
   await noViolations(page, 'idea page with notes')
 
+  // A note added in the form goes to the top, so the last one added is first.
+  await expect(notes.getByRole('listitem').first()).toContainText('Oxbow lakes')
   await showArrowsFor(notes, /^Reorder note “Oxbow lakes/)
-  await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*up/ }).click()
-  await expect(notes.getByRole('listitem').nth(1)).toContainText('Oxbow lakes')
+  await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*down/ }).click()
+  await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*down/ }).click()
+  await expect(notes.getByRole('listitem').nth(2)).toContainText('Oxbow lakes')
   await notes.getByRole('button', { name: /^Edit note “Erosion on the outside/ }).click()
   await notes
     .getByLabel(/^Text of note/)
@@ -275,7 +278,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
-  await notes.getByLabel('Add a note').fill('Deposition on the inside.')
+  await notes.getByLabel('Note', { exact: true }).fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(2)
 
@@ -519,7 +522,7 @@ test('with tutorial mode on, a tip is written out on the page instead of behind 
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByLabel('Note', { exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -542,7 +545,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByLabel('Note', { exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -611,7 +614,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByLabel('Note', { exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -644,8 +647,8 @@ test('tags group notes by draft or section, and filter them on the idea page and
   const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
   await filter.getByRole('button', { name: 'part 1' }).click()
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
-  await showArrowsFor(notes, /^Reorder note “Deposition/)
-  await notes.getByRole('button', { name: /^Move note “Deposition.*up/ }).click()
+  await showArrowsFor(notes, /^Reorder note “Erosion/)
+  await notes.getByRole('button', { name: /^Move note “Erosion.*up/ }).click()
   await filter.getByRole('button', { name: 'All' }).click()
   await expect(notes.getByRole('listitem').filter({ hasText: 'Deposition' }).first()).toBeVisible()
   await page.reload()
@@ -791,37 +794,37 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Add a note').fill(text)
+    await notes.getByLabel('Note', { exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
   const cards = notes.getByRole('listitem')
   await expect(cards).toHaveCount(3)
 
-  // Merge: tick two, press Merge; they become one, at the first one's place, as paragraphs.
+  // The newest note is first. Merge: tick two, press Merge; they become one, at the first one's place, as paragraphs.
   await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
   await notes.getByRole('checkbox', { name: /^Select note “Oxbow/ }).check()
   await noViolations(page, 'notes with two chosen to merge')
   await notes.getByRole('button', { name: 'Merge', exact: true }).click()
   await expect(cards).toHaveCount(2)
-  await expect(cards.first()).toContainText('Erosion on the outside of each bend.')
   await expect(cards.first()).toContainText('Oxbow lakes form when a loop is cut off.')
+  await expect(cards.first()).toContainText('Erosion on the outside of each bend.')
   await expect(cards.nth(1)).toContainText('Deposition on the inside.')
 
   // Split: put the cursor between the two paragraphs, and the note becomes two again.
-  await notes.getByRole('button', { name: /^Edit note “Erosion/ }).click()
-  const box = notes.getByLabel(/^Text of note “Erosion/)
-  await box.fill('Erosion on the outside of each bend. Oxbow lakes form when a loop is cut off.')
+  await notes.getByRole('button', { name: /^Edit note “Oxbow/ }).click()
+  const box = notes.getByLabel(/^Text of note “Oxbow/)
+  await box.fill('Oxbow lakes form when a loop is cut off. Erosion on the outside of each bend.')
   await box.evaluate((el: HTMLTextAreaElement) => {
-    const at = el.value.indexOf(' Oxbow')
+    const at = el.value.indexOf(' Erosion')
     el.focus()
     el.setSelectionRange(at, at)
   })
-  await notes.getByRole('button', { name: /^Split note “Erosion.*at the cursor/ }).click()
+  await notes.getByRole('button', { name: /^Split note “Oxbow.*at the cursor/ }).click()
   await expect(cards).toHaveCount(3)
-  await expect(cards.first()).toContainText('Erosion on the outside of each bend.')
-  await expect(cards.first()).not.toContainText('Oxbow')
-  await expect(cards.nth(1)).toContainText('Oxbow lakes form when a loop is cut off.')
+  await expect(cards.first()).toContainText('Oxbow lakes form when a loop is cut off.')
+  await expect(cards.first()).not.toContainText('Erosion')
+  await expect(cards.nth(1)).toContainText('Erosion on the outside of each bend.')
   await page.reload()
   await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(3)
 })
@@ -871,7 +874,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
-  await notes.getByLabel('Add a note').fill('Deposition on the inside.')
+  await notes.getByLabel('Note', { exact: true }).fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(2)
 

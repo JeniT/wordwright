@@ -114,7 +114,7 @@ export class NoteStore {
       .run(toPublicationId, ideaId, readingItemId, nowIso(), ...w.args, publicationId, id)
   }
 
-  /** Adds a note after the others. */
+  /** Adds a note after the others, or (`first`) before them. */
   append(
     publicationId: string,
     ideaId: string | null,
@@ -123,6 +123,7 @@ export class NoteStore {
     origin: NoteOrigin = 'entered',
     readingItemId: string | null = null,
     quote = false,
+    first = false,
   ): IdeaNote {
     const id = randomUUID()
     const now = nowIso()
@@ -130,7 +131,7 @@ export class NoteStore {
     this.db
       .prepare(
         `INSERT INTO idea_notes (id, publication_id, idea_id, created_by, text, origin, reading_item_id, is_quote, position, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql}), ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT ${first ? 'coalesce(min(position) - 1, 0)' : 'coalesce(max(position) + 1, 0)'} FROM idea_notes WHERE ${w.sql}), ?, ?)`,
       )
       .run(
         id,

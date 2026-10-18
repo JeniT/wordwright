@@ -181,7 +181,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'publication-notes',
     component: () => import('./views/PublicationNotesView.vue'),
     props: true,
-    meta: { level: 'publication', step: 'notes' },
+    meta: { level: 'publication', step: 'notes', tutorial: true },
   },
   // Ideas used to have a page of their own; they are listed on the landing page now (new ones start in Quick add).
   {
@@ -266,7 +266,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'idea-notes',
     component: () => import('./views/IdeaNotesView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'notes' },
+    meta: { level: 'idea', step: 'notes', tutorial: true },
   },
   {
     path: '/p/:publicationId/ideas/:id/refine',

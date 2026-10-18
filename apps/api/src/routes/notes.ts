@@ -42,7 +42,7 @@ export function noteRoutes(
             `${subjectOf(scope)} can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
           )
         }
-        const { text, readingItemId, quote } = c.req.valid('json')
+        const { text, readingItemId, quote, first } = c.req.valid('json')
         if (quote && !readingItemId) {
           throw fail(400, 'A quotation needs the reading-list item it comes from.')
         }
@@ -63,6 +63,7 @@ export function noteRoutes(
           readingItemId ? 'reading' : 'entered',
           readingItemId ?? null,
           !!quote,
+          !!first,
         )
         // Taking a note from an item means it has been read (the first read date is kept if it already was).
         if (readingItemId) reading.setRead(owner, readingItemId, true)

@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import Explain from '../components/Explain.vue'
 import IdeaNotes from '../components/IdeaNotes.vue'
-import NextStep from '../components/NextStep.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { useReadingList } from '../lib/reading'
 
-/** Step 02 of a publication: its own notes, made while reading or jotted down, before they belong to an idea. */
+/** Step 03 of a publication: its own notes, made while reading or jotted down, before they belong to an idea. */
 const props = defineProps<{ publicationId: string }>()
 
 // Each note says which item of the reading list it was taken from.
@@ -16,20 +15,15 @@ const reading = useReadingList(() => ({ publicationId: props.publicationId, idea
 <template>
   <PublicationGate :publication-id="publicationId">
     <StepHeading>Notes</StepHeading>
+    <Explain tutorial-only class="mb-6">
+      These are notes that you’ve made. You can add tags to help group them, drag them into order,
+      and move them to become notes on new or current ideas.
+    </Explain>
     <IdeaNotes
       :publication-id="publicationId"
       :idea-id="null"
       :reading-list="reading.links.value ?? []"
       quiet-heading
     />
-    <p class="text-sm text-ink-soft">
-      Take notes from something you are reading on the
-      <RouterLink :to="{ name: 'read', params: { publicationId } }" class="link">
-        publication’s reading list</RouterLink
-      >.
-    </p>
-    <NextStep :to="{ name: 'publication', params: { publicationId } }" label="Next: your ideas">
-      When a group of notes feels like something you’d write about, start an idea.
-    </NextStep>
   </PublicationGate>
 </template>

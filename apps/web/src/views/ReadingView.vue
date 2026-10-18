@@ -216,12 +216,15 @@ function toggleRead(read: boolean) {
           <p v-if="!itemNotes.length" class="mb-4 text-ink-soft">No notes from this page yet.</p>
           <RowList v-else :items="itemNotes" label="Notes from this page" bare class="mb-4">
             <template #default="{ item: note }">
-              <div class="px-4 py-3">
-                <NoteText :note="note" />
-                <p class="meta mt-1">
+              <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 py-3">
+                <div class="min-w-[12rem] flex-1">
+                  <NoteText :note="note" />
+                </div>
+                <p class="meta max-w-full sm:max-w-[16rem] sm:text-right">
                   <NoteOrigin
                     :phrase="noteOriginPhrase(note, list.links.value ?? [])"
                     :author-name="note.authorName"
+                    class="sm:justify-end"
                   />
                 </p>
               </div>
