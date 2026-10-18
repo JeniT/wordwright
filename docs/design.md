@@ -336,6 +336,9 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
   `segmented` radio group. Don't use `aria-expanded` buttons to fake tabs.
 - **Checkboxes only ever mean "select".** Never use one to trigger an action or to hold a state; never use a button for
   a yes/no state.
+- A switch that repeats on every row of a list (Read, Keep, Resolved) is **compact** (`<SwitchField compact>`, the
+  `switch-compact` class): a smaller track, knob and label, but the same 44px-high target and the same visible label.
+  A switch that sits alone (Show read items) keeps the full size.
 - A switch's label is a fixed word ("Read", never "Unread"). On is shown by the knob's place and a tick, not by colour
   alone. It flips under the finger and goes back (`revert()`) if saving fails.
 - Put explanations in `meta` text and only where they apply (an item that isn't kept says on which day it goes), not in
@@ -622,7 +625,7 @@ same cards, callouts and chips as everywhere else.
 
 - Contrast: enforced by `palette.test.ts` (text 4.5:1, borders and focus 3:1) in light and dark.
 - **Focus:** one 3px outline in `focus`, from the base layer. Don't remove outlines or restyle focus per control.
-- **Targets:** buttons 44px (`btn-sm` and icon buttons 36px; the settings gear is 44px, since it sits alone), checkboxes 20px, switches 44px wide and 44px high with their label.
+- **Targets:** buttons 44px (`btn-sm` and icon buttons 36px; the settings gear is 44px, since it sits alone), checkboxes 20px, switches 44px high with their label (44px wide too, except a compact switch in a list row, whose track is smaller but whose target is not).
 - **Text:** 16px minimum in fields (stops iOS zoom), links underlined, no text in images.
 - **Motion:** reduced motion is honoured globally; don't add animation that carries meaning.
 - **Not by colour alone:** errors have words and (where it fits) an icon; AI-suggested things have a label, not just

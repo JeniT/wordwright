@@ -528,6 +528,26 @@
   & > input:disabled + [data-switch-track] {
     opacity: 0.55;
   }
+  /* Compact: for a switch that repeats on every row of a list. Smaller track, knob and label; the row height (and so
+     the touch target) and the visible label are unchanged. */
+  &.switch-compact {
+    gap: 0.45rem;
+    font-size: 0.8125rem;
+    & > [data-switch-track] {
+      width: 2.25rem;
+      height: 1.25rem;
+      font-size: 0.6875rem;
+      line-height: 1.1rem;
+      padding-inline-start: 0.3rem;
+      &::before {
+        width: 0.75rem;
+        height: 0.75rem;
+      }
+    }
+    & > input:checked + [data-switch-track]::before {
+      translate: 1rem 0;
+    }
+  }
 }
 /*
  * The left rail of a list row: a fixed-width zone that holds the row's select checkbox and, where the list can be

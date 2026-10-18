@@ -15,6 +15,8 @@ const props = defineProps<{
   /** The accessible name, when it needs more than the visible label. */
   name?: string
   disabled?: boolean
+  /** A smaller switch for one that repeats on every row of a list. */
+  compact?: boolean
 }>()
 const emit = defineEmits<{ 'update:modelValue': [on: boolean] }>()
 const input = useTemplateRef<HTMLInputElement>('input')
@@ -29,7 +31,7 @@ defineExpose({
 </script>
 
 <template>
-  <label class="switch">
+  <label class="switch" :class="{ 'switch-compact': compact }">
     <input
       ref="input"
       type="checkbox"

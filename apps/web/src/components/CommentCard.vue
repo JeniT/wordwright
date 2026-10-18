@@ -79,6 +79,7 @@ const author = computed(() => {
       ref="flip"
       :model-value="entry.resolved"
       label="Resolved"
+      compact
       :name="`Resolved: comment ${entry.number}`"
       @update:model-value="emit('setResolved', $event)"
     />

@@ -217,6 +217,7 @@ function saveLink() {
               ref="readSwitch"
               :model-value="!!link.readAt"
               label="Read"
+              compact
               :name="`Read: ${label()}`"
               :disabled="setRead.isPending.value"
               @update:model-value="toggleRead"
@@ -227,6 +228,7 @@ function saveLink() {
               ref="keepSwitch"
               :model-value="!!link.kept"
               label="Keep"
+              compact
               :name="`Keep: ${label()}`"
               :disabled="setKept.isPending.value"
               @update:model-value="toggleKept"
