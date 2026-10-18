@@ -2,19 +2,24 @@
 import { ref, useId } from 'vue'
 import { useModal } from '../lib/modal'
 
-const props = defineProps<{
-  open: boolean
-  title: string
-  confirmLabel: string
-  // Disables both buttons while the confirmed action is running.
-  busy?: boolean
-  /** Shown on the confirm button while busy. */
-  busyLabel?: string
-  /** A second way forward, between Cancel and the confirm button ("Read it now"). */
-  alternateLabel?: string
-  /** `danger` (red, the default) is for deleting; `primary` for a choice that loses nothing. */
-  confirmTone?: 'danger' | 'primary'
-}>()
+const props = withDefaults(
+  defineProps<{
+    open: boolean
+    title: string
+    confirmLabel: string
+    // Disables both buttons while the confirmed action is running.
+    busy?: boolean
+    /** Shown on the confirm button while busy. */
+    busyLabel?: string
+    /** A second way forward, between Cancel and the confirm button ("Read it now"). */
+    alternateLabel?: string
+    /** `danger` (red, the default) is for deleting; `primary` for a choice that loses nothing. */
+    confirmTone?: 'danger' | 'primary'
+    /** False keeps the confirm button disabled, for a dialog that asks for a choice first. */
+    canConfirm?: boolean
+  }>(),
+  { canConfirm: true },
+)
 const emit = defineEmits<{ confirm: []; cancel: []; alternate: [] }>()
 
 const titleId = useId()
@@ -70,7 +75,7 @@ useModal({
             type="button"
             class="btn"
             :class="confirmTone === 'primary' ? 'btn-primary' : 'btn-danger-solid'"
-            :disabled="busy"
+            :disabled="busy || !canConfirm"
             @click="emit('confirm')"
           >
             {{ busy ? (busyLabel ?? 'Working…') : confirmLabel }}

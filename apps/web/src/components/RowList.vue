@@ -20,6 +20,11 @@ defineProps<{
   bare?: boolean
   /** Extra attributes for a row's `li` (a class, drag handlers). */
   rowAttrs?: (item: T) => Record<string, unknown>
+  /**
+   * Show the toolbar even for a single row. By default it is left out then, as there is nothing to select all of or
+   * act on in bulk; a list that can be filtered needs it to stay so the filter can be changed.
+   */
+  keepToolbar?: boolean
 }>()
 
 defineSlots<{
@@ -36,7 +41,7 @@ defineSlots<{
 
 <template>
   <div class="overflow-hidden rounded-ctl border border-line bg-surface">
-    <slot name="toolbar" />
+    <slot v-if="keepToolbar || items.length > 1" name="toolbar" />
     <component :is="ordered ? 'ol' : 'ul'" :aria-label="label" class="divide-y divide-line">
       <li
         v-for="(item, index) in items"

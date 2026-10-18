@@ -34,6 +34,7 @@ defineProps<{
     | 'unlink'
     | 'markdown'
     | 'more'
+    | 'move'
   size?: number
 }>()
 </script>
@@ -157,6 +158,11 @@ defineProps<{
       <circle cx="5" cy="12" r="1" fill="currentColor" />
       <circle cx="12" cy="12" r="1" fill="currentColor" />
       <circle cx="19" cy="12" r="1" fill="currentColor" />
+    </template>
+    <template v-else-if="name === 'move'">
+      <path d="M3 12h12" />
+      <path d="m10 7 5 5-5 5" />
+      <path d="M21 4v16" />
     </template>
     <polygon v-else-if="name === 'filter'" points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     <template v-else>

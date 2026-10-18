@@ -9,13 +9,12 @@ import { useMove, useMoveDestination } from '../lib/move'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HoldButton from './HoldButton.vue'
-import Explain from './Explain.vue'
 import Icon from './Icon.vue'
 import ListToolbar from './ListToolbar.vue'
-import MoveTo from './MoveTo.vue'
+import MoveFields from './MoveFields.vue'
+import MoveNotesDetails from './MoveNotesDetails.vue'
 import NoteCard from './NoteCard.vue'
 import ReorderableList from './ReorderableList.vue'
-import SwitchField from './SwitchField.vue'
 import TagEditor from './TagEditor.vue'
 import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
@@ -184,6 +183,8 @@ const dest = useMoveDestination(
   'the publication’s notes',
 )
 const moving = ref(false)
+/** A note whose own Move button was pressed: its dialog is open, and it alone moves (whatever is selected). */
+const movingOne = ref<IdeaNote | null>(null)
 const bringAll = ref(false)
 function toggleMoving() {
   tagging.value = false
@@ -192,20 +193,35 @@ function toggleMoving() {
   dest.reset()
   mover.moveNotes.reset()
 }
-/** The pages the chosen notes were taken from, and the other notes taken from those pages. */
+function startMovingOne(note: IdeaNote) {
+  tagging.value = false
+  moving.value = false
+  bringAll.value = false
+  dest.reset()
+  mover.moveNotes.reset()
+  movingOne.value = note
+}
+function stopMovingOne() {
+  movingOne.value = null
+  bringAll.value = false
+  dest.reset()
+}
+/** The notes a move is about: the one whose button was pressed, else the selected ones. */
+const moveSubjects = computed(() => (movingOne.value ? [movingOne.value] : chosen.value))
+/** The pages the notes were taken from, and the other notes taken from those pages. */
 const sourceIds = computed(() => [
-  ...new Set(chosen.value.filter((n) => n.readingItemId).map((n) => n.readingItemId!)),
+  ...new Set(moveSubjects.value.filter((n) => n.readingItemId).map((n) => n.readingItemId!)),
 ])
 const othersFromSources = computed(() =>
   (notes.data.value ?? []).filter(
     (n) =>
       n.readingItemId &&
       sourceIds.value.includes(n.readingItemId) &&
-      !chosenIds.value.includes(n.id),
+      !moveSubjects.value.some((s) => s.id === n.id),
   ),
 )
 const movingIds = computed(() => [
-  ...chosenIds.value,
+  ...moveSubjects.value.map((n) => n.id),
   ...(bringAll.value ? othersFromSources.value.map((n) => n.id) : []),
 ])
 const canMove = computed(
@@ -229,8 +245,9 @@ async function moveChosen() {
     },
     {
       onSuccess: () => {
+        if (!movingOne.value) clearSelection()
         moving.value = false
-        clearSelection()
+        movingOne.value = null
         bringAll.value = false
         dest.reset()
       },
@@ -249,6 +266,11 @@ const confirmLabel = computed(() =>
     : mover.moveNotes.isPending.value || dest.makeIdea.isPending
       ? 'Moving…'
       : `Move ${plural(movingIds.value.length)}`,
+)
+const moveLabel = computed(() =>
+  mover.moveNotes.isPending.value || dest.makeIdea.isPending
+    ? 'Moving…'
+    : `Move ${plural(movingIds.value.length)}`,
 )
 const canConfirm = computed(() =>
   tagging.value
@@ -400,7 +422,13 @@ const label = (note: IdeaNote) => {
       </p>
       <div v-else ref="list" class="mb-4">
         <p v-if="!visibleNotes.length" class="text-ink-soft">No notes have this tag.</p>
-        <ReorderableList v-else :items="visibleNotes" :item-label="label" :save="saveOrder">
+        <ReorderableList
+          v-else
+          :items="visibleNotes"
+          :item-label="label"
+          :save="saveOrder"
+          :keep-toolbar="!!tagFilter"
+        >
           <template #toolbar>
             <ListToolbar
               :page-size="visibleNotes.length"
@@ -456,43 +484,25 @@ const label = (note: IdeaNote) => {
                   :suggestions="usedTags"
                 />
                 <template v-else>
-                  <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <MoveTo
-                      v-model:destination="dest.destination"
-                      v-model:new-idea-name="dest.newIdeaName"
-                      v-model:other-publication="dest.otherPublicationId"
-                      v-model:other-destination="dest.otherDestination"
-                      :dest="dest"
-                      :from-idea="!!ideaId"
-                      publication-label="The publication’s notes"
-                      allow-new
-                      new-idea-hint="In your own words. The notes you move become its first notes."
-                    />
-                    <Explain label="About moving notes">
-                      They keep the order you arranged them in, along with their tags and whether
-                      they are quotations. They are moved, not copied.
-                    </Explain>
-                  </div>
-                  <p
-                    v-if="chosen.length && dest.chosen"
-                    class="mt-1 text-xs text-ink-soft"
-                    data-move-says
+                  <MoveFields
+                    :dest="dest"
+                    :from-idea="!!ideaId"
+                    publication-label="The publication’s notes"
+                    allow-new
+                    new-idea-hint="In your own words. The notes you move become its first notes."
+                    explain-label="About moving notes"
                   >
-                    {{ movingIds.length }} {{ movingIds.length === 1 ? 'note' : 'notes' }} will move
-                    to {{ dest.name }}.
-                    <template v-if="sourceIds.length">
-                      {{ sourceIds.length === 1 ? 'The page' : `The ${sourceIds.length} pages` }}
-                      they were taken from will be copied to its reading list (or the copy already
-                      there is used); the originals stay where they are.
-                    </template>
-                  </p>
-                  <div v-if="othersFromSources.length" class="mt-1">
-                    <SwitchField
-                      v-model="bringAll"
-                      :label="`Also bring the ${othersFromSources.length} other ${othersFromSources.length === 1 ? 'note' : 'notes'} taken from those pages`"
-                    />
-                    <p class="meta">Otherwise they stay here, still pointing at the pages here.</p>
-                  </div>
+                    They keep the order you arranged them in, along with their tags and whether they
+                    are quotations. They are moved, not copied.
+                  </MoveFields>
+                  <MoveNotesDetails
+                    v-if="chosen.length && dest.chosen"
+                    v-model:bring-all="bringAll"
+                    :count="movingIds.length"
+                    :destination="dest.name"
+                    :source-count="sourceIds.length"
+                    :others-count="othersFromSources.length"
+                  />
                 </template>
                 <p
                   v-if="tagging ? tagChosen.isError.value : mover.moveNotes.isError.value"
@@ -505,7 +515,9 @@ const label = (note: IdeaNote) => {
             </ListToolbar>
           </template>
           <template #rail="{ item: note }">
+            <!-- With one note and no filter there is no toolbar to act from, so nothing to select for. -->
             <input
+              v-if="visibleNotes.length > 1 || tagFilter"
               type="checkbox"
               :checked="selected.includes(note.id)"
               :aria-label="`Select ${label(note)}`"
@@ -584,6 +596,15 @@ const label = (note: IdeaNote) => {
             >
               <Icon name="edit" />
             </button>
+            <button
+              v-tip="'Move'"
+              type="button"
+              class="btn btn-sm btn-icon btn-ghost"
+              :aria-label="`Move ${label(note)}`"
+              @click="startMovingOne(note)"
+            >
+              <Icon name="move" />
+            </button>
             <HoldButton
               tip="Press and hold, or tap twice, to delete this note"
               verb="Delete"
@@ -628,6 +649,39 @@ const label = (note: IdeaNote) => {
         </button>
       </form>
     </QueryState>
+    <ConfirmDialog
+      :open="!!movingOne"
+      :title="movingOne ? `Move ${label(movingOne)}` : ''"
+      :confirm-label="moveLabel"
+      confirm-tone="primary"
+      :can-confirm="canMove"
+      :busy="mover.moveNotes.isPending.value || dest.makeIdea.isPending"
+      busy-label="Moving…"
+      @confirm="moveChosen"
+      @cancel="stopMovingOne"
+    >
+      <MoveFields
+        :dest="dest"
+        :from-idea="!!ideaId"
+        publication-label="The publication’s notes"
+        allow-new
+        new-idea-hint="In your own words. The note you move becomes its first note."
+        explain-label="About moving a note"
+      >
+        It keeps its tags and whether it is a quotation. It is moved, not copied.
+      </MoveFields>
+      <MoveNotesDetails
+        v-if="dest.chosen"
+        v-model:bring-all="bringAll"
+        :count="movingIds.length"
+        :destination="dest.name"
+        :source-count="sourceIds.length"
+        :others-count="othersFromSources.length"
+      />
+      <p v-if="mover.moveNotes.isError.value" role="alert" class="mt-2 text-danger">
+        {{ errorMessage(mover.moveNotes.error.value) }}
+      </p>
+    </ConfirmDialog>
     <ConfirmDialog
       :open="confirmingDeleteChosen"
       :title="`Delete ${chosen.length} ${chosen.length === 1 ? 'note' : 'notes'}?`"

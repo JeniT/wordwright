@@ -414,7 +414,7 @@ on, the funnel is marked and a small chip says what is filtering, so a filtered 
 header holds their form, ending in a **tick** (confirm; named "Tag 3 notes", "Move 2 items") and a **cross** (cancel)
 as icon buttons, to leave room. The wordy explanation goes behind an **info icon** (`InfoTip`: shown on hover, focus or
 tap, and read as the icon's description) at the end of the form, or in very small text below it when there is one line.
-Merge acts at once, and Delete or Remove N asks in its dialog, so neither opens a form. If the selection empties, the
+**A list of one item has no header** (and no tick): each note, reading item and idea has its own **Move** icon (borderless, with Edit and Remove) that opens a dialog with the same form and moves that item alone. A list that can be filtered keeps its header for one row. $1 If the selection empties, the
 form closes. Text on the actions that open the form, icons for the tick and the cross. Select all means the items
 showing, after the filter, on this page; when there are more pages, "Select all N" offers the rest of the filtered
 list. Selection clears when the filter or the page changes, so what an action touches is always what is on screen.

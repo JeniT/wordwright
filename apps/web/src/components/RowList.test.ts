@@ -28,6 +28,23 @@ describe('RowList', () => {
     expect(screen.getAllByRole('listitem')[0]!.querySelector('span.shrink-0')).toBeNull()
   })
 
+  it('leaves out the toolbar for a single row, as there is nothing to act on in bulk', () => {
+    const toolbar = () => 'Bulk tools'
+    const { rerender } = render(RowList, { props: { items }, slots: { ...slots, toolbar } })
+    expect(screen.getByText('Bulk tools')).toBeInTheDocument()
+    return rerender({ items: [{ id: 'a' }] }).then(() => {
+      expect(screen.queryByText('Bulk tools')).toBeNull()
+    })
+  })
+
+  it('keeps the toolbar for a single row when asked, so a filter can still be changed', () => {
+    render(RowList, {
+      props: { items: [{ id: 'a' }], keepToolbar: true },
+      slots: { ...slots, toolbar: () => 'Bulk tools' },
+    })
+    expect(screen.getByText('Bulk tools')).toBeInTheDocument()
+  })
+
   it('in bare mode lets the content fill the row, with no padding or actions zone of its own', () => {
     render(RowList, { props: { items, bare: true }, slots })
     const row = screen.getAllByRole('listitem')[0]!

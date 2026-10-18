@@ -23,7 +23,7 @@ const props = defineProps<{
   /** Tags used elsewhere on the list, offered when editing. */
   knownTags?: readonly string[]
 }>()
-const emit = defineEmits<{ remove: []; select: [on: boolean] }>()
+const emit = defineEmits<{ remove: []; select: [on: boolean]; move: [] }>()
 const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
 const { setRead, setKept, setTags, update: save } = useReadingActions(owner)
 const saveTags = (tags: string[]) => setTags.mutateAsync({ linkId: props.link.id, tags })
@@ -188,6 +188,15 @@ function saveLink() {
               @click="startEditing"
             >
               <Icon name="edit" />
+            </button>
+            <button
+              v-tip="'Move'"
+              type="button"
+              class="btn btn-sm btn-icon btn-ghost"
+              :aria-label="`Move link to ${label()}`"
+              @click="emit('move')"
+            >
+              <Icon name="move" />
             </button>
             <HoldButton
               :tip="removeHint()"

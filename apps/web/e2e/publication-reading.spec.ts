@@ -449,13 +449,12 @@ test('moves a note into another of the writer’s publications, and puts it back
   const second = idOf()
 
   await page.goto(`/p/${first}/notes`)
-  await page.getByRole('checkbox', { name: /^Select note “Belongs elsewhere/ }).check()
-  await page.getByRole('button', { name: 'Move to…' }).click()
+  await page.getByRole('button', { name: /^Move note “Belongs elsewhere/ }).click()
   await page.getByLabel('Move to').selectOption({ label: 'Another publication…' })
   await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
   await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
   await noViolations(page, 'choosing another publication to move to')
-  await page.getByRole('button', { name: 'Move 1 note' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Move 1 note' }).click()
   await expect(page.getByText(/^Moved 1 note to “Elsewhere”’s notes\./)).toBeVisible()
   await expect(page.getByText('Belongs elsewhere')).toHaveCount(0)
 
@@ -465,12 +464,11 @@ test('moves a note into another of the writer’s publications, and puts it back
   await expect(page.getByText('Belongs elsewhere')).toBeVisible()
 
   // Moved again, it is there.
-  await page.getByRole('checkbox', { name: /^Select note “Belongs elsewhere/ }).check()
-  await page.getByRole('button', { name: 'Move to…' }).click()
+  await page.getByRole('button', { name: /^Move note “Belongs elsewhere/ }).click()
   await page.getByLabel('Move to').selectOption({ label: 'Another publication…' })
   await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
   await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
-  await page.getByRole('button', { name: 'Move 1 note' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Move 1 note' }).click()
   await expect(page.getByText(/^Moved 1 note to “Elsewhere”’s notes\./)).toBeVisible()
   await page.goto(`/p/${second}/notes`)
   await expect(page.getByText('Belongs elsewhere')).toBeVisible()

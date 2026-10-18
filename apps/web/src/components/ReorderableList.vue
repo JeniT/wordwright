@@ -25,6 +25,8 @@ const props = defineProps<{
   itemLabel: (item: T) => string
   /** Stores the complete new order (every id). Resolves true if it was saved. */
   save: (ids: string[], moved: T) => Promise<boolean>
+  /** Keep the toolbar for a single row (see `RowList`): for a list that can be filtered. */
+  keepToolbar?: boolean
 }>()
 
 defineSlots<{
@@ -276,7 +278,7 @@ const rowAttrs = (item: T) => ({
 
 <template>
   <div ref="root" @focusout="onFocusOut">
-    <RowList :items="shown" ordered :row-attrs="rowAttrs">
+    <RowList :items="shown" ordered :row-attrs="rowAttrs" :keep-toolbar="keepToolbar">
       <template v-if="$slots.toolbar" #toolbar><slot name="toolbar" /></template>
       <template #rail="{ item, index }">
         <div

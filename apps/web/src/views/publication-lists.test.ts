@@ -414,6 +414,19 @@ describe('moving reading items', () => {
     await fireEvent.update(await screen.findByLabelText('Move to'), value)
   }
 
+  it('moves one item from its own Move button, whatever else is ticked', async () => {
+    const f = fake()
+    await open()
+    await tick('Another')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move link to A paper' }))
+    const dialog = screen.getByRole('dialog', { name: 'Move A paper' })
+    expect(within(dialog).getByRole('button', { name: 'Move link' })).toBeDisabled() // no place yet
+    await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move link' }))
+    await waitFor(() => expect(f.moves).toEqual([{ ids: ['l1'], to: { ideaId: 'i1' } }]))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
   it('offers ticks on each item and a place to move to, and moves only once both are chosen', async () => {
     fake()
     await open()
@@ -1105,13 +1118,55 @@ describe('moving notes', () => {
   })
 
   it('says it is done even when every note has gone, rather than just showing nothing', async () => {
-    fake([note('n1', 'Only one')]).setResult({ notes: 1, copied: 0 })
+    fake([note('n1', 'Only one'), note('n2', 'Stays')]).setResult({ notes: 2, copied: 0 })
     await open()
     await tick('Only one')
+    await tick('Stays')
     await moveTo('i1')
-    await fireEvent.click(screen.getByRole('button', { name: 'Move 1 note' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Moved 1 note to “Rivers”.')
+    await fireEvent.click(screen.getByRole('button', { name: 'Move 2 notes' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Moved 2 notes to “Rivers”.')
     expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
+  })
+
+  it('moves a lone note from its own Move button, as there is no toolbar or tick for one', async () => {
+    const f = fake([note('n1', 'Only one')])
+    f.setResult({ notes: 1, copied: 0 })
+    await renderAt('/p/ada-substack/notes')
+    await screen.findByText('Only one')
+    expect(screen.queryByRole('checkbox', { name: /^Select note/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Move to…' })).toBeNull()
+    await fireEvent.click(screen.getByRole('button', { name: /^Move note “Only one/ }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: 'Move 1 note' })).toBeDisabled() // no place yet
+    await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
+    expect(says()).toHaveTextContent('1 note will move to “Rivers”.')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move 1 note' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Moved 1 note to “Rivers”.')
+    expect(f.moves).toEqual([{ ids: ['n1'], to: { ideaId: 'i1' } }])
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('moves only the note whose Move button was pressed, whatever else is ticked', async () => {
+    const f = fake()
+    await open()
+    await tick('Typed thought')
+    await fireEvent.click(screen.getByRole('button', { name: /^Move note “From the paper/ }))
+    const dialog = screen.getByRole('dialog')
+    await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'i1')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move 1 note' }))
+    await waitFor(() => expect(f.moves).toHaveLength(1))
+    expect(f.moves[0]).toEqual({ ids: ['n2'], to: { ideaId: 'i1' } })
+  })
+
+  it('leaves the note where it is when the dialog is cancelled', async () => {
+    const f = fake([note('n1', 'Only one')])
+    await renderAt('/p/ada-substack/notes')
+    await fireEvent.click(await screen.findByRole('button', { name: /^Move note “Only one/ }))
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(f.moves).toEqual([])
   })
 })
 
@@ -1135,7 +1190,8 @@ describe('deleting selected notes', () => {
     )
     await waitFor(() => expect(state.notes.map((n) => n.id)).toEqual(['n2']))
     await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())
-    expect(screen.getByText('0 selected')).toBeInTheDocument()
+    // One note is left, so there is nothing to act on in bulk and the toolbar goes.
+    expect(screen.queryByText('0 selected')).toBeNull()
   })
 
   it('shows a note’s own actions as icons, with Edit and a held Delete', async () => {

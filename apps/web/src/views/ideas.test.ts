@@ -170,6 +170,28 @@ describe('moving ideas to another publication', () => {
     expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeEnabled()
   })
 
+  it('moves one idea from its own Move button, whatever else is ticked', async () => {
+    const f = fake()
+    server.use(
+      http.post('*/api/publications/ada-substack/move/ideas/preview', () =>
+        HttpResponse.json({ ...preview, losingAccess: [] }),
+      ),
+    )
+    await renderAt('/p/ada-substack/ideas')
+    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Tides' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Move Why rivers meander' }))
+    const dialog = screen.getByRole('dialog', { name: 'Move Why rivers meander' })
+    expect(within(dialog).getByRole('button', { name: 'Move idea' })).toBeDisabled() // nowhere chosen yet
+    await fireEvent.update(await within(dialog).findByLabelText('Move to'), 'ada-poems')
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Move idea' })).toBeEnabled(),
+    )
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move idea' }))
+    await waitFor(() =>
+      expect(f.moves).toEqual([{ ids: ['i1'], to: { publicationId: 'ada-poems' } }]),
+    )
+  })
+
   it('moves them, then opens the idea where it is now', async () => {
     const f = fake()
     server.use(

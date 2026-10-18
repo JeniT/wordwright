@@ -294,10 +294,12 @@ export function useMoveIdeasFlow(publicationId: () => string, ideas: () => { id:
   const router = useRouter()
   const publications = usePublications()
   const selected = ref<string[]>([])
-  /** The selected ideas that still exist (one that was moved or deleted meanwhile is not counted). */
+  /** An idea whose own Move button was pressed: it alone is what the move is about, whatever is selected. */
+  const one = ref<string | null>(null)
+  /** The ideas to move: the one, else the selected ones that still exist (one moved or deleted meanwhile is not counted). */
   const chosen = computed(() =>
     ideas()
-      .filter((i) => selected.value.includes(i.id))
+      .filter((i) => (one.value ? i.id === one.value : selected.value.includes(i.id)))
       .map((i) => i.id),
   )
   const toggle = (id: string, on: boolean) =>
@@ -312,12 +314,23 @@ export function useMoveIdeasFlow(publicationId: () => string, ideas: () => { id:
   const preview = useIdeaMovePreview(
     publicationId,
     () => chosen.value,
-    () => (moving.value ? target.value : ''),
+    () => (moving.value || one.value ? target.value : ''),
   )
   const mover = useMoveIdeas(publicationId)
   const targetName = computed(() => others.value.find((p) => p.id === target.value)?.name ?? '')
   function toggleMoving() {
     moving.value = !moving.value
+    target.value = ''
+    mover.reset()
+  }
+  function startOne(id: string) {
+    moving.value = false
+    target.value = ''
+    mover.reset()
+    one.value = id
+  }
+  function stopOne() {
+    one.value = null
     target.value = ''
     mover.reset()
   }
@@ -340,6 +353,7 @@ export function useMoveIdeasFlow(publicationId: () => string, ideas: () => { id:
       {
         onSuccess: () => {
           moving.value = false
+          one.value = null
           selected.value = []
           // Land on the idea where it is now (or on the list, for several).
           void router.push(
@@ -363,6 +377,9 @@ export function useMoveIdeasFlow(publicationId: () => string, ideas: () => { id:
     preview,
     mover,
     toggleMoving,
+    one,
+    startOne,
+    stopOne,
     canMove,
     confirmLabel,
     move,

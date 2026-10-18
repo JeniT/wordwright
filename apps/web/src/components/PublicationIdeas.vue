@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import ConfirmDialog from './ConfirmDialog.vue'
+import Icon from './Icon.vue'
 import ListToolbar from './ListToolbar.vue'
+import MoveIdeasFields from './MoveIdeasFields.vue'
 import LandingSection from './LandingSection.vue'
-import { errorMessage } from '../lib/api'
-import { ideaMoveContents, nameList, plural, useMoveIdeasFlow } from '../lib/move'
+import { plural, useMoveIdeasFlow } from '../lib/move'
 import { useIdeas } from '../lib/queries'
 import QueryState from './QueryState.vue'
 import RowList from './RowList.vue'
+import { vTip } from '../lib/tip'
 
 /**
  * The publication's ideas, for its landing page: all of them, to choose what to work on next, with the toolbar for
@@ -55,53 +58,13 @@ const flow = useMoveIdeasFlow(
               </button>
             </template>
             <template #form>
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <label for="move-ideas-to" class="text-sm font-medium">Move to</label>
-                <select
-                  id="move-ideas-to"
-                  v-model="flow.target"
-                  class="field field-compact max-w-full !w-auto"
-                >
-                  <option value="" disabled>Choose a publication…</option>
-                  <option v-for="p in flow.others" :key="p.id" :value="p.id">{{ p.name }}</option>
-                </select>
-              </div>
-              <div v-if="flow.target" class="mt-2 text-sm" aria-live="polite" data-move-says>
-                <p v-if="flow.preview.isPending">Checking what will move…</p>
-                <p v-else-if="flow.preview.isError" role="alert" class="text-danger">
-                  {{ errorMessage(flow.preview.error) }}
-                </p>
-                <template v-else-if="flow.preview.data">
-                  <p v-if="flow.preview.data.problem" role="alert" class="text-danger">
-                    {{ flow.preview.data.problem }}
-                  </p>
-                  <template v-else>
-                    <p>
-                      {{ ideaMoveContents(flow.preview.data) }} will move to “{{
-                        flow.targetName
-                      }}”.
-                    </p>
-                    <p v-if="flow.preview.data.losingAccess.length" class="mt-1 text-ink-soft">
-                      {{ nameList(flow.preview.data.losingAccess) }}
-                      {{
-                        flow.preview.data.losingAccess.length === 1
-                          ? 'isn’t a member'
-                          : 'aren’t members'
-                      }}
-                      of “{{ flow.targetName }}”, so will no longer be able to see
-                      {{ flow.chosen.length === 1 ? 'it' : 'them' }}. Their comments stay.
-                    </p>
-                  </template>
-                </template>
-              </div>
-              <p v-if="flow.mover.isError" role="alert" class="mt-2 text-sm text-danger">
-                {{ errorMessage(flow.mover.error) }}
-              </p>
+              <MoveIdeasFields :flow="flow" />
             </template>
           </ListToolbar>
         </template>
         <template #rail="{ item: idea }">
-          <div class="list-rail">
+          <!-- With one idea there is no toolbar to act from, so nothing to select for. -->
+          <div v-if="ideas.data.value!.length > 1" class="list-rail">
             <input
               type="checkbox"
               :checked="flow.selected.includes(idea.id)"
@@ -111,17 +74,42 @@ const flow = useMoveIdeasFlow(
           </div>
         </template>
         <template #default="{ item: idea }">
-          <RouterLink
-            :to="{ name: 'idea', params: { publicationId, id: idea.id } }"
-            class="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-4 py-3 no-underline hover:bg-sunken"
-          >
-            <span class="text-lg font-semibold">{{ idea.name }}</span>
-            <span class="meta shrink-0">
-              {{ plural(idea.draftCount, 'draft', 'drafts') }}
-            </span>
-          </RouterLink>
+          <div class="flex items-center">
+            <RouterLink
+              :to="{ name: 'idea', params: { publicationId, id: idea.id } }"
+              class="flex min-w-0 flex-1 items-baseline justify-between gap-3 px-4 py-3 no-underline hover:bg-sunken"
+            >
+              <span class="text-lg font-semibold">{{ idea.name }}</span>
+              <span class="meta shrink-0">
+                {{ plural(idea.draftCount, 'draft', 'drafts') }}
+              </span>
+            </RouterLink>
+            <button
+              v-if="flow.others.length"
+              v-tip="'Move to another publication'"
+              type="button"
+              class="btn btn-sm btn-icon btn-ghost mx-2 shrink-0"
+              :aria-label="`Move ${idea.name}`"
+              @click="flow.startOne(idea.id)"
+            >
+              <Icon name="move" />
+            </button>
+          </div>
         </template>
       </RowList>
     </QueryState>
+    <ConfirmDialog
+      :open="!!flow.one"
+      :title="`Move ${ideas.data.value?.find((i) => i.id === flow.one)?.name ?? 'this idea'}`"
+      :confirm-label="flow.mover.isPending ? 'Moving…' : 'Move idea'"
+      confirm-tone="primary"
+      :can-confirm="flow.canMove"
+      :busy="flow.mover.isPending"
+      busy-label="Moving…"
+      @confirm="flow.move"
+      @cancel="flow.stopOne"
+    >
+      <MoveIdeasFields :flow="flow" />
+    </ConfirmDialog>
   </LandingSection>
 </template>

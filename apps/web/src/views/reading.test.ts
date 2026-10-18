@@ -135,7 +135,12 @@ describe('reading page', () => {
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
-      http.get(notesUrl, () => HttpResponse.json([note('n1', 'An idea note', null, 'entered')])),
+      http.get(notesUrl, () =>
+        HttpResponse.json([
+          note('n1', 'An idea note', null, 'entered'),
+          note('n2', 'Another', null, 'entered'),
+        ]),
+      ),
       http.get('*/api/publications/ada-substack/ideas', () =>
         HttpResponse.json([
           {

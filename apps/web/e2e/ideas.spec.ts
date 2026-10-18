@@ -910,8 +910,7 @@ test('moves an idea with its draft to another publication, and opens it there', 
 
   // Someone with one publication is not offered a move.
   await page.goto(`/p/${first}/ideas`)
-  await page.getByRole('checkbox', { name: 'Select Why rivers meander' }).check()
-  await expect(page.getByRole('button', { name: 'Move to…' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Move Why rivers meander' })).toHaveCount(0)
 
   // A second publication to move to.
   await page.goto('/')
@@ -922,14 +921,13 @@ test('moves an idea with its draft to another publication, and opens it there', 
   const second = idOf()
 
   await page.goto(`/p/${first}/ideas`)
-  await page.getByRole('checkbox', { name: 'Select Why rivers meander' }).check()
-  await page.getByRole('button', { name: 'Move to…' }).click()
+  await page.getByRole('button', { name: 'Move Why rivers meander' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'Elsewhere' })
   await expect(
     page.getByText('1 idea, 1 draft, 1 note, 0 links will move to “Elsewhere”.'),
   ).toBeVisible()
   await noViolations(page, 'confirming a move of an idea')
-  await page.getByRole('button', { name: 'Move 1 idea' }).click()
+  await page.getByRole('button', { name: 'Move idea' }).click()
 
   // It opens where it is now, with its draft.
   await expect(page).toHaveURL(new RegExp(`/p/${second}/ideas/[^/]+$`))

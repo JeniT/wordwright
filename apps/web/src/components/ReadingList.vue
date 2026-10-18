@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue'
+import type { IdeaLink } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
@@ -9,9 +10,8 @@ import AddLinkForm from './AddLinkForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import IdeaLinkItem from './IdeaLinkItem.vue'
-import Explain from './Explain.vue'
 import ListToolbar from './ListToolbar.vue'
-import MoveTo from './MoveTo.vue'
+import MoveFields from './MoveFields.vue'
 import PageNav from './PageNav.vue'
 import SwitchField from './SwitchField.vue'
 import TagFilter from './TagFilter.vue'
@@ -145,14 +145,27 @@ const dest = useMoveDestination(
   'the publication’s reading list',
 )
 const moving = ref(false)
+/** An item whose own Move button was pressed: its dialog is open, and it alone moves (whatever is selected). */
+const movingOne = ref<IdeaLink | null>(null)
 function toggleMoving() {
   tagging.value = false
   moving.value = !moving.value
   dest.reset()
   mover.moveReading.reset()
 }
+function startMovingOne(link: IdeaLink) {
+  tagging.value = false
+  moving.value = false
+  dest.reset()
+  mover.moveReading.reset()
+  movingOne.value = link
+}
+function stopMovingOne() {
+  movingOne.value = null
+  dest.reset()
+}
 async function move() {
-  const ids = chosen.value
+  const ids = movingOne.value ? [movingOne.value.id] : chosen.value
   const target = await dest.resolve()
   if (!target) return
   mover.moveReading.mutate(
@@ -165,8 +178,9 @@ async function move() {
     },
     {
       onSuccess: () => {
+        if (!movingOne.value) clearSelection()
         moving.value = false
-        clearSelection()
+        movingOne.value = null
         dest.reset()
       },
     },
@@ -174,7 +188,7 @@ async function move() {
 }
 const canMove = computed(
   () =>
-    chosen.value.length > 0 &&
+    (!!movingOne.value || chosen.value.length > 0) &&
     dest.chosen &&
     !mover.moveReading.isPending.value &&
     !dest.makeIdea.isPending,
@@ -327,22 +341,17 @@ function removeChosen() {
                 :carried="carried"
                 :suggestions="usedTags"
               />
-              <div v-else class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <MoveTo
-                  v-model:destination="dest.destination"
-                  v-model:new-idea-name="dest.newIdeaName"
-                  v-model:other-publication="dest.otherPublicationId"
-                  v-model:other-destination="dest.otherDestination"
-                  :dest="dest"
-                  :from-idea="!!ideaId"
-                  publication-label="The publication’s reading list"
-                  :allow-new="!ideaId"
-                  new-idea-hint="In your own words. The items you move become its reading list."
-                />
-                <Explain label="About moving links">
-                  Each goes with the notes you took from it, and keeps whether you have read it.
-                </Explain>
-              </div>
+              <MoveFields
+                v-else
+                :dest="dest"
+                :from-idea="!!ideaId"
+                publication-label="The publication’s reading list"
+                :allow-new="!ideaId"
+                new-idea-hint="In your own words. The items you move become its reading list."
+                explain-label="About moving links"
+              >
+                Each goes with the notes you took from it, and keeps whether you have read it.
+              </MoveFields>
               <p
                 v-if="tagging ? list.tagMany.isError.value : mover.moveReading.isError.value"
                 role="alert"
@@ -365,6 +374,7 @@ function removeChosen() {
               :known-tags="usedTags"
               @select="toggleSelected(link.id, $event)"
               @remove="list.remove.mutate(link.id)"
+              @move="startMovingOne(link)"
             />
           </ul>
           <p v-else class="px-4 py-3 text-ink-soft">Everything on the list has been read.</p>
@@ -387,6 +397,33 @@ function removeChosen() {
 
       <AddLinkForm :publication-id="publicationId" :idea-id="ideaId" />
     </QueryState>
+    <ConfirmDialog
+      :open="!!movingOne"
+      :title="movingOne ? `Move ${movingOne.title || movingOne.url}` : ''"
+      :confirm-label="
+        mover.moveReading.isPending.value || dest.makeIdea.isPending ? 'Moving…' : 'Move link'
+      "
+      confirm-tone="primary"
+      :can-confirm="canMove"
+      :busy="mover.moveReading.isPending.value || dest.makeIdea.isPending"
+      busy-label="Moving…"
+      @confirm="move"
+      @cancel="stopMovingOne"
+    >
+      <MoveFields
+        :dest="dest"
+        :from-idea="!!ideaId"
+        publication-label="The publication’s reading list"
+        :allow-new="!ideaId"
+        new-idea-hint="In your own words. The link you move becomes its reading list."
+        explain-label="About moving a link"
+      >
+        It goes with the notes you took from it, and keeps whether you have read it.
+      </MoveFields>
+      <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-danger">
+        {{ errorMessage(mover.moveReading.error.value) }}
+      </p>
+    </ConfirmDialog>
     <ConfirmDialog
       :open="confirmingRemoveChosen"
       :title="`Remove ${chosen.length} ${chosen.length === 1 ? 'link' : 'links'}?`"
