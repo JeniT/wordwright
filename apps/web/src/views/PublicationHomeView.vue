@@ -27,7 +27,7 @@ const ideas = useIdeas(() => props.publicationId)
 
 <template>
   <PublicationGate v-slot="{ publication }" :publication-id="publicationId">
-    <div class="mb-4 flex items-center gap-4">
+    <div class="mb-3 flex items-center gap-4">
       <PublicationImage
         :id="publication.id"
         :name="publication.name"
@@ -43,20 +43,20 @@ const ideas = useIdeas(() => props.publicationId)
             displayHost(publication.siteUrl)
           }}</NewTabLink>
         </p>
-        <!-- On shared publications only: alone, you can only be the owner (as on Home). -->
-        <p v-if="publication.members.length > 1" class="meta">
-          <span class="chip chip-quiet mr-1">{{
-            publication.role === 'owner' ? 'Owner' : 'Member'
-          }}</span>
-          Shared with {{ publication.members.length - 1 }}
-          {{ publication.members.length === 2 ? 'person' : 'people' }}
-        </p>
       </div>
       <SettingsButton
         :to="{ name: 'publication-settings', params: { publicationId } }"
         label="Publication settings"
       />
     </div>
+    <!-- On shared publications only: alone, you can only be the owner (as on Home). -->
+    <p v-if="publication.members.length > 1" class="meta mb-4">
+      <span class="chip chip-quiet mr-1">{{
+        publication.role === 'owner' ? 'Owner' : 'Member'
+      }}</span>
+      Shared with {{ publication.members.length - 1 }}
+      {{ publication.members.length === 2 ? 'person' : 'people' }}
+    </p>
 
     <Explain tutorial-only class="mb-6">
       This is your publication’s home. See the latest from your feeds, then your reading, notes and

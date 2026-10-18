@@ -693,7 +693,7 @@ test('invites someone who has no account yet: they register from the email and j
   await expect(newbie.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   // Accepting proved they own the address, so there is no "please confirm" banner.
   await expect(newbie.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0)
-  await expect(newbie.getByRole('banner').getByText('Shared with 1 person')).toBeVisible()
+  await expect(newbie.getByRole('banner').getByText('Shared with')).toHaveCount(0)
 
   // Ada now sees them as a member, and the invitation is no longer pending.
   await page.reload()
@@ -1277,7 +1277,7 @@ test('invites someone who already has an account; the link only works for that a
   await bobPage.goto(link)
   await bobPage.getByRole('button', { name: /^Join / }).click()
   await expect(bobPage.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
-  await expect(bobPage.getByRole('banner').getByText('Shared with 1 person')).toBeVisible()
+  await expect(bobPage.getByRole('banner').getByText('Shared with')).toHaveCount(0)
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 

@@ -142,7 +142,7 @@ describe('the menu in a publication', () => {
     expect(within(nav).queryByRole('link', { name: 'Publication settings' })).toBeNull()
     const header = await menu()
     expect(header.getByRole('link', { name: '← All publications' })).toHaveAttribute('href', '/')
-    expect(await header.findByText('Shared with 1 person')).toBeInTheDocument()
+    expect(header.queryByText(/Shared with/)).toBeNull()
   })
 
   it('counts the ideas under the Ideas step', async () => {

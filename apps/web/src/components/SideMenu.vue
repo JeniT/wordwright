@@ -12,11 +12,6 @@ import SettingsButton from './SettingsButton.vue'
  */
 const { level, publication, idea, steps, accountPages, settingsPages, stepKey, loading } = useNav()
 
-const sharedWith = () => {
-  const others = (publication.value?.members.length ?? 1) - 1
-  return others > 0 ? `Shared with ${others} ${others === 1 ? 'person' : 'people'}` : ''
-}
-
 const itemClass =
   'flex min-h-11 items-center rounded-ctl px-3 py-1.5 no-underline hover:bg-sunken aria-[current=page]:bg-accent-wash aria-[current=page]:font-semibold aria-[current=page]:shadow-[inset_3px_0_0_var(--color-accent)]'
 </script>
@@ -46,7 +41,6 @@ const itemClass =
         <p v-if="publication.siteUrl" class="meta">
           <NewTabLink :href="publication.siteUrl" class="link">Website</NewTabLink>
         </p>
-        <p v-if="sharedWith()" class="meta">{{ sharedWith() }}</p>
       </div>
       <SettingsButton
         :to="{ name: 'publication-settings', params: { publicationId: publication.id } }"
