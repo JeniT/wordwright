@@ -23,7 +23,7 @@ export function useDecidePosts(publicationId: () => string) {
           ? `Added “${post.title}” to the reading list.`
           : what === 'ignore'
             ? `Ignored “${post.title}”.`
-            : `“${post.title}” is back in the list.`
+            : `“${post.title}” is back in recent posts.`
     },
     // Whatever happened, someone else may have decided first: show how things are now.
     onSettled: () => invalidateRoots(queryClient, 'recent-posts', 'reading', 'ideas'),

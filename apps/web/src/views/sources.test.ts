@@ -260,6 +260,33 @@ describe('feeds in the settings', () => {
   })
 })
 
+describe('the Search page: tutorial mode (#260)', () => {
+  const setup = async (tutorialMode: boolean) => {
+    fakeSources([A])
+    server.use(
+      signedInAs({ ...testUser, tutorialMode }),
+      http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
+    )
+    await renderAt('/p/adalovelace-blog/search')
+    await screen.findByRole('heading', { level: 1, name: 'Search' })
+  }
+
+  it('writes out what the page is for, and what Ignore does, when it is on', async () => {
+    await setup(true)
+    expect(await screen.findByText(/The newest posts from your feeds/)).toBeVisible()
+    expect(screen.getByText(/Ignored posts move to the end of the list/)).toBeVisible()
+    expect(screen.getByText(/Read what you’ve gathered on the reading list/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'About ignoring posts' })).toBeNull()
+  })
+
+  it('keeps the page-purpose lines off, and Ignore behind an icon, when it is off', async () => {
+    await setup(false)
+    expect(await screen.findByRole('button', { name: 'About ignoring posts' })).toBeVisible()
+    expect(screen.queryByText(/The newest posts from your feeds/)).toBeNull()
+    expect(screen.queryByText(/Read what you’ve gathered/)).toBeNull()
+  })
+})
+
 describe('recent posts from all the feeds', () => {
   const post = (id: string, sourceId: string, title: string, publishedAt: string, extra = {}) => ({
     id,
@@ -383,7 +410,8 @@ describe('recent posts from all the feeds', () => {
     expect(
       within(recent).getByText(/3 older posts in this period aren’t shown/),
     ).toBeInTheDocument()
-    expect(within(recent).getByText(/1 post has no date/)).toBeInTheDocument()
+    expect(within(recent).getByText(/1 post has no date, so it isn’t listed/)).toBeInTheDocument()
+    expect(within(recent).getByText(/Check for new posts to try again/)).toBeInTheDocument()
   })
 
   it('checks the feeds again on request, and shows the fresh list', async () => {
@@ -454,9 +482,9 @@ describe('deciding about the recent posts', () => {
       await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
     )
     await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
-    const row = (await within(recent).findByText(/on a reading list/)).closest('li')!
+    const row = (await within(recent).findByText(/in the reading list/)).closest('li')!
     expect(row).toHaveTextContent('First post')
-    expect(within(row).getByRole('img', { name: 'On a reading list' })).toBeInTheDocument()
+    expect(within(row).getByRole('img', { name: 'In the reading list' })).toBeInTheDocument()
     expect(within(row).queryByRole('button', { name: /^Add/ })).not.toBeInTheDocument()
     expect(within(recent).getByText('Added “First post” to the reading list.')).toBeInTheDocument()
     // The other post still waits for a decision.
@@ -479,7 +507,7 @@ describe('deciding about the recent posts', () => {
     expect(within(row).getByRole('img', { name: 'Ignored' })).toBeInTheDocument()
     expect(within(row).getByText(/Second post/)).toBeInTheDocument()
 
-    await fireEvent.click(within(row).getByRole('button', { name: 'Reconsider: Second post' }))
+    await fireEvent.click(within(row).getByRole('button', { name: 'Stop ignoring: Second post' }))
     await waitFor(() => expect(state.sent.at(-1)).toEqual({ what: 'reconsider', postId: 'p2' }))
     expect(
       await within(recent).findByRole('button', { name: 'Add to the reading list: Second post' }),
@@ -529,7 +557,7 @@ describe('deciding about the recent posts', () => {
     await openSearch()
     const recent = await section()
     await fireEvent.click(
-      await within(recent).findByRole('button', { name: 'Reconsider: First post' }),
+      await within(recent).findByRole('button', { name: 'Take off the reading list: First post' }),
     )
     expect(
       await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),

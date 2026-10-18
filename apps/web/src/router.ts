@@ -146,7 +146,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'search',
     component: () => import('./views/SearchView.vue'),
     props: true,
-    meta: { level: 'publication', step: 'search' },
+    meta: { level: 'publication', step: 'search', tutorial: true },
   },
   {
     path: '/p/:publicationId/read',

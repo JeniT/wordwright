@@ -148,7 +148,7 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
   await expect(recent.getByRole('link', { name: new RegExp(title) })).toBeVisible()
   await noViolations(page, 'recent posts with decisions to make')
   await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
-  await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
+  await expect(recent.getByRole('img', { name: 'In the reading list' })).toBeVisible()
   await expect(recent.getByRole('button', { name: /^Add to the reading list/ })).toHaveCount(0)
   await noViolations(page, 'recent posts after adding')
 
@@ -162,7 +162,7 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
   await goTo(page, 'Search')
 
   // Reconsidering takes it off again.
-  await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
+  await recent.getByRole('button', { name: `Take off the reading list: ${title}` }).click()
   await expect(
     recent.getByRole('button', { name: `Add to the reading list: ${title}` }),
   ).toBeVisible()
@@ -172,7 +172,7 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
   await expect(recent.getByRole('img', { name: 'Ignored' })).toBeVisible()
   await page.reload()
   await expect(recent.getByRole('img', { name: 'Ignored' })).toBeVisible()
-  await recent.getByRole('button', { name: `Reconsider: ${title}` }).click()
+  await recent.getByRole('button', { name: `Stop ignoring: ${title}` }).click()
   await expect(recent.getByRole('button', { name: `Ignore: ${title}` })).toBeVisible()
 })
 
@@ -242,7 +242,7 @@ test('a post can be added or ignored from the publication’s own page, and the 
   // Search knows, and so does the reading list.
   await goTo(page, 'Search')
   const recent = page.getByRole('region', { name: 'Recent posts' })
-  await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
+  await expect(recent.getByRole('img', { name: 'In the reading list' })).toBeVisible()
   await goTo(page, 'Read')
   await expect(
     page
@@ -275,7 +275,7 @@ test('a post that is added or ignored moves to the end of the recent posts', asy
     .getByRole('button', { name: new RegExp(`^Add to the reading list: .*${first}`) })
     .click()
   await expect(rows.last()).toContainText(`A post in Feed of ${first}.example`)
-  await expect(rows.last()).toContainText('on a reading list')
+  await expect(rows.last()).toContainText('in the reading list')
   await expect(rows.first()).not.toContainText(first)
 
   // The next one ignored goes to the very end, after the one added.
@@ -368,7 +368,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   const recent = page.getByRole('region', { name: 'Recent posts' })
   const title = 'A post in Feed of read.example'
   await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
-  await expect(recent.getByRole('img', { name: 'On a reading list' })).toBeVisible()
+  await expect(recent.getByRole('img', { name: 'In the reading list' })).toBeVisible()
   await goTo(page, 'Read')
 
   // Read it, taking two notes, and jot one down of the writer's own.

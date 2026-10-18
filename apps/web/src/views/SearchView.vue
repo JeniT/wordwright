@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Explain from '../components/Explain.vue'
 import NextStep from '../components/NextStep.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import FeedsLink from '../components/FeedsLink.vue'
@@ -15,12 +16,12 @@ const sources = useSources(() => props.publicationId)
 </script>
 
 <template>
-  <PublicationGate v-slot="{ publication }" :publication-id="publicationId">
+  <PublicationGate :publication-id="publicationId">
     <StepHeading>Search</StepHeading>
-    <p class="mb-4 text-ink-soft">
-      Recent posts from {{ publication.name }}’s feeds. Add the ones worth reading to the reading
-      list.
-    </p>
+    <Explain tutorial-only class="mb-4">
+      The newest posts from your feeds. Add the ones worth reading to the reading list, and ignore
+      the rest.
+    </Explain>
     <p v-if="sources.isSuccess.value" class="mb-8">
       <FeedsLink
         :publication-id="publicationId"
@@ -28,8 +29,9 @@ const sources = useSources(() => props.publicationId)
       />
     </p>
     <RecentPosts :publication-id="publicationId" />
-    <NextStep :to="{ name: 'read', params: { publicationId } }" label="Next: 02 Read">
+    <Explain tutorial-only class="-mb-6 mt-10">
       Read what you’ve gathered on the reading list and take notes from it.
-    </NextStep>
+    </Explain>
+    <NextStep :to="{ name: 'read', params: { publicationId } }" label="Next: 02 Read" />
   </PublicationGate>
 </template>

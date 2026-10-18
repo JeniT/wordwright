@@ -18,6 +18,10 @@ _Avoid_: Bio, about, brief
 An RSS or Atom link that a publication looks through for recent posts, which the writer can add to the reading list. Any member can add or remove them, in the publication's settings; they are listed alphabetically, with no order of priority.
 _Avoid_: Source (in what people see), subscription
 
+**Reading list**:
+The publication's own list of posts and articles to read, from which notes are taken. Posts from its feeds are added to it; ideas have their own.
+_Avoid_: Library, bookmarks
+
 **Publication picture**:
 The image an owner chooses for a publication. Always shown in preference to the site icon.
 _Avoid_: Avatar, logo

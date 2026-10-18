@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import NewTabLink from './NewTabLink.vue'
 import type { RecentPost } from '@wordwright/core'
 import type { PostDecision } from '../lib/recent-posts'
@@ -10,7 +11,7 @@ import { vTip } from '../lib/tip'
  * One post from a feed, with the decision to make about it (or how it was decided, and a way back). Shared by the
  * Search page's list and the publication's landing page so the two can't drift apart.
  */
-defineProps<{
+const props = defineProps<{
   post: RecentPost
   /** The feed's name and logo. */
   feedName: string
@@ -19,6 +20,10 @@ defineProps<{
   busy: boolean
 }>()
 const emit = defineEmits<{ decide: [what: PostDecision] }>()
+// Reconsidering undoes either decision, so the button says which.
+const undoLabel = computed(() =>
+  props.post.status === 'added' ? 'Take off the reading list' : 'Stop ignoring',
+)
 
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -42,7 +47,7 @@ const when = (iso: string) =>
           v-if="post.status === 'added'"
           class="font-bold text-ok"
           role="img"
-          aria-label="On a reading list"
+          aria-label="In the reading list"
           >✓</span
         >
         <span v-else class="font-bold text-danger" role="img" aria-label="Ignored">✗</span>
@@ -51,16 +56,17 @@ const when = (iso: string) =>
           :class="post.status === 'ignored' ? 'text-ink-soft' : ''"
           >{{ post.title }}
           <span class="text-sm text-ink-soft">
-            · {{ feedName }} · {{ post.status === 'added' ? 'on a reading list' : 'ignored' }}</span
+            · {{ feedName }} ·
+            {{ post.status === 'added' ? 'in the reading list' : 'ignored' }}</span
           ></span
         >
       </div>
       <button
-        v-tip="'Reconsider'"
+        v-tip="undoLabel"
         type="button"
         class="btn btn-sm btn-icon btn-ghost shrink-0"
         :disabled="busy"
-        :aria-label="`Reconsider: ${post.title}`"
+        :aria-label="`${undoLabel}: ${post.title}`"
         @click="emit('decide', 'reconsider')"
       >
         <Icon name="undo" />

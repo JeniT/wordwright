@@ -6,6 +6,7 @@ import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys, useSources } from '../lib/queries'
 import { useDecidePosts } from '../lib/recent-posts'
 import { PAGE_SIZE } from '../lib/paging'
+import Explain from './Explain.vue'
 import PageNav from './PageNav.vue'
 import RecentPostRow from './RecentPostRow.vue'
 import QueryState from './QueryState.vue'
@@ -101,15 +102,20 @@ const failedNames = computed(() =>
 
 <template>
   <section aria-labelledby="recent-heading" class="mb-10">
-    <div class="mb-2 flex flex-wrap items-end justify-between gap-3">
-      <h2
-        id="recent-heading"
-        ref="heading"
-        tabindex="-1"
-        class="font-display text-xl font-semibold focus:outline-none"
-      >
-        Recent posts
-      </h2>
+    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2
+          id="recent-heading"
+          ref="heading"
+          tabindex="-1"
+          class="font-display text-xl font-semibold focus:outline-none"
+        >
+          Recent posts
+        </h2>
+        <Explain label="About ignoring posts">
+          Ignored posts move to the end of the list, where you can reconsider them.
+        </Explain>
+      </div>
       <div class="flex items-end gap-2">
         <div>
           <label for="recent-days" class="mb-1 block text-sm font-medium">Show posts from</label>
@@ -127,13 +133,8 @@ const failedNames = computed(() =>
         </button>
       </div>
     </div>
-    <p class="mb-3 text-sm text-ink-soft">
-      The newest posts from all your feeds together, so you can respond to recent work. A feed that
-      hasn’t posted in a while won’t appear here.
-    </p>
-
     <QueryState :query="sources" what="your feeds">
-      <p v-if="!sources.data.value?.length" class="text-sm text-ink-soft">No feeds yet.</p>
+      <p v-if="!sources.data.value?.length" class="text-ink-soft">No feeds yet.</p>
       <template v-else>
         <QueryState :query="posts" what="your feeds" loading="Reading your feeds…" detail>
           <template v-if="shown">
@@ -146,8 +147,9 @@ const failedNames = computed(() =>
             </div>
             <p class="sr-only" aria-live="polite">{{ notice }}</p>
             <p v-if="shown.failed.length" role="alert" class="mb-2 text-sm text-danger">
-              We couldn’t read {{ failedNames.join(', ') }} just now, so recent posts from
-              {{ shown.failed.length === 1 ? 'it' : 'them' }} may be missing.
+              Sorry, we couldn’t read {{ failedNames.join(', ') }} just now, so
+              {{ shown.failed.length === 1 ? 'its' : 'their' }} recent posts may be missing. Check
+              for new posts to try again.
             </p>
 
             <PageNav
@@ -186,8 +188,8 @@ const failedNames = computed(() =>
             </p>
             <p v-if="shown.undated" class="mt-2 text-sm text-ink-soft">
               {{ shown.undated }} {{ shown.undated === 1 ? 'post has' : 'posts have' }} no date, so
-              can’t be placed in time. Open a feed’s recent posts under Manage feeds to see
-              {{ shown.undated === 1 ? 'it' : 'them' }}.
+              {{ shown.undated === 1 ? 'it isn’t' : 'they aren’t' }} listed. You can see
+              {{ shown.undated === 1 ? 'it' : 'them' }} under Manage feeds.
             </p>
           </template>
         </QueryState>
