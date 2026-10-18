@@ -55,7 +55,11 @@ function submit() {
     ></textarea>
     <p :id="`${fieldId}-hint`" class="mb-2 text-sm text-ink-soft">
       For example: how fast river bends move, and what engineers have learned from straightening
-      rivers. You can research other areas afterwards. Searching can take up to a minute.
+      rivers.
+    </p>
+    <p class="mb-3 text-ink-soft">
+      Sent to your AI provider: the idea’s title and notes, the addresses on its reading list, and
+      what you write here. Never your drafts.
     </p>
     <AiButton
       type="submit"
@@ -76,7 +80,7 @@ function submit() {
     >
       <p>{{ errorMessage(search.error.value) }}</p>
       <p v-if="needsKey" class="mt-1">
-        <RouterLink to="/account/ai" class="underline">Go to account settings</RouterLink>
+        <RouterLink to="/account/ai" class="underline">Add your AI key</RouterLink>
       </p>
     </div>
   </form>

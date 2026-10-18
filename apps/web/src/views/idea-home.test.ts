@@ -201,6 +201,22 @@ describe('an idea’s landing page', () => {
       expect(region.querySelector('h2')).toHaveTextContent(/^01\s*Research$/)
     })
 
+    it('has the same box as the Research page: an example only, and one line on what is sent', async () => {
+      fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Research' })
+      expect(
+        within(region).getByText(
+          'For example: how fast river bends move, and what engineers have learned from straightening rivers.',
+        ),
+      ).toBeVisible()
+      expect(within(region).queryByText(/You can research other areas afterwards/)).toBeNull()
+      expect(within(region).queryByText(/up to a minute/)).toBeNull()
+      expect(
+        within(region).getByText(/^Sent to your AI provider: .* Never your drafts\.$/),
+      ).toBeVisible()
+    })
+
     it('says what is sent to the AI provider, next to the button', async () => {
       fakeIdea({
         idea: idea(
@@ -210,7 +226,7 @@ describe('an idea’s landing page', () => {
       })
       await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Research' })
-      expect(within(region).getByText(/sent to your AI provider/)).toBeInTheDocument()
+      expect(within(region).getByText(/Sent to your AI provider/)).toBeInTheDocument()
     })
 
     it('starts the research only when the button is pressed, then shows the results', async () => {
@@ -346,7 +362,7 @@ describe('an idea’s landing page', () => {
         'Part 2',
       ])
       expect(items[0]).toHaveAttribute('href', '/p/ada-substack/drafts/d1')
-      expect(screen.getByRole('link', { name: /See all drafts/ })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'See all drafts' })).toHaveAttribute(
         'href',
         '/p/ada-substack/ideas/i1/drafts',
       )
@@ -356,13 +372,13 @@ describe('an idea’s landing page', () => {
       fakeIdea({ idea: idea([], []) })
       await renderAt('/p/ada-substack/ideas/i1')
       expect(await screen.findByText(/No drafts yet/)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Start a draft' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'New draft' })).toBeInTheDocument()
     })
 
     it('starts a draft and opens it', async () => {
       const state = fakeIdea({ idea: idea([], []) })
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
-      await fireEvent.click(await screen.findByRole('button', { name: 'Start a draft' }))
+      await fireEvent.click(await screen.findByRole('button', { name: 'New draft' }))
       await waitFor(() => expect(state.drafts).toEqual([{ title: 'Untitled' }]))
       await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack/drafts/d9'))
     })
@@ -373,8 +389,10 @@ describe('an idea’s landing page', () => {
         http.post(`${ideaUrl}/drafts`, () => HttpResponse.json({ error: 'Nope' }, { status: 500 })),
       )
       await renderAt('/p/ada-substack/ideas/i1')
-      await fireEvent.click(await screen.findByRole('button', { name: 'Start a draft' }))
-      expect(await screen.findByText(/Couldn't start a new draft/)).toBeInTheDocument()
+      await fireEvent.click(await screen.findByRole('button', { name: 'New draft' }))
+      expect(
+        await screen.findByText('Sorry, we couldn’t start a draft. Please try again.'),
+      ).toBeInTheDocument()
     })
   })
 
@@ -384,10 +402,17 @@ describe('an idea’s landing page', () => {
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Refine' })
       expect(region.querySelector('h2')).toHaveTextContent(/^04\s*Refine$/)
-      expect(await within(region).findByText('Talk it through')).toBeInTheDocument()
+      const button = await within(region).findByRole('button', { name: 'Refine with your AI' })
+      expect(within(region).queryByText('Talk it through')).toBeNull()
+      // What leaves the system is said next to the button, in one line.
+      expect(
+        within(region).getByText(/^Sent to your AI provider: .* Never your drafts\.$/),
+      ).toBeVisible()
       expect(state.requests).toEqual([]) // nothing started by looking
-      await fireEvent.click(within(region).getByRole('button', { name: 'Start brainstorming' }))
+      await fireEvent.click(button)
+      // The AI makes the first move on the Refine page, so the person enters nothing here.
       await waitFor(() => expect(router.currentRoute.value.name).toBe('brainstorm'))
+      expect(router.currentRoute.value.query).toEqual({ start: '1' })
     })
 
     it('shows the latest message from the AI, not the writer’s own', async () => {
@@ -403,6 +428,9 @@ describe('an idea’s landing page', () => {
       const region = await screen.findByRole('region', { name: 'Refine' })
       expect(await within(region).findByText('sharper')).toBeInTheDocument()
       expect(within(region).queryByText('First question?')).toBeNull()
+      expect(within(region).getByText(/^Your AI/)).toBeInTheDocument()
+      expect(within(region).queryByText(/Coach/)).toBeNull()
+      expect(within(region).getByRole('link', { name: 'See the conversation' })).toBeVisible()
       expect(within(region).queryByText('Read in full')).toBeNull()
     })
 
@@ -433,6 +461,7 @@ describe('an idea’s landing page', () => {
       )
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
       const reply = await screen.findByLabelText('Your reply')
+      expect(screen.queryByText(/Sending takes you to the conversation/)).toBeNull()
       await fireEvent.update(reply, 'Rivers are lazy')
       expect(sent).toEqual([])
       await fireEvent.click(screen.getByRole('button', { name: 'Send' }))
@@ -452,6 +481,14 @@ describe('an idea’s landing page', () => {
       await renderAt('/p/ada-substack/ideas/i1')
       expect(await screen.findByText(/couldn't load the conversation/)).toBeInTheDocument()
     })
+
+    it('says the AI has not replied yet, without a second link to the conversation', async () => {
+      fakeIdea({ messages: [message(1, 'user', 'A thought')] })
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Refine' })
+      expect(await within(region).findByText('Your AI hasn’t replied yet.')).toBeInTheDocument()
+      expect(within(region).getAllByRole('link', { name: /conversation/ })).toHaveLength(1)
+    })
   })
 
   it('shows notes as the Notes step does: with their tags and where they came from', async () => {
@@ -460,5 +497,34 @@ describe('an idea’s landing page', () => {
     const list = await screen.findByRole('list', { name: 'Recent notes' })
     expect(within(list).getByText('intro')).toBeInTheDocument()
     expect(within(list).getByText(/recorded by/)).toBeInTheDocument()
+  })
+})
+
+describe('an idea’s landing page: tutorial mode (#232)', () => {
+  const setup = async (user: typeof testUser) => {
+    fakeIdea()
+    server.use(signedInAs(user))
+    // The route 'idea' is this kind of page (see tutorial-routes.test.ts).
+    await renderAt('/p/ada-substack/ideas/i1')
+    await screen.findByRole('region', { name: 'Draft' })
+  }
+  const texts = [
+    /^This is your idea’s home\. Gather reading and notes, ask your AI to research and refine it, then start a draft\.$/,
+    /^Describe the areas you want to look into and your AI will suggest pages worth reading, including some that may not agree with you\. Nothing joins the reading list until you add it\.$/,
+    /^Read the articles on this idea’s reading list and take notes on them\. Items can be tagged and moved to another idea\.$/,
+    /^Review, tag and arrange your notes\. They are what you draw on when you write\.$/,
+    /^Your AI opens by asking the questions that matter most for this idea, and you answer\. It adds the points you make to your notes, and you decide on anything else it suggests\.$/,
+    /^Write in the editor, where you can also ask for a critique or rephrase a passage\. The words are always yours\.$/,
+  ]
+
+  it('writes out what the page and each step are for', async () => {
+    await setup({ ...testUser, tutorialMode: true })
+    for (const text of texts) expect(screen.getByText(text)).toBeVisible()
+  })
+
+  it('says none of it when it is off, and leaves no explanation paragraph on the page', async () => {
+    await setup({ ...testUser, tutorialMode: false })
+    for (const text of texts) expect(screen.queryByText(text)).toBeNull()
+    expect(screen.queryByText(/Your AI searches the web for pages worth reading/)).toBeNull()
   })
 })

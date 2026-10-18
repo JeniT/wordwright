@@ -238,7 +238,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'idea',
     component: () => import('./views/IdeaHomeView.vue'),
     props: true,
-    meta: { level: 'idea' },
+    meta: { level: 'idea', tutorial: true },
   },
   {
     path: '/p/:publicationId/ideas/:id/research',

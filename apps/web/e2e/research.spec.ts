@@ -140,5 +140,5 @@ test('without an AI key, says where to add one', async ({ page }) => {
   await page.getByLabel('What areas do you want to research?').fill('Anything')
   await page.getByRole('button', { name: 'Research', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('API key')
-  await expect(page.getByRole('link', { name: 'Go to account settings' })).toBeVisible()
+  await expect(page.getByRole('alert').getByRole('link', { name: 'Add your AI key' })).toBeVisible()
 })

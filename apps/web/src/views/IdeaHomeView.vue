@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, useRouter } from 'vue-router'
+import Explain from '../components/Explain.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 import LandingSection from '../components/LandingSection.vue'
 import QuickAdd from '../components/QuickAdd.vue'
@@ -45,6 +46,11 @@ const showResearch = () =>
       </div>
     </div>
 
+    <Explain tutorial-only class="mt-4">
+      This is your idea’s home. Gather reading and notes, ask your AI to research and refine it,
+      then start a draft.
+    </Explain>
+
     <QuickAdd
       v-if="publication"
       class="mt-6"
@@ -53,7 +59,12 @@ const showResearch = () =>
       :idea-id="id"
     />
 
-    <LandingSection level="idea" step="research" title="Research">
+    <LandingSection
+      level="idea"
+      step="research"
+      title="Research"
+      explain="Describe the areas you want to look into and your AI will suggest pages worth reading, including some that may not agree with you. Nothing joins the reading list until you add it."
+    >
       <template #actions>
         <RouterLink
           :to="{ name: 'idea-research', params: { publicationId, id } }"
@@ -62,12 +73,6 @@ const showResearch = () =>
           See all research
         </RouterLink>
       </template>
-      <p class="mb-4 max-w-prose text-sm text-ink-soft">
-        Your AI searches the web for pages worth reading, including some that may not agree with
-        you, and you choose what goes on the reading list. The idea’s title and notes, the addresses
-        already on its reading list and what you write here are sent to your AI provider; the text
-        of your drafts never is.
-      </p>
       <ResearchForm
         class="max-w-2xl"
         :publication-id="publicationId"
@@ -79,28 +84,33 @@ const showResearch = () =>
     <RecentReading
       :publication-id="publicationId"
       :idea-id="id"
+      explain="Read the articles on this idea’s reading list and take notes on them. Items can be tagged and moved to another idea."
       :to="{ name: 'idea-read', params: { publicationId, id } }"
     />
 
     <RecentNotes
       :publication-id="publicationId"
       :idea-id="id"
+      explain="Review, tag and arrange your notes. They are what you draw on when you write."
       :to="{ name: 'idea-notes', params: { publicationId, id } }"
     />
 
     <RecentRefine :publication-id="publicationId" :idea-id="id" />
 
-    <LandingSection level="idea" step="draft" title="Draft">
+    <LandingSection
+      level="idea"
+      step="draft"
+      title="Draft"
+      explain="Write in the editor, where you can also ask for a critique or rephrase a passage. The words are always yours."
+    >
       <template #actions>
         <RouterLink
           :to="{ name: 'idea-drafts', params: { publicationId, id } }"
           class="link text-sm"
         >
-          See all drafts<span v-if="idea.drafts.length" class="meta">
-            ({{ idea.drafts.length }})</span
-          >
+          See all drafts
         </RouterLink>
-        <StartDraftButton :publication-id="publicationId" :idea-id="id" label="Start a draft" />
+        <StartDraftButton :publication-id="publicationId" :idea-id="id" />
       </template>
       <p v-if="!idea.drafts.length" class="text-ink-soft">
         No drafts yet. Start one when you’re ready to write.

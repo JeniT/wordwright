@@ -28,7 +28,7 @@ async function signUpWithPublication(page: Page) {
 /** Goes to the Draft step, adds a draft and waits for the editor, so we don't type into the old page. */
 async function startDraft(page: Page) {
   await goTo(page, 'Draft')
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByRole('button', { name: 'New draft' }).click()
   await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
 }
 

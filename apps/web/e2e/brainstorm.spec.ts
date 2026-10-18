@@ -230,8 +230,8 @@ test('the idea’s page starts the conversation, and carries a reply into it', a
   await setUp(page)
   await page.getByRole('banner').getByRole('link', { name: 'Why rivers meander' }).click()
   const refine = page.getByRole('region', { name: 'Refine' })
-  await expect(refine.getByRole('button', { name: 'Start brainstorming' })).toBeVisible() // nothing started by looking
-  await refine.getByRole('button', { name: 'Start brainstorming' }).click()
+  await expect(refine.getByRole('button', { name: 'Refine with your AI' })).toBeVisible() // nothing started by looking
+  await refine.getByRole('button', { name: 'Refine with your AI' }).click()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   // Back on the idea's page the coach's last message is there, with a box to answer it.
@@ -255,7 +255,7 @@ test('without an AI key, a reply from the idea’s page lands where the key is a
   await page.getByRole('banner').getByRole('link', { name: 'Why rivers meander' }).click()
   await page
     .getByRole('region', { name: 'Refine' })
-    .getByRole('button', { name: 'Start brainstorming' })
+    .getByRole('button', { name: 'Refine with your AI' })
     .click()
   await expect(page.getByRole('alert')).toContainText(/API key/)
   await expect(page.getByRole('link', { name: 'Go to account settings' })).toBeVisible()

@@ -59,35 +59,34 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
 </script>
 
 <template>
-  <LandingSection level="idea" step="refine" title="Refine">
+  <LandingSection
+    level="idea"
+    step="refine"
+    title="Refine"
+    explain="Your AI opens by asking the questions that matter most for this idea, and you answer. It adds the points you make to your notes, and you decide on anything else it suggests."
+  >
     <template #actions>
-      <RouterLink :to="refineRoute" class="link text-sm">Open the conversation</RouterLink>
+      <RouterLink :to="refineRoute" class="link text-sm">See the conversation</RouterLink>
     </template>
     <QueryState :query="conversation" what="the conversation" loading="Loading the conversation…">
       <div v-if="empty">
-        <h3 class="mb-1 font-semibold">Talk it through</h3>
-        <p class="mb-3 max-w-prose text-ink-soft">
-          Your AI will open by asking the questions that matter most for this idea, and you answer.
-          It adds the points you make to the idea’s notes as you go, and can suggest a sharper title
-          or a separate new idea, but only you decide on those. Your idea, its notes and links, and
-          this publication’s details are sent to your AI provider; the text of your drafts never is.
+        <p class="mb-3 text-ink-soft">
+          Sent to your AI provider: the idea, its notes and links, and the publication’s details.
+          Never your drafts.
         </p>
-        <AiButton class="btn btn-primary" @click="start">Start brainstorming</AiButton>
+        <AiButton class="btn btn-primary" @click="start">Refine with your AI</AiButton>
       </div>
       <template v-else>
         <div v-if="latest" class="panel-sunken mb-4 p-3">
           <p class="mb-1 text-sm font-medium text-ink-soft">
-            Coach<span v-if="latest.model" class="font-normal"> · {{ latest.model }}</span>
+            Your AI<span v-if="latest.model" class="font-normal"> · {{ latest.model }}</span>
           </p>
           <Markdown :text="excerpt.text" />
           <p v-if="excerpt.cut" class="mt-2 text-sm">
             <RouterLink :to="refineRoute" class="link">Read in full</RouterLink>
           </p>
         </div>
-        <p v-else class="mb-4 text-ink-soft">
-          Your coach hasn’t replied yet.
-          <RouterLink :to="refineRoute" class="link">Open the conversation</RouterLink>
-        </p>
+        <p v-else class="mb-4 text-ink-soft">Your AI hasn’t replied yet.</p>
         <form @submit.prevent="reply">
           <label for="landing-reply" class="mb-1 block text-sm font-medium">Your reply</label>
           <textarea
@@ -95,13 +94,9 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
             v-model="message"
             rows="3"
             class="field mb-2"
-            aria-describedby="landing-reply-hint"
             @keydown.enter.ctrl.exact.prevent="reply"
             @keydown.enter.meta.exact.prevent="reply"
           ></textarea>
-          <p id="landing-reply-hint" class="mb-2 text-sm text-ink-soft">
-            Sending takes you to the conversation, where your reply is written.
-          </p>
           <AiButton type="submit" class="btn btn-outline" :disabled="!message.trim()"
             >Send</AiButton
           >

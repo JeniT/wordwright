@@ -164,7 +164,7 @@ describe('the research page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('rejected your API key')
-    expect(within(alert).getByRole('link', { name: 'Go to account settings' })).toHaveAttribute(
+    expect(within(alert).getByRole('link', { name: 'Add your AI key' })).toHaveAttribute(
       'href',
       '/account/ai',
     )

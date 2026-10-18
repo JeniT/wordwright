@@ -1017,7 +1017,7 @@ describe('idea page', () => {
         }),
       ),
     ])
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add a draft' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'New draft' }))
     // The new draft opens in the editor, which links back to the idea's drafts.
     expect(await screen.findByRole('link', { name: '← All drafts' })).toHaveAttribute(
       'href',

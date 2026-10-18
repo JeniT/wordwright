@@ -62,7 +62,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await noViolations(page, 'Draft step, no drafts yet')
 
   // Start a draft; the menu stays with the idea on the drafting page, with Draft current.
-  await page.getByRole('button', { name: 'Add a draft' }).click()
+  await page.getByRole('button', { name: 'New draft' }).click()
   await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Idea' })).toBeVisible()
   await expect(
@@ -163,7 +163,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(
     page
       .getByRole('region', { name: 'Refine' })
-      .getByRole('button', { name: 'Start brainstorming' }),
+      .getByRole('button', { name: 'Refine with your AI' }),
   ).toBeVisible()
   // The reading list is its own step, summarised on the landing page; the research box is always there.
   await page.getByRole('link', { name: 'See the reading list' }).click()
@@ -182,7 +182,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(
     page.getByRole('list', { name: 'Recent notes' }).getByText('Cut above a bud.'),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Start a draft' }).click()
+  await page.getByRole('button', { name: 'New draft' }).click()
   await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
   await page.goBack()
   await expect(

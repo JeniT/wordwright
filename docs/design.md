@@ -599,7 +599,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    actions on the right of the heading. An idea's page is titled with the idea's name (the publication above it, as a way
    up), has Quick add (Add a note, Add to reading list: no New idea, and they go to the idea) and summarises Research (the box to ask the AI, which waits for
    its button, and a link to the research so far), Read (the unread reading list, as on a publication's page), Notes (shown by the same `NoteCard` as the Notes step), Refine (the AI's latest message and a box to
-   reply, or the invitation to start) and Draft (its drafts, and **Start a draft**).
+   reply, or **Refine with your AI** with a line on what is sent) and Draft (its drafts, and **New draft**).
 9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above
    a step's title, are links to it (current on the landing page itself, where the title is not a link).
 

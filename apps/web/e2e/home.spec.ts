@@ -53,7 +53,7 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   await page.getByRole('button', { name: 'Create idea' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Start a draft' }).click()
+  await page.getByRole('button', { name: 'New draft' }).click()
   await page.goto('/')
   const pickUp = page.getByRole('region', { name: 'Pick up' })
   await expect(pickUp).toContainText('What pruning teaches · Garden notes')

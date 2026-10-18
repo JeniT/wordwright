@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 
 /** Adds an untitled draft to an idea and opens it, for the Draft page and the idea's landing page. */
-const props = defineProps<{ publicationId: string; ideaId: string; label?: string }>()
+const props = defineProps<{ publicationId: string; ideaId: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
@@ -28,9 +28,9 @@ const addDraft = useMutation({
     :disabled="addDraft.isPending.value"
     @click="addDraft.mutate()"
   >
-    {{ label ?? 'Add a draft' }}
+    New draft
   </button>
   <p v-if="addDraft.isError.value" role="alert" class="mt-2 w-full text-danger">
-    Couldn't start a new draft. Please try again.
+    Sorry, we couldn’t start a draft. Please try again.
   </p>
 </template>
