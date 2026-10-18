@@ -319,6 +319,7 @@ function removeChosen() {
               <SwitchField
                 v-if="readCount"
                 v-model="showRead"
+                compact
                 :label="`Show read items (${readCount})`"
               />
             </template>

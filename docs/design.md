@@ -349,7 +349,8 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
   a yes/no state.
 - A switch that repeats on every row of a list (Read, Keep, Resolved) is **compact** (`<SwitchField compact>`, the
   `switch-compact` class): a smaller track, knob and label, but the same 44px-high target and the same visible label.
-  A switch that sits alone (Show read items) keeps the full size.
+  So are the switches in a list toolbar or panel header (Show read items, Show resolved) and the option in the move
+  dialog. A switch that sits alone on a page or in settings (Tutorial mode, Read on the item page) keeps the full size.
 - A switch's label is a fixed word ("Read", never "Unread"). On is shown by the knob's place and a tick, not by colour
   alone. It flips under the finger and goes back (`revert()`) if saving fails.
 - Put explanations in `meta` text and only where they apply (an item that isn't kept says on which day it goes), not in

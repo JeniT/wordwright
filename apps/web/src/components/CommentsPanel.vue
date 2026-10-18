@@ -127,7 +127,7 @@ const audience = computed(() =>
       </p>
 
       <div v-if="isEditor && resolvedCount" class="mt-3">
-        <SwitchField v-model="showResolved" :label="`Show resolved (${resolvedCount})`" />
+        <SwitchField v-model="showResolved" compact :label="`Show resolved (${resolvedCount})`" />
       </div>
 
       <ol v-if="placed.length" class="mt-3 space-y-3">

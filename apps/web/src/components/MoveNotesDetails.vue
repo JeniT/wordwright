@@ -25,6 +25,7 @@ const bringAll = defineModel<boolean>('bringAll', { required: true })
   <div v-if="othersCount" class="mt-1">
     <SwitchField
       v-model="bringAll"
+      compact
       :label="`Also bring the ${othersCount} other ${othersCount === 1 ? 'note' : 'notes'} taken from those pages`"
     />
     <p class="meta">Otherwise they stay here, still pointing at the pages here.</p>
