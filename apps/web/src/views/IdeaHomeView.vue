@@ -21,9 +21,11 @@ const props = defineProps<{ publicationId: string; id: string }>()
 const router = useRouter()
 const { publication } = usePublication(() => props.publicationId)
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const showResearch = () =>
-  router.push({ name: 'research', params: { publicationId: props.publicationId, id: props.id } })
+  router.push({
+    name: 'idea-research',
+    params: { publicationId: props.publicationId, id: props.id },
+  })
 </script>
 
 <template>
@@ -51,24 +53,13 @@ const showResearch = () =>
       :idea-id="id"
     />
 
-    <!-- Unread reading comes first; the AI box is for when there is nothing left to read. -->
-    <RecentReading
-      v-if="idea.links.some((link) => !link.readAt)"
-      :publication-id="publicationId"
-      :idea-id="id"
-      step="research"
-      title="Research"
-      :to="{ name: 'idea-research', params: { publicationId, id } }"
-    />
-    <LandingSection v-else level="idea" step="research" title="Research">
+    <LandingSection level="idea" step="research" title="Research">
       <template #actions>
         <RouterLink
           :to="{ name: 'idea-research', params: { publicationId, id } }"
           class="link text-sm"
         >
-          See the reading list<span class="meta">
-            ({{ plural(idea.links.length, 'source', 'sources') }})</span
-          >
+          See all research
         </RouterLink>
       </template>
       <p class="mb-4 max-w-prose text-sm text-ink-soft">
@@ -84,6 +75,12 @@ const showResearch = () =>
         @done="showResearch"
       />
     </LandingSection>
+
+    <RecentReading
+      :publication-id="publicationId"
+      :idea-id="id"
+      :to="{ name: 'idea-read', params: { publicationId, id } }"
+    />
 
     <RecentNotes
       :publication-id="publicationId"

@@ -32,9 +32,9 @@ test('leads through a publication and an idea step by step, without ever locking
 }) => {
   await signUpWithIdea(page)
 
-  // In an idea: four steps, in order, the current one marked, each always available.
+  // In an idea: five steps, in order, the current one marked, each always available.
   const idea = page.getByRole('navigation', { name: 'Idea' })
-  await expect(idea.getByRole('listitem')).toHaveCount(4) // the four steps; settings is the gear by the name
+  await expect(idea.getByRole('listitem')).toHaveCount(5) // the five steps; settings is the gear by the name
   await expect(idea.getByRole('link', { name: 'Notes', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
@@ -47,14 +47,17 @@ test('leads through a publication and an idea step by step, without ever locking
   await goTo(page, 'Research')
   await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
   await noViolations(page, 'Research step')
-  await next(page, /Next: 02 Notes/).click()
+  await next(page, /Next: 02 Read/).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
+  await noViolations(page, 'Read step')
+  await next(page, /Next: 03 Notes/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
   await noViolations(page, 'Notes step')
-  await next(page, /Next: 03 Refine/).click()
+  await next(page, /Next: 04 Refine/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Refine' })).toBeVisible()
   await page.getByRole('button', { name: 'Start brainstorming' }).waitFor() // visiting spends nothing
   await noViolations(page, 'Refine step')
-  await next(page, /Next: 04 Draft/).click()
+  await next(page, /Next: 05 Draft/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
   await noViolations(page, 'Draft step, no drafts yet')
 
@@ -155,21 +158,21 @@ test('leads through a publication and an idea step by step, without ever locking
   ).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled() // visiting spends nothing
   await noViolations(page, 'Idea landing page')
-  // With nothing to read the AI box is offered, and with no conversation the Refine panel invites one; neither starts by itself.
+  // The AI box is always offered, and with no conversation the Refine panel invites one; neither starts by itself.
   await expect(page.getByLabel('What areas do you want to research?')).toBeVisible()
   await expect(
     page
       .getByRole('region', { name: 'Refine' })
       .getByRole('button', { name: 'Start brainstorming' }),
   ).toBeVisible()
-  // A reading item brings the reading list in place of the AI box.
+  // The reading list is its own step, summarised on the landing page; the research box is always there.
   await page.getByRole('link', { name: 'See the reading list' }).click()
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(page.getByRole('link', { name: /^Fake title for / })).toBeVisible()
   await page.getByRole('banner').getByRole('link', { name: 'What pruning teaches' }).click()
   await expect(page.getByRole('list', { name: 'To read' })).toBeVisible()
-  await expect(page.getByLabel('What areas do you want to research?')).toHaveCount(0)
+  await expect(page.getByLabel('What areas do you want to research?')).toBeVisible()
   await noViolations(page, 'Idea landing page with reading')
 
   // A note can be jotted down there, then a draft started and opened.
@@ -233,7 +236,7 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
   await expect(page.getByRole('navigation', { name: 'Idea' })).toBeHidden()
   await expect(page.getByRole('banner')).toContainText('What pruning teaches')
-  await expect(page.getByRole('banner')).toContainText('02 Notes')
+  await expect(page.getByRole('banner')).toContainText('03 Notes')
   await menuButton.click()
   await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
   await noViolations(page, 'phone menu open')
@@ -292,7 +295,7 @@ test('the menu folds away at every width while reading a source, so two windows 
   page,
 }) => {
   await signUpWithIdea(page)
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()
@@ -301,7 +304,7 @@ test('the menu folds away at every width while reading a source, so two windows 
   await expect(page.getByRole('navigation', { name: 'Idea' })).toBeHidden()
   await menuButton.click()
   await expect(
-    page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Research' }),
+    page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: 'Read' }),
   ).toHaveAttribute('aria-current', 'page')
   await noViolations(page, 'reading page with the menu open')
 })
@@ -337,7 +340,7 @@ test('on a page read beside another window the menu is a drawer at laptop width 
   page,
 }) => {
   await signUpWithIdea(page)
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()

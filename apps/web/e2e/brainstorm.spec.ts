@@ -169,7 +169,7 @@ test('the coach passes on an address the writer gave: it is checked, shown besid
   await noViolations(page, 'brainstorm page with a reading suggestion')
 
   // Nothing is on the reading list until it is accepted.
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toHaveCount(0)
@@ -177,7 +177,7 @@ test('the coach passes on an address the writer gave: it is checked, shown besid
   await goTo(page, 'Refine')
   await page.getByRole('button', { name: /^Accept: / }).click()
   await expect(page.getByText('Added to the reading list by Pru.')).toBeVisible()
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toBeVisible()

@@ -67,7 +67,7 @@ test('keeps a reading list for the idea: adds, ticks off, edits and checks links
   page,
 }) => {
   await startIdea(page)
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   // The reading list. Text that isn't a web address is refused, in red under the field, and kept for fixing.
   const address = page.getByLabel('Web address', { exact: true })
   const add = page.getByRole('button', { name: 'Add to reading list' })
@@ -245,7 +245,7 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
 
 test('removes links and deletes an idea, which asks first', async ({ page }) => {
   await startIdea(page)
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   const address = page.getByLabel('Web address', { exact: true })
   for (const link of ['example.org/meanders', 'example.net/other']) {
     await address.fill(link)
@@ -356,7 +356,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(
@@ -441,8 +441,8 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
-  await goTo(page, 'Research')
-  await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
+  await goTo(page, 'Read')
+  await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
   for (const address of ['example.org/meanders', 'example.net/oxbows']) {
     await page.getByLabel('Web address', { exact: true }).fill(address)
     await page.getByRole('button', { name: 'Add to reading list' }).click()
@@ -672,7 +672,7 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
   await goTo(page, 'Notes')
   await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()
@@ -729,7 +729,7 @@ test('a link to something on the reading list goes in only once it has been read
 }) => {
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander')
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   const title = /Fake title for example\.org/
@@ -778,7 +778,7 @@ test('a link to something on the reading list goes in only once it has been read
   await insert.click()
   await expect(dialog).toHaveCount(0)
   await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await showReadItems(page)
   await expect(page.getByRole('switch', { name: /^Read: Fake title/ })).toBeChecked()
 })
@@ -831,7 +831,7 @@ test('a note taken from a source goes into the draft with a real link to it, whi
 }) => {
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander')
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
   await page.getByRole('button', { name: 'Add to reading list' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()

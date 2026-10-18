@@ -1,38 +1,61 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import IdeaGate from '../components/IdeaGate.vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed } from 'vue'
 import NextStep from '../components/NextStep.vue'
-import ReadingList from '../components/ReadingList.vue'
 import StepHeading from '../components/StepHeading.vue'
+import ResearchForm from '../components/ResearchForm.vue'
+import ResearchRun from '../components/ResearchRun.vue'
+import { api } from '../lib/api'
+import { queryKeys, useIdea } from '../lib/queries'
+import QueryState from '../components/QueryState.vue'
+import IdeaGate from '../components/IdeaGate.vue'
 
-/** Step 01 of an idea: gather what it builds on (the idea's own reading list; the publication's is separate). */
-defineProps<{ publicationId: string; id: string }>()
+/** Step 01 of an idea: ask your AI to research it, and see the research so far. */
+const props = defineProps<{ publicationId: string; id: string }>()
+
+const idea = useIdea(
+  () => props.publicationId,
+  () => props.id,
+)
+const runs = useQuery({
+  queryKey: computed(() => queryKeys.research(props.publicationId, props.id)),
+  queryFn: () => api.getResearch(props.publicationId, props.id),
+})
 </script>
 
 <template>
   <IdeaGate :id="id" :publication-id="publicationId">
-    <StepHeading>Research</StepHeading>
-    <ReadingList :publication-id="publicationId" :idea-id="id" />
-
-    <section aria-labelledby="find-heading" class="mb-10">
-      <h2 id="find-heading" class="mb-1 font-display text-xl font-semibold">
-        Find more with your AI
-      </h2>
-      <p class="mb-3 text-sm text-ink-soft">
-        Describe what you want to look into and your AI will search the web for pages worth reading,
-        from more than one point of view. You review what it finds and choose what goes on the
-        reading list above. You can research as many areas as you like.
+    <article v-if="idea.data.value" class="max-w-2xl">
+      <StepHeading>Research</StepHeading>
+      <p class="mb-6 text-sm text-ink-soft">
+        Describe the areas you want to look into and your AI will search the web for pages worth
+        reading, including some that may not agree with you. It only suggests: you review what it
+        finds, and nothing joins the reading list until you add it. The idea's title and notes, the
+        addresses already on its reading list and what you write here are sent to your AI provider,
+        which does the searching; the text of your drafts never is. Everyone in this publication
+        sees the research.
       </p>
-      <RouterLink
-        :to="{ name: 'research', params: { publicationId, id } }"
-        class="btn btn-outline inline-block"
-      >
-        Start research
-      </RouterLink>
-    </section>
 
-    <NextStep :to="{ name: 'idea-notes', params: { publicationId, id } }" label="Next: 02 Notes">
-      Read your sources and take notes from them, then tidy the notes.
-    </NextStep>
+      <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" />
+
+      <section aria-labelledby="previous-heading">
+        <h2 id="previous-heading" class="mb-3 font-display text-xl font-semibold">
+          Research so far
+        </h2>
+        <QueryState :query="runs" what="the research">
+          <p v-if="!runs.data.value?.length" class="text-ink-soft">
+            Nothing yet. What you research will be kept here.
+          </p>
+          <ul v-else class="space-y-5">
+            <li v-for="run in runs.data.value" :key="run.id">
+              <ResearchRun :publication-id="publicationId" :idea-id="id" :run="run" />
+            </li>
+          </ul>
+        </QueryState>
+      </section>
+      <NextStep :to="{ name: 'idea-read', params: { publicationId, id } }" label="Next: 02 Read">
+        Read what you have found and take notes from it.
+      </NextStep>
+    </article>
   </IdeaGate>
 </template>

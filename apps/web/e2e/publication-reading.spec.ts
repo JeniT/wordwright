@@ -316,7 +316,7 @@ test('moves reading items, with their notes, between the publication and an idea
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await showReadItems(page)
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
@@ -405,7 +405,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await expect(
     notes.getByRole('link', { name: /A post in Feed of read.example/ }).first(),
   ).toBeVisible()
-  await goTo(page, 'Research')
+  await goTo(page, 'Read')
   await showReadItems(page)
   await expect(page.getByRole('link', { name: title, exact: true })).toBeVisible()
   await goTo(page, 'Notes')

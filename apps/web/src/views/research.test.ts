@@ -17,7 +17,7 @@ const idea = {
   updatedAt: '2026-01-02T00:00:00Z',
 }
 const base = '*/api/publications/ada-substack/ideas/i1/research'
-const page = '/p/ada-substack/ideas/i1/research/find'
+const page = '/p/ada-substack/ideas/i1/research'
 
 let counter = 0
 const item = (overrides: Partial<ResearchItem> = {}): ResearchItem => ({
@@ -99,9 +99,9 @@ describe('the research page', () => {
     mockResearch()
     await renderAt(page)
     expect(await screen.findByRole('heading', { name: 'Research', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '← Back to the reading list' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Next: 02 Read/ })).toHaveAttribute(
       'href',
-      '/p/ada-substack/ideas/i1/research',
+      '/p/ada-substack/ideas/i1/read',
     )
     expect(screen.getByText(/including some that may not agree with you/)).toBeInTheDocument()
     expect(screen.getByText(/the text of your drafts never is/)).toBeInTheDocument()

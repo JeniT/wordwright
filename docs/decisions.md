@@ -1228,8 +1228,8 @@ distinct heading typeface.
 ## Navigation: the menu follows you
 
 **Decision.** The side menu **follows you** through three levels: Home (Publications), a publication (**01
-Search**, **02 Read**, **03 Notes**, **04 Ideas**) and an idea (**01 Research**, **02 Notes**, **03 Refine**,
-**04 Draft**; settings at every level are one gear button beside the name (#180), not a menu item; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
+Search**, **02 Read**, **03 Notes**, **04 Ideas**) and an idea (**01 Research**, **02 Read**, **03 Notes**, **04 Refine**,
+**05 Draft**; settings at every level are one gear button beside the name (#180), not a menu item; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
 works and how to extend it is in [design.md](design.md#navigation-the-menu-follows-you); the mock-ups we compared, with
 screenshots, are in [design-concepts/navigation/](design-concepts/navigation/README.md).
 
@@ -2018,3 +2018,7 @@ tags”, no note about a new idea's name. The result shows in the destination an
 The only line left is that the pages the notes were taken from are copied to the destination's reading list, since that
 is a side effect the writer wouldn't guess; it is body text, not small print. The select is no longer wrapped in a second
 flex container, which is what let a long idea name push it past the edge of the dialog.
+
+## An idea's Research and Read are separate steps (#282)
+
+An idea's first step did two jobs: its reading list and the AI research tool. A publication already separates finding (Search) from reading (**Read**), so an idea now does too: **01 Research** is the AI tool (the box and the research so far, with the box repeated on the landing page as one shared component), **02 Read** is the idea's own reading list, working like the publication's, then **03 Notes**, **04 Refine**, **05 Draft**. The old `/research/find` address redirects to Research; `/research` used to be the reading list and is now the AI page, and `/read` is the list. The menu's count under Read is "N to read", as on a publication. Wording on the landing page follows in #232.

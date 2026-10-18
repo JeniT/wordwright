@@ -22,7 +22,7 @@ export const readingRoute = (owner: Owner, linkId: string) =>
 /** Where "back" goes from a reading page. */
 export const readingBackRoute = (owner: Owner) =>
   owner.ideaId
-    ? { name: 'idea-research', params: { publicationId: owner.publicationId, id: owner.ideaId } }
+    ? { name: 'idea-read', params: { publicationId: owner.publicationId, id: owner.ideaId } }
     : { name: 'read', params: { publicationId: owner.publicationId } }
 
 /**

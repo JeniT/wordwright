@@ -47,7 +47,7 @@ gentle "Next: …" suggestion. Home → publication → idea:
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Home                 | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                                    | `/`                                                                       |
 | Publication          | **01 Search** (recent posts), **02 Read** (reading list), **03 Notes**; a gear beside the name for settings                                                                        | `/p/<id>` → its landing page                                              |
-| Idea                 | **01 Research**, **02 Notes**, **03 Refine** (brainstorm), **04 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings                      | `/p/<id>/ideas/<idea>` → Notes                                            |
+| Idea                 | **01 Research**, **02 Read**, **03 Notes**, **04 Refine** (brainstorm), **05 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings         | `/p/<id>/ideas/<idea>` → Notes                                            |
 | Publication settings | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}" | `/p/<id>/settings` → `/p/<id>/settings/details` (members: `/description`) |
 | Account              | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account**                 | `/account` → `/account/details`                                           |
 
@@ -403,8 +403,7 @@ never shown), and each notes recorded is listed under the reply and each suggest
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
 "suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
 
-**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step's **Start research**
-button opens `/p/<publication>/ideas/<idea>/research/find`, a page apart from brainstorming that lists the idea's earlier research and takes
+**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that lists the idea's earlier research and takes
 a new request, a description of the areas to look into. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
 `/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the

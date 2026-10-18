@@ -160,10 +160,13 @@ describe('an idea’s landing page', () => {
     const research = await screen.findByRole('region', { name: 'Research' })
     expect(research.querySelector('h2')).toHaveTextContent(/^01\s*Research$/)
     expect(screen.getByRole('region', { name: 'Notes' }).querySelector('h2')).toHaveTextContent(
-      /^02\s*Notes$/,
+      /^03\s*Notes$/,
+    )
+    expect(screen.getByRole('region', { name: 'Read' }).querySelector('h2')).toHaveTextContent(
+      /^02\s*Read$/,
     )
     expect(screen.getByRole('region', { name: 'Draft' }).querySelector('h2')).toHaveTextContent(
-      /^04\s*Draft$/,
+      /^05\s*Draft$/,
     )
   })
 
@@ -186,38 +189,16 @@ describe('an idea’s landing page', () => {
   })
 
   describe('research', () => {
-    it('shows the unread reading, and not the AI box, while there is any', async () => {
+    it('always has the box to ask the AI, and links to the research so far', async () => {
       fakeIdea()
       await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Research' })
-      const list = await within(region).findByRole('list', { name: 'To read' })
-      expect(within(list).getAllByRole('link')).toHaveLength(2)
-      expect(within(region).getByRole('link', { name: /See the reading list/ })).toHaveAttribute(
+      expect(within(region).getByLabelText('What areas do you want to research?')).toBeVisible()
+      expect(within(region).getByRole('link', { name: 'See all research' })).toHaveAttribute(
         'href',
         '/p/ada-substack/ideas/i1/research',
       )
-      expect(within(region).queryByLabelText('What areas do you want to research?')).toBeNull()
       expect(region.querySelector('h2')).toHaveTextContent(/^01\s*Research$/)
-    })
-
-    it('shows the AI box when there is nothing unread, even if the list is empty', async () => {
-      fakeIdea({ idea: idea([], []) })
-      await renderAt('/p/ada-substack/ideas/i1')
-      expect(await screen.findByLabelText('What areas do you want to research?')).toBeVisible()
-    })
-
-    it('links to the reading list, with the number of sources', async () => {
-      fakeIdea({
-        idea: idea(
-          [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
-          [draft(1)],
-        ),
-      })
-      await renderAt('/p/ada-substack/ideas/i1')
-      const region = await screen.findByRole('region', { name: 'Research' })
-      const seeAll = within(region).getByRole('link', { name: /See the reading list/ })
-      expect(seeAll).toHaveAttribute('href', '/p/ada-substack/ideas/i1/research')
-      expect(seeAll).toHaveTextContent('(1 source)')
     })
 
     it('says what is sent to the AI provider, next to the button', async () => {
@@ -250,7 +231,7 @@ describe('an idea’s landing page', () => {
       await fireEvent.click(button)
       await waitFor(() => expect(state.researched).toEqual(['How bends migrate']))
       await waitFor(() =>
-        expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/research/find'),
+        expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/research'),
       )
     })
 
@@ -275,6 +256,29 @@ describe('an idea’s landing page', () => {
       expect(await screen.findByText('The search service is busy')).toBeInTheDocument()
       expect(screen.getByLabelText('What areas do you want to research?')).toHaveValue('Keep me')
       expect(router.currentRoute.value.name).toBe('idea')
+    })
+  })
+
+  describe('read', () => {
+    it('shows the unread reading, and links to the whole list', async () => {
+      fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Read' })
+      const list = await within(region).findByRole('list', { name: 'To read' })
+      expect(within(list).getAllByRole('link')).toHaveLength(2)
+      expect(within(region).getByRole('link', { name: 'See the reading list' })).toHaveAttribute(
+        'href',
+        '/p/ada-substack/ideas/i1/read',
+      )
+    })
+
+    it('says so when there is nothing on the list', async () => {
+      fakeIdea({ idea: idea([], []) })
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Read' })
+      expect(
+        await within(region).findByText('Nothing on the reading list yet.'),
+      ).toBeInTheDocument()
     })
   })
 
@@ -379,7 +383,7 @@ describe('an idea’s landing page', () => {
       const state = fakeIdea()
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Refine' })
-      expect(region.querySelector('h2')).toHaveTextContent(/^03\s*Refine$/)
+      expect(region.querySelector('h2')).toHaveTextContent(/^04\s*Refine$/)
       expect(await within(region).findByText('Talk it through')).toBeInTheDocument()
       expect(state.requests).toEqual([]) // nothing started by looking
       await fireEvent.click(within(region).getByRole('button', { name: 'Start brainstorming' }))

@@ -28,7 +28,6 @@ async function setUp(page: Page, { withKey = true } = {}) {
 /** From wherever you are in the idea: Research (step 01), then into the tool that searches the web. */
 async function openResearchTool(page: Page) {
   await goTo(page, 'Research')
-  await page.getByRole('link', { name: 'Start research' }).click()
 }
 
 const noViolations = async (page: Page, what: string) =>
@@ -65,11 +64,11 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await noViolations(page, 'research page with a run to review')
 
   // Nothing is on the reading list until pages are added.
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
+  await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
   ).toHaveCount(0)
-  await page.getByRole('link', { name: 'Start research' }).click()
+  await goTo(page, 'Research')
 
   // One click each: added pages collapse to a green tick, ignored ones to a red cross.
   await run
@@ -84,7 +83,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await noViolations(page, 'research page with decided pages')
 
   // The reading list has them, marked, with the AI's reason kept.
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
+  await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
   ).toBeVisible()
@@ -115,16 +114,20 @@ test('several areas can be researched around one idea, and the research is kept'
     .getByRole('button', { name: 'Add to reading list: Notes on channel migration' })
     .click()
   await expect(first.getByRole('img', { name: 'Added to the reading list' })).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
-  await expect(page.getByRole('link', { name: /Notes on channel migration/ })).toBeVisible()
-  await page.getByRole('link', { name: 'Start research' }).click()
+  await goTo(page, 'Read')
+  await expect(
+    page.getByRole('link', { name: 'Notes on channel migration', exact: true }),
+  ).toBeVisible()
+  await goTo(page, 'Research')
   await first.getByRole('button', { name: 'Reconsider: Notes on channel migration' }).click()
   await expect(
     first.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }),
   ).toBeVisible() // expanded again
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
-  await expect(page.getByRole('link', { name: /Notes on channel migration/ })).toHaveCount(0)
-  await page.getByRole('link', { name: 'Start research' }).click()
+  await goTo(page, 'Read')
+  await expect(
+    page.getByRole('link', { name: 'Notes on channel migration', exact: true }),
+  ).toHaveCount(0)
+  await goTo(page, 'Research')
 
   await holdToConfirm(page, first.getByRole('button', { name: /^Delete this research/ }))
   await expect(page.getByRole('article', { name: 'First area' })).toHaveCount(0)

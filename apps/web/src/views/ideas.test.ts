@@ -270,9 +270,9 @@ describe('idea page', () => {
     )
     return renderAt(`/p/ada-substack/ideas/i1${path}`)
   }
-  const open = (extra: Parameters<typeof server.use> = []) => openAt('/research', extra)
+  const open = (extra: Parameters<typeof server.use> = []) => openAt('/read', extra)
 
-  it('shows the idea’s links on the Research step', async () => {
+  it('shows the idea’s links on the Read step', async () => {
     await open()
     // The title opens the item's page for notes; the host name beneath it opens the article itself.
     expect(await screen.findByRole('link', { name: 'A paper' })).toHaveAttribute(
@@ -282,6 +282,15 @@ describe('idea page', () => {
     const article = screen.getByRole('link', { name: /example\.org.*A paper/ })
     expect(article).toHaveAttribute('href', 'https://example.org/paper')
     expect(article).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('titles the Read step, and leads on to Notes', async () => {
+    await open()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Read' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /Next: 03 Notes/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas/i1/notes',
+    )
   })
 
   it('shows its drafts, in order, on the Draft step', async () => {
@@ -394,7 +403,7 @@ describe('idea page', () => {
         }),
       ),
     )
-    await renderAt('/p/ada-substack/ideas/i1/research')
+    await renderAt('/p/ada-substack/ideas/i1/read')
     const titled = await screen.findByRole('link', { name: 'A paper' })
     expect(titled).not.toHaveTextContent('https://example.org/paper')
     expect(titled.closest('li')).toHaveTextContent('example.org')
@@ -448,7 +457,7 @@ describe('idea page', () => {
           }),
         ),
       )
-      await renderAt('/p/ada-substack/ideas/i1/research')
+      await renderAt('/p/ada-substack/ideas/i1/read')
       // Read items are out of the way until asked for.
       expect(await screen.findByRole('switch', { name: 'Read: Unread one' })).not.toBeChecked()
       expect(screen.queryByRole('switch', { name: 'Read: Read one' })).not.toBeInTheDocument()
@@ -606,7 +615,7 @@ describe('idea page', () => {
         http.get(ideaUrl, () => HttpResponse.json(tagged)),
         http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
       )
-      return renderAt('/p/ada-substack/ideas/i1/research')
+      return renderAt('/p/ada-substack/ideas/i1/read')
     }
 
     it('shows each link’s tags, and a filter once any link has one', async () => {
@@ -762,7 +771,7 @@ describe('idea page', () => {
         http.get(ideaUrl, () => HttpResponse.json(data)),
         http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
       )
-      return renderAt('/p/ada-substack/ideas/i1/research')
+      return renderAt('/p/ada-substack/ideas/i1/read')
     }
     const tick = (title: string) => screen.getByRole('checkbox', { name: `Select ${title}` })
     const tagButton = () => screen.getByRole('button', { name: 'Tag…' })
@@ -1225,7 +1234,7 @@ describe('idea page', () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy()
       const next = within(screen.getByRole('navigation', { name: 'Next step' }))
-      expect(next.getByRole('link', { name: /Next: 03 Refine/ })).toBeInTheDocument()
+      expect(next.getByRole('link', { name: /Next: 04 Refine/ })).toBeInTheDocument()
       expect(screen.queryByText(/Happy with the notes/)).toBeNull()
     })
 
@@ -2103,7 +2112,7 @@ describe('idea page', () => {
       listPublications,
       http.get(ideaUrl, () => HttpResponse.json({ ...idea, links: [], drafts: [] })),
     )
-    await renderAt('/p/ada-substack/ideas/i1/research')
+    await renderAt('/p/ada-substack/ideas/i1/read')
     expect(await screen.findByText(/Nothing to read yet/)).toBeInTheDocument()
   })
 

@@ -79,7 +79,7 @@ describe('reading page', () => {
     expect(document.querySelector('.tutorial-note')).toBeNull()
     expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
       'href',
-      '/p/ada-substack/ideas/i1/research',
+      '/p/ada-substack/ideas/i1/read',
     )
   })
 
@@ -264,7 +264,7 @@ describe('reading page', () => {
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
-    await renderAt('/p/ada-substack/ideas/i1/research')
+    await renderAt('/p/ada-substack/ideas/i1/read')
     expect(await screen.findByRole('link', { name: 'A paper' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Take notes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: /^Keep:/ })).not.toBeInTheDocument()
@@ -292,7 +292,7 @@ describe('reading page', () => {
         return HttpResponse.json({ batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 })
       }),
     )
-    await renderAt('/p/ada-substack/ideas/i1/research')
+    await renderAt('/p/ada-substack/ideas/i1/read')
     await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select A paper' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
     const picker = await screen.findByLabelText(/^Move( .*)? to$/)
@@ -367,7 +367,7 @@ describe('reading page', () => {
       http.get('*/api/publications', () => HttpResponse.json([publication])),
       http.get(ideaUrl, () => HttpResponse.json(idea)),
     )
-    await renderAt('/p/ada-substack/ideas/i1/research')
+    await renderAt('/p/ada-substack/ideas/i1/read')
     const first = await screen.findByRole('link', { name: 'A paper' })
     expect(first).toHaveAttribute('href', readingPath('l1'))
     expect(screen.getByRole('link', { name: 'https://example.org/other' })).toHaveAttribute(
@@ -851,7 +851,7 @@ describe('reading page', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t open that')
       expect(screen.getByRole('link', { name: 'Back to the reading list' })).toHaveAttribute(
         'href',
-        '/p/ada-substack/ideas/i1/research',
+        '/p/ada-substack/ideas/i1/read',
       )
     })
 

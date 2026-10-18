@@ -11,7 +11,7 @@ import { usePublication } from './usePublications'
  *   home    -> Publications (account settings: the gear by the person's name in the menu foot)
  *   publication -> 01 Search, 02 Read, 03 Notes, (its settings: a gear beside its name)
  *   publication-settings -> Details, Description, Sharing, Download, Delete (plain links; the way up is the publication)
- *   idea    -> 01 Research, 02 Notes, 03 Refine, 04 Draft, (its settings: a gear beside its name)
+ *   idea    -> 01 Research, 02 Read, 03 Notes, 04 Refine, 05 Draft, (its settings: a gear beside its name)
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
  */
@@ -30,6 +30,7 @@ export const PUBLICATION_STEPS: Step[] = [
 
 export const IDEA_STEPS: Step[] = [
   { key: 'research', label: 'Research', route: 'idea-research' },
+  { key: 'read', label: 'Read', route: 'idea-read' },
   { key: 'notes', label: 'Notes', route: 'idea-notes' },
   { key: 'refine', label: 'Refine', route: 'brainstorm' },
   { key: 'draft', label: 'Draft', route: 'idea-drafts' },
@@ -148,7 +149,8 @@ export function useNav() {
         return plural(publicationNotes.data.value.length, 'note', 'notes')
     }
     if (level.value === 'idea' && idea.data.value) {
-      if (step.key === 'research') return plural(idea.data.value.links.length, 'source', 'sources')
+      if (step.key === 'read')
+        return `${idea.data.value.links.filter((l) => !l.readAt).length} to read`
       if (step.key === 'notes' && ideaNotes.data.value)
         return plural(ideaNotes.data.value.length, 'note', 'notes')
       if (step.key === 'draft') return plural(idea.data.value.drafts.length, 'draft', 'drafts')

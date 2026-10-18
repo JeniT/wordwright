@@ -232,7 +232,7 @@ export const routes: RouteRecordRaw[] = [
     },
   })),
 
-  // ——— An idea: its landing page, 01 Research, 02 Notes, 03 Refine, 04 Draft, and its settings ———
+  // ——— An idea: its landing page, 01 Research, 02 Read, 03 Notes, 04 Refine, 05 Draft, and its settings ———
   {
     path: '/p/:publicationId/ideas/:id',
     name: 'idea',
@@ -248,18 +248,23 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'idea', step: 'research' },
   },
   {
+    // The AI research used to have a page apart from the reading list; they are now 01 Research and 02 Read.
     path: '/p/:publicationId/ideas/:id/research/find',
-    name: 'research',
-    component: () => import('./views/ResearchView.vue'),
+    redirect: (to) => ({ name: 'idea-research', params: to.params, query: to.query }),
+  },
+  {
+    path: '/p/:publicationId/ideas/:id/read',
+    name: 'idea-read',
+    component: () => import('./views/IdeaReadView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'research' },
+    meta: { level: 'idea', step: 'read' },
   },
   {
     path: '/p/:publicationId/ideas/:id/reading/:linkId',
     name: 'reading',
     component: () => import('./views/ReadingView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'research', compact: true, tutorial: true },
+    meta: { level: 'idea', step: 'read', compact: true, tutorial: true },
   },
   {
     path: '/p/:publicationId/ideas/:id/notes',

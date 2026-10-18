@@ -17,9 +17,6 @@ const props = defineProps<{
   ideaId: string | null
   /** The page this summarises. */
   to: RouteLocationRaw
-  /** An idea keeps its reading list under Research. */
-  step?: 'read' | 'research'
-  title?: string
   nested?: boolean
   explain?: string
 }>()
@@ -41,8 +38,8 @@ const host = (url: string) => {
 <template>
   <LandingSection
     :level="ideaId ? 'idea' : 'publication'"
-    :step="step ?? 'read'"
-    :title="title ?? 'Read'"
+    step="read"
+    title="Read"
     :nested="nested"
     :explain="explain"
   >

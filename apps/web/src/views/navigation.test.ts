@@ -178,16 +178,16 @@ describe('the menu in a publication', () => {
 })
 
 describe('the menu in an idea', () => {
-  it('names the idea, lists four steps with counts, and leads back up to the publication', async () => {
+  it('names the idea, lists five steps with counts, and leads back up to the publication', async () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas/i1/notes')
     const nav = await screen.findByRole('navigation', { name: 'Idea' })
-    expect(within(nav).getAllByRole('listitem').length).toBeGreaterThanOrEqual(4)
-    for (const name of ['Research', 'Notes', 'Refine', 'Draft']) {
+    expect(within(nav).getAllByRole('listitem').length).toBeGreaterThanOrEqual(5)
+    for (const name of ['Research', 'Read', 'Notes', 'Refine', 'Draft']) {
       expect(within(nav).getByRole('link', { name })).toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
-    expect(await within(nav).findByText('2 sources')).toBeInTheDocument()
+    expect(await within(nav).findByText('2 to read')).toBeInTheDocument()
     expect(within(nav).getByText('1 draft')).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: 'Idea settings' })).toBeNull()
     const header = await menu()
@@ -212,7 +212,7 @@ describe('the menu in an idea', () => {
     )
   })
 
-  it('keeps a step current on its sub-pages (the research tool)', async () => {
+  it('keeps Research current at its old address, which now leads there', async () => {
     mockApp()
     server.use(
       http.get('*/api/publications/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
@@ -231,7 +231,7 @@ describe('step pages', () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas/i1/notes')
     const title = await screen.findByRole('heading', { level: 1, name: 'Notes' })
-    expect(title.querySelector('[aria-hidden="true"]')).toHaveTextContent('02')
+    expect(title.querySelector('[aria-hidden="true"]')).toHaveTextContent('03')
     expect(
       await within(screen.getByRole('main')).findByText('Why rivers meander'),
     ).toBeInTheDocument()
@@ -244,9 +244,9 @@ describe('step pages', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
     const next = within(await screen.findByRole('navigation', { name: 'Next step' }))
-    expect(next.getByRole('link', { name: /Next: 02 Notes/ })).toHaveAttribute(
+    expect(next.getByRole('link', { name: /Next: 02 Read/ })).toHaveAttribute(
       'href',
-      '/p/ada-substack/ideas/i1/notes',
+      '/p/ada-substack/ideas/i1/read',
     )
   })
 
@@ -305,7 +305,7 @@ describe('the menu folds away on pages read beside another window', () => {
     expect(button).toHaveAttribute('aria-expanded', 'true')
     expect(
       within(await screen.findByRole('navigation', { name: 'Idea' })).getByRole('link', {
-        name: 'Research',
+        name: 'Read',
       }),
     ).toHaveAttribute('aria-current', 'page')
   })
