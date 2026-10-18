@@ -7,7 +7,6 @@ import type { RouteLocationRaw } from 'vue-router'
 import { api, errorMessage } from '../lib/api'
 import { queryKeys, useSources } from '../lib/queries'
 import { useDecidePosts } from '../lib/recent-posts'
-import Explain from './Explain.vue'
 import FeedsLink from './FeedsLink.vue'
 import LandingSection from './LandingSection.vue'
 import QueryState from './QueryState.vue'
@@ -69,12 +68,7 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
       />
     </template>
     <QueryState :query="sources" what="your feeds">
-      <template v-if="!sources.data.value?.length">
-        <p class="text-ink-soft">No feeds yet.</p>
-        <Explain tutorial-only>
-          A feed is a blog, newsletter or journal we check for new posts that might inspire you.
-        </Explain>
-      </template>
+      <p v-if="!sources.data.value?.length" class="text-ink-soft">No feeds yet.</p>
       <template v-else>
         <QueryState :query="posts" what="your feeds" loading="Reading your feeds…" detail>
           <p v-if="!top.length" class="text-ink-soft">

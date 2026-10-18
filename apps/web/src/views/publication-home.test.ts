@@ -690,9 +690,10 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     expect(await screen.findByText(/This is your publication’s home/)).toBeInTheDocument()
     expect(screen.getByText(/Start with your ideas/)).toBeVisible()
     expect(
-      await screen.findByText(/A feed is a blog, newsletter or journal .* inspire you/),
+      await screen.findByText(
+        /An idea is something you want to write about\. You can add notes.*several drafts under each idea/,
+      ),
     ).toBeVisible()
-    expect(await screen.findByText(/An idea is something you want to write about/)).toBeVisible()
     for (const text of [
       /First look for recent articles or news stories for inspiration/,
       /Second, read the articles or news stories on this reading list/,
@@ -708,7 +709,6 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     for (const text of [
       /This is your publication’s home/,
       /Your AI reads this/,
-      /A feed is a blog/,
       /An idea is something/,
       /First look for recent articles/,
       /Second, read the articles/,

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import ListToolbar from './ListToolbar.vue'
-import Explain from './Explain.vue'
 import LandingSection from './LandingSection.vue'
 import { errorMessage } from '../lib/api'
 import { ideaMoveContents, nameList, plural, useMoveIdeasFlow } from '../lib/move'
@@ -22,14 +21,12 @@ const flow = useMoveIdeasFlow(
 </script>
 
 <template>
-  <LandingSection title="Ideas">
+  <LandingSection
+    title="Ideas"
+    explain="An idea is something you want to write about. You can add notes, keep a reading list and have several drafts under each idea."
+  >
     <QueryState :query="ideas" what="ideas">
-      <template v-if="!ideas.data.value?.length">
-        <p class="text-ink-soft">No ideas yet.</p>
-        <Explain tutorial-only>
-          An idea is something you want to write about. It keeps its own notes, reading and drafts.
-        </Explain>
-      </template>
+      <p v-if="!ideas.data.value?.length" class="text-ink-soft">No ideas yet.</p>
       <RowList v-else :items="ideas.data.value" label="Ideas" bare class="mb-4">
         <template #toolbar>
           <!-- The whole list is one page, so the page and the total are the same. -->
