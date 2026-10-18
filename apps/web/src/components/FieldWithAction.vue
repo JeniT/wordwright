@@ -5,7 +5,7 @@
  * lines up the same way: the button sits level with the field, below the label's height.
  */
 defineProps<{
-  /** The button's words ("Add item"). */
+  /** The button's words ("Add to reading list"). */
   action: string
   /** The button's words while it works ("Adding…"). */
   busyText: string

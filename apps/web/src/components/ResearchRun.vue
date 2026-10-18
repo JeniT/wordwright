@@ -146,7 +146,7 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
               type="button"
               class="btn btn-sm btn-primary"
               :disabled="unusable(item) || busy"
-              :aria-label="`Add to the reading list: ${name(item)}`"
+              :aria-label="`Add to reading list: ${name(item)}`"
               @click="add.mutate(item.id)"
             >
               Add

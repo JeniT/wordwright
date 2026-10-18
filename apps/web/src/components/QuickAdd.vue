@@ -22,7 +22,7 @@ import TextField from './TextField.vue'
  * to it, and there is no "New idea" tab.
  *
  * On a reading item's page (`readingItemId`) it is the place to take notes from that item: "Add a note" comes first and
- * every note carries the item and, if ticked, the quotation flag; "Add something to read" is the same form as at the
+ * every note carries the item and, if ticked, the quotation flag; "Add to reading list" is the same form as at the
  * top of a reading list (`AddLinkForm`), so the two say and look alike.
  */
 const props = defineProps<{
@@ -62,7 +62,7 @@ function pick(event: Event) {
 const allTabs: { id: Kind; label: string }[] = [
   { id: 'idea', label: 'New idea' },
   { id: 'note', label: 'Add a note' },
-  { id: 'reading', label: 'Add something to read' },
+  { id: 'reading', label: 'Add to reading list' },
 ]
 // Beside a reading item the note is what the writer came to do, so it comes first.
 const ordered = props.readingItemId
@@ -150,7 +150,7 @@ const mutations = { idea: createIdea, note: addNote, reading: addReading }
 const submitLabels: Record<Kind, string> = {
   idea: 'Create idea',
   note: 'Add note',
-  reading: 'Add something to read',
+  reading: 'Add to reading list',
 }
 const busy = computed(
   () => createIdea.isPending.value || addNote.isPending.value || addReading.isPending.value,

@@ -31,8 +31,8 @@ A note marked as someone else's exact words. It is kept word for word, so it can
 _Avoid_: Direct quote, quote (in what people see)
 
 **Reading item**:
-One post or article on a reading list, shown by its title, with whether it has been read and its tags. Its title opens its own page, where notes are taken from it; the host name beneath the title opens the article itself. On the publication's list it is also _kept_ (stays on the list for ever) or not (it goes a month after it was added); items the writer adds are kept from the start. Notes taken from it mark it read.
-_Avoid_: Link, source, bookmark (in what people see)
+One post or article on a reading list, shown by its title, with whether it has been read and its tags. Its title opens its own page, where notes are taken from it; the host name beneath the title opens the article itself. On the publication's list it is also _kept_ (stays on the list for ever) or not (it goes a month after it was added); items the writer adds are kept from the start. Notes taken from it mark it read. The action of putting one on the list is called “Add to reading list” wherever it appears.
+_Avoid_: Link, source, bookmark, Add item, Add something to read (in what people see)
 
 **Publication picture**:
 The image an owner chooses for a publication. Always shown in preference to the site icon.

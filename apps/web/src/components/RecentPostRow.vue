@@ -89,11 +89,11 @@ const when = (iso: string) =>
       </div>
       <div class="flex shrink-0 items-start gap-2">
         <button
-          v-tip="'Add to the reading list'"
+          v-tip="'Add to reading list'"
           type="button"
           class="btn btn-sm btn-icon btn-ghost"
           :disabled="busy"
-          :aria-label="`Add to the reading list: ${post.title}`"
+          :aria-label="`Add to reading list: ${post.title}`"
           @click="emit('decide', 'add')"
         >
           <Icon name="check" />

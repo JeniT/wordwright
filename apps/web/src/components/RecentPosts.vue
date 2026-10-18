@@ -95,7 +95,7 @@ function goFromBottom(step: -1 | 1) {
   heading.value?.focus({ preventScroll: true }) // keyboard users continue from the top too
 }
 
-// ---- deciding: Add to the reading list, Ignore, or take either back (shared with the publication's landing page)
+// ---- deciding: Add to reading list, Ignore, or take either back (shared with the publication's landing page)
 const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
 
 const failedNames = computed(() =>

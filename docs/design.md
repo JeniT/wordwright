@@ -333,14 +333,14 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 
 **Checkbox, switch, button or link**
 
-| It...                                             | Use                                 | Examples                                   |
-| ------------------------------------------------- | ----------------------------------- | ------------------------------------------ |
-| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this item, Select all               |
-| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                 |
-| sets a view option for the list                   | **switch** or a select, on the left | Show read items                            |
-| does something or opens something                 | **button**                          | Edit, Tag, Remove, Move to…, Add item      |
-| goes somewhere                                    | **link** (underlined)               | The title                                  |
-| changes which of a few views or forms is showing  | **tab** (`TabPanels`)               | Notes / Reading list / Comments; Quick add |
+| It...                                             | Use                                 | Examples                                         |
+| ------------------------------------------------- | ----------------------------------- | ------------------------------------------------ |
+| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this item, Select all                     |
+| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                       |
+| sets a view option for the list                   | **switch** or a select, on the left | Show read items                                  |
+| does something or opens something                 | **button**                          | Edit, Tag, Remove, Move to…, Add to reading list |
+| goes somewhere                                    | **link** (underlined)               | The title                                        |
+| changes which of a few views or forms is showing  | **tab** (`TabPanels`)               | Notes / Reading list / Comments; Quick add       |
 
 - **Tabs show, buttons act, segmented controls set.** If clicking does nothing but change what is displayed (nothing is
   saved or sent), it is a tab, not a button. If it chooses a value for a setting (System / Light / Dark), it is a
@@ -379,7 +379,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 | Level          | Style                                            | For                                                           |
 | -------------- | ------------------------------------------------ | ------------------------------------------------------------- |
 | Primary        | `btn-primary`, one per screen area               | The page's main action (not in a list)                        |
-| Section action | `btn-outline` (accent)                           | The thing the list is for: Add item                           |
+| Section action | `btn-outline` (accent)                           | The thing the list is for: Add to reading list                |
 | Row's verb     | `btn-neutral btn-sm`                             | Only where a row has one main verb a title link can't carry   |
 | Row utilities  | `btn-ghost btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
 | Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Tag…, Move to…, Remove N (opens a dialog)                     |
@@ -416,7 +416,7 @@ notes that arrive any other way go last.
 
 **Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
-("Add to the reading list: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗
+("Add to reading list: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗
 and a single **undo** button ("Reconsider: {title}"). A decision made in either place updates both (they share query keys),
 and is announced in a polite live region. The list has no bulk actions, so it has no select rail or `ListToolbar`; the
 Search page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.
@@ -543,8 +543,7 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Idea                 | how to develop it                            | **01 Research** (the idea's own reading list, and the AI research tool), **02 Notes**, **03 Refine** (brainstorm), **04 Draft**                                            | Beside the idea's name, in the menu and on its landing page                             |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
-**Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add something to read says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add something to
-read**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
+**Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add to reading list says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add to reading list**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
 is showing on arrival, every time, so there is always a form and no Cancel. A publication picker
 sits inside the form that is showing, above its field, and only when there is more than one; it starts at the publication last worked in (saved in `localStorage` when a
 publication page opens or one is chosen here), else the one with the newest draft to pick up, else the first. A note or reading item goes to the publication's own list, never
@@ -598,7 +597,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    **Show more…** / **Show less** button that appears only when text is hidden; an invitation to add one when empty); each section is a `LandingSection`: the step's number
    (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
    actions on the right of the heading. An idea's page is titled with the idea's name (the publication above it, as a way
-   up), has Quick add (Add a note, Add something to read: no New idea, and they go to the idea) and summarises Research (the unread reading list while there is any; otherwise the box to ask the AI, which waits for
+   up), has Quick add (Add a note, Add to reading list: no New idea, and they go to the idea) and summarises Research (the unread reading list while there is any; otherwise the box to ask the AI, which waits for
    its button), Notes (shown by the same `NoteCard` as the Notes step), Refine (the AI's latest message and a box to
    reply, or the invitation to start) and Draft (its drafts, and **Start a draft**).
 9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above

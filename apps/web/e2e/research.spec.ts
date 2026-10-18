@@ -60,7 +60,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await expect(run).toContainText("couldn't read a title from this page")
   await expect(run).toContainText("Problem: we couldn't find a website at this address")
   await expect(
-    run.getByRole('button', { name: 'Add to the reading list: A report that has moved' }),
+    run.getByRole('button', { name: 'Add to reading list: A report that has moved' }),
   ).toBeDisabled()
   await noViolations(page, 'research page with a run to review')
 
@@ -73,12 +73,10 @@ test('researches areas, reviews what was found, and adds pages to the reading li
 
   // One click each: added pages collapse to a green tick, ignored ones to a red cross.
   await run
-    .getByRole('button', { name: 'Add to the reading list: Fake title for research.example.org' })
+    .getByRole('button', { name: 'Add to reading list: Fake title for research.example.org' })
     .click()
   await expect(run.getByRole('img', { name: 'Added to the reading list' })).toHaveCount(1)
-  await run
-    .getByRole('button', { name: 'Add to the reading list: Notes on channel migration' })
-    .click()
+  await run.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }).click()
   await expect(run.getByRole('img', { name: 'Added to the reading list' })).toHaveCount(2)
   await run.getByRole('button', { name: 'Ignore: A report that has moved' }).click()
   await expect(run.getByRole('img', { name: 'Ignored' })).toHaveCount(1)
@@ -114,7 +112,7 @@ test('several areas can be researched around one idea, and the research is kept'
   await first.getByRole('button', { name: 'Ignore: Fake title for research.example.org' }).click()
   await expect(first.getByRole('img', { name: 'Ignored' })).toBeVisible()
   await first
-    .getByRole('button', { name: 'Add to the reading list: Notes on channel migration' })
+    .getByRole('button', { name: 'Add to reading list: Notes on channel migration' })
     .click()
   await expect(first.getByRole('img', { name: 'Added to the reading list' })).toBeVisible()
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
@@ -122,7 +120,7 @@ test('several areas can be researched around one idea, and the research is kept'
   await page.getByRole('link', { name: 'Start research' }).click()
   await first.getByRole('button', { name: 'Reconsider: Notes on channel migration' }).click()
   await expect(
-    first.getByRole('button', { name: 'Add to the reading list: Notes on channel migration' }),
+    first.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }),
   ).toBeVisible() // expanded again
   await page.getByRole('link', { name: '← Back to the reading list' }).click()
   await expect(page.getByRole('link', { name: /Notes on channel migration/ })).toHaveCount(0)

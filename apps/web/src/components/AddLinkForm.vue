@@ -40,7 +40,7 @@ function submit() {
 
 <template>
   <form @submit.prevent="submit">
-    <FieldWithAction action="Add item" busy-text="Adding…" :busy="add.isPending.value">
+    <FieldWithAction action="Add to reading list" busy-text="Adding…" :busy="add.isPending.value">
       <TextField
         v-model="linkUrl"
         label="Web address"

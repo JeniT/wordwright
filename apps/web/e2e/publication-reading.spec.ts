@@ -33,10 +33,10 @@ test('reads and takes notes before there is an idea: a publication reading list 
 
   const address = page.getByLabel('Web address', { exact: true })
   await address.fill('rubbish')
-  await page.getByRole('button', { name: 'Add item' }).click()
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(page.getByText('Enter a web address, like https://example.com')).toBeVisible()
   await address.fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add item' }).click()
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toHaveAttribute('href', /\/reading\//)
@@ -45,7 +45,7 @@ test('reads and takes notes before there is an idea: a publication reading list 
   ).toHaveAttribute('href', 'https://example.org/meanders')
   await expect(address).toHaveValue('')
   await address.fill('http://www.example.org/meanders/')
-  await page.getByRole('button', { name: 'Add item' }).click()
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(
     page.getByText('That link is already in this publication’s reading list.'),
   ).toBeVisible()
@@ -129,9 +129,9 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
   const title = 'A post in Feed of read.example'
   await expect(recent.getByRole('link', { name: new RegExp(title) })).toBeVisible()
   await noViolations(page, 'recent posts with decisions to make')
-  await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
+  await recent.getByRole('button', { name: `Add to reading list: ${title}` }).click()
   await expect(recent.getByRole('img', { name: 'In the reading list' })).toBeVisible()
-  await expect(recent.getByRole('button', { name: /^Add to the reading list/ })).toHaveCount(0)
+  await expect(recent.getByRole('button', { name: /^Add to reading list/ })).toHaveCount(0)
   await noViolations(page, 'recent posts after adding')
 
   // It is on the publication's reading list (on Read), with no chip: most items come from a feed.
@@ -146,9 +146,7 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
 
   // Reconsidering takes it off again.
   await recent.getByRole('button', { name: `Take off the reading list: ${title}` }).click()
-  await expect(
-    recent.getByRole('button', { name: `Add to the reading list: ${title}` }),
-  ).toBeVisible()
+  await expect(recent.getByRole('button', { name: `Add to reading list: ${title}` })).toBeVisible()
 
   // Ignoring is remembered, and can be taken back.
   await recent.getByRole('button', { name: `Ignore: ${title}` }).click()
@@ -180,9 +178,9 @@ test('the publication’s own page summarises the feeds and the reading list, an
   // A link can be added to the reading list from here, and is on the Read step too.
   const read = page.getByRole('region', { name: 'Read' })
   await expect(read.getByText('Nothing on the reading list yet.')).toBeVisible()
-  await page.getByRole('tab', { name: 'Add something to read' }).click()
+  await page.getByRole('tab', { name: 'Add to reading list' }).click()
   await page.getByLabel('Web address').fill('https://example.org/meanders')
-  await page.getByRole('button', { name: 'Add something to read' }).click()
+  await page.getByRole('button', { name: 'Add to reading list', exact: true }).click()
   const item = read.getByRole('link', { name: /Fake title for example\.org/ })
   await expect(item).toBeVisible()
   await noViolations(page, 'publication page with feeds and reading list')
@@ -220,7 +218,7 @@ test('a post can be added or ignored from the publication’s own page, and the 
   await noViolations(page, 'publication page with posts to decide')
   const first = (await rows.first().innerText()).match(/A post in Feed of (\w+)\.example/)![1]!
   const title = `A post in Feed of ${first}.example`
-  await search.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
+  await search.getByRole('button', { name: `Add to reading list: ${title}` }).click()
   await expect(search.getByRole('link', { name: title })).toHaveCount(0)
   await expect(rows).toHaveCount(1)
 
@@ -256,9 +254,7 @@ test('a post that is added or ignored moves to the end of the recent posts', asy
 
   // Whichever is on top is dealt with, and goes to the bottom, with the others still waiting above it.
   const first = (await rows.first().innerText()).match(/A post in Feed of (\w+)\.example/)![1]!
-  await recent
-    .getByRole('button', { name: new RegExp(`^Add to the reading list: .*${first}`) })
-    .click()
+  await recent.getByRole('button', { name: new RegExp(`^Add to reading list: .*${first}`) }).click()
   await expect(rows.last()).toContainText(`A post in Feed of ${first}.example`)
   await expect(rows.last()).toContainText('in the reading list')
   await expect(rows.first()).not.toContainText(first)
@@ -281,7 +277,7 @@ test('moves reading items, with their notes, between the publication and an idea
   const address = page.getByLabel('Web address', { exact: true })
   for (const url of ['example.org/rivers', 'example.com/lakes']) {
     await address.fill(url)
-    await page.getByRole('button', { name: 'Add item' }).click()
+    await page.getByRole('button', { name: 'Add to reading list' }).click()
     await expect(
       page.getByRole('link', { name: new RegExp(`^Fake title for ${url.split('/')[0]}`) }),
     ).toBeVisible()
@@ -363,7 +359,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await goTo(page, 'Search')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   const title = 'A post in Feed of read.example'
-  await recent.getByRole('button', { name: `Add to the reading list: ${title}` }).click()
+  await recent.getByRole('button', { name: `Add to reading list: ${title}` }).click()
   await expect(recent.getByRole('img', { name: 'In the reading list' })).toBeVisible()
   await goTo(page, 'Read')
 

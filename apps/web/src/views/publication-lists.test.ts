@@ -185,7 +185,9 @@ describe('the publication’s reading list', () => {
     const title = await screen.findByRole('link', { name: 'A paper' })
     expect(box.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // The button sits in the same row as the field, and the hint is the one line.
-    expect(box.closest('.flex')).toContainElement(screen.getByRole('button', { name: 'Add item' }))
+    expect(box.closest('.flex')).toContainElement(
+      screen.getByRole('button', { name: 'Add to reading list' }),
+    )
     expect(screen.getByText('We will look up its title.')).toBeInTheDocument()
   })
 
@@ -224,7 +226,7 @@ describe('the publication’s reading list', () => {
     const state = fakePublication()
     await renderAt('/p/ada-substack/reading')
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     expect(await screen.findByText('Title of https://example.org/new')).toBeInTheDocument()
     expect(state.added).toEqual(['https://example.org/new'])
     expect(
@@ -245,7 +247,7 @@ describe('the publication’s reading list', () => {
       ),
     )
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     expect(await screen.findByText(/already in this publication/)).toBeInTheDocument()
     expect(screen.getByLabelText('Web address')).toHaveValue('https://example.org/new')
   })
@@ -947,9 +949,9 @@ describe('reading an item of the publication’s own list', () => {
 
   it('adds another page to the publication’s reading list, and offers to read it', async () => {
     const { state } = open()
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/more')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     const read = await screen.findByRole('link', { name: /^Open “/ })
     expect(state.added).toEqual(['https://example.org/more'])
     expect(read).toHaveAttribute('href', expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/))

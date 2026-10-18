@@ -482,7 +482,7 @@ describe('deciding about the recent posts', () => {
     await openSearch()
     const recent = await section()
     await fireEvent.click(
-      await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Add to reading list: First post' }),
     )
     await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
     const row = (await within(recent).findByText(/in the reading list/)).closest('li')!
@@ -493,7 +493,7 @@ describe('deciding about the recent posts', () => {
     // The other post still waits for a decision.
     await waitFor(() =>
       expect(
-        within(recent).getByRole('button', { name: 'Add to the reading list: Second post' }),
+        within(recent).getByRole('button', { name: 'Add to reading list: Second post' }),
       ).toBeEnabled(),
     )
   })
@@ -513,7 +513,7 @@ describe('deciding about the recent posts', () => {
     await fireEvent.click(within(row).getByRole('button', { name: 'Stop ignoring: Second post' }))
     await waitFor(() => expect(state.sent.at(-1)).toEqual({ what: 'reconsider', postId: 'p2' }))
     expect(
-      await within(recent).findByRole('button', { name: 'Add to the reading list: Second post' }),
+      await within(recent).findByRole('button', { name: 'Add to reading list: Second post' }),
     ).toBeInTheDocument()
   })
 
@@ -563,7 +563,7 @@ describe('deciding about the recent posts', () => {
       await within(recent).findByRole('button', { name: 'Take off the reading list: First post' }),
     )
     expect(
-      await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Add to reading list: First post' }),
     ).toBeInTheDocument()
   })
 
@@ -578,7 +578,7 @@ describe('deciding about the recent posts', () => {
     const recent = await section()
     expect(await within(recent).findByText(/Added earlier/)).toBeInTheDocument()
     expect(
-      within(recent).queryByRole('button', { name: /Add to the reading list: Added earlier/ }),
+      within(recent).queryByRole('button', { name: /Add to reading list: Added earlier/ }),
     ).toBeNull()
     expect(within(recent).queryByRole('button', { name: /Ignore: Ignored earlier/ })).toBeNull()
     expect(within(recent).getByRole('button', { name: 'Ignore: Not yet' })).toBeInTheDocument()
@@ -601,12 +601,12 @@ describe('deciding about the recent posts', () => {
     await openSearch()
     const recent = await section()
     await fireEvent.click(
-      await within(recent).findByRole('button', { name: 'Add to the reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Add to reading list: First post' }),
     )
     const alert = await within(recent).findByRole('alert')
     expect(alert).toHaveTextContent('A publication can have up to 50 links')
     expect(
-      within(recent).getByRole('button', { name: 'Add to the reading list: First post' }),
+      within(recent).getByRole('button', { name: 'Add to reading list: First post' }),
     ).toBeEnabled()
     await fireEvent.click(within(alert).getByRole('button', { name: 'Dismiss' }))
     expect(within(recent).queryByRole('alert')).not.toBeInTheDocument()
@@ -628,7 +628,7 @@ describe('deciding about the recent posts', () => {
     await fireEvent.click(await within(recent).findByRole('button', { name: 'Ignore: First post' }))
     await waitFor(() =>
       expect(
-        within(recent).getByRole('button', { name: 'Add to the reading list: Second post' }),
+        within(recent).getByRole('button', { name: 'Add to reading list: Second post' }),
       ).toBeDisabled(),
     )
     release()

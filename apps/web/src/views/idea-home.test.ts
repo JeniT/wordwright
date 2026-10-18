@@ -308,7 +308,7 @@ describe('an idea’s landing page', () => {
       // An idea's Quick add has no New idea tab: a new idea belongs to the publication.
       expect(quick.getAllByRole('tab').map((t) => t.textContent?.trim())).toEqual([
         'Add a note',
-        'Add something to read',
+        'Add to reading list',
       ])
       await fireEvent.update(quick.getByLabelText('Note'), 'A new thought')
       await fireEvent.click(quick.getByRole('button', { name: 'Add note' }))

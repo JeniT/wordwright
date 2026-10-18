@@ -244,19 +244,19 @@ describe('reviewing what research found', () => {
   it('warns about a page with no readable title, and rules out pages that do not exist or are not public', async () => {
     const { article } = await open()
     expect(article.getByText(/couldn't read a title from this page/)).toBeInTheDocument()
-    expect(article.getByRole('button', { name: 'Add to the reading list: Page B' })).toBeEnabled()
+    expect(article.getByRole('button', { name: 'Add to reading list: Page B' })).toBeEnabled()
     expect(
       article.getByText(/Problem: we couldn't find a website at this address/),
     ).toBeInTheDocument()
     expect(article.getByText(/Problem: this address isn't a public website/)).toBeInTheDocument()
-    expect(article.getByRole('button', { name: 'Add to the reading list: Page C' })).toBeDisabled()
-    expect(article.getByRole('button', { name: 'Add to the reading list: Page D' })).toBeDisabled()
+    expect(article.getByRole('button', { name: 'Add to reading list: Page C' })).toBeDisabled()
+    expect(article.getByRole('button', { name: 'Add to reading list: Page D' })).toBeDisabled()
     expect(article.getByRole('button', { name: 'Ignore: Page C' })).toBeEnabled() // clears it off the list
   })
 
   it('adds a page with one click, then collapses it to its title with a green tick and a way back', async () => {
     const { api, article } = await open()
-    await fireEvent.click(article.getByRole('button', { name: 'Add to the reading list: Page A' }))
+    await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
     await waitFor(() => expect(api.posts).toEqual([{ add: ['a'] }]))
 
     expect(
@@ -268,7 +268,7 @@ describe('reviewing what research found', () => {
     // Collapsed: the details and the decision buttons are gone, the title stays.
     expect(article.getByText('Page A')).toBeInTheDocument()
     expect(article.queryByText('Search title A')).toBeNull()
-    expect(article.queryByRole('button', { name: 'Add to the reading list: Page A' })).toBeNull()
+    expect(article.queryByRole('button', { name: 'Add to reading list: Page A' })).toBeNull()
     expect(article.queryByRole('button', { name: 'Ignore: Page A' })).toBeNull()
     expect(article.getAllByText(/Why the AI suggests it/)).toHaveLength(3) // the other three
   })
@@ -292,7 +292,7 @@ describe('reviewing what research found', () => {
 
   it('reconsidering expands a page again, whether it was added or ignored', async () => {
     const { api, article } = await open()
-    await fireEvent.click(article.getByRole('button', { name: 'Add to the reading list: Page A' }))
+    await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
     await waitFor(() =>
       expect(article.getByRole('button', { name: 'Reconsider: Page A' })).toBeEnabled(),
     )
@@ -304,9 +304,7 @@ describe('reviewing what research found', () => {
     await waitFor(() => expect(api.posts).toContainEqual({ reconsider: ['a'] }))
 
     await waitFor(() =>
-      expect(
-        article.getByRole('button', { name: 'Add to the reading list: Page A' }),
-      ).toBeEnabled(),
+      expect(article.getByRole('button', { name: 'Add to reading list: Page A' })).toBeEnabled(),
     )
     expect(article.getByText('Search title A')).toBeInTheDocument() // the details are back
     expect(article.queryByRole('img', { name: 'Added to the reading list' })).toBeNull()
@@ -333,9 +331,9 @@ describe('reviewing what research found', () => {
     )
     await renderAt(page)
     const article = within(await screen.findByRole('article', { name: 'How fast bends migrate' }))
-    await fireEvent.click(article.getByRole('button', { name: 'Add to the reading list: Page A' }))
+    await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
     expect(await article.findByRole('alert')).toHaveTextContent('already on the reading list')
-    expect(article.getByRole('button', { name: 'Add to the reading list: Page A' })).toBeEnabled()
+    expect(article.getByRole('button', { name: 'Add to reading list: Page A' })).toBeEnabled()
     await fireEvent.click(article.getByRole('button', { name: 'Dismiss' }))
     expect(article.queryByRole('alert')).toBeNull()
   })

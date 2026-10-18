@@ -94,9 +94,9 @@ describe('reading page', () => {
 
   it('has the add button beside its field, in the same form as above a reading list', async () => {
     await open()
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
     const field = screen.getByLabelText('Web address')
-    const button = screen.getByRole('button', { name: 'Add item' })
+    const button = screen.getByRole('button', { name: 'Add to reading list' })
     // One row: the field and the button share a parent that holds nothing else.
     expect(field.closest('div.flex')).toBe(button.closest('div.flex'))
     expect(field).toHaveAccessibleDescription('We will look up its title.')
@@ -176,9 +176,9 @@ describe('reading page', () => {
         ),
       ),
     ])
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     expect(await screen.findByText(/Added “New one”/)).toBeInTheDocument()
     await fireEvent.update(screen.getByLabelText('Web address'), 'h')
     expect(screen.queryByText(/Added “New one”/)).not.toBeInTheDocument()
@@ -186,7 +186,7 @@ describe('reading page', () => {
 
   it('starts again on Add a note when the writer goes on to another item', async () => {
     const { router } = await open()
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'example.org/new')
     await router.push(readingPath('l2'))
     await screen.findByRole('heading', { level: 1, name: 'https://example.org/other' })
@@ -194,11 +194,11 @@ describe('reading page', () => {
     expect(screen.getByLabelText('Web address')).toHaveValue('')
   })
 
-  it('opens on Add a note, then Add something to read; an idea’s page has no New idea tab', async () => {
+  it('opens on Add a note, then Add to reading list; an idea’s page has no New idea tab', async () => {
     await open()
     await screen.findByRole('heading', { level: 1, name: 'A paper' })
     const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
-    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Add a note', 'Add something to read'])
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Add a note', 'Add to reading list'])
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
   })
 
@@ -252,7 +252,7 @@ describe('reading page', () => {
       const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
       expect(tabs.map((t) => t.textContent?.trim())).toEqual([
         'Add a note',
-        'Add something to read',
+        'Add to reading list',
         'New idea',
       ])
     })
@@ -754,11 +754,11 @@ describe('reading page', () => {
           return HttpResponse.json(added('Fetched title'), { status: 201 })
         }),
       ])
-      await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
       const box = await screen.findByLabelText('Web address')
       expect(box).toHaveAccessibleDescription('We will look up its title.')
       await fireEvent.update(box, 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
       const status = (await screen.findByText(/Added “Fetched title”\./)).closest('p')!
       expect(status).toHaveAttribute('aria-live', 'polite')
       expect(sent).toEqual([{ url: 'example.org/new' }])
@@ -775,9 +775,9 @@ describe('reading page', () => {
       await open('l1', [
         http.post(`${ideaUrl}/links`, () => HttpResponse.json(added(''), { status: 201 })),
       ])
-      await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
       expect(await screen.findByText(/Added “https:\/\/example\.org\/new”/)).toBeInTheDocument()
     })
 
@@ -787,10 +787,10 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
       const box = await screen.findByLabelText('Web address')
       await fireEvent.update(box, 'example.org/paper')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
       expect(await screen.findByText('That link is already in this idea.')).toBeInTheDocument()
       expect(box).toHaveValue('example.org/paper')
     })

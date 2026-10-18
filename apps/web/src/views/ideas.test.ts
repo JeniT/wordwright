@@ -482,7 +482,7 @@ describe('idea page', () => {
       ])
       expect(screen.queryByLabelText(/Title/)).toBeNull() // adding a link doesn't ask for a title
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
 
       await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
       expect(sent).toEqual({ url: 'example.org/new' })
@@ -501,7 +501,7 @@ describe('idea page', () => {
         ])
         const field = await screen.findByLabelText('Web address')
         await fireEvent.update(field, 'example.org/paper')
-        await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+        await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
 
         const hint = await screen.findByText(message)
         expect(hint).toHaveClass('text-danger')
@@ -519,7 +519,7 @@ describe('idea page', () => {
       ])
       const field = await screen.findByLabelText('Web address')
       await fireEvent.update(field, 'example.org/paper')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add item' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
       await screen.findByText('That link is already in this idea.')
       await fireEvent.update(field, 'example.org/paper2')
       expect(screen.queryByText('That link is already in this idea.')).toBeNull()

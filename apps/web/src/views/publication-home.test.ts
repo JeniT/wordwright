@@ -301,10 +301,10 @@ describe('a publication’s landing page: search', () => {
     expect(row).toHaveTextContent('Bo Writer')
     expect(row).toHaveTextContent('The start of it')
     // Icon-only, so the names carry the meaning.
-    const add = within(row).getByRole('button', { name: 'Add to the reading list: Post 1' })
+    const add = within(row).getByRole('button', { name: 'Add to reading list: Post 1' })
     expect(add).toHaveTextContent('')
     add.focus()
-    expect(document.querySelector('[data-tip]')).toHaveTextContent('Add to the reading list')
+    expect(document.querySelector('[data-tip]')).toHaveTextContent('Add to reading list')
     const ignore = within(row).getByRole('button', { name: 'Ignore: Post 1' })
     ignore.focus()
     expect(document.querySelector('[data-tip]')).toHaveTextContent('Ignore')
@@ -357,7 +357,7 @@ describe('a publication’s landing page: search', () => {
       await renderAt('/p/ada-substack')
       const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
       await fireEvent.click(
-        await within(list).findByRole('button', { name: 'Add to the reading list: Post 1' }),
+        await within(list).findByRole('button', { name: 'Add to reading list: Post 1' }),
       )
       await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
       await waitFor(() => expect(within(list).queryByRole('link', { name: /Post 1/ })).toBeNull())
@@ -576,7 +576,7 @@ describe('a publication’s landing page: Quick add', () => {
     expect(quick.getAllByRole('tab').map((t) => t.textContent?.trim())).toEqual([
       'New idea',
       'Add a note',
-      'Add something to read',
+      'Add to reading list',
     ])
     expect(quick.getByRole('tab', { name: 'New idea' })).toHaveAttribute('aria-selected', 'true')
     expect(quick.queryByLabelText('Add to publication')).toBeNull()
@@ -613,13 +613,13 @@ describe('a publication’s landing page: Quick add', () => {
       }),
     )
     await renderAt('/p/ada-substack')
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add something to read' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://bad.example')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add something to read' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     expect(await screen.findByText(/Enter a web address/)).toBeInTheDocument()
     expect(screen.getByLabelText('Web address')).toHaveValue('https://bad.example')
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add something to read' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     await waitFor(() => expect(added).toEqual(['https://example.org/new']))
     expect(await screen.findByText(/Added\./)).toBeInTheDocument()
   })

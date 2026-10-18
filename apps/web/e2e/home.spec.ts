@@ -37,9 +37,9 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Added to Garden notes’s notes.')).toBeVisible()
 
-  await page.getByRole('tab', { name: 'Add something to read' }).click()
+  await page.getByRole('tab', { name: 'Add to reading list' }).click()
   await page.getByLabel('Web address').fill('https://example.com/pruning')
-  await page.getByRole('button', { name: 'Add something to read' }).click()
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
   await expect(page.getByText('Added to Garden notes’s reading list.')).toBeVisible()
 
   // The note and the item are in the publication's own lists.
