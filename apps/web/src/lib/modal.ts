@@ -1,7 +1,8 @@
 import { nextTick, onBeforeUnmount, watch, type Ref } from 'vue'
+import { dismissedATip } from './tip'
 
 const FOCUSABLE =
-  'button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled)'
+  'a[href], button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled)'
 
 /**
  * What every modal dialog does for the keyboard: focus moves in when it opens (to `initialFocus`), Tab stays inside it,
@@ -18,7 +19,7 @@ export function useModal(options: {
   let opener: Element | null = null
 
   function onKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && (options.canEscape?.() ?? true)) {
+    if (event.key === 'Escape' && !dismissedATip.has(event) && (options.canEscape?.() ?? true)) {
       event.stopPropagation()
       options.onEscape()
     } else if (event.key === 'Tab') {

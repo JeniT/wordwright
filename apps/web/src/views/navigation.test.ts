@@ -314,6 +314,69 @@ describe('the menu folds away on pages read beside another window', () => {
   })
 })
 
+describe('the folded menu is a drawer over the page', () => {
+  async function openMenu() {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1')
+    const button = await screen.findByRole('button', { name: 'Menu' })
+    button.focus() // a real click focuses the button; fireEvent.click does not
+    await fireEvent.click(button)
+    return button
+  }
+
+  it('is a modal dialog while open, with a scrim, and not one while closed', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1')
+    const button = await screen.findByRole('button', { name: 'Menu' })
+    expect(button).toHaveAttribute('aria-controls', 'side-menu')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.querySelector('[data-scrim]')).toBeNull()
+    await fireEvent.click(button)
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    expect(drawer).toHaveAttribute('aria-modal', 'true')
+    expect(drawer).toHaveAttribute('id', 'side-menu')
+    expect(drawer).toHaveClass('fixed') // over the page, so the page below does not move
+    expect(document.querySelector('[data-scrim]')).not.toBeNull()
+    // The page is not inside it,.
+    expect(within(drawer).queryByRole('main')).toBeNull()
+  })
+
+  it('moves focus in, and puts it back on the Menu button when it closes', async () => {
+    const button = await openMenu()
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true))
+    await fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(button).toHaveFocus()
+  })
+
+  it('keeps Tab inside, going round from the last control to the first', async () => {
+    await openMenu()
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    const items = Array.from(drawer.querySelectorAll<HTMLElement>('a[href], button:not(:disabled)'))
+    items.at(-1)!.focus()
+    await fireEvent.keyDown(document, { key: 'Tab' })
+    expect(items[0]).toHaveFocus()
+    await fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(items.at(-1)).toHaveFocus()
+  })
+
+  it('closes when the scrim is pressed', async () => {
+    await openMenu()
+    await fireEvent.click(document.querySelector('[data-scrim]')!)
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(document.querySelector('[data-scrim]')).toBeNull()
+  })
+
+  it('closes when you go to another page', async () => {
+    await openMenu()
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    await fireEvent.click(within(drawer).getByRole('link', { name: 'Draft' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+})
+
 describe('the old Publish step', () => {
   it('is gone from the menu, and its address leads to the idea’s drafts', async () => {
     mockApp()

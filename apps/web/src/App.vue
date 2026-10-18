@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import BrandMark from './components/BrandMark.vue'
 import NoticeBar from './components/NoticeBar.vue'
 import SettingsButton from './components/SettingsButton.vue'
 import SideMenu from './components/SideMenu.vue'
 import { api } from './lib/api'
+import { useModal } from './lib/modal'
 import { useNav } from './lib/nav'
 import { usePublicationAddressRedirect, usePublications } from './lib/usePublications'
 import ThemeChoice from './components/ThemeChoice.vue'
@@ -42,12 +43,28 @@ const signOut = useMutation({
 
 const reload = () => window.location.reload()
 
-// On a phone the menu folds away behind a button; moving to another page closes it again.
+// On a phone the menu folds away behind a button and opens as a drawer over the page; moving to another page closes
+// it again.
 const menuOpen = ref(false)
+const menu = ref<HTMLElement | null>(null)
 watch(
   () => route.fullPath,
   () => (menuOpen.value = false),
 )
+// Grown to a laptop window with the drawer open, the menu is simply the column beside the page again.
+const wide = typeof window !== 'undefined' ? window.matchMedia?.('(min-width: 768px)') : undefined
+const onWide = (e: MediaQueryListEvent) => {
+  if (e.matches && !nav.compact.value) menuOpen.value = false
+}
+wide?.addEventListener?.('change', onWide)
+onBeforeUnmount(() => wide?.removeEventListener?.('change', onWide))
+
+useModal({
+  open: () => menuOpen.value,
+  dialog: menu,
+  onEscape: () => (menuOpen.value = false),
+  initialFocus: () => menu.value?.querySelector<HTMLElement>('a[href], button'),
+})
 </script>
 
 <template>
@@ -121,7 +138,7 @@ watch(
           </button>
         </div>
         <p
-          v-if="!menuOpen && (nav.eyebrow.value || here)"
+          v-if="nav.eyebrow.value || here"
           class="px-5 pb-3 text-sm break-words"
           :class="nav.compact.value ? '' : 'md:hidden'"
         >
@@ -129,10 +146,30 @@ watch(
           ><strong>{{ here }}</strong>
         </p>
 
+        <!-- Pressing outside the drawer closes it; the keyboard has Escape, so the scrim is not a control. -->
+        <div
+          v-if="menuOpen"
+          data-scrim
+          aria-hidden="true"
+          class="fixed inset-0 z-30 bg-scrim"
+          :class="nav.compact.value ? '' : 'md:hidden'"
+          @click="menuOpen = false"
+        ></div>
         <div
           id="side-menu"
+          ref="menu"
           class="flex-col"
-          :class="[menuOpen ? 'flex' : 'hidden', nav.compact.value ? '' : 'md:flex md:flex-1']"
+          :class="[
+            menuOpen
+              ? 'drawer fixed inset-y-0 left-0 z-40 flex w-64 max-w-full overflow-y-auto border-r border-line bg-surface'
+              : 'hidden',
+            nav.compact.value
+              ? ''
+              : 'md:static md:z-auto md:flex md:w-auto md:flex-1 md:overflow-visible md:border-r-0',
+          ]"
+          :role="menuOpen ? 'dialog' : undefined"
+          :aria-modal="menuOpen ? 'true' : undefined"
+          :aria-label="menuOpen ? 'Menu' : undefined"
         >
           <SideMenu />
 

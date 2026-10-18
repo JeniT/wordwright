@@ -605,8 +605,11 @@ Sign out, over one column. It has no settings gear: a reviewer-only account has 
 same cards, callouts and chips as everywhere else.
 
 - **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button
-  (`aria-expanded`) that folds the menu away, shows where you are while closed, and closes on navigation. Signed-out
-  pages have a centred name only.
+  (`aria-expanded`, `aria-controls`) that folds the menu away and shows where you are while closed. Opened, the menu is
+  a **drawer** that slides in from the left over the page (it never pushes the content), behind the `scrim` that
+  closes it when pressed. It is a modal dialog while open (`useModal`: focus moves in and returns to the Menu button,
+  Tab stays inside, Escape closes) and it closes on navigation. No shadow: separation is the scrim and a 1px `line`
+  edge. The slide is 0.15s and off under reduced motion. Signed-out pages have a centred name only.
 - **Content width:** `max-w-3xl` for reading and forms; routes with `meta.wide` get `max-w-6xl` (the drafting page
   with its notes column). Check every screen at 390px; nothing may scroll sideways.
 - **Landmarks:** the side menu is the page `header`; the page content is `main`; a skip link comes first. Don't add a

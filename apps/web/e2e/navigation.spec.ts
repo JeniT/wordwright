@@ -305,3 +305,48 @@ test('the menu folds away at every width while reading a source, so two windows 
   ).toHaveAttribute('aria-current', 'page')
   await noViolations(page, 'reading page with the menu open')
 })
+
+test('on a phone the menu is a drawer over the page: the page stays put, the scrim and Escape close it', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 })
+  await signUpWithIdea(page)
+  const menuButton = page.getByRole('button', { name: 'Menu', exact: true })
+  const heading = page.getByRole('heading', { level: 1 })
+  const before = await heading.boundingBox()
+  await menuButton.click()
+  const drawer = page.getByRole('dialog', { name: 'Menu' })
+  await expect(drawer).toBeVisible()
+  await expect.poll(async () => (await drawer.boundingBox())!.x).toBe(0) // once it has slid in
+  expect((await drawer.boundingBox())!.width).toBeLessThanOrEqual(256)
+  expect(await heading.boundingBox()).toEqual(before) // the page did not move
+  await expect(drawer.getByRole('navigation', { name: 'Idea' })).toBeVisible()
+  await noViolations(page, 'drawer open')
+
+  await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
+  await expect(menuButton).toBeFocused()
+
+  await menuButton.click()
+  await page.mouse.click(370, 400) // on the scrim, right of the drawer
+  await expect(drawer).toBeHidden()
+  await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+})
+
+test('on a page read beside another window the menu is a drawer at laptop width too', async ({
+  page,
+}) => {
+  await signUpWithIdea(page)
+  await goTo(page, 'Research')
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
+  await page.getByRole('button', { name: 'Add link' }).click()
+  await page.getByRole('link', { name: 'Take notes' }).click()
+  const menuButton = page.getByRole('button', { name: 'Menu', exact: true })
+  await menuButton.click()
+  const drawer = page.getByRole('dialog', { name: 'Menu' })
+  await expect(drawer).toBeVisible()
+  expect((await drawer.boundingBox())!.width).toBeLessThanOrEqual(256)
+  await noViolations(page, 'drawer open on a compact page')
+  await drawer.getByRole('link', { name: 'Notes', exact: true }).click()
+  await expect(drawer).toBeHidden()
+})

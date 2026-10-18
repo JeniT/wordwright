@@ -52,8 +52,13 @@ function hideSoon() {
   hideTimer = setTimeout(hide, HIDE_DELAY_MS)
 }
 
+/** Escapes that only put a tooltip away, so a modal around it (the menu drawer) is not also closed by the same press. */
+export const dismissedATip = new WeakSet<Event>()
+
 function onEscape(event: KeyboardEvent) {
-  if (event.key === 'Escape') hide()
+  if (event.key !== 'Escape') return
+  dismissedATip.add(event)
+  hide()
 }
 
 function show(target: HTMLElement) {
