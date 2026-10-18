@@ -10,3 +10,4 @@ playwright-report
 test-results
 .e2e-data
 .DS_Store
+docs/design-concepts/icon/sketches.svg
