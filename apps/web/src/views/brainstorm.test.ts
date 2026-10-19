@@ -284,7 +284,7 @@ describe('the brainstorm page', () => {
     expect(screen.queryByRole('button', { name: 'Refine with your AI' })).toBeNull()
   })
 
-  it('never shows the coach’s reply twice while the rest of the page catches up', async () => {
+  it('never shows your AI’s reply twice while the rest of the page catches up', async () => {
     // The thread is re-read, then the idea and its notes. While those are still on their way the
     // saved reply is already in the thread, and the streamed copy must not be shown beside it.
     let hold = false
@@ -368,7 +368,7 @@ describe('the brainstorm page', () => {
     expect(api.posts).toEqual([])
   })
 
-  it('shows that the coach is thinking, then the words as they arrive, and can be stopped', async () => {
+  it('shows that your AI is thinking, then the words as they arrive, and can be stopped', async () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
     const api = mockConversation([kickoff(), aiMessage('Go on.')])

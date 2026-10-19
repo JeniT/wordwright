@@ -109,7 +109,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
         }}
       </p>
       <p
-        v-else
+        v-else-if="unusable"
         class="mb-3 flex items-start gap-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
       >
         <Icon name="alert" class="mt-0.5 shrink-0" />

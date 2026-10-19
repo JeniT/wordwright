@@ -144,7 +144,7 @@ const none = computed(() => !!list.data.value && ordered.value.length === 0 && !
 interface ReplyProblem {
   message: string
   /** `missing-key`: none saved yet. `rejected-key`: the provider refused it. Either way the fix is in account settings. */
-  key: 'missing-key' | 'rejected-key' | null
+  keyProblem: 'missing-key' | 'rejected-key' | null
 }
 const replyProblem = ref<ReplyProblem | null>(null)
 const announcement = ref('')
@@ -154,7 +154,7 @@ let controller: AbortController | undefined
 function problemFrom(err: unknown): ReplyProblem {
   return {
     message: errorMessage(err),
-    key:
+    keyProblem:
       err instanceof ApiError && err.status === 409 && /API key/i.test(err.message)
         ? 'missing-key'
         : null,
@@ -190,7 +190,7 @@ async function send(body: SendMessageInput, restore?: string, conversationId = c
         } else if (event.type === 'error') {
           replyProblem.value = {
             message: event.message,
-            key: event.code === 'auth' ? 'rejected-key' : null,
+            keyProblem: event.code === 'auth' ? 'rejected-key' : null,
           }
           announcement.value = event.message
         }
@@ -365,7 +365,7 @@ const busyNote = computed(() =>
         <ReplyProblemAlert
           v-if="(none || empty) && replyProblem"
           :message="replyProblem.message"
-          :key-problem="replyProblem.key"
+          :key-problem="replyProblem.keyProblem"
         />
 
         <QueryState
@@ -433,7 +433,7 @@ const busyNote = computed(() =>
           <ReplyProblemAlert
             v-if="replyProblem"
             :message="replyProblem.message"
-            :key-problem="replyProblem.key"
+            :key-problem="replyProblem.keyProblem"
           />
 
           <div v-if="unanswered" class="mb-4 panel p-3">
@@ -478,7 +478,7 @@ const busyNote = computed(() =>
               <button v-if="streaming" type="button" class="btn btn-neutral" @click="stop">
                 Stop
               </button>
-              <p v-if="!streaming" class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
+              <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
                 This will re-send up-to-date information about the idea’s title, notes and reading
                 list to your AI. It will not send your drafts.
               </p>
