@@ -289,7 +289,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'idea-drafts',
     component: () => import('./views/IdeaDraftsView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'draft' },
+    meta: { level: 'idea', step: 'draft', tutorial: true },
   },
   {
     // Publishing is done to one draft, at the bottom of its page; old links land on the idea's drafts.
@@ -308,7 +308,14 @@ export const routes: RouteRecordRaw[] = [
     name: 'draft',
     component: () => import('./views/EditorView.vue'),
     props: true,
-    meta: { wide: true, level: 'idea', step: 'draft', ideaFromDraft: true, quiet: true },
+    meta: {
+      wide: true,
+      level: 'idea',
+      step: 'draft',
+      ideaFromDraft: true,
+      quiet: true,
+      tutorial: true,
+    },
   },
   // Help works for everyone, signed in or not (a link from sign-up or an email must open). The catch-all comes last.
   {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
+import Explain from '../components/Explain.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 import ReorderableList from '../components/ReorderableList.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
@@ -38,16 +39,15 @@ async function saveDraftOrder(ids: string[]) {
 <template>
   <IdeaGate :id="id" v-slot="{ idea }" :publication-id="publicationId">
     <StepHeading>Draft</StepHeading>
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <p class="max-w-prose text-sm text-ink-soft">
-        One draft for a single post, or several, in order, for a linked set of posts. Open one to
-        write; your notes sit beside it.
-      </p>
+    <Explain tutorial-only class="mb-3">
+      A draft is one piece of writing. Add several, in order, for a linked set of posts.
+    </Explain>
+    <div class="mb-3 flex justify-end">
       <StartDraftButton :publication-id="publicationId" :idea-id="id" />
     </div>
     <section aria-label="Drafts">
       <p v-if="!idea.drafts.length" class="text-ink-soft">
-        No drafts yet. Add one when you're ready to start writing.
+        No drafts yet. Start one when you’re ready to write.
       </p>
       <ReorderableList
         v-else
@@ -64,7 +64,10 @@ async function saveDraftOrder(ids: string[]) {
               draft.title || 'Untitled'
             }}</span>
             <time class="meta shrink-0" :datetime="draft.updatedAt">
-              {{ new Date(draft.updatedAt).toLocaleDateString() }}
+              <span class="sr-only">Last changed </span
+              >{{
+                new Date(draft.updatedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })
+              }}
             </time>
           </RouterLink>
         </template>

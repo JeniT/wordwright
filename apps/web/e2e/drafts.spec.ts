@@ -150,7 +150,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await openFirstPublication(page)
   await page.getByRole('link', { name: /Why rivers meander/ }).click()
   await goTo(page, 'Draft')
-  await page.getByRole('link', { name: /^Why rivers meander \d/ }).click()
+  await page.getByRole('link', { name: /^Why rivers meander Last changed/ }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
 
   // The comments come beside the draft, in the tab that opens for them.
@@ -267,7 +267,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   expect(topmost).toBe(true)
 
   // There the comments are in the drawer, and pressing one shows its paragraph and gets the drawer out of the way.
-  await page.getByRole('button', { name: 'Notes and comments' }).click()
+  await page.getByRole('button', { name: 'Open panel' }).click()
   const drawer = page.getByRole('complementary')
   await drawer.getByRole('tab', { name: /^Comments/ }).click()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'comments in the drawer').toEqual(
@@ -397,7 +397,9 @@ test('rephrases the title once the draft is long enough, and records the option 
   // Too little written: the button waits and says what to do.
   const rephraseTitle = page.getByRole('button', { name: 'Rephrase title' })
   await expect(rephraseTitle).toBeDisabled()
-  await expect(page.getByText('Write more first. Options for a title come from')).toBeVisible()
+  await expect(
+    page.getByText('Write at least 300 words first. Options for a title come from'),
+  ).toBeVisible()
 
   // Enough written (typing 300 words one key at a time is slow, so paste them in).
   const words = Array.from({ length: 310 }, (_, i) => `word${i}`).join(' ')
@@ -859,7 +861,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await bob.goto(draftUrl)
   const banner = bob.getByTestId('read-only')
   await expect(banner).toContainText('Ada')
-  await expect(banner).toContainText('is this draft’s editor'.replace('’', "'"))
+  await expect(banner).toContainText('is this draft’s editor')
   await expect(bob.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
   await expect(bob.getByLabel('Title', { exact: true })).toHaveAttribute('readonly', '')
   await expect(bob.getByRole('button', { name: 'Save' })).toHaveCount(0)
@@ -873,7 +875,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   // Bob can comment, and sees only his own. Ada, the editor, sees it with his name on it and resolves it.
   const bobSide = bob.getByRole('complementary')
   await bobSide.getByRole('tab', { name: /^Comments/ }).click()
-  await expect(bobSide.getByText(/You haven't commented on this draft yet/)).toBeVisible()
+  await expect(bobSide.getByText(/You haven’t commented yet/)).toBeVisible()
   await bobSide.getByLabel('About').selectOption({ label: '1. Rivers rarely flow straight.' })
   await bobSide.getByLabel('Your comment').fill('Lovely first line.')
   await bobSide.getByRole('button', { name: 'Add comment' }).click()
@@ -1606,7 +1608,9 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
   await page.getByRole('tab', { name: /^Comments/ }).click()
-  await expect(page.getByText('Comments cannot be shown while editing Markdown.')).toBeVisible()
+  await expect(
+    page.getByText('Comments are hidden while you edit Markdown. Switch back to see them.'),
+  ).toBeVisible()
   await page.reload()
   await expect(page.getByRole('textbox', { name: 'Draft body, as Markdown' })).toHaveValue(
     /Added as Markdown\./,

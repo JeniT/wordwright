@@ -8,12 +8,14 @@ import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { noteOrigin } from '../lib/note-label'
+import Explain from './Explain.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
 import NoteTags from './NoteTags.vue'
 import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
+import SwitchField from './SwitchField.vue'
 
 const props = defineProps<{
   publicationId: string
@@ -75,13 +77,12 @@ const label = (note: IdeaNote) => {
     <!-- The tab beside the draft already says "Notes"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-notes-heading" class="sr-only">Notes</h2>
     <p v-if="onlyEditor" class="mb-3 text-sm text-ink-soft">
-      Only {{ onlyEditor }}, the draft's editor, can add these notes to the draft. You can still
-      read them, and add and tidy notes on the idea page.
+      Only {{ onlyEditor }}, the draft’s editor, can add notes to the draft.
     </p>
-    <p v-else class="mb-3 text-sm text-ink-soft">
-      Add a note to put its words into the draft, after the paragraph you are in, or drag it by its
-      grip to where you want it. The draft is saved as you do.
-    </p>
+    <Explain v-else label="About adding notes" class="mb-3">
+      Add a note to put its words after the paragraph you are in, or drag it by its grip to where
+      you want it. The draft is saved as you do.
+    </Explain>
 
     <QueryState :query="notes" what="the notes" loading="Loading notes…">
       <p v-if="!notes.data.value?.length" class="text-ink-soft">
@@ -90,7 +91,7 @@ const label = (note: IdeaNote) => {
           :to="{ name: 'idea-notes', params: { publicationId, id: ideaId } }"
           class="underline"
         >
-          Add some on the idea page.
+          Add notes on the idea page.
         </RouterLink>
       </p>
       <TagFilter v-model="tagFilter" :tags="usedTags" />
@@ -146,10 +147,10 @@ const label = (note: IdeaNote) => {
       </p>
 
       <div v-if="added.length" class="border-t border-line pt-3">
-        <label class="flex items-center gap-2 text-sm">
-          <input v-model="showAdded" type="checkbox" class="size-4 accent-accent" />
-          Show notes already added ({{ added.length }})
-        </label>
+        <SwitchField v-model="showAdded" compact :label="`Show added (${added.length})`" />
+        <p v-if="showAdded" class="mt-2 text-sm text-ink-soft">
+          Putting a note back doesn’t remove its words from the draft.
+        </p>
         <ul v-if="showAdded" class="mt-2 space-y-2">
           <li
             v-for="note in added"
@@ -172,7 +173,7 @@ const label = (note: IdeaNote) => {
           </li>
         </ul>
         <p v-if="putBack.isError.value" role="alert" class="mt-2 text-danger">
-          Couldn't put that note back. Please try again.
+          Sorry, we couldn’t put that note back. Please try again.
         </p>
       </div>
     </QueryState>

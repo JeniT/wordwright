@@ -78,7 +78,7 @@ test('leads through a publication and an idea step by step, without ever locking
   // Publishing is done to this draft, at the bottom of its page: copy it as Markdown, title first.
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.getByRole('button', { name: 'Copy as Markdown' }).click()
-  await expect(page.getByText(/Copied\. Paste it where you publish/)).toBeVisible()
+  await expect(page.getByText('Copied', { exact: true })).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     '# A cut is a question\n\nTake out a third.\n',
   )

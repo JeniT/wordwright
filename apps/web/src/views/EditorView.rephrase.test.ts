@@ -117,8 +117,10 @@ describe('EditorView: Rephrase', () => {
     await renderAt('/p/p1/drafts/d1')
     await select(5, 40) // "river bends because the outside bank"
     await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
-    expect(await rephraseButton()).toHaveAccessibleDescription(
-      /options for the words you have selected/,
+    // Nothing blocks it, so no hint; what it is for is behind the info icon.
+    expect(await rephraseButton()).not.toHaveAccessibleDescription()
+    expect(screen.getByRole('button', { name: 'About rephrasing' })).toHaveAccessibleDescription(
+      /different ways to put your words/,
     )
   })
 
@@ -251,7 +253,7 @@ describe('EditorView: Rephrase', () => {
       })
       await renderAt('/p/p1/drafts/d1')
       const { dialog, use } = await replaceFirstSentence('Rivers wander as banks wear away.')
-      expect(within(dialog).queryByText(/others aren't/)).toBeNull()
+      expect(within(dialog).queryByText(/others aren’t/)).toBeNull()
       await use()
       expect(firstParagraphHtml()).toBe('<em>Rivers wander as banks wear away.</em>')
       await waitFor(async () => expect(await rephraseButton()).toBeDisabled()) // the cursor follows them; nothing is selected
@@ -269,7 +271,7 @@ describe('EditorView: Rephrase', () => {
       await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
       await fireEvent.click(await rephraseButton())
       const dialog = await screen.findByRole('dialog')
-      expect(within(dialog).queryByText(/others aren't/)).toBeNull()
+      expect(within(dialog).queryByText(/others aren’t/)).toBeNull()
     })
 
     it('keeps a link that covers all of the words', async () => {
@@ -290,7 +292,7 @@ describe('EditorView: Rephrase', () => {
       })
       await renderAt('/p/p1/drafts/d1')
       const { dialog, use } = await replaceFirstSentence('Rivers wander as banks wear away.')
-      expect(within(dialog).getByText(/others aren't/)).toBeInTheDocument()
+      expect(within(dialog).getByText(/others aren’t/)).toBeInTheDocument()
       await use()
       expect(firstParagraphHtml()).toBe('Rivers wander as banks wear away.')
     })
@@ -332,7 +334,9 @@ describe('EditorView: Rephrase', () => {
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(await screen.findByRole('tab', { name: /^Comments/ }))
       expect(
-        await screen.findByText('Comments cannot be shown while editing Markdown.'),
+        await screen.findByText(
+          'Comments are hidden while you edit Markdown. Switch back to see them.',
+        ),
       ).toBeInTheDocument()
     })
   })
@@ -355,7 +359,7 @@ describe('EditorView: Rephrase', () => {
       const button = await titleButton()
       expect(button).toBeDisabled()
       expect(button).toHaveAccessibleDescription(
-        "Write more first. Options for a title come from what you've written.",
+        'Write at least 300 words first. Options for a title come from your draft.',
       )
     })
 

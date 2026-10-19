@@ -1,6 +1,7 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
+import { createPinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { REPHRASE } from '@wordwright/core'
@@ -44,6 +45,7 @@ function show(props: Record<string, unknown> = {}) {
     },
     global: {
       plugins: [
+        createPinia(),
         [VueQueryPlugin, { queryClientConfig: { defaultOptions: { queries: { retry: false } } } }],
         createRouter({
           history: createMemoryHistory(),
@@ -76,7 +78,9 @@ describe('RephraseDialog', () => {
     expect(within(dialog).getByLabelText('Current wording')).toHaveValue(WORDING)
     expect(aimField()).toHaveValue('')
     await waitFor(() => expect(aimField()).toHaveFocus())
-    expect(dialog).toHaveTextContent('sent to your AI provider')
+    expect(dialog).toHaveTextContent(
+      'This will send this publication’s description, your draft, these words and your aim to your AI. It will not send your notes.',
+    )
     expect(screen.getByText('3 rounds of options here')).toBeInTheDocument()
   })
 

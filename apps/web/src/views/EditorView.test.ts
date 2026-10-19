@@ -323,7 +323,7 @@ describe('EditorView critique', () => {
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
     await fireEvent.click(await screen.findByRole('switch', { name: 'Resolved: comment 1' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't save that/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn’t save that/i)
     await waitFor(() =>
       expect(screen.getByRole('switch', { name: 'Resolved: comment 1' })).not.toBeChecked(),
     )
@@ -425,7 +425,7 @@ describe('EditorView comments from members', () => {
     mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
-    expect(await screen.findByText(/You haven't commented on this draft yet/)).toBeTruthy()
+    expect(await screen.findByText(/You haven’t commented yet/)).toBeTruthy()
     expect(within(await commentsRegion()).queryByRole('listitem')).toBeNull()
   })
 
@@ -707,7 +707,7 @@ describe('the notes beside the draft', () => {
     const api = mockDrafting()
     await renderAt('/p/p1/drafts/d1')
     const notes = within(await screen.findByRole('complementary'))
-    await fireEvent.click(await notes.findByLabelText('Show notes already added (1)'))
+    await fireEvent.click(await notes.findByLabelText('Show added (1)'))
     expect(notes.getByText('Already used.')).toBeInTheDocument()
 
     await fireEvent.click(notes.getByRole('button', { name: /^Put note “Already used\.” back/ }))
@@ -722,7 +722,7 @@ describe('the notes beside the draft', () => {
     mockDrafting({ notes: [] })
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/No notes yet/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Add some on the idea page.' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Add notes on the idea page.' })).toHaveAttribute(
       'href',
       '/p/p1/ideas/i1/notes',
     )
@@ -948,7 +948,7 @@ describe('the notes beside the draft', () => {
         }),
       )
     }
-    const dialog = () => screen.findByRole('dialog', { name: "You haven't marked this as read" })
+    const dialog = () => screen.findByRole('dialog', { name: 'You haven’t marked this as read' })
 
     afterEach(() => vi.restoreAllMocks())
 
@@ -1185,10 +1185,10 @@ describe('the notes beside the draft', () => {
   describe('on a phone', () => {
     afterEach(() => vi.unstubAllGlobals())
 
-    it('slides in from a Notes and comments button, and closes with its own button or Escape, returning focus', async () => {
+    it('slides in from an Open panel button, and closes with its own button or Escape, returning focus', async () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
-      const open = await screen.findByRole('button', { name: 'Notes and comments' })
+      const open = await screen.findByRole('button', { name: 'Open panel' })
       expect(open).toHaveAttribute('aria-expanded', 'false')
       expect(open).toHaveAttribute('aria-controls', 'draft-notes')
 
@@ -1215,7 +1215,7 @@ describe('the notes beside the draft', () => {
       mockDrafting()
       mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
       await renderAt('/p/p1/drafts/d1')
-      const open = await screen.findByRole('button', { name: 'Notes and comments' })
+      const open = await screen.findByRole('button', { name: 'Open panel' })
       await fireEvent.click(await screen.findByRole('button', { name: 'Comment 1' }))
       await waitFor(() => expect(open).toHaveAttribute('aria-expanded', 'true'))
       expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
@@ -1331,10 +1331,11 @@ describe('publishing from the draft page', () => {
     return screen.findByRole('region', { name: 'Publish' })
   }
 
-  it('sits at the bottom of the draft with the reassurance that the idea stays', async () => {
+  it('sits at the bottom of the draft, with what happens to the idea behind an info icon', async () => {
     const section = await openDraft()
-    expect(within(section).getByText(/The words are yours; nothing is added/)).toBeInTheDocument()
-    expect(within(section).getByText(/Your idea stays here/)).toBeInTheDocument()
+    expect(
+      within(section).getByRole('button', { name: 'About publishing' }),
+    ).toHaveAccessibleDescription(/Once it’s published, your idea stays here/)
   })
 
   it('copies the title and body as rich text, with plain text beside it', async () => {
@@ -1349,7 +1350,7 @@ describe('publishing from the draft page', () => {
     expect(await textOf(item.data['text/plain']!)).toBe(
       'Part 1\n\nErosion **loops**.\n\nBends migrate.\n',
     )
-    expect(await within(section).findByText(/Copied\. Paste it where you publish/)).toBeTruthy()
+    expect(await within(section).findByText(/^Copied$/)).toBeTruthy()
   })
 
   it('copies the plain words when rich copy is not supported', async () => {
@@ -1359,7 +1360,7 @@ describe('publishing from the draft page', () => {
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith('Part 1\n\nErosion **loops**.\n\nBends migrate.\n'),
     )
-    expect(await within(section).findByText(/Copied\. Paste it where you publish/)).toBeTruthy()
+    expect(await within(section).findByText(/^Copied$/)).toBeTruthy()
   })
 
   it('copies the Markdown, title first as a heading', async () => {
@@ -1369,17 +1370,66 @@ describe('publishing from the draft page', () => {
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith('# Part 1\n\nErosion **loops**.\n\nBends migrate.\n'),
     )
-    expect(await within(section).findByText(/Copied\. Paste it where you publish/)).toBeTruthy()
+    expect(await within(section).findByText(/^Copied$/)).toBeTruthy()
   })
 
   it('shows the text to select when the clipboard is out of reach', async () => {
     stubClipboard({ rich: false, plainFails: true })
     const section = await openDraft()
     await fireEvent.click(within(section).getByRole('button', { name: 'Copy as Markdown' }))
-    expect(await within(section).findByText(/couldn't reach your clipboard/)).toBeTruthy()
+    expect(await within(section).findByText(/couldn’t reach your clipboard/)).toBeTruthy()
     expect(within(section).getByLabelText(/to select and copy/)).toHaveValue(
       '# Part 1\n\nErosion **loops**.\n\nBends migrate.\n',
     )
+  })
+})
+
+describe('what the editing page says, and where', () => {
+  const tutorial = (on: boolean) => {
+    const seen: string[] = []
+    server.use(
+      signedInAs({ ...testUser, tutorialMode: on }),
+      http.get('*/api/account/tutorial', () =>
+        HttpResponse.json({ on, seen: [], answered: false }),
+      ),
+      http.post('*/api/account/tutorial/seen', async ({ request }) => {
+        seen.push(((await request.json()) as { kind: string }).kind)
+        return HttpResponse.json({ on, seen, answered: false })
+      }),
+    )
+    return seen
+  }
+
+  it('says on the page what Critique sends and does not send, whatever the mode', async () => {
+    mockEditor(() => new Response(null))
+    await renderAt('/p/p1/drafts/d1')
+    const button = await screen.findByRole('button', { name: 'Critique' })
+    expect(
+      screen.getByText(
+        'Critique will send this publication’s description and this draft’s title and text to your AI. It will not send your notes.',
+      ),
+    ).toBeInTheDocument()
+    expect(button).toHaveAccessibleDescription(/It will not send your notes/)
+  })
+
+  it('keeps the explanations behind info icons while tutorial mode is off', async () => {
+    mockEditor(() => new Response(null))
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('button', { name: 'Critique' })
+    expect(screen.getByRole('button', { name: 'About Critique' })).toHaveAccessibleDescription(
+      /never rewrites/,
+    )
+    expect(screen.getByRole('button', { name: 'About rephrasing' })).toBeInTheDocument()
+  })
+
+  it('writes the same explanations out in tutorial mode, and records the page as seen', async () => {
+    mockEditor(() => new Response(null))
+    const seen = tutorial(true)
+    await renderAt('/p/p1/drafts/d1')
+    expect(await screen.findByText(/never rewrites/)).toBeInTheDocument()
+    expect(screen.getByText(/different ways to put your words/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'About Critique' })).toBeNull()
+    await waitFor(() => expect(seen).toContain('draft'))
   })
 })
 
@@ -1391,7 +1441,7 @@ describe('a draft has one editor (#154)', () => {
     server.use(http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
     await renderAt('/p/p1/drafts/d1')
     const banner = await screen.findByTestId('read-only')
-    expect(banner).toHaveTextContent('Bob Jones is this draft’s editor'.replace('’', "'"))
+    expect(banner).toHaveTextContent('Bob Jones is this draft’s editor')
     expect(within(banner).getByText('Bob Jones')).toHaveClass('rounded-full') // the name chip
     expect(screen.getByLabelText('Title')).toHaveAttribute('readonly')
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
@@ -1409,11 +1459,13 @@ describe('a draft has one editor (#154)', () => {
     await renderAt('/p/p1/drafts/d1')
     const notes = within(await screen.findByRole('complementary'))
     await notes.findByText('Erosion loops.')
-    expect(notes.getByText(/Only Bob Jones, the draft's editor, can add these notes/)).toBeTruthy()
+    expect(
+      notes.getByText(/Only Bob Jones, the draft’s editor, can add notes to the draft/),
+    ).toBeTruthy()
     expect(notes.queryByRole('button', { name: /^Add note/ })).toBeNull()
     await showTab('Reading list')
     expect(
-      await screen.findByText(/Only Bob Jones, the draft's editor, can put links/),
+      await screen.findByText(/Only Bob Jones, the draft’s editor, can put links/),
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: /^Insert a link/ })).toBeNull()
   })

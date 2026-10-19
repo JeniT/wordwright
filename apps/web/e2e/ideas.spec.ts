@@ -292,7 +292,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await expect(
     side.getByText('Erosion on the outside of each bend.', { exact: true }),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Notes and comments' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Open panel' })).toBeHidden()
   await noViolations(page, 'drafting page with notes beside it')
 
   // Adding a note puts its words after the paragraph you are in, saves the draft, and sets the note aside.
@@ -316,7 +316,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await expect(page.getByText('Edited or removed since')).toBeVisible()
 
   // Added notes stay hidden unless asked for, and can be put back.
-  await side.getByLabel('Show notes already added (1)').check()
+  await side.getByLabel('Show added (1)').check()
   await side.getByRole('button', { name: /^Put note “Erosion on the outside/ }).click()
   await expect(
     side.getByRole('button', { name: /^Add note “Erosion on the outside/ }),
@@ -335,7 +335,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   await createIdea(page, 'Tides', 'The moon pulls the sea.')
   await startDraft(page)
 
-  const open = page.getByRole('button', { name: 'Notes and comments' })
+  const open = page.getByRole('button', { name: 'Open panel' })
   await expect(page.getByRole('complementary')).toBeHidden()
   await open.click()
   const side = page.getByRole('complementary')
@@ -747,7 +747,7 @@ test('a link to something on the reading list goes in only once it has been read
 
   // Unread: the writer is asked, and cancelling inserts nothing.
   await insert.click()
-  const dialog = page.getByRole('dialog', { name: "You haven't marked this as read" })
+  const dialog = page.getByRole('dialog', { name: 'You haven’t marked this as read' })
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
   await noViolations(page, 'the unread-source dialog')

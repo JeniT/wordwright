@@ -14,6 +14,7 @@ import {
 import { ApiError, api, errorMessage } from '../lib/api'
 import { useModal } from '../lib/modal'
 import AiButton from './AiButton.vue'
+import Explain from './Explain.vue'
 import RephraseOptions from './RephraseOptions.vue'
 
 /**
@@ -70,7 +71,7 @@ const wordingIssue = computed(() => wordingProblem(props.kind, text.value))
 /** Why options cannot be asked for yet, in words that say what to do; null when they can. */
 const blocker = computed(() => {
   if (asked.value.length >= limit.value) {
-    return `You have had your ${limit.value} ${limit.value === 1 ? 'round' : 'rounds'} of options here. Choose one, or write it yourself, then use it. Opening this window again starts afresh.`
+    return `You have had your ${limit.value} ${limit.value === 1 ? 'round' : 'rounds'} of options here. Choose one, or write it yourself, then use it.`
   }
   if (wordingIssue.value) return wordingIssue.value
   if (countWords(aim.value) < REPHRASE.aimMinWords) {
@@ -78,7 +79,7 @@ const blocker = computed(() => {
   }
   const now = normalizeText(aim.value)
   if (asked.value.some((r) => normalizeText(r.aim) === now)) {
-    return `Change your aim to ask again: say what you'd like to be different.`
+    return `Change your aim to ask again: say what you’d like to be different.`
   }
   return null
 })
@@ -158,11 +159,10 @@ function use() {
         <h2 :id="titleId" class="mb-2 font-display text-xl font-semibold">
           {{ kind === 'title' ? 'Rephrase the title' : 'Rephrase this passage' }}
         </h2>
-        <p class="mb-4 text-sm text-ink-soft">
-          Say what you want these words to do and ask for options. They are different ways you might
-          put it, to react to: choose one, change it, and use it only if it is better than yours.
-          Your draft, these words and your aim are sent to your AI provider.
-        </p>
+        <Explain tutorial-only class="mb-4">
+          Say what the words should do, and your AI offers different ways to put them. Choose one,
+          change it, and use it only if it’s better than yours.
+        </Explain>
 
         <label for="rephrase-wording" class="mb-1 block text-sm font-medium">Current wording</label>
         <textarea
@@ -179,7 +179,7 @@ function use() {
           {{ wordingIssue }}
         </p>
         <p v-if="mixedFormatting" class="mb-3 text-sm text-ink-soft">
-          Some of these words are bold, italic or linked, and others aren't. Using new wording will
+          Some of these words are bold, italic or linked, and others aren’t. Using new wording will
           make them all plain.
         </p>
 
@@ -206,7 +206,11 @@ function use() {
           >
             Generate options
           </AiButton>
-          <p class="text-sm text-ink-soft">
+          <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
+            This will send this publication’s description, your draft, these words and your aim to
+            your AI. It will not send your notes.
+          </p>
+          <p class="basis-full text-sm text-ink-soft">
             {{
               asked.length
                 ? `Round ${asked.length} of ${limit}`

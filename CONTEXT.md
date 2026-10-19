@@ -94,13 +94,17 @@ _Avoid_: Dismissed, read (the earlier names)
 **Critique**:
 A rationed AI review of a draft that produces ranked comments. Only the draft's editor can ask for one.
 
+**Look**:
+One critique of a draft, as the writer sees it (“2 of 3 looks used”). A draft gets a few; the writer sets how many in their account settings.
+_Avoid_: Round (that is Rephrase's word), go, pass
+
 **Snapshot**:
 A frozen copy of a draft's title and body, made when the editor sends the draft for review. Reviewers read and comment on the snapshot, not the live draft, so their comments are about words they actually saw.
 _Avoid_: Version, revision, copy
 
 **Review**:
 One reviewer's engagement with one snapshot. It is _open_ (they can comment), _ended_ (they finished it) or _closed_ (the editor stopped accepting comments); the last two are read-only but still show the snapshot and the reviewer's own comments.
-_Avoid_: Round (that means a critique round)
+_Avoid_: Round (that is Rephrase's word)
 
 **Independent review**:
 A reviewer or non-editor member sees only the draft and their own comments, never anyone else's, human or AI. Only the editor sees them all and decides how to resolve disagreements.
@@ -123,6 +127,10 @@ _Avoid_: Transfer, copy (a moved note's source reading item is copied, but the n
 
 **Rephrase**:
 The action of asking for options for a passage of a draft (up to one paragraph) or for its title, which the writer has selected because they are struggling with it.
+
+**Round**:
+One set of options in a Rephrase window. A window allows as many as the writer's number of looks; asking again needs a changed Aim.
+_Avoid_: Look (that is Critique's word), attempt
 
 **Aim**:
 What the writer says a passage or title should do, in their own words, stated before any options are offered. Changing it is what allows another round.

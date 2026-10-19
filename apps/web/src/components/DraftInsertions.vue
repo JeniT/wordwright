@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api } from '../lib/api'
 import { originPhrase } from '../lib/note-label'
+import Explain from './Explain.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import { stillInDraft } from '../lib/note-insert'
 
@@ -33,10 +34,10 @@ const rows = computed(() =>
     <summary class="cursor-pointer font-medium">
       Where some of the words came from ({{ rows.length }})
     </summary>
-    <p class="mt-2 text-ink-soft">
+    <Explain label="About this record" class="mt-2">
       Words you pulled in from notes, or took from an AI option, keep a record of where they came
       from, even after you change them.
-    </p>
+    </Explain>
     <ul class="mt-2 space-y-2">
       <li v-for="row in rows" :key="row.id" class="border-t border-line pt-2">
         <p class="break-words">

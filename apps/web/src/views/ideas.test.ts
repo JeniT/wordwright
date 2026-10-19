@@ -2100,6 +2100,32 @@ describe('idea page', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('The drafts have changed.')
     })
 
+    it('says what a draft is only in tutorial mode', async () => {
+      fakeIdea()
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
+      await screen.findByText('Part 1')
+      expect(screen.queryByText(/A draft is one piece of writing/)).toBeNull()
+      expect(screen.queryByRole('button', { name: 'More information' })).toBeNull()
+    })
+
+    it('writes out what a draft is in tutorial mode, and records the page as seen', async () => {
+      fakeIdea()
+      const seen: string[] = []
+      server.use(
+        signedInAs({ ...testUser, tutorialMode: true }),
+        http.get('*/api/account/tutorial', () =>
+          HttpResponse.json({ on: true, seen: [], answered: false }),
+        ),
+        http.post('*/api/account/tutorial/seen', async ({ request }) => {
+          seen.push(((await request.json()) as { kind: string }).kind)
+          return HttpResponse.json({ on: true, seen, answered: false })
+        }),
+      )
+      await renderAt('/p/ada-substack/ideas/i1/drafts')
+      expect(await screen.findByText(/A draft is one piece of writing/)).toBeInTheDocument()
+      await waitFor(() => expect(seen).toEqual(['idea-drafts']))
+    })
+
     it('has no arrows when there are no drafts', async () => {
       server.use(
         signedInAs(testUser),

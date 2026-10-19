@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import Explain from '../components/Explain.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
@@ -250,7 +251,7 @@ function openRephrase() {
 // The title needs no selection, but needs a draft worth titling: options come from what has been written.
 const titleProblem = computed(() => {
   if (countWords(body.value) < REPHRASE.titleMinBodyWords) {
-    return "Write more first. Options for a title come from what you've written."
+    return `Write at least ${REPHRASE.titleMinBodyWords} words first. Options for a title come from your draft.`
   }
   return wordingProblem('title', title.value)
 })
@@ -347,7 +348,7 @@ const setResolved = useResolveComment(
   () => props.publicationId,
   () => props.id,
   (err, commentId) => {
-    resolveProblem.value = `We couldn't save that: ${errorMessage(err)}`
+    resolveProblem.value = `We couldn’t save that: ${errorMessage(err)}`
     commentsPanel.value?.revert(commentId)
   },
 )
@@ -439,8 +440,7 @@ async function requestCritique() {
           <span class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
             draft.data.value.editorName
           }}</span>
-          is this draft's editor. You can read it and its notes, but only they can change it. Reload
-          the page, or come back to it, to see their latest changes.
+          is this draft’s editor. You can read it, but only they can change it.
         </p>
         <HandoverPanel :publication-id="publicationId" :draft-id="id" />
         <ReviewersPanel
@@ -451,7 +451,10 @@ async function requestCritique() {
         />
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-2" :class="canEdit ? 'mb-2' : 'mb-6'">
+        <div
+          class="flex flex-wrap items-center gap-x-3 gap-y-2"
+          :class="canEdit && titleProblem ? 'mb-2' : 'mb-6'"
+        >
           <input
             id="title"
             v-model="title"
@@ -464,14 +467,18 @@ async function requestCritique() {
             type="button"
             class="btn btn-outline"
             :disabled="!!titleProblem"
-            aria-describedby="title-rephrase-hint"
+            :aria-describedby="titleProblem ? 'title-rephrase-hint' : undefined"
             @click="openTitleRephrase"
           >
             Rephrase title
           </button>
         </div>
-        <p v-if="canEdit" id="title-rephrase-hint" class="mb-6 text-sm text-ink-soft">
-          {{ titleProblem ?? 'Rephrase title gives you options for a new title.' }}
+        <p
+          v-if="canEdit && titleProblem"
+          id="title-rephrase-hint"
+          class="mb-6 text-sm text-ink-soft"
+        >
+          {{ titleProblem }}
         </p>
 
         <RichEditor
@@ -486,10 +493,10 @@ async function requestCritique() {
           @point-pick="pickPoint"
           @located="located = new Set($event)"
         />
-        <p v-if="/\]\(/.test(body)" class="mt-2 text-xs text-ink-soft">
+        <p v-if="/\]\(/.test(body)" class="mt-2 text-sm text-ink-soft">
           Ctrl or ⌘ and click a link to open it.
         </p>
-        <p v-if="canEdit" class="mt-2 text-xs text-ink-soft">
+        <p v-if="canEdit" class="mt-2 text-sm text-ink-soft">
           <NewTabLink to="/help/formatting" class="underline">Formatting and shortcuts</NewTabLink>
         </p>
 
@@ -509,7 +516,7 @@ async function requestCritique() {
             :busy="critiquing"
             busy-text="Reading your draft…"
             :disabled="outOfLooks"
-            :aria-describedby="looks ? 'critique-looks' : undefined"
+            :aria-describedby="looks ? 'critique-looks critique-sent' : 'critique-sent'"
             @click="requestCritique"
           >
             Critique
@@ -519,7 +526,7 @@ async function requestCritique() {
             type="button"
             class="btn btn-outline"
             :disabled="!!rephraseProblem"
-            aria-describedby="rephrase-hint"
+            :aria-describedby="rephraseProblem ? 'rephrase-hint' : undefined"
             @click="openRephrase"
           >
             Rephrase
@@ -533,29 +540,42 @@ async function requestCritique() {
             :aria-expanded="notesOpen"
             @click="openNotes"
           >
-            Notes and comments
+            Open panel
           </button>
           <p role="status" class="text-sm text-ink-soft">
             <template v-if="save.isPending.value">Saving…</template>
             <template v-else-if="save.isSuccess.value">Saved</template>
-            <template v-else-if="save.isError.value && !conflict">Couldn't save</template>
+            <template v-else-if="save.isError.value && !conflict"
+              >Sorry, we couldn’t save that. Please try again.</template
+            >
           </p>
         </div>
-        <p v-if="canEdit" id="rephrase-hint" class="mt-2 text-sm text-ink-soft">
-          {{ rephraseProblem ?? 'Rephrase gives you options for the words you have selected.' }}
+        <p v-if="canEdit" id="critique-sent" class="mt-2 text-sm text-ink-soft">
+          Critique will send this publication’s description and this draft’s title and text to your
+          AI. It will not send your notes.
         </p>
+        <Explain v-if="canEdit" label="About Critique" class="mt-2">
+          Your AI comments on the draft’s weakest points. It never rewrites; each comment is yours
+          to resolve.
+        </Explain>
+        <p v-if="canEdit && rephraseProblem" id="rephrase-hint" class="mt-2 text-sm text-ink-soft">
+          {{ rephraseProblem }}
+        </p>
+        <Explain v-if="canEdit" label="About rephrasing" class="mt-2">
+          Rephrase opens a window where your AI offers different ways to put your words. You choose,
+          edit and use one yourself.
+        </Explain>
         <p v-if="rephraseNotice" role="alert" class="mt-2 text-danger">{{ rephraseNotice }}</p>
         <p v-if="conflict" role="alert" class="mt-3 text-danger">
-          This draft was saved somewhere else since you opened it, perhaps in another tab, so this
-          save was not made. What you typed is still here: copy it somewhere safe, then reload the
-          page to see the latest version.
+          This draft was saved somewhere else since you opened it, so this save wasn’t made. Copy
+          what you typed somewhere safe, then reload the page.
         </p>
         <p v-if="looks && canEdit" id="critique-looks" class="mt-2 text-sm text-ink-soft">
           <template v-if="outOfLooks">
             You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
             this draft. The next step is to
-            <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. You
-            can change how many looks a draft gets in your
+            <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. Change
+            how many looks a draft gets in your
             <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
           </template>
           <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
@@ -614,7 +634,7 @@ async function requestCritique() {
           </template>
           <template #comments>
             <p v-if="markdownMode && canEdit" class="text-sm text-ink-soft">
-              Comments cannot be shown while editing Markdown.
+              Comments are hidden while you edit Markdown. Switch back to see them.
             </p>
             <CommentsPanel
               v-else
@@ -654,7 +674,7 @@ async function requestCritique() {
 
       <ConfirmDialog
         :open="!!unreadAsk"
-        title="You haven't marked this as read"
+        title="You haven’t marked this as read"
         confirm-label="Mark as read"
         confirm-tone="primary"
         alternate-label="Read it now"
@@ -662,9 +682,8 @@ async function requestCritique() {
         @alternate="unreadAsk?.settle('read-now')"
         @cancel="unreadAsk?.settle('cancel')"
       >
-        “{{ unreadAsk?.item.title || unreadAsk?.item.url }}” is on your reading list, but you
-        haven't marked it as read. Read it before you link to it. If you have already read it,
-        perhaps somewhere else, mark it as read.
+        “{{ unreadAsk?.item.title || unreadAsk?.item.url }}” is on your reading list but isn’t
+        marked as read. Read it before you link to it, or mark it as read if you already have.
       </ConfirmDialog>
     </div>
   </QueryState>

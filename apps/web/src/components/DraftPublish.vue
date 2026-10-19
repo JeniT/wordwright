@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
+import Explain from './Explain.vue'
 
 /**
  * The end of the Draft page: the draft as it stands, ready to be taken elsewhere. **Copy** puts it on the clipboard
@@ -65,9 +66,10 @@ async function copyRich() {
 <template>
   <section id="publish" aria-labelledby="publish-heading" class="mt-12 border-t border-line pt-6">
     <h2 id="publish-heading" class="h3">Publish</h2>
-    <p class="mt-1 max-w-prose text-ink-soft">
-      Copy the draft and paste it where you publish. The words are yours; nothing is added.
-    </p>
+    <Explain label="About publishing" class="mt-1">
+      Copy the draft and paste it where you publish. Once it’s published, your idea stays here with
+      its notes, reading list and drafts.
+    </Explain>
     <div class="mt-4 flex flex-wrap items-center gap-2">
       <button type="button" class="btn btn-primary" :disabled="empty" @click="copyRich">
         Copy
@@ -77,11 +79,9 @@ async function copyRich() {
       </button>
     </div>
     <p v-if="status !== 'idle'" role="status" class="meta mt-2">
-      <template v-if="status === 'copied' || status === 'copied-markdown'">
-        Copied. Paste it where you publish.
-      </template>
+      <template v-if="status === 'copied' || status === 'copied-markdown'">Copied</template>
       <template v-else-if="status === 'failed'">
-        We couldn't reach your clipboard. Select the text below and copy it.
+        We couldn’t reach your clipboard. Select the text below and copy it.
       </template>
     </p>
     <div v-if="fallback" class="mt-3">
@@ -95,6 +95,5 @@ async function copyRich() {
         @focus="($event.target as HTMLTextAreaElement).select()"
       ></textarea>
     </div>
-    <p class="meta mt-6">Published? Your idea stays here, with its notes, sources and drafts.</p>
   </section>
 </template>

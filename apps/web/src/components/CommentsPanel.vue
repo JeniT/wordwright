@@ -13,6 +13,7 @@ import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
 import CommentCard from './CommentCard.vue'
 import CommentForm from './CommentForm.vue'
 import QueryState from './QueryState.vue'
+import Explain from './Explain.vue'
 import SwitchField from './SwitchField.vue'
 
 /**
@@ -117,14 +118,16 @@ const audience = computed(() =>
     <QueryState :query="query" what="the comments">
       <p v-if="!comments.length && !round && !pending" class="text-sm text-ink-soft">
         <template v-if="isEditor">
-          No comments yet. Press Critique to have the draft read and its weakest points pointed out,
-          or add your own below. Each one is marked beside the paragraph it is about.
+          No comments yet. Press Critique, or add your own below.
         </template>
         <template v-else>
-          You haven't commented on this draft yet. Pick a paragraph below, or the whole draft, and
-          say what you think of it.
+          You haven’t commented yet. Pick a paragraph below, or the whole draft.
         </template>
       </p>
+      <Explain v-if="isEditor && !comments.length && !round && !pending" tutorial-only class="mt-2">
+        Each comment is marked beside the paragraph it is about. Resolved comments are hidden, never
+        deleted.
+      </Explain>
 
       <div v-if="isEditor && resolvedCount" class="mt-3">
         <SwitchField v-model="showResolved" compact :label="`Show resolved (${resolvedCount})`" />

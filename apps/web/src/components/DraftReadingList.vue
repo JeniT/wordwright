@@ -2,6 +2,7 @@
 import { useMutation } from '@tanstack/vue-query'
 import type { IdeaLink } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
+import Explain from './Explain.vue'
 
 const props = defineProps<{
   readingList: readonly IdeaLink[]
@@ -20,12 +21,12 @@ const label = (item: IdeaLink) => item.title || item.url
     <!-- The tab beside the draft already says "Reading list"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-reading-heading" class="sr-only">Reading list</h2>
     <p v-if="onlyEditor" class="mb-3 text-sm text-ink-soft">
-      Only {{ onlyEditor }}, the draft's editor, can put links in the draft.
+      Only {{ onlyEditor }}, the draft’s editor, can put links in the draft.
     </p>
-    <p v-else class="mb-3 text-sm text-ink-soft">
-      Put a link to something you have read in the line you are writing. Anything you haven't marked
-      as read, you'll be asked about first.
-    </p>
+    <Explain v-else label="About inserting links" class="mb-3">
+      Put a link to something you have read in the line you are writing. Anything you haven’t marked
+      as read, you’ll be asked about first.
+    </Explain>
     <p v-if="!readingList.length" class="text-ink-soft">Nothing on the reading list yet.</p>
     <ul v-else class="space-y-2">
       <li
