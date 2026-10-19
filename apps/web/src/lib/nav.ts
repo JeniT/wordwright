@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { api } from './api'
-import { useDraft, useIdea, useIdeaNotes, useSources } from './queries'
+import { queryKeys, useDraft, useIdea, useIdeaNotes, useSources } from './queries'
 import { usePublication } from './usePublications'
 
 /**
@@ -138,6 +138,13 @@ export function useNav() {
     atIdea,
   ).notes
 
+  // The pages your AI suggested that are still waiting for a decision; the Research page shares this query.
+  const research = useQuery({
+    queryKey: computed(() => queryKeys.research(publicationId.value, ideaId.value)),
+    queryFn: () => api.getResearch(publicationId.value, ideaId.value),
+    enabled: atIdea,
+  })
+
   /** The quiet line under a step: a count, where we already know one. */
   function metaFor(step: Step) {
     if (level.value === 'publication') {
@@ -149,6 +156,12 @@ export function useNav() {
         return plural(publicationNotes.data.value.length, 'note', 'notes')
     }
     if (level.value === 'idea' && idea.data.value) {
+      if (step.key === 'research' && research.data.value) {
+        const waiting = research.data.value
+          .flatMap((run) => run.items)
+          .filter((i) => i.status === 'suggested')
+        return plural(waiting.length, 'suggestion', 'suggestions')
+      }
       if (step.key === 'read')
         return `${idea.data.value.links.filter((l) => !l.readAt).length} to read`
       if (step.key === 'notes' && ideaNotes.data.value)

@@ -46,6 +46,30 @@ const draft = {
   updatedAt: '2026-01-02T00:00:00Z',
 }
 
+// Three pages suggested: one added, one ignored and two still waiting, over two runs.
+const researchItem = (id: string, status: 'suggested' | 'added' | 'dismissed') => ({
+  id,
+  url: `https://example.org/${id}`,
+  title: id,
+  why: 'Relevant.',
+  check: 'found' as const,
+  fetchedTitle: id,
+  fetchedAuthors: [],
+  status,
+})
+const researchRun = (id: string, items: ReturnType<typeof researchItem>[]) => ({
+  id,
+  areas: id,
+  createdByName: 'Ada',
+  model: 'm',
+  createdAt: '2026-01-03T00:00:00Z',
+  items,
+})
+const research = [
+  researchRun('r1', [researchItem('a', 'added'), researchItem('b', 'suggested')]),
+  researchRun('r2', [researchItem('c', 'dismissed'), researchItem('d', 'suggested')]),
+]
+
 function mockApp() {
   server.use(
     signedInAs(testUser),
@@ -57,6 +81,9 @@ function mockApp() {
       ]),
     ),
     http.get('*/api/publications/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
+    http.get('*/api/publications/ada-substack/ideas/i1/research', () =>
+      HttpResponse.json(research),
+    ),
     http.get('*/api/publications/ada-substack/drafts/d1', () => HttpResponse.json(draft)),
   )
 }
@@ -189,6 +216,8 @@ describe('the menu in an idea', () => {
     expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
     expect(await within(nav).findByText('2 to read')).toBeInTheDocument()
     expect(within(nav).getByText('1 draft')).toBeInTheDocument()
+    // Only pages still waiting for a decision count, across every run.
+    expect(await within(nav).findByText('2 suggestions')).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: 'Idea settings' })).toBeNull()
     const header = await menu()
     expect(header.getByRole('link', { name: '← Substack' })).toHaveAttribute(
