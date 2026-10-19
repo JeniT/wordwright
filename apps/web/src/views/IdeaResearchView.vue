@@ -108,9 +108,7 @@ const nav = computed(() => ({
           </template>
         </QueryState>
       </section>
-      <NextStep :to="{ name: 'idea-read', params: { publicationId, id } }" label="Next: 02 Read">
-        Read what you have found and take notes from it.
-      </NextStep>
+      <NextStep :to="{ name: 'idea-read', params: { publicationId, id } }" label="Next: 02 Read" />
     </article>
   </IdeaGate>
 </template>

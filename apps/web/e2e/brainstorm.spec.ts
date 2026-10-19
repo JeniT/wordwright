@@ -181,7 +181,6 @@ test('the coach passes on an address the writer gave: it is checked, shown besid
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toBeVisible()
-  await expect(page.getByText('Suggested in brainstorming')).toBeVisible()
   await expect(page.getByText('You said it bears on this idea.')).toBeVisible()
 })
 

@@ -297,6 +297,11 @@ function removeChosen() {
           class="mb-3"
           @go="paging.go"
         />
+        <p v-if="shown.some((l) => l.why)" class="mb-3 text-sm">
+          <span class="bg-mark"
+            >Highlighted text is your AI’s reason for suggesting this item.</span
+          >
+        </p>
         <div class="mb-4 overflow-hidden rounded-ctl border border-line bg-surface">
           <ListToolbar
             :page-size="paging.pageItems.value.length"

@@ -104,6 +104,10 @@ describe('the research page', () => {
       '/p/ada-substack/ideas/i1/read',
     )
     expect(await screen.findByText('No research yet.')).toBeInTheDocument()
+    // The page ends with the button alone, no sentence beside it.
+    expect(screen.getByRole('navigation', { name: 'Next step' })).toHaveTextContent(
+      /^Next: 02 Read\s*→$/,
+    )
     expect(screen.queryByText(/the text of your drafts never is/)).toBeNull() // the form says what is sent
     expect(screen.queryByRole('navigation', { name: /Research, above/ })).toBeNull() // one run: no paging
     expect(screen.getByRole('button', { name: 'Research' })).toBeDisabled() // nothing described yet

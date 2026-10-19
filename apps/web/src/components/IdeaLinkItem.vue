@@ -2,7 +2,7 @@
 import NewTabLink from './NewTabLink.vue'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import { PUBLICATION_READING_DAYS, type IdeaLink, type ReadingOrigin } from '@wordwright/core'
+import { PUBLICATION_READING_DAYS, type IdeaLink } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import { readingRoute, useReadingActions } from '../lib/reading'
 import HoldButton from './HoldButton.vue'
@@ -57,13 +57,6 @@ function startEditing() {
   title.value = props.link.title
   save.reset()
   return start('link')
-}
-
-/** Where an item came from, when the AI, not the writer, put it here (marked with the highlighter). */
-const aiOrigin: Partial<Record<ReadingOrigin, string>> = {
-  brainstorm: 'Suggested in brainstorming',
-  research: 'Found by research',
-  idea_generation: 'From idea generation',
 }
 
 // Whether it has been read is the writer's say-so (they may have read it offline). A switch flips at once; if
@@ -207,10 +200,6 @@ function saveLink() {
             <NewTabLink :href="link.url" :detail="label()" class="truncate underline">{{
               host()
             }}</NewTabLink>
-            <!-- The highlighter marks anything the AI, not the writer, put here. -->
-            <span v-if="aiOrigin[link.origin]" class="chip chip-ai">{{
-              aiOrigin[link.origin]
-            }}</span>
           </p>
           <div class="flex flex-wrap items-center justify-end gap-x-4">
             <SwitchField
@@ -246,8 +235,9 @@ function saveLink() {
           :open="tagging"
           @close="stopTagging"
         />
-        <p v-if="link.why" class="mt-2 text-sm text-ink-soft">
-          <span class="font-medium">Why the AI suggested it (unchecked):</span> {{ link.why }}
+        <!-- The highlighter marks what the AI, not the writer, put here (the list says so above). -->
+        <p v-if="link.why" class="mt-2 text-sm">
+          <span class="bg-mark">{{ link.why }}</span>
         </p>
         <p
           v-if="setRead.isError.value || setKept.isError.value"

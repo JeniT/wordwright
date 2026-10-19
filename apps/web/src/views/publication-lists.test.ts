@@ -417,7 +417,7 @@ describe('the publication’s reading list', () => {
     expect(screen.getByRole('button', { name: 'Add tags to A paper' })).toHaveFocus()
   })
 
-  it('shows where an item came from only when the AI put it there, with the highlighter', async () => {
+  it('highlights the AI’s reason and says what the highlight is, with no badge for where an item came from', async () => {
     fakePublication({
       links: [
         link('l1', 'From research', { origin: 'research', why: 'It argues the opposite' }),
@@ -425,9 +425,11 @@ describe('the publication’s reading list', () => {
       ],
     })
     await renderAt('/p/ada-substack/read')
-    const research = (await screen.findByText('Found by research')).closest('span')!
-    expect(research).toHaveClass('chip-ai')
-    // An item from a feed says nothing: that is where most of them come from.
+    expect(await screen.findByText('It argues the opposite')).toHaveClass('bg-mark')
+    expect(
+      screen.getByText('Highlighted text is your AI’s reason for suggesting this item.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Found by research')).toBeNull()
     expect(screen.getByRole('link', { name: 'From a feed' })).toBeInTheDocument()
     expect(screen.queryByText('From a feed', { selector: '.chip' })).toBeNull()
   })

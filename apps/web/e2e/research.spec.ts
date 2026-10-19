@@ -90,8 +90,8 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await expect(
     page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
   ).toBeVisible()
-  await expect(page.getByText('Found by research')).toHaveCount(2)
-  await expect(page.getByText('Why the AI suggested it (unchecked):').first()).toBeVisible()
+  await expect(page.getByText('Found by research')).toHaveCount(0)
+  await expect(page.getByText('Highlighted text is your AI’s reason')).toBeVisible()
   await noViolations(page, 'reading list with researched items')
 })
 

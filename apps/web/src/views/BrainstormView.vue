@@ -398,9 +398,10 @@ const busyNote = computed(() =>
         nobody has decided on. Changes you have already accepted stay.
       </ConfirmDialog>
 
-      <NextStep :to="{ name: 'idea-drafts', params: { publicationId, id } }" label="Next: 05 Draft">
-        When you know what you want to say, start a draft.
-      </NextStep>
+      <NextStep
+        :to="{ name: 'idea-drafts', params: { publicationId, id } }"
+        label="Next: 05 Draft"
+      />
     </article>
   </IdeaGate>
 </template>

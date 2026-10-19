@@ -413,8 +413,8 @@ looks for several points of view. It works through the `ResearchProvider` port (
 `FakeResearchProvider`, and `researchProviderContract` in `@wordwright/core/testing` for any new one), which may only return addresses that
 appeared in a search result. Web search must be enabled for the Anthropic account whose key is used. The server looks at each address
 with the same SSRF-safe page fetcher as typed links and shows the page's real title, flagging an address that
-doesn't resolve (it can't be added). Nothing joins the reading list until a person adds it; it is marked "Found by
-research" and keeps the AI's reason, highlighted as the AI's. The brainstorm coach can also suggest a page, but only an address the writer
+doesn't resolve (it can't be added). Nothing joins the reading list until a person adds it; it keeps the AI's reason,
+highlighted as the AI's on the reading list (one highlighted line above the list says what the highlight is; no badge says where an item came from). The brainstorm coach can also suggest a page, but only an address the writer
 gave it. Searches are throttled to 10 an hour per person, with no other cap. With `FAKE_LLM=true` a search finds three scripted
 pages: one fine, one with no readable title and one that doesn't exist; and the coach turns an address plus "reading list" into a suggestion.
 

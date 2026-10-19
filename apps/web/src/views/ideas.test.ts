@@ -464,13 +464,19 @@ describe('idea page', () => {
       await openFilters()
       await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
       expect(await screen.findByRole('switch', { name: 'Read: Read one' })).toBeChecked()
-      expect(screen.getByText('Suggested in brainstorming')).toBeInTheDocument()
-      expect(screen.getByText('Found by research')).toBeInTheDocument()
+      // The AI's reason is highlighted, with one line above the list saying what the highlight is.
+      expect(screen.getByText('Challenges the usual account of erosion.')).toHaveClass('bg-mark')
       expect(
-        screen.getByText(/Why the AI suggested it \(unchecked\):/).closest('p'),
-      ).toHaveTextContent('Challenges the usual account of erosion.')
-      expect(screen.getAllByText(/Why the AI suggested it/)).toHaveLength(1) // only where an AI gave a reason
-      expect(screen.queryByText('From idea generation')).toBeNull() // and nothing for those added by hand
+        screen.getByText('Highlighted text is your AI’s reason for suggesting this item.'),
+      ).toHaveClass('bg-mark')
+      expect(document.querySelectorAll('.bg-mark')).toHaveLength(2) // only where an AI gave a reason
+      // No badge says where an item came from.
+      for (const badge of [
+        'Suggested in brainstorming',
+        'Found by research',
+        'From idea generation',
+      ])
+        expect(screen.queryByText(badge)).toBeNull()
     })
 
     it('marks an item read, then unread, saving each', async () => {
