@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { RecordedNote } from '@wordwright/core'
+import Icon from './Icon.vue'
 
 defineProps<{ notes: readonly RecordedNote[] }>()
 
@@ -14,7 +15,7 @@ function say(note: RecordedNote) {
 <template>
   <ul v-if="notes.length" aria-label="Notes recorded in this reply" class="mt-3 space-y-1 text-sm">
     <li v-for="note in notes" :key="note.id" class="flex gap-2 text-ink">
-      <span aria-hidden="true">📝</span>
+      <Icon name="edit" class="mt-0.5 shrink-0" />
       <span class="min-w-0 break-words">
         <span class="font-medium">{{ say(note) }}:</span>
         <span :class="{ 'text-ink-soft': note.outcome !== 'added' || note.removed }">

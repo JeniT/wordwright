@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue'
 import NewTabLink from './NewTabLink.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, useId } from 'vue'
@@ -71,9 +72,7 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
     </h2>
 
     <template v-if="proposal.tool === 'suggest_reading' && reading">
-      <p class="mb-2 text-sm text-ink-soft">
-        The coach is passing on an address you gave it. It has not read the page.
-      </p>
+      <p class="mb-2">Your AI is passing on an address you gave it. It hasn’t read the page.</p>
       <p class="break-words font-medium">
         {{ reading.fetchedTitle ?? (suggestedTitle || address) }}
       </p>
@@ -90,15 +89,13 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
           <dt class="mr-1 inline font-medium">The page names as author:</dt>
           <dd class="inline">{{ reading.fetchedAuthors.join(', ') }}</dd>
         </div>
-        <div v-if="suggestedTitle">
-          <dt class="mr-1 inline font-medium">The AI called it:</dt>
-          <dd class="inline">{{ suggestedTitle }}</dd>
-        </div>
-        <div>
-          <dt class="mr-1 inline font-medium">Why the AI suggests it (unchecked):</dt>
-          <dd class="inline">{{ proposal.input.why }}</dd>
-        </div>
       </dl>
+      <p class="mb-1 text-sm">
+        <span class="bg-mark">Highlighted text is your AI’s reason for suggesting this page.</span>
+      </p>
+      <p class="mb-3 text-sm">
+        <span class="bg-mark">{{ proposal.input.why }}</span>
+      </p>
       <p v-if="reading.check === 'found'" class="mb-3 text-sm text-ink-soft">
         We looked at the address and the page exists. If you add it, it is listed under its own
         title.
@@ -112,14 +109,17 @@ const busy = computed(() => accept.isPending.value || dismiss.isPending.value)
         }}
       </p>
       <p
-        v-else-if="reading.check === 'not-found'"
-        class="mb-3 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
+        v-else
+        class="mb-3 flex items-start gap-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
       >
-        Problem: we couldn't find a website at this address, so the page may not exist. It can't be
-        added.
-      </p>
-      <p v-else class="mb-3 rounded-ctl bg-danger-wash p-2 text-sm text-danger">
-        Problem: this address isn't a public website, so it can't be added.
+        <Icon name="alert" class="mt-0.5 shrink-0" />
+        <span>
+          {{
+            reading.check === 'not-found'
+              ? 'We couldn’t find a website at this address, so it can’t be added.'
+              : 'This address isn’t a public website, so it can’t be added.'
+          }}
+        </span>
       </p>
     </template>
 

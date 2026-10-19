@@ -55,7 +55,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await noViolations(page, 'Notes step')
   await next(page, /Next: 04 Refine/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Refine' })).toBeVisible()
-  await page.getByRole('button', { name: 'Start brainstorming' }).waitFor() // visiting spends nothing
+  await page.getByRole('button', { name: 'Refine with your AI' }).waitFor() // visiting spends nothing
   await noViolations(page, 'Refine step')
   await next(page, /Next: 05 Draft/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()

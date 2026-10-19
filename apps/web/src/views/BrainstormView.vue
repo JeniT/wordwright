@@ -11,6 +11,7 @@ import {
 } from '@wordwright/core'
 import AiButton from '../components/AiButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import Explain from '../components/Explain.vue'
 import Markdown from '../components/Markdown.vue'
 import NextStep from '../components/NextStep.vue'
 import PageNav from '../components/PageNav.vue'
@@ -142,8 +143,8 @@ const none = computed(() => !!list.data.value && ordered.value.length === 0 && !
 // ---- sending ----------------------------------------------------------------
 interface ReplyProblem {
   message: string
-  /** The fix is in account settings (no key, or a rejected one). */
-  needsKey: boolean
+  /** `missing-key`: none saved yet. `rejected-key`: the provider refused it. Either way the fix is in account settings. */
+  key: 'missing-key' | 'rejected-key' | null
 }
 const replyProblem = ref<ReplyProblem | null>(null)
 const announcement = ref('')
@@ -153,7 +154,10 @@ let controller: AbortController | undefined
 function problemFrom(err: unknown): ReplyProblem {
   return {
     message: errorMessage(err),
-    needsKey: err instanceof ApiError && err.status === 409 && /API key/i.test(err.message),
+    key:
+      err instanceof ApiError && err.status === 409 && /API key/i.test(err.message)
+        ? 'missing-key'
+        : null,
   }
 }
 
@@ -182,9 +186,12 @@ async function send(body: SendMessageInput, restore?: string, conversationId = c
         else if (event.type === 'proposal') live.proposals.push(event.proposal)
         else if (event.type === 'done') {
           live.reply = event.message
-          announcement.value = 'The coach has replied.'
+          announcement.value = 'Your AI has replied.'
         } else if (event.type === 'error') {
-          replyProblem.value = { message: event.message, needsKey: event.code === 'auth' }
+          replyProblem.value = {
+            message: event.message,
+            key: event.code === 'auth' ? 'rejected-key' : null,
+          }
           announcement.value = event.message
         }
       },
@@ -302,16 +309,13 @@ const busyNote = computed(() =>
   <IdeaGate :id="id" :publication-id="publicationId">
     <article v-if="idea.data.value" class="max-w-2xl">
       <StepHeading>Refine</StepHeading>
-      <p class="mb-4 text-sm text-ink-soft">
-        Your AI (with your own key) will talk this idea through with you, and add the points you
-        make to its notes as you go. Your idea, its notes and links, and this publication's details
-        are sent to your AI provider so it can discuss them; the text of your drafts never is. A new
-        title or a separate idea is only a suggestion until someone accepts it.
-      </p>
+      <Explain tutorial-only class="-mt-3 mb-6">
+        Your AI asks questions about this idea and adds the points you make to its notes.
+      </Explain>
       <SharedThreadNotice :publication-id="publicationId" />
 
       <details class="mb-6 rounded-ctl border border-line bg-surface p-3 text-sm">
-        <summary class="cursor-pointer font-medium">The idea being discussed</summary>
+        <summary class="cursor-pointer font-medium">The idea</summary>
         <p class="mt-2 font-medium">{{ idea.data.value.name }}</p>
         <p v-if="idea.data.value.notes" class="mt-1 whitespace-pre-wrap">
           {{ idea.data.value.notes }}
@@ -324,7 +328,7 @@ const busyNote = computed(() =>
         </ul>
         <p class="mt-2">
           <RouterLink :to="{ name: 'idea-notes', params: { publicationId, id } }" class="link">
-            Open the notes to edit them
+            Edit the notes
           </RouterLink>
         </p>
       </details>
@@ -343,33 +347,25 @@ const busyNote = computed(() =>
             Started {{ startedOn }}
           </p>
         </template>
-        <section
-          v-if="none || empty"
-          aria-labelledby="start-heading"
-          class="mb-6 rounded-ctl border border-line bg-surface p-5"
-        >
-          <h2 id="start-heading" class="mb-1 font-display text-xl font-semibold">
-            Talk it through
-          </h2>
-          <p class="mb-3 text-ink-soft">
-            Your AI will open by asking the questions that matter most for this idea, and you
-            answer. It adds the points you make to the idea's notes as you go, and can suggest a
-            sharper title or a separate new idea, but only you decide on those.
-          </p>
+        <div v-if="none || empty" class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <AiButton
             class="btn btn-primary"
             :busy="!!streaming"
-            busy-text="The coach is replying…"
+            busy-text="Your AI is replying…"
             :disabled="creating"
             @click="startNew"
           >
-            Start brainstorming
+            Refine with your AI
           </AiButton>
-        </section>
+          <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
+            This will send this publication’s description and this idea’s title and notes and
+            reading list to your AI. It will not send your drafts.
+          </p>
+        </div>
         <ReplyProblemAlert
           v-if="(none || empty) && replyProblem"
           :message="replyProblem.message"
-          :needs-key="replyProblem.needsKey"
+          :key-problem="replyProblem.key"
         />
 
         <QueryState
@@ -382,7 +378,7 @@ const busyNote = computed(() =>
             <ol class="space-y-4">
               <li v-for="message in messages" :key="message.id">
                 <p v-if="message.kind === 'kickoff'" class="text-center text-sm text-ink-soft">
-                  Brainstorm started{{ message.authorName ? ` by ${message.authorName}` : '' }}
+                  Refine started{{ message.authorName ? ` by ${message.authorName}` : '' }}
                 </p>
                 <div
                   v-else-if="message.role === 'user'"
@@ -395,16 +391,16 @@ const busyNote = computed(() =>
                 </div>
                 <div v-else class="mr-8 panel-sunken p-3">
                   <p class="mb-1 text-sm font-medium text-ink-soft">
-                    Coach<span v-if="message.model" class="font-normal text-ink-soft">
+                    Your AI<span v-if="message.model" class="font-normal text-ink-soft">
                       · {{ message.model }}</span
                     >
                   </p>
                   <Markdown v-if="message.text" :text="message.text" />
                   <p v-if="message.stopReason === 'refusal'" class="text-sm text-ink-soft">
-                    The AI declined to answer that. Try putting it differently.
+                    Your AI declined to answer that. Try putting it differently.
                   </p>
                   <p v-if="message.stopReason === 'max_tokens'" class="mt-2 text-sm text-ink-soft">
-                    This reply was cut short. Ask the coach to carry on.
+                    This reply was cut short. Ask your AI to carry on.
                   </p>
                   <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-ink-soft">
                     The reply was stopped here.
@@ -423,7 +419,7 @@ const busyNote = computed(() =>
               </li>
 
               <li v-if="liveHere && liveReplyShown" aria-live="off" class="mr-8 panel-sunken p-3">
-                <p class="mb-1 text-sm font-medium text-ink-soft">Coach</p>
+                <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
                 <Markdown v-if="liveHere.text" :text="liveHere.text" />
                 <p v-else class="text-ink-soft">Thinking…</p>
                 <RecordedNotes :notes="liveHere.notes" />
@@ -437,15 +433,15 @@ const busyNote = computed(() =>
           <ReplyProblemAlert
             v-if="replyProblem"
             :message="replyProblem.message"
-            :needs-key="replyProblem.needsKey"
+            :key-problem="replyProblem.key"
           />
 
           <div v-if="unanswered" class="mb-4 panel p-3">
-            <p class="mb-2 text-ink-soft">Your coach hasn't replied to the last message.</p>
+            <p class="mb-2 text-ink-soft">Your AI didn’t reply to your last message.</p>
             <AiButton
               class="btn btn-outline"
               :busy="!!streaming"
-              busy-text="The coach is replying…"
+              busy-text="Your AI is replying…"
               @click="send({ retry: true })"
             >
               Try again
@@ -469,12 +465,12 @@ const busyNote = computed(() =>
             <p id="message-hint" class="mb-2 text-sm text-ink-soft">
               Press Ctrl+Enter (⌘+Enter on a Mac) to send.
             </p>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
               <AiButton
                 type="submit"
                 class="btn btn-primary"
                 :busy="!!streaming"
-                busy-text="The coach is replying…"
+                busy-text="Your AI is replying…"
                 :disabled="!draft.trim() || !!replyingNow"
               >
                 Send
@@ -482,14 +478,10 @@ const busyNote = computed(() =>
               <button v-if="streaming" type="button" class="btn btn-neutral" @click="stop">
                 Stop
               </button>
-              <!-- The session never has to run on: the writer can leave whenever they judge the idea clear enough. -->
-              <RouterLink
-                v-if="!streaming"
-                :to="{ name: 'idea-drafts', params: { publicationId, id } }"
-                class="btn btn-outline"
-              >
-                I have enough: go and write
-              </RouterLink>
+              <p v-if="!streaming" class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
+                This will re-send up-to-date information about the idea’s title, notes and reading
+                list to your AI. It will not send your drafts.
+              </p>
             </div>
           </form>
 

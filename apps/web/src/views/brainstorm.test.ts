@@ -177,15 +177,20 @@ describe('the brainstorm page', () => {
     mockConversation()
     await renderAt(page)
     expect(await screen.findByRole('heading', { name: 'Refine' })).toBeInTheDocument()
-    expect(screen.getByText(/the text of your\s+drafts never is/)).toBeInTheDocument()
     // On your own, nothing is shared, so there is nothing to warn about.
     expect(screen.queryByTestId('shared-thread-notice')).toBeNull()
 
-    const summary = screen.getByText('The idea being discussed').closest('details')!
+    const summary = screen.getByText('The idea').closest('details')!
     expect(within(summary).getByText(/Erosion loops/)).toBeInTheDocument()
     expect(within(summary).getByText('A paper')).toBeInTheDocument()
 
-    expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Refine with your AI' })).toBeInTheDocument()
+    // What leaves the system is said beside the button, in one line; the page says nothing else about it.
+    expect(
+      screen.getByText(
+        /^This will send this publication’s description and this idea’s title and notes and reading list to your AI\. It will not send your drafts\.$/,
+      ),
+    ).toBeVisible()
     expect(screen.queryByLabelText('Your message')).toBeNull() // nothing to answer yet
   })
 
@@ -226,20 +231,33 @@ describe('the brainstorm page', () => {
     )
     await renderAt(page)
     const notice = await screen.findByTestId('shared-thread-notice')
-    expect(notice).toHaveTextContent(/Everyone in this publication can read it/)
-    expect(notice).toHaveTextContent(/AI provider of whoever sends the message/)
-    expect(notice).toHaveTextContent(/earlier messages and notes by other members/)
+    expect(notice).toHaveTextContent(/Everyone in this publication can read this conversation/)
+    expect(notice).toHaveTextContent(/sent to the AI provider of whoever writes each message/)
     expect(notice).toHaveTextContent(/publication with no other members/)
     // It is there before the conversation has begun.
-    expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Refine with your AI' })).toBeInTheDocument()
   })
 
-  it('lets the writer end the session at any point by going on to write', async () => {
+  it('has one way on to writing, the next step, rather than a second button beside Send', async () => {
     mockConversation([kickoff(), aiMessage('What is the claim?')])
     await renderAt(page)
     await screen.findByText('What is the claim?')
-    const leave = screen.getByRole('link', { name: 'I have enough: go and write' })
-    expect(leave).toHaveAttribute('href', '/p/ada-substack/ideas/i1/drafts')
+    expect(screen.queryByRole('link', { name: /I have enough/ })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Next: 05 Draft' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas/i1/drafts',
+    )
+  })
+
+  it('says beside Send that the idea is sent again, and that drafts never are', async () => {
+    mockConversation([kickoff(), aiMessage('What is the claim?')])
+    await renderAt(page)
+    await screen.findByText('What is the claim?')
+    const send = screen.getByRole('button', { name: 'Send' })
+    const note = screen.getByText(
+      /^This will re-send up-to-date information about the idea’s title, notes and reading list to your AI\. It will not send your drafts\.$/,
+    )
+    expect(note.parentElement).toBe(send.parentElement)
   })
 
   it('starts when asked, streaming the first questions, and then holds the saved exchange', async () => {
@@ -255,15 +273,15 @@ describe('the brainstorm page', () => {
       ])
     }
     await renderAt(page)
-    await fireEvent.click(await screen.findByRole('button', { name: 'Start brainstorming' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Refine with your AI' }))
 
-    expect(await screen.findByText('Brainstorm started by Ada')).toBeInTheDocument()
+    expect(await screen.findByText('Refine started by Ada')).toBeInTheDocument()
     await screen.findByText(/What is the/)
     // The bold only appears once its closing ** has arrived (and the live text is swapped for the saved message).
     await waitFor(() => expect(document.querySelector('.markdown strong')).toHaveTextContent('one'))
     expect(api.posts).toEqual([{ start: true }])
     await waitFor(() => expect(screen.getByLabelText('Your message')).toBeEnabled())
-    expect(screen.queryByRole('button', { name: 'Start brainstorming' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Refine with your AI' })).toBeNull()
   })
 
   it('never shows the coach’s reply twice while the rest of the page catches up', async () => {
@@ -299,7 +317,7 @@ describe('the brainstorm page', () => {
   it('starts by itself when sent here from the idea page (?start=1), once, and not again on reload', async () => {
     const api = mockConversation()
     const { router } = await renderAt(`${page}?start=1`)
-    expect(await screen.findByText('Brainstorm started by Ada')).toBeInTheDocument()
+    expect(await screen.findByText('Refine started by Ada')).toBeInTheDocument()
     expect(api.posts).toEqual([{ start: true }])
     await waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
   })
@@ -414,7 +432,7 @@ describe('the brainstorm page', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('limiting requests for your key')
       expect(screen.getByText('A hard question')).toBeInTheDocument()
       expect(
-        await screen.findByText("Your coach hasn't replied to the last message."),
+        await screen.findByText('Your AI didn’t reply to your last message.'),
       ).toBeInTheDocument()
 
       api.respond = () => {
@@ -425,7 +443,7 @@ describe('the brainstorm page', () => {
       await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
       expect(await screen.findByText('Here I am.')).toBeInTheDocument()
       expect(api.posts.at(-1)).toEqual({ retry: true })
-      expect(screen.queryByText("Your coach hasn't replied to the last message.")).toBeNull()
+      expect(screen.queryByText('Your AI didn’t reply to your last message.')).toBeNull()
       expect(screen.queryByRole('alert')).toBeNull()
     })
 
@@ -442,11 +460,32 @@ describe('the brainstorm page', () => {
       await sendWithKeyboard()
 
       expect(await screen.findByRole('alert')).toHaveTextContent('Add your Anthropic API key')
-      expect(screen.getByRole('link', { name: 'Go to account settings' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Add your AI key' })).toHaveAttribute(
         'href',
         '/account/ai',
       )
       expect(screen.getByLabelText('Your message')).toHaveValue('Please answer') // not lost
+    })
+
+    it('says the provider refused the key, and where to check it, with an icon beside the words', async () => {
+      const api = mockConversation([kickoff(), aiMessage('Go on.')])
+      api.respond = () =>
+        sse([
+          { type: 'message', message: userMessage('Please answer') },
+          { type: 'error', code: 'auth', message: 'The provider said no.' },
+        ])
+      await renderAt(page)
+      await screen.findByText('Go on.')
+      await type('Please answer')
+      await sendWithKeyboard()
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Your AI provider didn’t accept your key. Check it in')
+      expect(alert.querySelector('svg')).not.toBeNull()
+      expect(within(alert).getByRole('link', { name: 'your AI key settings' })).toHaveAttribute(
+        'href',
+        '/account/ai',
+      )
     })
 
     it('says so when it was too many messages, or someone else is mid-reply', async () => {
@@ -461,7 +500,8 @@ describe('the brainstorm page', () => {
       await type('Hello?')
       await sendWithKeyboard()
       expect(await screen.findByRole('alert')).toHaveTextContent('Bob is waiting for a reply')
-      expect(screen.queryByRole('link', { name: 'Go to account settings' })).toBeNull()
+      expect(screen.queryByRole('link', { name: 'Add your AI key' })).toBeNull()
+      expect(screen.queryByRole('link', { name: 'your AI key settings' })).toBeNull()
     })
   })
 
@@ -476,7 +516,7 @@ describe('the brainstorm page', () => {
     expect(await screen.findByText('Bob is waiting for a reply…')).toBeInTheDocument()
     expect(screen.getByLabelText('Your message')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
-    expect(screen.queryByText("Your coach hasn't replied to the last message.")).toBeNull()
+    expect(screen.queryByText('Your AI didn’t reply to your last message.')).toBeNull()
   })
 
   it('names the sender of each message, and says when it was cut short, stopped or declined', async () => {
@@ -701,7 +741,7 @@ describe('the brainstorm page', () => {
     await fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete conversation' }),
     )
-    expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Refine with your AI' })).toBeInTheDocument()
     expect(wiped).toBe(true)
   })
 
@@ -749,17 +789,17 @@ const reading = (
 const suggestionCard = () => screen.getByRole('region', { name: /^Suggested reading/ })
 
 describe('suggested reading', () => {
-  it('shows the address, the page’s own title beside the AI’s, and the AI’s reason as unchecked', async () => {
+  it('shows the address, the page’s own title, and the AI’s reason in the highlighter', async () => {
     mockConversation([kickoff(), aiMessage('Try this.', { proposals: [reading()] })])
     await renderAt(page)
     const card = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
-    expect(card.getByText(/passing on an address you gave it/)).toBeInTheDocument()
+    expect(card.getByText(/Your AI is passing on an address you gave it/)).toBeInTheDocument()
     expect(card.getByText('https://example.org/river-physics')).toBeInTheDocument()
     expect(card.getByText(/The page's own title:/)).toBeInTheDocument()
     expect(card.getAllByText('River Physics: a primer').length).toBeGreaterThan(0)
-    expect(card.getByText('The physics of rivers')).toBeInTheDocument() // what the AI called it
-    expect(card.getByText(/Why the AI suggests it \(unchecked\):/)).toBeInTheDocument()
-    expect(card.getByText('It explains how bends grow.')).toBeInTheDocument()
+    expect(card.queryByText('The physics of rivers')).toBeNull() // what the AI called it is not shown
+    expect(card.getByText(/Highlighted text is your AI’s reason/)).toHaveClass('bg-mark')
+    expect(card.getByText('It explains how bends grow.')).toHaveClass('bg-mark')
     expect(card.getByText(/the page exists/)).toBeInTheDocument()
     const open = card.getByRole('link', { name: /Open the page/ })
     expect(open).toHaveAttribute('href', 'https://example.org/river-physics')
@@ -809,8 +849,8 @@ describe('suggested reading', () => {
   })
 
   it.each([
-    ['not-found', /Problem: we couldn't find a website at this address/],
-    ['not-public', /Problem: this address isn't a public website/],
+    ['not-found', /^We couldn’t find a website at this address, so it can’t be added\.$/],
+    ['not-public', /^This address isn’t a public website, so it can’t be added\.$/],
   ] as const)('flags a %s address and allows only dismissing it', async (check, message) => {
     const card = reading({}, { check, fetchedTitle: null })
     let dismissed = false
@@ -995,5 +1035,35 @@ describe('several conversations', () => {
     await screen.findByText('Hello.')
     await fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Delete one to start another')
+  })
+})
+
+describe('the refine page: tutorial mode', () => {
+  const text =
+    /^Your AI asks questions about this idea and adds the points you make to its notes\.$/
+  const setup = async (on: boolean) => {
+    mockConversation()
+    server.use(
+      signedInAs(on ? { ...testUser, tutorialMode: true } : testUser),
+      http.get('*/api/account/tutorial', () =>
+        HttpResponse.json({ on, seen: [], answered: false }),
+      ),
+      http.post('*/api/account/tutorial/seen', () =>
+        HttpResponse.json({ on, seen: [], answered: false }),
+      ),
+    )
+    // The route 'brainstorm' is this kind of page (see tutorial-routes.test.ts).
+    await renderAt(page)
+    await screen.findByRole('button', { name: 'Refine with your AI' })
+  }
+
+  it('writes out what the page is for', async () => {
+    await setup(true)
+    expect(screen.getByText(text)).toBeVisible()
+  })
+
+  it('says none of it when it is off', async () => {
+    await setup(false)
+    expect(screen.queryByText(text)).toBeNull()
   })
 })

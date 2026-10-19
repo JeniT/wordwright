@@ -568,7 +568,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    edge) and in the page title, with the publication or idea name above it (`StepHeading`).
 4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 04 Refine →"), an outline button, never the
    primary one. A step where the next move is a choice (Ideas), or the last (Draft), has none.
-5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Start brainstorming**,
+5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Refine with your AI**,
    the Research page's Research button); arriving by the menu must never cost the writer money.
 6. **Always a way up**: "← All publications", "← {publication}".
 7. **Settings sit apart from the steps**, at their own level, with no step current. They are reached by one **icon-only

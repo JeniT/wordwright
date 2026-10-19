@@ -397,7 +397,7 @@ holds up to five conversations per idea (#289), each shared by the publication's
 under `/:conversation`, `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
 AI's suggestions (a new title for the idea, a new idea, or a page for the idea's reading list that the writer gave it: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` deletes that conversation. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
-person accepts it, except the notes it records. The page is `/p/<publication>/ideas/<idea>/refine` (the idea's **Refine** step: visiting it spends nothing; **Start brainstorming** begins; **New conversation** starts another, up to five; **Earlier/Later conversation** page between them): the editor's reply
+person accepts it, except the notes it records. The page is `/p/<publication>/ideas/<idea>/refine` (the idea's **Refine** step: visiting it spends nothing; **Refine with your AI** begins; **New conversation** starts another, up to five; **Earlier/Later conversation** page between them): the editor's reply
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
 never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and

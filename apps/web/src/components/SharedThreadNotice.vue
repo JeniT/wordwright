@@ -9,13 +9,11 @@ const shared = computed(() => (publication.value?.members.length ?? 0) > 1)
 </script>
 
 <template>
-  <div v-if="shared" class="callout mb-4 text-sm" data-testid="shared-thread-notice">
+  <div v-if="shared" class="callout mb-4" data-testid="shared-thread-notice">
     <p class="mb-1 font-medium">This conversation is shared</p>
     <p>
-      Everyone in this publication can read it. What is written here is sent to the AI provider of
-      whoever sends the message, and that includes the earlier messages and notes by other members,
-      because the whole conversation is sent each time.
+      Everyone in this publication can read this conversation. It’s sent to the AI provider of
+      whoever writes each message. To think privately, use a publication with no other members.
     </p>
-    <p class="mt-1">To think privately, use a publication with no other members.</p>
   </div>
 </template>

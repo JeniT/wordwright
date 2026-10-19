@@ -94,7 +94,7 @@ Built by the server on every turn, never by the client.
 
 If the thread is empty, **Brainstorm** creates a hidden "kick-off" turn: the snapshot plus an instruction to begin
 the session by probing the idea. It is stored (the API needs the conversation to start with a user turn) but
-displayed as a short "Brainstorm started" line, not as a message the person wrote.
+displayed as a short "Refine started" line, not as a message the person wrote.
 
 ### Conversation storage and replay
 

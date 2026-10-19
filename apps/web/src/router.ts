@@ -278,7 +278,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'brainstorm',
     component: () => import('./views/BrainstormView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'refine' },
+    meta: { level: 'idea', step: 'refine', tutorial: true },
   },
   {
     path: '/p/:publicationId/ideas/:id/brainstorm',
