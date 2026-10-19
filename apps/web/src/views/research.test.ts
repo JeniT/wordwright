@@ -36,7 +36,7 @@ const run = (overrides: Partial<ResearchRun> = {}): ResearchRun => ({
   areas: 'How fast bends migrate',
   createdByName: 'Ada',
   model: 'claude-sonnet-5-5',
-  createdAt: '2026-01-03T00:00:00Z',
+  createdAt: `2026-01-03T00:00:${String(counter).padStart(2, '0')}Z`,
   items: [],
   ...overrides,
 })
@@ -60,7 +60,7 @@ function mockResearch(initial: ResearchRun[] = [], extra: Parameters<typeof serv
       const body = (await request.json()) as { areas: string }
       state.posts.push(body)
       const created = run({ areas: body.areas, items: state.finds })
-      state.runs.unshift(created)
+      state.runs.unshift(created) // the server lists the newest first; the page puts it last
       return HttpResponse.json(created, { status: 201 })
     }),
     http.post(`${base}/:runId/add`, async ({ request, params }) => {
@@ -95,7 +95,7 @@ function mockResearch(initial: ResearchRun[] = [], extra: Parameters<typeof serv
 const areasBox = () => screen.findByLabelText('What areas do you want to research?')
 
 describe('the research page', () => {
-  it('says what is sent and who sees it, and starts empty', async () => {
+  it('starts empty, with the form and a way on', async () => {
     mockResearch()
     await renderAt(page)
     expect(await screen.findByRole('heading', { name: 'Research', level: 1 })).toBeInTheDocument()
@@ -103,14 +103,13 @@ describe('the research page', () => {
       'href',
       '/p/ada-substack/ideas/i1/read',
     )
-    expect(screen.getByText(/including some that may not agree with you/)).toBeInTheDocument()
-    expect(screen.getByText(/the text of your drafts never is/)).toBeInTheDocument()
-    expect(screen.getByText(/Everyone in this publication sees the research/)).toBeInTheDocument()
-    expect(await screen.findByText(/Nothing yet/)).toBeInTheDocument()
+    expect(await screen.findByText('No research yet.')).toBeInTheDocument()
+    expect(screen.queryByText(/the text of your drafts never is/)).toBeNull() // the form says what is sent
+    expect(screen.queryByRole('navigation', { name: /Research, above/ })).toBeNull() // one run: no paging
     expect(screen.getByRole('button', { name: 'Research' })).toBeDisabled() // nothing described yet
   })
 
-  it('searches for the areas described, and shows what it found at the top', async () => {
+  it('searches for the areas described, and shows what it found, with the earlier research a step back', async () => {
     const api = mockResearch([run({ areas: 'An earlier topic' })])
     api.finds = [item({ fetchedTitle: 'River Physics: a primer' })]
     await renderAt(page)
@@ -119,9 +118,10 @@ describe('the research page', () => {
 
     expect(await screen.findByText('Straightening of rivers')).toBeInTheDocument()
     expect(api.posts).toEqual([{ areas: 'Straightening of rivers' }])
-    const articles = screen.getAllByRole('article').filter((a) => a.getAttribute('aria-labelledby'))
-    expect(within(articles[0]!).getByText('River Physics: a primer')).toBeInTheDocument()
-    expect(screen.getByText('An earlier topic')).toBeInTheDocument()
+    expect(screen.getByText('River Physics: a primer')).toBeInTheDocument()
+    expect(screen.queryByText('An earlier topic')).toBeNull() // one run at a time
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Earlier research' })[0]!)
+    expect(await screen.findByText('An earlier topic')).toBeInTheDocument()
     await waitFor(() => expect(areasBox()).resolves.toHaveValue('')) // ready for another topic
   })
 
@@ -227,61 +227,73 @@ describe('reviewing what research found', () => {
     }
   }
 
-  it('shows each page with both titles, any author, and the AI’s reason as unchecked, and no checkboxes', async () => {
+  it('lists each page like the Search page does: title as a link, host and author, and the AI’s reason marked', async () => {
     const { article } = await open()
-    expect(article.getByText('Page A')).toBeInTheDocument()
-    expect(article.getByText(/The search called it:/)).toBeInTheDocument()
-    expect(article.getByText('Search title A')).toBeInTheDocument()
-    expect(article.getByText('Ada Author')).toBeInTheDocument()
-    expect(article.getAllByText(/Why the AI suggests it \(unchecked\):/)).toHaveLength(4)
+    expect(article.getByRole('link', { name: /Page A/ })).toHaveAttribute('target', '_blank')
+    expect(article.getByRole('link', { name: /Page A/ })).toHaveAttribute(
+      'rel',
+      expect.stringContaining('noopener'),
+    )
+    expect(article.getAllByText(/example\.org/).length).toBeGreaterThan(0)
+    expect(article.getByText(/Ada Author/)).toBeInTheDocument()
+    expect(article.queryByText(/The search called it/)).toBeNull()
+    expect(article.getAllByText(/Your AI’s reason:/)).toHaveLength(4)
+    expect(article.getAllByText('Looks relevant to the area.')[0]).toHaveClass('bg-mark')
     expect(article.queryAllByRole('checkbox')).toHaveLength(0)
-    expect(article.queryByRole('button', { name: /Tick all|ticked/ })).toBeNull()
-    const link = article.getAllByRole('link', { name: /Open the page/ })[0]!
-    expect(link).toHaveAttribute('target', '_blank')
-    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    expect(article.getAllByRole('listitem')).toHaveLength(4)
   })
 
   it('warns about a page with no readable title, and rules out pages that do not exist or are not public', async () => {
     const { article } = await open()
-    expect(article.getByText(/couldn't read a title from this page/)).toBeInTheDocument()
+    expect(
+      article.getByText(/We couldn’t read a title from this page\. If you add it/),
+    ).toBeInTheDocument()
     expect(article.getByRole('button', { name: 'Add to reading list: Page B' })).toBeEnabled()
     expect(
-      article.getByText(/Problem: we couldn't find a website at this address/),
+      article.getByText('We couldn’t find a website at this address, so it can’t be added.'),
     ).toBeInTheDocument()
-    expect(article.getByText(/Problem: this address isn't a public website/)).toBeInTheDocument()
+    expect(
+      article.getByText('This address isn’t a public website, so it can’t be added.'),
+    ).toBeInTheDocument()
     expect(article.getByRole('button', { name: 'Add to reading list: Page C' })).toBeDisabled()
     expect(article.getByRole('button', { name: 'Add to reading list: Page D' })).toBeDisabled()
     expect(article.getByRole('button', { name: 'Ignore: Page C' })).toBeEnabled() // clears it off the list
   })
 
-  it('adds a page with one click, then collapses it to its title with a green tick and a way back', async () => {
+  it('adds a page with one click, then shows it as in the reading list with a way back, at the end', async () => {
     const { api, article } = await open()
     await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
     await waitFor(() => expect(api.posts).toEqual([{ add: ['a'] }]))
 
-    expect(
-      await article.findByRole('img', { name: 'Added to the reading list' }),
-    ).toBeInTheDocument()
+    expect(await article.findByRole('img', { name: 'In the reading list' })).toBeInTheDocument()
     await waitFor(() =>
-      expect(article.getByRole('button', { name: 'Reconsider: Page A' })).toBeEnabled(),
+      expect(
+        article.getByRole('button', { name: 'Take off the reading list: Page A' }),
+      ).toBeEnabled(),
     )
-    // Collapsed: the details and the decision buttons are gone, the title stays.
-    expect(article.getByText('Page A')).toBeInTheDocument()
-    expect(article.queryByText('Search title A')).toBeNull()
     expect(article.queryByRole('button', { name: 'Add to reading list: Page A' })).toBeNull()
-    expect(article.queryByRole('button', { name: 'Ignore: Page A' })).toBeNull()
-    expect(article.getAllByText(/Why the AI suggests it/)).toHaveLength(3) // the other three
+    expect(article.getAllByText(/Your AI’s reason/)).toHaveLength(3) // the other three
+    // Decided pages drop to the end, as on the Search page.
+    const rows = article.getAllByRole('listitem')
+    expect(rows[rows.length - 1]).toHaveTextContent('Page A')
+    expect(await article.findByText('Added “Page A” to the reading list.')).toBeInTheDocument()
   })
 
-  it('ignores a page with one click, then collapses it to its title with a red cross', async () => {
+  it('ignores a page with one click, and can stop ignoring it', async () => {
     const { api, article } = await open()
     await fireEvent.click(article.getByRole('button', { name: 'Ignore: Page B' }))
     await waitFor(() => expect(api.posts).toEqual([{ dismiss: ['b'] }]))
     expect(await article.findByRole('img', { name: 'Ignored' })).toBeInTheDocument()
     await waitFor(() =>
-      expect(article.getByRole('button', { name: 'Reconsider: Page B' })).toBeEnabled(),
+      expect(article.getByRole('button', { name: 'Stop ignoring: Page B' })).toBeEnabled(),
     )
     expect(article.queryByRole('button', { name: 'Ignore: Page B' })).toBeNull()
+    await fireEvent.click(article.getByRole('button', { name: 'Stop ignoring: Page B' }))
+    await waitFor(() => expect(api.posts).toContainEqual({ reconsider: ['b'] }))
+    await waitFor(() =>
+      expect(article.getByRole('button', { name: 'Ignore: Page B' })).toBeEnabled(),
+    )
+    expect(article.queryByRole('img', { name: 'Ignored' })).toBeNull()
   })
 
   it('lets a page that cannot be added be ignored', async () => {
@@ -290,31 +302,17 @@ describe('reviewing what research found', () => {
     await waitFor(() => expect(api.posts).toEqual([{ dismiss: ['c'] }]))
   })
 
-  it('reconsidering expands a page again, whether it was added or ignored', async () => {
+  it('taking an added page off the reading list brings its buttons back', async () => {
     const { api, article } = await open()
     await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
-    await waitFor(() =>
-      expect(article.getByRole('button', { name: 'Reconsider: Page A' })).toBeEnabled(),
+    await fireEvent.click(
+      await article.findByRole('button', { name: 'Take off the reading list: Page A' }),
     )
-    await fireEvent.click(article.getByRole('button', { name: 'Ignore: Page B' }))
-    await waitFor(() =>
-      expect(article.getByRole('button', { name: 'Reconsider: Page B' })).toBeEnabled(),
-    )
-    await fireEvent.click(article.getByRole('button', { name: 'Reconsider: Page A' }))
     await waitFor(() => expect(api.posts).toContainEqual({ reconsider: ['a'] }))
-
     await waitFor(() =>
       expect(article.getByRole('button', { name: 'Add to reading list: Page A' })).toBeEnabled(),
     )
-    expect(article.getByText('Search title A')).toBeInTheDocument() // the details are back
-    expect(article.queryByRole('img', { name: 'Added to the reading list' })).toBeNull()
-    expect(article.getByRole('img', { name: 'Ignored' })).toBeInTheDocument() // B is still ignored
-
-    await fireEvent.click(article.getByRole('button', { name: 'Reconsider: Page B' }))
-    await waitFor(() =>
-      expect(article.getByRole('button', { name: 'Ignore: Page B' })).toBeEnabled(),
-    )
-    expect(article.queryByRole('img', { name: 'Ignored' })).toBeNull()
+    expect(article.queryByRole('img', { name: 'In the reading list' })).toBeNull()
   })
 
   it('shows why a decision was refused, and leaves the page as it was', async () => {
@@ -341,7 +339,7 @@ describe('reviewing what research found', () => {
   it('says so when a run found nothing', async () => {
     mockResearch([run({ items: [] })])
     await renderAt(page)
-    expect(await screen.findByText(/Nothing new turned up/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nothing worth reading turned up/)).toBeInTheDocument()
   })
 
   it('deletes a run only once it is confirmed, and says pages already added stay', async () => {
@@ -355,5 +353,73 @@ describe('reviewing what research found', () => {
     expect(screen.getByText('How fast bends migrate')).toBeInTheDocument()
     await fireEvent.click(button)
     await waitFor(() => expect(screen.queryByText('How fast bends migrate')).toBeNull())
+  })
+})
+
+describe('paging through the research', () => {
+  const three = () => [
+    run({ areas: 'First topic' }),
+    run({ areas: 'Second topic' }),
+    run({ areas: 'Third topic' }),
+  ]
+  const nav = (where: 'above' | 'below') =>
+    within(screen.getByRole('navigation', { name: `Research, ${where} the list` }))
+
+  it('shows the newest run, with Earlier research on the left and Later research on the right', async () => {
+    mockResearch(three().reverse()) // the server sends the newest first
+    await renderAt(page)
+    expect(await screen.findByText('Third topic')).toBeInTheDocument()
+    expect(screen.queryByText('Second topic')).toBeNull()
+    expect(nav('above').getByText('Research 3 of 3')).toBeInTheDocument()
+    expect(nav('above').getByRole('button', { name: 'Later research' })).toBeDisabled()
+
+    await fireEvent.click(nav('above').getByRole('button', { name: 'Earlier research' }))
+    expect(await screen.findByText('Second topic')).toBeInTheDocument()
+    await fireEvent.click(nav('below').getByRole('button', { name: 'Earlier research' }))
+    expect(await screen.findByText('First topic')).toBeInTheDocument()
+    expect(nav('above').getByRole('button', { name: 'Earlier research' })).toBeDisabled()
+    await fireEvent.click(nav('above').getByRole('button', { name: 'Later research' }))
+    expect(await screen.findByText('Second topic')).toBeInTheDocument()
+  })
+
+  it('jumps to a new run when one is made', async () => {
+    mockResearch(three().reverse())
+    await renderAt(page)
+    await fireEvent.click((await screen.findAllByRole('button', { name: 'Earlier research' }))[0]!)
+    expect(await screen.findByText('Second topic')).toBeInTheDocument()
+    await fireEvent.update(await areasBox(), 'Fourth topic')
+    await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
+    expect(await screen.findByText('Fourth topic')).toBeInTheDocument()
+    expect(screen.getAllByText('Research 4 of 4').length).toBeGreaterThan(0)
+  })
+})
+
+describe('the research page: tutorial mode', () => {
+  const text =
+    /^Describe the areas you want to look into and your AI will suggest pages worth reading, aiming for a range of opinions\. Add the ones you want to your reading list\.$/
+  const setup = async (on: boolean) => {
+    mockResearch()
+    server.use(
+      signedInAs(on ? { ...testUser, tutorialMode: true } : testUser),
+      http.get('*/api/account/tutorial', () =>
+        HttpResponse.json({ on, seen: [], answered: false }),
+      ),
+      http.post('*/api/account/tutorial/seen', () =>
+        HttpResponse.json({ on, seen: [], answered: false }),
+      ),
+    )
+    // The route 'idea-research' is this kind of page (see tutorial-routes.test.ts).
+    await renderAt(page)
+    await screen.findByText('No research yet.')
+  }
+
+  it('writes out what the page is for', async () => {
+    await setup(true)
+    expect(screen.getByText(text)).toBeVisible()
+  })
+
+  it('says none of it when it is off', async () => {
+    await setup(false)
+    expect(screen.queryByText(text)).toBeNull()
   })
 })

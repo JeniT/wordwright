@@ -245,7 +245,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'idea-research',
     component: () => import('./views/IdeaResearchView.vue'),
     props: true,
-    meta: { level: 'idea', step: 'research' },
+    meta: { level: 'idea', step: 'research', tutorial: true },
   },
   {
     // The AI research used to have a page apart from the reading list; they are now 01 Research and 02 Read.

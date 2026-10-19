@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import NewTabLink from './NewTabLink.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, useId } from 'vue'
+import { computed, ref, useId } from 'vue'
 import type { ResearchItem, ResearchRun } from '@wordwright/core'
+import type { PostDecision } from '../lib/recent-posts'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
+import ResearchItemRow from './ResearchItemRow.vue'
 
 const props = defineProps<{ publicationId: string; ideaId: string; run: ResearchRun }>()
 
 const queryClient = useQueryClient()
 const headingId = useId()
-
-/** A page that doesn't exist, or isn't public, can't go on the reading list. */
-const unusable = (item: ResearchItem) => item.check === 'not-found' || item.check === 'not-public'
-const name = (item: ResearchItem) => item.fetchedTitle || item.title || item.url
+const notice = ref('') // said out loud to screen readers after each decision
 
 // Whatever happens, the run and the reading list may have changed (someone else may have decided first).
 const refresh = () => invalidateRoots(queryClient, 'research', 'idea', 'ideas')
@@ -34,6 +32,20 @@ const reconsider = useMutation({
     api.reconsiderResearchItem(props.publicationId, props.ideaId, props.run.id, id),
   onSettled: refresh,
 })
+function decide(item: ResearchItem, what: PostDecision) {
+  const title = item.fetchedTitle || item.title || item.url
+  const mutation = what === 'add' ? add : what === 'ignore' ? ignore : reconsider
+  mutation.mutate(item.id, {
+    onSuccess: () => {
+      notice.value =
+        what === 'add'
+          ? `Added “${title}” to the reading list.`
+          : what === 'ignore'
+            ? `Ignored “${title}”.`
+            : `“${title}” is back in the list.`
+    },
+  })
+}
 const busy = computed(
   () => add.isPending.value || ignore.isPending.value || reconsider.isPending.value,
 )
@@ -50,11 +62,22 @@ const remove = useMutation({
     await refresh()
   },
 })
-const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
+const when = computed(() =>
+  new Date(props.run.createdAt).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }),
+)
+// As on the Search page, pages still to decide come first and decided ones drop to the end.
+const items = computed(() => [
+  ...props.run.items.filter((i) => i.status === 'suggested'),
+  ...props.run.items.filter((i) => i.status !== 'suggested'),
+])
 </script>
 
 <template>
-  <article :aria-labelledby="headingId" class="panel p-4">
+  <article :aria-labelledby="headingId">
     <h3
       :id="headingId"
       class="mb-1 whitespace-pre-wrap break-words font-display text-lg font-semibold"
@@ -62,107 +85,21 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       {{ run.areas }}
     </h3>
     <p class="mb-3 text-sm text-ink-soft">
-      Researched{{ run.createdByName ? ` by ${run.createdByName}` : '' }} on {{ when }} ·
-      {{ run.model }}
+      <template v-if="run.createdByName">{{ run.createdByName }} · </template>{{ when }}
     </p>
+    <p class="sr-only" aria-live="polite">{{ notice }}</p>
 
     <p v-if="!run.items.length" class="mb-3 text-ink-soft">
-      Nothing new turned up that looked worth reading. Try describing the areas differently.
+      Nothing worth reading turned up. Try describing the areas differently.
     </p>
-
-    <ul v-else class="mb-3 space-y-3">
-      <li
-        v-for="item in run.items"
+    <ul v-else class="mb-3 divide-y divide-line rounded-ctl border border-line bg-surface">
+      <ResearchItemRow
+        v-for="item in items"
         :key="item.id"
-        class="border-t border-line pt-3 first:border-t-0 first:pt-0"
-      >
-        <!-- Decided: just the title, how it went, and a way back. -->
-        <div v-if="item.status !== 'suggested'" class="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span
-            v-if="item.status === 'added'"
-            class="font-bold text-ok"
-            role="img"
-            aria-label="Added to the reading list"
-            >✓</span
-          >
-          <span v-else class="font-bold text-danger" role="img" aria-label="Ignored">✗</span>
-          <span
-            class="min-w-0 flex-1 break-words"
-            :class="item.status === 'dismissed' ? 'text-ink-soft' : ''"
-            >{{ name(item) }}</span
-          >
-          <button
-            type="button"
-            class="btn btn-sm btn-neutral"
-            :disabled="busy"
-            :aria-label="`Reconsider: ${name(item)}`"
-            @click="reconsider.mutate(item.id)"
-          >
-            Reconsider
-          </button>
-        </div>
-
-        <!-- Waiting for a decision: everything needed to make one. -->
-        <div v-else>
-          <p class="break-words font-medium">{{ name(item) }}</p>
-          <p class="break-all text-sm">
-            {{ item.url }}
-            <NewTabLink :href="item.url" :detail="`“${name(item)}”`" class="ml-1 underline"
-              >Open the page</NewTabLink
-            >
-          </p>
-          <p
-            v-if="item.fetchedTitle && item.title && item.title !== item.fetchedTitle"
-            class="text-sm"
-          >
-            <span class="font-medium">The search called it:</span> {{ item.title }}
-          </p>
-          <p v-if="item.fetchedAuthors.length" class="text-sm">
-            <span class="font-medium">The page names as author:</span>
-            {{ item.fetchedAuthors.join(', ') }}
-          </p>
-          <p class="text-sm">
-            <span class="font-medium">Why the AI suggests it (unchecked):</span> {{ item.why }}
-          </p>
-          <p v-if="item.check === 'no-title'" class="mt-1 callout !p-2 text-sm">
-            We couldn't read a title from this page, so we can't confirm what it is. If you add it,
-            it is listed as “{{ item.title || item.url }}”.
-          </p>
-          <p
-            v-else-if="item.check === 'not-found'"
-            class="mt-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
-          >
-            Problem: we couldn't find a website at this address, so the page may not exist. It can't
-            be added.
-          </p>
-          <p
-            v-else-if="item.check === 'not-public'"
-            class="mt-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
-          >
-            Problem: this address isn't a public website, so it can't be added.
-          </p>
-          <div class="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              class="btn btn-sm btn-primary"
-              :disabled="unusable(item) || busy"
-              :aria-label="`Add to reading list: ${name(item)}`"
-              @click="add.mutate(item.id)"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-neutral"
-              :disabled="busy"
-              :aria-label="`Ignore: ${name(item)}`"
-              @click="ignore.mutate(item.id)"
-            >
-              Ignore
-            </button>
-          </div>
-        </div>
-      </li>
+        :item="item"
+        :busy="busy"
+        @decide="(what) => decide(item, what)"
+      />
     </ul>
 
     <div v-if="problem" role="alert" class="mb-2 text-sm text-danger">
@@ -170,7 +107,7 @@ const when = computed(() => new Date(props.run.createdAt).toLocaleDateString())
       <button type="button" class="ml-2 underline" @click="clearProblem">Dismiss</button>
     </div>
 
-    <p class="mt-3 border-t border-line pt-2">
+    <p class="mt-3">
       <HoldButton
         tip="Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there."
         verb="Delete"

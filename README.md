@@ -403,17 +403,18 @@ never shown), and each notes recorded is listed under the reply and each suggest
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
 "suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
 
-**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that lists the idea's earlier research and takes
-a new request, a description of the areas to look into. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
+**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
+shows the idea's research one run at a time (newest first; **Earlier research** and **Later research** step through the rest),
+each as a list laid out like the Search page's. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
 `/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the
 reading list); `DELETE …/research/:run` forgets a run. The search
 looks for several points of view. It works through the `ResearchProvider` port (`@wordwright/core`: `AnthropicResearchProvider`,
 `FakeResearchProvider`, and `researchProviderContract` in `@wordwright/core/testing` for any new one), which may only return addresses that
 appeared in a search result. Web search must be enabled for the Anthropic account whose key is used. The server looks at each address
-with the same SSRF-safe page fetcher as typed links and shows the page's real title beside the search's, flagging an address that
+with the same SSRF-safe page fetcher as typed links and shows the page's real title, flagging an address that
 doesn't resolve (it can't be added). Nothing joins the reading list until a person adds it; it is marked "Found by
-research" and keeps the AI's reason, labelled unchecked. The brainstorm coach can also suggest a page, but only an address the writer
+research" and keeps the AI's reason, highlighted as the AI's. The brainstorm coach can also suggest a page, but only an address the writer
 gave it. Searches are throttled to 10 an hour per person, with no other cap. With `FAKE_LLM=true` a search finds three scripted
 pages: one fine, one with no readable title and one that doesn't exist; and the coach turns an address plus "reading list" into a suggestion.
 

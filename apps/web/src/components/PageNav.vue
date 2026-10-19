@@ -11,6 +11,11 @@ defineProps<{
   noun: string
   size: number
   announce?: boolean
+  /** Words for the two buttons when "Previous" and "Next" are too vague ("Earlier research"). */
+  previousLabel?: string
+  nextLabel?: string
+  /** One thing a page, so "Research 2 of 5" rather than "Research 2–2 of 5". */
+  single?: boolean
 }>()
 defineEmits<{ go: [step: -1 | 1] }>()
 </script>
@@ -18,10 +23,14 @@ defineEmits<{ go: [step: -1 | 1] }>()
 <template>
   <nav :aria-label="label" class="flex items-center justify-between gap-3 text-sm">
     <button type="button" class="btn btn-neutral" :disabled="page <= 1" @click="$emit('go', -1)">
-      Previous<span class="sr-only"> {{ size }} {{ noun }}</span>
+      <template v-if="previousLabel">{{ previousLabel }}</template>
+      <template v-else
+        >Previous<span class="sr-only"> {{ size }} {{ noun }}</span></template
+      >
     </button>
     <p :aria-live="announce ? 'polite' : undefined" aria-atomic="true" class="text-ink-soft">
-      {{ noun.charAt(0).toUpperCase() + noun.slice(1) }} {{ first }}–{{ last }} of {{ total }}
+      {{ noun.charAt(0).toUpperCase() + noun.slice(1) }}
+      {{ single ? first : `${first}–${last}` }} of {{ total }}
     </p>
     <button
       type="button"
@@ -29,7 +38,10 @@ defineEmits<{ go: [step: -1 | 1] }>()
       :disabled="page >= pageCount"
       @click="$emit('go', 1)"
     >
-      Next<span class="sr-only"> {{ size }} {{ noun }}</span>
+      <template v-if="nextLabel">{{ nextLabel }}</template>
+      <template v-else
+        >Next<span class="sr-only"> {{ size }} {{ noun }}</span></template
+      >
     </button>
   </nav>
 </template>

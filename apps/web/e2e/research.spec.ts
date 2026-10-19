@@ -39,7 +39,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await setUp(page)
   await openResearchTool(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Research' })).toBeVisible()
-  await expect(page.getByText(/Nothing yet/)).toBeVisible()
+  await expect(page.getByText('No research yet.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled()
   // The button says it spends the writer's own key, and it is the only kind of button that does.
   await expect(
@@ -55,9 +55,9 @@ test('researches areas, reviews what was found, and adds pages to the reading li
 
   // A page that checked out, one with no readable title (allowed, with a warning), one that does not exist.
   await expect(run).toContainText('Fake title for research.example.org')
-  await expect(run).toContainText('Why the AI suggests it (unchecked):')
-  await expect(run).toContainText("couldn't read a title from this page")
-  await expect(run).toContainText("Problem: we couldn't find a website at this address")
+  await expect(run).toContainText('Your AI’s reason:')
+  await expect(run).toContainText('couldn’t read a title from this page')
+  await expect(run).toContainText('We couldn’t find a website at this address')
   await expect(
     run.getByRole('button', { name: 'Add to reading list: A report that has moved' }),
   ).toBeDisabled()
@@ -70,16 +70,16 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   ).toHaveCount(0)
   await goTo(page, 'Research')
 
-  // One click each: added pages collapse to a green tick, ignored ones to a red cross.
+  // One click each: added pages get a green tick, ignored ones a red cross, and both drop to the end of the list.
   await run
     .getByRole('button', { name: 'Add to reading list: Fake title for research.example.org' })
     .click()
-  await expect(run.getByRole('img', { name: 'Added to the reading list' })).toHaveCount(1)
+  await expect(run.getByRole('img', { name: 'In the reading list' })).toHaveCount(1)
   await run.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }).click()
-  await expect(run.getByRole('img', { name: 'Added to the reading list' })).toHaveCount(2)
+  await expect(run.getByRole('img', { name: 'In the reading list' })).toHaveCount(2)
   await run.getByRole('button', { name: 'Ignore: A report that has moved' }).click()
   await expect(run.getByRole('img', { name: 'Ignored' })).toHaveCount(1)
-  await expect(run.getByText('Why the AI suggests it (unchecked):')).toHaveCount(0) // all collapsed
+  await expect(run.getByText('Your AI’s reason:')).toHaveCount(0) // all decided
   await noViolations(page, 'research page with decided pages')
 
   // The reading list has them, marked, with the AI's reason kept.
@@ -103,31 +103,39 @@ test('several areas can be researched around one idea, and the research is kept'
     await expect(page.getByRole('article', { name: areas })).toBeVisible()
   }
   await page.reload()
-  await expect(page.getByRole('article', { name: 'First area' })).toBeVisible()
+  // One run at a time, the newest first; Earlier research goes back to the one before.
   await expect(page.getByRole('article', { name: 'Second area' })).toBeVisible()
+  await expect(page.getByRole('article', { name: 'First area' })).toHaveCount(0)
+  await noViolations(page, 'research page with several runs')
+  const earlier = () => page.getByRole('button', { name: 'Earlier research' }).first()
 
   // Ignore one page and add another with their own buttons; reconsidering the addition takes it off the list.
+  await earlier().click()
   const first = page.getByRole('article', { name: 'First area' })
   await first.getByRole('button', { name: 'Ignore: Fake title for research.example.org' }).click()
   await expect(first.getByRole('img', { name: 'Ignored' })).toBeVisible()
   await first
     .getByRole('button', { name: 'Add to reading list: Notes on channel migration' })
     .click()
-  await expect(first.getByRole('img', { name: 'Added to the reading list' })).toBeVisible()
+  await expect(first.getByRole('img', { name: 'In the reading list' })).toBeVisible()
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Notes on channel migration', exact: true }),
   ).toBeVisible()
   await goTo(page, 'Research')
-  await first.getByRole('button', { name: 'Reconsider: Notes on channel migration' }).click()
+  await earlier().click()
+  await first
+    .getByRole('button', { name: 'Take off the reading list: Notes on channel migration' })
+    .click()
   await expect(
     first.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }),
-  ).toBeVisible() // expanded again
+  ).toBeVisible() // back to be decided
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Notes on channel migration', exact: true }),
   ).toHaveCount(0)
   await goTo(page, 'Research')
+  await earlier().click()
 
   await holdToConfirm(page, first.getByRole('button', { name: /^Delete this research/ }))
   await expect(page.getByRole('article', { name: 'First area' })).toHaveCount(0)
