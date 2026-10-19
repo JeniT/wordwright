@@ -132,6 +132,12 @@ _Avoid_: Prompt, instruction, brief
 One of a set of different approaches the AI offers to a passage or title. None is used until the writer has picked it, can edit it, and presses "Use this".
 _Avoid_: Suggestion (that implies replacement text pushed at the writer), proposal (brainstorm's word for things the writer accepts), alternative
 
+### Refining
+
+**Refine**:
+The fourth step of an idea (04): a conversation in which your AI asks questions about the idea and adds the points the writer makes to its notes. It may suggest a sharper title, a separate idea or a page to read, but only the writer decides on those. Visiting the page spends nothing; the conversation starts from the “Refine with your AI” button.
+_Avoid_: Brainstorm, coach, chat (in what people see)
+
 ### Explaining
 
 **Tutorial mode**:
