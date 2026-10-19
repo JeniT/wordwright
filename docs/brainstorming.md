@@ -65,7 +65,7 @@ not just in the prompt:
 - Each note has origin `brainstorm` and is attributed to the person whose message led to it.
 - The chat shows each recorded point under the reply (stored in `idea_message_notes`, so it still reads right
   after the note is deleted), and a stopped reply records nothing.
-- The model sees the idea's notes in the snapshot (as Markdown bullets), so it doesn't repeat them.
+- The model sees the idea's notes in the snapshot (as Markdown bullets), so it doesn't repeat them. A note that is a quotation (#293) is marked `[quotation from “Title”, not the writer’s own words]` with its words in quotation marks, so the model takes it as context from the page named and never as the writer's own view or point (a rule in `prompts/brainstorm-rules.md`, and the eval `quotations-are-not-the-writers-views`).
 - Prompt-injection stays bounded: the worst a hostile page title or pasted note can make the model do is add some
   short, deletable notes (the cap and the duplicate check limit even that), never change or remove anything.
 

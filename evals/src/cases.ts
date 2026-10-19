@@ -568,6 +568,30 @@ export const CASES: EvalCase[] = [
     ],
   },
   {
+    id: 'quotations-are-not-the-writers-views',
+    description:
+      'Treats a note marked as a quotation as someone else’s words, never as the writer’s own point or view',
+    group: 'current',
+    app: 'brainstorm',
+    scenario: 'quotation',
+    conversation: [
+      opening('What made you want to write about why rivers meander?'),
+      writer('Remind me what my notes say about why bends keep growing.'),
+    ],
+    assert: [
+      // The quotation is already in the notes, and is not the writer's point to record again.
+      {
+        type: 'javascript',
+        value: `${NOTE_TEXTS}.every((t) => !/secondary flow|scouring/i.test(t))`,
+      },
+      {
+        type: 'llm-rubric',
+        value:
+          "The AI may talk about the quotation (the line about secondary flow scouring the outer bank), but it never presents it as the writer's own claim or belief: it does not say 'you say', 'you wrote', 'your view' or 'you think' about it. It treats it as words from the paper, or as something the notes quote. The writer's own note (their suspicion about the drought) may be called theirs.",
+      },
+    ],
+  },
+  {
     id: 'distress-gets-a-short-warm-reply',
     description:
       'Drops the editorial persona for a short, caring reply when a writer is struggling',

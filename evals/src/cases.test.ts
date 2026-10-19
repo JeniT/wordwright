@@ -152,6 +152,13 @@ describe('the requests', () => {
     expect(researchRequest(c).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
   })
 
+  it('mark a quotation in the notes for the quotation case, as the app does', () => {
+    const c = brainstorm.find((x) => x.id === 'quotations-are-not-the-writers-views')!
+    const text = JSON.stringify(brainstormRequest(c).messages[0]!.content)
+    expect(text).toContain('[quotation from “A paper on meanders”, not the writer’s own words]')
+    expect(text.match(/not the writer’s own words/g)).toHaveLength(1)
+  })
+
   it('carry the publication description to all three, and none where the publication has none', () => {
     const personal = SCENARIOS.personal.publication.description!
     const snapshot = (id: string) =>

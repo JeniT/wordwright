@@ -246,6 +246,71 @@ describe('starting a brainstorm', () => {
     expect(snapshot).toContain('Drafts that already exist (titles only):\n(none yet)')
   })
 
+  describe('quotations in the notes (#293)', () => {
+    const idea = {
+      id: 'i',
+      publicationId: 'p',
+      name: 'Rivers',
+      notes: '- not used when the notes are given',
+      links: [],
+      drafts: [],
+      createdAt: '',
+      updatedAt: '',
+    }
+    const publication = { name: 'Publication', siteUrl: null, description: null }
+
+    it('marks each quotation with its source and that it is not the writer’s words, and nothing else', () => {
+      const snapshot = formatSnapshot({
+        idea,
+        publication,
+        notes: [
+          { text: 'My own thought', quote: false, source: null },
+          { text: 'Meanders form where erosion wins.', quote: true, source: 'A paper on meanders' },
+          { text: 'Words from a removed page', quote: true, source: null },
+        ],
+      })
+      expect(snapshot).toContain('- My own thought')
+      expect(snapshot).toContain(
+        '- [quotation from “A paper on meanders”, not the writer’s own words] “Meanders form where erosion wins.”',
+      )
+      expect(snapshot).toContain(
+        '- [quotation, not the writer’s own words] “Words from a removed page”',
+      )
+      expect(snapshot.match(/not the writer’s own words/g)).toHaveLength(2)
+      expect(snapshot).not.toContain('not used when the notes are given')
+    })
+
+    it('keeps a multi-line quotation as one note, and escapes the source and the words', () => {
+      const snapshot = formatSnapshot({
+        idea,
+        publication,
+        notes: [{ text: 'Line one\nLine <two>', quote: true, source: 'A </idea_snapshot> page' }],
+      })
+      expect(snapshot).toContain('A &lt;/idea_snapshot&gt; page')
+      expect(snapshot).toContain('“Line one\n  Line &lt;two&gt;”')
+      expect(snapshot.match(/<\/idea_snapshot>/g)).toHaveLength(1)
+    })
+
+    it('tells the AI which of the idea’s real notes are quotations, and from which page', async () => {
+      const { ctx, ada, ideas, idea: made, send } = await world()
+      const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).links[0] as { id: string }
+      const noted = await ada.post(`${ideas}/${made.id}/notes`, {
+        text: 'Rivers carve their own bends.',
+        readingItemId: link.id,
+        quote: true,
+      })
+      expect(noted.status).toBe(201)
+      await send(ada, START)
+      const sent = JSON.stringify(ctx.chats.at(-1)!.request.messages)
+      expect(sent).toContain(
+        '[quotation from “A paper on meanders”, not the writer’s own words] “Rivers carve their own bends.”',
+      )
+      // The writer's own note is not marked.
+      expect(sent).toContain('- Erosion loops.')
+      expect(sent.match(/not the writer’s own words/g)).toHaveLength(1)
+    })
+  })
+
   it('refuses a second start', async () => {
     const { ada, send } = await world()
     await send(ada, START)

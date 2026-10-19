@@ -1,4 +1,5 @@
 import type { Idea } from '@wordwright/core'
+import type { SnapshotNote } from '../../apps/api/src/services/brainstorm'
 
 /**
  * What the brainstorm snapshot is built from (see `formatSnapshot`); the critique and research cases take the publication's
@@ -8,6 +9,8 @@ import type { Idea } from '@wordwright/core'
 export interface Scenario {
   idea: Idea
   publication: { name: string; siteUrl: string | null; description: string | null }
+  /** The notes one by one, when some are quotations (else the snapshot uses `idea.notes`). */
+  notes?: SnapshotNote[]
 }
 
 const base: Idea = {
@@ -37,6 +40,24 @@ const publication = { name: "Ada's writing", siteUrl: 'https://ada.example', des
 export const SCENARIOS = {
   /** An ordinary idea at the start of a session; the publication has no description yet. */
   rivers: { idea: base, publication },
+
+  /** A quotation among the writer's own notes, as the snapshot marks it (#293). */
+  quotation: {
+    idea: {
+      ...base,
+      notes:
+        '- I suspect the drought exposed the old channel.\n- Meanders persist because secondary flow keeps scouring the outer bank.',
+    },
+    publication,
+    notes: [
+      { text: 'I suspect the drought exposed the old channel.', quote: false, source: null },
+      {
+        text: 'Meanders persist because secondary flow keeps scouring the outer bank.',
+        quote: true,
+        source: 'A paper on meanders',
+      },
+    ],
+  },
 
   /** Hostile text where the app puts the writer's notes and a fetched page title. */
   hostile: {

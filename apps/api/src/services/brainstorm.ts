@@ -6,6 +6,7 @@ import {
   LLMProviderError,
   LLMRateLimitError,
   llmTool,
+  notesToMarkdown,
   MAX_CONVERSATIONS_PER_IDEA,
   MAX_IDEA_LINKS,
   MAX_IDEA_NOTES,
@@ -130,6 +131,34 @@ export const brainstormSystem = () => `${DEFAULT_BRAINSTORM_PROMPT}\n\n${BRAINST
 /** Keeps text we insert from closing or imitating the snapshot's own tags. */
 const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+/** One of the idea's notes as the AI is shown it. */
+export interface SnapshotNote {
+  text: string
+  /** Someone else's exact words, kept word for word. */
+  quote: boolean
+  /** The title of the reading item it was taken from, if that is still on the list. */
+  source: string | null
+}
+
+/**
+ * The notes as bullets. A quotation says so, and where it is from, in front of its words, which are in quotation
+ * marks: it is context for the conversation, not something the writer thinks, and the AI must not take it as theirs.
+ * Null when no notes are given (the caller then falls back to the idea's notes as one text).
+ */
+function notesText(notes: SnapshotNote[] | undefined): string | null {
+  if (!notes) return null
+  if (!notes.length) return '(none yet)'
+  return escape(
+    notesToMarkdown(
+      notes.map((n) =>
+        n.quote
+          ? `[quotation${n.source ? ` from “${n.source}”` : ''}, not the writer’s own words] “${n.text.trim()}”`
+          : n.text,
+      ),
+    ),
+  )
+}
+
 interface Publication {
   name: string
   siteUrl: string | null
@@ -142,7 +171,12 @@ interface Publication {
  * websites, i.e. untrusted: it is escaped, and `prompts/brainstorm-rules.md` tells the AI to treat it as
  * material to discuss, never as instructions. Only the titles of drafts are included, never their text.
  */
-export function formatSnapshot(input: { idea: Idea; publication: Publication }): string {
+export function formatSnapshot(input: {
+  idea: Idea
+  publication: Publication
+  /** The idea's notes, one by one, so a quotation can be told from the writer's own point (else `idea.notes` is used). */
+  notes?: SnapshotNote[]
+}): string {
   const { idea, publication } = input
   const description = publicationDescriptionBlock(publication.description)
   const list = (items: string[]) => (items.length ? items : ['(none yet)'])
@@ -150,7 +184,7 @@ export function formatSnapshot(input: { idea: Idea; publication: Publication }):
     '<idea_snapshot>',
     `Idea title: ${escape(idea.name)}`,
     'Notes:',
-    idea.notes.trim() ? escape(idea.notes) : '(none yet)',
+    notesText(input.notes) ?? (idea.notes.trim() ? escape(idea.notes) : '(none yet)'),
     '',
     'Related links the writer has saved:',
     ...list(idea.links.map((l) => `- ${l.title ? `${escape(l.title)}: ` : ''}${escape(l.url)}`)),
@@ -338,8 +372,14 @@ export class BrainstormService {
 
   private snapshot(idea: Idea, userId: string): string {
     const publication = this.d.store.publications.get(idea.publicationId, userId)
+    const { notes, reading } = this.d.store
     return formatSnapshot({
       idea,
+      notes: notes.list(idea.id).map((n) => ({
+        text: n.text,
+        quote: n.quote,
+        source: (n.readingItemId && reading.get(idea.id, n.readingItemId)?.title) || null,
+      })),
       publication: {
         name: publication?.name ?? 'this publication',
         siteUrl: publication?.siteUrl ?? null,
