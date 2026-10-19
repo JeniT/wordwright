@@ -180,9 +180,9 @@ describe('the brainstorm page', () => {
     // On your own, nothing is shared, so there is nothing to warn about.
     expect(screen.queryByTestId('shared-thread-notice')).toBeNull()
 
-    const summary = screen.getByText('The idea').closest('details')!
-    expect(within(summary).getByText(/Erosion loops/)).toBeInTheDocument()
-    expect(within(summary).getByText('A paper')).toBeInTheDocument()
+    // The page does not repeat the idea back: its notes are a click away in the menu.
+    expect(screen.queryByText('The idea')).toBeNull()
+    expect(screen.queryByText(/Erosion loops/)).toBeNull()
 
     expect(await screen.findByRole('button', { name: 'Refine with your AI' })).toBeInTheDocument()
     // What leaves the system is said beside the button, in one line; the page says nothing else about it.
@@ -275,8 +275,8 @@ describe('the brainstorm page', () => {
     await renderAt(page)
     await fireEvent.click(await screen.findByRole('button', { name: 'Refine with your AI' }))
 
-    expect(await screen.findByText('Refine started by Ada')).toBeInTheDocument()
     await screen.findByText(/What is the/)
+    expect(screen.queryByText(/Refine started/)).toBeNull() // the opening turn is the app's own
     // The bold only appears once its closing ** has arrived (and the live text is swapped for the saved message).
     await waitFor(() => expect(document.querySelector('.markdown strong')).toHaveTextContent('one'))
     expect(api.posts).toEqual([{ start: true }])
@@ -317,8 +317,8 @@ describe('the brainstorm page', () => {
   it('starts by itself when sent here from the idea page (?start=1), once, and not again on reload', async () => {
     const api = mockConversation()
     const { router } = await renderAt(`${page}?start=1`)
-    expect(await screen.findByText('Refine started by Ada')).toBeInTheDocument()
-    expect(api.posts).toEqual([{ start: true }])
+    await waitFor(() => expect(api.posts).toEqual([{ start: true }]))
+    expect(screen.queryByText(/Refine started/)).toBeNull()
     await waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
   })
 
@@ -534,7 +534,7 @@ describe('the brainstorm page', () => {
     expect(screen.getByText(/This reply was cut short/)).toBeInTheDocument()
     expect(screen.getByText('The reply was stopped here.')).toBeInTheDocument()
     expect(screen.getByText(/declined to answer that/)).toBeInTheDocument()
-    expect(screen.getAllByText(/claude-sonnet-5-5/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/claude-sonnet-5-5/)).toBeNull() // which model replied is not shown
   })
 
   describe('notes the AI records', () => {
@@ -963,10 +963,15 @@ describe('several conversations', () => {
     )
     await renderAt(page)
     await screen.findByText('Newer question?')
-    // What leaves the system is said beside the button.
+    // What leaves the system is said beside the button, which sits above the thread.
     expect(
       screen.getByText(/This will send this publication’s description and this idea’s title/),
     ).toBeVisible()
+    const above = screen.getByRole('button', { name: 'New conversation' })
+    expect(
+      above.compareDocumentPosition(screen.getByRole('log', { name: 'Conversation' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
     await fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
     expect(await screen.findByText('Fresh start.')).toBeInTheDocument()
     expect(made).toEqual(['c3'])

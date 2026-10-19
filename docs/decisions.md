@@ -2052,3 +2052,7 @@ The Refine page uses the idea landing page's names: **Refine with your AI** (the
 ## The drafts pages' wording (#203)
 
 Both routes (`idea-drafts`, `draft`) have `meta.tutorial`. What a button sends is said beside it, as on Research and Refine: **Critique** (“…this publication’s description and this draft’s title and text to your AI. It will not send your notes.”) and **Generate options** in the Rephrase window (the same, plus the writer’s words and aim). What each does is an `Explain`. The Rephrase window no longer says that opening it again starts afresh: the limit is a UI limit (see responsible-ai.md), and the page need not advertise the way round it. **Look** (Critique) and **Round** (Rephrase) are separate words in CONTEXT.md. “Putting a note back doesn’t remove its words from the draft” stays on the page, since without it people expect the words to leave. The Handover and Reviewers panels are their own crit (#291).
+
+## Refine page tweaks after testing (#292)
+
+The page no longer repeats the idea back (the "The idea" panel): its title, notes and links are one click away in the menu, and the AI is sent them anyway. The opening turn the app makes ("Refine started by …") is stored but not shown, and neither the Refine page nor the idea landing page says which model replied. **New conversation** moved above the thread, so it is found without scrolling past a long one; it is disabled while a reply is being written or at five conversations. Conversation titles (#294) and suggestions in lists (#295) follow.

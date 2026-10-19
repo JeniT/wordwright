@@ -478,6 +478,7 @@ describe('an idea’s landing page', () => {
       expect(within(region).queryByText('First question?')).toBeNull()
       expect(within(region).getByText(/^Your AI/)).toBeInTheDocument()
       expect(within(region).queryByText(/Coach/)).toBeNull()
+      expect(within(region).queryByText(/fake-model/)).toBeNull() // which model replied is not shown
       expect(within(region).getByRole('link', { name: 'See all conversations' })).toBeVisible()
       expect(within(region).queryByText('Read in full')).toBeNull()
     })

@@ -46,7 +46,7 @@ test('refines an idea: your AI asks, suggests, and nothing changes until accepte
 
   // Refining starts only when asked, with your AI's questions.
   await startBrainstorming(page)
-  await expect(page.getByText('Refine started by Pru')).toBeVisible()
+  await expect(page.getByText(/Refine started/)).toHaveCount(0)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
   await expect(page.getByLabel('Your message')).toBeEnabled()
   await noViolations(page, 'brainstorm page')

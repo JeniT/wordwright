@@ -97,9 +97,7 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
         loading="Loading the conversation…"
       >
         <div v-if="latest" class="panel-sunken mb-4 p-3">
-          <p class="mb-1 text-sm font-medium text-ink-soft">
-            Your AI<span v-if="latest.model" class="font-normal"> · {{ latest.model }}</span>
-          </p>
+          <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
           <Markdown :text="excerpt.text" />
           <p v-if="excerpt.cut" class="mt-2 text-sm">
             <RouterLink :to="refineRoute" class="link">Read in full</RouterLink>

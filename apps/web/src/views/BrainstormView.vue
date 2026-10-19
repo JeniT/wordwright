@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   MAX_CONVERSATIONS_PER_IDEA,
   type ConversationMessage,
@@ -314,24 +314,26 @@ const busyNote = computed(() =>
       </Explain>
       <SharedThreadNotice :publication-id="publicationId" />
 
-      <details class="mb-6 rounded-ctl border border-line bg-surface p-3 text-sm">
-        <summary class="cursor-pointer font-medium">The idea</summary>
-        <p class="mt-2 font-medium">{{ idea.data.value.name }}</p>
-        <p v-if="idea.data.value.notes" class="mt-1 whitespace-pre-wrap">
-          {{ idea.data.value.notes }}
+      <!-- Another conversation, kept above the thread so it is found without scrolling past a long one. -->
+      <div v-if="current && !empty" class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <AiButton
+          class="btn btn-outline"
+          :busy="creating"
+          busy-text="Starting a conversation…"
+          :disabled="atLimit || !!streaming"
+          @click="startNew"
+        >
+          New conversation
+        </AiButton>
+        <p v-if="atLimit" class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
+          This idea has {{ MAX_CONVERSATIONS_PER_IDEA }} conversations, the most it can hold. Delete
+          one to start another.
         </p>
-        <p v-else class="mt-1 text-ink-soft">No notes yet.</p>
-        <ul v-if="idea.data.value.links.length" class="mt-2 list-disc pl-5">
-          <li v-for="link in idea.data.value.links" :key="link.id" class="break-words">
-            {{ link.title || link.url }}
-          </li>
-        </ul>
-        <p class="mt-2">
-          <RouterLink :to="{ name: 'idea-notes', params: { publicationId, id } }" class="link">
-            Edit the notes
-          </RouterLink>
+        <p v-else class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
+          This will send this publication’s description and this idea’s title and notes and reading
+          list to your AI. It will not send your drafts.
         </p>
-      </details>
+      </div>
 
       <QueryState :query="list" what="the conversations" loading="Loading the conversation…">
         <template v-if="current">
@@ -377,9 +379,8 @@ const busyNote = computed(() =>
           <div role="log" aria-label="Conversation" aria-relevant="additions" class="mb-4">
             <ol class="space-y-4">
               <li v-for="message in messages" :key="message.id">
-                <p v-if="message.kind === 'kickoff'" class="text-center text-sm text-ink-soft">
-                  Refine started{{ message.authorName ? ` by ${message.authorName}` : '' }}
-                </p>
+                <!-- The opening turn is the app's own, so there is nothing of the writer's to show. -->
+                <template v-if="message.kind === 'kickoff'"></template>
                 <div
                   v-else-if="message.role === 'user'"
                   class="ml-8 rounded-ctl border border-line bg-surface p-3"
@@ -390,11 +391,7 @@ const busyNote = computed(() =>
                   <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
                 </div>
                 <div v-else class="mr-8 panel-sunken p-3">
-                  <p class="mb-1 text-sm font-medium text-ink-soft">
-                    Your AI<span v-if="message.model" class="font-normal text-ink-soft">
-                      · {{ message.model }}</span
-                    >
-                  </p>
+                  <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
                   <Markdown v-if="message.text" :text="message.text" />
                   <p v-if="message.stopReason === 'refusal'" class="text-sm text-ink-soft">
                     Your AI declined to answer that. Try putting it differently.
@@ -486,28 +483,9 @@ const busyNote = computed(() =>
           </form>
 
           <div v-if="!streaming" class="border-t border-line pt-4">
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <AiButton
-                class="btn btn-outline"
-                :busy="creating"
-                busy-text="Starting a conversation…"
-                :disabled="atLimit"
-                @click="startNew"
-              >
-                New conversation
-              </AiButton>
-              <p v-if="atLimit" class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
-                This idea has {{ MAX_CONVERSATIONS_PER_IDEA }} conversations, the most it can hold.
-                Delete one to start another.
-              </p>
-              <p v-else class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
-                This will send this publication’s description and this idea’s title and notes and
-                reading list to your AI. It will not send your drafts.
-              </p>
-            </div>
             <button
               type="button"
-              class="mt-4 text-sm text-danger underline"
+              class="text-sm text-danger underline"
               @click="confirmingDelete = true"
             >
               Delete conversation
