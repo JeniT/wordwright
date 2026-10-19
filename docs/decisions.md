@@ -2056,3 +2056,7 @@ Both routes (`idea-drafts`, `draft`) have `meta.tutorial`. What a button sends i
 ## Refine page tweaks after testing (#292)
 
 The page no longer repeats the idea back (the "The idea" panel): its title, notes and links are one click away in the menu, and the AI is sent them anyway. The opening turn the app makes ("Refine started by …") is stored but not shown, and neither the Refine page nor the idea landing page says which model replied. **New conversation** moved above the thread, so it is found without scrolling past a long one; it is disabled while a reply is being written or at five conversations. Conversation titles (#294) and suggestions in lists (#295) follow.
+
+## The handover and review panels' wording (#291)
+
+**Snapshot** is the word everywhere people read (the send form, the lists, the reviewer's page and the invitation email); “copy” is gone, as CONTEXT.md already said. What a reviewer reads and who sees their comments stay on the page (ADR 0001 requires the editor be told), with “your AI never receives them”; what sending again does is an `Explain`. Closing is “Close review: {name}” and “Close all reviews”, never “stop accepting”, so the visible label is in the accessible name. A line on the page says a closed review can’t be reopened. Reassigning says it takes effect at once without asking the current editor. The history disclosure is “Handover history”, since it lists offers and requests, not edits. Where these panels live is #296; the other emails are #297.

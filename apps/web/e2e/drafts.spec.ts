@@ -931,8 +931,8 @@ test('the editor offers a draft; the member declines once and accepts the next t
   const offer = async () => {
     await page.goto(draftUrl)
     await page.getByText('Hand this draft to someone').click()
-    await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
-    await page.getByRole('button', { name: 'Offer the draft' }).click()
+    await page.getByLabel('Member', { exact: true }).selectOption({ label: 'Bob' })
+    await page.getByRole('button', { name: 'Offer draft' }).click()
     await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
   }
 
@@ -944,7 +944,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await expect(offered).toContainText('Ada has offered you this draft')
   await offered.getByRole('button', { name: 'Decline' }).click()
   await expect(bob.getByTestId('offered-to-me')).toHaveCount(0)
-  await bob.getByRole('button', { name: 'Ask Ada for this draft' }).click()
+  await bob.getByRole('button', { name: 'Ask for this draft' }).click()
   await expect(bob.getByText('You have asked Ada for this draft')).toBeVisible()
 
   // Ada sees the request, offers again, and this time Bob accepts: the pen moves.
@@ -960,13 +960,13 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await page.reload()
   await expect(page.getByTestId('read-only')).toContainText('Bob')
   await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0)
-  await page.getByText(/Who has edited this draft/).click()
+  await page.getByText(/Handover history/).click()
   await expect(page.getByText(/Ada offered the draft to Bob: accepted/)).toBeVisible()
   await expect(page.getByText(/Ada offered the draft to Bob: declined/)).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 
-test('the editor sends a frozen copy for review; the reviewer comments and ends; the editor sees it and closes', async ({
+test('the editor sends a snapshot for review; the reviewer comments and ends; the editor sees it and closes', async ({
   page,
   browser,
 }) => {
@@ -983,15 +983,13 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   await expect(page.getByRole('status')).toHaveText('Saved')
   const draftUrl = page.url()
 
-  // Ada sends it for review; the dialog says reviewers read a frozen copy.
+  // Ada sends it for review; the dialog says reviewers read a snapshot.
   const reviewerEmail = `rae-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
   await page.getByText('Send this draft for review').click()
-  await expect(page.getByTestId('snapshot-notice')).toContainText('frozen copy')
+  await expect(page.getByTestId('snapshot-notice')).toContainText('snapshot')
   await page.getByLabel('Email addresses').fill(reviewerEmail)
   await page.getByRole('button', { name: 'Send for review' }).click()
-  await expect(
-    page.getByText(/Sent a snapshot of the draft as it is now to 1 person/),
-  ).toBeVisible()
+  await expect(page.getByText(/Sent to 1 person/)).toBeVisible()
   await expect(page.getByText(`${reviewerEmail} · waiting for a reply`)).toBeVisible()
   const mail = await waitForEmail(reviewerEmail, 'Ada asked you to review a draft')
   const link = linkIn(mail, '/review-invite')
@@ -1065,7 +1063,7 @@ test('the editor sends a frozen copy for review; the reviewer comments and ends;
   await expect(sam.getByText('Added after sending.', { exact: true })).toBeVisible()
   await page.reload()
   await page.getByText(/Send this draft for review/).click()
-  await page.getByRole('button', { name: 'Stop accepting reviews' }).click()
+  await page.getByRole('button', { name: 'Close all reviews' }).click()
   await sam.reload()
   await expect(sam.getByTestId('review-ended')).toContainText('closed')
   await expect(sam.getByRole('textbox', { name: 'Your comment' })).toHaveCount(0)
@@ -1107,8 +1105,8 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   // Ada offers the draft to Bob: she is told she is waiting, he is told it was offered.
   await page.goto(draftUrl)
   await page.getByText('Hand this draft to someone').click()
-  await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
-  await page.getByRole('button', { name: 'Offer the draft' }).click()
+  await page.getByLabel('Member', { exact: true }).selectOption({ label: 'Bob' })
+  await page.getByRole('button', { name: 'Offer draft' }).click()
   await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
   await page.goto(publicationUrl)
   await expect(page.getByRole('region', { name: 'Waiting for you' })).toContainText(
@@ -1126,8 +1124,8 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
   await page.goto(draftUrl)
   await page.getByText('Hand this draft to someone').click()
-  await page.getByLabel('Offer it to').selectOption({ label: 'Bob' })
-  await page.getByRole('button', { name: 'Offer the draft' }).click()
+  await page.getByLabel('Member', { exact: true }).selectOption({ label: 'Bob' })
+  await page.getByRole('button', { name: 'Offer draft' }).click()
   await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
   await bob.reload()
   await bob.getByRole('button', { name: 'Accept Meanders' }).click()
@@ -1139,7 +1137,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await bob.getByText('Send this draft for review').click()
   await bob.getByLabel('Email addresses').fill(reviewerEmail)
   await bob.getByRole('button', { name: 'Send for review' }).click()
-  await expect(bob.getByText(/Sent a snapshot of the draft/)).toBeVisible()
+  await expect(bob.getByText(/Sent to 1 person/)).toBeVisible()
   const link = linkIn(
     await waitForEmail(reviewerEmail, 'Bob asked you to review a draft'),
     '/review-invite',

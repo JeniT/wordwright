@@ -90,14 +90,17 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
 }
 
 describe('handing a draft over (#155)', () => {
-  it('lets the editor offer the draft to a named member, and says they stay editor until it is accepted', async () => {
+  it('lets the editor offer the draft to a named member, and says they are emailed and choose whether to accept', async () => {
     const calls = mockPage(ada, { role: 'owner' })
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByText('Hand this draft to someone'))
-    const choose = screen.getByLabelText('Offer it to')
+    const choose = screen.getByLabelText('Member')
+    expect(
+      screen.getByRole('button', { name: 'About handing over a draft' }),
+    ).toHaveAccessibleDescription(/Only one person edits a draft at a time/)
     expect(within(choose).queryByRole('option', { name: 'Ada Lovelace' })).toBeNull() // not oneself
     await fireEvent.update(choose, 'u2')
-    await fireEvent.click(screen.getByRole('button', { name: 'Offer the draft' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Offer draft' }))
     await waitFor(() =>
       expect(calls).toEqual([{ method: 'POST', path: '/offer', body: { userId: 'u2' } }]),
     )
@@ -147,9 +150,7 @@ describe('handing a draft over (#155)', () => {
   it('lets another member ask, and take the request back', async () => {
     const calls = mockPage(cy)
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(
-      await screen.findByRole('button', { name: 'Ask Ada Lovelace for this draft' }),
-    )
+    await fireEvent.click(await screen.findByRole('button', { name: 'Ask for this draft' }))
     await waitFor(() => expect(calls).toEqual([{ method: 'POST', path: '/asks', body: {} }]))
   })
 
@@ -159,16 +160,16 @@ describe('handing a draft over (#155)', () => {
     })
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/Nothing changes unless they offer it to you/)).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: 'Take back my request' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Withdraw my request' }))
     await waitFor(() => expect(calls).toEqual([{ method: 'DELETE', path: '/asks/a9' }]))
   })
 
   it('lets an owner who is not the editor reassign it', async () => {
     const calls = mockPage(bob, { role: 'owner', editor: 'u1' })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText('Reassign this draft (owners)'))
-    await fireEvent.update(screen.getByLabelText('Make this person the editor'), 'u3')
-    await fireEvent.click(screen.getByRole('button', { name: 'Reassign the draft' }))
+    await fireEvent.click(await screen.findByText('Reassign this draft'))
+    await fireEvent.update(screen.getByLabelText('New editor'), 'u3')
+    await fireEvent.click(screen.getByRole('button', { name: 'Reassign draft' }))
     await waitFor(() =>
       expect(calls).toEqual([{ method: 'POST', path: '/reassign', body: { userId: 'u3' } }]),
     )
@@ -177,8 +178,8 @@ describe('handing a draft over (#155)', () => {
   it('offers reassignment to owners only', async () => {
     mockPage(cy, { role: 'member' })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByRole('button', { name: 'Ask Ada Lovelace for this draft' })
-    expect(screen.queryByText('Reassign this draft (owners)')).toBeNull()
+    await screen.findByRole('button', { name: 'Ask for this draft' })
+    expect(screen.queryByText('Reassign this draft')).toBeNull()
   })
 
   it('lists the history in words, naming a gone account as a former member', async () => {
@@ -229,7 +230,7 @@ describe('handing a draft over (#155)', () => {
       }),
     })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText(/Who has edited this draft \(4\)/))
+    await fireEvent.click(await screen.findByText(/Handover history \(4\)/))
     expect(screen.getByText(/Passed to Ada Lovelace when the previous editor left/)).toBeTruthy()
     expect(screen.getByText(/Reassigned by Jo Park to Ada Lovelace/)).toBeTruthy()
     expect(screen.getByText(/Ada Lovelace offered the draft to Bob Jones: declined/)).toBeTruthy()
@@ -247,9 +248,7 @@ describe('handing a draft over (#155)', () => {
       ),
     )
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(
-      await screen.findByRole('button', { name: 'Ask Ada Lovelace for this draft' }),
-    )
+    await fireEvent.click(await screen.findByRole('button', { name: 'Ask for this draft' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('already asked')
   })
 })

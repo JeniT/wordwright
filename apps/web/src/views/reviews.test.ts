@@ -114,13 +114,13 @@ describe('reading one review', () => {
       expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
     )
     expect(screen.getByText('Lovely start')).toBeTruthy()
-    expect(screen.getByText(/Only you and the draft's editor will see your comments/)).toBeTruthy()
+    expect(screen.getByText(/Only you and the draft’s editor will see this/)).toBeTruthy()
     await fireEvent.update(screen.getByLabelText('Your comment'), 'Which rivers?')
     await fireEvent.click(screen.getByRole('button', { name: /Add comment|Post|Send/ }))
     await waitFor(() => expect(posted).toEqual([{ block: 'whole', text: 'Which rivers?' }]))
   })
 
-  it('lets them end the review, which stays on the page as a read-only copy', async () => {
+  it('lets them end the review, which stays on the page as a read-only snapshot', async () => {
     let state = 'open'
     server.use(
       signedInAs(reviewer),
@@ -138,17 +138,19 @@ describe('reading one review', () => {
       http.get('*/api/reviews', () => HttpResponse.json([summary({ state })])),
     )
     await renderAt('/reviews/r1')
-    expect(await screen.findByText(/a copy of the draft as it was when it was sent/)).toBeTruthy()
+    expect(
+      await screen.findByText(/a snapshot of the draft as it was when it was sent/),
+    ).toBeTruthy()
     await fireEvent.click(await screen.findByRole('button', { name: 'End review' }))
     expect(await screen.findByTestId('review-ended')).toHaveTextContent('You ended this review')
-    // Still there: the copy and the comments, but nothing to add to or end.
+    // Still there: the snapshot and the comments, but nothing to add to or end.
     expect(screen.getByText('Lovely start')).toBeTruthy()
     expect(document.querySelector('.ProseMirror')).not.toBeNull()
     expect(screen.queryByRole('textbox', { name: 'Your comment' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 
-  it('keeps the copy and the comments when the editor has closed the review', async () => {
+  it('keeps the snapshot and the comments when the editor has closed the review', async () => {
     open({
       ...summary({ state: 'closed' }),
       draft: { title: 'Meanders', body: 'Rivers bend.' },
@@ -156,7 +158,7 @@ describe('reading one review', () => {
     })
     await renderAt('/reviews/r1')
     expect(await screen.findByTestId('review-ended')).toHaveTextContent(
-      'the editor has stopped accepting comments',
+      'This review is closed, so you can’t add comments',
     )
     expect(screen.getByText('Lovely start')).toBeTruthy()
     expect(await screen.findByText('Rivers bend.')).toBeTruthy()
@@ -415,19 +417,23 @@ describe('asking someone to review a draft', () => {
     return calls
   }
 
-  it('tells the editor the reviewers read a frozen copy, then sends, closes and withdraws', async () => {
+  it('tells the editor the reviewers read a snapshot, then sends, closes and withdraws', async () => {
     const calls = page('member')
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByText(/Send this draft for review/))
     expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
-      'frozen copy of the draft as it is now, not what you write after this',
+      'snapshot of the draft as it is now, not what you write later',
     )
-    expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
-      'Sending again makes a new copy',
-    )
+    expect(screen.getByTestId('snapshot-notice')).toHaveTextContent('your AI never receives them')
+    expect(
+      screen.getByRole('button', { name: 'About sending for review' }),
+    ).toHaveAccessibleDescription(/Sending again makes a new snapshot/)
     expect(await screen.findByTestId('snapshot-line')).toHaveTextContent(
-      '1 still reading, 2 finished, 3 comments to answer',
+      '1 still reading, 2 finished, 3 unresolved comments',
     )
+    expect(
+      await screen.findByText('A closed review stays readable but can’t be reopened.'),
+    ).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
     await fireEvent.update(
       screen.getByLabelText('Email addresses'),
@@ -438,8 +444,8 @@ describe('asking someone to review a draft', () => {
     expect(await screen.findByText(/to 3 people/)).toBeTruthy()
     // Each reviewer: state, comments so far, when it was sent.
     expect(await screen.findByText(/Reading · 2 comments · sent/)).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: "Stop accepting Rae's review" }))
-    await fireEvent.click(screen.getByRole('button', { name: 'Stop accepting reviews' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Close review: Rae' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Close all reviews' }))
     await fireEvent.click(
       screen.getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
     )
@@ -454,9 +460,9 @@ describe('asking someone to review a draft', () => {
     page('owner', 'u2')
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByText(/Send this draft for review/))
-    expect(screen.getByText(/Only the draft's editor can send it for review/)).toBeTruthy()
+    expect(screen.getByText(/Only the draft’s editor can send it for review/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Send for review' })).toBeNull()
-    expect(await screen.findByRole('button', { name: "Stop accepting Rae's review" })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Close review: Rae' })).toBeTruthy()
   })
 
   it('is for the editor and owners only', async () => {

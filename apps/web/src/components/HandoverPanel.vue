@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { HandoverEvent, HandoverState } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys } from '../lib/queries'
 import { usePublication } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
+import Explain from './Explain.vue'
 import QueryState from './QueryState.vue'
 
 /**
@@ -89,8 +91,7 @@ function describe(e: HandoverEvent): string {
         <div v-if="offeredToMe" class="callout mb-3" data-testid="offered-to-me">
           <p class="mb-2">
             <strong>{{ handover.data.value.editorName }}</strong> has offered you this draft. If you
-            accept, you become its editor, the one person who changes its words. Until then it stays
-            with them.
+            accept, you become its editor, the only person who can change its words.
           </p>
           <div class="flex flex-wrap gap-2">
             <button type="button" class="btn btn-primary" :disabled="busy" @click="accept.mutate()">
@@ -157,8 +158,12 @@ function describe(e: HandoverEvent): string {
               class="mt-2 flex flex-wrap items-end gap-3"
               @submit.prevent="target && offer.mutate(target)"
             >
+              <Explain label="About handing over a draft" class="mb-1">
+                Only one person edits a draft at a time. They offer it to a member, who chooses
+                whether to accept.
+              </Explain>
               <div>
-                <label for="handover-to" class="mb-1 block font-medium">Offer it to</label>
+                <label for="handover-to" class="mb-1 block font-medium">Member</label>
                 <select id="handover-to" v-model="target" class="field">
                   <option value="" disabled>Choose a member</option>
                   <option v-for="m in others" :key="m.userId" :value="m.userId">
@@ -167,15 +172,19 @@ function describe(e: HandoverEvent): string {
                 </select>
               </div>
               <button type="submit" class="btn btn-outline" :disabled="busy || !target">
-                Offer the draft
+                Offer draft
               </button>
               <p class="basis-full text-ink-soft">
-                They are emailed, and choose whether to accept. You stay the editor until they do.
+                They are emailed, and choose whether to accept.
               </p>
             </form>
             <p v-else class="mt-2 text-ink-soft">
-              There is nobody else in this publication yet. Invite someone from the publication's
-              settings.
+              No one else is in this publication yet. Invite someone in
+              <RouterLink
+                :to="{ name: 'publication-settings-sharing', params: { publicationId } }"
+                class="underline"
+                >its settings</RouterLink
+              >.
             </p>
           </details>
         </template>
@@ -196,7 +205,7 @@ function describe(e: HandoverEvent): string {
               :disabled="busy"
               @click="closeAsk.mutate(myAsk.id)"
             >
-              Take back my request
+              Withdraw my request
             </button>
           </div>
           <p v-else-if="!offeredToMe" class="mb-3">
@@ -206,32 +215,30 @@ function describe(e: HandoverEvent): string {
               :disabled="busy"
               @click="ask.mutate()"
             >
-              Ask {{ handover.data.value.editorName }} for this draft
+              Ask for this draft
             </button>
           </p>
         </template>
 
         <details v-if="isOwner && !isEditor && others.length" class="mb-3">
-          <summary class="cursor-pointer text-ink-soft">Reassign this draft (owners)</summary>
+          <summary class="cursor-pointer text-ink-soft">Reassign this draft</summary>
           <form
             class="mt-2 flex flex-wrap items-end gap-3"
             @submit.prevent="reassignTarget && reassign.mutate(reassignTarget)"
           >
             <div>
-              <label for="handover-reassign" class="mb-1 block font-medium"
-                >Make this person the editor</label
-              >
+              <label for="handover-reassign" class="mb-1 block font-medium">New editor</label>
               <select id="handover-reassign" v-model="reassignTarget" class="field">
                 <option value="" disabled>Choose a member</option>
                 <option v-for="m in others" :key="m.userId" :value="m.userId">{{ m.name }}</option>
               </select>
             </div>
             <button type="submit" class="btn btn-outline" :disabled="busy || !reassignTarget">
-              Reassign the draft
+              Reassign draft
             </button>
             <p class="basis-full text-ink-soft">
-              For when the editor is away. It takes effect at once, and the history records that you
-              did it.
+              This takes effect at once, without asking the current editor, and is recorded in the
+              history.
             </p>
           </form>
         </details>
@@ -240,7 +247,7 @@ function describe(e: HandoverEvent): string {
 
         <details v-if="handover.data.value.history.length" class="mb-3">
           <summary class="cursor-pointer text-ink-soft">
-            Who has edited this draft ({{ handover.data.value.history.length }})
+            Handover history ({{ handover.data.value.history.length }})
           </summary>
           <ul class="mt-2 space-y-1 text-ink-soft">
             <li v-for="e in handover.data.value.history" :key="e.id">

@@ -152,7 +152,7 @@ If you weren't expecting this, ignore this email and nothing will happen. The sa
   }
 }
 
-/** Asks a member of the publication to review a frozen copy of a draft. They sign in to read it. */
+/** Asks a member of the publication to review a snapshot of a draft. They sign in to read it. */
 export function reviewRequestEmail(input: {
   inviterName: string
   draftTitle: string
@@ -165,11 +165,11 @@ export function reviewRequestEmail(input: {
     subject: `${inviterName} asked you to review a draft`,
     text: `${inviterName} would like your comments on "${title}", a draft in "${publicationName}" on Wordwright.
 
-You'll read a copy of the draft as it is now, so later edits won't move under you, and only ${inviterName} will see what you write. Sign in to open it:
+You'll read a snapshot of the draft as it is now, so later edits won't move under you, and only ${inviterName} will see what you write. Sign in to open it:
 
 ${link}`,
     html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on <strong>${escapeHtml(title)}</strong>, a draft in ${escapeHtml(publicationName)} on Wordwright.</p>
-<p>You'll read a copy of the draft as it is now, so later edits won't move under you, and only ${escapeHtml(inviterName)} will see what you write.</p>
+<p>You'll read a snapshot of the draft as it is now, so later edits won't move under you, and only ${escapeHtml(inviterName)} will see what you write.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Read the draft</a></p>`),
   }
 }

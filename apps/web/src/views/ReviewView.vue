@@ -62,7 +62,7 @@ const end = useMutation({
           class="callout mb-4"
           data-testid="review-ended"
         >
-          You ended this review. The copy you read and your comments are kept, but you can't add
+          You ended this review. The snapshot you read and your comments are kept, but you can’t add
           more.
         </p>
         <p
@@ -70,20 +70,18 @@ const end = useMutation({
           class="callout mb-4"
           data-testid="review-ended"
         >
-          This review is closed: the editor has stopped accepting comments. The copy you read and
-          your comments are kept.
+          This review is closed, so you can’t add comments. The snapshot you read and your comments
+          are kept.
         </p>
         <p v-else class="callout mb-4 text-sm">
-          You are reading a copy of the draft as it was when it was sent to you, not the editor's
-          latest words. You can't change it; say what you think in a comment below. Only you and the
-          draft's editor will see your comments.
+          You are reading a snapshot of the draft as it was when it was sent to you.
         </p>
         <RichEditor :model-value="body" :editable="false" />
 
         <section class="mt-8" aria-labelledby="mine">
           <h2 id="mine" class="mb-2 font-display text-xl font-semibold">Your comments</h2>
           <p v-if="!review.data.value.comments.length" class="text-sm text-ink-soft">
-            You haven't commented on this draft yet.
+            You haven’t commented yet.
           </p>
           <ol v-else class="space-y-3">
             <li v-for="(c, i) in review.data.value.comments" :key="c.id">
@@ -98,19 +96,18 @@ const end = useMutation({
             v-if="review.data.value.state === 'open'"
             :blocks="blocks"
             :add="add"
-            audience="Only you and the draft's editor will see this."
+            audience="Only you and the draft’s editor will see this."
           />
         </section>
 
         <section
           v-if="review.data.value.state === 'open'"
           class="mt-10 border-t border-line pt-4"
-          aria-labelledby="stop"
+          aria-label="End the review"
         >
-          <h2 id="stop" class="mb-1 font-medium">Finished?</h2>
-          <p class="mb-2 text-sm text-ink-soft">
-            Press End review when you have said what you wanted to. The editor is told once that you
-            finished, and how many comments you left. You can't add more afterwards.
+          <p class="mb-2 text-ink-soft">
+            Ending the review tells the editor you have finished and how many comments you left. You
+            can’t add more afterwards.
           </p>
           <button
             type="button"

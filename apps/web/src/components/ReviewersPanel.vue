@@ -6,6 +6,7 @@ import { api, errorMessage } from '../lib/api'
 import { queryKeys } from '../lib/queries'
 import { usePublication } from '../lib/usePublications'
 import { useSessionStore } from '../stores/session'
+import Explain from './Explain.vue'
 import QueryState from './QueryState.vue'
 import RowList from './RowList.vue'
 
@@ -48,7 +49,7 @@ const send = useMutation({
     }),
   onSuccess: async () => {
     const n = addresses.value.length + chosen.value.length
-    sentSummary.value = `Sent a snapshot of the draft as it is now to ${n} ${n === 1 ? 'person' : 'people'}.`
+    sentSummary.value = `Sent to ${n} ${n === 1 ? 'person' : 'people'}`
     emails.value = ''
     chosen.value = []
     await refresh()
@@ -73,7 +74,7 @@ const problem = computed(() => {
 const stateLabel: Record<ReviewState, string> = {
   open: 'Reading',
   ended: 'Finished',
-  closed: 'Closed by you',
+  closed: 'Closed',
 }
 const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
 const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state === 'open') ?? false)
@@ -89,10 +90,12 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
     <div class="mt-3">
       <form v-if="isEditor" @submit.prevent="send.mutate()">
         <p class="callout mb-3" data-testid="snapshot-notice">
-          The people you ask read a <strong>frozen copy</strong> of the draft as it is now, not what
-          you write after this. Sending again makes a new copy. They can comment, and only you see
-          their comments. The AI never receives them.
+          They read a <strong>snapshot</strong> of the draft as it is now, not what you write later.
+          Only you see their comments, and your AI never receives them.
         </p>
+        <Explain label="About sending for review" class="mb-3">
+          Sending again makes a new snapshot. Reviewers can comment but can’t change the draft.
+        </Explain>
         <div class="mb-3">
           <label for="review-emails" class="mb-1 block font-medium">Email addresses</label>
           <textarea
@@ -101,10 +104,10 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
             rows="2"
             class="field"
             autocomplete="off"
-            placeholder="One or more, separated by commas or new lines"
           ></textarea>
           <p class="mt-1 text-ink-soft">
-            They get a link and an account that reaches only this copy of the draft.
+            Separate addresses with commas or new lines. We email each one a link to this snapshot
+            only.
           </p>
         </div>
         <fieldset v-if="others.length" class="mb-3">
@@ -129,21 +132,24 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
         <p v-if="sentSummary" role="status" class="mt-3">{{ sentSummary }}</p>
       </form>
       <p v-else class="mb-3 text-ink-soft">
-        Only the draft's editor can send it for review. You can see who is reviewing, and stop
-        accepting reviews.
+        Only the draft’s editor can send it for review. You can see who is reviewing and close their
+        reviews.
       </p>
       <p v-if="problem" role="alert" class="mb-3 text-danger">{{ problem }}</p>
 
       <QueryState :query="list" what="who is reviewing">
+        <p v-if="anyOpen" class="mb-3 text-ink-soft">
+          A closed review stays readable but can’t be reopened.
+        </p>
         <ul
           v-if="list.data.value?.snapshots.length"
           class="mb-3 space-y-1 text-ink-soft"
-          aria-label="Copies sent for review"
+          aria-label="Snapshots sent for review"
         >
           <li v-for="s in list.data.value.snapshots" :key="s.id" data-testid="snapshot-line">
-            Copy sent {{ when(s.sentAt) }}: {{ s.open }} still reading,
+            Snapshot sent {{ when(s.sentAt) }}: {{ s.open }} still reading,
             {{ s.ended }} finished<template v-if="s.closed">, {{ s.closed }} closed</template>,
-            {{ s.unresolved }} {{ s.unresolved === 1 ? 'comment' : 'comments' }} to answer
+            {{ s.unresolved }} unresolved {{ s.unresolved === 1 ? 'comment' : 'comments' }}
           </li>
         </ul>
         <RowList
@@ -165,7 +171,7 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
               type="button"
               class="btn btn-sm btn-neutral"
               :disabled="close.isPending.value"
-              :aria-label="`Stop accepting ${r.name}'s review`"
+              :aria-label="`Close review: ${r.name}`"
               @click="close.mutate(r.id)"
             >
               Close review
@@ -179,7 +185,7 @@ const anyOpen = computed(() => list.data.value?.reviewers.some((r) => r.state ==
           :disabled="closeAll.isPending.value"
           @click="closeAll.mutate()"
         >
-          Stop accepting reviews
+          Close all reviews
         </button>
         <RowList
           v-if="list.data.value?.pending.length"
