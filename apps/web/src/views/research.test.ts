@@ -249,9 +249,7 @@ describe('reviewing what research found', () => {
 
   it('warns about a page with no readable title, and rules out pages that do not exist or are not public', async () => {
     const { article } = await open()
-    expect(
-      article.getByText(/We couldn’t confirm the title of this page\. If you add it/),
-    ).toBeInTheDocument()
+    expect(article.getByText('We couldn’t confirm the title of this page.')).toBeInTheDocument()
     expect(article.getByRole('button', { name: 'Add to reading list: Page B' })).toBeEnabled()
     expect(
       article.getByText('We couldn’t find a website at this address, so it can’t be added.'),

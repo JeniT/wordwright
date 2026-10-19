@@ -85,11 +85,7 @@ const undoLabel = computed(() =>
           class="mt-1 flex items-start gap-1 rounded-ctl bg-accent-wash p-2 text-sm"
         >
           <Icon name="alert" class="mt-0.5 shrink-0" />
-          <span>
-            We couldn’t confirm the title of this page. If you add it, it is listed as “{{
-              item.title || item.url
-            }}”.
-          </span>
+          <span> We couldn’t confirm the title of this page. </span>
         </p>
         <p
           v-else-if="unusable"
