@@ -55,8 +55,8 @@ test('researches areas, reviews what was found, and adds pages to the reading li
 
   // A page that checked out, one with no readable title (allowed, with a warning), one that does not exist.
   await expect(run).toContainText('Fake title for research.example.org')
-  await expect(run).toContainText('Your AI’s reason:')
-  await expect(run).toContainText('couldn’t read a title from this page')
+  await expect(run).toContainText('Highlighted text is your AI’s reason')
+  await expect(run).toContainText('We couldn’t confirm the title of this page')
   await expect(run).toContainText('We couldn’t find a website at this address')
   await expect(
     run.getByRole('button', { name: 'Add to reading list: A report that has moved' }),
@@ -79,7 +79,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await expect(run.getByRole('img', { name: 'In the reading list' })).toHaveCount(2)
   await run.getByRole('button', { name: 'Ignore: A report that has moved' }).click()
   await expect(run.getByRole('img', { name: 'Ignored' })).toHaveCount(1)
-  await expect(run.getByText('Your AI’s reason:')).toHaveCount(0) // all decided
+  await expect(run.getByText('Highlighted text is your AI’s reason')).toHaveCount(0) // all decided
   await noViolations(page, 'research page with decided pages')
 
   // The reading list has them, marked, with the AI's reason kept.

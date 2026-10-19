@@ -237,7 +237,11 @@ describe('reviewing what research found', () => {
     expect(article.getAllByText(/example\.org/).length).toBeGreaterThan(0)
     expect(article.getByText(/Ada Author/)).toBeInTheDocument()
     expect(article.queryByText(/The search called it/)).toBeNull()
-    expect(article.getAllByText(/Your AI’s reason:/)).toHaveLength(4)
+    expect(
+      article.getByText('Highlighted text is your AI’s reason for suggesting this item.'),
+    ).toHaveClass('bg-mark')
+    expect(article.queryByText(/Your AI’s reason:/)).toBeNull()
+    expect(article.getAllByText('Looks relevant to the area.')).toHaveLength(4)
     expect(article.getAllByText('Looks relevant to the area.')[0]).toHaveClass('bg-mark')
     expect(article.queryAllByRole('checkbox')).toHaveLength(0)
     expect(article.getAllByRole('listitem')).toHaveLength(4)
@@ -246,7 +250,7 @@ describe('reviewing what research found', () => {
   it('warns about a page with no readable title, and rules out pages that do not exist or are not public', async () => {
     const { article } = await open()
     expect(
-      article.getByText(/We couldn’t read a title from this page\. If you add it/),
+      article.getByText(/We couldn’t confirm the title of this page\. If you add it/),
     ).toBeInTheDocument()
     expect(article.getByRole('button', { name: 'Add to reading list: Page B' })).toBeEnabled()
     expect(
@@ -272,7 +276,7 @@ describe('reviewing what research found', () => {
       ).toBeEnabled(),
     )
     expect(article.queryByRole('button', { name: 'Add to reading list: Page A' })).toBeNull()
-    expect(article.getAllByText(/Your AI’s reason/)).toHaveLength(3) // the other three
+    expect(article.getAllByText('Looks relevant to the area.')).toHaveLength(3) // the other three
     // Decided pages drop to the end, as on the Search page.
     const rows = article.getAllByRole('listitem')
     expect(rows[rows.length - 1]).toHaveTextContent('Page A')
@@ -342,6 +346,22 @@ describe('reviewing what research found', () => {
     expect(await screen.findByText(/Nothing worth reading turned up/)).toBeInTheDocument()
   })
 
+  it('has the delete button on the same line as the topic', async () => {
+    const { article } = await open()
+    const heading = article.getByRole('heading', { name: 'How fast bends migrate' })
+    expect(heading.parentElement).toContainElement(
+      article.getByRole('button', { name: /^Delete this research/ }),
+    )
+  })
+
+  it('says the highlight is the AI’s reason only while a page is waiting for a decision', async () => {
+    const { article } = await open([item({ id: 'a', fetchedTitle: 'Page A' })])
+    const line = 'Highlighted text is your AI’s reason for suggesting this item.'
+    expect(article.getByText(line)).toBeInTheDocument()
+    await fireEvent.click(article.getByRole('button', { name: 'Ignore: Page A' }))
+    await waitFor(() => expect(article.queryByText(line)).toBeNull())
+  })
+
   it('deletes a run only once it is confirmed, and says pages already added stay', async () => {
     const { article } = await open()
     const button = article.getByRole('button', { name: /^Delete this research/ })
@@ -358,9 +378,9 @@ describe('reviewing what research found', () => {
 
 describe('paging through the research', () => {
   const three = () => [
-    run({ areas: 'First topic' }),
-    run({ areas: 'Second topic' }),
-    run({ areas: 'Third topic' }),
+    run({ areas: 'First topic', items: [item()] }),
+    run({ areas: 'Second topic', items: [item()] }),
+    run({ areas: 'Third topic', items: [item()] }),
   ]
   const nav = (where: 'above' | 'below') =>
     within(screen.getByRole('navigation', { name: `Research, ${where} the list` }))
@@ -380,6 +400,14 @@ describe('paging through the research', () => {
     expect(nav('above').getByRole('button', { name: 'Earlier research' })).toBeDisabled()
     await fireEvent.click(nav('above').getByRole('button', { name: 'Later research' }))
     expect(await screen.findByText('Second topic')).toBeInTheDocument()
+  })
+
+  it('has no paging below a run that found nothing', async () => {
+    mockResearch([run({ areas: 'First topic' }), run({ areas: 'Empty topic', items: [] })])
+    await renderAt(page)
+    expect(await screen.findByText('Empty topic')).toBeInTheDocument()
+    expect(nav('above').getByText('Research 2 of 2')).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Research, below the list' })).toBeNull()
   })
 
   it('jumps to a new run when one is made', async () => {

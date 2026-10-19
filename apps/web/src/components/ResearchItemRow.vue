@@ -78,14 +78,23 @@ const undoLabel = computed(() =>
         </p>
         <!-- The highlighter marks what the AI, not the writer or the page, said. -->
         <p class="text-sm">
-          Your AI’s reason: <span class="bg-mark">{{ item.why }}</span>
+          <span class="bg-mark">{{ item.why }}</span>
         </p>
-        <p v-if="item.check === 'no-title'" class="mt-1 text-sm text-ink-soft">
-          We couldn’t read a title from this page. If you add it, it is listed as “{{
-            item.title || item.url
-          }}”.
+        <p
+          v-if="item.check === 'no-title'"
+          class="mt-1 flex items-start gap-1 rounded-ctl bg-accent-wash p-2 text-sm"
+        >
+          <Icon name="alert" class="mt-0.5 shrink-0" />
+          <span>
+            We couldn’t confirm the title of this page. If you add it, it is listed as “{{
+              item.title || item.url
+            }}”.
+          </span>
         </p>
-        <p v-else-if="unusable" class="mt-1 flex items-start gap-1 text-sm text-danger">
+        <p
+          v-else-if="unusable"
+          class="mt-1 flex items-start gap-1 rounded-ctl bg-danger-wash p-2 text-sm text-danger"
+        >
           <Icon name="alert" class="mt-0.5 shrink-0" />
           <span>
             {{

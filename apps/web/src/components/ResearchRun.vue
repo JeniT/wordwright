@@ -74,18 +74,35 @@ const items = computed(() => [
   ...props.run.items.filter((i) => i.status === 'suggested'),
   ...props.run.items.filter((i) => i.status !== 'suggested'),
 ])
+// The reason is only shown on pages still to decide, so the line that explains the highlight is too.
+const waiting = computed(() => props.run.items.some((i) => i.status === 'suggested'))
 </script>
 
 <template>
   <article :aria-labelledby="headingId">
-    <h3
-      :id="headingId"
-      class="mb-1 whitespace-pre-wrap break-words font-display text-lg font-semibold"
-    >
-      {{ run.areas }}
-    </h3>
+    <div class="mb-1 flex items-start justify-between gap-3">
+      <h3
+        :id="headingId"
+        class="min-w-0 whitespace-pre-wrap break-words font-display text-lg font-semibold"
+      >
+        {{ run.areas }}
+      </h3>
+      <HoldButton
+        tip="Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there."
+        verb="Delete"
+        class="btn btn-sm btn-icon btn-ghost btn-ghost-danger shrink-0"
+        :aria-label="`Delete this research: ${run.areas}`"
+        :disabled="remove.isPending.value"
+        @confirm="remove.mutate()"
+      >
+        <Icon name="remove" />
+      </HoldButton>
+    </div>
     <p class="mb-3 text-sm text-ink-soft">
       <template v-if="run.createdByName">{{ run.createdByName }} · </template>{{ when }}
+    </p>
+    <p v-if="waiting" class="mb-3 text-sm">
+      <span class="bg-mark">Highlighted text is your AI’s reason for suggesting this item.</span>
     </p>
     <p class="sr-only" aria-live="polite">{{ notice }}</p>
 
@@ -106,19 +123,6 @@ const items = computed(() => [
       {{ errorMessage(problem) }}
       <button type="button" class="ml-2 underline" @click="clearProblem">Dismiss</button>
     </div>
-
-    <p class="mt-3">
-      <HoldButton
-        tip="Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there."
-        verb="Delete"
-        class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-        :aria-label="`Delete this research: ${run.areas}`"
-        :disabled="remove.isPending.value"
-        @confirm="remove.mutate()"
-      >
-        <Icon name="remove" />
-      </HoldButton>
-    </p>
     <p v-if="remove.isError.value" role="alert" class="mt-2 text-sm text-danger">
       {{ errorMessage(remove.error.value) }}
     </p>

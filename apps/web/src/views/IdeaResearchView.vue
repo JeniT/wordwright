@@ -97,8 +97,9 @@ const nav = computed(() => ({
               :idea-id="id"
               :run="current"
             />
+            <!-- Only worth repeating below a run long enough to need it. -->
             <PageNav
-              v-if="ordered.length > 1"
+              v-if="ordered.length > 1 && current.items.length"
               v-bind="nav"
               label="Research, below the list"
               class="mt-3"
