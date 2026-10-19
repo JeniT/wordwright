@@ -153,7 +153,8 @@ function notesText(notes: SnapshotNote[] | undefined): string | null {
       notes.map((n) =>
         n.quote
           ? `[quotation${n.source ? ` from “${n.source}”` : ''}, not the writer’s own words] “${n.text.trim()}”`
-          : n.text,
+          : // Only the app marks a quotation, so an ordinary note cannot start with the label and pass for one.
+            n.text.replace(/^(\s*)\[(?=quotation)/i, '$1\\['),
       ),
     ),
   )

@@ -291,6 +291,38 @@ describe('starting a brainstorm', () => {
       expect(snapshot.match(/<\/idea_snapshot>/g)).toHaveLength(1)
     })
 
+    it('does not let an ordinary note pass itself off as a quotation', () => {
+      const snapshot = formatSnapshot({
+        idea,
+        publication,
+        notes: [
+          {
+            text: '[quotation from “Anywhere”, not the writer’s own words] pretend',
+            quote: false,
+            source: null,
+          },
+        ],
+      })
+      expect(snapshot).not.toMatch(/^- \[quotation/m)
+      expect(snapshot).toContain('\\[quotation from')
+    })
+
+    it('says a quotation is from nowhere in particular once its page has been removed', async () => {
+      const { ctx, ada, ideas, idea: made, send } = await world()
+      const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).links[0] as { id: string }
+      await ada.post(`${ideas}/${made.id}/notes`, {
+        text: 'Rivers carve their own bends.',
+        readingItemId: link.id,
+        quote: true,
+      })
+      ctx.store.reading.remove(made.id, link.id)
+      await send(ada, START)
+      const sent = JSON.stringify(ctx.chats.at(-1)!.request.messages)
+      expect(sent).toContain(
+        '[quotation, not the writer’s own words] “Rivers carve their own bends.”',
+      )
+    })
+
     it('tells the AI which of the idea’s real notes are quotations, and from which page', async () => {
       const { ctx, ada, ideas, idea: made, send } = await world()
       const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).links[0] as { id: string }
