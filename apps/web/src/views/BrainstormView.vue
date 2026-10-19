@@ -117,6 +117,8 @@ const messages = computed(() => {
   const sent = liveHere.value?.user
   return sent && !saved.some((m) => m.id === sent.id) ? [...saved, sent] : saved
 })
+/** What the thread shows: the opening turn is the app's own, so it is kept but not listed. */
+const shown = computed(() => messages.value.filter((m) => m.kind !== 'kickoff'))
 /**
  * The streamed copy of the reply is shown until the saved one is in the thread, and not a moment
  * longer: re-reading the thread, the idea and its notes takes a while, and the saved reply can arrive
@@ -378,11 +380,9 @@ const busyNote = computed(() =>
         >
           <div role="log" aria-label="Conversation" aria-relevant="additions" class="mb-4">
             <ol class="space-y-4">
-              <li v-for="message in messages" :key="message.id">
-                <!-- The opening turn is the app's own, so there is nothing of the writer's to show. -->
-                <template v-if="message.kind === 'kickoff'"></template>
+              <li v-for="message in shown" :key="message.id">
                 <div
-                  v-else-if="message.role === 'user'"
+                  v-if="message.role === 'user'"
                   class="ml-8 rounded-ctl border border-line bg-surface p-3"
                 >
                   <p class="mb-1 text-sm font-medium text-ink-soft">
