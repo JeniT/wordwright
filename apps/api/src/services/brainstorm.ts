@@ -204,10 +204,9 @@ export class BrainstormService {
   /** Starts an empty conversation, or hands back the empty one already waiting, so none are made for nothing. */
   create(idea: Idea): ConversationSummary {
     const { conversations } = this.d.store
-    const all = conversations.list(idea.id)
-    const waiting = all.find((c) => conversations.messages(c.id).length === 0)
+    const waiting = conversations.emptyOne(idea.id)
     if (waiting) return summary(waiting)
-    if (all.length >= MAX_CONVERSATIONS_PER_IDEA) {
+    if (conversations.list(idea.id).length >= MAX_CONVERSATIONS_PER_IDEA) {
       throw fail(
         409,
         `This idea has ${MAX_CONVERSATIONS_PER_IDEA} conversations, the most it can hold. Delete one to start another.`,

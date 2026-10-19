@@ -100,6 +100,11 @@ export class ConversationStore {
     return row ? toConversation(row) : undefined
   }
 
+  /** The conversation nobody has written in yet, if there is one. */
+  emptyOne(ideaId: string): ConversationRecord | undefined {
+    return this.list(ideaId).find((c) => this.messages(c.id).length === 0)
+  }
+
   create(ideaId: string): string {
     const id = randomUUID()
     this.db

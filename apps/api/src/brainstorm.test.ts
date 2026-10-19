@@ -1134,13 +1134,14 @@ describe('what is kept when things are deleted', () => {
   })
 
   it("removes everything with the account of a publication's only member", async () => {
-    const { ctx, ada, conversationId, send } = await world()
+    const { ctx, ada, idea, conversationId, send } = await world()
     await send(ada, START)
     const res = await ada.delete('/api/account', {
       password: PASSWORD,
     })
     expect(res.status).toBe(204)
     expect(ctx.store.conversations.messages(conversationId)).toEqual([])
+    expect(ctx.store.conversations.get(idea.id, conversationId)).toBeUndefined()
   })
 
   it("keeps a departed member's messages in a shared publication, with their name if they chose that", async () => {

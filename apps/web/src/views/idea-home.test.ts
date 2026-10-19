@@ -447,6 +447,22 @@ describe('an idea’s landing page', () => {
       expect(router.currentRoute.value.query).toEqual({ start: '1' })
     })
 
+    it('summarises the newest of several conversations and links to them all', async () => {
+      fakeIdea({ messages: [message(1, 'assistant', 'From the newest.')] })
+      const summaries = [
+        { id: 'c0', createdAt: '2026-01-01T10:00:00Z', startedByName: 'Ada' },
+        { id: 'c1', createdAt: '2026-01-05T10:00:00Z', startedByName: 'Ada' },
+      ]
+      server.use(
+        http.get(`${ideaUrl}/conversations`, () => HttpResponse.json({ conversations: summaries })),
+      )
+      await renderAt('/p/ada-substack/ideas/i1')
+      const region = await screen.findByRole('region', { name: 'Refine' })
+      expect(await within(region).findByText('From the newest.')).toBeInTheDocument()
+      expect(within(region).getByRole('link', { name: 'See all conversations' })).toBeVisible()
+      expect(within(region).queryByRole('button', { name: 'Refine with your AI' })).toBeNull()
+    })
+
     it('shows the latest message from the AI, not the writer’s own', async () => {
       fakeIdea({
         messages: [

@@ -31,8 +31,8 @@ import Icon from '../components/Icon.vue'
     </h2>
     <p>
       Talking an idea over can go on for ever without moving it forward. So each idea holds up to
-      five Refine conversations, and you delete one to make room for another. Everyone who works in
-      the publication sees them all.
+      five Refine conversations. Start another with New conversation, page between them, and delete
+      one to make room. Everyone who works in the publication sees them all.
     </p>
   </HelpPage>
 </template>
