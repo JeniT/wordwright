@@ -621,7 +621,7 @@ describe('a publication’s landing page: Quick add', () => {
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
     await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
     await waitFor(() => expect(added).toEqual(['https://example.org/new']))
-    expect(await screen.findByText(/Added\./)).toBeInTheDocument()
+    expect(await screen.findByText(/Added to .+’s reading list\./)).toBeInTheDocument()
   })
 
   it('the sections below no longer carry forms of their own', async () => {

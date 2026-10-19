@@ -2,22 +2,29 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
-import { readingRoute, useReadingActions, useReadingList } from '../lib/reading'
+import { readingBackRoute, readingRoute, useReadingActions, useReadingList } from '../lib/reading'
 import FieldWithAction from './FieldWithAction.vue'
 import TextField from './TextField.vue'
 
 /**
  * The box that adds a web address to the reading list of an idea, or (no `ideaId`) of the publication. It sits above
  * the list, so it stays where it is as items pile up; what was just added is said under it, with a way to open it.
+ * It is the only such form: Quick add shows it too, and passes `place` because there the list isn't on screen.
  */
-const props = defineProps<{ publicationId: string; ideaId: string | null }>()
+const props = defineProps<{
+  publicationId: string
+  ideaId: string | null
+  /** Whose list it went to ("Blog", "this idea"), said only when the list isn't the page being looked at. */
+  place?: string
+}>()
 const emit = defineEmits<{ added: [] }>()
 const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
 const { add, listOf } = useReadingActions(owner)
 const list = useReadingList(owner)
 
 const linkUrl = ref('')
-const justAdded = ref<{ id: string; label: string } | null>(null)
+// `id` is null when the new item couldn't be told apart (the list hadn't loaded), so the link goes to the list.
+const justAdded = ref<{ id: string | null; label: string | null; place?: string } | null>(null)
 // The message points to the list, so it stays until the next address is started, then goes.
 function typing() {
   justAdded.value = null
@@ -25,12 +32,20 @@ function typing() {
 }
 // On failure what was typed stays in the field, with the reason shown under it.
 function submit() {
-  const before = new Set(list.links.value?.map((l) => l.id))
+  const before = list.links.value && new Set(list.links.value.map((l) => l.id))
+  const typed = linkUrl.value
+  const place = props.place
   justAdded.value = null
   add.mutate(linkUrl.value, {
     onSuccess: (saved) => {
-      const item = listOf(saved).find((l) => !before.has(l.id))
-      justAdded.value = item ? { id: item.id, label: item.title || item.url } : null
+      const after = listOf(saved)
+      // Quick add can add before the list was ever loaded; then the address typed is the best clue to the new item.
+      const item = before
+        ? after.find((l) => !before.has(l.id))
+        : after.find((l) => l.url === typed)
+      justAdded.value = item
+        ? { id: item.id, label: item.title || item.url, place }
+        : { id: null, label: null, place }
       linkUrl.value = ''
       emit('added')
     },
@@ -55,10 +70,20 @@ function submit() {
     </FieldWithAction>
     <p aria-live="polite" class="mt-2 text-sm">
       <template v-if="justAdded">
-        Added “{{ justAdded.label }}”.
-        <RouterLink :to="readingRoute(owner(), justAdded.id)" class="underline">
-          Open “{{ justAdded.label }}”
-        </RouterLink>
+        <template v-if="justAdded.id && justAdded.label">
+          Added “{{ justAdded.label }}”{{
+            justAdded.place ? ` to ${justAdded.place}’s reading list` : ''
+          }}.
+          <RouterLink :to="readingRoute(owner(), justAdded.id)" class="underline">
+            Open “{{ justAdded.label }}”
+          </RouterLink>
+        </template>
+        <template v-else>
+          Added{{ justAdded.place ? ` to ${justAdded.place}’s reading list` : '' }}.
+          <RouterLink :to="readingBackRoute(owner())" class="underline">
+            Open the reading list
+          </RouterLink>
+        </template>
       </template>
     </p>
   </form>

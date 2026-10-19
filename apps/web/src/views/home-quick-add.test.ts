@@ -270,6 +270,55 @@ describe('Home: Quick add (#192)', () => {
     expect(sent).toMatchObject([{ url: 'https://example.com/post' }])
   })
 
+  it('names the new page and where it went, with a link to it', async () => {
+    let listed = false
+    server.use(
+      signedInAs(testUser),
+      publications(blog, letters),
+      llmSettings(true),
+      ideasFor('ada-letters', ['x']),
+      http.get('*/api/publications/ada-letters/reading', () => {
+        listed = true
+        return HttpResponse.json([])
+      }),
+      http.post('*/api/publications/ada-letters/reading', () =>
+        HttpResponse.json(
+          [
+            {
+              id: 'l9',
+              url: 'https://example.com/post',
+              title: 'A good post',
+              authors: [],
+              readAt: null,
+              origin: 'entered',
+              tags: [],
+            },
+          ],
+          { status: 201 },
+        ),
+      ),
+    )
+    await renderAt('/')
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    const box = screen.getByLabelText('Web address')
+    expect(box).toHaveAccessibleDescription('We will look up its title.')
+    // Changing the publication keeps the address, and the form then adds to the new one.
+    await fireEvent.update(box, 'example.com/post')
+    await fireEvent.update(screen.getByLabelText('Add to publication'), 'ada-letters')
+    expect(box).toHaveValue('example.com/post')
+    // The new page is told apart from the list already there, so that has to have loaded.
+    await waitFor(() => expect(listed).toBe(true))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    const status = (
+      await screen.findByText(/Added “A good post” to Letters’s reading list\./)
+    ).closest('p')!
+    expect(within(status).getByRole('link', { name: 'Open “A good post”' })).toHaveAttribute(
+      'href',
+      '/p/ada-letters/reading/l9',
+    )
+    expect(box).toHaveValue('')
+  })
+
   it('says what went wrong when adding fails, and keeps what was typed', async () => {
     server.use(
       signedInAs(testUser),
@@ -307,7 +356,7 @@ describe('Home: Quick add (#192)', () => {
       await fireEvent.click(await screen.findByRole('tab', { name: open }))
       await fireEvent.update(screen.getByLabelText(label), text)
       await fireEvent.click(screen.getByRole('button', { name: submit }))
-      expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, that did not work.')
+      expect(await screen.findByText('Sorry, that did not work.')).toBeVisible()
       expect(screen.getByLabelText(label)).toHaveValue(text)
     },
   )

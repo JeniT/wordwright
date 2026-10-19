@@ -759,7 +759,9 @@ describe('reading page', () => {
       expect(box).toHaveAccessibleDescription('We will look up its title.')
       await fireEvent.update(box, 'example.org/new')
       await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
-      const status = (await screen.findByText(/Added “Fetched title”\./)).closest('p')!
+      const status = (
+        await screen.findByText(/Added “Fetched title” to this idea’s reading list\./)
+      ).closest('p')!
       expect(status).toHaveAttribute('aria-live', 'polite')
       expect(sent).toEqual([{ url: 'example.org/new' }])
       expect(box).toHaveValue('')

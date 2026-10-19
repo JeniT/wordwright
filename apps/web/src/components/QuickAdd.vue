@@ -7,9 +7,9 @@ import { api } from '../lib/api'
 import { lastPublicationId, rememberPublication } from '../lib/last-publication'
 import { invalidateRoots, refreshNotesEverywhere, useRecentDrafts } from '../lib/queries'
 import { useQuoteTick } from '../lib/quote-tick'
-import { readingBackRoute } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
 import FieldWithAction from './FieldWithAction.vue'
+import PublicationPicker from './PublicationPicker.vue'
 import QuoteTick from './QuoteTick.vue'
 import SaveStatus from './SaveStatus.vue'
 import TabPanels from './TabPanels.vue'
@@ -77,12 +77,8 @@ const focusField = (kind: Kind) =>
 
 const ideaName = ref('')
 const noteText = ref('')
-const readingUrl = ref('')
 /** What was last added, to say where it went. Cleared when another form opens. */
-const added = ref<{
-  kind: 'note' | 'reading'
-  publication: Publication
-}>()
+const added = ref<{ publication: Publication }>()
 
 // Pick up may finish loading while someone types (the form locks the publication on first input) or after they
 // move to another tab: keep adding to the publication they saw. Another tab starts clean: no old error or "Added to…".
@@ -91,7 +87,6 @@ watch(tab, () => {
   added.value = undefined
   createIdea.reset()
   addNote.reset()
-  addReading.reset()
 })
 
 const createIdea = useMutation({
@@ -113,7 +108,7 @@ const addNote = useMutation({
         : {},
     ),
   onSuccess: async (note) => {
-    added.value = { kind: 'note', publication: selected.value }
+    added.value = { publication: selected.value }
     noteText.value = ''
     emit('note-added', note.id)
     quote.reset()
@@ -125,19 +120,6 @@ const addNote = useMutation({
     focusField('note')
   },
 })
-const addReading = useMutation({
-  mutationFn: async () => {
-    if (props.ideaId)
-      await api.addIdeaLink(selectedId.value, props.ideaId, { url: readingUrl.value })
-    else await api.addPublicationLink(selectedId.value, { url: readingUrl.value })
-  },
-  onSuccess: async () => {
-    added.value = { kind: 'reading', publication: selected.value }
-    readingUrl.value = ''
-    await invalidateRoots(queryClient, 'reading', 'idea', 'ideas')
-    focusField('reading')
-  },
-})
 /**
  * "Added to …" points to a place that isn't on screen, so it stays until the person starts the next entry, then goes.
  * The publication they saw is kept (the form locks it on first input, see above).
@@ -146,47 +128,42 @@ function typing() {
   chosen.value ??= selectedId.value
   added.value = undefined
 }
-const mutations = { idea: createIdea, note: addNote, reading: addReading }
-const submitLabels: Record<Kind, string> = {
-  idea: 'Create idea',
-  note: 'Add note',
-  reading: 'Add to reading list',
-}
-const busy = computed(
-  () => createIdea.isPending.value || addNote.isPending.value || addReading.isPending.value,
-)
+const mutations = { idea: createIdea, note: addNote }
+const submitLabels = { idea: 'Create idea', note: 'Add note' }
+const busy = computed(() => createIdea.isPending.value || addNote.isPending.value)
 </script>
 
 <template>
   <section class="panel p-5" aria-label="Quick add">
     <TabPanels v-model="tab" :tabs="tabs" label="Quick add">
       <template v-for="kind in tabs.map((t) => t.id)" :key="kind" #[kind]>
-        <!-- On an item's page the reading tab is the form that sits above a reading list, so they match. -->
-        <AddLinkForm
-          v-if="kind === 'reading' && readingItemId"
-          :publication-id="selectedId"
-          :idea-id="ideaId ?? null"
-        />
+        <!-- The reading tab is the one form that sits above a reading list, wherever Quick add is. -->
+        <div v-if="kind === 'reading'" @input="typing()">
+          <PublicationPicker
+            v-if="tab === kind"
+            :publications="publications"
+            :selected-id="selectedId"
+            @change="pick"
+          />
+          <AddLinkForm
+            :publication-id="selectedId"
+            :idea-id="ideaId ?? null"
+            :place="ideaId ? 'this idea' : selected.name"
+          />
+        </div>
         <form
           v-else
           :ref="(el) => (forms[kind] = el as HTMLFormElement)"
           @submit.prevent="mutations[kind].mutate()"
           @input="typing()"
         >
-          <div v-if="publications.length > 1 && tab === kind" class="mb-4">
-            <label for="quick-add-publication" class="mb-1 block text-sm font-medium"
-              >Add to publication</label
-            >
-            <select
-              id="quick-add-publication"
-              class="field"
-              :value="selectedId"
-              :disabled="busy"
-              @change="pick"
-            >
-              <option v-for="p in publications" :key="p.id" :value="p.id">{{ p.name }}</option>
-            </select>
-          </div>
+          <PublicationPicker
+            v-if="tab === kind"
+            :publications="publications"
+            :selected-id="selectedId"
+            :disabled="busy"
+            @change="pick"
+          />
           <FieldWithAction
             v-if="kind === 'idea'"
             :action="submitLabels.idea"
@@ -216,17 +193,9 @@ const busy = computed(
               @ticked="quote.tickedByPaste.value = false"
             />
           </div>
-          <TextField
-            v-else
-            v-model="readingUrl"
-            label="Web address"
-            type="url"
-            autocomplete="off"
-            required
-          />
           <div class="flex flex-wrap items-center gap-3">
-            <button v-if="kind !== 'idea'" type="submit" class="btn btn-primary" :disabled="busy">
-              {{ submitLabels[kind] }}
+            <button v-if="kind === 'note'" type="submit" class="btn btn-primary" :disabled="busy">
+              {{ submitLabels.note }}
             </button>
             <SaveStatus
               :mutation="mutations[kind]"
@@ -236,12 +205,12 @@ const busy = computed(
           </div>
           <!-- Beside a reading item the new note is right there in its list, so the words are for screen readers only. -->
           <p
-            v-if="added && added.kind === kind"
+            v-if="added && kind === 'note'"
             role="status"
-            :class="added.kind === 'note' && readingItemId ? 'sr-only' : 'mt-3'"
+            :class="readingItemId ? 'sr-only' : 'mt-3'"
           >
-            <template v-if="added.kind === 'note' && readingItemId">Note added.</template>
-            <template v-else-if="added.kind === 'note'"
+            <template v-if="readingItemId">Note added.</template>
+            <template v-else
               >{{
                 inPlace
                   ? 'Note added.'
@@ -258,20 +227,6 @@ const busy = computed(
                 "
                 class="link"
                 >{{ inPlace ? 'See all notes' : 'Open the notes' }}</RouterLink
-              ></template
-            >
-            <template v-else
-              >{{
-                inPlace
-                  ? 'Added.'
-                  : `Added to ${ideaId ? 'this idea’s' : `${added.publication.name}’s`} reading list.`
-              }}
-              <RouterLink
-                :to="
-                  readingBackRoute({ publicationId: added.publication.id, ideaId: ideaId ?? null })
-                "
-                class="link"
-                >{{ inPlace ? 'See the reading list' : 'Open the reading list' }}</RouterLink
               ></template
             >
           </p>
