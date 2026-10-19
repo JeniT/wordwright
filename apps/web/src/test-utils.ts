@@ -85,8 +85,8 @@ export const server = setupServer(
     HttpResponse.json({ round: null, used: 0, allowed: 3 }),
   ),
   // No brainstorming has happened yet, on any idea.
-  http.get('*/api/publications/:publicationId/ideas/:ideaId/conversation', () =>
-    HttpResponse.json({ messages: [], replyingNow: null }),
+  http.get('*/api/publications/:publicationId/ideas/:ideaId/conversations', () =>
+    HttpResponse.json({ conversations: [] }),
   ),
 )
 

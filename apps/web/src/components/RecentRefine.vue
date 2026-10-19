@@ -19,9 +19,18 @@ const props = defineProps<{ publicationId: string; ideaId: string }>()
 const router = useRouter()
 const SHOWN = 600
 
+// The newest conversation is the one summarised; the Refine page has them all.
+const list = useQuery({
+  queryKey: computed(() => queryKeys.conversations(props.publicationId, props.ideaId)),
+  queryFn: () => api.getConversations(props.publicationId, props.ideaId),
+})
+const newestId = computed(() => list.data.value?.conversations.at(-1)?.id)
 const conversation = useQuery({
-  queryKey: computed(() => queryKeys.conversation(props.publicationId, props.ideaId)),
-  queryFn: () => api.getConversation(props.publicationId, props.ideaId),
+  queryKey: computed(() =>
+    queryKeys.conversation(props.publicationId, props.ideaId, newestId.value ?? ''),
+  ),
+  queryFn: () => api.getConversation(props.publicationId, props.ideaId, newestId.value!),
+  enabled: computed(() => !!newestId.value),
 })
 const refineRoute = computed(() => ({
   name: 'brainstorm',
@@ -32,7 +41,12 @@ const latest = computed(() =>
     .reverse()
     .find((m) => m.role === 'assistant' && m.kind === 'message' && m.text),
 )
-const empty = computed(() => !!conversation.data.value && !conversation.data.value.messages.length)
+/** Nothing said yet: no conversation, or the newest is still empty. */
+const empty = computed(
+  () =>
+    !!list.data.value &&
+    (!newestId.value || (!!conversation.data.value && !conversation.data.value.messages.length)),
+)
 
 /** The start of a long reply, cut at a paragraph where it can be, so the Markdown stays whole. */
 const excerpt = computed(() => {
@@ -66,9 +80,9 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
     explain="Use your AI to help you refine your idea. It will ask you questions and add the points you make to your notes."
   >
     <template #actions>
-      <RouterLink :to="refineRoute" class="link text-sm">See the conversation</RouterLink>
+      <RouterLink :to="refineRoute" class="link text-sm">See all conversations</RouterLink>
     </template>
-    <QueryState :query="conversation" what="the conversation" loading="Loading the conversation…">
+    <QueryState :query="list" what="the conversation" loading="Loading the conversation…">
       <div v-if="empty" class="flex flex-wrap items-center gap-x-4 gap-y-2">
         <AiButton class="btn btn-primary" @click="start">Refine with your AI</AiButton>
         <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
@@ -76,7 +90,12 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
           list to your AI. It will not send your drafts.
         </p>
       </div>
-      <template v-else>
+      <QueryState
+        v-else
+        :query="conversation"
+        what="the conversation"
+        loading="Loading the conversation…"
+      >
         <div v-if="latest" class="panel-sunken mb-4 p-3">
           <p class="mb-1 text-sm font-medium text-ink-soft">
             Your AI<span v-if="latest.model" class="font-normal"> · {{ latest.model }}</span>
@@ -101,7 +120,7 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
             >Send</AiButton
           >
         </form>
-      </template>
+      </QueryState>
     </QueryState>
   </LandingSection>
 </template>

@@ -196,22 +196,63 @@ test('asked to do research, the coach points to the Research tool and suggests n
   await expect(page.getByRole('region', { name: /^Suggested reading/ })).toHaveCount(0)
 })
 
-test('start again clears the conversation, after asking', async ({ page }) => {
+test('deleting the conversation asks first, then offers a fresh start', async ({ page }) => {
   await setUp(page)
   await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
-  await page.getByRole('button', { name: 'Start again' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Start the conversation again?' })
-  await noViolations(page, 'start again dialog')
+  await page.getByRole('button', { name: 'Delete conversation' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Delete the conversation?' })
+  await noViolations(page, 'delete conversation dialog')
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
-  await page.getByRole('button', { name: 'Start again' }).click()
-  await dialog.getByRole('button', { name: 'Yes, start again' }).click()
+  await page.getByRole('button', { name: 'Delete conversation' }).click()
+  await dialog.getByRole('button', { name: 'Delete conversation' }).click()
   await expect(page.getByRole('button', { name: 'Start brainstorming' })).toBeVisible()
   await page.getByRole('button', { name: 'Start brainstorming' }).click()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
+})
+
+test('keeps several conversations on an idea: start another, page between them, delete one', async ({
+  page,
+}) => {
+  await setUp(page)
+  await startBrainstorming(page)
+  await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
+  await say(page, 'First conversation point')
+  await expect(page.getByRole('log', { name: 'Conversation' })).toContainText(
+    'First conversation point',
+  )
+
+  // A second one beside it; the AI speaks first and it is the one on screen.
+  await page.getByRole('button', { name: 'New conversation' }).click()
+  await expect(page.getByText('Conversation 2 of 2').first()).toBeVisible()
+  await expect(page.getByRole('log', { name: 'Conversation' })).not.toContainText(
+    'First conversation point',
+  )
+  await noViolations(page, 'refine page with two conversations')
+
+  // Back to the earlier one.
+  await page
+    .getByRole('navigation', { name: 'Conversations, above the thread' })
+    .getByRole('button', { name: 'Earlier conversation' })
+    .click()
+  await expect(page.getByRole('log', { name: 'Conversation' })).toContainText(
+    'First conversation point',
+  )
+
+  // Deleting it leaves the other one.
+  await page.getByRole('button', { name: 'Delete conversation' }).click()
+  await page
+    .getByRole('dialog', { name: 'Delete the conversation?' })
+    .getByRole('button', { name: 'Delete conversation' })
+    .click()
+  await expect(page.getByRole('log', { name: 'Conversation' })).not.toContainText(
+    'First conversation point',
+  )
+  await expect(page.getByRole('navigation', { name: /^Conversations, / })).toHaveCount(0)
+  await expect(page.getByRole('log', { name: 'Conversation' })).toBeVisible()
 })
 
 test('without an AI key, says where to add one and keeps the way open to try again', async ({

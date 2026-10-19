@@ -68,53 +68,106 @@ export interface RecordedNoteRecord extends RecordedNote {
   toolCallId: string
 }
 
-/** The brainstorming thread of each idea. Callers check that the person belongs to the idea's publication first. */
+/** A Refine conversation as stored: when it began, and who began it (the author of its first message). */
+export interface ConversationRecord {
+  id: string
+  ideaId: string
+  createdAt: string
+  startedByName: string | null
+}
+
+/**
+ * The Refine conversations of each idea, shared by everyone in its publication. Messages are always read and written
+ * through their conversation, so one conversation never sees another's. Callers check that the person belongs to the
+ * idea's publication first.
+ */
 export class ConversationStore {
   constructor(private readonly db: DatabaseSync) {}
 
-  messages(ideaId: string): MessageRecord[] {
+  /** An idea's conversations, oldest first. */
+  list(ideaId: string): ConversationRecord[] {
+    return this.db
+      .prepare(`${this.conversationSql('WHERE c.idea_id = ?')} ORDER BY c.created_at, c.rowid`)
+      .all(ideaId)
+      .map(toConversation)
+  }
+
+  /** A conversation, only if it belongs to this idea. */
+  get(ideaId: string, id: string): ConversationRecord | undefined {
+    const row = this.db
+      .prepare(this.conversationSql('WHERE c.idea_id = ? AND c.id = ?'))
+      .get(ideaId, id)
+    return row ? toConversation(row) : undefined
+  }
+
+  create(ideaId: string): string {
+    const id = randomUUID()
+    this.db
+      .prepare('INSERT INTO idea_conversations (id, idea_id, created_at) VALUES (?, ?, ?)')
+      .run(id, ideaId, nowIso())
+    return id
+  }
+
+  /** Removes one conversation, its messages and the suggestions made in them. */
+  delete(id: string) {
+    this.db.prepare('DELETE FROM idea_conversations WHERE id = ?').run(id)
+  }
+
+  private conversationSql(rest: string) {
+    // Who began it: the author of its first message (their name as kept, if the account has gone).
+    return `SELECT c.*, (
+              SELECT COALESCE(u.name, m.kept_name) FROM idea_messages m
+              LEFT JOIN users u ON u.id = m.author_id
+              WHERE m.conversation_id = c.id ORDER BY m.seq LIMIT 1
+            ) AS started_by_name
+            FROM idea_conversations c ${rest}`
+  }
+
+  messages(conversationId: string): MessageRecord[] {
     return this.db
       .prepare(
         `SELECT m.*, COALESCE(u.name, m.kept_name) AS author_name FROM idea_messages m
          LEFT JOIN users u ON u.id = m.author_id
-         WHERE m.idea_id = ? ORDER BY m.seq`,
+         WHERE m.conversation_id = ? ORDER BY m.seq`,
       )
-      .all(ideaId)
+      .all(conversationId)
       .map(toMessage)
   }
 
-  message(ideaId: string, id: string): MessageRecord | undefined {
+  message(conversationId: string, id: string): MessageRecord | undefined {
     const row = this.db
       .prepare(
         `SELECT m.*, COALESCE(u.name, m.kept_name) AS author_name FROM idea_messages m
-         LEFT JOIN users u ON u.id = m.author_id WHERE m.idea_id = ? AND m.id = ?`,
+         LEFT JOIN users u ON u.id = m.author_id WHERE m.conversation_id = ? AND m.id = ?`,
       )
-      .get(ideaId, id)
+      .get(conversationId, id)
     return row ? toMessage(row) : undefined
   }
 
   /** The snapshot carried by the most recent message that had one: what the model last saw of the idea. */
-  lastSnapshot(ideaId: string): string | undefined {
+  lastSnapshot(conversationId: string): string | undefined {
     const row = this.db
       .prepare(
-        'SELECT snapshot FROM idea_messages WHERE idea_id = ? AND snapshot IS NOT NULL ORDER BY seq DESC LIMIT 1',
+        'SELECT snapshot FROM idea_messages WHERE conversation_id = ? AND snapshot IS NOT NULL ORDER BY seq DESC LIMIT 1',
       )
-      .get(ideaId) as { snapshot: string } | undefined
+      .get(conversationId) as { snapshot: string } | undefined
     return row?.snapshot
   }
 
-  append(ideaId: string, message: NewMessage): string {
+  append(ideaId: string, conversationId: string, message: NewMessage): string {
     const id = randomUUID()
+    // `seq` counts across the whole idea (it is unique per idea); order within a conversation is all that is read.
     this.db
       .prepare(
-        `INSERT INTO idea_messages (id, idea_id, seq, role, kind, author_id, provider, model, content,
+        `INSERT INTO idea_messages (id, idea_id, conversation_id, seq, role, kind, author_id, provider, model, content,
            display_text, snapshot, status, stop_reason, input_tokens, output_tokens, cached_tokens, created_at)
-         VALUES (?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM idea_messages WHERE idea_id = ?),
+         VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM idea_messages WHERE idea_id = ?),
            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
         ideaId,
+        conversationId,
         ideaId,
         message.role,
         message.kind,
@@ -132,11 +185,6 @@ export class ConversationStore {
         nowIso(),
       )
     return id
-  }
-
-  /** Removes the whole thread (its suggestions go with it). */
-  deleteAll(ideaId: string) {
-    this.db.prepare('DELETE FROM idea_messages WHERE idea_id = ?').run(ideaId)
   }
 
   addProposal(
@@ -201,15 +249,15 @@ export class ConversationStore {
       .map(toProposal)
   }
 
-  /** A suggestion, only if it belongs to this idea's thread. */
-  proposal(ideaId: string, id: string): ProposalRecord | undefined {
+  /** A suggestion, only if it belongs to this conversation. */
+  proposal(conversationId: string, id: string): ProposalRecord | undefined {
     const row = this.db
       .prepare(
         this.proposalSql(
-          'JOIN idea_messages m ON m.id = p.message_id WHERE m.idea_id = ? AND p.id = ?',
+          'JOIN idea_messages m ON m.id = p.message_id WHERE m.conversation_id = ? AND p.id = ?',
         ),
       )
-      .get(ideaId, id)
+      .get(conversationId, id)
     return row ? toProposal(row) : undefined
   }
 
@@ -236,6 +284,15 @@ export class ConversationStore {
   private proposalSql(rest: string) {
     return `SELECT p.*, u.name AS decided_by_name FROM idea_proposals p
             LEFT JOIN users u ON u.id = p.decided_by ${rest}`
+  }
+}
+
+function toConversation(row: Record<string, unknown>): ConversationRecord {
+  return {
+    id: row.id as string,
+    ideaId: row.idea_id as string,
+    createdAt: row.created_at as string,
+    startedByName: (row.started_by_name as string | null) ?? null,
   }
 }
 

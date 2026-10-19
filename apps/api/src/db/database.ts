@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -572,6 +573,34 @@ export const MIGRATIONS: Migration[] = [
   UPDATE publication_site_icons SET square = NULL;
   UPDATE publication_source_icons SET square = NULL;
   `,
+  // An idea can hold several Refine conversations (#289), each with its own messages. The thread each idea had becomes
+  // its first conversation. Nullable only because SQLite cannot add a NOT NULL column with a reference; the code
+  // always sets it.
+  (db) => {
+    db.exec(`
+      CREATE TABLE idea_conversations (
+        id TEXT PRIMARY KEY,
+        idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX idea_conversations_idea ON idea_conversations(idea_id, created_at);
+      ALTER TABLE idea_messages
+        ADD COLUMN conversation_id TEXT REFERENCES idea_conversations(id) ON DELETE CASCADE;
+      CREATE INDEX idea_messages_conversation ON idea_messages(conversation_id, seq);
+    `)
+    const threads = db
+      .prepare('SELECT idea_id, MIN(created_at) AS created_at FROM idea_messages GROUP BY idea_id')
+      .all() as { idea_id: string; created_at: string }[]
+    const add = db.prepare(
+      'INSERT INTO idea_conversations (id, idea_id, created_at) VALUES (?, ?, ?)',
+    )
+    const attach = db.prepare('UPDATE idea_messages SET conversation_id = ? WHERE idea_id = ?')
+    for (const thread of threads) {
+      const id = randomUUID()
+      add.run(id, thread.idea_id, thread.created_at)
+      attach.run(id, thread.idea_id)
+    }
+  },
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

@@ -125,13 +125,16 @@ describe('what the app sends to the model', () => {
   const describeAs = (description: string | null) =>
     ada.put(`/api/publications/${publication}/description`, { description })
   /** Sends a message and reads the whole reply stream, which is when the turn is over. */
-  const converse = async (body: object) =>
-    (
+  const converse = async (body: object) => {
+    const conversationId =
+      ctx.store.conversations.list(idea.id)[0]?.id ?? ctx.store.conversations.create(idea.id)
+    return (
       await ada.post(
-        `/api/publications/${publication}/ideas/${idea.id}/conversation/messages`,
+        `/api/publications/${publication}/ideas/${idea.id}/conversations/${conversationId}/messages`,
         body,
       )
     ).text()
+  }
   const sentToCoach = () => JSON.stringify(ctx.chats.at(-1)!.request.messages)
 
   it('tells the coach what the writer said the publication is, and nothing when they said nothing', async () => {

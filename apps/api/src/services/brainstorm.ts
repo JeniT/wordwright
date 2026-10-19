@@ -6,6 +6,7 @@ import {
   LLMProviderError,
   LLMRateLimitError,
   llmTool,
+  MAX_CONVERSATIONS_PER_IDEA,
   MAX_IDEA_LINKS,
   MAX_IDEA_NOTES,
   MAX_NOTES_PER_REPLY,
@@ -16,6 +17,8 @@ import {
   UpdateIdeaToolInputSchema,
   type BrainstormEvent,
   type Conversation,
+  type ConversationList,
+  type ConversationSummary,
   type ConversationMessage,
   type Idea,
   type LLMChatEvent,
@@ -36,11 +39,16 @@ import {
   UPDATE_IDEA_TOOL_PROMPT,
 } from '@wordwright/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
-import type { MessageRecord, ProposalRecord, RecordedNoteRecord } from '../db/conversations'
+import type {
+  ConversationRecord,
+  MessageRecord,
+  ProposalRecord,
+  RecordedNoteRecord,
+} from '../db/conversations'
 import type { Store } from '../db/store'
 import { ReadingChecker, type CheckedReading } from './reading-suggestions'
 import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
-import { fail } from '../errors'
+import { fail, notFound } from '../errors'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
 export const REPLY_TIMEOUT_MS = 180_000
@@ -94,6 +102,7 @@ export interface BrainstormUser {
 /** Everything one reply needs to know, fixed when it begins. */
 interface ReplyContext {
   idea: Idea
+  conversationId: string
   user: BrainstormUser
   llm: LLMProvider
   provider: string
@@ -103,6 +112,12 @@ interface ReplyContext {
   sent: MessageRecord | undefined
   signal: AbortSignal
 }
+
+const summary = ({ id, createdAt, startedByName }: ConversationRecord): ConversationSummary => ({
+  id,
+  createdAt,
+  startedByName,
+})
 
 /** A reply that has been accepted for processing; `run` does the work and streams events. */
 export interface Turn {
@@ -151,12 +166,12 @@ export function formatSnapshot(input: { idea: Idea; publication: Publication }):
 }
 
 /**
- * The brainstorming conversation about an idea: one thread shared by everyone in the publication, in
+ * The Refine conversations about an idea (up to `MAX_CONVERSATIONS_PER_IDEA`): each a thread shared by everyone in the publication, in
  * which each person's own AI (key, model and prompt) draws out the writer's points and records them as
  * notes. Anything bigger (a new title, a new idea) it can only propose; accepting is a separate, human step. Design: docs/brainstorming.md.
  */
 export class BrainstormService {
-  /** One reply at a time per idea. In memory, which is right while the API is a single process. */
+  /** One reply at a time per conversation. In memory, which is right while the API is a single process. */
   private readonly replying = new Map<string, { name: string; since: number }>()
   private readonly now: () => number
   private readonly replyTimeoutMs: number
@@ -170,12 +185,41 @@ export class BrainstormService {
 
   // ---- reading --------------------------------------------------------
 
-  conversation(idea: Idea): Conversation {
-    const messages = this.d.store.conversations.messages(idea.id)
+  list(idea: Idea): ConversationList {
     return {
-      messages: messages.map((m) => this.view(m, idea)),
-      replyingNow: this.busy(idea.id),
+      conversations: this.d.store.conversations.list(idea.id).map(summary),
     }
+  }
+
+  conversation(idea: Idea, conversationId: string): Conversation {
+    const record = this.find(idea, conversationId)
+    const messages = this.d.store.conversations.messages(record.id)
+    return {
+      ...summary(record),
+      messages: messages.map((m) => this.view(m, idea)),
+      replyingNow: this.busy(record.id),
+    }
+  }
+
+  /** Starts an empty conversation, or hands back the empty one already waiting, so none are made for nothing. */
+  create(idea: Idea): ConversationSummary {
+    const { conversations } = this.d.store
+    const all = conversations.list(idea.id)
+    const waiting = all.find((c) => conversations.messages(c.id).length === 0)
+    if (waiting) return summary(waiting)
+    if (all.length >= MAX_CONVERSATIONS_PER_IDEA) {
+      throw fail(
+        409,
+        `This idea has ${MAX_CONVERSATIONS_PER_IDEA} conversations, the most it can hold. Delete one to start another.`,
+      )
+    }
+    return summary(conversations.get(idea.id, conversations.create(idea.id))!)
+  }
+
+  private find(idea: Idea, conversationId: string): ConversationRecord {
+    const record = this.d.store.conversations.get(idea.id, conversationId)
+    if (!record) throw notFound()
+    return record
   }
 
   // ---- starting a reply -----------------------------------------------
@@ -185,13 +229,14 @@ export class BrainstormService {
    * message. Throws a `DomainError` (or `LlmError`, if they have no key) while an error can still be
    * a normal response. After this returns, the caller must iterate `run` so the slot is released.
    */
-  begin(idea: Idea, user: BrainstormUser, input: SendMessageInput): Turn {
+  begin(idea: Idea, conversationId: string, user: BrainstormUser, input: SendMessageInput): Turn {
     const { store, limiter } = this.d
-    this.assertNotReplying(idea.id)
+    const conversation = this.find(idea, conversationId)
+    this.assertNotReplying(conversation.id)
 
-    const existing = store.conversations.messages(idea.id)
+    const existing = store.conversations.messages(conversation.id)
     if (input.start && existing.length > 0) {
-      throw fail(409, 'This idea already has a conversation. Reload the page to see it.')
+      throw fail(409, 'This conversation has already started. Reload the page to see it.')
     }
     if (input.retry && existing.at(-1)?.role !== 'user') {
       throw fail(409, 'There is nothing to try again: the last message already has a reply.')
@@ -202,30 +247,43 @@ export class BrainstormService {
     const { llm, provider, model } = this.d.resolveLlm(user.id)
     const system = brainstormSystem()
 
-    this.replying.set(idea.id, { name: user.name, since: this.now() })
+    this.replying.set(conversation.id, { name: user.name, since: this.now() })
     try {
-      const sent = input.retry ? undefined : this.storeUserTurn(idea, user, input, existing)
+      const sent = input.retry
+        ? undefined
+        : this.storeUserTurn(idea, conversation.id, user, input, existing)
       return {
-        run: (signal) => this.reply({ idea, user, llm, provider, model, system, sent, signal }),
+        run: (signal) =>
+          this.reply({
+            idea,
+            conversationId: conversation.id,
+            user,
+            llm,
+            provider,
+            model,
+            system,
+            sent,
+            signal,
+          }),
       }
     } catch (err) {
-      this.replying.delete(idea.id)
+      this.replying.delete(conversation.id)
       throw err
     }
   }
 
-  /** One reply at a time per idea: say who we are waiting for, as an ordinary 409 response. */
-  private assertNotReplying(ideaId: string) {
-    const busy = this.busy(ideaId)
+  /** One reply at a time per conversation: say who we are waiting for, as an ordinary 409 response. */
+  private assertNotReplying(conversationId: string) {
+    const busy = this.busy(conversationId)
     if (busy) throw fail(409, `${busy.name} is waiting for a reply. Try again in a moment.`)
   }
 
-  private busy(ideaId: string): { name: string } | null {
-    const lock = this.replying.get(ideaId)
+  private busy(conversationId: string): { name: string } | null {
+    const lock = this.replying.get(conversationId)
     if (!lock) return null
     // A slot nobody released (a reply that never ran) frees itself once the reply could no longer be alive.
     if (this.now() - lock.since > this.replyTimeoutMs + 30_000) {
-      this.replying.delete(ideaId)
+      this.replying.delete(conversationId)
       return null
     }
     return { name: lock.name }
@@ -234,6 +292,7 @@ export class BrainstormService {
   /** The turn the person takes: answers to the last suggestions, the idea if it changed, then what they said. */
   private storeUserTurn(
     idea: Idea,
+    conversationId: string,
     user: BrainstormUser,
     input: SendMessageInput,
     existing: MessageRecord[],
@@ -245,11 +304,11 @@ export class BrainstormService {
 
     // Sent only when the idea differs from what the AI last saw, so the thread stays small and cacheable.
     const snapshot = this.snapshot(idea, user.id)
-    const changed = snapshot !== store.conversations.lastSnapshot(idea.id)
+    const changed = snapshot !== store.conversations.lastSnapshot(conversationId)
     if (changed) blocks.push({ type: 'text', text: snapshot })
     blocks.push({ type: 'text', text: input.start ? BRAINSTORM_KICKOFF_PROMPT : input.text! })
 
-    const id = store.conversations.append(idea.id, {
+    const id = store.conversations.append(idea.id, conversationId, {
       role: 'user',
       kind: input.start ? 'kickoff' : 'message',
       authorId: user.id,
@@ -257,7 +316,7 @@ export class BrainstormService {
       displayText: input.start ? '' : input.text!,
       snapshot: changed ? snapshot : undefined,
     })
-    return store.conversations.message(idea.id, id)!
+    return store.conversations.message(conversationId, id)!
   }
 
   /** Every tool call in the AI's last message must be answered before it speaks again. */
@@ -293,7 +352,7 @@ export class BrainstormService {
   // ---- the reply itself -------------------------------------------------
 
   private async *reply(ctx: ReplyContext): AsyncGenerator<BrainstormEvent> {
-    const { idea, llm, system, sent } = ctx
+    const { idea, conversationId, llm, system, sent } = ctx
     const { store } = this.d
     const deadline = AbortSignal.timeout(this.replyTimeoutMs)
     const signal = AbortSignal.any([ctx.signal, deadline])
@@ -306,7 +365,7 @@ export class BrainstormService {
       try {
         const request = {
           system,
-          messages: this.replay(store.conversations.messages(idea.id)),
+          messages: this.replay(store.conversations.messages(conversationId)),
           tools: BRAINSTORM_TOOLS,
           effort: 'medium' as const,
           signal,
@@ -335,7 +394,7 @@ export class BrainstormService {
       }
 
       // Look at the addresses the AI suggested before showing them, so the writer sees what is really there.
-      const readings = await this.checkReadings(idea, calls, signal)
+      const readings = await this.checkReadings(idea, ctx.conversationId, calls, signal)
       if (ctx.signal.aborted) {
         const stopped = text ? this.saveStopped(ctx, text) : undefined
         yield { type: 'done', message: stopped ? this.view(stopped, idea) : null }
@@ -348,7 +407,7 @@ export class BrainstormService {
       for (const proposal of view.proposals) yield { type: 'proposal', proposal }
       yield { type: 'done', message: view }
     } finally {
-      this.replying.delete(idea.id)
+      this.replying.delete(conversationId)
     }
   }
 
@@ -358,9 +417,9 @@ export class BrainstormService {
       .map((r) => ({ role: r.role, content: r.content }))
   }
 
-  private saveStopped({ idea, user, provider, model }: ReplyContext, text: string) {
+  private saveStopped({ idea, conversationId, user, provider, model }: ReplyContext, text: string) {
     const { conversations } = this.d.store
-    const id = conversations.append(idea.id, {
+    const id = conversations.append(idea.id, conversationId, {
       role: 'assistant',
       kind: 'message',
       authorId: user.id,
@@ -370,12 +429,12 @@ export class BrainstormService {
       displayText: text,
       status: 'stopped',
     })
-    return conversations.message(idea.id, id)!
+    return conversations.message(conversationId, id)!
   }
 
   /** Stores the AI's reply and turns each valid tool call into a proposal. */
   private saveReply(
-    { idea, user, provider, model }: ReplyContext,
+    { idea, conversationId, user, provider, model }: ReplyContext,
     text: string,
     calls: { id: string; name: string; input: unknown }[],
     done: Extract<LLMChatEvent, { type: 'done' }>,
@@ -386,7 +445,7 @@ export class BrainstormService {
       ...(text ? [{ type: 'text' as const, text }] : []),
       ...calls.map((c) => ({ type: 'tool_call' as const, id: c.id, name: c.name, input: c.input })),
     ]
-    const id = conversations.append(idea.id, {
+    const id = conversations.append(idea.id, conversationId, {
       role: 'assistant',
       kind: 'message',
       authorId: user.id,
@@ -410,7 +469,7 @@ export class BrainstormService {
       conversations.addProposal(id, proposal)
       made++
     }
-    return conversations.message(idea.id, id)!
+    return conversations.message(conversationId, id)!
   }
 
   /**
@@ -464,11 +523,12 @@ export class BrainstormService {
    */
   private async checkReadings(
     idea: Idea,
+    conversationId: string,
     calls: { id: string; name: string; input: unknown }[],
     signal: AbortSignal,
   ): Promise<Map<string, CheckedReading>> {
     // The coach cannot search, so it may only pass on an address a person wrote in this conversation.
-    const given = addressesWrittenBy(this.d.store.conversations.messages(idea.id))
+    const given = addressesWrittenBy(this.d.store.conversations.messages(conversationId))
     const candidates = calls
       .filter((c) => c.name === 'suggest_reading')
       .map((c) => {
@@ -579,9 +639,15 @@ export class BrainstormService {
   // ---- deciding on suggestions -------------------------------------------
 
   /** Applies a suggestion. Anyone in the publication can; the first to decide wins. */
-  accept(idea: Idea, proposalId: string, user: BrainstormUser, overwrite = false): Proposal {
+  accept(
+    idea: Idea,
+    conversationId: string,
+    proposalId: string,
+    user: BrainstormUser,
+    overwrite = false,
+  ): Proposal {
     const { store } = this.d
-    const proposal = store.conversations.proposal(idea.id, proposalId)
+    const proposal = store.conversations.proposal(this.find(idea, conversationId).id, proposalId)
     if (!proposal) throw fail(404, 'Not found')
     if (proposal.status !== 'pending') {
       throw fail(409, `This suggestion was already ${proposal.status}.`)
@@ -613,7 +679,7 @@ export class BrainstormService {
         throw fail(409, 'This suggestion was just decided by someone else.')
       }
     })
-    return this.viewProposal(store.conversations.proposal(idea.id, proposalId)!, idea)
+    return this.viewProposal(store.conversations.proposal(conversationId, proposalId)!, idea)
   }
 
   /**
@@ -661,20 +727,21 @@ export class BrainstormService {
     )
   }
 
-  dismiss(idea: Idea, proposalId: string, user: BrainstormUser): Proposal {
+  dismiss(idea: Idea, conversationId: string, proposalId: string, user: BrainstormUser): Proposal {
     const { conversations } = this.d.store
-    const proposal = conversations.proposal(idea.id, proposalId)
+    const proposal = conversations.proposal(this.find(idea, conversationId).id, proposalId)
     if (!proposal) throw fail(404, 'Not found')
     if (!conversations.decide(proposal.id, 'dismissed', user.id)) {
       throw fail(409, `This suggestion was already ${proposal.status}.`)
     }
-    return this.viewProposal(conversations.proposal(idea.id, proposalId)!, idea)
+    return this.viewProposal(conversations.proposal(conversationId, proposalId)!, idea)
   }
 
-  /** Throws the whole thread away, for everyone, so brainstorming can begin afresh. */
-  restart(idea: Idea) {
-    this.assertNotReplying(idea.id)
-    this.d.store.conversations.deleteAll(idea.id)
+  /** Deletes one conversation, for everyone, with the suggestions made in it. The others are untouched. */
+  delete(idea: Idea, conversationId: string) {
+    const record = this.find(idea, conversationId)
+    this.assertNotReplying(record.id)
+    this.d.store.conversations.delete(record.id)
   }
 
   // ---- presenting ----------------------------------------------------------

@@ -52,7 +52,7 @@ describe('migrations', () => {
   it('leaves icons stored before their shape was recorded unchecked, to be backfilled (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    migrate(db, 'test', MIGRATIONS.slice(0, -2))
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -67,7 +67,7 @@ describe('migrations', () => {
   it('clears icon shapes worked out by the first rule, so the backfill looks again (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    migrate(db, 'test', MIGRATIONS.slice(0, -2))
     db.exec(`INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 't')`)
     db.exec(
       `INSERT INTO publication_site_icons (publication_id, content_type, data, updated_at, square) VALUES ('p', 'image/png', x'00', 't', 0)`,
@@ -79,7 +79,7 @@ describe('migrations', () => {
   it('deletes stored brainstorming prompts, which nobody can use any more (#205)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -3)) // before the prompts migration (the last but two)
+    migrate(db, 'test', MIGRATIONS.slice(0, -4)) // before the prompts migration (the last but three)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -91,7 +91,7 @@ describe('migrations', () => {
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -6)) // before the sessions migration (the last but five)
+    migrate(db, 'test', MIGRATIONS.slice(0, -7)) // before the sessions migration (the last but six)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -271,5 +271,34 @@ describe('migrations', () => {
         (db.prepare('PRAGMA foreign_keys').get() as { foreign_keys: number }).foreign_keys,
       ).toBe(1)
     })
+  })
+
+  it("turns each idea's existing thread into its first conversation, and leaves empty ideas without one (#289)", () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -1)) // the schema as it was: one thread per idea
+    db.exec(`
+      INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i1', 'p', 'One', 't', 't');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i2', 'p', 'Two', 't', 't');
+      INSERT INTO idea_messages (id, idea_id, seq, role, kind, content, display_text, created_at)
+        VALUES ('m1', 'i1', 1, 'user', 'kickoff', '[]', '', '2026-01-01T10:00:00Z');
+      INSERT INTO idea_messages (id, idea_id, seq, role, kind, content, display_text, created_at)
+        VALUES ('m2', 'i1', 2, 'assistant', 'message', '[]', 'Hello', '2026-01-01T10:00:05Z');
+    `)
+
+    migrate(db, 'test')
+
+    const conversations = db.prepare('SELECT * FROM idea_conversations').all()
+    expect(conversations).toMatchObject([{ idea_id: 'i1', created_at: '2026-01-01T10:00:00Z' }])
+    const id = conversations[0]!.id
+    expect(db.prepare('SELECT conversation_id FROM idea_messages ORDER BY seq').all()).toEqual([
+      { conversation_id: id },
+      { conversation_id: id },
+    ])
+    // Deleting the conversation takes its messages; deleting the idea takes the conversation.
+    db.exec("DELETE FROM ideas WHERE id = 'i1'")
+    expect(db.prepare('SELECT count(*) AS n FROM idea_conversations').get()).toEqual({ n: 0 })
+    expect(db.prepare('SELECT count(*) AS n FROM idea_messages').get()).toEqual({ n: 0 })
   })
 })

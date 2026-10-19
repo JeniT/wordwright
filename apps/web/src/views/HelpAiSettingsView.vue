@@ -26,5 +26,13 @@ import Icon from '../components/Icon.vue'
       aim and ask for more options that many times. You can change the number under
       <RouterLink :to="{ name: 'account-ai' }" class="link">Critique limit</RouterLink>.
     </p>
+    <h2 class="mt-4 mb-1 font-display text-xl font-semibold">
+      Why an idea holds five conversations
+    </h2>
+    <p>
+      Talking an idea over can go on for ever without moving it forward. So each idea holds up to
+      five Refine conversations, and you delete one to make room for another. Everyone who works in
+      the publication sees them all.
+    </p>
   </HelpPage>
 </template>

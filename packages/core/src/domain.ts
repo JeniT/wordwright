@@ -935,6 +935,8 @@ export type IdeaUpdate = z.infer<typeof IdeaUpdateSchema>
 export const BRAINSTORM_MESSAGE_MAX = 10_000
 /** More than this many suggestions in one reply is noise, so the rest are ignored. */
 export const MAX_PROPOSALS_PER_REPLY = 5
+/** How many Refine conversations an idea can hold: a ceiling on what can be re-run (delete one to make room). */
+export const MAX_CONVERSATIONS_PER_IDEA = 5
 /** More than this many notes recorded in one reply is the AI running away with it, so the rest are ignored. */
 export const MAX_NOTES_PER_REPLY = 6
 
@@ -1059,9 +1061,23 @@ export const ConversationMessageSchema = z.object({
 })
 export type ConversationMessage = z.infer<typeof ConversationMessageSchema>
 
-export const ConversationSchema = z.object({
+/** One Refine conversation, as listed: when it began and who began it (null if their account has gone). */
+export const ConversationSummarySchema = z.object({
+  id: z.string(),
+  createdAt: z.string(),
+  startedByName: z.string().nullable(),
+})
+export type ConversationSummary = z.infer<typeof ConversationSummarySchema>
+
+export const ConversationListSchema = z.object({
+  /** Oldest first, so a new one goes at the end. */
+  conversations: z.array(ConversationSummarySchema),
+})
+export type ConversationList = z.infer<typeof ConversationListSchema>
+
+export const ConversationSchema = ConversationSummarySchema.extend({
   messages: z.array(ConversationMessageSchema),
-  /** Someone's reply is being written right now (only one at a time per idea). */
+  /** Someone's reply is being written right now (only one at a time per conversation). */
   replyingNow: z.object({ name: z.string() }).nullable(),
 })
 export type Conversation = z.infer<typeof ConversationSchema>

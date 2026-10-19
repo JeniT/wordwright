@@ -10,6 +10,7 @@ import { invalidateRoots } from '../lib/queries'
 const props = defineProps<{
   publicationId: string
   ideaId: string
+  conversationId: string
   proposal: Proposal
   /** The idea as it is now, so a suggestion can be shown against what it would replace. */
   idea?: Idea
@@ -40,11 +41,18 @@ const what = computed(() => {
 const refresh = () => invalidateRoots(queryClient, 'conversation', 'idea', 'ideas')
 const accept = useMutation({
   mutationFn: () =>
-    api.acceptProposal(props.publicationId, props.ideaId, props.proposal.id, props.proposal.stale),
+    api.acceptProposal(
+      props.publicationId,
+      props.ideaId,
+      props.conversationId,
+      props.proposal.id,
+      props.proposal.stale,
+    ),
   onSettled: refresh,
 })
 const dismiss = useMutation({
-  mutationFn: () => api.dismissProposal(props.publicationId, props.ideaId, props.proposal.id),
+  mutationFn: () =>
+    api.dismissProposal(props.publicationId, props.ideaId, props.conversationId, props.proposal.id),
   onSettled: refresh,
 })
 const busy = computed(() => accept.isPending.value || dismiss.isPending.value)

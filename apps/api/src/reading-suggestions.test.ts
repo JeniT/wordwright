@@ -77,7 +77,8 @@ async function world() {
   ).json()
   ctx.store.ideas.addLink(idea.id, { url: 'https://example.org/paper', title: 'A paper' })
   await ada.post(`${ideas}/${idea.id}/drafts`, { title: 'Part 1', body: 'SECRET DRAFT BODY' })
-  const base = `${ideas}/${idea.id}/conversation`
+  const conversationId = ctx.store.conversations.create(idea.id)
+  const base = `${ideas}/${idea.id}/conversations/${conversationId}`
 
   const say = async (client: TestClient, text = `Some pages: ${GIVEN}`) => {
     const res = await client.post(`${base}/messages`, { text })

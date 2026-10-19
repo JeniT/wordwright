@@ -3,7 +3,9 @@ import {
   AuthConfigSchema,
   BrainstormEventSchema,
   CommentSchema,
+  ConversationListSchema,
   ConversationSchema,
+  ConversationSummarySchema,
   CritiqueSettingsSchema,
   TutorialStateSchema,
   type TutorialUpdate,
@@ -133,8 +135,10 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     ideaId ? `${ideas(publicationId)}/${ideaId}/notes` : `/publications/${publicationId}/notes`
   const research = (publicationId: string, ideaId: string) =>
     `${ideas(publicationId)}/${ideaId}/research`
-  const conversation = (publicationId: string, ideaId: string) =>
-    `${ideas(publicationId)}/${ideaId}/conversation`
+  const conversations = (publicationId: string, ideaId: string) =>
+    `${ideas(publicationId)}/${ideaId}/conversations`
+  const conversation = (publicationId: string, ideaId: string, conversationId: string) =>
+    `${conversations(publicationId, ideaId)}/${conversationId}`
 
   return {
     // auth
@@ -467,9 +471,14 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     removeSource: (publicationId: string, id: string) =>
       act('DELETE', `/publications/${publicationId}/sources/${id}`),
 
-    // brainstorming: one conversation per idea, shared by the publication's members
-    getConversation: (publicationId: string, ideaId: string) =>
-      get(ConversationSchema, 'GET', conversation(publicationId, ideaId)),
+    // Refine: a few conversations per idea, shared by the publication's members
+    getConversations: (publicationId: string, ideaId: string) =>
+      get(ConversationListSchema, 'GET', conversations(publicationId, ideaId)),
+    /** Starts an empty conversation (or returns the empty one already waiting). Fails once the idea is at its limit. */
+    createConversation: (publicationId: string, ideaId: string) =>
+      get(ConversationSummarySchema, 'POST', conversations(publicationId, ideaId), {}),
+    getConversation: (publicationId: string, ideaId: string, conversationId: string) =>
+      get(ConversationSchema, 'GET', conversation(publicationId, ideaId, conversationId)),
     /**
      * Sends a message (or `{start: true}` / `{retry: true}`) and reads the AI's reply as it is written,
      * calling `onEvent` for each event. Resolves when the reply ends; rejects with an `ApiError` if it
@@ -480,16 +489,20 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     streamReply: async (
       publicationId: string,
       ideaId: string,
+      conversationId: string,
       body: SendMessageInput,
       onEvent: (event: BrainstormEvent) => void,
       signal?: AbortSignal,
     ) => {
-      const res = await fetchImpl(`/api${conversation(publicationId, ideaId)}/messages`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-        signal,
-      })
+      const res = await fetchImpl(
+        `/api${conversation(publicationId, ideaId, conversationId)}/messages`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+          signal,
+        },
+      )
       await checked(res)
       if (!res.body)
         throw new ApiError(res.status, 'The reply could not be read. Please try again.')
@@ -509,25 +522,31 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     acceptProposal: (
       publicationId: string,
       ideaId: string,
+      conversationId: string,
       proposalId: string,
       overwrite = false,
     ) =>
       get(
         ProposalSchema,
         'POST',
-        `${conversation(publicationId, ideaId)}/proposals/${proposalId}/accept`,
+        `${conversation(publicationId, ideaId, conversationId)}/proposals/${proposalId}/accept`,
         overwrite ? { overwrite: true } : {},
       ),
-    dismissProposal: (publicationId: string, ideaId: string, proposalId: string) =>
+    dismissProposal: (
+      publicationId: string,
+      ideaId: string,
+      conversationId: string,
+      proposalId: string,
+    ) =>
       get(
         ProposalSchema,
         'POST',
-        `${conversation(publicationId, ideaId)}/proposals/${proposalId}/dismiss`,
+        `${conversation(publicationId, ideaId, conversationId)}/proposals/${proposalId}/dismiss`,
         {},
       ),
-    /** Deletes the whole conversation, for everyone in the publication. */
-    restartConversation: (publicationId: string, ideaId: string) =>
-      act('DELETE', conversation(publicationId, ideaId)),
+    /** Deletes one conversation, for everyone in the publication. */
+    deleteConversation: (publicationId: string, ideaId: string, conversationId: string) =>
+      act('DELETE', conversation(publicationId, ideaId, conversationId)),
 
     // research: searches for reading, apart from the conversation
     getResearch: (publicationId: string, ideaId: string) =>

@@ -24,7 +24,17 @@ const idea = {
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
-const conversationUrl = '*/api/publications/ada-substack/ideas/i1/conversation'
+const conversationsUrl = '*/api/publications/ada-substack/ideas/i1/conversations'
+const conversationUrl = `${conversationsUrl}/c1`
+const summary = (
+  id: string,
+  startedByName: string | null = 'Ada',
+  createdAt = '2026-01-05T10:00:00Z',
+) => ({
+  id,
+  createdAt,
+  startedByName,
+})
 const page = '/p/ada-substack/ideas/i1/brainstorm'
 
 let counter = 0
@@ -96,6 +106,8 @@ const words = (text: string): BrainstormEvent[] =>
   (text.match(/\S+\s*/g) ?? []).map((t) => ({ type: 'text', text: t }))
 
 interface Server {
+  /** Whether the idea has its (one) conversation yet; it is made when the first is started. */
+  exists: boolean
   messages: ConversationMessage[]
   replyingNow: { name: string } | null
   posts: unknown[]
@@ -109,6 +121,7 @@ function mockConversation(
   extra: Parameters<typeof server.use> = [],
 ) {
   const state: Server = {
+    exists: initial.length > 0,
     messages: [...initial],
     replyingNow: null,
     posts: [],
@@ -130,8 +143,19 @@ function mockConversation(
     ...extra,
     http.get('*/api/publications', () => HttpResponse.json([])),
     http.get('*/api/publications/ada-substack/ideas/i1', () => HttpResponse.json(idea)),
+    http.get(conversationsUrl, () =>
+      HttpResponse.json({ conversations: state.exists ? [summary('c1')] : [] }),
+    ),
+    http.post(conversationsUrl, () => {
+      state.exists = true
+      return HttpResponse.json(summary('c1'), { status: 201 })
+    }),
     http.get(conversationUrl, () =>
-      HttpResponse.json({ messages: state.messages, replyingNow: state.replyingNow }),
+      HttpResponse.json({
+        ...summary('c1'),
+        messages: state.messages,
+        replyingNow: state.replyingNow,
+      }),
     ),
     http.post(`${conversationUrl}/messages`, async ({ request }) => {
       const body = (await request.json()) as Record<string, unknown>
@@ -654,27 +678,28 @@ describe('the brainstorm page', () => {
     })
   })
 
-  it('starts again only after asking, and then shows the invitation to start', async () => {
+  it('deletes the conversation only after asking, and then shows the invitation to start', async () => {
     const api = mockConversation([kickoff(), aiMessage('Go on.')])
     let wiped = false
     server.use(
       http.delete(conversationUrl, () => {
         wiped = true
         api.messages = []
+        api.exists = false
         return new HttpResponse(null, { status: 204 })
       }),
     )
     await renderAt(page)
     await screen.findByText('Go on.')
-    await fireEvent.click(screen.getByRole('button', { name: 'Start again' }))
-    const dialog = screen.getByRole('dialog', { name: 'Start the conversation again?' })
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete conversation' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete the conversation?' })
     expect(dialog).toHaveTextContent('for everyone in this publication')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(wiped).toBe(false)
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Start again' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete conversation' }))
     await fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, start again' }),
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete conversation' }),
     )
     expect(await screen.findByRole('button', { name: 'Start brainstorming' })).toBeInTheDocument()
     expect(wiped).toBe(true)
@@ -694,7 +719,7 @@ describe('the brainstorm page', () => {
 
   it('says what to do when the conversation will not load', async () => {
     mockConversation(
-      [],
+      [kickoff(), aiMessage('Hello.')],
       [http.get(conversationUrl, () => HttpResponse.json({ error: 'x' }, { status: 500 }))],
     )
     await renderAt(page)
@@ -824,5 +849,151 @@ describe('suggested reading', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('already in this idea')
     expect(suggestionCard()).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Accept: / })).toBeEnabled()
+  })
+})
+
+describe('several conversations', () => {
+  const two = [
+    summary('c1', 'Ada', '2026-01-05T10:00:00Z'),
+    summary('c2', 'Bob', '2026-02-07T09:00:00Z'),
+  ]
+  const detail = (id: string, messages: ConversationMessage[]) =>
+    http.get(`${conversationsUrl}/${id}`, () =>
+      HttpResponse.json({
+        ...two.find((c) => c.id === id)!,
+        messages,
+        replyingNow: null,
+      }),
+    )
+  const withTwo = () =>
+    mockConversation(
+      [kickoff(), aiMessage('Older question?')],
+      [
+        http.get(conversationsUrl, () => HttpResponse.json({ conversations: two })),
+        detail('c2', [kickoff(), aiMessage('Newer question?')]),
+      ],
+    )
+
+  it('shows the newest first, who began it, and pages back to the earlier one', async () => {
+    withTwo()
+    await renderAt(page)
+    expect(await screen.findByText('Newer question?')).toBeInTheDocument()
+    expect(screen.getByText(/^Started .* · Bob$/)).toBeInTheDocument()
+    expect(screen.queryByText('Older question?')).toBeNull()
+
+    const nav = screen.getAllByRole('navigation', { name: /^Conversations, / })[0]!
+    expect(within(nav).getByText('Conversation 2 of 2')).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'Later conversation' })).toBeDisabled()
+    await fireEvent.click(within(nav).getByRole('button', { name: 'Earlier conversation' }))
+    expect(await screen.findByText('Older question?')).toBeInTheDocument()
+    expect(screen.getByText(/^Started .* · Ada$/)).toBeInTheDocument()
+    expect(screen.queryByText('Newer question?')).toBeNull()
+  })
+
+  it('shows no paging for a single conversation', async () => {
+    mockConversation([kickoff(), aiMessage('Only one.')])
+    await renderAt(page)
+    await screen.findByText('Only one.')
+    expect(screen.queryByRole('navigation', { name: /^Conversations, / })).toBeNull()
+  })
+
+  it('starts another beside the others, sends its opening there, and shows it', async () => {
+    const api = withTwo()
+    const made: string[] = []
+    const posted: Record<string, unknown[]> = {}
+    let conversations = [...two]
+    server.use(
+      http.get(conversationsUrl, () => HttpResponse.json({ conversations })),
+      http.post(conversationsUrl, () => {
+        made.push('c3')
+        conversations = [...two, summary('c3', 'Ada', '2026-03-01T09:00:00Z')]
+        return HttpResponse.json(conversations[2], { status: 201 })
+      }),
+      http.get(`${conversationsUrl}/c3`, () =>
+        HttpResponse.json({
+          ...conversations[2],
+          messages: [kickoff(), aiMessage('Fresh start.')],
+          replyingNow: null,
+        }),
+      ),
+      http.post(`${conversationsUrl}/c3/messages`, async ({ request }) => {
+        posted.c3 = [...(posted.c3 ?? []), await request.json()]
+        return sse([{ type: 'done', message: aiMessage('Fresh start.') }])
+      }),
+    )
+    await renderAt(page)
+    await screen.findByText('Newer question?')
+    // What leaves the system is said beside the button.
+    expect(
+      screen.getByText(/This will send this publication’s description and this idea’s title/),
+    ).toBeVisible()
+    await fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
+    expect(await screen.findByText('Fresh start.')).toBeInTheDocument()
+    expect(made).toEqual(['c3'])
+    expect(posted.c3).toEqual([{ start: true }])
+    expect(api.posts).toEqual([]) // nothing went into the others
+  })
+
+  it('stops at five, and says what to do', async () => {
+    const five = Array.from({ length: 5 }, (_, i) => summary(`c${i + 1}`))
+    mockConversation(
+      [kickoff(), aiMessage('Hello.')],
+      [
+        http.get(conversationsUrl, () => HttpResponse.json({ conversations: five })),
+        http.get(`${conversationsUrl}/c5`, () =>
+          HttpResponse.json({
+            ...five[4],
+            messages: [kickoff(), aiMessage('Fifth.')],
+            replyingNow: null,
+          }),
+        ),
+      ],
+    )
+    await renderAt(page)
+    await screen.findByText('Fifth.')
+    expect(screen.getByRole('button', { name: 'New conversation' })).toBeDisabled()
+    expect(screen.getByText(/the most it can hold\. Delete one to start another/)).toBeVisible()
+  })
+
+  it('deletes only the one on screen, then shows the one before it', async () => {
+    withTwo()
+    const deleted: string[] = []
+    let conversations = [...two]
+    server.use(
+      http.get(conversationsUrl, () => HttpResponse.json({ conversations })),
+      http.delete(`${conversationsUrl}/c2`, () => {
+        deleted.push('c2')
+        conversations = [two[0]!]
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    await renderAt(page)
+    await screen.findByText('Newer question?')
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete conversation' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete the conversation?' })
+    expect(dialog).toHaveTextContent('Your other conversations stay too')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete conversation' }))
+    expect(await screen.findByText('Older question?')).toBeInTheDocument()
+    expect(deleted).toEqual(['c2'])
+    expect(screen.queryByText('Newer question?')).toBeNull()
+  })
+
+  it('says why a new one could not be made', async () => {
+    mockConversation([kickoff(), aiMessage('Hello.')])
+    server.use(
+      http.post(conversationsUrl, () =>
+        HttpResponse.json(
+          {
+            error:
+              'This idea has 5 conversations, the most it can hold. Delete one to start another.',
+          },
+          { status: 409 },
+        ),
+      ),
+    )
+    await renderAt(page)
+    await screen.findByText('Hello.')
+    await fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Delete one to start another')
   })
 })

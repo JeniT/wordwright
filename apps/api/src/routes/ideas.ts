@@ -163,43 +163,67 @@ export function ideaRoutes(
         ideas.touch(idea.id)
         return c.json(find(c))
       })
-      // ---- brainstorming: one thread per idea, shared by the publication's members ----
-      .get('/:id/conversation', (c) => c.json(brainstorm.conversation(find(c))))
-      .post('/:id/conversation/messages', validateJson(SendMessageInputSchema), (c) => {
-        const idea = find(c)
-        const { id, name } = c.get('user')
-        let turn: Turn
-        try {
-          // Everything that can still be an ordinary error response (no key, throttled, busy) is checked here.
-          turn = brainstorm.begin(idea, { id, name }, c.req.valid('json'))
-        } catch (err) {
-          return toLlmHttpError(err)
-        }
-        return streamSSE(c, async (stream) => {
-          // Stop asking the provider (and paying) as soon as the person leaves or presses Stop.
-          const stop = new AbortController()
-          stream.onAbort(() => stop.abort())
-          c.req.raw.signal.addEventListener('abort', () => stop.abort())
-          for await (const event of turn.run(stop.signal)) {
-            await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+      // ---- Refine: up to a few conversations per idea, shared by the publication's members ----
+      .get('/:id/conversations', (c) => c.json(brainstorm.list(find(c))))
+      .post('/:id/conversations', (c) => c.json(brainstorm.create(find(c)), 201))
+      .get('/:id/conversations/:conversationId', (c) =>
+        c.json(brainstorm.conversation(find(c), param(c, 'conversationId'))),
+      )
+      .post(
+        '/:id/conversations/:conversationId/messages',
+        validateJson(SendMessageInputSchema),
+        (c) => {
+          const idea = find(c)
+          const { id, name } = c.get('user')
+          let turn: Turn
+          try {
+            // Everything that can still be an ordinary error response (no key, throttled, busy) is checked here.
+            turn = brainstorm.begin(
+              idea,
+              param(c, 'conversationId'),
+              { id, name },
+              c.req.valid('json'),
+            )
+          } catch (err) {
+            return toLlmHttpError(err)
           }
-        })
-      })
-      .post('/:id/conversation/proposals/:proposalId/accept', async (c) => {
+          return streamSSE(c, async (stream) => {
+            // Stop asking the provider (and paying) as soon as the person leaves or presses Stop.
+            const stop = new AbortController()
+            stream.onAbort(() => stop.abort())
+            c.req.raw.signal.addEventListener('abort', () => stop.abort())
+            for await (const event of turn.run(stop.signal)) {
+              await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+            }
+          })
+        },
+      )
+      .post('/:id/conversations/:conversationId/proposals/:proposalId/accept', async (c) => {
         const idea = find(c)
         const input = AcceptProposalInputSchema.safeParse(await c.req.json().catch(() => ({})))
         if (!input.success) throw fail(400, 'Check the details and try again')
         const { id, name } = c.get('user')
         return c.json(
-          brainstorm.accept(idea, param(c, 'proposalId'), { id, name }, input.data.overwrite),
+          brainstorm.accept(
+            idea,
+            param(c, 'conversationId'),
+            param(c, 'proposalId'),
+            { id, name },
+            input.data.overwrite,
+          ),
         )
       })
-      .post('/:id/conversation/proposals/:proposalId/dismiss', (c) => {
+      .post('/:id/conversations/:conversationId/proposals/:proposalId/dismiss', (c) => {
         const { id, name } = c.get('user')
-        return c.json(brainstorm.dismiss(find(c), param(c, 'proposalId'), { id, name }))
+        return c.json(
+          brainstorm.dismiss(find(c), param(c, 'conversationId'), param(c, 'proposalId'), {
+            id,
+            name,
+          }),
+        )
       })
-      .delete('/:id/conversation', (c) => {
-        brainstorm.restart(find(c))
+      .delete('/:id/conversations/:conversationId', (c) => {
+        brainstorm.delete(find(c), param(c, 'conversationId'))
         return c.body(null, 204)
       })
 

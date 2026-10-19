@@ -5,6 +5,7 @@ import {
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
+  MAX_CONVERSATIONS_PER_IDEA,
   MAX_IDEA_NOTES,
   MAX_NOTES_PER_REPLY,
   MAX_PROPOSALS_PER_REPLY,
@@ -91,7 +92,8 @@ async function world(options: TestOptions = {}) {
     title: 'Part 1: the bend',
     body: 'SECRET DRAFT BODY',
   })
-  const base = `${ideas}/${idea.id}/conversation`
+  const conversationId = ctx.store.conversations.create(idea.id)
+  const base = `${ideas}/${idea.id}/conversations/${conversationId}`
 
   /** Sends a message and reads the whole reply stream; an ordinary error response has no events. */
   const send = async (client: TestClient, body: object) => {
@@ -113,7 +115,20 @@ async function world(options: TestOptions = {}) {
   const proposalsOf = async () => (await thread()).messages.flatMap((m) => m.proposals)
   const decide = (client: TestClient, id: string, action: 'accept' | 'dismiss', body = {}) =>
     client.post(`${base}/proposals/${id}/${action}`, body)
-  return { ctx, ada, publication, ideas, idea, base, send, thread, addBob, proposalsOf, decide }
+  return {
+    ctx,
+    ada,
+    publication,
+    ideas,
+    idea,
+    conversationId,
+    base,
+    send,
+    thread,
+    addBob,
+    proposalsOf,
+    decide,
+  }
 }
 
 describe('starting a brainstorm', () => {
@@ -236,7 +251,7 @@ describe('starting a brainstorm', () => {
     await send(ada, START)
     const again = await send(ada, START)
     expect(again.status).toBe(409)
-    expect(again.error).toMatch(/already has a conversation/)
+    expect(again.error).toMatch(/already started/)
   })
 
   it('refuses someone with no API key, storing nothing and taking no slot', async () => {
@@ -701,7 +716,8 @@ describe('accepting and dismissing suggestions', () => {
     ])
     // The new idea starts with a clean slate; it does not inherit the thread.
     expect(
-      (await (await ada.get(`${ideas}/${accepted.createdIdeaId}/conversation`)).json()).messages,
+      (await (await ada.get(`${ideas}/${accepted.createdIdeaId}/conversations`)).json())
+        .conversations,
     ).toEqual([])
   })
 
@@ -716,9 +732,9 @@ describe('accepting and dismissing suggestions', () => {
   })
 
   it('knows nothing of suggestions from other ideas, or that do not exist', async () => {
-    const { ctx, ada, publication, ideas, proposal, decide } = await suggestUpdate()
+    const { ctx, ada, publication, ideas, conversationId, proposal, decide } = await suggestUpdate()
     const other = await (await ada.post(ideas, { name: 'Another idea' })).json()
-    const otherBase = `/api/publications/${publication}/ideas/${other.id}/conversation`
+    const otherBase = `/api/publications/${publication}/ideas/${other.id}/conversations/${conversationId}`
     expect((await ada.post(`${otherBase}/proposals/${proposal.id}/accept`, {})).status).toBe(404)
     expect((await ada.post(`${otherBase}/proposals/${proposal.id}/dismiss`, {})).status).toBe(404)
     expect((await decide(ada, 'nope', 'accept')).status).toBe(404)
@@ -829,7 +845,7 @@ describe('when a reply goes wrong', () => {
   })
 
   it('gives up on a reply that takes too long, and frees the idea', async () => {
-    const { ctx, idea, publication } = await world()
+    const { ctx, idea, publication, conversationId } = await world()
     const store = ctx.store
     const llm = new FakeLLMProvider(undefined, async () => {
       await new Promise((resolve) => setTimeout(resolve, 60))
@@ -846,12 +862,12 @@ describe('when a reply goes wrong', () => {
     const current = store.ideas.get(publication, idea.id)!
     const events: BrainstormEvent[] = []
     for await (const e of service
-      .begin(current, user, { start: true })
+      .begin(current, conversationId, user, { start: true })
       .run(new AbortController().signal)) {
       events.push(e)
     }
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'timeout' })
-    expect(service.conversation(current).replyingNow).toBeNull()
+    expect(service.conversation(current, conversationId).replyingNow).toBeNull()
   })
 })
 
@@ -891,7 +907,7 @@ describe('one reply at a time', () => {
   })
 
   it('lets go of a slot nobody ever ran, once a reply could no longer be alive', async () => {
-    const { ctx, publication, idea } = await world()
+    const { ctx, publication, idea, conversationId } = await world()
     const store = ctx.store
     let now = 1_000_000
     const service = new BrainstormService({
@@ -903,10 +919,12 @@ describe('one reply at a time', () => {
     })
     const current = store.ideas.get(publication, idea.id)!
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
-    service.begin(current, user, { start: true }) // never iterated, as if the connection dropped first
-    expect(() => service.begin(current, user, { text: 'again' })).toThrow(/Ada is waiting/)
+    service.begin(current, conversationId, user, { start: true }) // never iterated, as if the connection dropped first
+    expect(() => service.begin(current, conversationId, user, { text: 'again' })).toThrow(
+      /Ada is waiting/,
+    )
     now += REPLY_TIMEOUT_MS + 31_000
-    expect(() => service.begin(current, user, { text: 'again' })).not.toThrow()
+    expect(() => service.begin(current, conversationId, user, { text: 'again' })).not.toThrow()
   })
 
   it('slows down someone sending a great many messages', async () => {
@@ -922,7 +940,7 @@ describe('one reply at a time', () => {
 
 describe('stopping a reply', () => {
   it('keeps what was said so far, as a stopped message with no half-made suggestions', async () => {
-    const { ctx, publication, idea } = await world()
+    const { ctx, publication, idea, conversationId } = await world()
     const store = ctx.store
     const llm = new FakeLLMProvider(undefined, () => ({
       text: 'one two three four',
@@ -938,7 +956,9 @@ describe('stopping a reply', () => {
     const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
     const stop = new AbortController()
     const events: BrainstormEvent[] = []
-    for await (const e of service.begin(current, user, { start: true }).run(stop.signal)) {
+    for await (const e of service
+      .begin(current, conversationId, user, { start: true })
+      .run(stop.signal)) {
       events.push(e)
       if (e.type === 'text') stop.abort() // the person presses Stop after the first word
     }
@@ -946,10 +966,10 @@ describe('stopping a reply', () => {
       type: 'done',
       message: { text: 'one ', status: 'stopped', stopReason: null, proposals: [], notes: [] },
     })
-    expect(service.conversation(current).replyingNow).toBeNull()
+    expect(service.conversation(current, conversationId).replyingNow).toBeNull()
     expect(store.notes.list(idea.id).map((n) => n.text)).toEqual(['Erosion loops.']) // nothing was noted
     // A stopped reply is replayed as it stands.
-    expect(store.conversations.messages(idea.id).at(-1)).toMatchObject({
+    expect(store.conversations.messages(conversationId).at(-1)).toMatchObject({
       role: 'assistant',
       status: 'stopped',
       content: [{ type: 'text', text: 'one ' }],
@@ -957,17 +977,18 @@ describe('stopping a reply', () => {
   })
 })
 
-describe('starting afresh', () => {
-  it('wipes the thread and its suggestions for everyone, so brainstorming can begin again', async () => {
-    const { ctx, ada, base, send, thread, proposalsOf } = await world()
+describe('deleting a conversation', () => {
+  it('deletes it and its suggestions for everyone, so the idea can begin again', async () => {
+    const { ctx, ada, base, send, proposalsOf, ideas, idea } = await world()
     ctx.setChat(() => ({ text: 'Hmm.', toolCalls: [create({ name: 'X', notes: 'y' })] }))
     await send(ada, START)
     expect(await proposalsOf()).toHaveLength(1)
 
     expect((await ada.delete(base)).status).toBe(204)
-    expect((await thread()).messages).toEqual([])
-    expect((await send(ada, START)).status).toBe(200)
-    expect((await thread()).messages).toHaveLength(2)
+    expect((await ada.get(base)).status).toBe(404)
+    expect(
+      (await (await ada.get(`${ideas}/${idea.id}/conversations`)).json()).conversations,
+    ).toEqual([])
   })
 
   it('is for members only', async () => {
@@ -978,24 +999,148 @@ describe('starting afresh', () => {
   })
 })
 
+describe('several conversations on one idea', () => {
+  const listOf = async (ada: TestClient, ideas: string, ideaId: string) =>
+    (await (await ada.get(`${ideas}/${ideaId}/conversations`)).json()).conversations as {
+      id: string
+      startedByName: string | null
+      createdAt: string
+    }[]
+
+  it('starts another one beside the first, oldest first, naming who began each', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send, addBob } = await world()
+    ctx.setChat(() => ({ text: 'What is the claim?' }))
+    await send(ada, START)
+    const bob = await addBob()
+
+    const made = await bob.post(`${ideas}/${idea.id}/conversations`, {})
+    expect(made.status).toBe(201)
+    const second = (await made.json()) as { id: string }
+    expect(
+      (await bob.post(`${ideas}/${idea.id}/conversations/${second.id}/messages`, START)).status,
+    ).toBe(200)
+
+    const list = await listOf(ada, ideas, idea.id)
+    expect(list.map((c) => [c.id, c.startedByName])).toEqual([
+      [conversationId, 'Ada'],
+      [second.id, 'Bob'],
+    ])
+  })
+
+  it('keeps each conversation to itself: messages, snapshots and suggestions', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send } = await world()
+    ctx.setChat(() => ({ text: 'First.', toolCalls: [create({ name: 'X', notes: 'y' })] }))
+    await send(ada, START)
+    const second = (await (await ada.post(`${ideas}/${idea.id}/conversations`, {})).json()) as {
+      id: string
+    }
+    const base2 = `${ideas}/${idea.id}/conversations/${second.id}`
+    ctx.setChat(() => ({ text: 'Second.' }))
+    const started = await ada.post(`${base2}/messages`, START)
+    expect(started.status).toBe(200)
+    await started.text() // the reply is stored as it is read
+
+    const one = await (await ada.get(`${ideas}/${idea.id}/conversations/${conversationId}`)).json()
+    const two = await (await ada.get(base2)).json()
+    expect(one.messages.map((m: { text: string }) => m.text)).toEqual(['', 'First.'])
+    expect(two.messages.map((m: { text: string }) => m.text)).toEqual(['', 'Second.'])
+    expect(two.messages.flatMap((m: { proposals: unknown[] }) => m.proposals)).toEqual([])
+    // What the AI is sent for the second one holds nothing said in the first, and has the idea afresh.
+    const sent = JSON.stringify(ctx.chats.at(-1)!.request.messages)
+    expect(sent).not.toContain('First.')
+    expect(sent).toContain('idea_snapshot')
+    // A suggestion belongs to its own conversation only.
+    const proposal = one.messages.flatMap((m: { proposals: { id: string }[] }) => m.proposals)[0]
+    expect((await ada.post(`${base2}/proposals/${proposal.id}/dismiss`, {})).status).toBe(404)
+  })
+
+  it('deletes one and leaves the rest', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send } = await world()
+    ctx.setChat(() => ({ text: 'Hi.' }))
+    await send(ada, START)
+    const second = (await (await ada.post(`${ideas}/${idea.id}/conversations`, {})).json()) as {
+      id: string
+    }
+    expect((await ada.delete(`${ideas}/${idea.id}/conversations/${second.id}`)).status).toBe(204)
+    expect((await listOf(ada, ideas, idea.id)).map((c) => c.id)).toEqual([conversationId])
+    expect(ctx.store.conversations.messages(conversationId)).toHaveLength(2)
+  })
+
+  it('holds at most five, says what to do, and makes room when one is deleted', async () => {
+    const { ctx, ada, ideas, idea, send } = await world()
+    ctx.setChat(() => ({ text: 'Hi.' }))
+    await send(ada, START)
+    const ids: string[] = []
+    for (let i = 1; i < MAX_CONVERSATIONS_PER_IDEA; i++) {
+      const made = (await (await ada.post(`${ideas}/${idea.id}/conversations`, {})).json()) as {
+        id: string
+      }
+      await (await ada.post(`${ideas}/${idea.id}/conversations/${made.id}/messages`, START)).text()
+      ids.push(made.id)
+    }
+    const over = await ada.post(`${ideas}/${idea.id}/conversations`, {})
+    expect(over.status).toBe(409)
+    expect((await over.json()).error).toMatch(/Delete one to start another/)
+
+    await ada.delete(`${ideas}/${idea.id}/conversations/${ids[0]}`)
+    expect((await ada.post(`${ideas}/${idea.id}/conversations`, {})).status).toBe(201)
+  })
+
+  it('hands back the empty conversation already waiting rather than making another', async () => {
+    const { ada, ideas, idea, conversationId } = await world() // the first is still empty
+    const again = await (await ada.post(`${ideas}/${idea.id}/conversations`, {})).json()
+    expect(again.id).toBe(conversationId)
+    expect(await listOf(ada, ideas, idea.id)).toHaveLength(1)
+  })
+
+  it('answers one conversation at a time, not one idea at a time', async () => {
+    const { ctx, publication, idea, conversationId } = await world()
+    const store = ctx.store
+    const service = new BrainstormService({
+      store,
+      resolveLlm: () => ({ llm: new FakeLLMProvider(), provider: 'fake', model: 'm' }),
+      limiter: new RateLimiter(100, 1000),
+      pages: new FakePageInfoFetcher(),
+    })
+    const current = store.ideas.get(publication, idea.id)!
+    const user = { id: store.users.findByEmail('ada@example.com')!.id, name: 'Ada' }
+    const other = { id: store.conversations.create(idea.id) }
+    service.begin(current, conversationId, user, { start: true }) // never iterated: still waiting
+    expect(() => service.begin(current, conversationId, user, { text: 'again' })).toThrow(
+      /Ada is waiting/,
+    )
+    expect(() => service.begin(current, other.id, user, { start: true })).not.toThrow()
+  })
+
+  it('knows nothing of a conversation on another idea', async () => {
+    const { ada, ideas, idea } = await world()
+    const other = await (await ada.post(ideas, { name: 'Another idea' })).json()
+    const made = (await (await ada.post(`${ideas}/${other.id}/conversations`, {})).json()) as {
+      id: string
+    }
+    expect((await ada.get(`${ideas}/${idea.id}/conversations/${made.id}`)).status).toBe(404)
+    expect((await ada.delete(`${ideas}/${idea.id}/conversations/${made.id}`)).status).toBe(404)
+  })
+})
+
 describe('what is kept when things are deleted', () => {
   it('removes the thread and its suggestions with the idea', async () => {
-    const { ctx, ada, ideas, idea, send } = await world()
+    const { ctx, ada, ideas, idea, conversationId, send } = await world()
     ctx.setChat(() => ({ text: 'Hi.', toolCalls: [create({ name: 'X', notes: 'y' })] }))
     await send(ada, START)
-    expect(ctx.store.conversations.messages(idea.id)).toHaveLength(2)
+    expect(ctx.store.conversations.messages(conversationId)).toHaveLength(2)
     expect((await ada.delete(`${ideas}/${idea.id}`)).status).toBe(204)
-    expect(ctx.store.conversations.messages(idea.id)).toEqual([])
+    expect(ctx.store.conversations.messages(conversationId)).toEqual([])
   })
 
   it("removes everything with the account of a publication's only member", async () => {
-    const { ctx, ada, idea, send } = await world()
+    const { ctx, ada, conversationId, send } = await world()
     await send(ada, START)
     const res = await ada.delete('/api/account', {
       password: PASSWORD,
     })
     expect(res.status).toBe(204)
-    expect(ctx.store.conversations.messages(idea.id)).toEqual([])
+    expect(ctx.store.conversations.messages(conversationId)).toEqual([])
   })
 
   it("keeps a departed member's messages in a shared publication, with their name if they chose that", async () => {

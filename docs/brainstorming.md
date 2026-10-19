@@ -18,7 +18,7 @@ tool: it never writes or edits drafts.
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.                            |
 | What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same publication. It cannot edit or remove notes. **Never** edit or create drafts.                                        |
-| Who sees the conversation?           | **One thread per idea, visible to every member of the publication.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                                           |
+| Who sees the conversation?           | **Up to five conversations per idea (#289), each visible to every member of the publication.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                 |
 | How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                                                |
 | What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **publication** (name, website and the writer's own **description** of it, when they have written one). See _Context_ for what is deliberately left out. |
 | Whose prompt?                        | **The same for everyone**: a default that makes the model a writing coach (not editable since #205). In a shared publication, the person sending the message supplies the key and model.                                                          |
@@ -98,14 +98,14 @@ displayed as a short "Brainstorm started" line, not as a message the person wrot
 
 ### Conversation storage and replay
 
-- One thread per idea, shared by all members, stored in our neutral format: **text and tool calls only**.
+- Up to five conversations per idea (`MAX_CONVERSATIONS_PER_IDEA`), each a thread shared by all members, stored in our neutral format: **text and tool calls only**.
   Reasoning ("thinking") blocks are never stored or replayed; they are bound to the model that produced them, and
   members may use different ones.
 - Each assistant message records which provider and model produced it; each person message records who sent it.
   The UI shows names, so a shared thread makes sense to read.
-- Only **one reply in flight per idea**: if someone else is already waiting for a reply, a second send is refused
+- Only **one reply in flight per conversation**: if someone else is already waiting for a reply, a second send is refused
   with "{name} is waiting for a reply; try again in a moment".
-- **Start again** deletes the thread (confirmation required, since it removes everyone's view of it).
+- **Delete conversation** deletes one thread and its suggestions (confirmation required, since it removes everyone's view of it); the idea's other conversations stay. A new conversation is a new thread with no memory of the others: its first message carries the idea afresh, and what the AI is sent never includes another conversation's messages.
 - A reply that fails (rate limit, provider down, refused, cut off by the token cap) leaves the person's message in
   place and shows what happened with a **Try again** button, which asks for the reply without sending a new
   message. A reply the person cancels is kept as far as it got, marked as stopped.
@@ -175,10 +175,13 @@ The publication-rename list needs no change (these tables hang off ideas and use
 
 ## API
 
-All under `/api/publications/:publicationId/ideas/:id/conversation` (members only):
+All under `/api/publications/:publicationId/ideas/:id/conversations` (members only):
 
-- `GET`: the thread, with proposals and their states.
-- `POST /messages`: body `{ text }`, or `{ start: true }` for the kick-off or `{ retry: true }` for a retry (exactly
+- `GET /conversations`: the idea's conversations, oldest first (`id`, `createdAt`, `startedByName`).
+- `POST /conversations`: starts an empty one (`201`), or returns the empty one already waiting; `409` at the limit.
+- `GET /conversations/:conversationId`: the thread, with proposals and their states.
+- `DELETE /conversations/:conversationId`: deletes that one (refused while a reply is in flight in it).
+- `POST /conversations/:conversationId/messages`: body `{ text }`, or `{ start: true }` for the kick-off or `{ retry: true }` for a retry (exactly
   one). Problems that can still be an ordinary response come back as one: `400` (bad body), `409` (no API key, already
   started, nothing to retry, or someone else's reply is in flight), `429` (too many messages). Otherwise it answers
   `200` as a **server-sent event stream**, which the browser reads with `fetch` and a stream reader, not
@@ -187,10 +190,9 @@ All under `/api/publications/:publicationId/ideas/:id/conversation` (members onl
   sent on a retry), `text` (word-sized pieces of the reply), `note` (one per point recorded or declined), `proposal` (one per valid suggestion), then `done`
   (the stored reply; `null` if stopped before it said anything) or `error` (`auth`, `rate_limit`, `provider`,
   `timeout` or `unknown`, with a message for people). Closing the connection stops the reply and keeps what was said.
-- `POST /proposals/:proposalId/accept` (body `{ overwrite?: true }`) and `/dismiss`: accept applies the change in one
+- `POST /conversations/:conversationId/proposals/:proposalId/accept` (body `{ overwrite?: true }`) and `/dismiss`: accept applies the change in one
   transaction (changing the title, or creating an idea) and answers `409` if the suggestion was already decided, or if
   the title it would replace has changed since, unless `overwrite` is sent.
-- `DELETE`: start again (refused while a reply is in flight).
 
 ## UI
 

@@ -94,8 +94,21 @@ function fakeIdea(
       return HttpResponse.json(made, { status: 201 })
     }),
     http.get(`${ideaUrl}/research`, () => HttpResponse.json([])),
-    http.get(`${ideaUrl}/conversation`, () =>
-      HttpResponse.json({ messages: options.messages ?? [], replyingNow: null }),
+    http.get(`${ideaUrl}/conversations`, () =>
+      HttpResponse.json({
+        conversations: options.messages?.length
+          ? [{ id: 'c1', createdAt: '2026-01-05T10:00:00Z', startedByName: 'Ada' }]
+          : [],
+      }),
+    ),
+    http.get(`${ideaUrl}/conversations/c1`, () =>
+      HttpResponse.json({
+        id: 'c1',
+        createdAt: '2026-01-05T10:00:00Z',
+        startedByName: 'Ada',
+        messages: options.messages ?? [],
+        replyingNow: null,
+      }),
     ),
     http.post(`${ideaUrl}/research`, async ({ request }) => {
       const { areas } = (await request.json()) as { areas: string }
@@ -449,7 +462,7 @@ describe('an idea’s landing page', () => {
       expect(within(region).queryByText('First question?')).toBeNull()
       expect(within(region).getByText(/^Your AI/)).toBeInTheDocument()
       expect(within(region).queryByText(/Coach/)).toBeNull()
-      expect(within(region).getByRole('link', { name: 'See the conversation' })).toBeVisible()
+      expect(within(region).getByRole('link', { name: 'See all conversations' })).toBeVisible()
       expect(within(region).queryByText('Read in full')).toBeNull()
     })
 
@@ -470,7 +483,7 @@ describe('an idea’s landing page', () => {
       const sent: unknown[] = []
       fakeIdea({ messages: [message(1, 'assistant', 'What is the point?')] })
       server.use(
-        http.post(`${ideaUrl}/conversation/messages`, async ({ request }) => {
+        http.post(`${ideaUrl}/conversations/c1/messages`, async ({ request }) => {
           sent.push(await request.json())
           return new HttpResponse('', {
             status: 200,
@@ -493,7 +506,7 @@ describe('an idea’s landing page', () => {
     it('says when the conversation can’t be loaded', async () => {
       fakeIdea()
       server.use(
-        http.get(`${ideaUrl}/conversation`, () =>
+        http.get(`${ideaUrl}/conversations`, () =>
           HttpResponse.json({ error: 'Nope' }, { status: 500 }),
         ),
       )

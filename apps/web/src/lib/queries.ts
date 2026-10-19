@@ -39,8 +39,11 @@ export const queryKeys = {
     ['comments', publicationId, draftId] as const,
   critique: (publicationId: string, draftId: string) =>
     ['critique', publicationId, draftId] as const,
-  conversation: (publicationId: string, ideaId: string) =>
-    ['conversation', publicationId, ideaId] as const,
+  /** An idea's conversations, as a list (its roots are shared with each conversation, so one refresh does both). */
+  conversations: (publicationId: string, ideaId: string) =>
+    ['conversation', publicationId, ideaId, 'list'] as const,
+  conversation: (publicationId: string, ideaId: string, conversationId: string) =>
+    ['conversation', publicationId, ideaId, conversationId] as const,
   research: (publicationId: string, ideaId: string) => ['research', publicationId, ideaId] as const,
   recentPosts: (publicationId: string, days: number, feeds: string) =>
     ['recent-posts', publicationId, days, feeds] as const,
