@@ -100,7 +100,7 @@ One critique of a draft, as the writer sees it (“2 of 3 looks used”). A draf
 _Avoid_: Round (that is Rephrase's word), go, pass
 
 **Review request**:
-One sending of a draft for review: a snapshot, with the reviews of the people asked and any invitations not yet answered. The editor can name it; until then it is called by the date and time it was sent. The Reviews tab beside the draft shows one at a time, latest first, with how far it has got as “1/2 complete” (those who have finished, of those reading, finished or yet to answer; closed ones don't count). Closing its reviews is final.
+One sending of a draft for review: a snapshot, with the reviews of the people asked and any invitations not yet answered. The editor can name it; until then it is called by the date and time it was sent. The Reviews tab beside the draft shows one at a time, latest first, with how far it has got as “1 of 2 reviews complete” (those who have finished, of those reading, finished or yet to answer; closed ones don't count). Closing its reviews is final.
 _Avoid_: Round, batch
 
 **Snapshot**:
@@ -120,9 +120,13 @@ A reviewer or non-editor member sees only the draft and their own comments, neve
 The tabbed small forms for adding a new idea, a note or something to read without first opening the place it goes. On a writer's landing page they add to the chosen publication's own list, never inside an idea; on a publication's landing page, to that publication; on an idea's, a note or reading item to that idea (there is no New idea tab). On a reading item's own page they take a note from that item (first tab), add another reading item, or (on a publication's item only) start an idea.
 _Avoid_: Capture, inbox (that word is the issue tracker's)
 
-**Pick up**:
-The short list on a writer's landing page of the drafts they are the editor of, newest first, each with a link to carry on writing it. Not the drafts they are only asked to review.
-_Avoid_: Recent, continue (that is the link's label), in progress
+**Keep writing**:
+The short list on the landing pages (Home, a publication, an idea) of the drafts the person is the editor of that are active, each a link straight into writing it. Active means saved in the last 30 days, or with a review in progress, or with unresolved comments; where review requests exist the row says how far they have got in total (“2 of 5 reviews complete · 4 unresolved comments”). It starts with three and grows with “Show more”. Not the drafts they are only asked to review.
+_Avoid_: Pick up (its old name), Recent, continue, in progress
+
+**Published** (of a draft):
+A draft its editor has marked as published, optionally with a link to the published post. It is the writer's own marker; the service does not check it. A published draft keeps its place in its idea's list, shown with a green wash, and leaves Keep writing.
+_Avoid_: Done, archived
 
 **Move**:
 Taking notes, reading items or whole ideas from where they are to another place: another idea, a publication's own list, or (rarely) another publication the person belongs to. An idea moves with all its drafts, notes and links, and the people who could see it only through its old publication stop seeing it.
