@@ -602,8 +602,7 @@ const busyNote = computed(() =>
         @cancel="confirmingDelete = false"
       >
         This deletes this conversation for everyone in this publication, including suggestions
-        nobody has decided on. Changes you have already accepted stay. Your other conversations stay
-        too.
+        nobody has decided on. Changes you have already accepted stay.
       </ConfirmDialog>
 
       <NextStep
