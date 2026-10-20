@@ -417,24 +417,16 @@ describe('asking someone to review a draft', () => {
     return calls
   }
 
-  it('tells the editor the reviewers read a snapshot, then sends, closes and withdraws', async () => {
+  it('sends a snapshot from a dialog, which closes and brings the Reviews tab forward', async () => {
     const calls = page('member')
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: /^Send for review/ }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Send for review' }))
     const dialog = screen.getByRole('dialog', { name: 'Send for review' })
     expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
-      'snapshot of the draft as it is now, not what you write later',
+      'Reviewers will read and comment on a snapshot of this draft as it is now.',
     )
-    expect(screen.getByTestId('snapshot-notice')).toHaveTextContent('your AI never receives them')
-    expect(
-      screen.getByRole('button', { name: 'About sending for review' }),
-    ).toHaveAccessibleDescription(/Sending again makes a new snapshot/)
-    expect(await screen.findByTestId('snapshot-line')).toHaveTextContent(
-      '1 still reading, 2 finished, 3 unresolved comments',
-    )
-    expect(
-      await screen.findByText('A closed review stays readable but can’t be reopened.'),
-    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'About sending for review' })).toBeNull()
+    expect(dialog).not.toHaveTextContent('We email each one')
     expect(within(dialog).getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
     await fireEvent.update(
       within(dialog).getByLabelText('Email addresses'),
@@ -442,19 +434,33 @@ describe('asking someone to review a draft', () => {
     )
     await fireEvent.click(within(dialog).getByLabelText('Bob Jones'))
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Send for review' }))
-    expect(await screen.findByText(/to 3 people/)).toBeTruthy()
-    // Each reviewer: state, comments so far, when it was sent.
-    expect(await screen.findByText(/Reading · 2 comments · sent/)).toBeTruthy()
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close review: Rae' }))
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close all reviews' }))
-    await fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
-    )
-    await waitFor(() => expect(calls).toHaveLength(4))
-    expect(calls[0]).toBe(
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(calls).toEqual([
       'send {"emails":["new@example.com","other@example.com"],"memberIds":["u2"]}',
+    ])
+    expect(screen.getByRole('tab', { name: /^Reviews/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('shows who is reviewing in the Reviews tab, where reviews are closed and invitations withdrawn', async () => {
+    const calls = page('member')
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
+    const tab = screen.getByRole('tabpanel', { name: /^Reviews/ })
+    expect(await within(tab).findByTestId('snapshot-line')).toHaveTextContent(
+      '1 still reading, 2 finished, 3 unresolved comments',
     )
-    expect(calls.slice(1).sort()).toEqual(['close all', 'close v1', 'withdraw i9'])
+    expect(
+      await within(tab).findByText('A closed review stays readable but can’t be reopened.'),
+    ).toBeTruthy()
+    // Each reviewer: state, comments so far, when it was sent.
+    expect(await within(tab).findByText(/Reading · 2 comments · sent/)).toBeTruthy()
+    await fireEvent.click(within(tab).getByRole('button', { name: 'Close review: Rae' }))
+    await fireEvent.click(within(tab).getByRole('button', { name: 'Close all reviews' }))
+    await fireEvent.click(
+      within(tab).getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
+    )
+    await waitFor(() => expect(calls).toHaveLength(3))
+    expect(calls.sort()).toEqual(['close all', 'close v1', 'withdraw i9'])
   })
 
   it('saves words typed a moment ago before the snapshot is made', async () => {
@@ -472,7 +478,7 @@ describe('asking someone to review a draft', () => {
     const dialog = screen.getByRole('dialog', { name: 'Send for review' })
     await fireEvent.update(within(dialog).getByLabelText('Email addresses'), 'new@example.com')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Send for review' }))
-    expect(await screen.findByText(/to 1 person/)).toBeTruthy()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(calls.slice(0, 2)).toEqual(['save Just typed', expect.stringMatching(/^send /)])
   })
 
@@ -495,21 +501,21 @@ describe('asking someone to review a draft', () => {
     expect(calls.filter((c) => c.startsWith('send'))).toEqual([])
   })
 
-  it('lets an owner who is not the editor see and close reviews but not send', async () => {
+  it('lets an owner who is not the editor see and close reviews in the tab, but not send', async () => {
     page('owner', 'u2')
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: /^Reviews/ }))
-    expect(screen.getByRole('dialog', { name: 'Reviews' })).toBeTruthy()
-    expect(screen.getByText(/Only the draft’s editor can send it for review/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull()
+    await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
     expect(await screen.findByRole('button', { name: 'Close review: Rae' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Reviews/ })).toBeNull()
   })
 
   it('is for the editor and owners only', async () => {
     page('member', 'u2') // someone else edits, and this person is a plain member
     await renderAt('/p/p1/drafts/d1')
     await screen.findByTestId('read-only')
-    expect(screen.queryByRole('button', { name: /^(Send for review|Reviews)/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull()
+    expect(screen.queryByRole('tab', { name: /^Reviews/ })).toBeNull()
   })
 })
 

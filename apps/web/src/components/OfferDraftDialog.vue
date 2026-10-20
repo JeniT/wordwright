@@ -37,10 +37,16 @@ const submit = () =>
 </script>
 
 <template>
-  <ModalDialog :open="open" title="Offer draft" close-label="Cancel" @close="emit('close')">
+  <ModalDialog
+    :open="open"
+    title="Offer draft"
+    close-label="Close"
+    :footer="!others.length"
+    @close="emit('close')"
+  >
     <Explain label="About handing over a draft" class="mb-3">
-      Only one person edits a draft at a time. They offer it to a member, who chooses whether to
-      accept.
+      Each draft can only have one editor. If you want to hand this draft over to another editor,
+      you can offer it to them. It remains yours until they accept it.
     </Explain>
     <form v-if="others.length" class="flex flex-wrap items-end gap-3" @submit.prevent="submit">
       <div>
@@ -53,6 +59,7 @@ const submit = () =>
       <button type="submit" class="btn btn-primary" :disabled="actions.busy.value || !target">
         Offer draft
       </button>
+      <button type="button" class="btn btn-neutral" @click="emit('close')">Cancel</button>
       <p class="basis-full text-ink-soft">They are emailed, and choose whether to accept.</p>
     </form>
     <p v-else class="text-ink-soft">

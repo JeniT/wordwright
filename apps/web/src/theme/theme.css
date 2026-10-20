@@ -388,7 +388,8 @@
   align-items: center;
   gap: 0.4rem;
   min-height: 2.75rem;
-  padding: 0 0.65rem;
+  padding: 0 0.4rem;
+  white-space: nowrap;
   margin-bottom: -1px;
   border-bottom: 3px solid transparent;
   color: var(--color-ink-soft);

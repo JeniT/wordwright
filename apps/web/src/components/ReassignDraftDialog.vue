@@ -35,7 +35,7 @@ const submit = () =>
 </script>
 
 <template>
-  <ModalDialog :open="open" title="Reassign draft" close-label="Cancel" @close="emit('close')">
+  <ModalDialog :open="open" title="Reassign draft" :footer="false" @close="emit('close')">
     <form class="flex flex-wrap items-end gap-3" @submit.prevent="submit">
       <div>
         <label for="handover-reassign" class="mb-1 block font-medium">New editor</label>
@@ -47,6 +47,7 @@ const submit = () =>
       <button type="submit" class="btn btn-outline" :disabled="actions.busy.value || !target">
         Reassign draft
       </button>
+      <button type="button" class="btn btn-neutral" @click="emit('close')">Cancel</button>
       <p class="basis-full text-ink-soft">
         This takes effect at once, without asking the current editor, and is recorded in the
         history.

@@ -6,9 +6,10 @@ import { useModal } from '../lib/modal'
  * A dialog that holds a form or some information, closed with Escape, a click outside, or its own button. A choice
  * that must be confirmed uses `ConfirmDialog`; this is for everything else, so they all behave alike.
  */
-const props = withDefaults(defineProps<{ open: boolean; title: string; closeLabel?: string }>(), {
-  closeLabel: 'Close',
-})
+const props = withDefaults(
+  defineProps<{ open: boolean; title: string; closeLabel?: string; footer?: boolean }>(),
+  { closeLabel: 'Close', footer: true },
+)
 const emit = defineEmits<{ close: [] }>()
 
 const titleId = useId()
@@ -41,7 +42,7 @@ useModal({
       >
         <h2 :id="titleId" class="mb-3 font-display text-xl font-semibold">{{ title }}</h2>
         <slot />
-        <div class="mt-5 flex justify-end">
+        <div v-if="footer" class="mt-5 flex justify-end">
           <button type="button" class="btn btn-neutral" @click="emit('close')">
             {{ closeLabel }}
           </button>

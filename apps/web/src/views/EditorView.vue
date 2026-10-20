@@ -8,7 +8,9 @@ import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
+import { useHandover, useReviewers } from '../lib/draft-people'
 import DraftActions from '../components/DraftActions.vue'
+import ReviewsPanel from '../components/ReviewsPanel.vue'
 import HandoverNotices from '../components/HandoverNotices.vue'
 import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
@@ -351,10 +353,28 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
 
 // Beside the draft on a wide screen the side area (notes, reading list, comments) is always there; on a phone it
 // slides in over the page.
+// Reviews is there once the editor or an owner has sent the draft for review (or has an invitation waiting).
+const { isOwner } = useHandover(
+  () => props.publicationId,
+  () => props.id,
+)
+const reviewers = useReviewers(
+  () => props.publicationId,
+  () => props.id,
+  () => canEdit.value || isOwner.value,
+)
+const hasReviews = computed(() => {
+  const r = reviewers.data.value
+  return !!r && (r.reviewers.length > 0 || r.pending.length > 0 || r.snapshots.length > 0)
+})
+const openReviews = computed(
+  () => reviewers.data.value?.reviewers.filter((r) => r.state === 'open').length ?? 0,
+)
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
   { id: 'comments', label: 'Comments', count: openComments.value },
+  ...(hasReviews.value ? [{ id: 'reviews', label: 'Reviews', count: openReviews.value }] : []),
 ])
 const sideTab = ref('notes')
 const notesOpen = ref(false)
@@ -366,6 +386,11 @@ async function openNotes() {
   notesOpen.value = true
   await nextTick()
   closeButton.value?.focus()
+}
+/** A snapshot was just sent: show who is reviewing, even on a phone where the side area is a drawer. */
+async function showReviews() {
+  sideTab.value = 'reviews'
+  if (!sideIsBeside()) await openNotes()
 }
 async function closeNotes() {
   notesOpen.value = false
@@ -478,7 +503,7 @@ async function requestCritique() {
 
 <template>
   <QueryState :query="draft" what="this draft">
-    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
+    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
       <!-- With comments marked in the text, room below the end so that even the last paragraph can scroll to the top. -->
       <article
         class="min-w-0 max-w-2xl"
@@ -499,7 +524,12 @@ async function requestCritique() {
               ← All drafts
             </RouterLink>
           </p>
-          <DraftActions :publication-id="publicationId" :draft-id="id" :prepare="saveFirst" />
+          <DraftActions
+            :publication-id="publicationId"
+            :draft-id="id"
+            :prepare="saveFirst"
+            @sent="showReviews"
+          />
         </div>
         <p v-if="draft.data.value && !canEdit" class="callout mb-4 text-sm" data-testid="read-only">
           <span class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
@@ -697,6 +727,9 @@ async function requestCritique() {
               :insert-link="insertLink"
               :only-editor="canEdit ? undefined : draft.data.value.editorName"
             />
+          </template>
+          <template v-if="hasReviews" #reviews>
+            <ReviewsPanel :publication-id="publicationId" :draft-id="id" />
           </template>
           <template #comments>
             <p v-if="markdownMode && canEdit" class="text-sm text-ink-soft">

@@ -2079,3 +2079,7 @@ The draft editor has no Save button. `useAutosave` (`lib/autosave.ts`) saves abo
 - **“Saved” is not announced** to screen readers every time; only the failure callouts are alerts.
 - **No history.** Each save replaces the stored draft, so there is no way back to an earlier version except the editor's undo while the page is open. Revisions are a separate idea (#300).
 - **Not done:** a blank title is valid, and a title over 300 characters fails like any failed save. No AI is involved; the assistance ladder is unchanged.
+
+## Who is reviewing, in a tab (#301)
+
+The list of reviews (snapshots sent, reviewers and their state, invitations waiting, Close review, Close all reviews) moved from the Send for review dialog to a **Reviews** tab beside Notes, Reading list and Comments, for the editor and owners, shown once any review or invitation exists. It is a list to keep an eye on while writing and reading comments, not part of sending. The dialog is only the send form, and closes on sending, which brings the tab forward (opening the drawer on a phone). So an owner who is not the editor has no Reviews button: the tab is theirs. The dialogs put Cancel beside their main button; the Send for review warning is one sentence, and its older claims (only you see comments, your AI never receives them) are no longer said there.

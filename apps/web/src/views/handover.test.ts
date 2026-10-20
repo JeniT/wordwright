@@ -97,7 +97,9 @@ describe('handing a draft over (#155)', () => {
     const choose = screen.getByLabelText('Member')
     expect(
       screen.getByRole('button', { name: 'About handing over a draft' }),
-    ).toHaveAccessibleDescription(/Only one person edits a draft at a time/)
+    ).toHaveAccessibleDescription(
+      /Each draft can only have one editor.*It remains yours until they accept it/,
+    )
     expect(within(choose).queryByRole('option', { name: 'Ada Lovelace' })).toBeNull() // not oneself
     await fireEvent.update(choose, 'u2')
     const dialog = screen.getByRole('dialog', { name: 'Offer draft' })

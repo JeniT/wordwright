@@ -40,7 +40,7 @@ function onKeydown(event: KeyboardEvent) {
 
 <template>
   <div>
-    <div role="tablist" :aria-label="label" class="mb-3 flex gap-1 border-b border-line">
+    <div role="tablist" :aria-label="label" class="mb-3 flex flex-wrap border-b border-line">
       <button
         v-for="t in tabs"
         :id="tabId(t.id)"
