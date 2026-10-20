@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Icon from './Icon.vue'
 
 /**
- * "Published 20 Oct 2026" with a tick: a draft its editor has marked published. The words and the tick carry it, so it
+ * "Published Oct 20, 2026" with a tick: a draft its editor has marked published. The words and the tick carry it, so it
  * never relies on its green alone (docs/design.md).
  */
 const props = defineProps<{ publishedAt: string }>()

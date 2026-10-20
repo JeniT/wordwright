@@ -27,20 +27,20 @@ const props = defineProps<{
   publishedUrl: string | null
 }>()
 
-const set = useSetPublished(
+const setPublished = useSetPublished(
   () => props.publicationId,
   () => props.draftId,
 )
-const flip = useTemplateRef<InstanceType<typeof SwitchField>>('flip')
+const publishedSwitch = useTemplateRef<InstanceType<typeof SwitchField>>('publishedSwitch')
 const link = useSavedValue(
   () => props.publishedUrl ?? '',
   '',
   () => props.draftId,
 )
 function toggle(on: boolean) {
-  set.mutate({ published: on }, { onError: () => flip.value?.revert() })
+  setPublished.mutate({ published: on }, { onError: () => publishedSwitch.value?.revert() })
 }
-const saveLink = () => set.mutate({ published: true, url: link.value })
+const saveLink = () => setPublished.mutate({ published: true, url: link.value })
 
 const heading = computed(() => props.title.trim() || 'Untitled')
 const markdown = computed(() => `# ${heading.value}\n\n${props.body.trim()}\n`)
@@ -116,10 +116,10 @@ async function copyRich() {
     </p>
     <div class="mt-6">
       <SwitchField
-        ref="flip"
+        ref="publishedSwitch"
         :model-value="!!publishedAt"
         label="I’ve published this draft"
-        :disabled="set.isPending.value"
+        :disabled="setPublished.isPending.value"
         @update:model-value="toggle"
       />
       <template v-if="publishedAt">
@@ -138,12 +138,12 @@ async function copyRich() {
               autocomplete="off"
             />
           </div>
-          <button type="submit" class="btn btn-outline" :disabled="set.isPending.value">
+          <button type="submit" class="btn btn-outline" :disabled="setPublished.isPending.value">
             Save link
           </button>
         </form>
       </template>
-      <div class="mt-2"><SaveStatus :mutation="set" /></div>
+      <div class="mt-2"><SaveStatus :mutation="setPublished" /></div>
     </div>
     <div v-if="fallback" class="mt-3">
       <label class="sr-only" for="publish-fallback">The draft, to select and copy</label>
