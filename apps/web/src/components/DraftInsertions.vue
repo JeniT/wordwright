@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api } from '../lib/api'
 import { originPhrase } from '../lib/note-label'
+import { useSessionStore } from '../stores/session'
 import Explain from './Explain.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import { stillInDraft } from '../lib/note-insert'
@@ -13,6 +14,7 @@ const insertions = useQuery({
   queryKey: ['draft-insertions', () => props.publicationId, () => props.draftId],
   queryFn: () => api.listDraftInsertions(props.publicationId, props.draftId),
 })
+const session = useSessionStore()
 /** An option the writer used says what they asked for; the chip is who used it, not who wrote a note. */
 const rows = computed(() =>
   (insertions.data.value ?? []).map((i) => ({
@@ -21,7 +23,11 @@ const rows = computed(() =>
     words:
       i.origin === 'option'
         ? `${i.option?.kind === 'title' ? 'A title' : 'Words'} that began as an AI option, for “${i.option?.aim ?? ''}”`
-        : originPhrase(i.origin, i.source),
+        : originPhrase(
+            i.origin,
+            i.source,
+            session.user !== null && i.noteAuthorId === session.user.id,
+          ),
     by: i.origin === 'option' ? i.insertedByName : i.noteAuthorName,
     // A title is not part of the body, so it is not looked for there.
     kept: i.option?.kind === 'title' ? null : stillInDraft(props.body, i.text),

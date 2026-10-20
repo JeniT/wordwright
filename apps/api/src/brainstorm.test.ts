@@ -615,9 +615,9 @@ describe('notes the AI suggests (#295)', () => {
     expect((await thread()).messages.at(-1)!.notes).toEqual([]) // nothing recorded
   })
 
-  it('are added by whoever adds them, as brainstorm notes in their name', async () => {
+  it('are credited to whoever prompted them, not whoever adds them', async () => {
     const { ctx, ada, ideas, idea, send, thread, decide, addBob } = await world()
-    ctx.setChat(() => ({ text: 'A point.', toolCalls: [suggestNote("Bob's point.")] }))
+    ctx.setChat(() => ({ text: 'A point.', toolCalls: [suggestNote("Ada's prompt.")] }))
     await send(ada, START)
     const bob = await addBob()
     const [suggestion] = await suggestedNotes(thread)
@@ -625,15 +625,49 @@ describe('notes the AI suggests (#295)', () => {
     expect(accepted.status).toBe(200)
     expect(await accepted.json()).toMatchObject({ status: 'accepted', decidedByName: 'Bob' })
 
-    const bobId = (await (await bob.get('/api/auth/me')).json()).id
+    const adaId = (await (await ada.get('/api/auth/me')).json()).id
     expect(ctx.store.notes.list(idea.id).at(-1)).toMatchObject({
-      text: "Bob's point.",
+      text: "Ada's prompt.",
       origin: 'brainstorm',
-      authorId: bobId,
+      authorId: adaId,
     })
     const fresh = await (await ada.get(`${ideas}/${idea.id}`)).json()
-    expect(fresh.notes).toBe("- Erosion loops.\n- Bob's point.")
+    expect(fresh.notes).toBe("- Erosion loops.\n- Ada's prompt.")
     expect((await decide(ada, suggestion!.id, 'accept')).status).toBe(409) // already decided
+  })
+
+  it('are credited to the member who prompted the reply they came in', async () => {
+    const { ctx, ada, send, thread, decide, addBob, idea } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('Said after Bob spoke.')] }))
+    await send(ada, START)
+    const bob = await addBob()
+    await send(bob, { text: 'Bob replies.' })
+    const bobId = (await (await bob.get('/api/auth/me')).json()).id
+    const adaId = (await (await ada.get('/api/auth/me')).json()).id
+    const suggestions = await suggestedNotes(thread)
+    const later = suggestions.find(
+      (s) => s.input.text === 'Said after Bob spoke.' && s !== suggestions[0],
+    )
+    await decide(ada, (later ?? suggestions.at(-1))!.id, 'accept')
+    expect(ctx.store.notes.list(idea.id).at(-1)!.authorId).toBe(bobId)
+    expect(bobId).not.toBe(adaId)
+  })
+
+  it('go to whoever last edited them, who need not be the one who prompted or adds them', async () => {
+    const { ctx, ada, base, idea, send, thread, decide, addBob } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('Before.')] }))
+    await send(ada, START)
+    const bob = await addBob()
+    const [suggestion] = await suggestedNotes(thread)
+    expect(suggestion).toMatchObject({ edited: false })
+    await bob.patch(`${base}/proposals/${suggestion!.id}`, { text: 'After Bob.' })
+    expect((await suggestedNotes(thread))[0]).toMatchObject({ edited: true })
+    await decide(ada, suggestion!.id, 'accept')
+    const bobId = (await (await bob.get('/api/auth/me')).json()).id
+    expect(ctx.store.notes.list(idea.id).at(-1)).toMatchObject({
+      text: 'After Bob.',
+      authorId: bobId,
+    })
   })
 
   it('can be edited first, and what was edited is what is added', async () => {

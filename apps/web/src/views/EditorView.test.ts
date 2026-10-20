@@ -580,6 +580,7 @@ const insertion = (text: string, extra: object = {}) => ({
   id: `ins-${text.length}`,
   text,
   origin: 'entered',
+  noteAuthorId: 'u1',
   noteAuthorName: 'Ada',
   insertedByName: 'Ada',
   insertedAt: '2026-01-02T00:00:00Z',
@@ -697,7 +698,7 @@ describe('the notes beside the draft', () => {
     const notes = within(await screen.findByRole('complementary'))
     await notes.findByText('Erosion loops.')
     expect(notes.getByText('Added')).toBeInTheDocument()
-    expect(notes.getByText('From brainstorming')).toBeInTheDocument()
+    expect(notes.getByText('From conversation with your AI')).toBeInTheDocument()
     expect(notes.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
     expect(notes.getAllByText('Bob')[0]).toHaveClass('rounded-full') // the person, as a chip, not "by Bob"
     expect(notes.queryByText('Already used.')).toBeNull()
@@ -1158,6 +1159,7 @@ describe('the notes beside the draft', () => {
           insertion('Some text', { origin: 'brainstorm' }),
           insertion('Words that were rewritten since.', {
             origin: 'reading',
+            noteAuthorId: null,
             noteAuthorName: 'Bob',
             source: { title: 'A paper', url: 'https://example.org/paper' },
           }),
@@ -1168,7 +1170,7 @@ describe('the notes beside the draft', () => {
         'details',
       )!
       const rows = within(summary).getAllByRole('listitem')
-      expectOrigin(rows[0]!, 'From brainstorming', 'Ada')
+      expectOrigin(rows[0]!, 'From conversation with your AI', 'Ada')
       expect(rows[0]).toHaveTextContent('Still as inserted')
       expectOrigin(rows[1]!, 'From A paper', 'Bob')
       expect(rows[1]).toHaveTextContent('Edited or removed since')

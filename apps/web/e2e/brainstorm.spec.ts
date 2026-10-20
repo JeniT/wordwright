@@ -116,6 +116,14 @@ test('the points made in the chat are suggested as notes, and added, edited or i
     .getByRole('textbox', { name: 'Suggested note' })
     .fill('Oxbow lakes are meander loops cut off from the river.')
   await page.getByRole('button', { name: 'Save' }).click()
+  // It is the writer's words now: no longer in the AI's highlighter, even after a reload.
+  await expect(
+    suggestions.getByText('Oxbow lakes are meander loops cut off from the river.'),
+  ).not.toHaveClass(/bg-mark/)
+  await page.reload()
+  await expect(
+    suggestions.getByText('Oxbow lakes are meander loops cut off from the river.'),
+  ).not.toHaveClass(/bg-mark/)
   await page.getByRole('button', { name: /^Add to notes:/ }).click()
   await expect(suggestions).toContainText('added to the notes by Pru')
 
@@ -123,14 +131,14 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   await say(page, 'Please note that Oxbow lakes are meander loops cut off from the river')
   await expect(page.getByText('Already in your notes:')).toBeVisible()
 
-  // The note is on the idea, from brainstorming, with the edit, and can be deleted like any other.
+  // The note is on the idea, from conversation with your AI, with the edit, and can be deleted like any other.
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(2)
   await expect(notes.getByRole('listitem').nth(1)).toContainText(
     'Oxbow lakes are meander loops cut off from the river.',
   )
-  await expect(notes.getByRole('listitem').nth(1)).toContainText('From brainstorming')
+  await expect(notes.getByRole('listitem').nth(1)).toContainText('From conversation with your AI')
   await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toBeVisible()
 
   // Hold the Delete button from the keyboard, which works the same way.

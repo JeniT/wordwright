@@ -52,7 +52,7 @@ describe('migrations', () => {
   it('leaves icons stored before their shape was recorded unchecked, to be backfilled (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -5))
+    migrate(db, 'test', MIGRATIONS.slice(0, -6))
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -67,7 +67,7 @@ describe('migrations', () => {
   it('clears icon shapes worked out by the first rule, so the backfill looks again (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -5))
+    migrate(db, 'test', MIGRATIONS.slice(0, -6))
     db.exec(`INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 't')`)
     db.exec(
       `INSERT INTO publication_site_icons (publication_id, content_type, data, updated_at, square) VALUES ('p', 'image/png', x'00', 't', 0)`,
@@ -79,7 +79,7 @@ describe('migrations', () => {
   it('deletes stored brainstorming prompts, which nobody can use any more (#205)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -7)) // before the prompts migration (the last but six)
+    migrate(db, 'test', MIGRATIONS.slice(0, -8)) // before the prompts migration (the last but seven)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -91,7 +91,7 @@ describe('migrations', () => {
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -10)) // before the sessions migration (the last but nine)
+    migrate(db, 'test', MIGRATIONS.slice(0, -11)) // before the sessions migration (the last but ten)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -276,7 +276,7 @@ describe('migrations', () => {
   it("turns each idea's existing thread into its first conversation, and leaves empty ideas without one (#289)", () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -4)) // the schema as it was: one thread per idea
+    migrate(db, 'test', MIGRATIONS.slice(0, -5)) // the schema as it was: one thread per idea
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i1', 'p', 'One', 't', 't');
@@ -305,7 +305,7 @@ describe('migrations', () => {
   it('leaves existing conversations without a title, which only the AI or a person can then give (#294)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -3)) // conversations, but no titles yet
+    migrate(db, 'test', MIGRATIONS.slice(0, -4)) // conversations, but no titles yet
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
@@ -322,10 +322,35 @@ describe('migrations', () => {
     expect(() => db.exec("UPDATE idea_conversations SET title_source = 'robot'")).toThrow()
   })
 
+  it('leaves earlier suggestions without an author and unedited, and lets a leaving member go (#306)', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    db.exec(`
+      INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't');
+      INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
+      INSERT INTO idea_conversations (id, idea_id, created_at) VALUES ('c', 'i', 't');
+      INSERT INTO idea_messages (id, idea_id, conversation_id, seq, role, kind, content, display_text, created_at)
+        VALUES ('m', 'i', 'c', 1, 'assistant', 'message', '[]', 'Hi', 't');
+      INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input)
+        VALUES ('p1', 'm', 'call-1', 'suggest_note', '{"text":"A"}');
+    `)
+    migrate(db, 'test')
+    expect(db.prepare('SELECT author_id, edited FROM idea_proposals').all()).toEqual([
+      { author_id: null, edited: 0 },
+    ])
+    db.exec("UPDATE idea_proposals SET author_id = 'u', edited = 1")
+    db.exec("DELETE FROM users WHERE id = 'u'")
+    expect(db.prepare('SELECT author_id, edited FROM idea_proposals').all()).toEqual([
+      { author_id: null, edited: 1 },
+    ])
+  })
+
   it('keeps existing suggestions when the table is rebuilt to allow suggested notes (#295)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -2)) // suggestions that can only be titles, ideas and pages
+    migrate(db, 'test', MIGRATIONS.slice(0, -3)) // suggestions that can only be titles, ideas and pages
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');

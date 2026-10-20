@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { noteOrigin } from '../lib/note-label'
+import { useSessionStore } from '../stores/session'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteTags from './NoteTags.vue'
 import NoteText from './NoteText.vue'
@@ -9,6 +10,8 @@ import NoteText from './NoteText.vue'
  * A note as it is read: its text and tags, with where it came from beside it (under the text on a phone). The Notes
  * step puts the origin under its row buttons instead (`hideOrigin`), and the landing page shares the rest.
  */
+const session = useSessionStore()
+
 defineProps<{ note: IdeaNote; readingList: readonly IdeaLink[]; hideOrigin?: boolean }>()
 defineSlots<{ tags?(): unknown }>()
 </script>
@@ -22,7 +25,7 @@ defineSlots<{ tags?(): unknown }>()
     </div>
     <p v-if="!hideOrigin" class="meta max-w-full sm:max-w-[16rem] sm:text-right">
       <NoteOrigin
-        v-bind="noteOrigin(note, readingList)"
+        v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
         :author-name="note.authorName"
         class="sm:justify-end"
       />

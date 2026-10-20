@@ -641,6 +641,12 @@ export const MIGRATIONS: Migration[] = [
   `
   ALTER TABLE draft_snapshots ADD COLUMN name TEXT;
   `,
+  // A suggested note remembers who it is credited to (#306): the person whose message prompted it, then whoever last edits it.
+  // Null for those made before this, which are credited to whoever adds them.
+  `
+  ALTER TABLE idea_proposals ADD COLUMN author_id TEXT REFERENCES users(id) ON DELETE SET NULL;
+  ALTER TABLE idea_proposals ADD COLUMN edited INTEGER NOT NULL DEFAULT 0;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

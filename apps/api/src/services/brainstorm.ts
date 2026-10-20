@@ -803,7 +803,7 @@ export class BrainstormService {
   }
 
   /**
-   * Adds a suggested note, in the name of the person adding it. The notes are looked at again now: the writer may
+   * Adds a suggested note, in the name of the person it is credited to. The notes are looked at again now: the writer may
    * have written the same point meanwhile, or the idea may have filled up. A refusal leaves the suggestion waiting.
    */
   private addSuggestedNote(idea: Idea, proposal: ProposalRecord, user: BrainstormUser) {
@@ -819,7 +819,8 @@ export class BrainstormService {
         `An idea can have up to ${MAX_IDEA_NOTES} notes. Delete or merge some to make room.`,
       )
     }
-    notes.append(idea.publicationId, idea.id, user.id, text, 'brainstorm')
+    // Credited to whoever prompted or last edited it, not whoever adds it (older suggestions have no one).
+    notes.append(idea.publicationId, idea.id, proposal.authorId ?? user.id, text, 'brainstorm')
     ideas.touch(idea.id)
   }
 
@@ -887,6 +888,7 @@ export class BrainstormService {
     conversationId: string,
     proposalId: string,
     changes: { text?: string; name?: string; notes?: string },
+    user: BrainstormUser,
   ): Proposal {
     const { conversations } = this.d.store
     const proposal = conversations.proposal(this.find(idea, conversationId).id, proposalId)
@@ -910,7 +912,7 @@ export class BrainstormService {
     } else {
       throw fail(409, "A suggested page can't be changed. Ignore it, or add it as it is.")
     }
-    if (!conversations.updateInput(proposal.id, input)) {
+    if (!conversations.updateInput(proposal.id, input, user.id)) {
       throw fail(409, 'This suggestion was just decided by someone else.')
     }
     return this.viewProposal(conversations.proposal(conversationId, proposalId)!, idea)
@@ -976,6 +978,7 @@ export class BrainstormService {
       createdIdeaId: p.createdIdeaId,
       decidedByName: p.decidedByName,
       decidedAt: p.decidedAt,
+      edited: p.edited,
     }
   }
 

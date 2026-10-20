@@ -866,6 +866,8 @@ export const DraftInsertionSchema = z.object({
     .object({ kind: z.enum(['title', 'passage']), offered: z.string(), aim: z.string() })
     .optional(),
   /** Who the note was by when it was inserted (their name now); null once they have left. */
+  /** Who that was, so the viewer can be told "your" from "their"; null once they have left. */
+  noteAuthorId: z.string().nullable(),
   noteAuthorName: z.string().nullable(),
   insertedByName: z.string().nullable(),
   insertedAt: z.string(),
@@ -1058,6 +1060,8 @@ export const ProposalSchema = z.object({
   createdIdeaId: z.string().nullable(),
   decidedByName: z.string().nullable(),
   decidedAt: z.string().nullable(),
+  /** A person has changed what the AI suggested, so it is no longer only the AI's words. */
+  edited: z.boolean(),
 })
 export type Proposal = z.infer<typeof ProposalSchema>
 

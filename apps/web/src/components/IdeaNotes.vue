@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { noteOrigin } from '../lib/note-label'
+import { useSessionStore } from '../stores/session'
 import { useIdeaNotes } from '../lib/queries'
 import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
@@ -27,6 +28,7 @@ import { useInlineEdit } from '../lib/inline-edit'
 import { vTip } from '../lib/tip'
 
 /** An idea's notes, or (no `ideaId`) the publication's own, gathered before there is an idea. */
+const session = useSessionStore()
 const props = defineProps<{
   publicationId: string
   ideaId: string | null
@@ -656,7 +658,7 @@ const label = (note: IdeaNote) => {
               </div>
               <p v-if="editingId !== note.id" class="meta sm:text-right">
                 <NoteOrigin
-                  v-bind="noteOrigin(note, readingList)"
+                  v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
                   :author-name="note.authorName"
                   class="sm:justify-end"
                 />

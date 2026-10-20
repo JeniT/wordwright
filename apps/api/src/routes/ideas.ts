@@ -240,6 +240,7 @@ export function ideaRoutes(
               param(c, 'conversationId'),
               param(c, 'proposalId'),
               c.req.valid('json'),
+              { id: c.get('user').id, name: c.get('user').name },
             ),
           ),
       )

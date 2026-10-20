@@ -89,6 +89,7 @@ const proposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   createdIdeaId: null,
   decidedByName: null,
   decidedAt: null,
+  edited: false,
   ...overrides,
 })
 
@@ -806,6 +807,22 @@ describe('the brainstorm page', () => {
       }
     })
 
+    it('lose the highlighter once a person has edited them, as they are no longer only the AI’s words', async () => {
+      mockConversation([
+        kickoff(),
+        aiMessage('Try this.', {
+          proposals: [
+            note({ id: 'n1', edited: true, input: { text: 'Reworded by a member.' } }),
+            note({ id: 'n2' }),
+          ],
+        }),
+      ])
+      await renderAt(page)
+      const list = within(await screen.findByRole('region', { name: 'Suggested notes' }))
+      expect(list.getByText('Reworded by a member.')).not.toHaveClass('bg-mark')
+      expect(list.getByText('Meanders speed up erosion.')).toHaveClass('bg-mark')
+    })
+
     it('are added with the tick, which says who added it', async () => {
       let sent: unknown
       const api = mockConversation([
@@ -838,7 +855,9 @@ describe('the brainstorm page', () => {
         http.patch(`${conversationUrl}/proposals/n1`, async ({ request }) => {
           const body = (await request.json()) as { text: string }
           sent.push(body)
-          api.messages[1]!.proposals = [note({ id: 'n1', input: { text: body.text } })]
+          api.messages[1]!.proposals = [
+            note({ id: 'n1', input: { text: body.text }, edited: true }),
+          ]
           return HttpResponse.json(api.messages[1]!.proposals[0])
         }),
       )
@@ -849,7 +868,7 @@ describe('the brainstorm page', () => {
       expect(field).toHaveValue('Meanders speed up erosion.')
       await fireEvent.update(field, 'Meanders feed their own erosion.')
       await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-      expect(await screen.findByText('Meanders feed their own erosion.')).toBeInTheDocument()
+      expect(await screen.findByText('Meanders feed their own erosion.')).not.toHaveClass('bg-mark')
       expect(sent).toEqual([{ text: 'Meanders feed their own erosion.' }])
       expect(screen.queryByLabelText('Suggested note')).toBeNull()
       expect(screen.getByRole('button', { name: /^Edit suggested note:/ })).toHaveFocus()

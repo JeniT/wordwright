@@ -664,7 +664,7 @@ other notes. Merged-away notes held nothing in a draft (those can't be merged), 
 ## Who took a note is a chip, not "by Name" (#62)
 
 "Quoted while reading “Title”, by Jeni" read as if Jeni had written the piece. A note's origin line is now what it is
-("Added", "From brainstorming", "From reading “Title”", "Quoted from “Title”") followed by the person who recorded it as
+("Added", "From conversation with your AI" (or "their AI"), "From reading “Title”", "Quoted from “Title”") followed by the person who recorded it as
 a **name chip**: a rounded pill like a tag but blue, so it can't be mistaken for one, with a neutral "A former member"
 chip once their account is gone. Screen readers hear ", recorded by Ada". The same component is used on the idea's
 Notes, the reading page, the notes beside the draft and the draft's record of where words came from. "By" is kept for
@@ -2113,3 +2113,7 @@ The second real-model run of the evals (after #304's prompt changes) failed in t
 ## Quotations are marked in the research brief too (#298)
 
 The research brief used to send the idea's notes as one text, so a quotation could be read as the writer's own point there as it could in Refine (#293). The marking now lives in one place, `services/idea-notes.ts` (`snapshotNotes` joins each note to the title of its reading item; `notesText` writes the bullets), and both the Refine snapshot and `formatResearchBrief` use it, so they cannot drift apart. What is sent is the same material, labelled; the rung on the assistance ladder is unchanged. `prompts/research.md` gets one sentence: a marked quotation is someone else's words, context only, not the writer's view. **`prompts/research.md` changed: the owner reviews it.** The eval is `research-quotations-are-not-the-writers-views` (the research name for the issue's `quotations-are-not-the-writers-views`, since case ids must be unique and Refine already has that one).
+
+## A note from a conversation says whose AI it was with, and who it is credited to (#306)
+
+"From brainstorming" was the one origin in the old word. A note that began in Refine now says "From conversation with your AI" when the viewer is its author, and "… their AI" otherwise (including when the author has left or nobody is signed in). That needed a rule for the author, because a member can open a conversation another member had with their AI and add or edit its suggestions: a suggestion is credited to **the person whose message prompted the reply it came in** (the opening reply: whoever began the conversation), and **whoever last edits it while it waits** replaces them. The person who presses "Add to notes" is not the author (the line under the suggestion still says "added to the notes by …"). Stored as `author_id` and `edited` on the suggestion (`idea_proposals`); suggestions made before it have no author and keep the old rule (whoever adds them). `edited` also takes the suggestion out of the highlighter, which marks only the AI's words. Editing a note already on the Notes page does not change its author, and a suggested new idea keeps the old rule; both could change later. The draft's "where the words came from" record carries the note author's id (`noteAuthorId`) so it can say "your" too.

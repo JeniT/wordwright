@@ -67,6 +67,10 @@ export interface ProposalRecord {
   decidedByName: string | null
   decidedAt: string | null
   createdIdeaId: string | null
+  /** Who the suggestion is credited to: whoever prompted it, then whoever last edited it. Null for older ones. */
+  authorId: string | null
+  /** A person has changed what the AI suggested. */
+  edited: boolean
 }
 
 /** A point the AI recorded (or tried to record) as a note in one of its replies. */
@@ -231,8 +235,8 @@ export class ConversationStore {
     const id = randomUUID()
     this.db
       .prepare(
-        `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base, check_status, fetched_title, fetched_authors)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base, check_status, fetched_title, fetched_authors, author_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT author_id FROM idea_messages WHERE id = ?))`,
       )
       .run(
         id,
@@ -244,6 +248,7 @@ export class ConversationStore {
         p.reading?.check ?? null,
         p.reading?.fetchedTitle ?? null,
         JSON.stringify(p.reading?.fetchedAuthors ?? []),
+        messageId,
       )
     return id
   }
@@ -317,12 +322,14 @@ export class ConversationStore {
     )
   }
 
-  /** Changes what is suggested, but only while it is still waiting. Returns whether it was. */
-  updateInput(id: string, input: ProposalRecord['input']): boolean {
+  /** Changes what is suggested, but only while it is still waiting; the editor is then credited. Returns whether it was. */
+  updateInput(id: string, input: ProposalRecord['input'], editorId: string): boolean {
     return (
       this.db
-        .prepare(`UPDATE idea_proposals SET input = ? WHERE id = ? AND status = 'pending'`)
-        .run(JSON.stringify(input), id).changes > 0
+        .prepare(
+          `UPDATE idea_proposals SET input = ?, edited = 1, author_id = ? WHERE id = ? AND status = 'pending'`,
+        )
+        .run(JSON.stringify(input), editorId, id).changes > 0
     )
   }
 
@@ -393,5 +400,7 @@ function toProposal(row: Record<string, unknown>): ProposalRecord {
     decidedByName: (row.decided_by_name as string | null) ?? null,
     decidedAt: (row.decided_at as string | null) ?? null,
     createdIdeaId: (row.created_idea_id as string | null) ?? null,
+    authorId: (row.author_id as string | null) ?? null,
+    edited: row.edited === 1,
   }
 }

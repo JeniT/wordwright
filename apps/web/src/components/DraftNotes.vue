@@ -8,6 +8,7 @@ import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { noteOrigin } from '../lib/note-label'
+import { useSessionStore } from '../stores/session'
 import Explain from './Explain.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
@@ -17,6 +18,7 @@ import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
 import SwitchField from './SwitchField.vue'
 
+const session = useSessionStore()
 const props = defineProps<{
   publicationId: string
   ideaId: string
@@ -123,7 +125,10 @@ const label = (note: IdeaNote) => {
             <NoteText :note="note" />
             <NoteTags :tags="note.tags" />
             <p class="mt-1 text-xs text-ink-soft">
-              <NoteOrigin v-bind="noteOrigin(note, readingList)" :author-name="note.authorName" />
+              <NoteOrigin
+                v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
+                :author-name="note.authorName"
+              />
             </p>
             <button
               v-if="!onlyEditor"
@@ -159,7 +164,10 @@ const label = (note: IdeaNote) => {
           >
             <NoteText :note="note" />
             <p class="mt-1 text-xs text-ink-soft">
-              <NoteOrigin v-bind="noteOrigin(note, readingList)" :author-name="note.authorName" />
+              <NoteOrigin
+                v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
+                :author-name="note.authorName"
+              />
             </p>
             <button
               type="button"

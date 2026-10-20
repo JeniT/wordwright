@@ -7,7 +7,7 @@ import Icon from './Icon.vue'
 
 /**
  * One note your AI suggested, with the three things you can do about it: edit it, add it to the notes, or ignore it
- * (and, once ignored, bring it back). The text is the AI's until it is added, so it is in the highlighter.
+ * (and, once ignored, bring it back). The text is the AI's until someone edits it (or it is added), so it is in the highlighter until then.
  */
 const props = defineProps<{
   proposal: Proposal
@@ -102,7 +102,7 @@ async function submit() {
           </div>
         </form>
         <p v-else class="whitespace-pre-wrap break-words">
-          <span class="bg-mark">{{ text }}</span>
+          <span :class="{ 'bg-mark': !proposal.edited }">{{ text }}</span>
         </p>
       </div>
       <div v-if="!edit.editing.value" class="flex shrink-0 items-start gap-2">

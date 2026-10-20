@@ -79,6 +79,7 @@ function mockDraft(viewer = testUser, over: Partial<typeof draft> = {}) {
           text: 'x',
           origin: 'option',
           option: { kind: 'passage', offered: 'o', aim: 'a' },
+          noteAuthorId: null,
           noteAuthorName: null,
           insertedByName: 'Ada',
           insertedAt: '2026-01-02T00:00:00Z',

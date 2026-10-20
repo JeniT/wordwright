@@ -1170,7 +1170,7 @@ describe('idea page', () => {
       ])
       const items = within(region()).getAllByRole('listitem')
       expectOrigin(items[0]!, 'Added', 'Ada')
-      expectOrigin(items[1]!, 'From brainstorming', 'Ada')
+      expectOrigin(items[1]!, 'From conversation with your AI', 'Ada')
       expectOrigin(items[2]!, 'From reading', 'Bob')
       // One plain list, with no choice of layout.
       expect(items[0]!.closest('ol')).not.toHaveClass('grid')
@@ -1215,7 +1215,7 @@ describe('idea page', () => {
       await screen.findByText('Left behind.')
       const items = within(region()).getAllByRole('listitem')
       expectOrigin(items[0]!, 'Added', 'A former member')
-      expectOrigin(items[1]!, 'From brainstorming', 'A former member')
+      expectOrigin(items[1]!, 'From conversation with their AI', 'A former member')
     })
 
     it('names the author of a note whose account is gone when they chose to leave their name (#153)', async () => {

@@ -12,6 +12,7 @@ import TextField from '../components/TextField.vue'
 import { errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
 import { nameList, noteOrigin } from '../lib/note-label'
+import { useSessionStore } from '../stores/session'
 import { readingBackRoute, useReadingList } from '../lib/reading'
 import { displayHost, usePublication } from '../lib/usePublications'
 import { vTip } from '../lib/tip'
@@ -21,6 +22,7 @@ import { useInlineEdit } from '../lib/inline-edit'
 
 /** Reading one item of an idea's reading list, or (no `id`) of the publication's own, and taking notes from it. */
 const props = defineProps<{ publicationId: string; id?: string; linkId: string }>()
+const session = useSessionStore()
 const owner = computed(() => ({ publicationId: props.publicationId, ideaId: props.id ?? null }))
 
 const list = useReadingList(() => owner.value)
@@ -242,7 +244,7 @@ function toggleRead(read: boolean) {
                 </div>
                 <p class="meta max-w-full sm:max-w-[16rem] sm:text-right">
                   <NoteOrigin
-                    v-bind="noteOrigin(note, list.links.value ?? [])"
+                    v-bind="noteOrigin(note, list.links.value ?? [], session.user?.id ?? null)"
                     :author-name="note.authorName"
                     class="sm:justify-end"
                   />

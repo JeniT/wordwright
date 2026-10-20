@@ -28,6 +28,7 @@ _Avoid_: Library, bookmarks
 
 **Note**:
 A piece of the writer's thinking kept for later: their own words, or words from a reading item. It belongs to an idea, or to the publication before there is one, and can be tagged, moved and put into a draft.
+A note that began as a suggestion in a Refine conversation is described as “From conversation with your AI” to the person it is credited to (whose message prompted it, or who last edited it) and “… their AI” to anyone else.
 _Avoid_: Snippet, highlight
 
 **Quotation**:

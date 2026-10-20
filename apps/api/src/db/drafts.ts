@@ -158,6 +158,7 @@ export class DraftStore {
               },
             }
           : {}),
+        noteAuthorId: (r.note_author_id as string | null) ?? null,
         noteAuthorName: r.note_author_name as string | null,
         insertedByName: r.inserted_by_name as string | null,
         insertedAt: r.inserted_at as string,
