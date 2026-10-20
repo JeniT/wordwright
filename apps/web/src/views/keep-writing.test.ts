@@ -153,14 +153,14 @@ describe('Keep writing, on Home', () => {
       const section = await box()
       expect(await within(section).findAllByRole('listitem')).toHaveLength(3)
 
-      await fireEvent.click(within(section).getByRole('button', { name: 'Show more' }))
+      await fireEvent.click(within(section).getByRole('button', { name: /^Show more/ }))
       await waitFor(() => expect(within(section).getAllByRole('listitem')).toHaveLength(5))
       expect(within(section).getAllByRole('listitem')[0]).toHaveTextContent('Draft 1')
       await waitFor(() =>
         expect(within(section).getByRole('link', { name: /Draft 4/ })).toHaveFocus(),
       )
       expect(asked).toEqual(['3', '6'])
-      expect(within(section).queryByRole('button', { name: 'Show more' })).toBeNull()
+      expect(within(section).queryByRole('button', { name: /^Show more/ })).toBeNull()
     })
   })
 })

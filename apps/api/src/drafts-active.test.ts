@@ -35,6 +35,21 @@ describe('GET /api/drafts/active', () => {
     blog = (await (await ada.get('/api/publications')).json())[0].id
   })
 
+  const draftUrl = (id: string) => `/api/publications/${blog}/drafts/${id}`
+  /** Sends the draft to a new reviewer, who registers; returns their client and the id of their latest review. */
+  async function sendFor(draftId: string, email: string, name: string) {
+    await ada.post(`${draftUrl(draftId)}/send-for-review`, { emails: [email] })
+    await new Promise((r) => setTimeout(r, 0))
+    const reviewer = ctx.client()
+    await reviewer.post('/api/auth/register-reviewer', {
+      token: lastReviewToken(ctx.mailer),
+      name,
+      password: PASSWORD,
+    })
+    const reviews = (await (await reviewer.get('/api/reviews')).json()) as { id: string }[]
+    return { reviewer, id: reviews[reviews.length - 1]!.id }
+  }
+
   it('names the draft, its idea and its publication, with where to open it', async () => {
     const draft = await createDraft(ada, blog, { title: 'Why we write', body: 'Hello.' })
     expect(await active(ada)).toEqual({
@@ -142,27 +157,14 @@ describe('GET /api/drafts/active', () => {
       ctx.db
         .prepare('UPDATE drafts SET updated_at = ? WHERE id = ?')
         .run(new Date(ctx.clock.now.getTime() - daysAgo * DAY).toISOString(), id)
-    const draftUrl = (id: string) => `/api/publications/${blog}/drafts/${id}`
-    /** Sends the draft to a new reviewer, who registers; returns their client and review id. */
-    async function sendFor(draftId: string, email: string, name: string) {
-      await ada.post(`${draftUrl(draftId)}/send-for-review`, { emails: [email] })
-      await new Promise((r) => setTimeout(r, 0))
-      const reviewer = ctx.client()
-      await reviewer.post('/api/auth/register-reviewer', {
-        token: lastReviewToken(ctx.mailer),
-        name,
-        password: PASSWORD,
-      })
-      const [review] = await (await reviewer.get('/api/reviews')).json()
-      return { reviewer, id: review.id as string }
-    }
-
     it('leaves out a draft last saved more than 30 days ago, and keeps one saved 29 days ago', async () => {
       const old = await createDraft(ada, blog, { title: 'Old' })
       const recent = await createDraft(ada, blog, { title: 'Recent' })
       saved(old.id, 31)
       saved(recent.id, 29)
       expect(await titles(ada)).toEqual(['Recent'])
+      saved(old.id, 30) // exactly 30 days still counts
+      expect((await titles(ada)).sort()).toEqual(['Old', 'Recent'])
     })
 
     it('keeps an old draft while a review of it is in progress', async () => {
@@ -201,20 +203,6 @@ describe('GET /api/drafts/active', () => {
   })
 
   describe('how its reviews stand', () => {
-    const draftUrl = (id: string) => `/api/publications/${blog}/drafts/${id}`
-    async function sendFor(draftId: string, email: string, name: string) {
-      await ada.post(`${draftUrl(draftId)}/send-for-review`, { emails: [email] })
-      await new Promise((r) => setTimeout(r, 0))
-      const reviewer = ctx.client()
-      await reviewer.post('/api/auth/register-reviewer', {
-        token: lastReviewToken(ctx.mailer),
-        name,
-        password: PASSWORD,
-      })
-      const reviews = (await (await reviewer.get('/api/reviews')).json()) as { id: string }[]
-      return { reviewer, id: reviews[reviews.length - 1]!.id }
-    }
-
     it('is null for a draft never sent for review', async () => {
       await createDraft(ada, blog, { title: 'Plain' })
       expect((await active(ada)).drafts[0]!.review).toBeNull()

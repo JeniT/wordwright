@@ -31,7 +31,7 @@ export class DraftStore {
    * The drafts `userId` edits, in publications they still belong to, most recently saved first; optionally only those
    * of one publication or one idea. The caller decides which of them are active.
    */
-  editedByAnywhere(
+  editedWithin(
     userId: string,
     within: { publicationId?: string; ideaId?: string } = {},
   ): EditedDraft[] {

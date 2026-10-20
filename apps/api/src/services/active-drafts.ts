@@ -8,6 +8,8 @@ import type { Store } from '../db/store'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+const hasUnresolved = (d: Pick<ActiveDraft, 'review'>) => (d.review?.unresolved ?? 0) > 0
+
 /** How all of a draft's review requests stand together; null if none was ever sent. */
 function totals(snapshots: readonly SnapshotReviews[]): ActiveDraft['review'] {
   if (!snapshots.length) return null
@@ -30,7 +32,7 @@ export function activeDrafts(
 ): ActiveDrafts {
   const cutoff = options.now.getTime() - ACTIVE_DRAFT_DAYS * DAY_MS
   const active = store.drafts
-    .editedByAnywhere(userId, options)
+    .editedWithin(userId, options)
     .map((d) => {
       const snapshots = store.reviews.snapshotSummaries(d.id, options.now)
       return {
@@ -40,15 +42,10 @@ export function activeDrafts(
     })
     .filter(
       ({ draft, inProgress }) =>
-        new Date(draft.updatedAt).getTime() >= cutoff ||
-        inProgress ||
-        (draft.review?.unresolved ?? 0) > 0,
+        new Date(draft.updatedAt).getTime() >= cutoff || inProgress || hasUnresolved(draft),
     )
     .map(({ draft }) => draft)
   // A stable sort keeps the newest-first order from the store within each group.
-  const ordered = [
-    ...active.filter((d) => (d.review?.unresolved ?? 0) > 0),
-    ...active.filter((d) => (d.review?.unresolved ?? 0) === 0),
-  ]
+  const ordered = [...active.filter(hasUnresolved), ...active.filter((d) => !hasUnresolved(d))]
   return { drafts: ordered.slice(0, options.limit), hasMore: ordered.length > options.limit }
 }

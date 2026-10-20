@@ -84,7 +84,7 @@ const noteText = ref('')
 /** What was last added, to say where it went. Cleared when another form opens. */
 const added = ref<{ publication: Publication }>()
 
-// Pick up may finish loading while someone types (the form locks the publication on first input) or after they
+// Keep writing may finish loading while someone types (the form locks the publication on first input) or after they
 // move to another tab: keep adding to the publication they saw. Another tab starts clean: no old error or "Added to…".
 watch(tab, () => {
   chosen.value ??= selectedId.value

@@ -73,7 +73,7 @@ watch(
           :aria-busy="drafts.isPlaceholderData.value"
           @click="showMore"
         >
-          Show more
+          Show more<span class="sr-only"> drafts</span>
         </button>
       </p>
     </QueryState>
