@@ -3,6 +3,7 @@ import {
   AddNoteToolInputSchema,
   CreateIdeaToolInputSchema,
   IdeaDraftSchema,
+  NameConversationToolInputSchema,
   SuggestReadingToolInputSchema,
   UpdateIdeaToolInputSchema,
   type Idea,
@@ -25,9 +26,10 @@ describe('what the brainstorm AI can touch', () => {
     update_idea: ['name'],
     create_idea: ['name', 'notes'],
     suggest_reading: ['url', 'title', 'why'],
+    name_conversation: ['title'],
   }
 
-  it('is four tools, none of which can name a draft or an id', () => {
+  it('is five tools, none of which can name a draft or an id', () => {
     expect(BRAINSTORM_TOOLS.map((t) => t.name).sort()).toEqual(Object.keys(ALLOWED_INPUTS).sort())
     for (const tool of BRAINSTORM_TOOLS) {
       const properties = Object.keys((tool.inputSchema.properties ?? {}) as object).sort()
@@ -44,6 +46,7 @@ describe('what the brainstorm AI can touch', () => {
     for (const [schema, input] of [
       [AddNoteToolInputSchema, { text: 'A point' }],
       [UpdateIdeaToolInputSchema, { name: 'A title' }],
+      [NameConversationToolInputSchema, { title: 'A label' }],
       [CreateIdeaToolInputSchema, { name: 'A title', notes: '- a' }],
       [
         SuggestReadingToolInputSchema,

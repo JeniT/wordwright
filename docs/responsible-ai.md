@@ -236,7 +236,7 @@ only a frozen copy and their own comments, and that the AI never receives commen
   trials say more than one), with the summary pasted into the issue for the owner to judge. It is a checklist step and
   a script, not a CI gate: the evals cost money, need a key, and rubric grading can flake.
 - **Structural boundaries are tests in `pnpm check`** (`apps/api/src/brainstorm-boundaries.test.ts`, and the
-  draft-text test in `brainstorm.test.ts`): the AI has exactly four tools; none can name a draft, an id, a publication or
+  draft-text test in `brainstorm.test.ts`): the AI has exactly five tools (the fifth only labels its conversation); none can name a draft, an id, a publication or
   a body; planted fields are dropped; a draft has nowhere to carry its text into the snapshot; the app's rules come
   after the person's prompt. Adding a tool or a field to one fails them on purpose: it is a decision about what the AI
   may change.

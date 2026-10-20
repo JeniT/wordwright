@@ -601,6 +601,11 @@ export const MIGRATIONS: Migration[] = [
       attach.run(id, thread.idea_id)
     }
   },
+  // A conversation can have a title: given by the AI on its first reply, or by a person (#294). Null until then.
+  `
+  ALTER TABLE idea_conversations ADD COLUMN title TEXT;
+  ALTER TABLE idea_conversations ADD COLUMN title_source TEXT CHECK (title_source IN ('ai', 'writer'));
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

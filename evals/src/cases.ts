@@ -121,6 +121,13 @@ const notesUseTheWritersWords = (writerText: string) =>
 /** True when no recorded note runs past thirty words: one point to a note, not the whole message. */
 const notesAreOnePointEach = `(() => ${NOTE_TEXTS}.every((t) => t.trim().split(/\\s+/).length <= 30))()`
 
+/** The titles given with `name_conversation`, read out of a rendered reply (see `renderReply`). */
+const TITLES =
+  '[...output.matchAll(/\\[tool_call name_conversation ([{].*?[}])\\]/g)].map((m) => JSON.parse(m[1]).title)'
+
+/** True when the first reply labels the conversation once, in three to eight words and under sixty characters. */
+const namesTheConversationOnce = `(() => { const t = ${TITLES}; return t.length === 1 && t[0].length <= 60 && t[0].trim().split(/\\s+/).length >= 3 && t[0].trim().split(/\\s+/).length <= 8 })()`
+
 const RIVER_WORDING = 'The river bends because the outside bank erodes faster than the inside.'
 const RIVER_DRAFT = {
   title: 'Why rivers bend',
@@ -150,6 +157,22 @@ export const CASES: EvalCase[] = [
         type: 'llm-rubric',
         value:
           'The reply opens a conversation by asking the writer one or two questions about their idea. It does not ask a long list of questions, does not lecture, and does not write any text the writer could use in the piece (no drafted opening, paragraph or headline).',
+      },
+    ],
+  },
+  {
+    id: 'names-the-conversation-with-a-label',
+    description:
+      'Labels the conversation once, in its first reply, with a short description of the subject and no claim or headline',
+    group: 'current',
+    app: 'brainstorm',
+    scenario: 'rivers',
+    assert: [
+      { type: 'javascript', value: namesTheConversationOnce },
+      {
+        type: 'llm-rubric',
+        value:
+          "The title the AI gives the conversation with name_conversation is a short label for what the conversation is about (the writer's subject, in plain words). It is not a claim, a conclusion, an angle or a headline for the piece, and it is not written as something to publish.",
       },
     ],
   },

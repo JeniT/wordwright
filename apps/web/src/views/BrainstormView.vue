@@ -20,6 +20,9 @@ import ProposalCard from '../components/ProposalCard.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { useInlineEdit } from '../lib/inline-edit'
+import { vTip } from '../lib/tip'
+import Icon from '../components/Icon.vue'
 import { takeHeldMessage } from '../lib/pending-message'
 import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 import ReplyProblemAlert from '../components/ReplyProblemAlert.vue'
@@ -83,6 +86,7 @@ const nav = computed(() => ({
   previousLabel: 'Earlier conversation',
   nextLabel: 'Later conversation',
 }))
+/** When it began and who began it: a conversation's label when it has no title, and its second line when it has. */
 const startedOn = computed(() =>
   current.value
     ? [
@@ -277,6 +281,37 @@ watch(
   { immediate: true },
 )
 
+// ---- renaming it ------------------------------------------------------------
+const titleDraft = ref('')
+const titleField = ref<HTMLInputElement>()
+const renameButton = ref<HTMLButtonElement>()
+const titleEdit = useInlineEdit<'title'>({
+  field: () => titleField.value,
+  trigger: () => renameButton.value,
+})
+function startRenaming() {
+  titleDraft.value = current.value?.title ?? ''
+  void titleEdit.start('title')
+}
+const rename = useMutation({
+  mutationFn: (title: string) =>
+    api.renameConversation(props.publicationId, props.id, currentId.value!, title),
+  onSuccess: async () => {
+    await invalidateRoots(queryClient, 'conversation')
+    void titleEdit.stop()
+  },
+})
+function saveTitle() {
+  const title = titleDraft.value.trim()
+  if (!title) return
+  if (title === current.value?.title) return void titleEdit.stop()
+  rename.mutate(title)
+}
+function cancelRenaming() {
+  rename.reset()
+  void titleEdit.stop()
+}
+
 // ---- deleting one ---------------------------------------------------------------
 const confirmingDelete = ref(false)
 const remove = useMutation({
@@ -347,9 +382,75 @@ const busyNote = computed(() =>
             class="mb-2"
             @go="go"
           />
-          <p ref="heading" tabindex="-1" class="mb-4 text-sm text-ink-soft focus:outline-none">
-            Started {{ startedOn }}
-          </p>
+          <div class="mb-4">
+            <div class="mb-1 flex items-start gap-2">
+              <h2
+                ref="heading"
+                tabindex="-1"
+                class="min-w-0 flex-1 break-words font-display text-lg font-semibold focus:outline-none"
+              >
+                <form
+                  v-if="titleEdit.editing.value"
+                  class="flex flex-wrap items-center gap-2"
+                  @submit.prevent="saveTitle"
+                  @keydown.escape="cancelRenaming"
+                >
+                  <input
+                    ref="titleField"
+                    v-model="titleDraft"
+                    type="text"
+                    maxlength="60"
+                    class="field min-w-0 flex-1 basis-48"
+                    aria-label="Conversation title"
+                  />
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-primary"
+                    :disabled="!titleDraft.trim() || rename.isPending.value"
+                  >
+                    Save
+                  </button>
+                  <button type="button" class="btn btn-sm btn-neutral" @click="cancelRenaming">
+                    Cancel
+                  </button>
+                </form>
+                <!-- The highlighter marks a title the AI gave, until a person has changed it. -->
+                <span v-else-if="current.title" :class="{ 'bg-mark': current.titleByAi }">{{
+                  current.title
+                }}</span>
+                <template v-else>{{ startedOn }}</template>
+              </h2>
+              <template v-if="!titleEdit.editing.value">
+                <button
+                  ref="renameButton"
+                  v-tip="'Rename conversation'"
+                  type="button"
+                  class="btn btn-sm btn-icon btn-ghost shrink-0"
+                  aria-label="Rename conversation"
+                  @click="startRenaming"
+                >
+                  <Icon name="edit" />
+                </button>
+                <button
+                  v-tip="'Delete conversation'"
+                  type="button"
+                  class="btn btn-sm btn-icon btn-ghost btn-ghost-danger shrink-0"
+                  aria-label="Delete conversation"
+                  :disabled="!!streaming"
+                  @click="confirmingDelete = true"
+                >
+                  <Icon name="remove" />
+                </button>
+              </template>
+            </div>
+            <p v-if="current.title" class="mb-1 text-sm text-ink-soft">{{ startedOn }}</p>
+            <p v-if="rename.isError.value" role="alert" class="mb-2 text-danger">
+              {{ errorMessage(rename.error.value) }}
+            </p>
+            <p v-if="remove.isError.value" role="alert" class="mb-2 text-danger">
+              {{ errorMessage(remove.error.value) }}
+            </p>
+          </div>
         </template>
         <div v-if="none || empty" class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <AiButton
@@ -482,18 +583,6 @@ const busyNote = computed(() =>
             </div>
           </form>
 
-          <div v-if="!streaming" class="border-t border-line pt-4">
-            <button
-              type="button"
-              class="text-sm text-danger underline"
-              @click="confirmingDelete = true"
-            >
-              Delete conversation
-            </button>
-            <p v-if="remove.isError.value" role="alert" class="mt-2 text-danger">
-              {{ errorMessage(remove.error.value) }}
-            </p>
-          </div>
           <PageNav
             v-if="ordered.length > 1"
             v-bind="nav"

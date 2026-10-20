@@ -477,6 +477,16 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Starts an empty conversation (or returns the empty one already waiting). Fails once the idea is at its limit. */
     createConversation: (publicationId: string, ideaId: string) =>
       get(ConversationSummarySchema, 'POST', conversations(publicationId, ideaId), {}),
+    /** Gives a conversation a title of the person's own; the AI never changes it after that. */
+    renameConversation: (
+      publicationId: string,
+      ideaId: string,
+      conversationId: string,
+      title: string,
+    ) =>
+      get(ConversationSummarySchema, 'PATCH', conversation(publicationId, ideaId, conversationId), {
+        title,
+      }),
     getConversation: (publicationId: string, ideaId: string, conversationId: string) =>
       get(ConversationSchema, 'GET', conversation(publicationId, ideaId, conversationId)),
     /**

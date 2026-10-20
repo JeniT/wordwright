@@ -50,7 +50,10 @@ describe('LLM factories', () => {
     it('opens with a question', async () => {
       const { text, calls } = await turn(thread('The idea... Start the session now.'))
       expect(text).toContain('What is the **one claim**')
-      expect(calls).toEqual([])
+      // Like a real AI, it labels the conversation on its first reply, and does nothing else.
+      expect(calls).toMatchObject([
+        { name: 'name_conversation', input: { title: expect.any(String) } },
+      ])
     })
 
     it.each([

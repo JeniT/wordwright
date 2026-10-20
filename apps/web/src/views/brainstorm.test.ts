@@ -30,10 +30,14 @@ const summary = (
   id: string,
   startedByName: string | null = 'Ada',
   createdAt = '2026-01-05T10:00:00Z',
+  title: string | null = null,
+  titleByAi = false,
 ) => ({
   id,
   createdAt,
   startedByName,
+  title,
+  titleByAi,
 })
 const page = '/p/ada-substack/ideas/i1/brainstorm'
 
@@ -918,7 +922,7 @@ describe('several conversations', () => {
     withTwo()
     await renderAt(page)
     expect(await screen.findByText('Newer question?')).toBeInTheDocument()
-    expect(screen.getByText(/^Started .* · Bob$/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /2026 · Bob$/ })).toBeInTheDocument()
     expect(screen.queryByText('Older question?')).toBeNull()
 
     const nav = screen.getAllByRole('navigation', { name: /^Conversations, / })[0]!
@@ -926,7 +930,7 @@ describe('several conversations', () => {
     expect(within(nav).getByRole('button', { name: 'Later conversation' })).toBeDisabled()
     await fireEvent.click(within(nav).getByRole('button', { name: 'Earlier conversation' }))
     expect(await screen.findByText('Older question?')).toBeInTheDocument()
-    expect(screen.getByText(/^Started .* · Ada$/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /2026 · Ada$/ })).toBeInTheDocument()
     expect(screen.queryByText('Newer question?')).toBeNull()
   })
 
@@ -1070,5 +1074,131 @@ describe('the refine page: tutorial mode', () => {
   it('says none of it when it is off', async () => {
     await setup(false)
     expect(screen.queryByText(text)).toBeNull()
+  })
+})
+
+describe('a conversation’s title', () => {
+  const titled = (title: string | null, titleByAi: boolean) =>
+    mockConversation(
+      [kickoff(), aiMessage('Hello.')],
+      [
+        http.get(conversationsUrl, () =>
+          HttpResponse.json({ conversations: [summary('c1', 'Ada', undefined, title, titleByAi)] }),
+        ),
+        http.get(conversationUrl, () =>
+          HttpResponse.json({
+            ...summary('c1', 'Ada', undefined, title, titleByAi),
+            messages: [kickoff(), aiMessage('Hello.')],
+            replyingNow: null,
+          }),
+        ),
+      ],
+    )
+
+  it('puts the AI’s title above the date and who began it, in the highlighter', async () => {
+    titled('Why bends keep growing', true)
+    await renderAt(page)
+    const heading = await screen.findByRole('heading', { name: 'Why bends keep growing' })
+    expect(within(heading).getByText('Why bends keep growing')).toHaveClass('bg-mark')
+    expect(screen.getByText(/2026 · Ada$/)).toBeInTheDocument()
+  })
+
+  it('shows a title a person gave plainly, and the date alone when there is none', async () => {
+    titled('My own name', false)
+    await renderAt(page)
+    expect(await screen.findByText('My own name')).not.toHaveClass('bg-mark')
+  })
+
+  it('has the date and name stand in as the title when there is none', async () => {
+    titled(null, false)
+    await renderAt(page)
+    const heading = await screen.findByRole('heading', { name: /2026 · Ada$/ })
+    expect(heading).toBeInTheDocument()
+    expect(screen.getAllByText(/2026 · Ada/)).toHaveLength(1) // not said twice
+  })
+
+  it('renames with the edit icon: focus goes into the field, Save sends it, and the highlighter goes', async () => {
+    titled('The AI’s title', true)
+    const sent: unknown[] = []
+    let renamed = false
+    server.use(
+      http.patch(conversationUrl, async ({ request }) => {
+        sent.push(await request.json())
+        renamed = true
+        return HttpResponse.json(summary('c1', 'Ada', undefined, 'My own name', false))
+      }),
+      http.get(conversationsUrl, () =>
+        HttpResponse.json({
+          conversations: [
+            renamed
+              ? summary('c1', 'Ada', undefined, 'My own name', false)
+              : summary('c1', 'Ada', undefined, 'The AI’s title', true),
+          ],
+        }),
+      ),
+      http.get(conversationUrl, () =>
+        HttpResponse.json({
+          ...(renamed
+            ? summary('c1', 'Ada', undefined, 'My own name', false)
+            : summary('c1', 'Ada', undefined, 'The AI’s title', true)),
+          messages: [kickoff(), aiMessage('Hello.')],
+          replyingNow: null,
+        }),
+      ),
+    )
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: 'Rename conversation' }))
+    const field = screen.getByLabelText('Conversation title')
+    expect(field).toHaveFocus()
+    expect(field).toHaveValue('The AI’s title')
+    await fireEvent.update(field, '  My own name ')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('My own name')).not.toHaveClass('bg-mark')
+    expect(sent).toEqual([{ title: 'My own name' }])
+    expect(screen.queryByLabelText('Conversation title')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Rename conversation' })).toHaveFocus()
+  })
+
+  it('cancels a rename with Cancel or Escape, sending nothing', async () => {
+    titled('The AI’s title', true)
+    const sent: unknown[] = []
+    server.use(
+      http.patch(conversationUrl, async ({ request }) => {
+        sent.push(await request.json())
+        return HttpResponse.json(summary('c1'))
+      }),
+    )
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: 'Rename conversation' }))
+    await fireEvent.update(screen.getByLabelText('Conversation title'), 'Something else')
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('The AI’s title')).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: 'Rename conversation' }))
+    await fireEvent.keyDown(screen.getByLabelText('Conversation title'), { key: 'Escape' })
+    expect(screen.queryByLabelText('Conversation title')).toBeNull()
+    expect(sent).toEqual([])
+  })
+
+  it('says why a rename did not go through, and keeps the field open', async () => {
+    titled('The AI’s title', true)
+    server.use(
+      http.patch(conversationUrl, () =>
+        HttpResponse.json({ error: 'Use up to 60 characters' }, { status: 400 }),
+      ),
+    )
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: 'Rename conversation' }))
+    await fireEvent.update(screen.getByLabelText('Conversation title'), 'Another')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Use up to 60 characters')
+    expect(screen.getByLabelText('Conversation title')).toBeInTheDocument()
+  })
+
+  it('deletes from the icon beside the title, after asking', async () => {
+    titled('The AI’s title', true)
+    await renderAt(page)
+    const row = (await screen.findByRole('heading', { name: 'The AI’s title' })).parentElement!
+    await fireEvent.click(within(row).getByRole('button', { name: 'Delete conversation' }))
+    expect(screen.getByRole('dialog', { name: 'Delete the conversation?' })).toBeInTheDocument()
   })
 })

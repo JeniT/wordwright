@@ -255,6 +255,27 @@ test('keeps several conversations on an idea: start another, page between them, 
   await expect(page.getByRole('log', { name: 'Conversation' })).toBeVisible()
 })
 
+test('titles a conversation, which can be renamed with the edit icon', async ({ page }) => {
+  await setUp(page)
+  await startBrainstorming(page)
+  await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
+  // The AI labelled it on its first reply, and the highlighter says so.
+  const heading = page.getByRole('heading', { level: 2, name: 'The one claim of this piece' })
+  await expect(heading).toBeVisible()
+  await noViolations(page, 'refine page with a title')
+
+  await page.getByRole('button', { name: 'Rename conversation' }).click()
+  await page.getByLabel('Conversation title').fill('Rivers and readers')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('heading', { level: 2, name: 'Rivers and readers' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 2, name: 'Rivers and readers' })).toBeVisible()
+  // The AI answers again, and does not change a title a person has given.
+  await say(page, 'Please note that rivers meander')
+  await expect(page.getByRole('log', { name: 'Conversation' })).toContainText('I have noted it')
+  await expect(page.getByRole('heading', { level: 2, name: 'Rivers and readers' })).toBeVisible()
+})
+
 test('without an AI key, says where to add one and keeps the way open to try again', async ({
   page,
 }) => {

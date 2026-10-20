@@ -97,7 +97,15 @@ function fakeIdea(
     http.get(`${ideaUrl}/conversations`, () =>
       HttpResponse.json({
         conversations: options.messages?.length
-          ? [{ id: 'c1', createdAt: '2026-01-05T10:00:00Z', startedByName: 'Ada' }]
+          ? [
+              {
+                id: 'c1',
+                createdAt: '2026-01-05T10:00:00Z',
+                startedByName: 'Ada',
+                title: null,
+                titleByAi: false,
+              },
+            ]
           : [],
       }),
     ),
@@ -106,6 +114,8 @@ function fakeIdea(
         id: 'c1',
         createdAt: '2026-01-05T10:00:00Z',
         startedByName: 'Ada',
+        title: null,
+        titleByAi: false,
         messages: options.messages ?? [],
         replyingNow: null,
       }),
@@ -450,8 +460,20 @@ describe('an idea’s landing page', () => {
     it('summarises the newest of several conversations and links to them all', async () => {
       fakeIdea({ messages: [message(1, 'assistant', 'From the newest.')] })
       const summaries = [
-        { id: 'c0', createdAt: '2026-01-01T10:00:00Z', startedByName: 'Ada' },
-        { id: 'c1', createdAt: '2026-01-05T10:00:00Z', startedByName: 'Ada' },
+        {
+          id: 'c0',
+          createdAt: '2026-01-01T10:00:00Z',
+          startedByName: 'Ada',
+          title: null,
+          titleByAi: false,
+        },
+        {
+          id: 'c1',
+          createdAt: '2026-01-05T10:00:00Z',
+          startedByName: 'Ada',
+          title: null,
+          titleByAi: false,
+        },
       ]
       server.use(
         http.get(`${ideaUrl}/conversations`, () => HttpResponse.json({ conversations: summaries })),

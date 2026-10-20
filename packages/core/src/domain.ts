@@ -940,6 +940,24 @@ export const MAX_CONVERSATIONS_PER_IDEA = 5
 /** More than this many notes recorded in one reply is the AI running away with it, so the rest are ignored. */
 export const MAX_NOTES_PER_REPLY = 6
 
+/** The longest title a conversation can have, whoever gives it. */
+export const MAX_CONVERSATION_TITLE = 60
+const ConversationTitleSchema = z
+  .string()
+  .trim()
+  .min(1, 'Give the conversation a title')
+  .max(MAX_CONVERSATION_TITLE, `Use up to ${MAX_CONVERSATION_TITLE} characters`)
+
+/** What the AI sends to name the conversation it is in, once, on its first reply. Untrusted: always validate. */
+export const NameConversationToolInputSchema = z.object({
+  title: ConversationTitleSchema.describe(
+    'A short label for what this conversation is about, not a claim or a headline',
+  ),
+})
+
+/** A person renaming a conversation. */
+export const ConversationTitleInputSchema = z.object({ title: ConversationTitleSchema })
+
 /** What the AI sends when it records a point as a note. Untrusted: always validate. */
 export const AddNoteToolInputSchema = z.object({
   text: NoteTextSchema.describe("One point the writer made, in the writer's own words"),
@@ -1066,6 +1084,10 @@ export const ConversationSummarySchema = z.object({
   id: z.string(),
   createdAt: z.string(),
   startedByName: z.string().nullable(),
+  /** Its title, if it has one (the AI's, or what a person renamed it to). */
+  title: z.string().nullable(),
+  /** The title is the AI's, not yet changed by a person, so it is marked as the AI's. */
+  titleByAi: z.boolean(),
 })
 export type ConversationSummary = z.infer<typeof ConversationSummarySchema>
 

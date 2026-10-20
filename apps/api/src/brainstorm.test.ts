@@ -182,6 +182,7 @@ describe('starting a brainstorm', () => {
       'update_idea',
       'create_idea',
       'suggest_reading',
+      'name_conversation',
     ])
     expect(request.tools?.[0]?.inputSchema).toMatchObject({
       type: 'object',
@@ -1093,6 +1094,90 @@ describe('deleting a conversation', () => {
     const stranger = ctx.client()
     await register(stranger, 'eve@example.com', 'Eve')
     expect((await stranger.delete(base)).status).toBe(404)
+  })
+})
+
+describe('naming a conversation (#294)', () => {
+  const name = (title: unknown) => ({ name: 'name_conversation', input: { title } })
+  const summaryOf = async (ada: TestClient, ideas: string, ideaId: string, id: string) =>
+    (await (await ada.get(`${ideas}/${ideaId}/conversations/${id}`)).json()) as {
+      title: string | null
+      titleByAi: boolean
+    }
+
+  it('takes the AI’s title from its first reply at once, and marks it as the AI’s', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send } = await world()
+    ctx.setChat(() => ({
+      text: 'What is the claim?',
+      toolCalls: [name('  Why bends keep growing  ')],
+    }))
+    await send(ada, START)
+    expect(await summaryOf(ada, ideas, idea.id, conversationId)).toMatchObject({
+      title: 'Why bends keep growing',
+      titleByAi: true,
+    })
+    const listed = (await (await ada.get(`${ideas}/${idea.id}/conversations`)).json())
+      .conversations[0]
+    expect(listed).toMatchObject({ title: 'Why bends keep growing', titleByAi: true })
+  })
+
+  it('leaves a conversation unnamed when the AI does not name it, or names it badly', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send } = await world()
+    ctx.setChat(() => ({ text: 'Hello.', toolCalls: [name('x'.repeat(61))] }))
+    await send(ada, START)
+    expect(await summaryOf(ada, ideas, idea.id, conversationId)).toMatchObject({
+      title: null,
+      titleByAi: false,
+    })
+    ctx.setChat(() => ({ text: 'Go on.', toolCalls: [name('   ')] }))
+    await send(ada, say('A point'))
+    expect((await summaryOf(ada, ideas, idea.id, conversationId)).title).toBeNull()
+  })
+
+  it('answers the tool call on the next turn, and names a conversation only once', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send } = await world()
+    ctx.setChat(() => ({ text: 'First.', toolCalls: [name('First title')] }))
+    await send(ada, START)
+    ctx.setChat(() => ({ text: 'Second.', toolCalls: [name('A different title')] }))
+    await send(ada, say('A point'))
+    expect((await summaryOf(ada, ideas, idea.id, conversationId)).title).toBe('First title')
+    // Every call was answered, and none as an error.
+    const turn = JSON.stringify(ctx.chats.at(-1)!.request.messages)
+    expect(turn).toContain('First title')
+    expect(turn).not.toContain('"isError":true')
+  })
+
+  it('lets any member rename it, which the AI then never overrides', async () => {
+    const { ctx, ada, ideas, idea, conversationId, send, addBob } = await world()
+    ctx.setChat(() => ({ text: 'First.', toolCalls: [name('The AI’s title')] }))
+    await send(ada, START)
+    const bob = await addBob()
+    const base = `${ideas}/${idea.id}/conversations/${conversationId}`
+    const renamed = await bob.patch(base, { title: '  My own name  ' })
+    expect(renamed.status).toBe(200)
+    expect(await renamed.json()).toMatchObject({ title: 'My own name', titleByAi: false })
+    ctx.setChat(() => ({ text: 'More.', toolCalls: [name('Another AI title')] }))
+    await send(ada, say('A point'))
+    expect(await summaryOf(ada, ideas, idea.id, conversationId)).toMatchObject({
+      title: 'My own name',
+      titleByAi: false,
+    })
+  })
+
+  it('names an unnamed conversation for a writer too, and checks what is sent', async () => {
+    const { ctx, ada, ideas, idea, conversationId } = await world()
+    const base = `${ideas}/${idea.id}/conversations/${conversationId}`
+    expect((await ada.patch(base, { title: 'Mine' })).status).toBe(200)
+    for (const title of ['', '   ', 'x'.repeat(61), undefined, 5]) {
+      const bad = await ada.patch(base, { title })
+      expect(bad.status, JSON.stringify(title)).toBe(400)
+    }
+    const stranger = ctx.client()
+    await register(stranger, 'eve@example.com', 'Eve')
+    expect((await stranger.patch(base, { title: 'Hers' })).status).toBe(404)
+    expect((await ada.patch(`${ideas}/${idea.id}/conversations/nope`, { title: 'X' })).status).toBe(
+      404,
+    )
   })
 })
 

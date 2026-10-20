@@ -52,7 +52,7 @@ describe('migrations', () => {
   it('leaves icons stored before their shape was recorded unchecked, to be backfilled (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -2))
+    migrate(db, 'test', MIGRATIONS.slice(0, -3))
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -67,7 +67,7 @@ describe('migrations', () => {
   it('clears icon shapes worked out by the first rule, so the backfill looks again (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -2))
+    migrate(db, 'test', MIGRATIONS.slice(0, -3))
     db.exec(`INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 't')`)
     db.exec(
       `INSERT INTO publication_site_icons (publication_id, content_type, data, updated_at, square) VALUES ('p', 'image/png', x'00', 't', 0)`,
@@ -79,7 +79,7 @@ describe('migrations', () => {
   it('deletes stored brainstorming prompts, which nobody can use any more (#205)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -4)) // before the prompts migration (the last but three)
+    migrate(db, 'test', MIGRATIONS.slice(0, -5)) // before the prompts migration (the last but four)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -91,7 +91,7 @@ describe('migrations', () => {
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -7)) // before the sessions migration (the last but six)
+    migrate(db, 'test', MIGRATIONS.slice(0, -8)) // before the sessions migration (the last but seven)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -276,7 +276,7 @@ describe('migrations', () => {
   it("turns each idea's existing thread into its first conversation, and leaves empty ideas without one (#289)", () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1)) // the schema as it was: one thread per idea
+    migrate(db, 'test', MIGRATIONS.slice(0, -2)) // the schema as it was: one thread per idea
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i1', 'p', 'One', 't', 't');

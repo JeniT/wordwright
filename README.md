@@ -394,7 +394,7 @@ idea are the Markdown file `prompts/brainstorm-default.md`; the app adds its own
 (`prompts/brainstorm-rules.md`). The same for everyone: it is not editable (#205).
 
 **Brainstorming API** (design: [docs/brainstorming.md](docs/brainstorming.md)): `/api/publications/:id/ideas/:idea/conversations`
-holds up to five conversations per idea (#289), each shared by the publication's members. `GET` lists them; `POST` starts one;
+holds up to five conversations per idea (#289), each shared by the publication's members. `GET` lists them (each with its `title`); `POST` starts one; `PATCH` renames one;
 under `/:conversation`, `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
 AI's suggestions (a new title for the idea, a new idea, or a page for the idea's reading list that the writer gave it: it can never touch drafts); the points the writer makes are recorded as notes at once (`add_note`); `DELETE` deletes that conversation. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a

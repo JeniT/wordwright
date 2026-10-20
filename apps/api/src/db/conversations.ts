@@ -74,6 +74,9 @@ export interface ConversationRecord {
   ideaId: string
   createdAt: string
   startedByName: string | null
+  title: string | null
+  /** Who gave the title: the AI, or a person (after which the AI never changes it). */
+  titleSource: 'ai' | 'writer' | null
 }
 
 /**
@@ -103,6 +106,24 @@ export class ConversationStore {
   /** The conversation nobody has written in yet, if there is one. */
   emptyOne(ideaId: string): ConversationRecord | undefined {
     return this.list(ideaId).find((c) => this.messages(c.id).length === 0)
+  }
+
+  titleOf(id: string): string | null {
+    const row = this.db.prepare('SELECT title FROM idea_conversations WHERE id = ?').get(id) as
+      { title: string | null } | undefined
+    return row?.title ?? null
+  }
+
+  /** Gives a conversation its title. The AI's only counts if there is none yet; a person's always does. */
+  setTitle(id: string, title: string, source: 'ai' | 'writer'): boolean {
+    return (
+      this.db
+        .prepare(
+          `UPDATE idea_conversations SET title = ?, title_source = ?
+           WHERE id = ? ${source === 'ai' ? 'AND title IS NULL' : ''}`,
+        )
+        .run(title, source, id).changes > 0
+    )
   }
 
   create(ideaId: string): string {
@@ -298,6 +319,8 @@ function toConversation(row: Record<string, unknown>): ConversationRecord {
     ideaId: row.idea_id as string,
     createdAt: row.created_at as string,
     startedByName: (row.started_by_name as string | null) ?? null,
+    title: (row.title as string | null) ?? null,
+    titleSource: (row.title_source as 'ai' | 'writer' | null) ?? null,
   }
 }
 

@@ -147,7 +147,7 @@ The fourth step of an idea (04): a conversation in which your AI asks questions 
 _Avoid_: Brainstorm, coach, chat (in what people see)
 
 **Conversation**:
-One run of Refine on an idea, with your AI speaking first. An idea holds up to five, shown one at a time (newest first, paged like research), each labelled with the date it began and who began it. Everyone in the publication sees them all, any member can delete one, and each has only its own messages and suggestions. Your AI is sent the idea again with a message whenever its title, notes or reading list have changed since the last one in that conversation.
+One run of Refine on an idea, with your AI speaking first. An idea holds up to five, shown one at a time (newest first, paged like research), each titled (your AI names it on its first reply, marked as your AI’s until someone renames it; the date it began and who began it stand in until there is one). Everyone in the publication sees them all, any member can delete one, and each has only its own messages and suggestions. Your AI is sent the idea again with a message whenever its title, notes or reading list have changed since the last one in that conversation.
 _Avoid_: Thread, session, chat (in what people see)
 
 ### Explaining

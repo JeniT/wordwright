@@ -30,12 +30,13 @@ tool: it never writes or edits drafts.
 The model is given four **tools**. When it wants a change it returns a structured call alongside its chat text; we
 validate the call and either apply it (`add_note`) or turn it into a **proposal card** in the chat.
 
-| Tool              | Input                 | What happens                                                                                                                                                                                                                                                                            |
-| ----------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `add_note`        | `text`                | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.                                                                                                                                                                                                  |
-| `update_idea`     | `name`                | A proposal: replaces the idea's title when accepted.                                                                                                                                                                                                                                    |
-| `create_idea`     | `name`, `notes`       | A proposal: creates a new idea in the same publication (no drafts, no links) when accepted.                                                                                                                                                                                             |
-| `suggest_reading` | `url`, `title`, `why` | A proposal: adds a page to the idea's reading list when accepted. Only an address a person wrote in the thread is kept (the coach can't search); the address is checked and shown beside the page's real title (T38). Research proper is a separate tool, not part of the conversation. |
+| Tool                | Input                         | What happens                                                                                                                                                                                                                                                                            |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add_note`          | `text`                        | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.                                                                                                                                                                                                  |
+| `update_idea`       | `name`                        | A proposal: replaces the idea's title when accepted.                                                                                                                                                                                                                                    |
+| `create_idea`       | `name`, `notes`               | A proposal: creates a new idea in the same publication (no drafts, no links) when accepted.                                                                                                                                                                                             |
+| `name_conversation` | `title` (up to 60 characters) | Applies at once, no accept step: a label for the conversation, given on the AI's first reply (#294). Only the first valid call counts, and only while the conversation has no title, so a person's rename is never overridden. Shown in the highlighter until a person renames it.      |
+| `suggest_reading`   | `url`, `title`, `why`         | A proposal: adds a page to the idea's reading list when accepted. Only an address a person wrote in the thread is kept (the coach can't search); the address is checked and shown beside the page's real title (T38). Research proper is a separate tool, not part of the conversation. |
 
 Rules for tool calls:
 
@@ -180,6 +181,7 @@ All under `/api/publications/:publicationId/ideas/:id/conversations` (members on
 - `GET /conversations`: the idea's conversations, oldest first (`id`, `createdAt`, `startedByName`).
 - `POST /conversations`: starts an empty one (`201`), or returns the empty one already waiting; `409` at the limit.
 - `GET /conversations/:conversationId`: the thread, with proposals and their states.
+- `PATCH /conversations/:conversationId`: body `{ title }` (1 to 60 characters), a person's title for it; any member; the AI never changes it afterwards.
 - `DELETE /conversations/:conversationId`: deletes that one (refused while a reply is in flight in it).
 - `POST /conversations/:conversationId/messages`: body `{ text }`, or `{ start: true }` for the kick-off or `{ retry: true }` for a retry (exactly
   one). Problems that can still be an ordinary response come back as one: `400` (bad body), `409` (no API key, already

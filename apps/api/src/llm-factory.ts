@@ -41,6 +41,8 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
   if (request.messages.length === 1) {
     return {
       text: 'What is the **one claim** this piece makes, and why would our readers care?',
+      // Like a real AI, it labels the conversation on its first reply.
+      toolCalls: [{ name: 'name_conversation', input: { title: 'The one claim of this piece' } }],
     }
   }
   const address = said.match(/https?:\/\/[^\s]+/)

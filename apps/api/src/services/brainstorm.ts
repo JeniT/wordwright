@@ -6,6 +6,7 @@ import {
   LLMProviderError,
   LLMRateLimitError,
   llmTool,
+  NameConversationToolInputSchema,
   notesToMarkdown,
   MAX_CONVERSATIONS_PER_IDEA,
   MAX_IDEA_LINKS,
@@ -32,6 +33,7 @@ import {
 } from '@wordwright/core'
 import {
   ADD_NOTE_TOOL_PROMPT,
+  NAME_CONVERSATION_TOOL_PROMPT,
   BRAINSTORM_KICKOFF_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   CREATE_IDEA_TOOL_PROMPT,
@@ -79,6 +81,11 @@ export const BRAINSTORM_TOOLS = [
     description: SUGGEST_READING_TOOL_PROMPT,
     schema: SuggestReadingToolInputSchema,
   }),
+  llmTool({
+    name: 'name_conversation',
+    description: NAME_CONVERSATION_TOOL_PROMPT,
+    schema: NameConversationToolInputSchema,
+  }),
 ]
 
 export interface BrainstormDeps {
@@ -114,10 +121,18 @@ interface ReplyContext {
   signal: AbortSignal
 }
 
-const summary = ({ id, createdAt, startedByName }: ConversationRecord): ConversationSummary => ({
+const summary = ({
   id,
   createdAt,
   startedByName,
+  title,
+  titleSource,
+}: ConversationRecord): ConversationSummary => ({
+  id,
+  createdAt,
+  startedByName,
+  title,
+  titleByAi: title !== null && titleSource === 'ai',
 })
 
 /** A reply that has been accepted for processing; `run` does the work and streams events. */
@@ -334,7 +349,7 @@ export class BrainstormService {
     const { store } = this.d
     const blocks: LLMContentBlock[] = []
     const last = existing.at(-1)
-    if (last?.role === 'assistant') blocks.push(...this.toolResults(last))
+    if (last?.role === 'assistant') blocks.push(...this.toolResults(last, conversationId))
 
     // Sent only when the idea differs from what the AI last saw, so the thread stays small and cacheable.
     const snapshot = this.snapshot(idea, user.id)
@@ -354,12 +369,31 @@ export class BrainstormService {
   }
 
   /** Every tool call in the AI's last message must be answered before it speaks again. */
-  private toolResults(assistant: MessageRecord): LLMContentBlock[] {
+  private toolResults(assistant: MessageRecord, conversationId: string): LLMContentBlock[] {
     const { conversations } = this.d.store
+    const title = conversations.titleOf(conversationId)
     const proposals = new Map(conversations.proposals(assistant.id).map((p) => [p.toolCallId, p]))
     const notes = new Map(conversations.recordedNotes(assistant.id).map((n) => [n.toolCallId, n]))
     return assistant.content.flatMap((block): LLMContentBlock[] => {
       if (block.type !== 'tool_call') return []
+      if (block.name === 'name_conversation') {
+        const asked = NameConversationToolInputSchema.safeParse(block.input)
+        if (!asked.success || title === null) {
+          return [
+            {
+              type: 'tool_result',
+              toolCallId: block.id,
+              content: 'This could not be used, so nothing was changed.',
+              isError: true,
+            },
+          ]
+        }
+        const content =
+          asked.data.title === title
+            ? `The conversation is titled “${title}”.`
+            : 'The conversation already has a title, so nothing was changed.'
+        return [{ type: 'tool_result', toolCallId: block.id, content, isError: false }]
+      }
       const proposal = proposals.get(block.id)
       const note = notes.get(block.id)
       const content = proposal
@@ -498,6 +532,7 @@ export class BrainstormService {
     })
 
     this.recordNotes(id, idea, user.id, calls)
+    this.nameConversation(conversationId, calls)
 
     // The AI's input is untrusted: anything that doesn't validate is kept in the history (the model
     // must see its call answered) but never becomes a proposal.
@@ -517,6 +552,23 @@ export class BrainstormService {
    * The input is untrusted: only valid text is used, at most `MAX_NOTES_PER_REPLY` per reply, and a point the
    * idea already has (ignoring case and closing punctuation) or a full idea is recorded as such, not added.
    */
+  /**
+   * The AI names the conversation on its first reply. The input is untrusted: only a valid title counts, only the
+   * first valid call in a reply, and only if there is no title yet (so a person's rename is never overridden).
+   */
+  private nameConversation(
+    conversationId: string,
+    calls: { id: string; name: string; input: unknown }[],
+  ) {
+    for (const call of calls) {
+      if (call.name !== 'name_conversation') continue
+      const parsed = NameConversationToolInputSchema.safeParse(call.input)
+      if (!parsed.success) continue
+      this.d.store.conversations.setTitle(conversationId, parsed.data.title, 'ai')
+      return
+    }
+  }
+
   private recordNotes(
     messageId: string,
     idea: Idea,
@@ -775,6 +827,14 @@ export class BrainstormService {
       throw fail(409, `This suggestion was already ${proposal.status}.`)
     }
     return this.viewProposal(conversations.proposal(conversationId, proposalId)!, idea)
+  }
+
+  /** A person gives a conversation a title of their own; the AI never changes it after that. */
+  rename(idea: Idea, conversationId: string, title: string): ConversationSummary {
+    const { conversations } = this.d.store
+    const record = this.find(idea, conversationId)
+    conversations.setTitle(record.id, title, 'writer')
+    return summary(conversations.get(idea.id, record.id)!)
   }
 
   /** Deletes one conversation, for everyone, with the suggestions made in it. The others are untouched. */

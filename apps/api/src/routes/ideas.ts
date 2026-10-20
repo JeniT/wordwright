@@ -3,6 +3,7 @@ import { streamSSE } from 'hono/streaming'
 import {
   BulkTagInputSchema,
   AcceptProposalInputSchema,
+  ConversationTitleInputSchema,
   DraftInputSchema,
   DraftOrderSchema,
   IdeaInputSchema,
@@ -222,6 +223,12 @@ export function ideaRoutes(
           }),
         )
       })
+      .patch(
+        '/:id/conversations/:conversationId',
+        validateJson(ConversationTitleInputSchema),
+        (c) =>
+          c.json(brainstorm.rename(find(c), param(c, 'conversationId'), c.req.valid('json').title)),
+      )
       .delete('/:id/conversations/:conversationId', (c) => {
         brainstorm.delete(find(c), param(c, 'conversationId'))
         return c.body(null, 204)

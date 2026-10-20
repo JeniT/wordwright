@@ -152,6 +152,18 @@ describe('the requests', () => {
     expect(researchRequest(c).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
   })
 
+  it('check the label the first reply gives its conversation, as the app reads it', () => {
+    const c = brainstorm.find((x) => x.id === 'names-the-conversation-with-a-label')!
+    const check = c.assert.find((a) => a.type === 'javascript')!.value as string
+    const run = (output: string) => new Function('output', `return ${check}`)(output) as boolean
+    const call = (title: string) => `[tool_call name_conversation ${JSON.stringify({ title })}]`
+    expect(run(`Hello. ${call('Why rivers keep bending')}`)).toBe(true)
+    expect(run('Hello.')).toBe(false) // never named
+    expect(run(`${call('Why rivers keep bending')} ${call('Another label here')}`)).toBe(false) // twice
+    expect(run(call('Rivers'))).toBe(false) // too short to say anything
+    expect(run(call('word '.repeat(9).trim()))).toBe(false) // too long to be a label
+  })
+
   it('mark a quotation in the notes for the quotation case, as the app does', () => {
     const c = brainstorm.find((x) => x.id === 'quotations-are-not-the-writers-views')!
     const text = JSON.stringify(brainstormRequest(c).messages[0]!.content)
