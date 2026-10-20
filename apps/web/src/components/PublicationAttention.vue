@@ -46,9 +46,9 @@ const line = (s: SnapshotReviews) => {
     s.open ? `${s.open} still reading` : '',
     s.ended ? `${s.ended} finished` : '',
     s.closed ? `${s.closed} closed` : '',
-    s.unresolved ? `${s.unresolved} ${s.unresolved === 1 ? 'comment' : 'comments'} to answer` : '',
+    s.unresolved ? `${s.unresolved} unresolved ${s.unresolved === 1 ? 'comment' : 'comments'}` : '',
   ].filter(Boolean)
-  return `Sent ${when(s.sentAt)}: ${parts.join(', ')}`
+  return `Snapshot sent ${when(s.sentAt)}: ${parts.join(', ')}`
 }
 </script>
 
@@ -63,7 +63,7 @@ const line = (s: SnapshotReviews) => {
           :to="{ name: 'draft', params: { publicationId, id: o.draftId } }"
           class="link"
           >{{ o.title || 'Untitled draft' }}</RouterLink
-        >. If you accept, you become its editor.
+        >. If you accept, you become its editor, the only person who can change its words.
       </p>
       <div class="flex flex-wrap gap-2">
         <button
@@ -122,7 +122,7 @@ const line = (s: SnapshotReviews) => {
               >{{ r.title || 'Untitled draft' }}</RouterLink
             >
             <span v-if="r.needsAttention" class="chip chip-quiet ml-2"
-              >Reviews finished, comments to answer</span
+              >Reviews finished, unresolved comments</span
             >
           </p>
           <ul class="meta">

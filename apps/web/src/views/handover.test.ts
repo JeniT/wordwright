@@ -93,17 +93,34 @@ describe('handing a draft over (#155)', () => {
   it('lets the editor offer the draft to a named member, and says they are emailed and choose whether to accept', async () => {
     const calls = mockPage(ada, { role: 'owner' })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText('Hand this draft to someone'))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Offer draft' }))
     const choose = screen.getByLabelText('Member')
     expect(
       screen.getByRole('button', { name: 'About handing over a draft' }),
     ).toHaveAccessibleDescription(/Only one person edits a draft at a time/)
     expect(within(choose).queryByRole('option', { name: 'Ada Lovelace' })).toBeNull() // not oneself
     await fireEvent.update(choose, 'u2')
-    await fireEvent.click(screen.getByRole('button', { name: 'Offer draft' }))
+    const dialog = screen.getByRole('dialog', { name: 'Offer draft' })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Offer draft' }))
     await waitFor(() =>
       expect(calls).toEqual([{ method: 'POST', path: '/offer', body: { userId: 'u2' } }]),
     )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('closes the offer dialog with Cancel or Escape and offers nothing', async () => {
+    const calls = mockPage(ada, { role: 'owner' })
+    await renderAt('/p/p1/drafts/d1')
+    const opener = await screen.findByRole('button', { name: 'Offer draft' })
+    await fireEvent.click(opener)
+    await fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await fireEvent.click(opener)
+    await fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(calls).toEqual([])
   })
 
   it('shows an open offer with a way to withdraw it', async () => {
@@ -111,8 +128,10 @@ describe('handing a draft over (#155)', () => {
       handover: state({ offer: { id: 'h1', toId: 'u2', toName: 'Bob Jones', createdAt: 'x' } }),
     })
     await renderAt('/p/p1/drafts/d1')
-    expect(await screen.findByText(/You stay its editor until they accept/)).toBeTruthy()
-    expect(screen.queryByText('Hand this draft to someone')).toBeNull()
+    const notice = await screen.findByRole('region', { name: 'Offer made' })
+    expect(notice).toHaveTextContent('You have offered this draft to Bob Jones')
+    expect(notice).toHaveTextContent('You stay its editor until they accept')
+    expect(screen.queryByRole('button', { name: 'Offer draft' })).toBeNull()
     await fireEvent.click(screen.getByRole('button', { name: 'Withdraw the offer' }))
     await waitFor(() => expect(calls).toEqual([{ method: 'DELETE', path: '/offer' }]))
   })
@@ -123,8 +142,8 @@ describe('handing a draft over (#155)', () => {
     })
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/asked for this draft/)).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
-    await fireEvent.click(screen.getByRole('button', { name: 'Offer it to Bob Jones' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Not now: Bob Jones' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Offer draft to Bob Jones' }))
     await waitFor(() =>
       expect(calls).toEqual([
         { method: 'DELETE', path: '/asks/a1' },
@@ -151,7 +170,22 @@ describe('handing a draft over (#155)', () => {
     const calls = mockPage(cy)
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Ask for this draft' }))
+    const confirm = await screen.findByRole('dialog', { name: 'Ask Ada Lovelace for this draft?' })
+    expect(confirm).toHaveTextContent('Nothing changes unless they offer it to you.')
+    await fireEvent.click(within(confirm).getByRole('button', { name: 'Ask for this draft' }))
     await waitFor(() => expect(calls).toEqual([{ method: 'POST', path: '/asks', body: {} }]))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('asks nothing when the confirmation is cancelled', async () => {
+    const calls = mockPage(cy)
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Ask for this draft' }))
+    await fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+    )
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(calls).toEqual([])
   })
 
   it('shows a member who has asked that nothing changes unless the editor offers', async () => {
@@ -160,6 +194,7 @@ describe('handing a draft over (#155)', () => {
     })
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/Nothing changes unless they offer it to you/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Ask for this draft' })).toBeNull()
     await fireEvent.click(screen.getByRole('button', { name: 'Withdraw my request' }))
     await waitFor(() => expect(calls).toEqual([{ method: 'DELETE', path: '/asks/a9' }]))
   })
@@ -167,9 +202,11 @@ describe('handing a draft over (#155)', () => {
   it('lets an owner who is not the editor reassign it', async () => {
     const calls = mockPage(bob, { role: 'owner', editor: 'u1' })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText('Reassign this draft'))
-    await fireEvent.update(screen.getByLabelText('New editor'), 'u3')
-    await fireEvent.click(screen.getByRole('button', { name: 'Reassign draft' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Reassign draft' }))
+    const dialog = screen.getByRole('dialog', { name: 'Reassign draft' })
+    expect(dialog).toHaveTextContent('without asking the current editor')
+    await fireEvent.update(within(dialog).getByLabelText('New editor'), 'u3')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Reassign draft' }))
     await waitFor(() =>
       expect(calls).toEqual([{ method: 'POST', path: '/reassign', body: { userId: 'u3' } }]),
     )
@@ -179,7 +216,8 @@ describe('handing a draft over (#155)', () => {
     mockPage(cy, { role: 'member' })
     await renderAt('/p/p1/drafts/d1')
     await screen.findByRole('button', { name: 'Ask for this draft' })
-    expect(screen.queryByText('Reassign this draft')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Reassign draft' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Reviews|Send for review/ })).toBeNull()
   })
 
   it('lists the history in words, naming a gone account as a former member', async () => {
@@ -230,7 +268,7 @@ describe('handing a draft over (#155)', () => {
       }),
     })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText(/Handover history \(4\)/))
+    await fireEvent.click(await screen.findByRole('button', { name: /Handover history \(4\)/ }))
     expect(screen.getByText(/Passed to Ada Lovelace when the previous editor left/)).toBeTruthy()
     expect(screen.getByText(/Reassigned by Jo Park to Ada Lovelace/)).toBeTruthy()
     expect(screen.getByText(/Ada Lovelace offered the draft to Bob Jones: declined/)).toBeTruthy()
@@ -249,6 +287,47 @@ describe('handing a draft over (#155)', () => {
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Ask for this draft' }))
+    await fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Ask for this draft' }),
+    )
     expect(await screen.findByRole('alert')).toHaveTextContent('already asked')
+  })
+
+  it('shows the handover history to every member, not only the editor and owners', async () => {
+    mockPage(cy, {
+      role: 'member',
+      handover: state({
+        history: [
+          {
+            id: '2',
+            kind: 'offer',
+            status: 'declined',
+            actorName: 'Ada Lovelace',
+            memberName: 'Bob Jones',
+            createdAt: '2026-02-01T00:00:00Z',
+            resolvedAt: null,
+            automatic: false,
+          },
+        ],
+      }),
+    })
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('button', { name: /Handover history \(1\)/ }))
+    expect(screen.getByText(/Ada Lovelace offered the draft to Bob Jones: declined/)).toBeTruthy()
+  })
+
+  it('draws what needs an answer as warn notices and what you set going as info notices', async () => {
+    mockPage(ada, {
+      handover: state({
+        offer: { id: 'h1', toId: 'u2', toName: 'Bob Jones', createdAt: 'x' },
+        asks: [{ id: 'a1', byId: 'u3', byName: 'Cy Young', createdAt: 'x' }],
+      }),
+    })
+    await renderAt('/p/p1/drafts/d1')
+    const asked = await screen.findByRole('region', { name: 'Cy Young asked for this draft' })
+    expect(asked).toHaveClass('notice-warn')
+    // The editor already has an offer open, so a second cannot be made from the request.
+    expect(within(asked).queryByRole('button', { name: /^Offer draft/ })).toBeNull()
+    expect(screen.getByRole('region', { name: 'Offer made' })).toHaveClass('notice-info')
   })
 })

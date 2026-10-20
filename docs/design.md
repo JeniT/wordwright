@@ -296,7 +296,7 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
 
 - Each is a labelled `region` (not a live region, so it doesn't interrupt a screen reader). The text is short; the
   buttons sit under it and wrap at 390px. An info notice has a short title, one sentence, a primary button and a quiet one.
-- A **quiet** page (`meta.quiet`, the editor) shows warn notices but holds info notices back, so nothing interrupts writing.
+- A **quiet** page (`meta.quiet`, the editor) shows warn notices but holds back the notice bar's info notices (the offer to turn tutorial mode off), so nothing interrupts writing. **A notice the page draws about its own subject is not held back**: the editor shows, as notices under the bar, a handover waiting for an answer (warn) and an offer or request the person has set going, with its Withdraw button (info), so they never wonder whether Wordwright forgot what they did. Handover and review are buttons in a quiet row beside “← All drafts” that open dialogs (`ModalDialog`, or `ConfirmDialog` for Ask for this draft), so the writer stays on the draft.
 - A notice that can fail says so in a `role="alert"` line with what to do next, and stays.
 
 ### Links that open in a new tab

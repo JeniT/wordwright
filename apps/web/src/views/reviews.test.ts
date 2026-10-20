@@ -420,7 +420,8 @@ describe('asking someone to review a draft', () => {
   it('tells the editor the reviewers read a snapshot, then sends, closes and withdraws', async () => {
     const calls = page('member')
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText(/Send this draft for review/))
+    await fireEvent.click(await screen.findByRole('button', { name: /^Send for review/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Send for review' })
     expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
       'snapshot of the draft as it is now, not what you write later',
     )
@@ -434,20 +435,20 @@ describe('asking someone to review a draft', () => {
     expect(
       await screen.findByText('A closed review stays readable but can’t be reopened.'),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
+    expect(within(dialog).getByRole('button', { name: 'Send for review' })).toBeDisabled() // nobody chosen yet
     await fireEvent.update(
-      screen.getByLabelText('Email addresses'),
+      within(dialog).getByLabelText('Email addresses'),
       'new@example.com, other@example.com\nnew@example.com',
     )
-    await fireEvent.click(screen.getByLabelText('Bob Jones'))
-    await fireEvent.click(screen.getByRole('button', { name: 'Send for review' }))
+    await fireEvent.click(within(dialog).getByLabelText('Bob Jones'))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send for review' }))
     expect(await screen.findByText(/to 3 people/)).toBeTruthy()
     // Each reviewer: state, comments so far, when it was sent.
     expect(await screen.findByText(/Reading · 2 comments · sent/)).toBeTruthy()
-    await fireEvent.click(screen.getByRole('button', { name: 'Close review: Rae' }))
-    await fireEvent.click(screen.getByRole('button', { name: 'Close all reviews' }))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close review: Rae' }))
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close all reviews' }))
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
+      within(dialog).getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
     )
     await waitFor(() => expect(calls).toHaveLength(4))
     expect(calls[0]).toBe(
@@ -459,9 +460,10 @@ describe('asking someone to review a draft', () => {
   it('lets an owner who is not the editor see and close reviews but not send', async () => {
     page('owner', 'u2')
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByText(/Send this draft for review/))
+    await fireEvent.click(await screen.findByRole('button', { name: /^Reviews/ }))
+    expect(screen.getByRole('dialog', { name: 'Reviews' })).toBeTruthy()
     expect(screen.getByText(/Only the draft’s editor can send it for review/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Send for review' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull()
     expect(await screen.findByRole('button', { name: 'Close review: Rae' })).toBeTruthy()
   })
 
@@ -469,7 +471,7 @@ describe('asking someone to review a draft', () => {
     page('member', 'u2') // someone else edits, and this person is a plain member
     await renderAt('/p/p1/drafts/d1')
     await screen.findByTestId('read-only')
-    expect(screen.queryByText(/Send this draft for review/)).toBeNull()
+    expect(screen.queryByRole('button', { name: /^(Send for review|Reviews)/ })).toBeNull()
   })
 })
 

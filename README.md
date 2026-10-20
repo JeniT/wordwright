@@ -201,7 +201,7 @@ tests inject fakes and nothing hits the network.
   page: a draft offered to you (Accept / Decline there), your own offer still waiting (Withdraw), and for drafts you edit
   how each copy sent for review stands, flagged when every review is over, some finished and comments are unresolved.
   Nothing is shown when nothing waits, and nothing is emailed or counted elsewhere.
-  **Handover** (#155), on the draft page itself (`/api/publications/:id/drafts/:draft/handover`): the editor **offers** the
+  **Handover** (#155), on the draft page itself (what waits for an answer, and what you have set going, are notices at the top; **Offer draft**, **Ask for this draft** (with a confirm), **Reassign draft**, **Send for review** and the history are buttons opening dialogs, #296) (`/api/publications/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other
   member can **ask** (`POST …/asks`), which only shows the editor a request to offer or set aside. An owner can

@@ -7,8 +7,8 @@ import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
-import HandoverPanel from '../components/HandoverPanel.vue'
-import ReviewersPanel from '../components/ReviewersPanel.vue'
+import DraftActions from '../components/DraftActions.vue'
+import HandoverNotices from '../components/HandoverNotices.vue'
 import DraftPublish from '../components/DraftPublish.vue'
 import DraftReadingList from '../components/DraftReadingList.vue'
 import RephraseDialog from '../components/RephraseDialog.vue'
@@ -425,30 +425,27 @@ async function requestCritique() {
     <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
       <!-- With comments marked in the text, room below the end so that even the last paragraph can scroll to the top. -->
       <article class="min-w-0 max-w-2xl" :class="markPoints.length ? 'pb-[60vh]' : ''">
-        <p v-if="draft.data.value?.ideaId" class="mb-4 text-sm">
-          <RouterLink
-            :to="{
-              name: 'idea-drafts',
-              params: { publicationId: props.publicationId, id: draft.data.value.ideaId },
-            }"
-            class="underline"
-          >
-            ← All drafts
-          </RouterLink>
-        </p>
+        <HandoverNotices :publication-id="publicationId" :draft-id="id" />
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p v-if="draft.data.value?.ideaId" class="text-sm">
+            <RouterLink
+              :to="{
+                name: 'idea-drafts',
+                params: { publicationId: props.publicationId, id: draft.data.value.ideaId },
+              }"
+              class="underline"
+            >
+              ← All drafts
+            </RouterLink>
+          </p>
+          <DraftActions :publication-id="publicationId" :draft-id="id" />
+        </div>
         <p v-if="draft.data.value && !canEdit" class="callout mb-4 text-sm" data-testid="read-only">
           <span class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
             draft.data.value.editorName
           }}</span>
           is this draft’s editor. You can read it, but only they can change it.
         </p>
-        <HandoverPanel :publication-id="publicationId" :draft-id="id" />
-        <ReviewersPanel
-          v-if="draft.data.value"
-          :publication-id="publicationId"
-          :draft-id="id"
-          :editor-id="draft.data.value.editorId"
-        />
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
         <div

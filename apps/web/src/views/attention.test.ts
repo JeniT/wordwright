@@ -108,10 +108,10 @@ describe('what is waiting, on the publication’s landing page (#159)', () => {
     await renderAt('/p/p1')
     const list = await screen.findByRole('list', { name: 'Drafts sent for review' })
     const [meanders, tides] = Array.from(list.querySelectorAll(':scope > li'))
-    expect(meanders).toHaveTextContent('Reviews finished, comments to answer')
-    expect(meanders).toHaveTextContent('1 finished, 2 comments to answer')
+    expect(meanders).toHaveTextContent('Reviews finished, unresolved comments')
+    expect(meanders).toHaveTextContent('1 finished, 2 unresolved comments')
     expect(tides).toHaveTextContent('1 still reading')
-    expect(tides).not.toHaveTextContent('comments to answer')
+    expect(tides).not.toHaveTextContent('unresolved comments')
     expect(tides).not.toHaveTextContent('Reviews finished')
   })
 

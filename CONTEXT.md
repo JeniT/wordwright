@@ -75,7 +75,7 @@ The one member currently responsible for changing a draft's title and body and f
 _Avoid_: Holder, author, lock, assignee
 
 **Handover**:
-The explicit transfer of a draft's editor role: the editor offers the draft to a named member, who accepts it. Until accepted the offerer stays editor. A member can ask for the draft, which only prompts the editor.
+The explicit transfer of a draft's editor role: the editor offers the draft to a named member, who accepts it. Until accepted the offerer stays editor, and can withdraw the offer. A member can ask for the draft, which only prompts the editor, and can withdraw the request.
 _Avoid_: Transfer, claim
 
 **Reassignment**:
