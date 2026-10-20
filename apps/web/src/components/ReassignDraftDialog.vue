@@ -4,7 +4,13 @@ import { useHandover, useHandoverActions } from '../lib/draft-people'
 import ModalDialog from './ModalDialog.vue'
 
 /** An owner moves the editor role to another member without the current editor's involvement (CONTEXT.md, "Reassignment"). */
-const props = defineProps<{ open: boolean; publicationId: string; draftId: string }>()
+const props = defineProps<{
+  open: boolean
+  publicationId: string
+  draftId: string
+  /** Saves the draft's latest words first; rejects (with why) if it can't. */
+  prepare?: () => Promise<unknown>
+}>()
 const emit = defineEmits<{ close: [] }>()
 const { others } = useHandover(
   () => props.publicationId,
@@ -13,6 +19,7 @@ const { others } = useHandover(
 const actions = useHandoverActions(
   () => props.publicationId,
   () => props.draftId,
+  props.prepare,
 )
 const target = ref('')
 watch(

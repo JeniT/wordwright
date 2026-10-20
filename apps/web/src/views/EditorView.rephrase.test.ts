@@ -153,7 +153,7 @@ describe('EditorView: Rephrase', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Generate options' }))
     await within(dialog).findByRole('list', { name: 'Options' })
     expect(asked[0]).toMatchObject({ draftId: 'd1', kind: 'passage', aim: 'Shorter and plainer' })
-    expect(saved.length).toBeGreaterThan(0) // the AI reads the saved draft
+    expect(saved).toEqual([]) // nothing was typed, so there was nothing to save first
 
     await fireEvent.click(
       within(dialog).getByRole('button', { name: /Replace the wording with option 5/ }),

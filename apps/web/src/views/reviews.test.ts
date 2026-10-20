@@ -457,6 +457,42 @@ describe('asking someone to review a draft', () => {
     expect(calls.slice(1).sort()).toEqual(['close all', 'close v1', 'withdraw i9'])
   })
 
+  it('saves words typed a moment ago before the snapshot is made', async () => {
+    const calls = page('member')
+    server.use(
+      http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
+        const input = (await request.json()) as { title: string; body: string; version: number }
+        calls.push(`save ${input.title}`)
+        return HttpResponse.json({ ...draft, title: input.title, version: input.version + 1 })
+      }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.update(await screen.findByLabelText('Title'), 'Just typed')
+    await fireEvent.click(await screen.findByText(/Send this draft for review/))
+    await fireEvent.update(screen.getByLabelText('Email addresses'), 'new@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: 'Send for review' }))
+    expect(await screen.findByText(/to 1 person/)).toBeTruthy()
+    expect(calls.slice(0, 2)).toEqual(['save Just typed', expect.stringMatching(/^send /)])
+  })
+
+  it('sends nothing, and says why, when the latest words could not be saved first', async () => {
+    const calls = page('member')
+    server.use(
+      http.put('*/api/publications/p1/drafts/d1', () =>
+        HttpResponse.json({ error: 'This draft has been saved somewhere else.' }, { status: 409 }),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.update(await screen.findByLabelText('Title'), 'Just typed')
+    await fireEvent.click(await screen.findByText(/Send this draft for review/))
+    await fireEvent.update(screen.getByLabelText('Email addresses'), 'new@example.com')
+    await fireEvent.click(screen.getByRole('button', { name: 'Send for review' }))
+    expect(
+      await screen.findByText(/Nothing was done, because the draft was saved somewhere else/),
+    ).toBeTruthy()
+    expect(calls.filter((c) => c.startsWith('send'))).toEqual([])
+  })
+
   it('lets an owner who is not the editor see and close reviews but not send', async () => {
     page('owner', 'u2')
     await renderAt('/p/p1/drafts/d1')

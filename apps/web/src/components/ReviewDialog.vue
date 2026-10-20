@@ -15,7 +15,13 @@ import RowList from './RowList.vue'
  * members of the publication) read and comment on that, not on later edits (ADR 0001). Only the editor sends; the editor
  * and owners see who is reviewing, how far they have got, and can close reviews. Others never see this.
  */
-const props = defineProps<{ open: boolean; publicationId: string; draftId: string }>()
+const props = defineProps<{
+  open: boolean
+  publicationId: string
+  draftId: string
+  /** Saves the draft's latest words first; rejects (with why) if it can't. */
+  prepare?: () => Promise<unknown>
+}>()
 const emit = defineEmits<{ close: [] }>()
 const queryClient = useQueryClient()
 const { isEditor, isOwner, others } = useHandover(
@@ -44,11 +50,14 @@ watch(
 )
 const addresses = computed(() => [...new Set(emails.value.split(/[\s,;]+/).filter(Boolean))])
 const send = useMutation({
-  mutationFn: () =>
-    api.sendForReview(props.publicationId, props.draftId, {
+  // The snapshot is made from the saved draft, so the latest words are saved first.
+  mutationFn: async () => {
+    await props.prepare?.()
+    return api.sendForReview(props.publicationId, props.draftId, {
       emails: addresses.value,
       memberIds: chosen.value,
-    }),
+    })
+  },
   onSuccess: async () => {
     const n = addresses.value.length + chosen.value.length
     sentSummary.value = `Sent to ${n} ${n === 1 ? 'person' : 'people'}`

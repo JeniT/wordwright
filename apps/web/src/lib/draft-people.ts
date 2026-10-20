@@ -30,7 +30,12 @@ export function useHandover(publicationId: () => string, draftId: () => string) 
 }
 
 /** Every handover action answers with the handover as it now is; a change of editor also changes what the page may do. */
-export function useHandoverActions(publicationId: () => string, draftId: () => string) {
+export function useHandoverActions(
+  publicationId: () => string,
+  draftId: () => string,
+  /** Saves the editor's unsaved words first, so a hand-off never leaves them behind; rejects (with why) if it can't. */
+  prepare?: () => Promise<unknown>,
+) {
   const queryClient = useQueryClient()
   function settle(state: HandoverState) {
     queryClient.setQueryData(queryKeys.handover(publicationId(), draftId()), state)
@@ -38,13 +43,19 @@ export function useHandoverActions(publicationId: () => string, draftId: () => s
   }
   const run = <A>(fn: (arg: A) => Promise<HandoverState>) =>
     useMutation({ mutationFn: fn, onSuccess: settle })
-  const offer = run((userId: string) => api.offerDraft(publicationId(), draftId(), userId))
+  const offer = run(async (userId: string) => {
+    await prepare?.()
+    return api.offerDraft(publicationId(), draftId(), userId)
+  })
   const withdraw = run(() => api.withdrawOffer(publicationId(), draftId()))
   const accept = run(() => api.acceptOffer(publicationId(), draftId()))
   const decline = run(() => api.declineOffer(publicationId(), draftId()))
   const ask = run(() => api.askForDraft(publicationId(), draftId()))
   const closeAsk = run((askId: string) => api.closeAsk(publicationId(), draftId(), askId))
-  const reassign = run((userId: string) => api.reassignDraft(publicationId(), draftId(), userId))
+  const reassign = run(async (userId: string) => {
+    await prepare?.()
+    return api.reassignDraft(publicationId(), draftId(), userId)
+  })
   const all = [offer, withdraw, accept, decline, ask, closeAsk, reassign]
   const problem = computed(() => {
     const failed = all.find((m) => m.isError.value)

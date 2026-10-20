@@ -180,7 +180,8 @@ tests inject fakes and nothing hits the network.
   (`/p/<id>/drafts/<draft>` in the app), which links back to its idea's Draft step.
   **Each draft has one editor** (#154): the member responsible for its title and body, its creator at first
   (`editorId`, `editorName`). Only the editor can save (`PUT` needs the `version` it was made from; a stale one is
-  refused with 409 and never merged, which also covers the same person in two tabs), add notes or links to the
+  refused with 409 and never merged, which also covers the same person in two tabs). The page saves by itself about
+  two seconds after typing stops (#299; `lib/autosave.ts`), so there is no Save button. The editor can also add notes or links to the
   draft, resolve comments, or ask for a critique (403 before anything is sent or counted). Other
   members read it, with a banner naming the editor, and see changes on reload or when the window regains focus.
   Notes stay open to every member. When

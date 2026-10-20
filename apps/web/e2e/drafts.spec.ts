@@ -107,6 +107,39 @@ test('redirects signed-out visitors to sign in', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
 })
 
+test('a draft saves itself while you write, and the words are there after a reload', async ({
+  page,
+}) => {
+  await registerUser(page)
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
+
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await expect(page.getByText('Not saved yet')).toBeVisible()
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+
+  await page.reload()
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Meanders')
+  await expect(page.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
+
+  // Typing and leaving at once still keeps the words: the page saves before it goes.
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('They bend instead. ')
+  await page.getByRole('link', { name: '← All drafts' }).click()
+  await expect(page.getByRole('button', { name: 'New draft' })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByRole('textbox', { name: 'Draft body' })).toContainText(
+    'They bend instead.',
+  )
+})
+
 test('register, write, save and request a critique', async ({ page }) => {
   test.setTimeout(90_000) // a long flow: a long draft, a critique, the limit, a phone
   await registerUser(page)
@@ -129,8 +162,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.keyboard.press('Enter')
   await page.keyboard.type('The very last paragraph.')
 
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
   // No key yet: we're pointed at account settings rather than silently failing.
   await page.getByRole('button', { name: 'Critique' }).click()
@@ -247,6 +279,10 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'publish it' })).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
+  // The rewrite was saved as it was typed. Putting the opening back brings its comment's mark back.
+  await page.getByRole('textbox', { name: 'Draft body' }).fill('Rivers rarely flow straight.')
+  await expect(page.getByRole('button', { name: 'Comment 1' })).toBeVisible()
+
   // On a phone nothing spills sideways.
   await page.setViewportSize({ width: 390, height: 800 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
@@ -298,8 +334,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await page.keyboard.type('The river bends because the outside bank erodes faster.')
   await page.keyboard.press('Enter')
   await page.keyboard.type('It drifts across the valley over centuries.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
   // Nothing selected: the button waits, and says why.
   const rephrase = page.getByRole('button', { name: 'Rephrase', exact: true })
@@ -850,8 +885,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.type('Rivers rarely flow straight.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   const draftUrl = page.url()
 
   const bob = await joinFrom(page, browser, 'Bob')
@@ -864,7 +898,6 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await expect(banner).toContainText('is this draft’s editor')
   await expect(bob.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
   await expect(bob.getByLabel('Title', { exact: true })).toHaveAttribute('readonly', '')
-  await expect(bob.getByRole('button', { name: 'Save' })).toHaveCount(0)
   await expect(bob.getByRole('button', { name: 'Critique' })).toHaveCount(0)
   await expect(bob.getByRole('textbox', { name: 'Draft body' })).toHaveAttribute(
     'contenteditable',
@@ -902,8 +935,7 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.press('Enter')
   await page.keyboard.type('They bend instead.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await bob.reload()
   await expect(
     bob.getByRole('textbox', { name: 'Draft body' }).getByText('They bend instead.'),
@@ -922,8 +954,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'New draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   const draftUrl = page.url()
   const bob = await joinFrom(page, browser, 'Bob')
   const bobProblems = watchForProblems(bob)
@@ -942,7 +973,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await expect(page.getByRole('button', { name: 'Offer draft', exact: true })).toBeVisible()
   await offer()
   // Bob is told on the draft page and declines.
-  await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Critique' })).toBeVisible()
   await bob.goto(draftUrl)
   const offered = bob.getByTestId('offered-to-me')
   await expect(offered).toContainText('Ada has offered you this draft')
@@ -967,13 +998,13 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await page.getByRole('button', { name: 'Offer draft to Bob' }).click()
   await bob.reload()
   await bob.getByTestId('offered-to-me').getByRole('button', { name: 'Accept' }).click()
-  await expect(bob.getByRole('button', { name: 'Save' })).toBeVisible()
+  await expect(bob.getByRole('button', { name: 'Critique' })).toBeVisible()
   await expect(bob.getByTestId('read-only')).toHaveCount(0)
   expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
 
   await page.reload()
   await expect(page.getByTestId('read-only')).toContainText('Bob')
-  await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Critique' })).toHaveCount(0)
   await page.getByRole('button', { name: /Handover history/ }).click()
   await expect(page.getByText(/Ada offered the draft to Bob: accepted/)).toBeVisible()
   await expect(page.getByText(/Ada offered the draft to Bob: declined/)).toBeVisible()
@@ -993,8 +1024,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.type('Rivers rarely flow straight.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   const draftUrl = page.url()
 
   // Ada sends it for review; the dialog says reviewers read a snapshot.
@@ -1014,7 +1044,6 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.press('Enter')
   await page.keyboard.type('Added after sending.')
-  await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Saved', { exact: true })).toBeVisible()
 
   // Rae follows the link and makes a reviewer account with a name and password.
@@ -1106,8 +1135,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.type('Rivers rarely flow straight.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   const draftUrl = page.url()
   const bob = await joinFrom(page, browser, 'Bob')
   const bobProblems = watchForProblems(bob)
@@ -1473,8 +1501,7 @@ test('downloads your writing as a zip from the account page and from a publicati
   await page.getByLabel('Title', { exact: true }).fill('Meanders')
   await page.getByRole('textbox', { name: 'Draft body' }).click()
   await page.keyboard.type('Rivers rarely flow straight.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
   /** The zip's file names sit uncompressed in its directory, so they can be read without unpacking it. */
   const downloaded = async (page: Page, trigger: () => Promise<void>) => {
@@ -1619,8 +1646,7 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   await source.press('End')
   await source.press('Control+End')
   await page.keyboard.type('\n\nAdded as Markdown.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await page.getByRole('tab', { name: /^Comments/ }).click()
   await expect(
     page.getByText('Comments are hidden while you edit Markdown. Switch back to see them.'),

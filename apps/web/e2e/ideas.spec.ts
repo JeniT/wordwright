@@ -144,13 +144,11 @@ test('develops an idea into a linked set of drafts, in an order that can be chan
   // Two drafts make a linked set; each opens in the editor and links back.
   await startDraft(page)
   await page.getByLabel('Title', { exact: true }).fill('Part 1: the bend')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await page.getByRole('link', { name: '← All drafts' }).click()
   await startDraft(page)
   await page.getByLabel('Title', { exact: true }).fill('Part 2: the oxbow')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await page.getByRole('link', { name: '← All drafts' }).click()
 
   const drafts = page.getByRole('main').getByRole('list').filter({ hasText: 'Part 1: the bend' })
@@ -323,8 +321,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   ).toBeVisible()
 
   // The record survives a reload.
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await page.reload()
   await expect(page.getByText(/Where some of the words came from \(1\)/)).toBeVisible()
 })
@@ -854,8 +851,7 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   await expect(body).toContainText(
     /Meanders grow because banks erode\. \(Fake title for example\.org.*\)/,
   )
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await page.reload()
   await expect(
     page.getByRole('textbox', { name: 'Draft body' }).getByRole('link', { name: /Fake title/ }),

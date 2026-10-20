@@ -6,7 +6,13 @@ import Explain from './Explain.vue'
 import ModalDialog from './ModalDialog.vue'
 
 /** The editor offers the draft to a named member, who chooses whether to accept (CONTEXT.md, "Handover"). */
-const props = defineProps<{ open: boolean; publicationId: string; draftId: string }>()
+const props = defineProps<{
+  open: boolean
+  publicationId: string
+  draftId: string
+  /** Saves the draft's latest words first; rejects (with why) if it can't. */
+  prepare?: () => Promise<unknown>
+}>()
 const emit = defineEmits<{ close: [] }>()
 const { others } = useHandover(
   () => props.publicationId,
@@ -15,6 +21,7 @@ const { others } = useHandover(
 const actions = useHandoverActions(
   () => props.publicationId,
   () => props.draftId,
+  props.prepare,
 )
 const target = ref('')
 watch(

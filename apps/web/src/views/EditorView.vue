@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import Explain from '../components/Explain.vue'
+import Icon from '../components/Icon.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
@@ -14,9 +15,10 @@ import DraftReadingList from '../components/DraftReadingList.vue'
 import RephraseDialog from '../components/RephraseDialog.vue'
 import NewTabLink from '../components/NewTabLink.vue'
 import RichEditor from '../components/RichEditor.vue'
+import { useAutosave } from '../lib/autosave'
 import { useMarkdownMode } from '../lib/markdown-mode'
 import TabPanels from '../components/TabPanels.vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, onBeforeRouteLeave, useRouter } from 'vue-router'
 import {
   ONE_PARAGRAPH,
   REPHRASE,
@@ -64,39 +66,96 @@ const canEdit = computed(() => !!draft.data.value && draft.data.value.editorId =
 const title = ref('')
 const body = ref('')
 /** What the server had when the fields were last filled or saved: the words, and the version a save is made from. */
-let loaded: { title: string; body: string; version: number } | null = null
+const loaded = shallowRef<{ title: string; body: string; version: number } | null>(null)
 // Newer words from elsewhere (another tab, a refetch when the window regains focus) fill the fields unless the person
 // has typed something not yet saved: that stays, and saving it is then refused (see `conflict`) instead of losing either.
 watch(
   () => draft.data.value,
   (d) => {
-    if (!d || (loaded && d.version === loaded.version)) return
-    if (loaded && (title.value !== loaded.title || body.value !== loaded.body)) return
+    if (!d || (loaded.value && d.version === loaded.value.version)) return
+    if (loaded.value && (title.value !== loaded.value.title || body.value !== loaded.value.body))
+      return
     title.value = d.title
     body.value = d.body
-    loaded = { title: d.title, body: d.body, version: d.version }
+    loaded.value = { title: d.title, body: d.body, version: d.version }
   },
   { immediate: true },
 )
 
 const save = useMutation({
   mutationFn: () => {
-    if (!loaded) throw new Error("The draft isn't ready yet. Try again in a moment.")
+    if (!loaded.value) throw new Error("The draft isn't ready yet. Try again in a moment.")
     return api.updateDraft(props.publicationId, props.id, {
       title: title.value,
       body: body.value,
-      version: loaded.version,
+      version: loaded.value.version,
     })
   },
   onSuccess: (saved) => {
-    loaded = { title: saved.title, body: saved.body, version: saved.version }
+    loaded.value = { title: saved.title, body: saved.body, version: saved.version }
     queryClient.setQueryData(queryKeys.draft(props.publicationId, props.id), saved)
   },
 })
+
+// The editor's words are saved a moment after they stop typing (and before anything that needs them saved), so there is
+// no Save button to forget. Only the editor can have words to save.
+const autosave = useAutosave({
+  watch: () => [title.value, body.value],
+  dirty: () =>
+    canEdit.value &&
+    !!loaded.value &&
+    (title.value !== loaded.value.title || body.value !== loaded.value.body),
+  save: () => save.mutateAsync(),
+  halts: (err) => err instanceof ApiError && err.status === 409,
+})
 /** The draft was saved from somewhere else since this page loaded it: what is typed here is kept, not sent. */
-const conflict = computed(
-  () => save.error.value instanceof ApiError && save.error.value.status === 409,
+const conflict = computed(() => autosave.state.value === 'halted')
+const saveStatus = computed(
+  () =>
+    ({
+      idle: '',
+      unsaved: 'Not saved yet',
+      saving: 'Saving…',
+      saved: 'Saved',
+      failed: '',
+      halted: '',
+    })[autosave.state.value],
 )
+/** Why a save that something else was waiting on didn't happen, with what the person can do about it. */
+function notSavedYet(what: string) {
+  return new Error(
+    conflict.value
+      ? `We couldn't save the draft because it was saved somewhere else. ${what} in it above.`
+      : `We couldn't save the draft yet. ${what} in it above, and we'll keep trying.`,
+  )
+}
+/** For what is done to the saved draft (a snapshot for review, a hand-off): save first, and say so if that can't be done. */
+async function saveFirst() {
+  try {
+    await autosave.flush()
+  } catch {
+    throw new Error(
+      conflict.value
+        ? 'Nothing was done, because the draft was saved somewhere else since you opened it. Copy what you typed somewhere safe, then reload the page.'
+        : "Nothing was done, because we couldn't save the draft yet. Your words are still here, and we'll keep trying.",
+    )
+  }
+}
+const quietly = () => void autosave.flush().catch(() => undefined)
+function onSaveKey(event: KeyboardEvent) {
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
+  event.preventDefault()
+  if (canEdit.value) quietly()
+}
+// Leaving the page saves first; if that can't be done the person decides, rather than losing words by accident.
+onBeforeRouteLeave(async () => {
+  try {
+    await autosave.flush()
+    return true
+  } catch {
+    return window.confirm('Your latest changes aren’t saved. Leave without saving them?')
+  }
+})
 
 // ---- pulling notes into the draft
 const editor = useTemplateRef<InstanceType<typeof RichEditor>>('editor')
@@ -162,9 +221,9 @@ async function insertLink(item: IdeaLink) {
     throw new Error("The draft isn't ready yet. Try again in a moment.")
   }
   try {
-    await save.mutateAsync()
+    await autosave.flush()
   } catch {
-    throw new Error("We couldn't save the draft. The link is in it above; press Save to keep it.")
+    throw notSavedYet('The link is')
   }
 }
 
@@ -179,11 +238,9 @@ async function insertNote(note: IdeaNote, at?: number) {
     throw new Error("The draft isn't ready yet. Try again in a moment.")
   }
   try {
-    await save.mutateAsync()
+    await autosave.flush()
   } catch {
-    throw new Error(
-      "We couldn't save the draft. The words are in it above; press Save to keep them.",
-    )
+    throw notSavedYet('The words are')
   }
   try {
     await api.addDraftInsertion(props.publicationId, props.id, { noteId: note.id, text: markdown })
@@ -272,10 +329,9 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
     return
   }
   try {
-    await save.mutateAsync()
+    await autosave.flush()
   } catch {
-    rephraseNotice.value =
-      "We couldn't save the draft. The words are in it above; press Save to keep them."
+    rephraseNotice.value = notSavedYet('The words are').message
     return
   }
   // Words the writer wrote themselves need no record; words that began as an option do.
@@ -411,7 +467,7 @@ const critiquing = computed(() => requestingCritique.value || critique.isPending
 async function requestCritique() {
   requestingCritique.value = true
   try {
-    await save.mutateAsync() // critique the latest text
+    await autosave.flush() // critique the latest text
     sideTab.value = 'comments' // so the wait, and the answer, are in view
     critique.mutate()
   } finally {
@@ -424,7 +480,12 @@ async function requestCritique() {
   <QueryState :query="draft" what="this draft">
     <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
       <!-- With comments marked in the text, room below the end so that even the last paragraph can scroll to the top. -->
-      <article class="min-w-0 max-w-2xl" :class="markPoints.length ? 'pb-[60vh]' : ''">
+      <article
+        class="min-w-0 max-w-2xl"
+        :class="markPoints.length ? 'pb-[60vh]' : ''"
+        @focusout="canEdit && quietly()"
+        @keydown="onSaveKey"
+      >
         <HandoverNotices :publication-id="publicationId" :draft-id="id" />
         <div class="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <p v-if="draft.data.value?.ideaId" class="text-sm">
@@ -438,7 +499,7 @@ async function requestCritique() {
               ← All drafts
             </RouterLink>
           </p>
-          <DraftActions :publication-id="publicationId" :draft-id="id" />
+          <DraftActions :publication-id="publicationId" :draft-id="id" :prepare="saveFirst" />
         </div>
         <p v-if="draft.data.value && !canEdit" class="callout mb-4 text-sm" data-testid="read-only">
           <span class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
@@ -498,15 +559,6 @@ async function requestCritique() {
         </p>
 
         <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          <button
-            v-if="canEdit"
-            type="button"
-            class="btn btn-primary"
-            :disabled="save.isPending.value"
-            @click="save.mutate()"
-          >
-            Save
-          </button>
           <AiButton
             v-if="canEdit"
             class="btn btn-outline"
@@ -539,13 +591,7 @@ async function requestCritique() {
           >
             Open panel
           </button>
-          <p role="status" class="text-sm text-ink-soft">
-            <template v-if="save.isPending.value">Saving…</template>
-            <template v-else-if="save.isSuccess.value">Saved</template>
-            <template v-else-if="save.isError.value && !conflict"
-              >Sorry, we couldn’t save that. Please try again.</template
-            >
-          </p>
+          <p v-if="canEdit && saveStatus" class="text-sm text-ink-soft">{{ saveStatus }}</p>
         </div>
         <p v-if="canEdit" id="critique-sent" class="mt-2 text-sm text-ink-soft">
           Critique will send this publication’s description and this draft’s title and text to your
@@ -563,10 +609,33 @@ async function requestCritique() {
           edit and use one yourself.
         </Explain>
         <p v-if="rephraseNotice" role="alert" class="mt-2 text-danger">{{ rephraseNotice }}</p>
-        <p v-if="conflict" role="alert" class="mt-3 text-danger">
-          This draft was saved somewhere else since you opened it, so this save wasn’t made. Copy
-          what you typed somewhere safe, then reload the page.
-        </p>
+        <div
+          v-if="autosave.state.value === 'failed'"
+          role="alert"
+          class="callout callout-danger mt-3 flex items-start gap-2"
+        >
+          <Icon name="alert" class="mt-0.5 shrink-0" />
+          <div>
+            <p>
+              Sorry, we couldn’t save that. Your words are still here. Check your connection, then
+              try again.
+            </p>
+            <button type="button" class="btn btn-outline btn-sm mt-2" @click="autosave.retry()">
+              Try again
+            </button>
+          </div>
+        </div>
+        <div
+          v-if="conflict"
+          role="alert"
+          class="callout callout-danger mt-3 flex items-start gap-2"
+        >
+          <Icon name="alert" class="mt-0.5 shrink-0" />
+          <p>
+            This draft was saved somewhere else since you opened it, so this save wasn’t made. Copy
+            what you typed somewhere safe, then reload the page.
+          </p>
+        </div>
         <p v-if="looks && canEdit" id="critique-looks" class="mt-2 text-sm text-ink-soft">
           <template v-if="outOfLooks">
             You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
@@ -664,7 +733,7 @@ async function requestCritique() {
         :publication-id="publicationId"
         :draft-id="id"
         :rounds="looks?.allowed"
-        :prepare="() => save.mutateAsync()"
+        :prepare="() => autosave.flush()"
         @cancel="rephrasing = null"
         @use="useRephrased"
       />

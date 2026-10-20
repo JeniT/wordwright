@@ -12,7 +12,12 @@ import ReviewDialog from './ReviewDialog.vue'
  * it for review and reading the handover history. Each opens a dialog, so the writer stays on the draft. What the
  * handover is waiting for is `HandoverNotices`, not here. Which buttons show depends on who the person is.
  */
-const props = defineProps<{ publicationId: string; draftId: string }>()
+const props = defineProps<{
+  publicationId: string
+  draftId: string
+  /** Saves the editor's unsaved words first; rejects (with why) if it can't. */
+  prepare?: () => Promise<unknown>
+}>()
 const { handover, isEditor, isOwner, others, offeredToMe, myAsk } = useHandover(
   () => props.publicationId,
   () => props.draftId,
@@ -88,18 +93,21 @@ const asked = () => actions.ask.mutate(undefined, { onSettled: close })
       :open="open === 'offer'"
       :publication-id="publicationId"
       :draft-id="draftId"
+      :prepare="prepare"
       @close="close"
     />
     <ReassignDraftDialog
       :open="open === 'reassign'"
       :publication-id="publicationId"
       :draft-id="draftId"
+      :prepare="prepare"
       @close="close"
     />
     <ReviewDialog
       :open="open === 'review'"
       :publication-id="publicationId"
       :draft-id="draftId"
+      :prepare="prepare"
       @close="close"
     />
     <HandoverHistoryDialog

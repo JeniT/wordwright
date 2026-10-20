@@ -1477,15 +1477,20 @@ describe('a draft has one editor (#154)', () => {
       http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
         const input = (await request.json()) as { version: number; body: string }
         sent.push(input)
-        return HttpResponse.json({ ...draft, body: input.body, version: input.version + 1 })
+        return HttpResponse.json({
+          ...draft,
+          title: (input as { title?: string }).title ?? draft.title,
+          body: input.body,
+          version: input.version + 1,
+        })
       }),
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.update(await screen.findByLabelText('Title'), 'New title')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await fireEvent.focusOut(screen.getByLabelText('Title'))
     await screen.findByText('Saved')
     await fireEvent.update(screen.getByLabelText('Title'), 'Newer title')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await fireEvent.focusOut(screen.getByLabelText('Title'))
     await waitFor(() => expect(sent.map((s) => s.version)).toEqual([1, 2]))
   })
 
@@ -1499,11 +1504,105 @@ describe('a draft has one editor (#154)', () => {
     await renderAt('/p/p1/drafts/d1')
     const title = await screen.findByLabelText('Title')
     await fireEvent.update(title, 'My careful rewrite')
-    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      /saved somewhere else.*reload the page/,
-    )
+    await fireEvent.focusOut(title)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/saved somewhere else.*reload the page/)
+    expect(alert).toHaveClass('callout-danger')
+    expect(alert.querySelector('svg')).not.toBeNull() // words and an icon, never colour alone
     expect(title).toHaveValue('My careful rewrite')
     expect(screen.queryByText("Couldn't save")).toBeNull()
   })
 })
+
+describe('drafts save themselves', () => {
+  /** A server that keeps drafts; `failing` makes saves fail like a lost connection. */
+  function serve() {
+    const sent: { title: string; version: number }[] = []
+    const state = { failing: false }
+    mockEditor(() => HttpResponse.json({}))
+    server.use(
+      http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
+        if (state.failing) return HttpResponse.json({ error: 'Offline' }, { status: 500 })
+        const input = (await request.json()) as { title: string; version: number }
+        sent.push(input)
+        return HttpResponse.json({ ...draft, title: input.title, version: input.version + 1 })
+      }),
+    )
+    return { sent, state }
+  }
+
+  it('has no Save button, and sends nothing for a draft that was only opened', async () => {
+    const { sent } = serve()
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByLabelText('Title')
+    await new Promise((resolve) => setTimeout(resolve, 2500))
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(sent).toEqual([])
+    expect(screen.queryByText('Saved')).toBeNull()
+  })
+
+  it('saves a couple of seconds after typing stops, saying what it is doing', async () => {
+    const { sent } = serve()
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.update(await screen.findByLabelText('Title'), 'Typed title')
+    expect(screen.getByText('Not saved yet')).toBeTruthy()
+    expect(sent).toEqual([])
+    await screen.findByText('Saved', {}, { timeout: 5000 })
+    expect(sent).toEqual([{ title: 'Typed title', body: 'Some text', version: 1 }])
+  })
+
+  it('saves at once on Ctrl+S', async () => {
+    const { sent } = serve()
+    await renderAt('/p/p1/drafts/d1')
+    const title = await screen.findByLabelText('Title')
+    await fireEvent.update(title, 'Quick title')
+    await fireEvent.keyDown(title, { key: 's', ctrlKey: true })
+    await screen.findByText('Saved')
+    expect(sent).toHaveLength(1)
+  })
+
+  it('keeps the words and offers Try again when a save fails; the callout goes once it works', async () => {
+    const { state } = serve()
+    state.failing = true
+    await renderAt('/p/p1/drafts/d1')
+    const title = await screen.findByLabelText('Title')
+    await fireEvent.update(title, 'Precious words')
+    await fireEvent.focusOut(title)
+    await screen.findByText('Not saved yet') // retrying quietly, words kept
+    expect(title).toHaveValue('Precious words')
+    expect(screen.queryByRole('alert')).toBeNull()
+  }, 20_000)
+
+  it('Try again sends the words once the connection is back', async () => {
+    const { sent, state } = serve()
+    state.failing = true
+    await renderAt('/p/p1/drafts/d1')
+    const title = await screen.findByLabelText('Title')
+    await fireEvent.update(title, 'Precious words')
+    // Retries wait 4, 8 and 16 seconds, so it is quicker to wait for the end of them than to fake the clock under msw.
+    const alert = (await screen.findByText(/couldn’t save that/, {}, { timeout: 40_000 })).closest(
+      '[role=alert]',
+    ) as HTMLElement
+    expect(alert).toHaveClass('callout-danger')
+    expect(alert.querySelector('svg')).not.toBeNull()
+    expect(alert).toHaveTextContent(/couldn’t save that.*Your words are still here/)
+    expect(title).toHaveValue('Precious words')
+    state.failing = false
+    await fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }))
+    await screen.findByText('Saved')
+    expect(alert).not.toBeInTheDocument()
+    expect(sent.map((s) => s.title)).toEqual(['Precious words'])
+  }, 60_000)
+
+  it('is not offered to someone who cannot change the draft', async () => {
+    mockEditor(() => HttpResponse.json({}))
+    server.use(
+      http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(bobsDraftForAutosave)),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByTestId('read-only')
+    expect(screen.queryByText('Not saved yet')).toBeNull()
+    expect(screen.queryByText('Saved')).toBeNull()
+  })
+})
+const bobsDraftForAutosave = { ...draft, editorId: 'u2', editorName: 'Bob Jones' }

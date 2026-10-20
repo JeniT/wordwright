@@ -123,6 +123,25 @@ describe('handing a draft over (#155)', () => {
     expect(calls).toEqual([])
   })
 
+  it('saves the editor’s latest words before offering, so they are not left behind', async () => {
+    const calls = mockPage(ada, { role: 'owner' })
+    const order: string[] = []
+    server.use(
+      http.put('*/api/publications/p1/drafts/d1', async ({ request }) => {
+        const input = (await request.json()) as { title: string; version: number }
+        order.push('save')
+        return HttpResponse.json({ ...draft, title: input.title, version: input.version + 1 })
+      }),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.update(await screen.findByLabelText('Title'), 'Just typed')
+    await fireEvent.click(await screen.findByText('Hand this draft to someone'))
+    await fireEvent.update(screen.getByLabelText('Member'), 'u2')
+    await fireEvent.click(screen.getByRole('button', { name: 'Offer draft' }))
+    await waitFor(() => expect(calls).toHaveLength(1))
+    expect(order).toEqual(['save'])
+  })
+
   it('shows an open offer with a way to withdraw it', async () => {
     const calls = mockPage(ada, {
       handover: state({ offer: { id: 'h1', toId: 'u2', toName: 'Bob Jones', createdAt: 'x' } }),

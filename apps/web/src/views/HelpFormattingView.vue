@@ -34,6 +34,10 @@ import HelpPage from '../components/HelpPage.vue'
       <li>Heading 2: Ctrl+Alt+2. Heading 3: Ctrl+Alt+3. Paragraph: Ctrl+Alt+0.</li>
       <li>Quote: Ctrl+Shift+B. Bulleted list: Ctrl+Shift+8. Numbered list: Ctrl+Shift+7.</li>
       <li>Code block: Ctrl+Alt+C.</li>
+      <li>
+        Save now: Ctrl+S. Your draft also saves itself a couple of seconds after you stop typing, so
+        there is no Save button.
+      </li>
     </ul>
     <h2 class="mb-2 font-display text-xl font-semibold">Editing the Markdown</h2>
     <p class="mb-2">

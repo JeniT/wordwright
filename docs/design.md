@@ -152,7 +152,7 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
   tooltip and its accessible description, and the help page "Your AI settings" (`/help/ai-settings`, linked from the info icon on Your AI) explains the mark once.
 - **Which buttons:** the ones whose press makes an LLM request (Critique, Brainstorm's Start/Send/Try again, Research,
   Research) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
-  which open the conversation where the reply is written). Not the buttons around them: Save, Add note, Accept or
+  which open the conversation where the reply is written). Not the buttons around them: Add note, Accept or
   Dismiss on a suggestion, Stop. The API-key check on saving the key is not shown as an AI action (the owner's call).
 - **Adding one:** tag the API function `@ai` in `lib/api.ts`, use `AiButton` where it is called, and list it in
   `lib/ai-buttons.test.ts`, which fails when an AI call is used by a component without the pattern.
@@ -197,7 +197,7 @@ whose paragraph has been rewritten loses its mark and moves to "This passage has
 
 ### The Rephrase window and its options
 
-Rephrase (the button beside Save and Critique, enabled only while words inside one paragraph are selected, with the
+Rephrase (the button beside Critique, enabled only while words inside one paragraph are selected, with the
 reason beside it when not) opens a **modal dialog** on top of the draft. It is built with `lib/modal.ts` (`useModal`,
 shared with `ConfirmDialog`): focus goes in (to the Aim, since the wording is filled in), Tab stays inside, Escape and
 Cancel close it, and focus returns to the Rephrase button. It is `max-w-2xl`, scrolls inside itself (`max-h-[90vh]`) and

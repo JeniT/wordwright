@@ -72,8 +72,7 @@ test('leads through a publication and an idea step by step, without ever locking
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await body.click()
   await body.pressSequentially('Take out a third.')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByRole('status')).toHaveText('Saved')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
   // Publishing is done to this draft, at the bottom of its page: copy it as Markdown, title first.
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
