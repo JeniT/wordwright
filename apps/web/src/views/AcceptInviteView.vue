@@ -91,7 +91,7 @@ watch(
           </RouterLink>
           <RouterLink
             :to="{ name: 'login', query: { email: invitedEmail, next: here } }"
-            class="rounded-ctl border border-accent px-4 py-2 text-sm font-medium text-accent"
+            class="btn btn-outline"
           >
             I already have one
           </RouterLink>
