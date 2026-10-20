@@ -196,7 +196,7 @@ tests inject fakes and nothing hits the network.
   pressed **End review**: the editor is emailed once, "X has finished reviewing Y and left N comments") or _closed_
   (the editor or an owner stopped accepting, `DELETE …/reviewers/:review` or `POST …/reviewers/close`); the last two are
   read-only but still show the snapshot and the reviewer's own comments. The editor sees each reviewer's state and comment
-  count (`GET …/reviewers`) and their comments, placed on the live draft where the passage still exists. **Start writing**
+  count (`GET …/reviewers`, with each review request's progress: who has finished, of those reading, finished or yet to answer, and its comments) in a Reviews tab beside the draft, one request at a time. A request can be named (`PATCH …/snapshots/:id`, up to 80 characters; blank clears it) and its open reviews closed together (`POST …/snapshots/:id/close`). They also see their comments, placed on the live draft where the passage still exists. **Start writing**
   (`POST /reviews/start-writing`) or an invitation to a publication makes a reviewer-only account a full one.
   **What is waiting on you** (#159): `GET /api/publications/:id/attention` feeds a block at the top of the publication's landing
   page: a draft offered to you (Accept / Decline there), your own offer still waiting (Withdraw), and for drafts you edit

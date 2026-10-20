@@ -16,25 +16,40 @@ defineProps<{
   nextLabel?: string
   /** One thing a page, so "Research 2 of 5" rather than "Research 2–2 of 5". */
   single?: boolean
+  /** Smaller buttons, for a narrow column. */
+  small?: boolean
 }>()
 defineEmits<{ go: [step: -1 | 1] }>()
 </script>
 
 <template>
   <nav :aria-label="label" class="flex items-center justify-between gap-3 text-sm">
-    <button type="button" class="btn btn-neutral" :disabled="page <= 1" @click="$emit('go', -1)">
+    <button
+      type="button"
+      class="btn btn-neutral"
+      :class="{ 'btn-sm whitespace-nowrap': small }"
+      :disabled="page <= 1"
+      @click="$emit('go', -1)"
+    >
       <template v-if="previousLabel">{{ previousLabel }}</template>
       <template v-else
         >Previous<span class="sr-only"> {{ size }} {{ noun }}</span></template
       >
     </button>
     <p :aria-live="announce ? 'polite' : undefined" aria-atomic="true" class="text-ink-soft">
-      {{ noun.charAt(0).toUpperCase() + noun.slice(1) }}
-      {{ single ? first : `${first}–${last}` }} of {{ total }}
+      <template v-if="small"
+        ><span class="sr-only">{{ noun.charAt(0).toUpperCase() + noun.slice(1) }}</span>
+        {{ single ? first : `${first}–${last}` }} of {{ total }}</template
+      >
+      <template v-else>
+        {{ noun.charAt(0).toUpperCase() + noun.slice(1) }}
+        {{ single ? first : `${first}–${last}` }} of {{ total }}
+      </template>
     </p>
     <button
       type="button"
       class="btn btn-neutral"
+      :class="{ 'btn-sm whitespace-nowrap': small }"
       :disabled="page >= pageCount"
       @click="$emit('go', 1)"
     >

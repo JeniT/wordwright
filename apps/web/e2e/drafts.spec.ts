@@ -1078,7 +1078,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
     page.getByRole('tabpanel', { name: /^Comments/ }).getByText('Rae', { exact: true }),
   ).toBeVisible()
   await page.getByRole('tab', { name: /^Reviews/ }).click()
-  await expect(page.getByText(/Rae · Reading · 1 comment · sent/)).toBeVisible()
+  await expect(page.getByText(/Rae · Reading · 1 comment/)).toBeVisible()
 
   // Rae ends the review: the page stays, read-only, and Ada can see it finished.
   await rae.getByRole('button', { name: 'End review' }).click()
@@ -1087,7 +1087,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await expect(rae.getByRole('button', { name: 'End review' })).toHaveCount(0)
   await page.reload()
   await page.getByRole('tab', { name: /^Reviews/ }).click()
-  await expect(page.getByText(/Rae · Finished · 1 comment · sent/)).toBeVisible()
+  await expect(page.getByText(/Rae · Finished · 1 comment/)).toBeVisible()
   const finished = await waitForEmail(adaEmail, 'Rae has finished reviewing Meanders')
   expect(finished.text).toContain('left 1 comment')
 
@@ -1096,6 +1096,15 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await page.getByRole('button', { name: /^Send for review/ }).click()
   await page.getByLabel('Email addresses').fill(secondEmail)
   await page.getByRole('dialog').getByRole('button', { name: 'Send for review' }).click()
+  // The Reviews tab shows the latest request; the first is a page back, and can be named.
+  const reviewsTab = page.getByRole('tabpanel', { name: /^Reviews/ })
+  await reviewsTab.getByRole('button', { name: 'Previous review' }).click()
+  await expect(reviewsTab.getByText(/Rae · Finished/)).toBeVisible()
+  await reviewsTab.getByRole('button', { name: 'Rename review' }).click()
+  await reviewsTab.getByLabel('Review name').fill('First round')
+  await reviewsTab.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(reviewsTab.getByRole('heading', { name: 'First round' })).toBeVisible()
+  await reviewsTab.getByRole('button', { name: 'Next review' }).click()
   const second = linkIn(
     await waitForEmail(secondEmail, 'Ada asked you to review a draft'),
     '/review-invite',
@@ -1109,7 +1118,8 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await expect(sam.getByText('Added after sending.', { exact: true })).toBeVisible()
   await page.reload()
   await page.getByRole('tab', { name: /^Reviews/ }).click()
-  await page.getByRole('button', { name: 'Close all reviews' }).click()
+  await page.getByRole('button', { name: 'Close these reviews' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Close these reviews' }).click()
   await sam.reload()
   await expect(sam.getByTestId('review-ended')).toContainText('closed')
   await expect(sam.getByRole('textbox', { name: 'Your comment' })).toHaveCount(0)
@@ -1199,19 +1209,19 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   // While Rae is reading, Bob's landing page lists the copy; once she ends, it flags the draft.
   await bob.goto(publicationUrl)
   const reviews = bob.getByRole('list', { name: 'Drafts sent for review' })
-  await expect(reviews).toContainText('1 still reading, 1 unresolved comment')
+  await expect(reviews).toContainText('0/1 complete · 1 comment')
   await expect(reviews).not.toContainText('Reviews finished')
   await rae.getByRole('button', { name: 'End review' }).click()
   await expect(rae.getByTestId('review-ended')).toBeVisible()
   await bob.reload()
   await expect(reviews).toContainText('Reviews finished, unresolved comments')
-  await expect(reviews).toContainText('1 finished, 1 unresolved comment')
+  await expect(reviews).toContainText('1/1 complete · 1 comment')
   expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
 
   // The draft page says the same per copy; resolving the comment clears the flag.
   await bob.goto(draftUrl)
   await bob.getByRole('tab', { name: /^Reviews/ }).click()
-  await expect(bob.getByTestId('snapshot-line')).toContainText('0 still reading, 1 finished')
+  await expect(bob.getByTestId('review-summary')).toContainText('1/1 complete · 1 comment')
   await bob.getByRole('tab', { name: /^Comments/ }).click()
   await bob
     .getByRole('switch', { name: /Resolved/ })

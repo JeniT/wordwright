@@ -1449,13 +1449,30 @@ export const ReviewerRegisterInputSchema = z.object({
 })
 export type ReviewerRegisterInput = z.infer<typeof ReviewerRegisterInputSchema>
 
-/** How one snapshot's reviews stand, for the editor: who is still reading, who has finished, and what is unanswered. */
+/** The longest name a review request can be given. */
+export const MAX_REVIEW_NAME = 80
+/** An editor naming a review request. Blank goes back to the default, the date and time it was sent. */
+export const ReviewNameInputSchema = z.object({
+  name: z.string().trim().max(MAX_REVIEW_NAME, `Use up to ${MAX_REVIEW_NAME} characters`),
+})
+export type ReviewNameInput = z.infer<typeof ReviewNameInputSchema>
+
+/**
+ * One review request (CONTEXT.md): a snapshot sent for review, and how its reviews stand, for the editor: who is
+ * still reading, who has finished, who has been asked and not answered, and what is unanswered.
+ */
 export const SnapshotReviewsSchema = z.object({
   id: z.string(),
   sentAt: z.string(),
+  /** What the editor called it; null until then (the date and time it was sent stands in). */
+  name: z.string().nullable(),
   open: z.number().int(),
   ended: z.number().int(),
   closed: z.number().int(),
+  /** Invitations to review it that have not been accepted yet. */
+  pending: z.number().int(),
+  /** Everything reviewers have said about it, resolved or not. */
+  comments: z.number().int(),
   /** Reviewers' comments on this snapshot that the editor has not resolved. */
   unresolved: z.number().int(),
 })
@@ -1466,6 +1483,8 @@ export const DraftReviewersSchema = z.object({
   reviewers: z.array(
     z.object({
       id: z.string(),
+      /** The review request (snapshot) they were asked to review. */
+      snapshotId: z.string(),
       name: z.string(),
       email: z.string(),
       state: ReviewStateSchema,
@@ -1475,7 +1494,14 @@ export const DraftReviewersSchema = z.object({
       commentCount: z.number().int(),
     }),
   ),
-  pending: z.array(z.object({ id: z.string(), email: z.string(), expiresAt: z.string() })),
+  pending: z.array(
+    z.object({
+      id: z.string(),
+      snapshotId: z.string().nullable(),
+      email: z.string(),
+      expiresAt: z.string(),
+    }),
+  ),
   /** Per snapshot sent, oldest first. */
   snapshots: z.array(SnapshotReviewsSchema),
 })

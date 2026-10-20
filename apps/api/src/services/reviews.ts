@@ -146,7 +146,7 @@ export class ReviewService {
     this.requireManager(draft, userId)
     const { reviews } = this.d.store
     return {
-      snapshots: reviews.snapshotSummaries(draft.id),
+      snapshots: reviews.snapshotSummaries(draft.id, this.now()),
       reviewers: reviews.listForDraft(draft.id),
       pending: reviews.pendingForDraft(draft.id, this.now()),
     }
@@ -158,6 +158,21 @@ export class ReviewService {
     const review = this.d.store.reviews.ofDraft(draft.id, reviewId)
     if (!review) throw fail(404, 'Not found')
     this.d.store.reviews.end(review.id, 'closed')
+  }
+
+  /** ...or every open review of one review request (snapshot) at once. */
+  closeSnapshot(draft: Draft, userId: string, snapshotId: string): number {
+    this.requireManager(draft, userId)
+    if (this.d.store.reviews.snapshot(snapshotId)?.draftId !== draft.id)
+      throw fail(404, 'Not found')
+    return this.d.store.reviews.closeOpenForSnapshot(draft.id, snapshotId)
+  }
+
+  /** Names a review request, or clears its name. */
+  rename(draft: Draft, userId: string, snapshotId: string, name: string): void {
+    this.requireManager(draft, userId)
+    if (!this.d.store.reviews.renameSnapshot(draft.id, snapshotId, name))
+      throw fail(404, 'Not found')
   }
 
   /** ...or every open review of the draft at once. */

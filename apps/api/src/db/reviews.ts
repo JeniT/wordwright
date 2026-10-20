@@ -168,34 +168,71 @@ export class ReviewStore {
       }))
   }
 
-  /** Per snapshot with reviews: how many are reading, finished or closed, and the comments still unresolved. */
-  snapshotSummaries(draftId: string): SnapshotReviews[] {
+  /**
+   * Per review request (a snapshot that has reviewers, or invitations still waiting): how many are reading, finished
+   * or closed, how many have not answered the invitation, and what they have said. Each counts only that snapshot.
+   */
+  snapshotSummaries(draftId: string, now: Date = new Date()): SnapshotReviews[] {
     return this.db
       .prepare(
-        `SELECT s.id, s.created_at,
-                sum(r.state = 'open') AS open, sum(r.state = 'ended') AS ended, sum(r.state = 'closed') AS closed,
+        `SELECT s.id, s.created_at, s.name,
+                (SELECT count(*) FROM draft_reviews r WHERE r.snapshot_id = s.id AND r.state = 'open') AS open,
+                (SELECT count(*) FROM draft_reviews r WHERE r.snapshot_id = s.id AND r.state = 'ended') AS ended,
+                (SELECT count(*) FROM draft_reviews r WHERE r.snapshot_id = s.id AND r.state = 'closed') AS closed,
+                (SELECT count(*) FROM review_invitations i
+                 WHERE i.snapshot_id = s.id AND i.accepted_by IS NULL AND i.expires_at > ?) AS pending,
+                (SELECT count(*) FROM draft_comments c
+                 WHERE c.review_id IN (SELECT id FROM draft_reviews WHERE snapshot_id = s.id)) AS comments,
                 (SELECT count(*) FROM draft_comments c
                  WHERE c.resolved_at IS NULL AND c.review_id IN (SELECT id FROM draft_reviews WHERE snapshot_id = s.id))
                   AS unresolved
-         FROM draft_snapshots s JOIN draft_reviews r ON r.snapshot_id = s.id
-         WHERE s.draft_id = ? GROUP BY s.id ORDER BY s.created_at, s.rowid`,
+         FROM draft_snapshots s
+         WHERE s.draft_id = ?
+           AND (EXISTS (SELECT 1 FROM draft_reviews r WHERE r.snapshot_id = s.id)
+                OR EXISTS (SELECT 1 FROM review_invitations i
+                           WHERE i.snapshot_id = s.id AND i.accepted_by IS NULL AND i.expires_at > ?))
+         ORDER BY s.created_at, s.rowid`,
       )
-      .all(draftId)
+      .all(now.toISOString(), draftId, now.toISOString())
       .map((r) => ({
         id: r.id as string,
         sentAt: r.created_at as string,
+        name: (r.name as string | null) ?? null,
         open: r.open as number,
         ended: r.ended as number,
         closed: r.closed as number,
+        pending: r.pending as number,
+        comments: r.comments as number,
         unresolved: r.unresolved as number,
       }))
+  }
+
+  /** Names a review request; null (or blank) goes back to the default. False if the draft has no such snapshot. */
+  renameSnapshot(draftId: string, snapshotId: string, name: string | null): boolean {
+    return (
+      this.db
+        .prepare('UPDATE draft_snapshots SET name = ? WHERE id = ? AND draft_id = ?')
+        .run(name || null, snapshotId, draftId).changes > 0
+    )
+  }
+
+  /** Stops accepting the reviews of one snapshot: each that is open is closed. Returns how many. */
+  closeOpenForSnapshot(draftId: string, snapshotId: string): number {
+    return Number(
+      this.db
+        .prepare(
+          `UPDATE draft_reviews SET state = 'closed', ended_at = ?
+           WHERE draft_id = ? AND snapshot_id = ? AND state = 'open'`,
+        )
+        .run(nowIso(), draftId, snapshotId).changes,
+    )
   }
 
   /** Who is reviewing the draft, for its editor or an owner. */
   listForDraft(draftId: string) {
     return this.db
       .prepare(
-        `SELECT r.id, r.state, s.created_at, u.name, u.email,
+        `SELECT r.id, r.snapshot_id, r.state, s.created_at, u.name, u.email,
                 (SELECT count(*) FROM draft_comments c WHERE c.review_id = r.id) AS comment_count
          FROM draft_reviews r
          JOIN users u ON u.id = r.reviewer_id
@@ -205,6 +242,7 @@ export class ReviewStore {
       .all(draftId)
       .map((r) => ({
         id: r.id as string,
+        snapshotId: r.snapshot_id as string,
         name: r.name as string,
         email: r.email as string,
         state: r.state as ReviewState,
@@ -277,12 +315,13 @@ export class ReviewStore {
   pendingForDraft(draftId: string, now: Date) {
     return this.db
       .prepare(
-        `SELECT id, email, expires_at FROM review_invitations
+        `SELECT id, snapshot_id, email, expires_at FROM review_invitations
          WHERE draft_id = ? AND accepted_by IS NULL AND expires_at > ? ORDER BY created_at DESC, rowid DESC`,
       )
       .all(draftId, now.toISOString())
       .map((r) => ({
         id: r.id as string,
+        snapshotId: (r.snapshot_id as string | null) ?? null,
         email: r.email as string,
         expiresAt: r.expires_at as string,
       }))

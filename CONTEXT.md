@@ -98,6 +98,10 @@ A rationed AI review of a draft that produces ranked comments. Only the draft's 
 One critique of a draft, as the writer sees it (“2 of 3 looks used”). A draft gets a few; the writer sets how many in their account settings.
 _Avoid_: Round (that is Rephrase's word), go, pass
 
+**Review request**:
+One sending of a draft for review: a snapshot, with the reviews of the people asked and any invitations not yet answered. The editor can name it; until then it is called by the date and time it was sent. The Reviews tab beside the draft shows one at a time, latest first, with how far it has got as “1/2 complete” (those who have finished, of those reading, finished or yet to answer; closed ones don't count). Closing its reviews is final.
+_Avoid_: Round, batch
+
 **Snapshot**:
 A frozen copy of a draft's title and body, made when the editor sends the draft for review. Reviewers read and comment on the snapshot, not the live draft, so their comments are about words they actually saw.
 _Avoid_: Version, revision, copy

@@ -246,6 +246,16 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** Stops accepting one review: it becomes read-only, and the comments stay. */
     closeReview: (publicationId: string, draftId: string, reviewId: string) =>
       act('DELETE', `${drafts(publicationId)}/${draftId}/reviewers/${reviewId}`),
+    /** Names a review request (a snapshot sent for review); blank goes back to its date and time. */
+    renameReviewRequest: (
+      publicationId: string,
+      draftId: string,
+      snapshotId: string,
+      name: string,
+    ) => act('PATCH', `${drafts(publicationId)}/${draftId}/snapshots/${snapshotId}`, { name }),
+    /** Stops accepting every open review of one review request. */
+    closeReviewRequest: (publicationId: string, draftId: string, snapshotId: string) =>
+      act('POST', `${drafts(publicationId)}/${draftId}/snapshots/${snapshotId}/close`),
     closeAllReviews: (publicationId: string, draftId: string) =>
       act('POST', `${drafts(publicationId)}/${draftId}/reviewers/close`),
     withdrawReviewInvitation: (publicationId: string, draftId: string, invitationId: string) =>

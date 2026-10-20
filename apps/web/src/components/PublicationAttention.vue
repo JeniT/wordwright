@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { reviewSummary, reviewTitle } from '../lib/review-request'
 import type { SnapshotReviews } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys } from '../lib/queries'
@@ -40,16 +41,7 @@ const any = computed(() => {
   const a = attention.data.value
   return !!a && (a.offered.length > 0 || a.waiting.length > 0 || a.reviews.length > 0)
 })
-const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
-const line = (s: SnapshotReviews) => {
-  const parts = [
-    s.open ? `${s.open} still reading` : '',
-    s.ended ? `${s.ended} finished` : '',
-    s.closed ? `${s.closed} closed` : '',
-    s.unresolved ? `${s.unresolved} unresolved ${s.unresolved === 1 ? 'comment' : 'comments'}` : '',
-  ].filter(Boolean)
-  return `Snapshot sent ${when(s.sentAt)}: ${parts.join(', ')}`
-}
+const line = (s: SnapshotReviews) => `${reviewTitle(s)}: ${reviewSummary(s)}`
 </script>
 
 <template>

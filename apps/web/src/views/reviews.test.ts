@@ -319,6 +319,7 @@ describe('asking someone to review a draft', () => {
   }
   function page(role: 'owner' | 'member', editorId = 'u1') {
     const calls: string[] = []
+    const names: Record<string, string | null> = {}
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () =>
@@ -377,26 +378,69 @@ describe('asking someone to review a draft', () => {
           reviewers: [
             {
               id: 'v1',
+              snapshotId: 's1',
               name: 'Rae',
               email: 'rae@example.com',
               state: 'open',
-              sentAt: '2026-02-01T00:00:00Z',
+              sentAt: '2026-02-01T09:30:00Z',
               commentCount: 2,
             },
+            {
+              id: 'v2',
+              snapshotId: 's1',
+              name: 'Sam',
+              email: 'sam@example.com',
+              state: 'ended',
+              sentAt: '2026-02-01T09:30:00Z',
+              commentCount: 1,
+            },
+            {
+              id: 'v3',
+              snapshotId: 's2',
+              name: 'Tom',
+              email: 'tom@example.com',
+              state: 'open',
+              sentAt: '2026-03-01T10:00:00Z',
+              commentCount: 0,
+            },
           ],
-          pending: [{ id: 'i9', email: 'later@example.com', expiresAt: 'x' }],
+          pending: [{ id: 'i9', snapshotId: 's1', email: 'later@example.com', expiresAt: 'x' }],
           snapshots: [
             {
               id: 's1',
-              sentAt: '2026-02-01T00:00:00Z',
+              sentAt: '2026-02-01T09:30:00Z',
+              name: names['s1'] ?? null,
               open: 1,
-              ended: 2,
+              ended: 1,
               closed: 0,
+              pending: 1,
+              comments: 3,
               unresolved: 3,
+            },
+            {
+              id: 's2',
+              sentAt: '2026-03-01T10:00:00Z',
+              name: names['s2'] ?? null,
+              open: 1,
+              ended: 0,
+              closed: 0,
+              pending: 0,
+              comments: 0,
+              unresolved: 0,
             },
           ],
         }),
       ),
+      http.patch('*/api/publications/p1/drafts/d1/snapshots/:id', async ({ params, request }) => {
+        const { name } = (await request.json()) as { name: string }
+        names[params.id as string] = name || null
+        calls.push(`rename ${params.id} ${JSON.stringify(name)}`)
+        return new HttpResponse(null, { status: 204 })
+      }),
+      http.post('*/api/publications/p1/drafts/d1/snapshots/:id/close', ({ params }) => {
+        calls.push(`close request ${params.id}`)
+        return HttpResponse.json({ closed: 1 })
+      }),
       http.post('*/api/publications/p1/drafts/d1/send-for-review', async ({ request }) => {
         calls.push(`send ${JSON.stringify(await request.json())}`)
         return HttpResponse.json({ ok: true }, { status: 202 })
@@ -441,26 +485,188 @@ describe('asking someone to review a draft', () => {
     expect(screen.getByRole('tab', { name: /^Reviews/ })).toHaveAttribute('aria-selected', 'true')
   })
 
-  it('shows who is reviewing in the Reviews tab, where reviews are closed and invitations withdrawn', async () => {
-    const calls = page('member')
-    await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
-    const tab = screen.getByRole('tabpanel', { name: /^Reviews/ })
-    expect(await within(tab).findByTestId('snapshot-line')).toHaveTextContent(
-      '1 still reading, 2 finished, 3 unresolved comments',
-    )
-    expect(
-      await within(tab).findByText('A closed review stays readable but can’t be reopened.'),
-    ).toBeTruthy()
-    // Each reviewer: state, comments so far, when it was sent.
-    expect(await within(tab).findByText(/Reading · 2 comments · sent/)).toBeTruthy()
-    await fireEvent.click(within(tab).getByRole('button', { name: 'Close review: Rae' }))
-    await fireEvent.click(within(tab).getByRole('button', { name: 'Close all reviews' }))
-    await fireEvent.click(
-      within(tab).getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
-    )
-    await waitFor(() => expect(calls).toHaveLength(3))
-    expect(calls.sort()).toEqual(['close all', 'close v1', 'withdraw i9'])
+  describe('the Reviews tab', () => {
+    const openTab = async () => {
+      await renderAt('/p/p1/drafts/d1')
+      await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
+      return screen.getByRole('tabpanel', { name: /^Reviews/ })
+    }
+
+    it('has no count, and shows the latest review request first, titled by when it was sent', async () => {
+      page('member')
+      const tab = await openTab()
+      expect(screen.getByRole('tab', { name: 'Reviews' })).toBeTruthy()
+      expect(await within(tab).findByRole('heading', { level: 3 })).toHaveTextContent(/Mar.*2026/)
+      expect(within(tab).getByTestId('review-summary')).toHaveTextContent(
+        '0/1 complete · 0 comments',
+      )
+      expect(within(tab).getByText(/Tom/)).toBeTruthy()
+      expect(within(tab).queryByText(/Rae/)).toBeNull()
+      // No sent date on the reviewer rows, and no explanation of what closing does.
+      expect(within(tab).queryByText(/sent/i)).toBeNull()
+      expect(within(tab).queryByText(/stays readable/)).toBeNull()
+    })
+
+    it('pages back to an earlier request with Previous review and Next review', async () => {
+      page('member')
+      const tab = await openTab()
+      await within(tab).findByText(/Tom/)
+      expect(within(tab).getByRole('button', { name: 'Next review' })).toBeDisabled()
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Previous review' }))
+      expect(within(tab).getByRole('heading', { level: 3 })).toHaveTextContent(/Feb.*2026/)
+      // Reviewers reading, finished and yet to answer, over the comments so far.
+      expect(within(tab).getByTestId('review-summary')).toHaveTextContent(
+        '1/3 complete · 3 comments',
+      )
+      expect(within(tab).getByText(/Reading · 2 comments/)).toBeTruthy()
+      expect(within(tab).getByText(/Finished · 1 comment/)).toBeTruthy()
+      expect(within(tab).getByText('later@example.com · waiting for a reply')).toBeTruthy()
+      expect(within(tab).queryByText(/Tom/)).toBeNull()
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Next review' }))
+      expect(within(tab).getByRole('heading', { level: 3 })).toHaveTextContent(/Mar.*2026/)
+    })
+
+    it('names a request, and a blank name goes back to the date and time', async () => {
+      const calls = page('member')
+      const tab = await openTab()
+      await fireEvent.click(await within(tab).findByRole('button', { name: 'Rename review' }))
+      await fireEvent.update(within(tab).getByLabelText('Review name'), 'Final draft')
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Save' }))
+      await waitFor(() =>
+        expect(within(tab).getByRole('heading', { level: 3 })).toHaveTextContent('Final draft'),
+      )
+      expect(within(tab).getByText(/^Sent .*Mar.*2026/)).toBeTruthy()
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Rename review' }))
+      await fireEvent.update(within(tab).getByLabelText('Review name'), '  ')
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Save' }))
+      await waitFor(() =>
+        expect(within(tab).getByRole('heading', { level: 3 })).toHaveTextContent(/Mar.*2026/),
+      )
+      expect(calls).toEqual(['rename s2 "Final draft"', 'rename s2 ""'])
+    })
+
+    it('asks before closing one reviewer, naming them and saying it cannot be undone', async () => {
+      const calls = page('member')
+      const tab = await openTab()
+      await fireEvent.click(await within(tab).findByRole('button', { name: 'Previous review' }))
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Close review: Rae' }))
+      const dialog = screen.getByRole('dialog', { name: 'Close Rae’s review?' })
+      expect(dialog).toHaveTextContent(
+        'Rae will no longer be able to add comments. This cannot be undone.',
+      )
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+      expect(calls).toEqual([])
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Close review: Rae' }))
+      await fireEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Close review' }),
+      )
+      await waitFor(() => expect(calls).toEqual(['close v1']))
+    })
+
+    it('closes this request’s reviews, or every open one, each after asking', async () => {
+      const calls = page('member')
+      const tab = await openTab()
+      await within(tab).findByText(/Tom/)
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Close these reviews' }))
+      const these = screen.getByRole('dialog', { name: 'Close these reviews?' })
+      expect(these).toHaveTextContent(
+        'Reviewers will no longer be able to add comments. This cannot be undone.',
+      )
+      await fireEvent.click(within(these).getByRole('button', { name: 'Close these reviews' }))
+      await fireEvent.click(within(tab).getByRole('button', { name: 'Close all reviews' }))
+      const all = screen.getByRole('dialog', { name: 'Close all reviews?' })
+      await fireEvent.click(within(all).getByRole('button', { name: 'Close all reviews' }))
+      await waitFor(() => expect(calls).toEqual(['close request s2', 'close all']))
+    })
+
+    it('offers Close all reviews only when other requests have open reviews too', async () => {
+      page('member')
+      server.use(
+        http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
+          HttpResponse.json({
+            reviewers: [
+              {
+                id: 'v1',
+                snapshotId: 's1',
+                name: 'Rae',
+                email: 'rae@example.com',
+                state: 'open',
+                sentAt: '2026-02-01T00:00:00Z',
+                commentCount: 0,
+              },
+            ],
+            pending: [],
+            snapshots: [
+              {
+                id: 's1',
+                sentAt: '2026-02-01T00:00:00Z',
+                name: null,
+                open: 1,
+                ended: 0,
+                closed: 0,
+                pending: 0,
+                comments: 0,
+                unresolved: 0,
+              },
+            ],
+          }),
+        ),
+      )
+      const tab = await openTab()
+      expect(await within(tab).findByRole('button', { name: 'Close these reviews' })).toBeTruthy()
+      expect(within(tab).queryByRole('button', { name: 'Close all reviews' })).toBeNull()
+    })
+
+    it('says All closed when nobody is left to wait for, and withdraws a waiting invitation', async () => {
+      const calls = page('member')
+      server.use(
+        http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
+          HttpResponse.json({
+            reviewers: [
+              {
+                id: 'v1',
+                snapshotId: 's1',
+                name: 'Rae',
+                email: 'rae@example.com',
+                state: 'closed',
+                sentAt: '2026-02-01T00:00:00Z',
+                commentCount: 2,
+              },
+            ],
+            pending: [],
+            snapshots: [
+              {
+                id: 's1',
+                sentAt: '2026-02-01T00:00:00Z',
+                name: null,
+                open: 0,
+                ended: 0,
+                closed: 1,
+                pending: 0,
+                comments: 2,
+                unresolved: 0,
+              },
+            ],
+          }),
+        ),
+      )
+      const tab = await openTab()
+      expect(await within(tab).findByTestId('review-summary')).toHaveTextContent(
+        'All closed · 2 comments',
+      )
+      expect(within(tab).queryByRole('button', { name: /^Close/ })).toBeNull()
+      expect(calls).toEqual([])
+    })
+
+    it('withdraws an invitation that has not been answered', async () => {
+      const calls = page('member')
+      const tab = await openTab()
+      await fireEvent.click(await within(tab).findByRole('button', { name: 'Previous review' }))
+      await fireEvent.click(
+        within(tab).getByRole('button', { name: 'Withdraw the invitation to later@example.com' }),
+      )
+      await waitFor(() => expect(calls).toEqual(['withdraw i9']))
+    })
   })
 
   it('saves words typed a moment ago before the snapshot is made', async () => {
@@ -505,6 +711,7 @@ describe('asking someone to review a draft', () => {
     page('owner', 'u2')
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Previous review' }))
     expect(await screen.findByRole('button', { name: 'Close review: Rae' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^Reviews/ })).toBeNull()

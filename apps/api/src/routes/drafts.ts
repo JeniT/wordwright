@@ -8,6 +8,7 @@ import {
   countWords,
   DraftSaveSchema,
   HandoverTargetSchema,
+  ReviewNameInputSchema,
   SendForReviewInputSchema,
 } from '@wordwright/core'
 import type { AppEnv } from '../auth/middleware'
@@ -179,6 +180,20 @@ export function draftRoutes(
         // The same answer whatever happened, so it reveals nothing about who has an account or has blocked us.
         return c.json({ ok: true }, 202)
       })
+      .patch('/:id/snapshots/:snapshotId', validateJson(ReviewNameInputSchema), (c) => {
+        reviews.rename(
+          draftOf(c),
+          c.get('user').id,
+          param(c, 'snapshotId'),
+          c.req.valid('json').name,
+        )
+        return c.body(null, 204)
+      })
+      .post('/:id/snapshots/:snapshotId/close', (c) =>
+        c.json({
+          closed: reviews.closeSnapshot(draftOf(c), c.get('user').id, param(c, 'snapshotId')),
+        }),
+      )
       .post('/:id/reviewers/close', (c) =>
         c.json({ closed: reviews.closeAll(draftOf(c), c.get('user').id) }),
       )

@@ -541,6 +541,77 @@ describe('reviewers (#157)', () => {
       expect((await bob.post(`${draftUrl()}/reviewers/close`, {})).status).toBe(403)
     })
 
+    describe('review requests (#302)', () => {
+      const requests = async () =>
+        (await (await ada.get(`${draftUrl()}/reviewers`)).json()).snapshots
+      const snapshotIds = async () => (await requests()).map((r: { id: string }) => r.id)
+
+      it('summarises each snapshot on its own, with its waiting invitations and comments', async () => {
+        const { rae } = await joinAsReviewer()
+        const raeReview = (await reviewsOf(rae))[0]!.id
+        await rae.post(`/api/reviews/${raeReview}/comments`, { block: 'whole', text: 'One' })
+        await rae.post(`/api/reviews/${raeReview}/comments`, { block: 'whole', text: 'Two' })
+        await rae.post(`/api/reviews/${raeReview}/end`, {})
+        await joinAsReviewer('ray@example.com', 'Ray')
+        await invite('waiting@example.com') // asked, not yet answered: a request of its own
+        const listed = await (await ada.get(`${draftUrl()}/reviewers`)).json()
+        expect(listed.snapshots).toMatchObject([
+          { name: null, open: 0, ended: 1, closed: 0, pending: 0, comments: 2, unresolved: 2 },
+          { open: 1, ended: 0, closed: 0, pending: 0, comments: 0 },
+          { open: 0, ended: 0, closed: 0, pending: 1, comments: 0 },
+        ])
+        // Reviewers and invitations say which request they belong to.
+        const [first, second, third] = listed.snapshots as { id: string }[]
+        expect(listed.reviewers.map((r: { snapshotId: string }) => r.snapshotId)).toEqual([
+          first!.id,
+          second!.id,
+        ])
+        expect(listed.pending).toMatchObject([
+          { snapshotId: third!.id, email: 'waiting@example.com' },
+        ])
+      })
+
+      it('lets the editor and owners name a request, and a blank name goes back to the default', async () => {
+        await joinAsReviewer()
+        const [id] = await snapshotIds()
+        const url = `${draftUrl()}/snapshots/${id}`
+        expect((await ada.patch(url, { name: '  Final draft ' })).status).toBe(204)
+        expect((await requests())[0]).toMatchObject({ name: 'Final draft' })
+        expect((await ada.patch(url, { name: '   ' })).status).toBe(204)
+        expect((await requests())[0]).toMatchObject({ name: null })
+        expect((await ada.patch(url, { name: 'x'.repeat(81) })).status).toBe(400)
+      })
+
+      it('refuses a rename from a member who is not an owner or the editor, and an unknown request', async () => {
+        await joinAsReviewer()
+        const [id] = await snapshotIds()
+        expect((await bob.patch(`${draftUrl()}/snapshots/${id}`, { name: 'Mine' })).status).toBe(
+          403,
+        )
+        expect((await ada.patch(`${draftUrl()}/snapshots/nope`, { name: 'Mine' })).status).toBe(404)
+      })
+
+      it('closes the open reviews of one request and leaves the others', async () => {
+        const { rae } = await joinAsReviewer()
+        const { rae: ray } = await joinAsReviewer('ray@example.com', 'Ray')
+        const [first] = await snapshotIds()
+        const res = await ada.post(`${draftUrl()}/snapshots/${first}/close`, {})
+        expect(await res.json()).toEqual({ closed: 1 })
+        expect(
+          await (await rae.get(`/api/reviews/${(await reviewsOf(rae))[0]!.id}`)).json(),
+        ).toMatchObject({
+          state: 'closed',
+        })
+        expect(
+          await (await ray.get(`/api/reviews/${(await reviewsOf(ray))[0]!.id}`)).json(),
+        ).toMatchObject({
+          state: 'open',
+        })
+        expect((await bob.post(`${draftUrl()}/snapshots/${first}/close`, {})).status).toBe(403)
+        expect((await ada.post(`${draftUrl()}/snapshots/nope/close`, {})).status).toBe(404)
+      })
+    })
+
     it('keeps an ended review final: a second reviewer-side end does not reopen it', async () => {
       const { rae } = await joinAsReviewer()
       const id = (await reviewsOf(rae))[0]!.id

@@ -19,10 +19,13 @@ const publication = {
 }
 const snapshot = (over: object = {}) => ({
   id: 's1',
-  sentAt: '2026-02-01T00:00:00Z',
+  sentAt: '2026-02-01T09:30:00Z',
+  name: null,
   open: 0,
   ended: 1,
   closed: 0,
+  pending: 0,
+  comments: 3,
   unresolved: 2,
   ...over,
 })
@@ -109,8 +112,8 @@ describe('what is waiting, on the publication’s landing page (#159)', () => {
     const list = await screen.findByRole('list', { name: 'Drafts sent for review' })
     const [meanders, tides] = Array.from(list.querySelectorAll(':scope > li'))
     expect(meanders).toHaveTextContent('Reviews finished, unresolved comments')
-    expect(meanders).toHaveTextContent('1 finished, 2 unresolved comments')
-    expect(tides).toHaveTextContent('1 still reading')
+    expect(meanders).toHaveTextContent('1/1 complete · 3 comments')
+    expect(tides).toHaveTextContent('0/1 complete')
     expect(tides).not.toHaveTextContent('unresolved comments')
     expect(tides).not.toHaveTextContent('Reviews finished')
   })

@@ -367,14 +367,11 @@ const hasReviews = computed(() => {
   const r = reviewers.data.value
   return !!r && (r.reviewers.length > 0 || r.pending.length > 0 || r.snapshots.length > 0)
 })
-const openReviews = computed(
-  () => reviewers.data.value?.reviewers.filter((r) => r.state === 'open').length ?? 0,
-)
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
   { id: 'comments', label: 'Comments', count: openComments.value },
-  ...(hasReviews.value ? [{ id: 'reviews', label: 'Reviews', count: openReviews.value }] : []),
+  ...(hasReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
 ])
 const sideTab = ref('notes')
 const notesOpen = ref(false)

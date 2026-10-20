@@ -637,6 +637,10 @@ export const MIGRATIONS: Migration[] = [
       `)
     },
   },
+  // A review request can be named by its editor (#302). Null until then; the date and time it was sent stands in.
+  `
+  ALTER TABLE draft_snapshots ADD COLUMN name TEXT;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */
