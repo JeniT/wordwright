@@ -674,7 +674,12 @@ async function requestCritique() {
           <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
         </p>
 
-        <DraftInsertions :publication-id="publicationId" :draft-id="id" :body="body" />
+        <DraftInsertions
+          :publication-id="publicationId"
+          :draft-id="id"
+          :idea-id="draft.data.value?.ideaId"
+          :body="body"
+        />
 
         <DraftPublish v-if="canEdit" :title="title" :body="body" />
       </article>

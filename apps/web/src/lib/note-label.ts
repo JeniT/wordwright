@@ -1,3 +1,4 @@
+import type { RouteLocationRaw } from 'vue-router'
 import type { IdeaLink, IdeaNote, NoteOrigin } from '@wordwright/core'
 
 /** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
@@ -13,18 +14,23 @@ export type OriginSource = { title: string; url: string }
  * What a note is and where it came from, without saying who took it (that is shown as a name chip beside this).
  * A note from a page says only "From", and the page's title follows as a link (see `NoteOrigin`); whether it was a
  * quotation is shown by its quote mark, and the page's authors are on the page itself. A note from a conversation
- * says whose AI it was with: the viewer's, or someone else's.
+ * says "From" too, followed by `conversationLabel`.
  */
-export function originPhrase(
-  origin: NoteOrigin,
-  source: OriginSource | null,
-  ownConversation = false,
-): string {
+export function originPhrase(origin: NoteOrigin, source: OriginSource | null): string {
   if (origin === 'reading') return source ? 'From' : 'From reading'
-  if (origin === 'brainstorm') {
-    return `From conversation with ${ownConversation ? 'your' : 'their'} AI`
-  }
-  return 'Added'
+  return origin === 'brainstorm' ? 'From' : 'Added'
+}
+
+/** Whose AI a note's conversation was with: the viewer's, or someone else's. Null for a note not from one. */
+export function conversationLabel(origin: NoteOrigin, ownConversation: boolean): string | null {
+  return origin === 'brainstorm'
+    ? `conversation with ${ownConversation ? 'your' : 'their'} AI`
+    : null
+}
+
+/** Where a conversation can be read: the idea's Refine page. A note kept on the publication has no idea to go to. */
+export function refineRoute(publicationId: string, ideaId: string | null | undefined) {
+  return ideaId ? { name: 'brainstorm', params: { publicationId, id: ideaId } } : null
 }
 
 /**
@@ -36,11 +42,14 @@ export function noteOrigin(
   note: IdeaNote,
   readingList: readonly IdeaLink[],
   viewerId: string | null,
+  refineTo: RouteLocationRaw | null = null,
 ) {
   const item = readingList.find((l) => l.id === note.readingItemId)
   const source = note.origin === 'reading' && item ? item : null
   return {
-    phrase: originPhrase(note.origin, source, viewerId !== null && note.authorId === viewerId),
+    phrase: originPhrase(note.origin, source),
     source,
+    conversation: conversationLabel(note.origin, viewerId !== null && note.authorId === viewerId),
+    conversationTo: refineTo,
   }
 }

@@ -698,7 +698,11 @@ describe('the notes beside the draft', () => {
     const notes = within(await screen.findByRole('complementary'))
     await notes.findByText('Erosion loops.')
     expect(notes.getByText('Added')).toBeInTheDocument()
-    expect(notes.getByText('From conversation with your AI')).toBeInTheDocument()
+    // The conversation links to the idea's Refine page.
+    expect(notes.getByRole('link', { name: 'conversation with your AI' })).toHaveAttribute(
+      'href',
+      '/p/p1/ideas/i1/refine',
+    )
     expect(notes.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
     expect(notes.getAllByText('Bob')[0]).toHaveClass('rounded-full') // the person, as a chip, not "by Bob"
     expect(notes.queryByText('Already used.')).toBeNull()

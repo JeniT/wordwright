@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
+import type { RouteLocationRaw } from 'vue-router'
 import { noteOrigin } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import NoteOrigin from './NoteOrigin.vue'
@@ -12,7 +13,13 @@ import NoteText from './NoteText.vue'
  */
 const session = useSessionStore()
 
-defineProps<{ note: IdeaNote; readingList: readonly IdeaLink[]; hideOrigin?: boolean }>()
+const { refineTo = null } = defineProps<{
+  note: IdeaNote
+  readingList: readonly IdeaLink[]
+  hideOrigin?: boolean
+  /** The idea's Refine page, which a note from a conversation links to. */
+  refineTo?: RouteLocationRaw | null
+}>()
 defineSlots<{ tags?(): unknown }>()
 </script>
 
@@ -25,9 +32,9 @@ defineSlots<{ tags?(): unknown }>()
     </div>
     <p v-if="!hideOrigin" class="meta max-w-full sm:max-w-[16rem] sm:text-right">
       <NoteOrigin
-        v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
+        v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
         :author-name="note.authorName"
-        class="sm:justify-end"
+        class="sm:items-end"
       />
     </p>
   </div>

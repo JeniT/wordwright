@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import { useReadingList } from '../lib/reading'
+import { refineRoute } from '../lib/note-label'
 import { useIdeaNotes } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
 import NoteCard from './NoteCard.vue'
@@ -53,7 +54,11 @@ const recent = computed(() =>
       <RowList v-else :items="recent" label="Recent notes" bare>
         <template #default="{ item: note }">
           <div class="flex px-4 py-3">
-            <NoteCard :note="note" :reading-list="reading.links.value ?? []" />
+            <NoteCard
+              :note="note"
+              :reading-list="reading.links.value ?? []"
+              :refine-to="refineRoute(publicationId, ideaId)"
+            />
           </div>
         </template>
       </RowList>

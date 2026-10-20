@@ -405,7 +405,7 @@ lines; the actions stay top-right and wrap below on a phone. Notes are the excep
 
 **A note's row (`NoteCard`, `NoteText`).** Notes are shown in full, so a row can be tall: the list is `align-top`, which
 puts the buttons at the top of the row, not centred. Where a note came from (“From” and the page's title as a link that opens in a new tab,
-“From conversation with your AI” or “… their AI”, “Added”, then the name of the person who took it) is `meta` text in a column at the right, under
+“From” and “conversation with your AI” (or “their AI”) as a link to the idea's Refine page, “Added”, then, on the line below, the name of the person who took it) is `meta` text in a column at the right, under
 the row's buttons on the Notes pages and alone on rows with no buttons (Recent notes, a reading item's notes); on a phone
 it wraps under the note. It does not say the page's authors (the reading item's page does) or whether the note is a
 quotation (its mark does). Tags stay under the note's text. A **quotation** is set apart by a `quote-mark`, a large

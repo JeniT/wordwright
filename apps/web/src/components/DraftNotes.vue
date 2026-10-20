@@ -7,7 +7,7 @@ import { api, errorMessage } from '../lib/api'
 import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
-import { noteOrigin } from '../lib/note-label'
+import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import Explain from './Explain.vue'
 import NoteOrigin from './NoteOrigin.vue'
@@ -28,6 +28,7 @@ const props = defineProps<{
   /** Who may add notes to the draft when it is not the person looking (the draft's editor); undefined if they may. */
   onlyEditor?: string
 }>()
+const refineTo = computed(() => refineRoute(props.publicationId, props.ideaId))
 const queryClient = useQueryClient()
 
 const { notes } = useIdeaNotes(
@@ -126,7 +127,7 @@ const label = (note: IdeaNote) => {
             <NoteTags :tags="note.tags" />
             <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
-                v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
+                v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
                 :author-name="note.authorName"
               />
             </p>
@@ -165,7 +166,7 @@ const label = (note: IdeaNote) => {
             <NoteText :note="note" />
             <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
-                v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
+                v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
                 :author-name="note.authorName"
               />
             </p>

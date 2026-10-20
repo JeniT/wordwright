@@ -1171,6 +1171,9 @@ describe('idea page', () => {
       const items = within(region()).getAllByRole('listitem')
       expectOrigin(items[0]!, 'Added', 'Ada')
       expectOrigin(items[1]!, 'From conversation with your AI', 'Ada')
+      // It goes to this idea’s Refine page.
+      const chat = within(items[1]!).getByRole('link', { name: 'conversation with your AI' })
+      expect(chat).toHaveAttribute('href', expect.stringMatching(/\/refine$/))
       expectOrigin(items[2]!, 'From reading', 'Bob')
       // One plain list, with no choice of layout.
       expect(items[0]!.closest('ol')).not.toHaveClass('grid')

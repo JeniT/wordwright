@@ -4,7 +4,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
-import { noteOrigin } from '../lib/note-label'
+import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import { useIdeaNotes } from '../lib/queries'
 import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
@@ -37,6 +37,7 @@ const props = defineProps<{
   /** The page's own title already says "Notes": keep this heading for screen readers only. */
   quietHeading?: boolean
 }>()
+const refineTo = computed(() => refineRoute(props.publicationId, props.ideaId))
 
 const {
   notes,
@@ -658,9 +659,9 @@ const label = (note: IdeaNote) => {
               </div>
               <p v-if="editingId !== note.id" class="meta sm:text-right">
                 <NoteOrigin
-                  v-bind="noteOrigin(note, readingList, session.user?.id ?? null)"
+                  v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
                   :author-name="note.authorName"
-                  class="sm:justify-end"
+                  class="sm:items-end"
                 />
               </p>
             </div>
