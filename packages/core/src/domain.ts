@@ -673,7 +673,7 @@ export const IdeaNoteInputSchema = z.object({
   readingItemId: z.string().optional(),
   /** The text is a direct quotation from that item, kept word for word. It needs `readingItemId`. */
   quote: z.boolean().optional(),
-  /** Put the note at the top of the list, not the end (the Notes page's own form; everything else goes last). */
+  /** Put the note at the top of the list, not the end (the Note page's own form; everything else goes last). */
   first: z.boolean().optional(),
 })
 

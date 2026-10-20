@@ -34,7 +34,7 @@ const props = defineProps<{
   ideaId: string | null
   /** The reading list they were taken from (the idea's, or the publication's), to name each note's source. */
   readingList: readonly IdeaLink[]
-  /** The page's own title already says "Notes": keep this heading for screen readers only. */
+  /** The page's own title already names the notes: keep this heading for screen readers only. */
   quietHeading?: boolean
 }>()
 const refineTo = computed(() => refineRoute(props.publicationId, props.ideaId))

@@ -231,7 +231,7 @@ describe('reviewing what research found', () => {
     }
   }
 
-  it('lists each page like the Search page does: title as a link, host and author, and the AI’s reason marked', async () => {
+  it('lists each page like the Scan page does: title as a link, host and author, and the AI’s reason marked', async () => {
     const { article } = await open()
     expect(article.getByRole('link', { name: /Page A/ })).toHaveAttribute('target', '_blank')
     expect(article.getByRole('link', { name: /Page A/ })).toHaveAttribute(
@@ -279,7 +279,7 @@ describe('reviewing what research found', () => {
     )
     expect(article.queryByRole('button', { name: 'Add to reading list: Page A' })).toBeNull()
     expect(article.getAllByText('Looks relevant to the area.')).toHaveLength(3) // the other three
-    // Decided pages drop to the end, as on the Search page.
+    // Decided pages drop to the end, as on the Scan page.
     const rows = article.getAllByRole('listitem')
     expect(rows[rows.length - 1]).toHaveTextContent('Page A')
     expect(await article.findByText('Added “Page A” to the reading list.')).toBeInTheDocument()
