@@ -414,12 +414,12 @@ the select box (hidden from screen readers: the text is in a `blockquote`). It i
 own form is above the list and puts a new note first;
 notes that arrive any other way go last.
 
-**Posts from the feeds (`RecentPostRow`).** The Search page's Recent posts and the Search panel on a publication's landing page
+**Posts from the feeds (`RecentPostRow`).** The Scan page's Recent posts and the Scan panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
 ("Add to reading list: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗
 and a single **undo** button ("Reconsider: {title}"). A decision made in either place updates both (they share query keys),
 and is announced in a polite live region. The list has no bulk actions, so it has no select rail or `ListToolbar`; the
-Search page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.
+Scan page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.
 
 **Tags: one at a time (`TagEditor`, `TagEntry`).** Under each note and each reading-list link, beside its tags, a small
 label-icon button opens a text field: type a tag and press **Enter**, and it is saved at once and the field stays,
@@ -537,10 +537,10 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Level                | You are choosing…                            | The menu lists                                                                                                                                                             | Settings (a gear button)                                                                |
 | -------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Home                 | which **publication** to work on             | Publications                                                                                                                                                               | Beside your name in the menu foot                                                       |
-| Publication          | what to gather                               | **01 Search** (recent posts), **02 Read** (the reading list), **03 Notes**                                                                                                 | Beside the publication's name, in the menu and on its landing page                      |
+| Publication          | what to gather                               | **01 Scan** (recent posts), **02 Read** (the reading list), **03 Note**                                                                                                    | Beside the publication's name, in the menu and on its landing page                      |
 | Account              | which **setting** to change                  | **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** (plain links, no numbers; way up "← All publications") | The gear in the menu foot, current across the whole group                               |
 | Publication settings | which **setting** of a publication to change | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only; plain links, no numbers; way up "← {publication}")  | The gear beside the menu's "Publication settings" label, current across the whole group |
-| Idea                 | how to develop it                            | **01 Research** (the AI research tool), **02 Read** (the idea's own reading list), **03 Notes**, **04 Refine** (brainstorm), **05 Draft**                                  | Beside the idea's name, in the menu and on its landing page                             |
+| Idea                 | how to develop it                            | **01 Research** (the AI research tool), **02 Read** (the idea's own reading list), **03 Note**, **04 Refine** (brainstorm), **05 Draft**                                   | Beside the idea's name, in the menu and on its landing page                             |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
 **Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add to reading list says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add to reading list**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
@@ -568,6 +568,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    edge) and in the page title, with the publication or idea name above it (`StepHeading`).
 4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 04 Refine →"), an outline button, never the
    primary one. A step where the next move is a choice (Ideas), or the last (Draft), has none.
+   **Steps are named with verbs** (Scan, Read, Note, Refine, Draft), because the page is something you do. The rule covers numbered steps only: settings pages and a publication's Ideas list name things.
 5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Refine with your AI**,
    the Research page's Research button); arriving by the menu must never cost the writer money.
 6. **Always a way up**: "← All publications", "← {publication}".
@@ -598,7 +599,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
    actions on the right of the heading. An idea's page is titled with the idea's name (the publication above it, as a way
    up), has Quick add (Add a note, Add to reading list: no New idea, and they go to the idea) and summarises Research (the box to ask the AI, which waits for
-   its button, and a link to the research so far), Read (the unread reading list, as on a publication's page), Notes (shown by the same `NoteCard` as the Notes step), Refine (the AI's latest message and a box to
+   its button, and a link to the research so far), Read (the unread reading list, as on a publication's page), Notes (shown by the same `NoteCard` as the Note step), Refine (the AI's latest message and a box to
    reply, or **Refine with your AI** with a line on what is sent) and Draft (its drafts, and **New draft**).
 9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above
    a step's title, are links to it (current on the landing page itself, where the title is not a link).

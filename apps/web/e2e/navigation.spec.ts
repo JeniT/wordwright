@@ -17,8 +17,8 @@ async function signUpWithIdea(page: Page) {
   await page.getByRole('button', { name: 'Create publication' }).click()
   await createIdea(page, 'What pruning teaches', 'A cut is a question.')
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
-  await goTo(page, 'Notes')
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Note')
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
 }
 
 const noViolations = async (page: Page, what: string) =>
@@ -35,7 +35,7 @@ test('leads through a publication and an idea step by step, without ever locking
   // In an idea: five steps, in order, the current one marked, each always available.
   const idea = page.getByRole('navigation', { name: 'Idea' })
   await expect(idea.getByRole('listitem')).toHaveCount(5) // the five steps; settings is the gear by the name
-  await expect(idea.getByRole('link', { name: 'Notes', exact: true })).toHaveAttribute(
+  await expect(idea.getByRole('link', { name: 'Note', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   )
@@ -50,9 +50,9 @@ test('leads through a publication and an idea step by step, without ever locking
   await next(page, /Next: 02 Read/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
   await noViolations(page, 'Read step')
-  await next(page, /Next: 03 Notes/).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
-  await noViolations(page, 'Notes step')
+  await next(page, /Next: 03 Note/).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
+  await noViolations(page, 'Note step')
   await next(page, /Next: 04 Refine/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Refine' })).toBeVisible()
   await page.getByRole('button', { name: 'Refine with your AI' }).waitFor() // visiting spends nothing
@@ -105,13 +105,13 @@ test('leads through a publication and an idea step by step, without ever locking
       .getByRole('region', { name: 'Ideas', exact: true })
       .getByRole('link', { name: /What pruning teaches/ }),
   ).toBeVisible()
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
   await noViolations(page, 'Search step')
   await next(page, /Next: 02 Read/).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
   await noViolations(page, 'Read step')
-  await next(page, /Next: 03 Notes/).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await next(page, /Next: 03 Note/).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   await noViolations(page, 'Publication notes step')
 
   // Home: the publications, with the account's settings button by the person's name (not a link in the list).
@@ -129,7 +129,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(publication.locator('[aria-current="page"]')).toHaveCount(0)
   await noViolations(page, 'Publication landing page')
 
-  // A note can be jotted down there, and shows at once, and on the Notes step too.
+  // A note can be jotted down there, and shows at once, and on the Note step too.
   await page.getByRole('tab', { name: 'Add a note' }).click()
   await page.getByLabel('Note', { exact: true }).fill('Prune in late winter.')
   await page.getByRole('button', { name: 'Add note' }).click()
@@ -137,10 +137,10 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(recent.getByText('Prune in late winter.')).toBeVisible()
   await expect(page.getByLabel('Note', { exact: true })).toHaveValue('')
   await page
-    .getByRole('region', { name: 'Notes' })
+    .getByRole('region', { name: 'Note' })
     .getByRole('link', { name: /See all notes/ })
     .click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   await expect(page.getByText('Prune in late winter.')).toBeVisible()
 
   // Its ideas are listed, and lead on.
@@ -199,7 +199,7 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   await noViolations(page, 'Idea landing page in dark mode')
-  for (const step of ['Research', 'Notes', 'Refine', 'Draft']) {
+  for (const step of ['Research', 'Note', 'Refine', 'Draft']) {
     await goTo(page, step)
     await expect(page.getByRole('heading', { level: 1, name: step })).toBeVisible()
     await noViolations(page, `${step} step in dark mode`)
@@ -235,7 +235,7 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
   await expect(page.getByRole('navigation', { name: 'Idea' })).toBeHidden()
   await expect(page.getByRole('banner')).toContainText('What pruning teaches')
-  await expect(page.getByRole('banner')).toContainText('03 Notes')
+  await expect(page.getByRole('banner')).toContainText('03 Note')
   await menuButton.click()
   await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
   await noViolations(page, 'phone menu open')
@@ -349,6 +349,6 @@ test('on a page read beside another window the menu is a drawer at laptop width 
   await expect(drawer).toBeVisible()
   expect((await drawer.boundingBox())!.width).toBeLessThanOrEqual(256)
   await noViolations(page, 'drawer open on a compact page')
-  await drawer.getByRole('link', { name: 'Notes', exact: true }).click()
+  await drawer.getByRole('link', { name: 'Note', exact: true }).click()
   await expect(drawer).toBeHidden()
 })

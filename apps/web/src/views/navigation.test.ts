@@ -160,12 +160,12 @@ describe('the menu in a publication', () => {
     // An ordered list conveys the order; the numbers are decoration, so the names are just the names.
     expect(within(nav).getAllByRole('list')[0]!.tagName).toBe('OL')
     const text = (li: HTMLElement) => li.textContent?.replace(/\s+/g, '')
-    expect(text(steps[0]!)).toBe('01Search')
+    expect(text(steps[0]!)).toBe('01Scan')
     expect(text(steps[1]!)).toBe('02Read')
-    expect(text(steps[2]!)).toBe('03Notes')
+    expect(text(steps[2]!)).toBe('03Note')
     expect(steps).toHaveLength(3)
-    expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
-    expect(within(nav).getByRole('link', { name: 'Search' })).not.toHaveAttribute('aria-current')
+    expect(within(nav).getByRole('link', { name: 'Note' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Scan' })).not.toHaveAttribute('aria-current')
     expect(within(nav).queryByRole('link', { name: 'Publication settings' })).toBeNull()
     const header = await menu()
     expect(header.getByRole('link', { name: '← All publications' })).toHaveAttribute('href', '/')
@@ -210,10 +210,10 @@ describe('the menu in an idea', () => {
     await renderAt('/p/ada-substack/ideas/i1/notes')
     const nav = await screen.findByRole('navigation', { name: 'Idea' })
     expect(within(nav).getAllByRole('listitem').length).toBeGreaterThanOrEqual(5)
-    for (const name of ['Research', 'Read', 'Notes', 'Refine', 'Draft']) {
+    for (const name of ['Research', 'Read', 'Note', 'Refine', 'Draft']) {
       expect(within(nav).getByRole('link', { name })).toBeInTheDocument()
     }
-    expect(within(nav).getByRole('link', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Note' })).toHaveAttribute('aria-current', 'page')
     expect(await within(nav).findByText('2 to read')).toBeInTheDocument()
     expect(within(nav).getByText('1 draft')).toBeInTheDocument()
     // Only pages still waiting for a decision count, across every run.
@@ -259,7 +259,7 @@ describe('step pages', () => {
   it('title themselves with the idea above and a number that screen readers skip', async () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas/i1/notes')
-    const title = await screen.findByRole('heading', { level: 1, name: 'Notes' })
+    const title = await screen.findByRole('heading', { level: 1, name: 'Note' })
     expect(title.querySelector('[aria-hidden="true"]')).toHaveTextContent('03')
     expect(
       await within(screen.getByRole('main')).findByText('Why rivers meander'),
@@ -279,10 +279,10 @@ describe('step pages', () => {
     )
   })
 
-  it('end the publication’s Notes without a next step: ideas start from the landing page', async () => {
+  it('end the publication’s Note without a next step: ideas start from the landing page', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
-    await screen.findByRole('heading', { level: 1, name: 'Notes' })
+    await screen.findByRole('heading', { level: 1, name: 'Note' })
     expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
   })
 })

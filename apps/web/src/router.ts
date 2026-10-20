@@ -133,7 +133,7 @@ export const routes: RouteRecordRaw[] = [
     // A page of the home level: no `level`, so the menu stays the home menu.
     meta: { tutorial: true },
   },
-  // ——— A publication: its landing page, its three steps (01 Search, 02 Read, 03 Notes) and its settings ———
+  // ——— A publication: its landing page, its three steps (01 Scan, 02 Read, 03 Note) and its settings ———
   {
     path: '/p/:publicationId',
     name: 'publication',
@@ -142,11 +142,17 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'publication', tutorial: true },
   },
   {
+    path: '/p/:publicationId/scan',
+    name: 'scan',
+    component: () => import('./views/ScanView.vue'),
+    props: true,
+    meta: { level: 'publication', step: 'scan', tutorial: true },
+  },
+  // Scan was called Search until #307; to be dropped by the pre-launch sweep (#308).
+  {
     path: '/p/:publicationId/search',
     name: 'search',
-    component: () => import('./views/SearchView.vue'),
-    props: true,
-    meta: { level: 'publication', step: 'search', tutorial: true },
+    redirect: (to) => ({ name: 'scan', params: to.params }),
   },
   {
     path: '/p/:publicationId/read',
@@ -155,12 +161,12 @@ export const routes: RouteRecordRaw[] = [
     props: true,
     meta: { level: 'publication', step: 'read', tutorial: true },
   },
-  // Inspiration was split into Search and Read; the old addresses still land on the right one.
+  // Inspiration was split into Scan and Read; the old addresses still land on the right one.
   {
     path: '/p/:publicationId/inspiration',
     name: 'inspiration',
     redirect: (to) => ({
-      name: to.hash === '#reading-list' ? 'read' : 'search',
+      name: to.hash === '#reading-list' ? 'read' : 'scan',
       params: to.params,
     }),
   },
@@ -232,7 +238,7 @@ export const routes: RouteRecordRaw[] = [
     },
   })),
 
-  // ——— An idea: its landing page, 01 Research, 02 Read, 03 Notes, 04 Refine, 05 Draft, and its settings ———
+  // ——— An idea: its landing page, 01 Research, 02 Read, 03 Note, 04 Refine, 05 Draft, and its settings ———
   {
     path: '/p/:publicationId/ideas/:id',
     name: 'idea',

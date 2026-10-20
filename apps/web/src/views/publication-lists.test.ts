@@ -134,12 +134,12 @@ describe('the publication’s menu', () => {
     fakePublication()
     await renderAt('/p/ada-substack')
     const menu = within(await screen.findByRole('navigation', { name: 'Publication' }))
-    expect(await menu.findByRole('link', { name: 'Search' })).toHaveAttribute(
+    expect(await menu.findByRole('link', { name: 'Scan' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/search',
+      '/p/ada-substack/scan',
     )
     expect(menu.getByRole('link', { name: 'Read' })).toHaveAttribute('href', '/p/ada-substack/read')
-    expect(menu.getByRole('link', { name: 'Notes' })).toHaveAttribute(
+    expect(menu.getByRole('link', { name: 'Note' })).toHaveAttribute(
       'href',
       '/p/ada-substack/notes',
     )
@@ -158,19 +158,25 @@ describe('the publication’s reading list', () => {
     expect(router.currentRoute.value.path).toBe('/p/ada-substack/read')
   })
 
-  it('leaves the feeds and recent posts to the Search page, which the old Inspiration address shows', async () => {
+  it('leaves the feeds and recent posts to the Scan page, which the old Inspiration address shows', async () => {
     const { router } = await renderAt('/p/ada-substack/inspiration')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Search' })).toBeInTheDocument()
-    expect(router.currentRoute.value.path).toBe('/p/ada-substack/search')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Scan' })).toBeInTheDocument()
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/scan')
     expect(screen.queryByRole('region', { name: 'Reading list' })).not.toBeInTheDocument()
+  })
+
+  it('sends the address it had when it was called Search to Scan (#307)', async () => {
+    const { router } = await renderAt('/p/ada-substack/search')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Scan' })).toBeInTheDocument()
+    expect(router.currentRoute.value.path).toBe('/p/ada-substack/scan')
   })
 
   it('says it is empty, and where to add or find something', async () => {
     await renderAt('/p/ada-substack/reading')
     expect(await screen.findByText(/Nothing to read yet\. Add a web address above/)).toBeVisible()
-    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Search' })).toHaveAttribute(
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Scan' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/search',
+      '/p/ada-substack/scan',
     )
     // The list's heading comes after the box for a new item.
     const box = screen.getByLabelText('Web address')
@@ -1308,7 +1314,7 @@ describe('the publication’s notes', () => {
   it('says there are none yet, and where to take some from', async () => {
     fakePublication()
     await renderAt('/p/ada-substack/notes')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Note' })).toBeInTheDocument()
     expect(await screen.findByText(/No notes yet\. Add one above, or take notes/)).toBeVisible()
     expect(screen.getByRole('link', { name: 'your reading list' })).toHaveAttribute(
       'href',
@@ -1402,7 +1408,7 @@ describe('the publication’s notes', () => {
   })
 })
 
-describe('the publication’s Notes page: tutorial mode', () => {
+describe('the publication’s Note page: tutorial mode', () => {
   const setup = async (tutorialMode: boolean) => {
     fakePublication({ notes: [note('n1', 'One')] })
     server.use(signedInAs({ ...testUser, tutorialMode }))

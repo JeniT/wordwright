@@ -15,7 +15,7 @@ import { displayHost } from '../lib/usePublications'
 import QuickAdd from '../components/QuickAdd.vue'
 
 /**
- * A publication's landing page: its ideas, then a short summary of each step for finding more (Search, Read, Notes), with the quick action for each. It is not a
+ * A publication's landing page: its ideas, then a short summary of each step for finding more (Scan, Read, Note), with the quick action for each. It is not a
  * numbered step, so nothing in the menu is current here. Visiting spends nothing.
  */
 defineProps<{ publicationId: string }>()
@@ -80,7 +80,7 @@ defineProps<{ publicationId: string }>()
         nested
         explain="First look for recent articles or news stories for inspiration. Here, you can subscribe to feeds that may contain interesting pieces and add them to your reading list."
         :publication-id="publicationId"
-        :to="{ name: 'search', params: { publicationId } }"
+        :to="{ name: 'scan', params: { publicationId } }"
       />
 
       <RecentReading

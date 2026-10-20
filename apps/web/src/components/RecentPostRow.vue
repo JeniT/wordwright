@@ -9,7 +9,7 @@ import { vTip } from '../lib/tip'
 
 /**
  * One post from a feed, with the decision to make about it (or how it was decided, and a way back). Shared by the
- * Search page's list and the publication's landing page so the two can't drift apart.
+ * Scan page's list and the publication's landing page so the two can't drift apart.
  */
 const props = defineProps<{
   post: RecentPost

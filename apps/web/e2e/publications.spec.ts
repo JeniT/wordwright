@@ -423,11 +423,9 @@ test('manages the feeds in the publication settings, which are listed alphabetic
   await page.getByRole('button', { name: 'Create publication' }).click()
 
   // With no feeds, the landing page and Search both lead to setting them up.
-  await expect(
-    page.getByRole('region', { name: 'Search' }).getByText('No feeds yet.'),
-  ).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Scan' }).getByText('No feeds yet.')).toBeVisible()
   await page
-    .getByRole('region', { name: 'Search' })
+    .getByRole('region', { name: 'Scan' })
     .getByRole('link', { name: 'Set up feeds →' })
     .click()
   await expect(page).toHaveURL(/\/settings\/feeds$/)
@@ -486,9 +484,9 @@ test('manages the feeds in the publication settings, which are listed alphabetic
   await page.reload()
   await expect.poll(hosts).toEqual(['one.example', 'two.example'])
 
-  // Search now offers a quiet link instead of a button, and the menu has the page between Description and Sharing.
+  // Scan now offers a quiet link instead of a button, and the menu has the page between Description and Sharing.
   await leaveSettings(page)
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
   await expect(page.getByRole('link', { name: 'Manage feeds' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Set up feeds →' })).toHaveCount(0)
 })
@@ -541,7 +539,7 @@ test('a feed’s posts are listed on Search with their feed’s name, not under 
   await noViolations(page)
 
   await leaveSettings(page)
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   await expect(recent.getByRole('link', { name: /A post in Feed of read.example/ })).toBeVisible()
   await expect(recent.getByRole('listitem')).toContainText('Feed of read.example')

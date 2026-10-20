@@ -2121,3 +2121,7 @@ The research brief used to send the idea's notes as one text, so a quotation cou
 ## The origin line links to its conversation, and the person is on the line below (#309)
 
 "Conversation with your AI" is a link to the idea's Refine page (the note does not record which of the idea's conversations it came from, so it opens the page, not one conversation; a note kept on the publication has no idea, so it is plain text). The name chip moved from beside the origin to its own line underneath, for every origin, so the line reads the same whether or not it has a link and a long page title no longer pushes the name around.
+
+## Numbered steps are verbs: Search becomes Scan, Notes becomes Note (#261, #307)
+
+Step names say what you do on the page. "Search" searched nothing (it lists the feeds' recent posts) and "Notes" was the only noun, so they became **Scan** and **Note** at both levels. Rejected for 01: Feeds (a noun, and the settings page's name), Browse and Skim (they sound like reading, which is step 02), Watch and Follow (they suggest subscribing). The rule covers numbered steps only; settings pages (Details, Feeds, Sharing...) and a publication's Ideas list are exempt. Counts stay nouns ("5 notes"), and "notes" remains the noun everywhere else. The step key `search` became `scan` and its address `/p/:id/scan`; the old `/search` address redirects, and #308 sweeps such redirects before launch.

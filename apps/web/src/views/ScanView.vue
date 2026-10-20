@@ -19,7 +19,7 @@ const sources = useSources(() => props.publicationId)
 <template>
   <PublicationGate :publication-id="publicationId">
     <div class="flex flex-wrap items-start justify-between gap-x-4">
-      <StepHeading>Search</StepHeading>
+      <StepHeading>Scan</StepHeading>
       <FeedsLink
         v-if="sources.isSuccess.value"
         :publication-id="publicationId"

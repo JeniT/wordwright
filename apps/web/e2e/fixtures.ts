@@ -73,7 +73,7 @@ export const test = base.extend<{ problems: string[] }>({
 })
 
 /**
- * Goes to a step of the publication or idea you are in, from the side menu (the menu follows you, so "Notes" means the
+ * Goes to a step of the publication or idea you are in, from the side menu (the menu follows you, so "Note" means the
  * notes of whichever you are in).
  */
 export async function goTo(page: Page, step: string) {
@@ -131,9 +131,9 @@ export async function goToIdeas(page: Page) {
 
 export { expect }
 
-/** From any page of a publication: Search, then its way to the feeds in the settings. */
+/** From any page of a publication: Scan, then its way to the feeds in the settings. */
 export async function openFeeds(page: Page) {
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
   await page.getByRole('link', { name: /^(Set up feeds →|Manage feeds)$/ }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Feeds' })).toBeVisible()
 }

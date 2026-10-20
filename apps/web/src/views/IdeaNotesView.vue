@@ -11,7 +11,7 @@ defineProps<{ publicationId: string; id: string }>()
 
 <template>
   <IdeaGate :id="id" v-slot="{ idea }" :publication-id="publicationId">
-    <StepHeading>Notes</StepHeading>
+    <StepHeading>Note</StepHeading>
     <Explain tutorial-only class="mb-6">
       These are the notes for this idea. You can add tags to help group them, drag them into order,
       and move them to other ideas.

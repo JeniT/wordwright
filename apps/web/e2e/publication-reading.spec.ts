@@ -87,8 +87,8 @@ test('reads and takes notes before there is an idea: a publication reading list 
   ).toBeChecked()
 
   // The notes are the publication's own, naming where each came from, and are not on any idea.
-  await goTo(page, 'Notes')
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Note')
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const quote = page
     .getByRole('listitem')
     .filter({ hasText: 'Erosion outside, deposition inside.' })
@@ -122,7 +122,7 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
     feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
   ).toBeVisible()
   await leaveSettings(page)
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
 
   // The newest posts, with a decision to make about each.
   const recent = page.getByRole('region', { name: 'Recent posts' })
@@ -142,7 +142,7 @@ test('adds recent posts from the feeds to the publication’s reading list, or i
     .filter({ hasText: title })
   await expect(item).toBeVisible()
   await expect(item).not.toContainText('From a feed')
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
 
   // Reconsidering takes it off again.
   await recent.getByRole('button', { name: `Take off the reading list: ${title}` }).click()
@@ -169,9 +169,9 @@ test('the publication’s own page summarises the feeds and the reading list, an
     feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
   ).toBeVisible()
 
-  // The publication's page shows what is waiting in the feeds, and leads to Search.
+  // The publication's page shows what is waiting in the feeds, and leads to Scan.
   await leaveSettings(page)
-  const search = page.getByRole('region', { name: 'Search' })
+  const search = page.getByRole('region', { name: 'Scan' })
   await expect(search.getByRole('link', { name: /A post in Feed of read\.example/ })).toBeVisible()
   await expect(search.getByRole('link', { name: 'See all posts' })).toBeVisible()
 
@@ -196,7 +196,7 @@ test('the publication’s own page summarises the feeds and the reading list, an
   ).toBeVisible()
 })
 
-test('a post can be added or ignored from the publication’s own page, and the Search page agrees', async ({
+test('a post can be added or ignored from the publication’s own page, and the Scan page agrees', async ({
   page,
 }) => {
   await signUpWithPublication(page)
@@ -210,9 +210,9 @@ test('a post can be added or ignored from the publication’s own page, and the 
     ).toBeVisible()
   }
 
-  // The same rows as the Search page, with icon buttons.
+  // The same rows as the Scan page, with icon buttons.
   await leaveSettings(page)
-  const search = page.getByRole('region', { name: 'Search' })
+  const search = page.getByRole('region', { name: 'Scan' })
   const rows = search.getByRole('listitem')
   await expect(rows).toHaveCount(2)
   await noViolations(page, 'publication page with posts to decide')
@@ -222,8 +222,8 @@ test('a post can be added or ignored from the publication’s own page, and the 
   await expect(search.getByRole('link', { name: title })).toHaveCount(0)
   await expect(rows).toHaveCount(1)
 
-  // Search knows, and so does the reading list.
-  await goTo(page, 'Search')
+  // Scan knows, and so does the reading list.
+  await goTo(page, 'Scan')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   await expect(recent.getByRole('img', { name: 'In the reading list' })).toBeVisible()
   await goTo(page, 'Read')
@@ -247,7 +247,7 @@ test('a post that is added or ignored moves to the end of the recent posts', asy
     ).toBeVisible()
   }
   await leaveSettings(page)
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   const rows = recent.getByRole('listitem')
   await expect(rows).toHaveCount(3)
@@ -313,7 +313,7 @@ test('moves reading items, with their notes, between the publication and an idea
     .click()
   // Wait for the idea itself: until then the menu is still the publication's, and its Notes link goes to the wrong place.
   await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Rivers tire of straight lines.')).toBeVisible()
   await goTo(page, 'Read')
@@ -356,7 +356,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
     feeds.getByRole('listitem').filter({ hasText: 'Feed of read.example' }),
   ).toBeVisible()
   await leaveSettings(page)
-  await goTo(page, 'Search')
+  await goTo(page, 'Scan')
   const recent = page.getByRole('region', { name: 'Recent posts' })
   const title = 'A post in Feed of read.example'
   await recent.getByRole('button', { name: `Add to reading list: ${title}` }).click()
@@ -371,7 +371,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
     await expect(page.getByText(text)).toBeVisible()
   }
   await page.getByRole('link', { name: /Back to the reading list/ }).click()
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   await page.getByLabel('Note', { exact: true }).fill('An unrelated thought')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   await expect(page.getByText('An unrelated thought')).toBeVisible()
@@ -398,8 +398,8 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
     .getByRole('link', { name: /Why rivers meander/ })
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
-  await goTo(page, 'Notes')
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Note')
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('Bends migrate downstream.')).toBeVisible()
   await expect(
@@ -408,7 +408,7 @@ test('from a post in a feed to a new idea: read, take notes, then gather the not
   await goTo(page, 'Read')
   await showReadItems(page)
   await expect(page.getByRole('link', { name: title, exact: true })).toBeVisible()
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
 
   // And a note can go on to another place: back to the publication, with Undo to put it where it was.
   await page.getByRole('checkbox', { name: /^Select note “Bends migrate/ }).check()
@@ -428,7 +428,7 @@ test('moves a note into another of the writer’s publications, and puts it back
   await signUpWithPublication(page)
   const idOf = () => new URL(page.url()).pathname.split('/')[2]!
   const first = idOf()
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   await page.getByLabel('Note', { exact: true }).fill('Belongs elsewhere')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
   await expect(page.getByText('Belongs elsewhere')).toBeVisible()

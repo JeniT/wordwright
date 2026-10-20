@@ -14,7 +14,7 @@ const reading = useReadingList(() => ({ publicationId: props.publicationId, idea
 
 <template>
   <PublicationGate :publication-id="publicationId">
-    <StepHeading>Notes</StepHeading>
+    <StepHeading>Note</StepHeading>
     <Explain tutorial-only class="mb-6">
       These are notes that you’ve made. You can add tags to help group them, drag them into order,
       and move them to become notes on new or current ideas.

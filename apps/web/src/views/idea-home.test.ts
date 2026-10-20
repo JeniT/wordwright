@@ -182,8 +182,8 @@ describe('an idea’s landing page', () => {
     await renderAt('/p/ada-substack/ideas/i1')
     const research = await screen.findByRole('region', { name: 'Research' })
     expect(research.querySelector('h2')).toHaveTextContent(/^01\s*Research$/)
-    expect(screen.getByRole('region', { name: 'Notes' }).querySelector('h2')).toHaveTextContent(
-      /^03\s*Notes$/,
+    expect(screen.getByRole('region', { name: 'Note' }).querySelector('h2')).toHaveTextContent(
+      /^03\s*Note$/,
     )
     expect(screen.getByRole('region', { name: 'Read' }).querySelector('h2')).toHaveTextContent(
       /^02\s*Read$/,
@@ -562,7 +562,7 @@ describe('an idea’s landing page', () => {
     })
   })
 
-  it('shows notes as the Notes step does: with their tags and where they came from', async () => {
+  it('shows notes as the Note step does: with their tags and where they came from', async () => {
     fakeIdea({ notes: [{ ...note(1), tags: ['intro'] }] })
     await renderAt('/p/ada-substack/ideas/i1')
     const list = await screen.findByRole('list', { name: 'Recent notes' })

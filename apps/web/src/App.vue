@@ -22,7 +22,7 @@ usePublications() // loaded once for everything that needs the list (the menu, t
 usePublicationAddressRedirect()
 
 const nav = useNav()
-/** Where you are, for the phone's top bar while the menu is folded: "What the allotment…  03 Notes". */
+/** Where you are, for the phone's top bar while the menu is folded: "What the allotment…  03 Note". */
 const here = computed(() => {
   if (nav.level.value === 'account')
     return nav.accountPages.value.find((p) => p.key === nav.stepKey.value)?.label ?? ''

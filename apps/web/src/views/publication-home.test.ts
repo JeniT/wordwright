@@ -69,16 +69,16 @@ describe('a publication’s landing page', () => {
   it('numbers its sections as the menu numbers the steps', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
-    const notes = await screen.findByRole('region', { name: 'Notes' })
-    expect(screen.getByRole('region', { name: 'Search' }).querySelector('h3')).toHaveTextContent(
-      /^01\s*Search$/,
+    const notes = await screen.findByRole('region', { name: 'Note' })
+    expect(screen.getByRole('region', { name: 'Scan' }).querySelector('h3')).toHaveTextContent(
+      /^01\s*Scan$/,
     )
     expect(screen.getByRole('region', { name: 'Read' }).querySelector('h3')).toHaveTextContent(
       /^02\s*Read$/,
     )
-    expect(notes.querySelector('h3')).toHaveTextContent(/^03\s*Notes$/)
+    expect(notes.querySelector('h3')).toHaveTextContent(/^03\s*Note$/)
     // The numbers are decoration: the headings are named without them.
-    expect(screen.getByRole('heading', { level: 3, name: 'Notes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Note' })).toBeInTheDocument()
   })
 
   it('lists the ideas first, unnumbered, and the three steps under “Stuck for ideas?”', async () => {
@@ -87,7 +87,7 @@ describe('a publication’s landing page', () => {
     const ideas = await screen.findByRole('region', { name: 'Ideas' })
     expect(ideas.querySelector('h2')).toHaveTextContent(/^Ideas$/)
     const stuck = screen.getByRole('region', { name: 'Stuck for ideas?' })
-    for (const name of ['Search', 'Read', 'Notes'])
+    for (const name of ['Scan', 'Read', 'Note'])
       expect(within(stuck).getByRole('region', { name })).toBeInTheDocument()
     expect(ideas.compareDocumentPosition(stuck) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const quick = screen.getByRole('region', { name: 'Quick add' })
@@ -244,7 +244,7 @@ describe('a publication’s landing page: search', () => {
   it('says there are no feeds, and leads to setting them up', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
-    const region = await screen.findByRole('region', { name: 'Search' })
+    const region = await screen.findByRole('region', { name: 'Scan' })
     expect(await within(region).findByText('No feeds yet.')).toBeInTheDocument()
     expect(within(region).getByRole('link', { name: 'Set up feeds →' })).toHaveAttribute(
       'href',
@@ -253,7 +253,7 @@ describe('a publication’s landing page: search', () => {
     expect(within(region).queryByRole('link', { name: 'See all posts' })).toBeNull()
   })
 
-  it('shows the five newest posts still waiting, not those already decided, and links to Search', async () => {
+  it('shows the five newest posts still waiting, not those already decided, and links to Scan', async () => {
     fakeHome()
     fakeFeeds(
       [source('s1', 'Alpha Notes')],
@@ -280,7 +280,7 @@ describe('a publication’s landing page: search', () => {
     expect(within(list).getAllByText(/Alpha Notes/)).toHaveLength(5)
     expect(screen.getByRole('link', { name: 'See all posts' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/search',
+      '/p/ada-substack/scan',
     )
     // With feeds, setting them up is a quiet link, not a button.
     expect(screen.getByRole('link', { name: 'Manage feeds' })).toHaveAttribute(
@@ -290,7 +290,7 @@ describe('a publication’s landing page: search', () => {
     expect(screen.queryByRole('link', { name: 'Set up feeds →' })).toBeNull()
   })
 
-  it('shows each post as the Search page does, with its authors, summary and icon buttons', async () => {
+  it('shows each post as the Scan page does, with its authors, summary and icon buttons', async () => {
     fakeHome()
     fakeFeeds(
       [source('s1', 'Alpha Notes')],
@@ -385,7 +385,7 @@ describe('a publication’s landing page: search', () => {
       await renderAt('/p/ada-substack')
       const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
       await fireEvent.click(await within(list).findByRole('button', { name: 'Ignore: Post 1' }))
-      const search = screen.getByRole('region', { name: 'Search' })
+      const search = screen.getByRole('region', { name: 'Scan' })
       expect(await within(search).findByRole('alert')).toHaveTextContent('Could not save that')
       expect(within(list).getByRole('link', { name: /Post 1/ })).toBeInTheDocument()
       await fireEvent.click(within(search).getByRole('button', { name: 'Dismiss' }))
@@ -628,7 +628,7 @@ describe('a publication’s landing page: Quick add', () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     await screen.findByRole('region', { name: 'Quick add' })
-    for (const name of ['Search', 'Read', 'Notes', 'Ideas'])
+    for (const name of ['Scan', 'Read', 'Note', 'Ideas'])
       expect(within(screen.getByRole('region', { name })).queryByRole('textbox')).toBeNull()
   })
 })

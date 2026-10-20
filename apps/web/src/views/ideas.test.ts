@@ -284,10 +284,10 @@ describe('idea page', () => {
     expect(article).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
-  it('titles the Read step, and leads on to Notes', async () => {
+  it('titles the Read step, and leads on to Note', async () => {
     await open()
     expect(await screen.findByRole('heading', { level: 1, name: 'Read' })).toBeInTheDocument()
-    expect(await screen.findByRole('link', { name: /Next: 03 Notes/ })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /Next: 03 Note/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/ideas/i1/notes',
     )

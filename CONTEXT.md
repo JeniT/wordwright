@@ -145,6 +145,16 @@ _Avoid_: Prompt, instruction, brief
 One of a set of different approaches the AI offers to a passage or title. None is used until the writer has picked it, can edit it, and presses "Use this".
 _Avoid_: Suggestion (that implies replacement text pushed at the writer), proposal (brainstorm's word for things the writer accepts), alternative
 
+### Steps
+
+**Scan**:
+The first step of a publication (01): the recent posts from its feeds, listed for the writer to look over and to add to the reading list or ignore. Nothing is searched; the name is what you do with the list.
+_Avoid_: Search (what the step was called until #307), Feeds (the settings page where the feeds are chosen), Inspiration
+
+**Note**:
+The third step of a publication and of an idea (03): the page where notes are gathered, tagged and arranged. The step is named with a verb, like the others; the things it holds are still called notes.
+_Avoid_: Notes (as the step's name)
+
 ### Refining
 
 **Refine**:

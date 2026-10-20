@@ -69,7 +69,7 @@ const when = computed(() =>
     year: 'numeric',
   }),
 )
-// As on the Search page, pages still to decide come first and decided ones drop to the end.
+// As on the Scan page, pages still to decide come first and decided ones drop to the end.
 const items = computed(() => [
   ...props.run.items.filter((i) => i.status === 'suggested'),
   ...props.run.items.filter((i) => i.status !== 'suggested'),

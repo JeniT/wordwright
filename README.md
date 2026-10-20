@@ -46,8 +46,8 @@ gentle "Next: …" suggestion. Home → publication → idea:
 | Level                | Menu lists                                                                                                                                                                         | Front door                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Home                 | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                                    | `/`                                                                       |
-| Publication          | **01 Search** (recent posts), **02 Read** (reading list), **03 Notes**; a gear beside the name for settings                                                                        | `/p/<id>` → its landing page                                              |
-| Idea                 | **01 Research**, **02 Read**, **03 Notes**, **04 Refine** (brainstorm), **05 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings         | `/p/<id>/ideas/<idea>` → Notes                                            |
+| Publication          | **01 Scan** (recent posts), **02 Read** (reading list), **03 Note**; a gear beside the name for settings                                                                           | `/p/<id>` → its landing page                                              |
+| Idea                 | **01 Research**, **02 Read**, **03 Note**, **04 Refine** (brainstorm), **05 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings          | `/p/<id>/ideas/<idea>` → Note                                             |
 | Publication settings | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}" | `/p/<id>/settings` → `/p/<id>/settings/details` (members: `/description`) |
 | Account              | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account**                 | `/account` → `/account/details`                                           |
 
@@ -159,7 +159,7 @@ tests inject fakes and nothing hits the network.
   they are dropped (the _Add to draft_ button does the same at the cursor).
   **The publication's own reading list and notes** have their own places: the reading list is the publication's
   **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each item opens its own reading page at
-  `/p/<id>/reading/<item>`) and **Notes** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the publication's. They are the idea's screens with a different owner (reading list, reading page, notes with
+  `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the publication's. They are the idea's screens with a different owner (reading list, reading page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
   publication as a whole, to be gathered before there is an idea. `GET/POST /api/publications/:id/reading`, `PATCH|DELETE
@@ -246,11 +246,11 @@ tests inject fakes and nothing hits the network.
 - **Feeds**: each publication keeps a list of RSS/Atom feeds (up to 50), managed on the **Feeds** page of the publication's
   settings (`/p/<id>/settings/feeds`) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (the site's icon, else the feed's own logo, which is often too wide to read at icon size). They are listed alphabetically
-  (there is no order to keep); remove one. **Search** (`/p/<id>/search`; the old `/p/<id>/inspiration` leads there) shows their
+  (there is no order to keep); remove one. **Scan** (`/p/<id>/scan`; the old `/p/<id>/search` and `/p/<id>/inspiration` lead there) shows their
   posts, and offers "Set up feeds →" while there are none and "Manage feeds" after. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
-  At the top of the Search page, **Recent posts** is one list of the newest posts from all the feeds, newest
+  At the top of the Scan page, **Recent posts** is one list of the newest posts from all the feeds, newest
   first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
   posts twice a year doesn't clutter it. It shows five posts at a time (Previous / Next above and below the list; the bottom ones scroll back to the top) out of at most 100, counts posts that carry no date (they can't be
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
@@ -406,7 +406,7 @@ never shown), and each notes recorded is listed under the reply and each suggest
 
 **Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
 shows the idea's research one run at a time (newest first; **Earlier research** and **Later research** step through the rest),
-each as a list laid out like the Search page's. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
+each as a list laid out like the Scan page's. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
 `/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the
 reading list); `DELETE …/research/:run` forgets a run. The search

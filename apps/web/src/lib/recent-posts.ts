@@ -11,7 +11,7 @@ export const RECENT_POSTS_ABOUT =
 export type PostDecision = 'add' | 'ignore' | 'reconsider'
 
 /**
- * Deciding about a post from the feeds: add it to the reading list, ignore it, or take either back. The Search page
+ * Deciding about a post from the feeds: add it to the reading list, ignore it, or take either back. The Scan page
  * and the publication's landing page both show these rows, so both use this; every list that holds posts is refreshed
  * afterwards, which is how each one hears of a decision made in the other.
  */

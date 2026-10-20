@@ -283,8 +283,8 @@ function removeChosen() {
         <template v-if="ideaId">Nothing to read yet. Add a web address above.</template>
         <template v-else>
           Nothing to read yet. Add a web address above, or find something in
-          <RouterLink :to="{ name: 'search', params: { publicationId } }" class="underline">
-            Search</RouterLink
+          <RouterLink :to="{ name: 'scan', params: { publicationId } }" class="underline">
+            Scan</RouterLink
           >.
         </template>
       </p>

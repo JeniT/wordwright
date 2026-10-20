@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { llmSettings, renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
-useMockServer({ warm: ['search'] })
+useMockServer({ warm: ['scan'] })
 
 const publication = (role: 'owner' | 'member') => ({
   id: 'adalovelace-blog',
@@ -62,8 +62,8 @@ async function openSearch(role: 'owner' | 'member' = 'owner') {
     signedInAs(testUser),
     http.get('*/api/publications', () => HttpResponse.json([publication(role)])),
   )
-  await renderAt('/p/adalovelace-blog/search')
-  return screen.findByRole('heading', { level: 1, name: 'Search' })
+  await renderAt('/p/adalovelace-blog/scan')
+  return screen.findByRole('heading', { level: 1, name: 'Scan' })
 }
 async function openFeeds(role: 'owner' | 'member' = 'owner') {
   server.use(
@@ -260,15 +260,15 @@ describe('feeds in the settings', () => {
   })
 })
 
-describe('the Search page: tutorial mode (#260)', () => {
+describe('the Scan page: tutorial mode (#260)', () => {
   const setup = async (tutorialMode: boolean) => {
     fakeSources([A])
     server.use(
       signedInAs({ ...testUser, tutorialMode }),
       http.get('*/api/publications', () => HttpResponse.json([publication('owner')])),
     )
-    await renderAt('/p/adalovelace-blog/search')
-    await screen.findByRole('heading', { level: 1, name: 'Search' })
+    await renderAt('/p/adalovelace-blog/scan')
+    await screen.findByRole('heading', { level: 1, name: 'Scan' })
   }
 
   it('writes out what the list is, under its heading, when it is on', async () => {
@@ -874,7 +874,7 @@ describe('a website that offers several feeds', () => {
 })
 
 describe('where the feeds live', () => {
-  it('are reached from Search, which links to them, and are no longer on it', async () => {
+  it('are reached from Scan, which links to them, and are no longer on it', async () => {
     fakeSources([A])
     await openSearch()
     expect(await screen.findByRole('link', { name: 'Manage feeds' })).toHaveAttribute(

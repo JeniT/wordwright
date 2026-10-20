@@ -14,8 +14,8 @@ import RecentPostRow from './RecentPostRow.vue'
 
 /**
  * A summary of the publication's feeds for a landing page: the newest few posts still waiting for a decision, with links
- * to Search for more and to the feeds in the settings. The rows are the Search page's own (`RecentPostRow`), so a
- * post can be added or ignored from here too. It asks for the same lists, under the same keys, as the Search page
+ * to Scan for more and to the feeds in the settings. The rows are the Scan page's own (`RecentPostRow`), so a
+ * post can be added or ignored from here too. It asks for the same lists, under the same keys, as the Scan page
  * (at its default period), so the two share what has been fetched and what is decided; it never asks the feeds to
  * check again.
  */
@@ -50,13 +50,7 @@ const { decide, notice, busy } = useDecidePosts(() => props.publicationId)
 </script>
 
 <template>
-  <LandingSection
-    level="publication"
-    step="search"
-    title="Search"
-    :nested="nested"
-    :explain="explain"
-  >
+  <LandingSection level="publication" step="scan" title="Scan" :nested="nested" :explain="explain">
     <template #actions>
       <RouterLink v-if="sources.data.value?.length" :to="to" class="link text-sm"
         >See all posts</RouterLink

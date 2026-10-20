@@ -115,7 +115,7 @@ const failedNames = computed(() =>
         >
           Recent posts
         </h2>
-        <!-- In tutorial mode the same text is written out under the page title (SearchView). -->
+        <!-- In tutorial mode the same text is written out under the page title (ScanView). -->
         <Explain v-if="!tutorial" label="About recent posts">{{ RECENT_POSTS_ABOUT }}</Explain>
       </div>
       <div class="ml-auto flex items-end gap-2">

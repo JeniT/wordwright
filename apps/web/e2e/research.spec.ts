@@ -21,8 +21,8 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByRole('button', { name: 'Create publication' }).click()
   await createIdea(page, 'Why rivers meander', 'Erosion loops.\nSecond line.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
-  await goTo(page, 'Notes')
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Note')
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
 }
 
 /** From wherever you are in the idea: Research (step 01), then into the tool that searches the web. */

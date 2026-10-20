@@ -8,7 +8,7 @@ import NewTabLink from './NewTabLink.vue'
 
 /**
  * One page your AI suggested, with the decision to make about it (or how it was decided, and a way back). Laid out
- * like a post on the Search page (`RecentPostRow`), so the two lists read alike.
+ * like a post on the Scan page (`RecentPostRow`), so the two lists read alike.
  */
 const props = withDefaults(
   defineProps<{

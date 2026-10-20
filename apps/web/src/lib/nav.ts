@@ -9,9 +9,9 @@ import { usePublication } from './usePublications'
 /**
  * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
  *   home    -> Publications (account settings: the gear by the person's name in the menu foot)
- *   publication -> 01 Search, 02 Read, 03 Notes, (its settings: a gear beside its name)
+ *   publication -> 01 Scan, 02 Read, 03 Note, (its settings: a gear beside its name)
  *   publication-settings -> Details, Description, Sharing, Download, Delete (plain links; the way up is the publication)
- *   idea    -> 01 Research, 02 Read, 03 Notes, 04 Refine, 05 Draft, (its settings: a gear beside its name)
+ *   idea    -> 01 Research, 02 Read, 03 Note, 04 Refine, 05 Draft, (its settings: a gear beside its name)
  * The numbers orient; they never lock anything, so every step is always a link.
  * A page says which level and step it belongs to in its route's `meta` (see router.ts).
  */
@@ -23,15 +23,15 @@ export interface Step {
 }
 
 export const PUBLICATION_STEPS: Step[] = [
-  { key: 'search', label: 'Search', route: 'search' },
+  { key: 'scan', label: 'Scan', route: 'scan' },
   { key: 'read', label: 'Read', route: 'read' },
-  { key: 'notes', label: 'Notes', route: 'publication-notes' },
+  { key: 'notes', label: 'Note', route: 'publication-notes' },
 ]
 
 export const IDEA_STEPS: Step[] = [
   { key: 'research', label: 'Research', route: 'idea-research' },
   { key: 'read', label: 'Read', route: 'idea-read' },
-  { key: 'notes', label: 'Notes', route: 'idea-notes' },
+  { key: 'notes', label: 'Note', route: 'idea-notes' },
   { key: 'refine', label: 'Refine', route: 'brainstorm' },
   { key: 'draft', label: 'Draft', route: 'idea-drafts' },
 ]
@@ -148,7 +148,7 @@ export function useNav() {
   /** The quiet line under a step: a count, where we already know one. */
   function metaFor(step: Step) {
     if (level.value === 'publication') {
-      if (step.key === 'search' && feeds.data.value)
+      if (step.key === 'scan' && feeds.data.value)
         return plural(feeds.data.value.length, 'feed', 'feeds')
       if (step.key === 'read' && reading.data.value)
         return `${reading.data.value.filter((l) => !l.readAt).length} to read`

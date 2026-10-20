@@ -21,8 +21,8 @@ async function setUp(page: Page, { withKey = true } = {}) {
   await page.getByRole('button', { name: 'Create publication' }).click()
   await createIdea(page, 'Why rivers meander', 'Erosion loops.\nSecond line.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
-  await goTo(page, 'Notes')
-  await expect(page.getByRole('heading', { level: 1, name: 'Notes' })).toBeVisible()
+  await goTo(page, 'Note')
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
 }
 
 /** Refining (step 03) is a conversation. Visiting the step spends nothing; this begins it, with your AI's questions. */
@@ -58,7 +58,7 @@ test('refines an idea: your AI asks, suggests, and nothing changes until accepte
   await expect(card.getByText('A sharper title for this idea')).toBeVisible()
   await expect(card.getByText('Why rivers meander')).toBeVisible() // what it would replace
   await noViolations(page, 'brainstorm page with a suggestion')
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   await expect(
     page.getByRole('banner').getByText('Why rivers meander').filter({ visible: true }).first(),
   ).toBeVisible()
@@ -67,7 +67,7 @@ test('refines an idea: your AI asks, suggests, and nothing changes until accepte
   await goTo(page, 'Refine')
   await page.getByRole('button', { name: /^Use this title:/ }).click()
   await expect(page.getByText(/used as the title by Pru/)).toBeVisible()
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   await expect(
     page
       .getByRole('banner')
@@ -106,7 +106,7 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   await noViolations(page, 'brainstorm page with a suggested note')
 
   // Nothing is in the notes until the writer adds it.
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(1)
   await goTo(page, 'Refine')
 
@@ -132,7 +132,7 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   await expect(page.getByText('Already in your notes:')).toBeVisible()
 
   // The note is on the idea, from conversation with your AI, with the edit, and can be deleted like any other.
-  await goTo(page, 'Notes')
+  await goTo(page, 'Note')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(2)
   await expect(notes.getByRole('listitem').nth(1)).toContainText(

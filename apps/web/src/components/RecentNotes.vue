@@ -42,7 +42,7 @@ const recent = computed(() =>
   <LandingSection
     :level="ideaId ? 'idea' : 'publication'"
     step="notes"
-    title="Notes"
+    title="Note"
     :nested="nested"
     :explain="explain"
   >
