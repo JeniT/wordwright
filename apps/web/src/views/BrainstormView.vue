@@ -509,6 +509,17 @@ const busyNote = computed(() =>
                   <div class="mr-8 panel-sunken p-3">
                     <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
                     <Markdown v-if="message.text" :text="message.text" />
+                    <!-- A reply of tool calls alone (suggestions, a title) leaves nothing to answer: say so, not a blank box. -->
+                    <p
+                      v-else-if="
+                        message.status === 'complete' &&
+                        message.stopReason !== 'refusal' &&
+                        message.stopReason !== 'max_tokens'
+                      "
+                      class="text-ink-soft"
+                    >
+                      Your AI didn’t write a reply. Send a message to carry on.
+                    </p>
                     <p v-if="message.stopReason === 'refusal'" class="text-sm text-ink-soft">
                       Your AI declined to answer that. Try putting it differently.
                     </p>

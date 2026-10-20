@@ -121,6 +121,13 @@ const notesUseTheWritersWords = (writerText: string) =>
 /** True when no recorded note runs past thirty words: one point to a note, not the whole message. */
 const notesAreOnePointEach = `(() => ${NOTE_TEXTS}.every((t) => t.trim().split(/\\s+/).length <= 30))()`
 
+/**
+ * True when the reply says something in words as well as calling tools: at least a sentence of text once the
+ * rendered tool calls (`[tool_call ...]`, see `renderReply`) are taken out. A reply of tool calls alone leaves the
+ * writer nothing to answer.
+ */
+const repliesInWords = "output.replace(/\\[tool_call [^\\n]*\\]/g, '').trim().length >= 20"
+
 /** The titles given with `name_conversation`, read out of a rendered reply (see `renderReply`). */
 const TITLES =
   '[...output.matchAll(/\\[tool_call name_conversation ([{].*?[}])\\]/g)].map((m) => JSON.parse(m[1]).title)'
@@ -153,6 +160,7 @@ export const CASES: EvalCase[] = [
     app: 'brainstorm',
     scenario: 'rivers',
     assert: [
+      { type: 'javascript', value: repliesInWords },
       {
         type: 'llm-rubric',
         value:
@@ -169,6 +177,7 @@ export const CASES: EvalCase[] = [
     scenario: 'rivers',
     assert: [
       { type: 'javascript', value: namesTheConversationOnce },
+      { type: 'javascript', value: repliesInWords },
       {
         type: 'llm-rubric',
         value:
@@ -583,10 +592,32 @@ export const CASES: EvalCase[] = [
       { type: 'javascript', value: recordsAPointPerAnswer },
       { type: 'javascript', value: notesUseTheWritersWords(NOTES_WRITER) },
       { type: 'javascript', value: notesAreOnePointEach },
+      { type: 'javascript', value: repliesInWords },
       {
         type: 'llm-rubric',
         value:
           "Every note the AI suggests with suggest_note is a point the writer made in their message (the distance the bend moved, who they are writing for, their suspicion about the drought), kept close to the writer's own wording. None is the AI's own view, an interpretation, advice or a point the writer did not make, and no point is recorded twice.",
+      },
+    ],
+  },
+  {
+    id: 'replies-in-words-alongside-suggestions',
+    description:
+      'Writes a message to the writer as well as suggesting notes: the tools are never the whole reply',
+    group: 'current',
+    app: 'brainstorm',
+    scenario: 'rivers',
+    conversation: [
+      opening('What made you want to write about why rivers meander?'),
+      writer(NOTES_WRITER),
+    ],
+    assert: [
+      { type: 'javascript', value: repliesInWords },
+      { type: 'javascript', value: recordsAPointPerAnswer },
+      {
+        type: 'llm-rubric',
+        value:
+          'The AI writes a message to the writer in words (it reflects what they said, or asks a question, or both) in addition to any notes it suggests. The message is not empty and is not merely a list of the suggested notes repeated back.',
       },
     ],
   },
@@ -602,6 +633,7 @@ export const CASES: EvalCase[] = [
       writer('Remind me what my notes say about why bends keep growing.'),
     ],
     assert: [
+      { type: 'javascript', value: repliesInWords },
       // The quotation is already in the notes, and is not the writer's point to record again.
       {
         type: 'javascript',

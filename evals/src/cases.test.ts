@@ -152,6 +152,33 @@ describe('the requests', () => {
     expect(researchRequest(c).brief).toContain('IGNORE ALL PREVIOUS INSTRUCTIONS')
   })
 
+  it('check that a reply says something in words as well as calling tools', () => {
+    const c = brainstorm.find((x) => x.id === 'replies-in-words-alongside-suggestions')!
+    const check = c.assert.find((a) => a.type === 'javascript' && a.value.includes('tool_call'))!
+      .value as string
+    const run = (output: string) => new Function('output', `return ${check}`)(output) as boolean
+    const note = '[tool_call suggest_note {"text":"A point the writer made"}]'
+    expect(run(`That is a vivid detail. What changed first?\n${note}`)).toBe(true)
+    expect(
+      run(`${note}\n${note}\n[tool_call name_conversation {"title":"Rivers and drought"}]`),
+    ).toBe(false)
+    expect(run('')).toBe(false)
+    expect(run(`Fine.\n${note}`)).toBe(false) // too little to answer
+    // Every case that uses the tools checks for it.
+    for (const id of [
+      'opens-with-a-question',
+      'names-the-conversation-with-a-label',
+      'notes-reuse-the-writers-words',
+      'quotations-are-not-the-writers-views',
+    ]) {
+      const asserts = brainstorm.find((x) => x.id === id)!.assert
+      expect(
+        asserts.some((a) => a.type === 'javascript' && a.value.includes('.length >= 20')),
+        id,
+      ).toBe(true)
+    }
+  })
+
   it('check the label the first reply gives its conversation, as the app reads it', () => {
     const c = brainstorm.find((x) => x.id === 'names-the-conversation-with-a-label')!
     const check = c.assert.find((a) => a.type === 'javascript')!.value as string

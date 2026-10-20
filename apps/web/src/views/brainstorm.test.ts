@@ -1289,6 +1289,38 @@ describe('the refine page: tutorial mode', () => {
   })
 })
 
+describe('a reply with no words', () => {
+  const none = 'Your AI didn’t write a reply. Send a message to carry on.'
+
+  it('says so in the reply’s box instead of leaving it empty, with its suggestions still shown', async () => {
+    mockConversation([
+      kickoff(),
+      aiMessage('', {
+        proposals: [proposal({ tool: 'suggest_note', input: { text: 'A point.' } })],
+      }),
+    ])
+    await renderAt(page)
+    expect(await screen.findByText(none)).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Suggested notes' })).toBeInTheDocument()
+  })
+
+  it('says nothing of the kind when there are words, or when it was stopped, declined or cut short', async () => {
+    mockConversation([
+      kickoff(),
+      aiMessage('Here are my words.'),
+      userMessage('Go on'),
+      aiMessage('', { stopReason: 'refusal' }),
+      userMessage('And?'),
+      aiMessage('', { status: 'stopped', stopReason: null }),
+      userMessage('Again'),
+      aiMessage('', { stopReason: 'max_tokens' }),
+    ])
+    await renderAt(page)
+    await screen.findByText('Here are my words.')
+    expect(screen.queryByText(none)).toBeNull()
+  })
+})
+
 describe('a conversation’s title', () => {
   const titled = (title: string | null, titleByAi: boolean) =>
     mockConversation(
