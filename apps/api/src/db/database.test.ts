@@ -321,4 +321,69 @@ describe('migrations', () => {
     // A source must be one of the two that can give a title.
     expect(() => db.exec("UPDATE idea_conversations SET title_source = 'robot'")).toThrow()
   })
+
+  it('keeps existing suggestions when the table is rebuilt to allow suggested notes (#295)', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -1)) // suggestions that can only be titles, ideas and pages
+    db.exec(`
+      INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
+      INSERT INTO idea_conversations (id, idea_id, created_at) VALUES ('c', 'i', 't');
+      INSERT INTO idea_messages (id, idea_id, conversation_id, seq, role, kind, content, display_text, created_at)
+        VALUES ('m', 'i', 'c', 1, 'assistant', 'message', '[]', 'Hi', 't');
+      INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base, status, check_status, fetched_title, fetched_authors)
+        VALUES ('p1', 'm', 'call-1', 'suggest_reading', '{"url":"https://x.example"}', NULL, 'accepted', 'found', 'X', '["A"]');
+      INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input, base, status)
+        VALUES ('p2', 'm', 'call-2', 'update_idea', '{"name":"New"}', '{"name":"I"}', 'pending');
+    `)
+    expect(() =>
+      db.exec(
+        "INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input) VALUES ('x', 'm', 'c', 'suggest_note', '{}')",
+      ),
+    ).toThrow() // not yet a kind of suggestion
+
+    migrate(db, 'test')
+
+    expect(
+      db
+        .prepare(
+          'SELECT id, tool, status, base, check_status, fetched_title, fetched_authors FROM idea_proposals ORDER BY id',
+        )
+        .all(),
+    ).toEqual([
+      {
+        id: 'p1',
+        tool: 'suggest_reading',
+        status: 'accepted',
+        base: null,
+        check_status: 'found',
+        fetched_title: 'X',
+        fetched_authors: '["A"]',
+      },
+      {
+        id: 'p2',
+        tool: 'update_idea',
+        status: 'pending',
+        base: '{"name":"I"}',
+        check_status: null,
+        fetched_title: null,
+        fetched_authors: '[]',
+      },
+    ])
+    db.exec(
+      "INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input) VALUES ('n', 'm', 'call-3', 'suggest_note', '{\"text\":\"A point\"}')",
+    )
+    expect(() =>
+      db.exec(
+        "INSERT INTO idea_proposals (id, message_id, tool_call_id, tool, input) VALUES ('y', 'm', 'c', 'bogus', '{}')",
+      ),
+    ).toThrow()
+    // Still removed with their message, and still found by it.
+    expect(
+      db.prepare("SELECT name FROM sqlite_master WHERE name = 'idea_proposals_message'").get(),
+    ).toBeTruthy()
+    db.exec("DELETE FROM idea_messages WHERE id = 'm'")
+    expect(db.prepare('SELECT count(*) AS n FROM idea_proposals').get()).toEqual({ n: 0 })
+  })
 })

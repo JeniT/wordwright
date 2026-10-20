@@ -63,8 +63,8 @@ setting to slip in.
 ### 3. Writer first; elicit, then record
 
 Prefer designs where the writer produces something before the AI responds, and the AI records or responds to it
-rather than supplying it. Brainstorm already does this for notes: the writer says the point, the assistant records it
-in their words. A title, angle or audience suggested by the AI before the writer has stated their own pre-empts the
+rather than supplying it. Brainstorm already does this for notes: the writer says the point, the assistant suggests it
+in their words, and the writer adds it. A title, angle or audience suggested by the AI before the writer has stated their own pre-empts the
 thinking, so the assistant presses for the writer's version first.
 
 ### 4. Alternatives, never a single answer (T10)

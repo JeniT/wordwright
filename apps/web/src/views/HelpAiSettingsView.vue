@@ -26,6 +26,13 @@ import Icon from '../components/Icon.vue'
       aim and ask for more options that many times. You can change the number under
       <RouterLink :to="{ name: 'account-ai' }" class="link">Critique limit</RouterLink>.
     </p>
+    <h2 class="mt-4 mb-1 font-display text-xl font-semibold">Why your AI suggests notes</h2>
+    <p>
+      Your AI in Refine suggests the points you make as notes, in your words, above its reply.
+      Nothing is added until you add it: tick a suggestion to add it, edit it first if it isn’t
+      quite what you meant, or cross it to ignore it. An ignored suggestion can be brought back.
+      Suggested pages, ideas and titles work the same way.
+    </p>
     <h2 class="mt-4 mb-1 font-display text-xl font-semibold">
       Why an idea holds five conversations
     </h2>
