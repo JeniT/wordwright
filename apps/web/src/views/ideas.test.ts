@@ -47,6 +47,8 @@ const idea = {
       updatedAt: '2026-01-02T00:00:00Z',
       editorId: 'u1',
       editorName: 'Ada',
+      publishedAt: null,
+      publishedUrl: null,
     },
   ],
   createdAt: '2026-01-01T00:00:00Z',
@@ -309,6 +311,74 @@ describe('idea page', () => {
     )
   })
 
+  it('washes a published draft green, marks it in words, links to the post beside the row, and keeps its place', async () => {
+    server.use(
+      http.get(ideaUrl, () =>
+        HttpResponse.json({
+          ...idea,
+          drafts: [
+            {
+              id: 'd1',
+              title: 'Part 1',
+              updatedAt: '2026-01-02T00:00:00Z',
+              editorId: 'u1',
+              editorName: 'Ada',
+              publishedAt: '2026-10-14T09:00:00Z',
+              publishedUrl: 'https://example.com/part-1',
+            },
+            {
+              id: 'd2',
+              title: 'Part 2',
+              updatedAt: '2026-01-03T00:00:00Z',
+              editorId: 'u1',
+              editorName: 'Ada',
+              publishedAt: '2026-10-15T09:00:00Z',
+              publishedUrl: null,
+            },
+            {
+              id: 'd3',
+              title: 'Part 3',
+              updatedAt: '2026-01-04T00:00:00Z',
+              editorId: 'u1',
+              editorName: 'Ada',
+              publishedAt: null,
+              publishedUrl: null,
+            },
+          ],
+        }),
+      ),
+      signedInAs(testUser),
+      listPublications,
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/ada-substack/ideas/i1/drafts')
+    const rows = await within(await screen.findByRole('region', { name: 'Drafts' })).findAllByRole(
+      'listitem',
+    )
+    // The order the writer set is kept: published drafts are not moved to the bottom.
+    expect(rows.map((r) => /Part \d/.exec(r.textContent ?? '')?.[0])).toEqual([
+      'Part 1',
+      'Part 2',
+      'Part 3',
+    ])
+    expect(rows[0]).toHaveTextContent('Published Oct 14, 2026')
+    expect(rows[1]).toHaveTextContent('Published Oct 15, 2026')
+    expect(rows[2]).not.toHaveTextContent('Published')
+    expect(rows[0]!.querySelector('.bg-ok-wash')).not.toBeNull()
+    expect(rows[2]!.querySelector('.bg-ok-wash')).toBeNull()
+    // "View post" is its own link beside the row's, only where there is a link to the post.
+    const post = within(rows[0]!).getByRole('link', { name: /View post/ })
+    expect(post).toHaveAttribute('href', 'https://example.com/part-1')
+    expect(post).toHaveAttribute('target', '_blank')
+    expect(post).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    expect(post.closest('a')).toBe(post)
+    expect(within(rows[1]!).queryByRole('link', { name: /View post/ })).toBeNull()
+    expect(within(rows[0]!).getByRole('link', { name: /^Part 1/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/drafts/d1',
+    )
+  })
+
   it('names the editor of every draft on the Draft step, including your own, as the notes’ author chip does', async () => {
     server.use(
       http.get(ideaUrl, () =>
@@ -321,6 +391,8 @@ describe('idea page', () => {
               updatedAt: '2026-01-02T00:00:00Z',
               editorId: 'u1',
               editorName: 'Ada',
+              publishedAt: null,
+              publishedUrl: null,
             },
             {
               id: 'd2',
@@ -328,6 +400,8 @@ describe('idea page', () => {
               updatedAt: '2026-01-03T00:00:00Z',
               editorId: 'u2',
               editorName: 'Bob',
+              publishedAt: null,
+              publishedUrl: null,
             },
           ],
         }),
@@ -1052,6 +1126,8 @@ describe('idea page', () => {
             editorId: 'u1',
             editorName: 'Ada Lovelace',
             version: 1,
+            publishedAt: null,
+            publishedUrl: null,
             createdAt: '2026-01-03T00:00:00Z',
             updatedAt: '2026-01-03T00:00:00Z',
           },
@@ -1068,6 +1144,8 @@ describe('idea page', () => {
           editorId: 'u1',
           editorName: 'Ada Lovelace',
           version: 1,
+          publishedAt: null,
+          publishedUrl: null,
           createdAt: '2026-01-03T00:00:00Z',
           updatedAt: '2026-01-03T00:00:00Z',
         }),
@@ -2048,6 +2126,8 @@ describe('idea page', () => {
           updatedAt: '2026-01-02T00:00:00Z',
           editorId: 'u1',
           editorName: 'Ada',
+          publishedAt: null,
+          publishedUrl: null,
         },
         {
           id: 'd2',
@@ -2055,6 +2135,8 @@ describe('idea page', () => {
           updatedAt: '2026-01-03T00:00:00Z',
           editorId: 'u1',
           editorName: 'Ada',
+          publishedAt: null,
+          publishedUrl: null,
         },
         {
           id: 'd3',
@@ -2062,6 +2144,8 @@ describe('idea page', () => {
           updatedAt: '2026-01-04T00:00:00Z',
           editorId: 'u1',
           editorName: 'Ada',
+          publishedAt: null,
+          publishedUrl: null,
         },
       ],
     }

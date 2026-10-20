@@ -60,12 +60,14 @@ describe('what the brainstorm AI can touch', () => {
 })
 
 describe('what the brainstorm AI is shown', () => {
-  it("has nowhere to put a draft's text: a draft is its id, title, date and who edits it", () => {
+  it("has nowhere to put a draft's text: a draft is its id, title, dates, who edits it and where it was published", () => {
     // The editor is there for the Draft page's list; the snapshot below still shows the AI titles only.
     expect(Object.keys(IdeaDraftSchema.shape).sort()).toEqual([
       'editorId',
       'editorName',
       'id',
+      'publishedAt',
+      'publishedUrl',
       'title',
       'updatedAt',
     ])
@@ -86,6 +88,8 @@ describe('what the brainstorm AI is shown', () => {
           updatedAt: 'x',
           editorId: 'u',
           editorName: 'SECRET EDITOR NAME',
+          publishedAt: 'x',
+          publishedUrl: 'https://secret.example/post',
           body: 'SECRET DRAFT BODY',
         },
       ],
@@ -99,6 +103,7 @@ describe('what the brainstorm AI is shown', () => {
     expect(snapshot).toContain('- Part 1')
     expect(snapshot).not.toContain('SECRET DRAFT BODY')
     expect(snapshot).not.toContain('SECRET EDITOR NAME')
+    expect(snapshot).not.toContain('secret.example')
   })
 
   it("puts the app's rules after the default prompt", () => {

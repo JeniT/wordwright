@@ -28,6 +28,8 @@ const draft = (n: number) => ({
   updatedAt: '2026-01-02T00:00:00Z',
   editorId: 'u1',
   editorName: 'Ada',
+  publishedAt: null,
+  publishedUrl: null,
 })
 const idea = (links = [link(1), link(2)], drafts = [draft(1), draft(2)]) => ({
   id: 'i1',
@@ -149,6 +151,8 @@ function fakeIdea(
           editorId: 'u1',
           editorName: 'Ada Lovelace',
           version: 1,
+          publishedAt: null,
+          publishedUrl: null,
           createdAt: '2026-01-03T00:00:00Z',
           updatedAt: '2026-01-03T00:00:00Z',
         },

@@ -50,7 +50,7 @@ export class IdeaStore {
     const links = this.reading.list(id)
     const drafts = this.db
       .prepare(
-        `SELECT d.id, d.title, d.updated_at, d.editor_id, u.name AS editor_name
+        `SELECT d.id, d.title, d.updated_at, d.editor_id, u.name AS editor_name, d.published_at, d.published_url
          FROM drafts d LEFT JOIN users u ON u.id = d.editor_id
          WHERE d.idea_id = ? ORDER BY d.position, d.created_at, d.rowid`,
       )
@@ -61,6 +61,8 @@ export class IdeaStore {
         updatedAt: d.updated_at as string,
         editorId: d.editor_id as string,
         editorName: (d.editor_name as string | null) ?? 'A former member',
+        publishedAt: (d.published_at as string | null) ?? null,
+        publishedUrl: (d.published_url as string | null) ?? null,
       }))
     return {
       id,

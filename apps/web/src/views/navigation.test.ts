@@ -36,6 +36,8 @@ const idea = {
       updatedAt: '2026-01-02T00:00:00Z',
       editorId: 'u1',
       editorName: 'Ada',
+      publishedAt: null,
+      publishedUrl: null,
     },
   ],
   createdAt: '2026-01-01T00:00:00Z',
@@ -50,6 +52,8 @@ const draft = {
   editorId: 'u1',
   editorName: 'Ada Lovelace',
   version: 1,
+  publishedAt: null,
+  publishedUrl: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }

@@ -61,6 +61,8 @@ async function saveDraftOrder(ids: string[]) {
             :title="draft.title"
             :updated-at="draft.updatedAt"
             :editor-name="draft.editorName"
+            :published-at="draft.publishedAt"
+            :published-url="draft.publishedUrl"
           />
         </template>
       </ReorderableList>

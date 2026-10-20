@@ -5,7 +5,13 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/vue-query'
-import { ACTIVE_DRAFTS_PAGE, type CommentInput, type IdeaNote } from '@wordwright/core'
+import {
+  ACTIVE_DRAFTS_PAGE,
+  type CommentInput,
+  type Draft,
+  type DraftPublishedInput,
+  type IdeaNote,
+} from '@wordwright/core'
 import { computed, type Ref } from 'vue'
 import { api } from './api'
 
@@ -212,6 +218,26 @@ export function useResolveComment(
       void invalidateRoots(queryClient, 'attention', 'draft-reviewers', 'active-drafts')
     },
     onError: (err, v) => onError(err, v.commentId),
+  })
+}
+
+/**
+ * The editor marking the draft published, or taking the mark away (#311). Only the mark and the link change in the
+ * cached draft, so the words being typed are left alone; the lists that show it are refreshed.
+ */
+export function useSetPublished(publicationId: Get<string>, draftId: Get<string>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: DraftPublishedInput) =>
+      api.setDraftPublished(publicationId(), draftId(), input),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(
+        queryKeys.draft(publicationId(), draftId()),
+        (old?: Draft) =>
+          old && { ...old, publishedAt: saved.publishedAt, publishedUrl: saved.publishedUrl },
+      )
+      void invalidateRoots(queryClient, 'idea', 'ideas', 'active-drafts')
+    },
   })
 }
 

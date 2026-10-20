@@ -455,10 +455,43 @@ export const DraftSchema = z.object({
   editorName: z.string(),
   /** Counts saves; a save says which version it was made from, so a stale one is refused instead of overwriting. */
   version: z.number().int().min(1),
+  /** When the editor marked it published (#311); null while it is not. The writer's own marker: nothing checks it. */
+  publishedAt: z.string().nullable(),
+  /** Where it was published, if the editor said; only ever an http or https address. */
+  publishedUrl: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
 export type Draft = z.infer<typeof DraftSchema>
+
+export const PUBLISHED_URL_MAX = 2000
+const WEB_ADDRESS_MESSAGE = 'Use a web address that starts with http:// or https://.'
+/** Only a web address can be shown as a link: never `javascript:` or `data:`. */
+export const isWebAddress = (text: string) => {
+  try {
+    return ['http:', 'https:'].includes(new URL(text).protocol)
+  } catch {
+    return false
+  }
+}
+
+/** The editor marking a draft published, or taking the mark away (which takes the link with it). */
+export const DraftPublishedInputSchema = z
+  .object({
+    published: z.boolean(),
+    url: z
+      .string()
+      .trim()
+      .max(PUBLISHED_URL_MAX, 'That address is too long.')
+      .optional()
+      .transform((v) => v || null)
+      .refine((v) => v === null || isWebAddress(v), WEB_ADDRESS_MESSAGE),
+  })
+  .refine((v) => v.published || v.url === null, {
+    message: 'A link goes with a published draft.',
+    path: ['url'],
+  })
+export type DraftPublishedInput = z.input<typeof DraftPublishedInputSchema>
 
 /** How many active drafts Keep writing shows at first, and how many more "Show more" adds. */
 export const ACTIVE_DRAFTS_PAGE = 3
@@ -909,6 +942,9 @@ export const IdeaDraftSchema = z.object({
   editorId: z.string(),
   /** The editor's current name. */
   editorName: z.string(),
+  /** When it was marked published, and where (#311); the list shows both. */
+  publishedAt: z.string().nullable(),
+  publishedUrl: z.string().nullable(),
 })
 export type IdeaDraft = z.infer<typeof IdeaDraftSchema>
 

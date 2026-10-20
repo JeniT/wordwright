@@ -53,6 +53,7 @@ import {
   type BrainstormEvent,
   type CommentInput,
   type DraftInput,
+  type DraftPublishedInput,
   type DraftSave,
   type DraftInsertionInput,
   type IdeaInput,
@@ -634,6 +635,9 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     // drafts
     getDraft: (publicationId: string, id: string) =>
       get(DraftSchema, 'GET', `${drafts(publicationId)}/${id}`),
+    /** The editor marking a draft published (with a link, or none), or taking the mark away. */
+    setDraftPublished: (publicationId: string, id: string, input: DraftPublishedInput) =>
+      get(DraftSchema, 'PUT', `${drafts(publicationId)}/${id}/published`, input),
     updateDraft: (publicationId: string, id: string, input: DraftSave) =>
       get(DraftSchema, 'PUT', `${drafts(publicationId)}/${id}`, input),
     // handing over a draft's editor role: each answers with the handover as it now stands

@@ -630,7 +630,15 @@ and in README. Renumbering is automatic.
 **Publishing is not a step.** It is done to one draft, so it sits at the bottom of the Draft page (`DraftPublish`): **Copy**
 (rich text, with plain text beside it, so it keeps its headings and links when pasted into an editor or an email) and
 **Copy as Markdown** (title first), with a text box to select from if the clipboard is out of reach. Publishing straight to
-a newsletter, and help drafting social threads, would add their own buttons there later; neither is built. The old
+a newsletter, and help drafting social threads, would add their own buttons there later; neither is built. Below them the
+editor says when they have published it: a **switch** "I’ve published this draft" (a state, saved at once), and, once it is
+on, a `callout-ok` (`PublishedNote`: the `chip-ok` "Published 20 Oct 2026", with a tick, and "View post" if there is a link) and an
+optional **Link to the published post** (only `http:` and `https:` are accepted; it opens in a new tab and the service never
+fetches it). Everyone who can read the draft sees the note, but only the editor sees the switch. Marking a draft published
+takes it out of Keep writing, whatever else is true of it. On the idea's **Draft** page (`IdeaDraftsView`, rows are `DraftRow`s) a
+published draft **keeps its place**, since the order is the reading order for a linked set. Its row is washed `ok-wash`, with the
+same chip, and "View post" is its own link beside the row link (a link can't be inside one). There is no animation: the achievement
+is the colour, and the row staying as a record. The text-on-wash pairs are in `palette.test.ts`. The old
 `/ideas/:id/publish` address redirects to the idea's drafts, and the drafts list is the last step, with no next step.
 
 ## Layout

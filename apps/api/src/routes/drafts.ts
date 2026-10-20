@@ -6,6 +6,7 @@ import {
   OptionUseInputSchema,
   REPHRASE,
   countWords,
+  DraftPublishedInputSchema,
   DraftSaveSchema,
   HandoverTargetSchema,
   ReviewNameInputSchema,
@@ -61,6 +62,15 @@ export function draftRoutes(
           )
         }
         return c.json(saved)
+      })
+      // The editor marking the draft published, with a link if they like, or taking the mark away. The mark is theirs
+      // alone and is no change to the words: the version and last-changed time stay.
+      .put('/:id/published', validateJson(DraftPublishedInputSchema), (c) => {
+        const draft = draftOf(c)
+        requireEditor(draft, c.get('user').id)
+        const { published, url } = c.req.valid('json')
+        drafts.setPublished(draft.id, published, url)
+        return c.json(drafts.get(draft.publicationId, draft.id))
       })
       // The latest critique's summary with how many looks are used. It is the editor's alone: for everyone else it says
       // nothing, not even how many looks have been spent (independent review).

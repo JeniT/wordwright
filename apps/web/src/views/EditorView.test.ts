@@ -16,6 +16,8 @@ const draft = {
   editorId: 'u1',
   editorName: 'Ada Lovelace',
   version: 1,
+  publishedAt: null,
+  publishedUrl: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 }
@@ -1341,7 +1343,7 @@ describe('publishing from the draft page', () => {
     const section = await openDraft()
     expect(
       within(section).getByRole('button', { name: 'About publishing' }),
-    ).toHaveAccessibleDescription(/Once it’s published, your idea stays here/)
+    ).toHaveAccessibleDescription(/it leaves Keep writing, and your idea stays here/)
   })
 
   it('copies the title and body as rich text, with plain text beside it', async () => {

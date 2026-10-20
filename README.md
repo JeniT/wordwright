@@ -176,7 +176,7 @@ tests inject fakes and nothing hits the network.
   draft (origin and source come from the note) and sets the note aside, `GET` lists them, and
   `PUT …/ideas/:idea/notes/:note/added` (`{added}`) puts a note back.
   **Every draft belongs to an idea**: there is no standalone "new draft"; the publication page lists ideas, and drafts
-  are added from an idea. A draft is opened, saved and deleted by id at `/api/publications/:id/drafts/:draft`
+  are added from an idea. A draft is opened, saved and deleted by id at `/api/publications/:id/drafts/:draft`. Its editor marks it published, with a link to the post or none, at `PUT …/drafts/:draft/published` (`{published, url?}`; only `http:` and `https:` links; no change to the words, so `version` and `updatedAt` stay; unpublishing clears the link; #311). A published draft is left out of Keep writing and carries `publishedAt` and `publishedUrl` in the idea's list of drafts
   (`/p/<id>/drafts/<draft>` in the app), which links back to its idea's Draft step.
   **Each draft has one editor** (#154): the member responsible for its title and body, its creator at first
   (`editorId`, `editorName`). Only the editor can save (`PUT` needs the `version` it was made from; a stale one is

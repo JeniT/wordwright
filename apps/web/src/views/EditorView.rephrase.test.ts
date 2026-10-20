@@ -18,6 +18,8 @@ const draft = {
   editorId: 'u1',
   editorName: 'Ada Lovelace',
   version: 1,
+  publishedAt: null,
+  publishedUrl: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 }

@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
+import { useSavedValue } from '../lib/forms'
 import { renderMarkdown } from '../lib/markdown'
+import { useSetPublished } from '../lib/queries'
 import Explain from './Explain.vue'
+import PublishedNote from './PublishedNote.vue'
+import SaveStatus from './SaveStatus.vue'
+import SwitchField from './SwitchField.vue'
 
 /**
  * The end of the Draft page: the draft as it stands, ready to be taken elsewhere. **Copy** puts it on the clipboard
@@ -9,8 +14,33 @@ import Explain from './Explain.vue'
  * it for places that take only that; **Copy as Markdown** puts the Markdown itself, title first as a heading. Both
  * copy what is on the page now, saved or not. If the browser won't let us reach the clipboard the text is shown to
  * select instead. Publishing straight to a newsletter would add its own buttons here; none exist yet.
+ *
+ * Below the copy buttons the editor says when they have published it (#311), and may give a link to the post. That
+ * takes the draft out of Keep writing; it is the writer's own marker and nothing checks it.
  */
-const props = defineProps<{ title: string; body: string }>()
+const props = defineProps<{
+  publicationId: string
+  draftId: string
+  title: string
+  body: string
+  publishedAt: string | null
+  publishedUrl: string | null
+}>()
+
+const set = useSetPublished(
+  () => props.publicationId,
+  () => props.draftId,
+)
+const flip = useTemplateRef<InstanceType<typeof SwitchField>>('flip')
+const link = useSavedValue(
+  () => props.publishedUrl ?? '',
+  '',
+  () => props.draftId,
+)
+function toggle(on: boolean) {
+  set.mutate({ published: on }, { onError: () => flip.value?.revert() })
+}
+const saveLink = () => set.mutate({ published: true, url: link.value })
 
 const heading = computed(() => props.title.trim() || 'Untitled')
 const markdown = computed(() => `# ${heading.value}\n\n${props.body.trim()}\n`)
@@ -67,8 +97,8 @@ async function copyRich() {
   <section id="publish" aria-labelledby="publish-heading" class="mt-12 border-t border-line pt-6">
     <h2 id="publish-heading" class="h3">Publish</h2>
     <Explain label="About publishing" class="mt-1">
-      Copy the draft and paste it where you publish. Once it’s published, your idea stays here with
-      its notes, reading list and drafts.
+      Copy the draft and paste it where you publish. Then mark it published: it leaves Keep writing,
+      and your idea stays here with its notes, reading list and drafts.
     </Explain>
     <div class="mt-4 flex flex-wrap items-center gap-2">
       <button type="button" class="btn btn-primary" :disabled="empty" @click="copyRich">
@@ -84,6 +114,37 @@ async function copyRich() {
         We couldn’t reach your clipboard. Select the text below and copy it.
       </template>
     </p>
+    <div class="mt-6">
+      <SwitchField
+        ref="flip"
+        :model-value="!!publishedAt"
+        label="I’ve published this draft"
+        :disabled="set.isPending.value"
+        @update:model-value="toggle"
+      />
+      <template v-if="publishedAt">
+        <PublishedNote class="mt-3" :published-at="publishedAt" :published-url="publishedUrl" />
+        <form class="mt-3 flex flex-wrap items-end gap-2" @submit.prevent="saveLink">
+          <div class="min-w-0 flex-1 basis-64">
+            <label for="published-url" class="mb-1 block text-sm font-medium"
+              >Link to the published post <span class="meta font-normal">(optional)</span></label
+            >
+            <input
+              id="published-url"
+              v-model="link"
+              type="url"
+              class="field"
+              placeholder="https://"
+              autocomplete="off"
+            />
+          </div>
+          <button type="submit" class="btn btn-outline" :disabled="set.isPending.value">
+            Save link
+          </button>
+        </form>
+      </template>
+      <div class="mt-2"><SaveStatus :mutation="set" /></div>
+    </div>
     <div v-if="fallback" class="mt-3">
       <label class="sr-only" for="publish-fallback">The draft, to select and copy</label>
       <textarea

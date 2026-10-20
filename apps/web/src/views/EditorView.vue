@@ -4,6 +4,7 @@ import { computed, nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import PersonChip from '../components/PersonChip.vue'
+import PublishedNote from '../components/PublishedNote.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
@@ -533,6 +534,12 @@ async function requestCritique() {
           <PersonChip :name="draft.data.value.editorName" />
           is this draft’s editor. You can read it, but only they can change it.
         </p>
+        <PublishedNote
+          v-if="draft.data.value?.publishedAt && !canEdit"
+          class="mb-4"
+          :published-at="draft.data.value.publishedAt"
+          :published-url="draft.data.value.publishedUrl"
+        />
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
         <div
@@ -680,7 +687,15 @@ async function requestCritique() {
           :body="body"
         />
 
-        <DraftPublish v-if="canEdit" :title="title" :body="body" />
+        <DraftPublish
+          v-if="canEdit && draft.data.value"
+          :publication-id="publicationId"
+          :draft-id="id"
+          :title="title"
+          :body="body"
+          :published-at="draft.data.value.publishedAt"
+          :published-url="draft.data.value.publishedUrl"
+        />
       </article>
 
       <div

@@ -45,6 +45,7 @@ export class DraftStore {
          WHERE d.editor_id = ?
            AND (? IS NULL OR d.publication_id = ?)
            AND (? IS NULL OR d.idea_id = ?)
+           AND d.published_at IS NULL
          ORDER BY d.updated_at DESC, d.rowid DESC`,
       )
       .all(
@@ -115,6 +116,18 @@ export class DraftStore {
       )
       .run(input.title, input.body, nowIso(), publicationId, id, version)
     return result.changes ? this.get(publicationId, id) : undefined
+  }
+
+  /**
+   * Marks the draft published (keeping the time it was first marked), with a link or none, or clears both. It is not a
+   * change to the words, so `version` and `updated_at` stay as they are.
+   */
+  setPublished(id: string, published: boolean, url: string | null) {
+    this.db
+      .prepare(
+        `UPDATE drafts SET published_at = CASE WHEN ? THEN coalesce(published_at, ?) END, published_url = ? WHERE id = ?`,
+      )
+      .run(published ? 1 : 0, nowIso(), published ? url : null, id)
   }
 
   /** The drafts in the publication that this person is editor of. */
@@ -268,6 +281,8 @@ function toDraft(row: Record<string, unknown>): Draft {
     editorId: row.editor_id as string,
     editorName: row.editor_name as string,
     version: row.version as number,
+    publishedAt: (row.published_at as string | null) ?? null,
+    publishedUrl: (row.published_url as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }

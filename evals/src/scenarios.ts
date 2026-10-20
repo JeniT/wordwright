@@ -37,6 +37,8 @@ const base: Idea = {
       updatedAt: '2026-10-01T00:00:00Z',
       editorId: 'u-1',
       editorName: 'Ada',
+      publishedAt: null,
+      publishedUrl: null,
     },
   ],
   createdAt: '2026-10-01T00:00:00Z',

@@ -647,6 +647,11 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE idea_proposals ADD COLUMN author_id TEXT REFERENCES users(id) ON DELETE SET NULL;
   ALTER TABLE idea_proposals ADD COLUMN edited INTEGER NOT NULL DEFAULT 0;
   `,
+  // A draft the editor has marked as published, optionally with a link to the post (#311).
+  `
+  ALTER TABLE drafts ADD COLUMN published_at TEXT;
+  ALTER TABLE drafts ADD COLUMN published_url TEXT;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

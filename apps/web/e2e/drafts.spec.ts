@@ -140,6 +140,70 @@ test('a draft saves itself while you write, and the words are there after a relo
   )
 })
 
+test('marking a draft published takes it out of Keep writing, and it keeps its place and a green wash in the idea’s list (#311)', async ({
+  page,
+}) => {
+  await registerUser(page)
+  await openFirstPublication(page)
+  const publicationUrl = page.url()
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  const ideaDraftsUrl = page.url()
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+
+  // Until it is marked, the draft is offered on the landing page.
+  await page.goto(publicationUrl)
+  await expect(page.getByRole('region', { name: 'Keep writing' })).toContainText('Meanders')
+
+  await page.goBack()
+  const publish = page.getByRole('region', { name: 'Publish' })
+  await publish.getByRole('switch', { name: 'I’ve published this draft' }).click()
+  await expect(publish.locator('.chip-ok')).toContainText('Published')
+  await publish.getByLabel(/Link to the published post/).fill('https://example.com/meanders')
+  await publish.getByRole('button', { name: 'Save link' }).click()
+  const post = publish.getByRole('link', { name: /View post/ })
+  await expect(post).toHaveAttribute('href', 'https://example.com/meanders')
+  await expect(post).toHaveAttribute('target', '_blank')
+
+  // Looked at in light, dark and on a phone.
+  const violations = async (what: string) =>
+    expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
+  await violations('published draft, light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await violations('published draft, dark')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 390, height: 800 })
+  await violations('published draft, phone')
+  await page.setViewportSize({ width: 1280, height: 800 })
+
+  // Published, it leaves Keep writing but stays in the idea's list, marked.
+  await page.goto(publicationUrl)
+  await expect(page.getByRole('heading', { name: 'Keep writing' })).toHaveCount(0)
+  await page.goto(ideaDraftsUrl)
+  const row = page.getByRole('region', { name: 'Drafts' }).getByRole('listitem').first()
+  await expect(row).toContainText('Meanders')
+  await expect(row.locator('.chip-ok')).toContainText('Published')
+  await expect(row.getByRole('link', { name: /View post/ })).toHaveAttribute(
+    'href',
+    'https://example.com/meanders',
+  )
+  await violations('idea’s drafts with a published row, light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await violations('idea’s drafts with a published row, dark')
+  await page.emulateMedia({ colorScheme: 'light' })
+
+  // Unmarking brings it back, and takes the link with it.
+  await row.getByRole('link', { name: /^Meanders/ }).click()
+  await publish.getByRole('switch', { name: 'I’ve published this draft' }).click()
+  await expect(publish.getByLabel(/Link to the published post/)).toHaveCount(0)
+  await page.goto(publicationUrl)
+  await expect(page.getByRole('region', { name: 'Keep writing' })).toContainText('Meanders')
+})
+
 test('register, write, save and request a critique', async ({ page }) => {
   test.setTimeout(90_000) // a long flow: a long draft, a critique, the limit, a phone
   await registerUser(page)
