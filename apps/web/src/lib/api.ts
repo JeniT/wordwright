@@ -35,7 +35,7 @@ import {
   LlmModelsSchema,
   LlmSettingsSchema,
   PublicationSchema,
-  RecentDraftSchema,
+  ActiveDraftsSchema,
   ProposalSchema,
   RephraseResultSchema,
   ResearchRunSchema,
@@ -269,8 +269,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     /** A new person's reviewer-only account, made and signed in by following the link. */
     registerReviewer: (input: ReviewerRegisterInput) =>
       get(UserSchema, 'POST', '/auth/register-reviewer', input),
-    // drafts the person edits, across their publications
-    listRecentDrafts: () => get(RecentDraftSchema.array(), 'GET', '/drafts/recent'),
+    // drafts the person edits that are active, across their publications or within one publication or idea
+    listActiveDrafts: (scope: { publicationId?: string; ideaId?: string }, limit: number) => {
+      const query = new URLSearchParams({ limit: String(limit) })
+      if (scope.publicationId) query.set('publicationId', scope.publicationId)
+      if (scope.ideaId) query.set('ideaId', scope.ideaId)
+      return get(ActiveDraftsSchema, 'GET', `/drafts/active?${query}`)
+    },
     // a reviewer's own reviews
     listReviews: () => get(ReviewSummarySchema.array(), 'GET', '/reviews'),
     getReview: (id: string) => get(ReviewDetailSchema, 'GET', `/reviews/${id}`),

@@ -3,6 +3,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 import LandingSection from '../components/LandingSection.vue'
+import KeepWriting from '../components/KeepWriting.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import RecentNotes from '../components/RecentNotes.vue'
 import RecentReading from '../components/RecentReading.vue'
@@ -58,6 +59,8 @@ const showResearch = () =>
       :publications="[publication]"
       :idea-id="id"
     />
+
+    <KeepWriting v-if="publication" class="mt-6" :publication-id="publicationId" :idea-id="id" />
 
     <LandingSection
       level="idea"

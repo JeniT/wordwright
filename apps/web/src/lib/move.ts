@@ -277,7 +277,16 @@ export function useMoveIdeas(publicationId: () => string) {
   return useMutation({
     mutationFn: (v: { ids: string[]; to: string }) => api.moveIdeas(publicationId(), v.ids, v.to),
     onSettled: () =>
-      invalidateRoots(queryClient, 'idea', 'ideas', 'draft', 'notes', 'reading', 'attention'),
+      invalidateRoots(
+        queryClient,
+        'idea',
+        'ideas',
+        'draft',
+        'notes',
+        'reading',
+        'attention',
+        'active-drafts',
+      ),
   })
 }
 

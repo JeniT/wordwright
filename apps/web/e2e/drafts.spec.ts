@@ -180,9 +180,9 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Wordwright' }).click()
   await openFirstPublication(page)
-  await page.getByRole('link', { name: /Why rivers meander/ }).click()
+  await page.getByRole('link', { name: /^Why rivers meander \d+ drafts?$/ }).click()
   await goTo(page, 'Draft')
-  await page.getByRole('link', { name: /^Why rivers meander Last changed/ }).click()
+  await page.getByRole('link', { name: /^Why rivers meander .*Last changed/ }).click()
   await page.getByRole('button', { name: 'Critique' }).click()
 
   // The comments come beside the draft, in the tab that opens for them.
@@ -1154,7 +1154,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
 
   // Nothing is waiting yet.
   await bob.goto(publicationUrl)
-  await expect(bob.getByRole('heading', { name: /writing$/ })).toBeVisible()
+  await expect(bob.getByRole('heading', { level: 1, name: /writing$/ })).toBeVisible()
   await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
 
   // Ada offers the draft to Bob: she is told she is waiting, he is told it was offered.
@@ -1206,30 +1206,30 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await rae.getByRole('button', { name: 'Add comment' }).click()
   await expect(rae.getByText('Which rivers?')).toBeVisible()
 
-  // While Rae is reading, Bob's landing page lists the copy; once she ends, it flags the draft.
+  // While Rae is reading, Bob's landing page lists the draft under Keep writing; once she ends, it says she is done.
   await bob.goto(publicationUrl)
-  const reviews = bob.getByRole('list', { name: 'Drafts sent for review' })
-  await expect(reviews).toContainText('0/1 complete · 1 comment')
-  await expect(reviews).not.toContainText('Reviews finished')
+  const keepWriting = bob.getByRole('region', { name: 'Keep writing' })
+  await expect(keepWriting).toContainText('0 of 1 reviews complete · 1 unresolved comment')
   await rae.getByRole('button', { name: 'End review' }).click()
   await expect(rae.getByTestId('review-ended')).toBeVisible()
   await bob.reload()
-  await expect(reviews).toContainText('Reviews finished, unresolved comments')
-  await expect(reviews).toContainText('1/1 complete · 1 comment')
+  await expect(keepWriting).toContainText('1 of 1 reviews complete · 1 unresolved comment')
   expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
 
-  // The draft page says the same per copy; resolving the comment clears the flag.
+  // The draft page says the same per request; resolving the comment clears what is left to answer.
   await bob.goto(draftUrl)
   await bob.getByRole('tab', { name: /^Reviews/ }).click()
-  await expect(bob.getByTestId('review-summary')).toContainText('1/1 complete · 1 comment')
+  await expect(bob.getByTestId('review-summary')).toContainText(
+    '1 of 1 reviews complete · 1 comment',
+  )
   await bob.getByRole('tab', { name: /^Comments/ }).click()
   await bob
     .getByRole('switch', { name: /Resolved/ })
     .first()
     .click()
   await bob.goto(publicationUrl)
-  await expect(bob.getByRole('list', { name: 'Drafts sent for review' })).not.toContainText(
-    'Reviews finished',
+  await expect(bob.getByRole('region', { name: 'Keep writing' })).toContainText(
+    '1 of 1 reviews complete · No unresolved comments',
   )
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })

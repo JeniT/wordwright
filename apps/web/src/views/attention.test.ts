@@ -17,25 +17,13 @@ const publication = {
     { userId: 'u1', name: 'Ada Lovelace', handle: 'ada', email: 'ada@example.com', role: 'owner' },
   ],
 }
-const snapshot = (over: object = {}) => ({
-  id: 's1',
-  sentAt: '2026-02-01T09:30:00Z',
-  name: null,
-  open: 0,
-  ended: 1,
-  closed: 0,
-  pending: 0,
-  comments: 3,
-  unresolved: 2,
-  ...over,
-})
 
 function home(attention: object, calls: string[] = []) {
   server.use(
     signedInAs(testUser),
     http.get('*/api/publications', () => HttpResponse.json([publication])),
     http.get('*/api/publications/p1/attention', () =>
-      HttpResponse.json({ offered: [], waiting: [], reviews: [], ...attention }),
+      HttpResponse.json({ offered: [], waiting: [], ...attention }),
     ),
     http.get('*/api/publications/p1/ideas', () => HttpResponse.json([])),
     http.get('*/api/publications/p1/notes', () => HttpResponse.json([])),
@@ -63,7 +51,6 @@ describe('what is waiting, on the publication’s landing page (#159)', () => {
     await renderAt('/p/p1')
     await screen.findByRole('heading', { name: 'Ada’s writing' })
     expect(screen.queryByRole('heading', { name: 'Waiting for you' })).toBeNull()
-    expect(screen.queryByText('Reviews you sent')).toBeNull()
   })
 
   it('tells the person a draft was offered to them, who can accept or decline it there', async () => {
@@ -89,33 +76,6 @@ describe('what is waiting, on the publication’s landing page (#159)', () => {
       within(section).getByRole('button', { name: 'Withdraw the offer of Meanders' }),
     )
     await waitFor(() => expect(calls).toEqual(['withdraw']))
-  })
-
-  it('lists, per copy sent, how the reviews stand, and flags a draft whose reviews have finished', async () => {
-    home({
-      reviews: [
-        {
-          draftId: 'd1',
-          title: 'Meanders',
-          snapshots: [snapshot()],
-          needsAttention: true,
-        },
-        {
-          draftId: 'd2',
-          title: 'Tides',
-          snapshots: [snapshot({ id: 's2', open: 1, ended: 0, unresolved: 0 })],
-          needsAttention: false,
-        },
-      ],
-    })
-    await renderAt('/p/p1')
-    const list = await screen.findByRole('list', { name: 'Drafts sent for review' })
-    const [meanders, tides] = Array.from(list.querySelectorAll(':scope > li'))
-    expect(meanders).toHaveTextContent('Reviews finished, unresolved comments')
-    expect(meanders).toHaveTextContent('1/1 complete · 3 comments')
-    expect(tides).toHaveTextContent('0/1 complete')
-    expect(tides).not.toHaveTextContent('unresolved comments')
-    expect(tides).not.toHaveTextContent('Reviews finished')
   })
 
   it('says what went wrong if an answer is refused', async () => {

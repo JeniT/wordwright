@@ -39,7 +39,7 @@ export function useHandoverActions(
   const queryClient = useQueryClient()
   function settle(state: HandoverState) {
     queryClient.setQueryData(queryKeys.handover(publicationId(), draftId()), state)
-    void invalidateRoots(queryClient, 'draft', 'critique', 'attention')
+    void invalidateRoots(queryClient, 'draft', 'critique', 'attention', 'active-drafts')
   }
   const run = <A>(fn: (arg: A) => Promise<HandoverState>) =>
     useMutation({ mutationFn: fn, onSuccess: settle })

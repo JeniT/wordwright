@@ -29,7 +29,15 @@ const idea = {
     { id: 'l1', url: 'https://example.org/a', title: 'A', readAt: null, origin: 'entered' },
     { id: 'l2', url: 'https://example.org/b', title: 'B', readAt: null, origin: 'entered' },
   ],
-  drafts: [{ id: 'd1', title: 'Part 1', updatedAt: '2026-01-02T00:00:00Z' }],
+  drafts: [
+    {
+      id: 'd1',
+      title: 'Part 1',
+      updatedAt: '2026-01-02T00:00:00Z',
+      editorId: 'u1',
+      editorName: 'Ada',
+    },
+  ],
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }

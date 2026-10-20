@@ -50,13 +50,17 @@ export class IdeaStore {
     const links = this.reading.list(id)
     const drafts = this.db
       .prepare(
-        'SELECT id, title, updated_at FROM drafts WHERE idea_id = ? ORDER BY position, created_at, rowid',
+        `SELECT d.id, d.title, d.updated_at, d.editor_id, u.name AS editor_name
+         FROM drafts d LEFT JOIN users u ON u.id = d.editor_id
+         WHERE d.idea_id = ? ORDER BY d.position, d.created_at, d.rowid`,
       )
       .all(id)
       .map((d) => ({
         id: d.id as string,
         title: d.title as string,
         updatedAt: d.updated_at as string,
+        editorId: d.editor_id as string,
+        editorName: (d.editor_name as string | null) ?? 'A former member',
       }))
     return {
       id,

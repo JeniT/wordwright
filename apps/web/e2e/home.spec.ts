@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixtures'
 
-// Home once there is a publication: Quick add, then Pick up (#192).
+// Home once there is a publication: Quick add, then Keep writing (#192, #310).
 
 async function signUpWithPublication(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -27,8 +27,8 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   page,
 }) => {
   await signUpWithPublication(page)
-  // Nothing to pick up yet, so no section for it.
-  await expect(page.getByRole('heading', { name: 'Pick up' })).toHaveCount(0)
+  // Nothing to keep writing yet, so no section for it.
+  await expect(page.getByRole('heading', { name: 'Keep writing' })).toHaveCount(0)
   // New idea is the tab showing first.
   await expect(page.getByRole('tab', { name: 'New idea' })).toHaveAttribute('aria-selected', 'true')
 
@@ -54,12 +54,39 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   await page.getByLabel('Idea name').fill('What pruning teaches')
   await page.getByRole('button', { name: 'Create idea' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
+  const ideaUrl = page.url()
+  const publicationUrl = ideaUrl.replace(/\/ideas\/.*$/, '')
 
   await page.getByRole('button', { name: 'New draft' }).click()
+  await expect(page).toHaveURL(/\/drafts\//)
+
+  // The draft is offered on every landing page, under Quick add; the whole row is the link.
   await page.goto('/')
-  const pickUp = page.getByRole('region', { name: 'Pick up' })
-  await expect(pickUp).toContainText('What pruning teaches · Garden notes')
-  await pickUp.getByRole('link', { name: /Continue/ }).click()
+  const keepWriting = page.getByRole('region', { name: 'Keep writing' })
+  await expect(keepWriting).toContainText('What pruning teaches · Garden notes')
+  await noViolations(page, 'home with Keep writing, light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await noViolations(page, 'home with Keep writing, dark')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 390, height: 800 })
+  await noViolations(page, 'home with Keep writing, phone')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
+    'no sideways scroll at 390px',
+  ).toBe(false)
+  await page.setViewportSize({ width: 1280, height: 800 })
+
+  await page.goto(publicationUrl)
+  await expect(page.getByRole('region', { name: 'Keep writing' })).toContainText(
+    'What pruning teaches',
+  )
+  await page.goto(ideaUrl)
+  await expect(page.getByRole('region', { name: 'Keep writing' })).toContainText('Untitled')
+
+  await page.goto('/')
+  await keepWriting.getByRole('link', { name: /Untitled/ }).click()
   await expect(page).toHaveURL(/\/drafts\//)
 })
 

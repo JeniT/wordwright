@@ -1,17 +1,20 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 import type {
+  ActiveDraft,
   Draft,
   DraftInput,
   DraftInsertion,
   InsertionOrigin,
   NoteOrigin,
   OptionUseInput,
-  RecentDraft,
 } from '@wordwright/core'
 import { nowIso } from './database'
 import { parseNames } from './names'
 import { reorder } from './ordering'
+
+/** A draft the person edits, with where it lives (no review figures yet). */
+export type EditedDraft = Omit<ActiveDraft, 'review'>
 
 /** Drafts are always accessed through their publication; callers check membership first. Each develops an idea. */
 export class DraftStore {
@@ -24,8 +27,14 @@ export class DraftStore {
       .map(toDraft)
   }
 
-  /** The drafts `userId` edits, in publications they still belong to, most recently saved first. */
-  recentFor(userId: string, limit: number): RecentDraft[] {
+  /**
+   * The drafts `userId` edits, in publications they still belong to, most recently saved first; optionally only those
+   * of one publication or one idea. The caller decides which of them are active.
+   */
+  editedByAnywhere(
+    userId: string,
+    within: { publicationId?: string; ideaId?: string } = {},
+  ): EditedDraft[] {
     return this.db
       .prepare(
         `SELECT d.id, d.title, d.idea_id, d.publication_id, d.updated_at, i.name AS idea_name, p.name AS publication_name
@@ -34,9 +43,18 @@ export class DraftStore {
          JOIN ideas i ON i.id = d.idea_id
          JOIN publications p ON p.id = d.publication_id
          WHERE d.editor_id = ?
-         ORDER BY d.updated_at DESC, d.rowid DESC LIMIT ?`,
+           AND (? IS NULL OR d.publication_id = ?)
+           AND (? IS NULL OR d.idea_id = ?)
+         ORDER BY d.updated_at DESC, d.rowid DESC`,
       )
-      .all(userId, userId, limit)
+      .all(
+        userId,
+        userId,
+        within.publicationId ?? null,
+        within.publicationId ?? null,
+        within.ideaId ?? null,
+        within.ideaId ?? null,
+      )
       .map((row) => ({
         id: row.id as string,
         title: row.title as string,

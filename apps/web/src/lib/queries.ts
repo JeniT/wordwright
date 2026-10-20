@@ -1,7 +1,16 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/vue-query'
-import type { CommentInput, IdeaNote } from '@wordwright/core'
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/vue-query'
+import { ACTIVE_DRAFTS_PAGE, type CommentInput, type IdeaNote } from '@wordwright/core'
 import { computed, type Ref } from 'vue'
 import { api } from './api'
+
+/** Where Keep writing looks: one publication, one idea, or (neither) across everything the person edits. */
+export type ActiveScope = { publicationId?: string; ideaId?: string }
 
 /**
  * Every query key, and the queries several screens share, in one place. A key spelled out in a component drifts
@@ -30,8 +39,9 @@ export const queryKeys = {
   reviews: () => ['reviews'] as const,
   /** Invitations to join a publication that are waiting for this person. */
   myInvitations: () => ['my-invitations'] as const,
-  /** The drafts Home offers to pick up again. */
-  recentDrafts: () => ['recent-drafts'] as const,
+  /** The drafts to keep writing, within a publication or an idea or (neither) across all of them, `limit` of them. */
+  activeDrafts: (scope: ActiveScope, limit: number) =>
+    ['active-drafts', scope.publicationId ?? null, scope.ideaId ?? null, limit] as const,
   review: (id: string) => ['review', id] as const,
   reviewers: (publicationId: string, id: string) => ['draft-reviewers', publicationId, id] as const,
   handover: (publicationId: string, id: string) => ['draft-handover', publicationId, id] as const,
@@ -50,6 +60,7 @@ export const queryKeys = {
 }
 
 export type QueryRoot =
+  | 'active-drafts'
   | 'attention'
   | 'comments'
   | 'critique'
@@ -68,7 +79,6 @@ export type QueryRoot =
   | 'my-invitations'
   | 'notes'
   | 'reading'
-  | 'recent-drafts'
   | 'recent-posts'
   | 'research'
   | 'sources'
@@ -199,7 +209,7 @@ export function useResolveComment(
     onSuccess: (all) => {
       queryClient.setQueryData(queryKeys.comments(publicationId(), draftId()), all)
       // Resolving can clear what the landing page and the reviews summary say is waiting.
-      void invalidateRoots(queryClient, 'attention', 'draft-reviewers')
+      void invalidateRoots(queryClient, 'attention', 'draft-reviewers', 'active-drafts')
     },
     onError: (err, v) => onError(err, v.commentId),
   })
@@ -232,11 +242,19 @@ export function useIdeaNotes(
   }
 }
 
-/** The drafts the person edits, newest first, across their publications (Home's "Pick up", #192). */
-export function useRecentDrafts(enabled: Get<boolean> = () => true) {
+/**
+ * The drafts the person edits that are active, `limit` of them (Keep writing, #310). The list on screen stays while a
+ * longer one is fetched, so "Show more" adds rows below instead of blanking the box.
+ */
+export function useActiveDrafts(
+  scope: Get<ActiveScope> = () => ({}),
+  limit: Get<number> = () => ACTIVE_DRAFTS_PAGE,
+  enabled: Get<boolean> = () => true,
+) {
   return useQuery({
-    queryKey: queryKeys.recentDrafts(),
-    queryFn: () => api.listRecentDrafts(),
+    queryKey: computed(() => queryKeys.activeDrafts(scope(), limit())),
+    queryFn: () => api.listActiveDrafts(scope(), limit()),
+    placeholderData: keepPreviousData,
     enabled,
   })
 }

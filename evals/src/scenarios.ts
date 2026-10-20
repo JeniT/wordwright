@@ -30,7 +30,15 @@ const base: Idea = {
     },
   ],
   // Titles only: the app never sends a draft's text, and `IdeaDraft` has nowhere to put it.
-  drafts: [{ id: 'd-1', title: 'Part 1: the bend', updatedAt: '2026-10-01T00:00:00Z' }],
+  drafts: [
+    {
+      id: 'd-1',
+      title: 'Part 1: the bend',
+      updatedAt: '2026-10-01T00:00:00Z',
+      editorId: 'u-1',
+      editorName: 'Ada',
+    },
+  ],
   createdAt: '2026-10-01T00:00:00Z',
   updatedAt: '2026-10-01T00:00:00Z',
 }

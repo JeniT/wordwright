@@ -39,79 +39,11 @@ const recentDraft = (over: Record<string, unknown> = {}) => ({
   publicationId: 'ada-blog',
   publicationName: 'Blog',
   updatedAt: '2026-10-02T00:00:00Z',
+  review: null,
   ...over,
 })
 
 beforeEach(() => localStorage.clear())
-
-describe('Home: Pick up (#192)', () => {
-  it('lists the drafts you edit, each with a link to continue', async () => {
-    server.use(
-      signedInAs(testUser),
-      publications(blog),
-      llmSettings(true),
-      http.get('*/api/drafts/recent', () =>
-        HttpResponse.json([recentDraft(), recentDraft({ id: 'd2', title: '', ideaName: 'Other' })]),
-      ),
-    )
-    await renderAt('/')
-    const section = (await screen.findByRole('heading', { name: 'Pick up' })).closest('section')!
-    const items = await within(section).findAllByRole('listitem')
-    expect(items).toHaveLength(2)
-    expect(items[0]).toHaveTextContent('Why we write')
-    expect(items[0]).toHaveTextContent('Writing · Blog')
-    expect(within(items[0]!).getByRole('link', { name: /Continue/ })).toHaveAttribute(
-      'href',
-      '/p/ada-blog/drafts/d1',
-    )
-    expect(items[1]).toHaveTextContent('Untitled draft')
-  })
-
-  it('is not there at all when there is nothing to pick up', async () => {
-    server.use(signedInAs(testUser), publications(blog), llmSettings(true))
-    await renderAt('/')
-    await screen.findByRole('region', { name: 'Quick add' })
-    await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
-    expect(screen.queryByRole('heading', { name: 'Pick up' })).toBeNull()
-  })
-
-  it('says when it could not load, and lets you try again', async () => {
-    server.use(
-      signedInAs(testUser),
-      publications(blog),
-      llmSettings(true),
-      http.get('*/api/drafts/recent', () => HttpResponse.json({ error: 'no' }, { status: 500 })),
-    )
-    await renderAt('/')
-    const section = (await screen.findByRole('heading', { name: 'Pick up' })).closest('section')!
-    expect(await within(section).findByRole('alert')).toHaveTextContent(/couldn't load your drafts/)
-    expect(within(section).getByRole('button', { name: /try again/i })).toBeVisible()
-  })
-
-  it('says it is loading while the drafts are on their way', async () => {
-    server.use(
-      signedInAs(testUser),
-      publications(blog),
-      llmSettings(true),
-      http.get('*/api/drafts/recent', async () => {
-        await new Promise((r) => setTimeout(r, 300))
-        return HttpResponse.json([recentDraft()])
-      }),
-    )
-    await renderAt('/')
-    const section = (await screen.findByRole('heading', { name: 'Pick up' })).closest('section')!
-    expect(within(section).getByText('Loading…')).toBeVisible()
-    expect(await within(section).findByText('Why we write')).toBeVisible()
-  })
-
-  it('is not offered before there is a publication', async () => {
-    server.use(signedInAs(testUser), publications(), llmSettings(false))
-    await renderAt('/')
-    await screen.findByRole('heading', { name: 'Get started' })
-    expect(screen.queryByRole('heading', { name: 'Pick up' })).toBeNull()
-    expect(screen.queryByRole('region', { name: 'Quick add' })).toBeNull()
-  })
-})
 
 describe('Home: Quick add (#192)', () => {
   it('has no publication picker when there is only one', async () => {
@@ -139,10 +71,11 @@ describe('Home: Quick add (#192)', () => {
       signedInAs(testUser),
       publications(blog, letters),
       llmSettings(true),
-      http.get('*/api/drafts/recent', () =>
-        HttpResponse.json([
-          recentDraft({ publicationId: 'ada-letters', publicationName: 'Letters' }),
-        ]),
+      http.get('*/api/drafts/active', () =>
+        HttpResponse.json({
+          drafts: [recentDraft({ publicationId: 'ada-letters', publicationName: 'Letters' })],
+          hasMore: false,
+        }),
       ),
     )
     await renderAt('/')
@@ -361,7 +294,7 @@ describe('Home: Quick add (#192)', () => {
     },
   )
 
-  it('keeps adding to the publication you were shown when Pick up loads late', async () => {
+  it('keeps adding to the publication you were shown when Keep writing loads late', async () => {
     const posted: string[] = []
     server.use(
       signedInAs(testUser),
@@ -369,11 +302,12 @@ describe('Home: Quick add (#192)', () => {
       llmSettings(true),
       ideasFor('ada-blog', ['x']),
       ideasFor('ada-letters', ['x']),
-      http.get('*/api/drafts/recent', async () => {
+      http.get('*/api/drafts/active', async () => {
         await new Promise((r) => setTimeout(r, 200))
-        return HttpResponse.json([
-          recentDraft({ publicationId: 'ada-letters', publicationName: 'Letters' }),
-        ])
+        return HttpResponse.json({
+          drafts: [recentDraft({ publicationId: 'ada-letters', publicationName: 'Letters' })],
+          hasMore: false,
+        })
       }),
       http.post('*/api/publications/:id/reading', ({ params }) => {
         posted.push(String(params.id))

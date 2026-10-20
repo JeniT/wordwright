@@ -543,12 +543,19 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Idea                 | how to develop it                            | **01 Research** (the AI research tool), **02 Read** (the idea's own reading list), **03 Note**, **04 Refine** (brainstorm), **05 Draft**                                   | Beside the idea's name, in the menu and on its landing page                             |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
-**Quick add**, **Pick up**, then the publications. (The same panel sits at the top of a publication's and an idea's landing page, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add to reading list says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add to reading list**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
+**Quick add**, **Keep writing**, then the publications. (Quick add and Keep writing sit together at the top of a publication's and an idea's landing page too, Quick add first; Quick add there is the same panel, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add to reading list says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add to reading list**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
 is showing on arrival, every time, so there is always a form and no Cancel. A publication picker
 sits inside the form that is showing, above its field, and only when there is more than one; it starts at the publication last worked in (saved in `localStorage` when a
-publication page opens or one is chosen here), else the one with the newest draft to pick up, else the first. A note or reading item goes to the publication's own list, never
-into an idea, and the form says where it went and stays open for the next. _Pick up_ lists up to three drafts the person edits
-(`GET /api/drafts/recent`), newest first, each with idea, publication and a **Continue** link.
+publication page opens or one is chosen here), else the one with the first draft to keep writing, else the first. A note or reading item goes to the publication's own list, never
+into an idea, and the form says where it went and stays open for the next. _Keep writing_ lists the drafts the person edits that are active
+(`GET /api/drafts/active`): saved in the last 30 days, or with a review in progress, or with comments they haven't resolved,
+those with unresolved comments first. It starts with three; **Show more** adds three below them and moves focus to the first new
+row. It is on Home (all their publications), a publication's landing page (that publication) and an idea's (that idea), and is
+not drawn when nothing is active. A row is a `DraftRow`, the same one the idea's Draft page uses: the whole row is the link (no
+"Continue"), with the title, then what the page doesn't already say about where it is (idea and publication on Home, the idea on a
+publication's page, nothing on an idea's) and "Last changed", then how its reviews stand over all its requests ("2 of 5 reviews
+complete · 4 unresolved comments"). The Draft page adds the editor as a name chip (`PersonChip`, as on a note) to every row,
+the person's own included; Keep writing never does, as they are all theirs.
 
 **First run (Home).** While a person has no publication or no AI key, the top of Home is a two-item checklist using the
 same 01 / 02 badges: **01 Create your first publication** and **02 Connect your AI key (Anthropic)**. Neither blocks the

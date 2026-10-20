@@ -498,7 +498,7 @@ describe('asking someone to review a draft', () => {
       expect(screen.getByRole('tab', { name: 'Reviews' })).toBeTruthy()
       expect(await within(tab).findByRole('heading', { level: 3 })).toHaveTextContent(/Mar.*2026/)
       expect(within(tab).getByTestId('review-summary')).toHaveTextContent(
-        '0/1 complete · 0 comments',
+        '0 of 1 reviews complete · 0 comments',
       )
       expect(within(tab).getByText(/Tom/)).toBeTruthy()
       expect(within(tab).queryByText(/Rae/)).toBeNull()
@@ -516,7 +516,7 @@ describe('asking someone to review a draft', () => {
       expect(within(tab).getByRole('heading', { level: 3 })).toHaveTextContent(/Feb.*2026/)
       // Reviewers reading, finished and yet to answer, over the comments so far.
       expect(within(tab).getByTestId('review-summary')).toHaveTextContent(
-        '1/3 complete · 3 comments',
+        '1 of 3 reviews complete · 3 comments',
       )
       expect(within(tab).getByText(/Reading · 2 comments/)).toBeTruthy()
       expect(within(tab).getByText(/Finished · 1 comment/)).toBeTruthy()
@@ -617,7 +617,7 @@ describe('asking someone to review a draft', () => {
       expect(within(tab).queryByRole('button', { name: 'Close all reviews' })).toBeNull()
     })
 
-    it('says All closed when nobody is left to wait for, and withdraws a waiting invitation', async () => {
+    it('says All reviews closed when nobody is left to wait for, and withdraws a waiting invitation', async () => {
       const calls = page('member')
       server.use(
         http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
@@ -652,7 +652,7 @@ describe('asking someone to review a draft', () => {
       )
       const tab = await openTab()
       expect(await within(tab).findByTestId('review-summary')).toHaveTextContent(
-        'All closed · 2 comments',
+        'All reviews closed · 2 comments',
       )
       expect(within(tab).queryByRole('button', { name: /^Close/ })).toBeNull()
       expect(calls).toEqual([])

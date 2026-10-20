@@ -460,11 +460,25 @@ export const DraftSchema = z.object({
 })
 export type Draft = z.infer<typeof DraftSchema>
 
-/** How many drafts Home offers to pick up again. */
-export const RECENT_DRAFTS_LIMIT = 3
+/** How many active drafts Keep writing shows at first, and how many more "Show more" adds. */
+export const ACTIVE_DRAFTS_PAGE = 3
+/** The most one request may ask for. */
+export const ACTIVE_DRAFTS_MAX = 60
+/** A draft saved this recently counts as active, whatever else is true of it. */
+export const ACTIVE_DRAFT_DAYS = 30
 
-/** A draft the person edits, with enough around it to show where it is and to open it (Home, #192). */
-export const RecentDraftSchema = z.object({
+/** How a draft's review requests stand, totalled across all of them. Closed reviews don't count as asked. */
+export const DraftReviewTotalsSchema = z.object({
+  /** Reviewers reading, finished, or yet to answer the invitation. */
+  asked: z.number().int(),
+  ended: z.number().int(),
+  /** Reviewers' comments the editor has not resolved. */
+  unresolved: z.number().int(),
+})
+export type DraftReviewTotals = z.infer<typeof DraftReviewTotalsSchema>
+
+/** A draft the person edits that is active, with enough around it to show where it is and to open it (Keep writing, #310). */
+export const ActiveDraftSchema = z.object({
   id: z.string(),
   title: z.string(),
   ideaId: z.string(),
@@ -472,8 +486,16 @@ export const RecentDraftSchema = z.object({
   publicationId: z.string(),
   publicationName: z.string(),
   updatedAt: z.string(),
+  /** Null when the draft has never been sent for review. */
+  review: DraftReviewTotalsSchema.nullable(),
 })
-export type RecentDraft = z.infer<typeof RecentDraftSchema>
+export type ActiveDraft = z.infer<typeof ActiveDraftSchema>
+
+export const ActiveDraftsSchema = z.object({
+  drafts: z.array(ActiveDraftSchema),
+  hasMore: z.boolean(),
+})
+export type ActiveDrafts = z.infer<typeof ActiveDraftsSchema>
 
 export const DraftInputSchema = z.object({
   title: z.string().max(300).default(''),
@@ -883,6 +905,10 @@ export const IdeaDraftSchema = z.object({
   id: z.string(),
   title: z.string(),
   updatedAt: z.string(),
+  /** The member responsible for its words; the list shows it, as editors differ. */
+  editorId: z.string(),
+  /** The editor's current name. */
+  editorName: z.string(),
 })
 export type IdeaDraft = z.infer<typeof IdeaDraftSchema>
 
@@ -1521,15 +1547,6 @@ export const PublicationAttentionSchema = z.object({
   ),
   waiting: z.array(
     z.object({ draftId: z.string(), title: z.string(), toName: z.string().nullable() }),
-  ),
-  reviews: z.array(
-    z.object({
-      draftId: z.string(),
-      title: z.string(),
-      snapshots: z.array(SnapshotReviewsSchema),
-      /** Every review of a snapshot is over, at least one was finished, and comments are still unresolved. */
-      needsAttention: z.boolean(),
-    }),
   ),
 })
 export type PublicationAttention = z.infer<typeof PublicationAttentionSchema>

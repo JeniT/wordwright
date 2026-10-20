@@ -6,7 +6,7 @@ import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import LlmSettingsSection from '../components/LlmSettingsSection.vue'
 import PendingInvitations from '../components/PendingInvitations.vue'
-import PickUp from '../components/PickUp.vue'
+import KeepWriting from '../components/KeepWriting.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import PublicationImage from '../components/PublicationImage.vue'
 import UsernameSection from '../components/UsernameSection.vue'
@@ -114,7 +114,7 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
 
   <template v-if="hasPublication && publications.data.value">
     <QuickAdd class="mb-10" :publications="publications.data.value" />
-    <PickUp />
+    <KeepWriting class="mb-10" />
   </template>
 
   <section aria-labelledby="publications-heading">

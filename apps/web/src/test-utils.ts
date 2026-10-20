@@ -64,8 +64,8 @@ export const server = setupServer(
       ],
     }),
   ),
-  // Nothing to pick up on Home unless a test says otherwise.
-  http.get('*/api/drafts/recent', () => HttpResponse.json([])),
+  // Nothing to keep writing unless a test says otherwise.
+  http.get('*/api/drafts/active', () => HttpResponse.json({ drafts: [], hasMore: false })),
   // No feeds yet, and so no recent posts.
   http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json([])),
   // An empty reading list (the publication's, which the Read page shows).

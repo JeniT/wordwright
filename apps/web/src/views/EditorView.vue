@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
+import PersonChip from '../components/PersonChip.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
@@ -529,9 +530,7 @@ async function requestCritique() {
           />
         </div>
         <p v-if="draft.data.value && !canEdit" class="callout mb-4 text-sm" data-testid="read-only">
-          <span class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
-            draft.data.value.editorName
-          }}</span>
+          <PersonChip :name="draft.data.value.editorName" />
           is this draft’s editor. You can read it, but only they can change it.
         </p>
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>

@@ -12,6 +12,7 @@ import RecentPostsSummary from '../components/RecentPostsSummary.vue'
 import RecentReading from '../components/RecentReading.vue'
 import SettingsButton from '../components/SettingsButton.vue'
 import { displayHost } from '../lib/usePublications'
+import KeepWriting from '../components/KeepWriting.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 
 /**
@@ -71,6 +72,8 @@ defineProps<{ publicationId: string }>()
     <PublicationDescription :publication="publication" />
 
     <QuickAdd class="mt-6" in-place :publications="[publication]" />
+
+    <KeepWriting class="mt-6" :publication-id="publicationId" />
 
     <PublicationIdeas :publication-id="publicationId" />
 

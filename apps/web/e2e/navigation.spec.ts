@@ -103,7 +103,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(
     page
       .getByRole('region', { name: 'Ideas', exact: true })
-      .getByRole('link', { name: /What pruning teaches/ }),
+      .getByRole('link', { name: /^What pruning teaches \d+ drafts?$/ }),
   ).toBeVisible()
   await goTo(page, 'Scan')
   await noViolations(page, 'Search step')
@@ -124,7 +124,7 @@ test('leads through a publication and an idea step by step, without ever locking
   ).toBeVisible()
 
   // Opening a publication lands on its own page, which is none of the steps.
-  await page.getByRole('link', { name: /Garden notes/ }).click()
+  await page.getByRole('link', { name: 'Garden notes', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Garden notes' })).toBeVisible()
   await expect(publication.locator('[aria-current="page"]')).toHaveCount(0)
   await noViolations(page, 'Publication landing page')
@@ -147,7 +147,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await page.goBack()
   await page
     .locator('#main')
-    .getByRole('link', { name: /What pruning teaches/ })
+    .getByRole('link', { name: /^What pruning teaches \d+ drafts?$/ })
     .click()
 
   // An idea opens on its own page too, which is none of the steps either.
@@ -195,7 +195,7 @@ test('looks right, and has no accessibility violations, in dark mode', async ({ 
   await page.getByRole('link', { name: '← Garden notes' }).click()
   await page
     .locator('#main')
-    .getByRole('link', { name: /What pruning teaches/ })
+    .getByRole('link', { name: /^What pruning teaches \d+ drafts?$/ })
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   await noViolations(page, 'Idea landing page in dark mode')
@@ -254,7 +254,7 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   await page.getByRole('link', { name: '← Garden notes' }).click()
   await page
     .locator('#main')
-    .getByRole('link', { name: /What pruning teaches/ })
+    .getByRole('link', { name: /^What pruning teaches \d+ drafts?$/ })
     .click()
   await expect(page.getByRole('heading', { level: 1, name: 'What pruning teaches' })).toBeVisible()
   expect(await fits()).toBe(true)

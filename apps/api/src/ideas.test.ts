@@ -353,6 +353,17 @@ describe('ideas', () => {
       expect((await (await ada.get(ideas())).json())[0].draftCount).toBe(2)
     })
 
+    it('say who edits each, so a list of drafts with different editors can show it', async () => {
+      const idea = await (await ada.post(ideas(), { name: 'A series' })).json()
+      const draft = await (
+        await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Part 1' })
+      ).json()
+      const full = await (await ada.get(`${ideas()}/${idea.id}`)).json()
+      expect(full.drafts).toMatchObject([
+        { id: draft.id, editorId: draft.editorId, editorName: 'Ada' },
+      ])
+    })
+
     it('can be opened and edited like any other draft', async () => {
       const idea = await (await ada.post(ideas(), { name: 'Rivers' })).json()
       const draft = await (await ada.post(`${ideas()}/${idea.id}/drafts`, {})).json()

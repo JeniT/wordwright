@@ -5,7 +5,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import type { Publication } from '@wordwright/core'
 import { api } from '../lib/api'
 import { lastPublicationId, rememberPublication } from '../lib/last-publication'
-import { invalidateRoots, refreshNotesEverywhere, useRecentDrafts } from '../lib/queries'
+import { invalidateRoots, refreshNotesEverywhere, useActiveDrafts } from '../lib/queries'
 import { useQuoteTick } from '../lib/quote-tick'
 import AddLinkForm from './AddLinkForm.vue'
 import FieldWithAction from './FieldWithAction.vue'
@@ -39,9 +39,13 @@ const queryClient = useQueryClient()
 
 type Kind = 'idea' | 'note' | 'reading'
 
-// Which publication: the one just picked, else the one last worked in, else the one with the newest draft to pick up
-// (nothing records when a publication's content last changed), else the first.
-const recentDrafts = useRecentDrafts(() => props.publications.length > 1)
+// Which publication: the one just picked, else the one last worked in, else the one with the first draft to keep
+// writing (nothing records when a publication's content last changed), else the first.
+const activeDrafts = useActiveDrafts(
+  () => ({}),
+  () => 1,
+  () => props.publications.length > 1,
+)
 const chosen = ref<string>()
 const isKnown = (id: string | null | undefined): id is string =>
   !!id && props.publications.some((p) => p.id === id)
@@ -49,7 +53,7 @@ const selectedId = computed(() => {
   if (isKnown(chosen.value)) return chosen.value
   const remembered = lastPublicationId()
   if (isKnown(remembered)) return remembered
-  const newest = recentDrafts.data.value?.[0]?.publicationId
+  const newest = activeDrafts.data.value?.drafts[0]?.publicationId
   return isKnown(newest) ? newest : props.publications[0]!.id
 })
 const selected = computed(() => props.publications.find((p) => p.id === selectedId.value)!)

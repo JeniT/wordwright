@@ -26,6 +26,8 @@ const draft = (n: number) => ({
   id: `d${n}`,
   title: n === 3 ? '' : `Part ${n}`,
   updatedAt: '2026-01-02T00:00:00Z',
+  editorId: 'u1',
+  editorName: 'Ada',
 })
 const idea = (links = [link(1), link(2)], drafts = [draft(1), draft(2)]) => ({
   id: 'i1',

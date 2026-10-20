@@ -40,7 +40,15 @@ const idea = {
       origin: 'entered',
     },
   ],
-  drafts: [{ id: 'd1', title: 'Part 1', updatedAt: '2026-01-02T00:00:00Z' }],
+  drafts: [
+    {
+      id: 'd1',
+      title: 'Part 1',
+      updatedAt: '2026-01-02T00:00:00Z',
+      editorId: 'u1',
+      editorName: 'Ada',
+    },
+  ],
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
@@ -293,12 +301,54 @@ describe('idea page', () => {
     )
   })
 
-  it('shows its drafts, in order, on the Draft step', async () => {
+  it('shows its drafts, in order, on the Draft step, each row a link', async () => {
     await openAt('/drafts')
     expect(await screen.findByRole('link', { name: /Part 1/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/drafts/d1',
     )
+  })
+
+  it('names the editor of every draft on the Draft step, including your own, as the notes’ author chip does', async () => {
+    server.use(
+      http.get(ideaUrl, () =>
+        HttpResponse.json({
+          ...idea,
+          drafts: [
+            {
+              id: 'd1',
+              title: 'Mine',
+              updatedAt: '2026-01-02T00:00:00Z',
+              editorId: 'u1',
+              editorName: 'Ada',
+            },
+            {
+              id: 'd2',
+              title: 'Bob’s',
+              updatedAt: '2026-01-03T00:00:00Z',
+              editorId: 'u2',
+              editorName: 'Bob',
+            },
+          ],
+        }),
+      ),
+      signedInAs(testUser),
+      listPublications,
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/ada-substack/ideas/i1/drafts')
+    const rows = await within(await screen.findByRole('region', { name: 'Drafts' })).findAllByRole(
+      'listitem',
+    )
+    expect(rows[0]).toHaveTextContent('Mine')
+    expect(rows[0]).toHaveTextContent('Editor: Ada')
+    expect(rows[1]).toHaveTextContent('Bob’s')
+    expect(rows[1]).toHaveTextContent('Editor: Bob')
+    expect(within(rows[1]!).getByRole('link', { name: /Bob’s/ })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/drafts/d2',
+    )
+    expect(rows[1]).toHaveTextContent(/Last changed/)
   })
 
   it('explains when the idea cannot be opened', async () => {
@@ -1992,9 +2042,27 @@ describe('idea page', () => {
     const three = {
       ...idea,
       drafts: [
-        { id: 'd1', title: 'Part 1', updatedAt: '2026-01-02T00:00:00Z' },
-        { id: 'd2', title: 'Part 2', updatedAt: '2026-01-03T00:00:00Z' },
-        { id: 'd3', title: '', updatedAt: '2026-01-04T00:00:00Z' },
+        {
+          id: 'd1',
+          title: 'Part 1',
+          updatedAt: '2026-01-02T00:00:00Z',
+          editorId: 'u1',
+          editorName: 'Ada',
+        },
+        {
+          id: 'd2',
+          title: 'Part 2',
+          updatedAt: '2026-01-03T00:00:00Z',
+          editorId: 'u1',
+          editorName: 'Ada',
+        },
+        {
+          id: 'd3',
+          title: '',
+          updatedAt: '2026-01-04T00:00:00Z',
+          editorId: 'u1',
+          editorName: 'Ada',
+        },
       ],
     }
     const titles = () =>

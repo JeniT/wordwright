@@ -45,7 +45,7 @@ gentle "Next: …" suggestion. Home → publication → idea:
 
 | Level                | Menu lists                                                                                                                                                                         | Front door                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Home                 | Quick add, drafts to pick up, publications; account settings by the gear beside your name (`/`)                                                                                    | `/`                                                                       |
+| Home                 | Quick add, Keep writing, publications; account settings by the gear beside your name (`/`)                                                                                         | `/`                                                                       |
 | Publication          | **01 Scan** (recent posts), **02 Read** (reading list), **03 Note**; a gear beside the name for settings                                                                           | `/p/<id>` → its landing page                                              |
 | Idea                 | **01 Research**, **02 Read**, **03 Note**, **04 Refine** (brainstorm), **05 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings          | `/p/<id>/ideas/<idea>` → Note                                             |
 | Publication settings | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}" | `/p/<id>/settings` → `/p/<id>/settings/details` (members: `/description`) |
@@ -121,7 +121,7 @@ tests inject fakes and nothing hits the network.
   added) for a linked set of posts. Anyone a publication is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. API:
   `/api/publications/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
-  **Home:** `GET /api/drafts/recent` answers the (up to three) drafts the signed-in person edits, newest first, in publications they still belong to (draft, idea and publication names and ids), for Home's **Pick up**; not available to reviewer-only accounts. **Quick add** on Home uses the existing create-idea, publication notes and publication reading endpoints.
+  **Keep writing** (#310), under Quick add on Home, a publication's landing page and an idea's: `GET /api/drafts/active` answers the drafts the signed-in person edits, in publications they still belong to, that are active (saved in the last 30 days, or with a review in progress, or with comments they haven't resolved), those with unresolved comments first and then newest first. `publicationId` and `ideaId` narrow it; `limit` (3 by default, at most 60) says how many, and `hasMore` tells "Show more" whether to appear. Each draft carries its idea and publication names and, if it was ever sent for review, `review` totals over all its requests (`asked`, `ended`, `unresolved`); not available to reviewer-only accounts. **Quick add** on Home uses the existing create-idea, publication notes and publication reading endpoints.
   **Reading list (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
@@ -199,9 +199,8 @@ tests inject fakes and nothing hits the network.
   count (`GET …/reviewers`, with each review request's progress: who has finished, of those reading, finished or yet to answer, and its comments) in a Reviews tab beside the draft, one request at a time. A request can be named (`PATCH …/snapshots/:id`, up to 80 characters; blank clears it) and its open reviews closed together (`POST …/snapshots/:id/close`). They also see their comments, placed on the live draft where the passage still exists. **Start writing**
   (`POST /reviews/start-writing`) or an invitation to a publication makes a reviewer-only account a full one.
   **What is waiting on you** (#159): `GET /api/publications/:id/attention` feeds a block at the top of the publication's landing
-  page: a draft offered to you (Accept / Decline there), your own offer still waiting (Withdraw), and for drafts you edit
-  how each copy sent for review stands, flagged when every review is over, some finished and comments are unresolved.
-  Nothing is shown when nothing waits, and nothing is emailed or counted elsewhere.
+  page: a draft offered to you (Accept / Decline there) and your own offer still waiting (Withdraw). How the reviews of your
+  drafts stand is in Keep writing (#310). Nothing is shown when nothing waits, and nothing is emailed or counted elsewhere.
   **Handover** (#155), on the draft page itself (what waits for an answer, and what you have set going, are notices at the top; **Offer draft**, **Ask for this draft** (with a confirm), **Reassign draft**, **Send for review** and the history are buttons opening dialogs, #296; who is reviewing is a Reviews tab beside the draft, #301) (`/api/publications/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other

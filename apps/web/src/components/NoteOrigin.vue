@@ -3,6 +3,7 @@ import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
 import type { OriginSource } from '../lib/note-label'
 import NewTabLink from './NewTabLink.vue'
+import PersonChip from './PersonChip.vue'
 
 /**
  * Where a note came from, then who recorded it as a chip on the line below. A page it was taken from is a link to it, in
@@ -35,13 +36,6 @@ defineProps<{
       ></span
     >
     <span class="sr-only">, recorded by</span>
-    <span
-      v-if="authorName"
-      class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink"
-      >{{ authorName }}</span
-    >
-    <span v-else class="rounded-full bg-sunken px-2 py-0.5 text-xs text-ink-soft italic"
-      >A former member</span
-    >
+    <PersonChip :name="authorName" />
   </span>
 </template>

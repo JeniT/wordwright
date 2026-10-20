@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { RouterLink } from 'vue-router'
+import DraftRow from '../components/DraftRow.vue'
 import Explain from '../components/Explain.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 import ReorderableList from '../components/ReorderableList.vue'
@@ -56,20 +56,12 @@ async function saveDraftOrder(ids: string[]) {
         :save="saveDraftOrder"
       >
         <template #default="{ item: draft }">
-          <RouterLink
+          <DraftRow
             :to="{ name: 'draft', params: { publicationId, id: draft.id } }"
-            class="flex min-w-0 flex-1 items-baseline justify-between gap-3 py-1 no-underline hover:bg-sunken"
-          >
-            <span class="min-w-0 text-lg font-semibold break-words">{{
-              draft.title || 'Untitled'
-            }}</span>
-            <time class="meta shrink-0" :datetime="draft.updatedAt">
-              <span class="sr-only">Last changed </span
-              >{{
-                new Date(draft.updatedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })
-              }}
-            </time>
-          </RouterLink>
+            :title="draft.title"
+            :updated-at="draft.updatedAt"
+            :editor-name="draft.editorName"
+          />
         </template>
       </ReorderableList>
       <p v-if="moveDrafts.isError.value" role="alert" class="mt-2 text-danger">

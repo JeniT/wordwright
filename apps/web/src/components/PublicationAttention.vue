@@ -2,16 +2,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { reviewSummary, reviewTitle } from '../lib/review-request'
-import type { SnapshotReviews } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots, queryKeys } from '../lib/queries'
 
 /**
  * What is waiting on this person in the publication, said once at the top of its landing page and nowhere else (#159):
- * a draft offered to them (Accept or Decline here, or open the draft), their own offer still waiting for an answer
- * (Withdraw), and, for drafts they edit, how the reviews they sent stand, with a flag when every review is over and
- * comments are still unanswered. There is no email for any of it, no count in the menu, and nothing when nothing waits.
+ * a draft offered to them (Accept or Decline here, or open the draft) and their own offer still waiting for an answer
+ * (Withdraw). How the reviews they sent stand is Keep writing's (#310). There is no email for any of it, no count in
+ * the menu, and nothing when nothing waits.
  */
 const props = defineProps<{ publicationId: string }>()
 const queryClient = useQueryClient()
@@ -19,7 +17,8 @@ const attention = useQuery({
   queryKey: computed(() => queryKeys.attention(props.publicationId)),
   queryFn: () => api.getPublicationAttention(props.publicationId),
 })
-const done = () => invalidateRoots(queryClient, 'attention', 'draft', 'draft-handover')
+const done = () =>
+  invalidateRoots(queryClient, 'attention', 'draft', 'draft-handover', 'active-drafts')
 const accept = useMutation({
   mutationFn: (draftId: string) => api.acceptOffer(props.publicationId, draftId),
   onSuccess: done,
@@ -39,9 +38,8 @@ const problem = computed(() => {
 const busy = computed(() => [accept, decline, withdraw].some((m) => m.isPending.value))
 const any = computed(() => {
   const a = attention.data.value
-  return !!a && (a.offered.length > 0 || a.waiting.length > 0 || a.reviews.length > 0)
+  return !!a && (a.offered.length > 0 || a.waiting.length > 0)
 })
-const line = (s: SnapshotReviews) => `${reviewTitle(s)}: ${reviewSummary(s)}`
 </script>
 
 <template>
@@ -101,27 +99,6 @@ const line = (s: SnapshotReviews) => `${reviewTitle(s)}: ${reviewSummary(s)}`
       >
         Withdraw
       </button>
-    </div>
-
-    <div v-if="attention.data.value?.reviews.length" class="panel p-4">
-      <h3 class="mb-2 font-semibold">Reviews you sent</h3>
-      <ul class="space-y-3" aria-label="Drafts sent for review">
-        <li v-for="r in attention.data.value.reviews" :key="r.draftId">
-          <p>
-            <RouterLink
-              :to="{ name: 'draft', params: { publicationId, id: r.draftId } }"
-              class="link font-semibold"
-              >{{ r.title || 'Untitled draft' }}</RouterLink
-            >
-            <span v-if="r.needsAttention" class="chip chip-quiet ml-2"
-              >Reviews finished, unresolved comments</span
-            >
-          </p>
-          <ul class="meta">
-            <li v-for="s in r.snapshots" :key="s.id">{{ line(s) }}</li>
-          </ul>
-        </li>
-      </ul>
     </div>
 
     <p v-if="problem" role="alert" class="text-danger">{{ problem }}</p>
