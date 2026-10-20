@@ -254,10 +254,10 @@ describe('renderReply', () => {
   it('writes the words, then one marker line per tool call', () => {
     const out = renderReply([
       { type: 'text', text: 'Noted. ' },
-      { type: 'tool_call', id: '1', name: 'add_note', input: { text: 'Erosion loops' } },
+      { type: 'tool_call', id: '1', name: 'suggest_note', input: { text: 'Erosion loops' } },
       { type: 'done', stopReason: 'tool_use', usage: { inputTokens: 1, outputTokens: 1 } },
     ])
-    expect(out).toBe('Noted.\n[tool_call add_note {"text":"Erosion loops"}]')
+    expect(out).toBe('Noted.\n[tool_call suggest_note {"text":"Erosion loops"}]')
   })
 
   it('makes the deterministic checks work on a rendered tool call', () => {
@@ -381,7 +381,7 @@ describe('the deterministic checks on the notes the coach records', () => {
     (o: string) => boolean,
     (o: string) => boolean,
   ]
-  const call = (text: string) => `[tool_call add_note ${JSON.stringify({ text })}]`
+  const call = (text: string) => `[tool_call suggest_note ${JSON.stringify({ text })}]`
   const reply = (...notes: string[]) => ['Noted.', ...notes.map(call)].join('\n')
 
   it('wants a note as each point is made: at least two, and not a flood', () => {

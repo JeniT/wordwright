@@ -554,6 +554,33 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
         `${conversation(publicationId, ideaId, conversationId)}/proposals/${proposalId}/dismiss`,
         {},
       ),
+    /** Edits a suggestion that is still waiting (a note's text, or an idea's name and notes). */
+    editProposal: (
+      publicationId: string,
+      ideaId: string,
+      conversationId: string,
+      proposalId: string,
+      changes: { text?: string; name?: string; notes?: string },
+    ) =>
+      get(
+        ProposalSchema,
+        'PATCH',
+        `${conversation(publicationId, ideaId, conversationId)}/proposals/${proposalId}`,
+        changes,
+      ),
+    /** Brings back a suggestion that was ignored. */
+    reconsiderProposal: (
+      publicationId: string,
+      ideaId: string,
+      conversationId: string,
+      proposalId: string,
+    ) =>
+      get(
+        ProposalSchema,
+        'POST',
+        `${conversation(publicationId, ideaId, conversationId)}/proposals/${proposalId}/reconsider`,
+        {},
+      ),
     /** Deletes one conversation, for everyone in the publication. */
     deleteConversation: (publicationId: string, ideaId: string, conversationId: string) =>
       act('DELETE', conversation(publicationId, ideaId, conversationId)),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ADD_NOTE_TOOL_PROMPT,
+  SUGGEST_NOTE_TOOL_PROMPT,
   BRAINSTORM_KICKOFF_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   CREATE_IDEA_TOOL_PROMPT,
@@ -12,7 +12,7 @@ import {
 } from './index'
 
 const prompts = {
-  ADD_NOTE_TOOL_PROMPT,
+  SUGGEST_NOTE_TOOL_PROMPT,
   CRITIQUE_PROMPT,
   OPTIONS_PROMPT,
   RESEARCH_PROMPT,
@@ -139,7 +139,7 @@ describe('prompts', () => {
 
   it('the rules name the tools, forbid drafting and treat the snapshot as data', () => {
     for (const phrase of [
-      'add_note',
+      'suggest_note',
       'update_idea',
       'create_idea',
       'never write or edit drafts',

@@ -10,7 +10,15 @@ import NewTabLink from './NewTabLink.vue'
  * One page your AI suggested, with the decision to make about it (or how it was decided, and a way back). Laid out
  * like a post on the Search page (`RecentPostRow`), so the two lists read alike.
  */
-const props = defineProps<{ item: ResearchItem; busy: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    item: ResearchItem
+    busy: boolean
+    /** A decided row offers a way back; a suggestion in a conversation can't take back an added page. */
+    undoable?: boolean
+  }>(),
+  { undoable: true },
+)
 const emit = defineEmits<{ decide: [what: PostDecision] }>()
 
 /** A page that doesn't exist, or isn't public, can't go on the reading list. */
@@ -54,6 +62,7 @@ const undoLabel = computed(() =>
         >
       </div>
       <button
+        v-if="undoable"
         v-tip="undoLabel"
         type="button"
         class="btn btn-sm btn-icon btn-ghost shrink-0"

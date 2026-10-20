@@ -13,7 +13,7 @@ function say(note: RecordedNote) {
 </script>
 
 <template>
-  <ul v-if="notes.length" aria-label="Notes recorded in this reply" class="mt-3 space-y-1 text-sm">
+  <ul v-if="notes.length" aria-label="Notes recorded in this reply" class="space-y-1 text-sm">
     <li v-for="note in notes" :key="note.id" class="flex gap-2 text-ink">
       <Icon name="edit" class="mt-0.5 shrink-0" />
       <span class="min-w-0 break-words">

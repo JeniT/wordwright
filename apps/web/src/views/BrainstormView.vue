@@ -16,7 +16,7 @@ import Markdown from '../components/Markdown.vue'
 import NextStep from '../components/NextStep.vue'
 import PageNav from '../components/PageNav.vue'
 import SharedThreadNotice from '../components/SharedThreadNotice.vue'
-import ProposalCard from '../components/ProposalCard.vue'
+import SuggestionList from '../components/SuggestionList.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
@@ -215,7 +215,7 @@ async function send(body: SendMessageInput, restore?: string, conversationId = c
   } finally {
     controller = undefined
     // The saved thread is the truth: fetch it, and only then drop the live copy, so nothing flickers.
-    // Notes the AI recorded are now part of the idea, so the idea and its notes may have changed too.
+    // The idea and its notes may have changed too (someone may have added a suggested note meanwhile).
     await invalidateRoots(queryClient, 'conversation', 'idea', 'notes', 'ideas')
     streaming.value = null
   }
@@ -348,7 +348,7 @@ const busyNote = computed(() =>
     <article v-if="idea.data.value" class="max-w-2xl">
       <StepHeading>Refine</StepHeading>
       <Explain tutorial-only class="-mt-3 mb-6">
-        Your AI asks questions about this idea and adds the points you make to its notes.
+        Your AI asks questions about this idea and suggests the points you make as notes.
       </Explain>
       <SharedThreadNotice :publication-id="publicationId" />
 
@@ -490,36 +490,46 @@ const busyNote = computed(() =>
                   </p>
                   <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
                 </div>
-                <div v-else class="mr-8 panel-sunken p-3">
-                  <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
-                  <Markdown v-if="message.text" :text="message.text" />
-                  <p v-if="message.stopReason === 'refusal'" class="text-sm text-ink-soft">
-                    Your AI declined to answer that. Try putting it differently.
-                  </p>
-                  <p v-if="message.stopReason === 'max_tokens'" class="mt-2 text-sm text-ink-soft">
-                    This reply was cut short. Ask your AI to carry on.
-                  </p>
-                  <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-ink-soft">
-                    The reply was stopped here.
-                  </p>
-                  <RecordedNotes :notes="message.notes" />
-                  <ProposalCard
-                    v-for="proposal in message.proposals"
-                    :key="proposal.id"
+                <template v-else>
+                  <!-- What your AI suggested comes first, so its words (usually a question) sit by your reply box. -->
+                  <SuggestionList
+                    v-if="message.proposals.length"
+                    class="mb-3"
                     :publication-id="publicationId"
                     :idea-id="id"
                     :conversation-id="current!.id"
-                    :proposal="proposal"
+                    :proposals="message.proposals"
                     :idea="idea.data.value"
                   />
-                </div>
+                  <RecordedNotes
+                    v-if="message.notes.length"
+                    class="mb-3 mr-8"
+                    :notes="message.notes"
+                  />
+                  <div class="mr-8 panel-sunken p-3">
+                    <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
+                    <Markdown v-if="message.text" :text="message.text" />
+                    <p v-if="message.stopReason === 'refusal'" class="text-sm text-ink-soft">
+                      Your AI declined to answer that. Try putting it differently.
+                    </p>
+                    <p
+                      v-if="message.stopReason === 'max_tokens'"
+                      class="mt-2 text-sm text-ink-soft"
+                    >
+                      This reply was cut short. Ask your AI to carry on.
+                    </p>
+                    <p v-if="message.status === 'stopped'" class="mt-2 text-sm text-ink-soft">
+                      The reply was stopped here.
+                    </p>
+                  </div>
+                </template>
               </li>
 
               <li v-if="liveHere && liveReplyShown" aria-live="off" class="mr-8 panel-sunken p-3">
                 <p class="mb-1 text-sm font-medium text-ink-soft">Your AI</p>
                 <Markdown v-if="liveHere.text" :text="liveHere.text" />
                 <p v-else class="text-ink-soft">Thinking…</p>
-                <RecordedNotes :notes="liveHere.notes" />
+                <RecordedNotes class="mt-3" :notes="liveHere.notes" />
               </li>
             </ol>
           </div>

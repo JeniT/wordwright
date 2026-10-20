@@ -58,7 +58,7 @@ describe('LLM factories', () => {
 
     it.each([
       ['suggest a title please', 'update_idea', 'name'],
-      ['Please note that rivers meander', 'add_note', 'text'],
+      ['Please note that rivers meander', 'suggest_note', 'text'],
       ['can you suggest a new idea from that?', 'create_idea', 'name'],
     ])('answers "%s" with a %s call', async (said, tool, field) => {
       const { calls } = await turn(thread('first', said))

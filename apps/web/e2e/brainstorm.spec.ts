@@ -51,9 +51,9 @@ test('refines an idea: your AI asks, suggests, and nothing changes until accepte
   await expect(page.getByLabel('Your message')).toBeEnabled()
   await noViolations(page, 'brainstorm page')
 
-  // A suggestion arrives as a card; the idea itself is untouched until it is accepted.
+  // A suggestion arrives in a list; the idea itself is untouched until it is used.
   await say(page, 'Please suggest a title')
-  const card = page.getByRole('region', { name: 'Suggested change to this idea' })
+  const card = page.getByRole('region', { name: 'Suggested ideas' })
   await expect(card).toBeVisible()
   await expect(card.getByText('A sharper title for this idea')).toBeVisible()
   await expect(card.getByText('Why rivers meander')).toBeVisible() // what it would replace
@@ -65,8 +65,8 @@ test('refines an idea: your AI asks, suggests, and nothing changes until accepte
 
   // Back in the same conversation (it was kept), accepting changes the idea.
   await goTo(page, 'Refine')
-  await page.getByRole('button', { name: /^Accept:/ }).click()
-  await expect(page.getByText('Accepted by Pru.')).toBeVisible()
+  await page.getByRole('button', { name: /^Use this title:/ }).click()
+  await expect(page.getByText(/used as the title by Pru/)).toBeVisible()
   await goTo(page, 'Notes')
   await expect(
     page
@@ -80,7 +80,7 @@ test('refines an idea: your AI asks, suggests, and nothing changes until accepte
   await goTo(page, 'Refine')
   await page.reload()
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
-  await expect(page.getByText('Accepted by Pru.')).toBeVisible()
+  await expect(page.getByText(/used as the title by Pru/)).toBeVisible()
 })
 
 test('the writer can go on to draft whenever they have enough, by the next step', async ({
@@ -93,7 +93,7 @@ test('the writer can go on to draft whenever they have enough, by the next step'
   await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
 })
 
-test('the points made in the chat are added to the idea as notes, as they are made', async ({
+test('the points made in the chat are suggested as notes, and added, edited or ignored by the writer', async ({
   page,
 }) => {
   await setUp(page)
@@ -101,33 +101,51 @@ test('the points made in the chat are added to the idea as notes, as they are ma
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Please note that oxbow lakes are loops that have been cut off.')
-  const recorded = page.getByRole('list', { name: 'Notes recorded in this reply' })
-  await expect(recorded).toContainText(
-    'Added to your notes: “oxbow lakes are loops that have been cut off.”',
-  )
-  await noViolations(page, 'brainstorm page with a recorded note')
+  const suggestions = page.getByRole('region', { name: 'Suggested notes' })
+  await expect(suggestions).toContainText('oxbow lakes are loops that have been cut off.')
+  await noViolations(page, 'brainstorm page with a suggested note')
 
-  // Saying the same thing again doesn't add it twice.
-  await say(page, 'Please note that Oxbow lakes are loops that have been cut off')
+  // Nothing is in the notes until the writer adds it.
+  await goTo(page, 'Notes')
+  await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(1)
+  await goTo(page, 'Refine')
+
+  // Edit it first, then add it.
+  await page.getByRole('button', { name: /^Edit suggested note:/ }).click()
+  await page
+    .getByRole('textbox', { name: 'Suggested note' })
+    .fill('Oxbow lakes are meander loops cut off from the river.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByRole('button', { name: /^Add to notes:/ }).click()
+  await expect(suggestions).toContainText('added to the notes by Pru')
+
+  // Saying the same thing again suggests nothing new.
+  await say(page, 'Please note that Oxbow lakes are meander loops cut off from the river')
   await expect(page.getByText('Already in your notes:')).toBeVisible()
 
-  // The notes are on the idea, from brainstorming, and can be deleted like any other.
+  // The note is on the idea, from brainstorming, with the edit, and can be deleted like any other.
   await goTo(page, 'Notes')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(2)
   await expect(notes.getByRole('listitem').nth(1)).toContainText(
-    'oxbow lakes are loops that have been cut off.',
+    'Oxbow lakes are meander loops cut off from the river.',
   )
   await expect(notes.getByRole('listitem').nth(1)).toContainText('From brainstorming')
   await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toBeVisible()
 
   // Hold the Delete button from the keyboard, which works the same way.
-  await notes.getByRole('button', { name: /^Delete note “oxbow lakes/ }).focus()
+  await notes.getByRole('button', { name: /^Delete note “Oxbow lakes/ }).focus()
   await page.keyboard.down('Enter')
-  await expect(notes.getByText(/oxbow lakes are loops/)).toHaveCount(0, { timeout: 4000 })
+  await expect(notes.getByText(/Oxbow lakes are meander loops/)).toHaveCount(0, { timeout: 4000 })
   await page.keyboard.up('Enter')
+
+  // A suggestion can be ignored, and brought back.
   await goTo(page, 'Refine')
-  await expect(page.getByText('Noted, then deleted:')).toBeVisible()
+  await say(page, 'Please note that deltas build outwards')
+  await page.getByRole('button', { name: /^Ignore: deltas/ }).click()
+  await expect(page.getByText(/· ignored/)).toBeVisible()
+  await page.getByRole('button', { name: /^Stop ignoring: deltas/ }).click()
+  await expect(page.getByRole('button', { name: /^Add to notes: deltas/ })).toBeVisible()
 })
 
 test('a spin-off idea can be accepted and opened, and a suggestion can be dismissed', async ({
@@ -138,12 +156,12 @@ test('a spin-off idea can be accepted and opened, and a suggestion can be dismis
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Please suggest a title')
-  await page.getByRole('button', { name: /^Dismiss:/ }).click()
-  await expect(page.getByText('Dismissed by Pru.')).toBeVisible()
+  await page.getByRole('button', { name: /^Ignore:/ }).click()
+  await expect(page.getByText(/title ignored/)).toBeVisible()
 
   await say(page, 'Could you suggest a new idea from that?')
-  const card = page.getByRole('region', { name: 'Suggested new idea' })
-  await card.getByRole('button', { name: /^Accept:/ }).click()
+  const card = page.getByRole('region', { name: 'Suggested ideas' }).last()
+  await card.getByRole('button', { name: /^Create idea:/ }).click()
   await card.getByRole('link', { name: 'Open the new idea' }).click()
   await expect(
     page.getByRole('banner').getByText('A spin-off idea').filter({ visible: true }).first(),
@@ -161,11 +179,12 @@ test('your AI passes on an address the writer gave: it is checked, shown beside 
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
   await say(page, 'Please add https://example.org/river-physics to my reading list')
-  const card = page.getByRole('region', { name: /^Suggested reading/ })
-  await expect(card).toContainText("The page's own title:")
-  await expect(card).toContainText('Fake title for example.org')
+  const card = page.getByRole('region', { name: 'Suggested reading' })
+  await expect(card.getByRole('link', { name: /Fake title for example.org/ })).toBeVisible()
+  await expect(card).toContainText('example.org')
   await expect(card).not.toContainText('The page you gave me') // what your AI called it is not shown
-  await expect(card.getByText(/Highlighted text is your AI’s reason/)).toBeVisible()
+  await expect(card.getByText('You said it bears on this idea.')).toBeVisible()
+  await expect(page.getByText('Highlighted text is what your AI suggested.')).toBeVisible()
   await noViolations(page, 'brainstorm page with a reading suggestion')
 
   // Nothing is on the reading list until it is accepted.
@@ -175,8 +194,8 @@ test('your AI passes on an address the writer gave: it is checked, shown beside 
   ).toHaveCount(0)
 
   await goTo(page, 'Refine')
-  await page.getByRole('button', { name: /^Accept: / }).click()
-  await expect(page.getByText('Added to the reading list by Pru.')).toBeVisible()
+  await page.getByRole('button', { name: /^Add to reading list:/ }).click()
+  await expect(page.getByText(/in the reading list/)).toBeVisible()
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
@@ -272,7 +291,9 @@ test('titles a conversation, which can be renamed with the edit icon', async ({ 
   await expect(page.getByRole('heading', { level: 2, name: 'Rivers and readers' })).toBeVisible()
   // The AI answers again, and does not change a title a person has given.
   await say(page, 'Please note that rivers meander')
-  await expect(page.getByRole('log', { name: 'Conversation' })).toContainText('I have noted it')
+  await expect(page.getByRole('log', { name: 'Conversation' })).toContainText(
+    'suggested it as a note',
+  )
   await expect(page.getByRole('heading', { level: 2, name: 'Rivers and readers' })).toBeVisible()
 })
 

@@ -77,7 +77,7 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
     level="idea"
     step="refine"
     title="Refine"
-    explain="Use your AI to help you refine your idea. It will ask you questions and add the points you make to your notes."
+    explain="Use your AI to help you refine your idea. It will ask you questions and suggest the points you make as notes."
   >
     <template #actions>
       <RouterLink :to="refineRoute" class="link text-sm">See all conversations</RouterLink>

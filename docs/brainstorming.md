@@ -1,6 +1,6 @@
 # Brainstorming with an LLM: design (T20b)
 
-Status: **agreed; changed by T30 (notes are recorded as you chat: see _Notes are recorded, not proposed_ below, which supersedes the rows and sections it contradicts); built: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt), T20b4 (the chat page). Not yet: T20b5 (evals and tuning the default prompt).** Written after a design discussion with the owner. The work is split into tasks
+Status: **agreed; changed by T30 (notes were recorded as you chat), then by #295 (they are suggested: see _Notes are suggested, not added_ below, which supersedes the rows and sections it contradicts); built: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt), T20b4 (the chat page). Not yet: T20b5 (evals and tuning the default prompt).** Written after a design discussion with the owner. The work is split into tasks
 T20b1–T20b5 (finished ones in [TODO.md](../TODO.md), the rest in GitHub issues). Why things are the way they are is here; code and tests are the source of
 truth once it exists.
 
@@ -17,7 +17,7 @@ tool: it never writes or edits drafts.
 | Question                             | Decision                                                                                                                                                                                                                                          |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Does the model change things itself? | **It adds notes; for anything else it proposes and the person accepts.** (T30: the aim of a brainstorm is more notes, and this is a trusted space.) A new title or a new idea is written only when someone accepts it.                            |
-| What may it do?                      | **Add notes** to the idea, straight away. **Propose** a new **title**, or a **new idea** (name + starting notes) in the same publication. It cannot edit or remove notes. **Never** edit or create drafts.                                        |
+| What may it do?                      | **Suggest notes** for the idea (a person adds them: #295). **Propose** a new **title**, or a **new idea** (name + starting notes) in the same publication. It cannot edit or remove notes. **Never** edit or create drafts.                       |
 | Who sees the conversation?           | **Up to five conversations per idea (#289), each visible to every member of the publication.** Members may use different LLM providers and models; the thread is stored in our own neutral format so it replays across providers.                 |
 | How does it start?                   | The Brainstorm button sends the idea's context to the model and asks it to **start probing straight away**, so the person's first view is the model's questions, not an empty box.                                                                |
 | What context does the model get?     | The idea (title, notes), its **related-work links** (address and fetched title), and the **publication** (name, website and the writer's own **description** of it, when they have written one). See _Context_ for what is deliberately left out. |
@@ -27,12 +27,12 @@ tool: it never writes or edits drafts.
 
 ### Tools, not parsing
 
-The model is given four **tools**. When it wants a change it returns a structured call alongside its chat text; we
-validate the call and either apply it (`add_note`) or turn it into a **proposal card** in the chat.
+The model is given five **tools**. When it wants a change it returns a structured call alongside its chat text; we
+validate the call and turn it into a **suggestion** shown in a list above its reply (or, for `name_conversation`, apply it at once).
 
 | Tool                | Input                         | What happens                                                                                                                                                                                                                                                                            |
 | ------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `add_note`          | `text`                        | Adds a note to the idea at once (origin `brainstorm`). See _Notes are recorded_ below.                                                                                                                                                                                                  |
+| `suggest_note`      | `text`                        | A suggestion: adds a note to the idea (origin `brainstorm`) when a person adds it. See _Notes are suggested_ below.                                                                                                                                                                     |
 | `update_idea`       | `name`                        | A proposal: replaces the idea's title when accepted.                                                                                                                                                                                                                                    |
 | `create_idea`       | `name`, `notes`               | A proposal: creates a new idea in the same publication (no drafts, no links) when accepted.                                                                                                                                                                                             |
 | `name_conversation` | `title` (up to 60 characters) | Applies at once, no accept step: a label for the conversation, given on the AI's first reply (#294). Only the first valid call counts, and only while the conversation has no title, so a person's rename is never overridden. Shown in the highlighter until a person renames it.      |
@@ -52,30 +52,34 @@ Rules for tool calls:
 - Accepting a `create_idea` proposal creates the idea and links to it from the card. The new idea does not copy
   the thread.
 
-### Notes are recorded, not proposed (T30)
+### Notes are suggested, not added (#295; T30 recorded them straight away)
 
-The point of a brainstorm is to add notes, so as the writer talks the model records the points they make with
-`add_note`, one point to a note, in the writer's own words. Nothing waits for acceptance: the writer can delete any
-note (and the chat then says "noted, then deleted"). Because it writes without asking, the tool is bounded in code,
-not just in the prompt:
+The point of a brainstorm is to get the writer's thinking into notes, so as the writer talks the model suggests the
+points they make with `suggest_note`, one point to a note, in the writer's own words. T30 had it add them at once; the
+owner reversed that (#295): a suggestion is shown in a list above the reply, and nothing is added until a person adds
+it. Each has **edit** (saved on the suggestion, so a reload or another member sees it), **add** (the note, origin
+`brainstorm`, attributed to whoever adds it) and **ignore** (which can be undone). The tool is still bounded in code:
 
-- It can only **add**: no editing or removing notes (try without; revisit if the notes fill with stale points).
-- Text is validated like any note (`NoteTextSchema`); at most **6 per reply**; a point already in the idea
-  (ignoring case, spacing and closing punctuation) is reported back as already there, not added again; an idea
-  at its **200-note** limit reports "full". The model is told the outcome of each call on its next turn.
-- Each note has origin `brainstorm` and is attributed to the person whose message led to it.
-- The chat shows each recorded point under the reply (stored in `idea_message_notes`, so it still reads right
-  after the note is deleted), and a stopped reply records nothing.
+- It can only **suggest**: no editing or removing notes. Text is validated like any note (`NoteTextSchema`); at most
+  **6 per reply**, on top of the allowance for other suggestions; a point already in the idea (ignoring case, spacing
+  and closing punctuation) or repeated in the reply is reported back as already there and not suggested; an idea at
+  its **200-note** limit reports "full". The model is told the outcome of each call on its next turn, including what
+  became of each suggestion (added, ignored, or still waiting).
+- Adding checks again: the point may have been written meanwhile, or the idea may have filled up, and then the
+  suggestion stays to be ignored.
+- Old threads keep their line for notes recorded the old way (`idea_message_notes`, so it still reads right after the
+  note is deleted); new replies use that table only for points that were not suggested.
+- A stopped reply suggests nothing.
 - The model sees the idea's notes in the snapshot (as Markdown bullets), so it doesn't repeat them. A note that is a quotation (#293) is marked `[quotation from “Title”, not the writer’s own words]` with its words in quotation marks, so the model takes it as context from the page named and never as the writer's own view or point (a rule in `prompts/brainstorm-rules.md`, and the eval `quotations-are-not-the-writers-views`).
 - Prompt-injection stays bounded: the worst a hostile page title or pasted note can make the model do is add some
-  short, deletable notes (the cap and the duplicate check limit even that), never change or remove anything.
+  suggestions a person must add (the cap and the duplicate check limit even that), never change or remove anything.
 
 ### Context
 
 Built by the server on every turn, never by the client.
 
 - **System prompt**, in two parts, in this order: (1) the **default brainstorming prompt** (`prompts/brainstorm-default.md`; people used to be able to edit their own copy, removed in #205), then
-  (2) an **app-owned block**: how tools work (including that `add_note` takes effect at once), what the model must not do (draft, claim
+  (2) an **app-owned block**: how tools work (including that `suggest_note` is only a suggestion), what the model must not do (draft, claim
   facts about the publication it wasn't given), and how to treat the context (below). Keeping them apart means the tool protocol
   can be changed without touching the coach's wording.
 - **Idea snapshot**, sent as the start of a user turn: the idea's title and notes, the related links (address and

@@ -2,7 +2,7 @@ import type { LLMChatEvent } from '@wordwright/core'
 
 /**
  * A reply as text for the assertions: what was said, then one line per tool call, as
- * `[tool_call add_note {"text":"..."}]`. Assertions look for that marker.
+ * `[tool_call suggest_note {"text":"..."}]`. Assertions look for that marker.
  */
 export function renderReply(events: Iterable<LLMChatEvent>): string {
   let text = ''

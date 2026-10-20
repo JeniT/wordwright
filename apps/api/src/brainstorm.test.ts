@@ -8,6 +8,7 @@ import {
   MAX_CONVERSATIONS_PER_IDEA,
   MAX_IDEA_NOTES,
   MAX_NOTES_PER_REPLY,
+  NOTE_TEXT_MAX,
   MAX_PROPOSALS_PER_REPLY,
   type BrainstormEvent,
   type LLMContentBlock,
@@ -68,7 +69,7 @@ interface Thread {
 const say = (text: string) => ({ text })
 const START = { start: true }
 const RETRY = { retry: true }
-const addNote = (text: unknown) => ({ name: 'add_note', input: { text } })
+const suggestNote = (text: unknown) => ({ name: 'suggest_note', input: { text } })
 const update = (input: object) => ({ name: 'update_idea', input })
 const create = (input: object) => ({ name: 'create_idea', input })
 
@@ -178,7 +179,7 @@ describe('starting a brainstorm', () => {
     expect(request.effort).toBe('medium')
     expect(config.apiKey).toBe('sk-ant-good-key-1234567890')
     expect(request.tools?.map((t) => t.name)).toEqual([
-      'add_note',
+      'suggest_note',
       'update_idea',
       'create_idea',
       'suggest_reading',
@@ -496,7 +497,7 @@ describe('suggestions from the AI', () => {
     expect(await (await ada.get(ideas)).json()).toHaveLength(1)
   })
 
-  it('drop a title that repeats the current one, and a notes-only update (notes are recorded with add_note)', async () => {
+  it('drop a title that repeats the current one, and a notes-only update (notes are suggested with suggest_note)', async () => {
     const { ctx, ada, send, proposalsOf } = await world()
     ctx.setChat(() => ({
       toolCalls: [
@@ -586,131 +587,285 @@ describe('suggestions from the AI', () => {
   })
 })
 
-describe('notes the AI records', () => {
-  const notesOf = (
+describe('notes the AI suggests (#295)', () => {
+  const noteTexts = (
     ctx: { store: { notes: { list: (id: string) => { text: string }[] } } },
     id: string,
-  ) => ctx.store.notes.list(id)
+  ) => ctx.store.notes.list(id).map((n) => n.text)
+  const suggestedNotes = async (thread: () => Promise<Thread>) =>
+    (await thread()).messages.flatMap((m) => m.proposals).filter((p) => p.tool === 'suggest_note')
 
-  it('are added to the idea at once, as brainstorm notes in the name of the person who was chatting', async () => {
-    const { ctx, ada, ideas, idea, send, thread } = await world()
+  it('are suggested, not added: nothing changes until a person adds one', async () => {
+    const { ctx, ada, idea, send, thread } = await world()
     ctx.setChat(() => ({
-      text: 'I have noted two points.',
-      toolCalls: [addNote('Meanders speed up erosion.'), addNote('Oxbow lakes are cut-off loops.')],
+      text: 'Two points.',
+      toolCalls: [
+        suggestNote('Meanders speed up erosion.'),
+        suggestNote('Oxbow lakes are cut-off loops.'),
+      ],
     }))
     const { events } = await send(ada, START)
 
-    expect(types(events).slice(-3)).toEqual(['note', 'note', 'done'])
-    const added = ctx.store.notes.list(idea.id)
-    expect(added.map((n) => n.text)).toEqual([
-      'Erosion loops.',
-      'Meanders speed up erosion.',
-      'Oxbow lakes are cut-off loops.',
+    expect(types(events).slice(-3)).toEqual(['proposal', 'proposal', 'done'])
+    expect(noteTexts(ctx, idea.id)).toEqual(['Erosion loops.']) // the idea's own, as before
+    expect(await suggestedNotes(thread)).toMatchObject([
+      { input: { text: 'Meanders speed up erosion.' }, status: 'pending', stale: false },
+      { input: { text: 'Oxbow lakes are cut-off loops.' }, status: 'pending' },
     ])
-    expect(added[1]).toMatchObject({ origin: 'brainstorm' })
-    expect(added[1]!.authorId).toBeTruthy()
-    expect(added[1]!.authorId).toBe(added[0]!.authorId) // Ada, who was chatting
-
-    expect((await thread()).messages.at(-1)!.notes).toMatchObject([
-      { text: 'Meanders speed up erosion.', outcome: 'added', removed: false },
-      { text: 'Oxbow lakes are cut-off loops.', outcome: 'added', removed: false },
-    ])
-    // The idea shows them too, as bullets, and counts as changed.
-    const fresh = await (await ada.get(`${ideas}/${idea.id}`)).json()
-    expect(fresh.notes).toBe(
-      '- Erosion loops.\n- Meanders speed up erosion.\n- Oxbow lakes are cut-off loops.',
-    )
+    expect((await thread()).messages.at(-1)!.notes).toEqual([]) // nothing recorded
   })
 
-  it('names whoever sent the message that led to them', async () => {
-    const { ctx, ada, idea, send, addBob } = await world()
+  it('are added by whoever adds them, as brainstorm notes in their name', async () => {
+    const { ctx, ada, ideas, idea, send, thread, decide, addBob } = await world()
+    ctx.setChat(() => ({ text: 'A point.', toolCalls: [suggestNote("Bob's point.")] }))
+    await send(ada, START)
     const bob = await addBob()
-    ctx.setChat(() => ({ text: 'Noted.', toolCalls: [addNote("Bob's point.")] }))
-    await send(bob, say('Here is my point.'))
+    const [suggestion] = await suggestedNotes(thread)
+    const accepted = await decide(bob, suggestion!.id, 'accept')
+    expect(accepted.status).toBe(200)
+    expect(await accepted.json()).toMatchObject({ status: 'accepted', decidedByName: 'Bob' })
+
     const bobId = (await (await bob.get('/api/auth/me')).json()).id
     expect(ctx.store.notes.list(idea.id).at(-1)).toMatchObject({
       text: "Bob's point.",
+      origin: 'brainstorm',
       authorId: bobId,
     })
-    void ada
+    const fresh = await (await ada.get(`${ideas}/${idea.id}`)).json()
+    expect(fresh.notes).toBe("- Erosion loops.\n- Bob's point.")
+    expect((await decide(ada, suggestion!.id, 'accept')).status).toBe(409) // already decided
   })
 
-  it('are not added twice: a point the idea (or this reply) already has is reported, not recorded', async () => {
-    const { ctx, ada, idea, send, thread } = await world()
-    ctx.setChat(() => ({
-      toolCalls: [
-        addNote('EROSION  loops!'), // the idea's own note, differently written
-        addNote('A new point.'),
-        addNote('a new point'), // repeated in the same reply
-      ],
-    }))
+  it('can be edited first, and what was edited is what is added', async () => {
+    const { ctx, ada, base, idea, send, thread, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('Meanders speed up erosion.')] }))
     await send(ada, START)
-    expect(notesOf(ctx, idea.id).map((n) => n.text)).toEqual(['Erosion loops.', 'A new point.'])
+    const [suggestion] = await suggestedNotes(thread)
+    const edited = await ada.patch(`${base}/proposals/${suggestion!.id}`, {
+      text: '  Meanders speed up their own erosion.  ',
+    })
+    expect(edited.status).toBe(200)
+    expect(await edited.json()).toMatchObject({
+      input: { text: 'Meanders speed up their own erosion.' },
+      status: 'pending',
+    })
+    // Saved on the suggestion, so a reload or another member sees the edit.
+    expect((await suggestedNotes(thread))[0]!.input.text).toBe(
+      'Meanders speed up their own erosion.',
+    )
+    await decide(ada, suggestion!.id, 'accept')
+    expect(noteTexts(ctx, idea.id).at(-1)).toBe('Meanders speed up their own erosion.')
+  })
+
+  it('cannot be edited to nothing, to too much, or once decided', async () => {
+    const { ctx, ada, base, send, thread, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('One.'), suggestNote('Two.')] }))
+    await send(ada, START)
+    const [one, two] = await suggestedNotes(thread)
+    for (const text of ['', '   ', 'x'.repeat(NOTE_TEXT_MAX + 1), undefined, 5]) {
+      expect((await ada.patch(`${base}/proposals/${one!.id}`, { text })).status, String(text)).toBe(
+        400,
+      )
+    }
+    await decide(ada, one!.id, 'accept')
+    expect((await ada.patch(`${base}/proposals/${one!.id}`, { text: 'Late.' })).status).toBe(409)
+    await decide(ada, two!.id, 'dismiss')
+    expect((await ada.patch(`${base}/proposals/${two!.id}`, { text: 'Late.' })).status).toBe(409)
+    expect((await ada.patch(`${base}/proposals/nope`, { text: 'X' })).status).toBe(404)
+  })
+
+  it('are not added twice: a point the idea has by the time it is added gives a clear refusal', async () => {
+    const { ctx, ada, idea, send, thread, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('A new point.')] }))
+    await send(ada, START)
+    ctx.store.notes.append(idea.publicationId, idea.id, null, 'A  NEW point') // the writer got there first
+    const [suggestion] = await suggestedNotes(thread)
+    const refused = await decide(ada, suggestion!.id, 'accept')
+    expect(refused.status).toBe(409)
+    expect((await refused.json()).error).toMatch(/already in your notes/)
+    expect(noteTexts(ctx, idea.id).filter((t) => /new point/i.test(t))).toHaveLength(1)
+    // It is still pending, so it can be ignored.
+    expect((await decide(ada, suggestion!.id, 'dismiss')).status).toBe(200)
+  })
+
+  it('are not suggested when the idea (or this reply) already has the point, and the AI is told so', async () => {
+    const { ctx, ada, send, thread } = await world()
+    ctx.setChat((_request, call) =>
+      call === 1
+        ? {
+            toolCalls: [
+              suggestNote('EROSION  loops!'), // the idea's own note, differently written
+              suggestNote('A new point.'),
+              suggestNote('a new point'), // repeated in the same reply
+            ],
+          }
+        : { text: 'Thanks.' },
+    )
+    await send(ada, START)
+    expect((await suggestedNotes(thread)).map((p) => p.input.text)).toEqual(['A new point.'])
     expect((await thread()).messages.at(-1)!.notes.map((n) => n.outcome)).toEqual([
       'duplicate',
-      'added',
       'duplicate',
+    ])
+    await send(ada, say('What next?'))
+    const results = (
+      ctx.chats.at(-1)!.request.messages.at(-1)!.content as LLMContentBlock[]
+    ).flatMap((b) => (b.type === 'tool_result' ? [b.content] : []))
+    expect(results).toEqual([
+      'Not suggested: the idea already has this point in its notes.',
+      'The writer has not decided on this suggestion yet. Nothing has been added to the notes.',
+      'Not suggested: the idea already has this point in its notes.',
     ])
   })
 
-  it('stop at the most notes an idea can hold', async () => {
-    const { ctx, ada, idea, send, thread } = await world()
-    for (let i = 1; i < MAX_IDEA_NOTES - 1; i++)
-      ctx.store.notes.append(idea.publicationId, idea.id, null, `n${i}`)
-    ctx.setChat(() => ({ toolCalls: [addNote('Fits'), addNote('Does not fit')] }))
-    await send(ada, START)
-    expect(ctx.store.notes.count(idea.id)).toBe(MAX_IDEA_NOTES)
-    expect((await thread()).messages.at(-1)!.notes.map((n) => n.outcome)).toEqual(['added', 'full'])
-  })
-
-  it('ignore invalid input and anything past the most per reply, but still answer every call', async () => {
-    const { ctx, ada, idea, send } = await world()
-    const many = Array.from({ length: MAX_NOTES_PER_REPLY + 2 }, (_, i) => addNote(`Point ${i}`))
+  it('stop at the most per reply, ignoring invalid input, and every call is still answered', async () => {
+    const { ctx, ada, send, thread } = await world()
+    const many = Array.from({ length: MAX_NOTES_PER_REPLY + 2 }, (_, i) =>
+      suggestNote(`Point ${i}`),
+    )
     ctx.setChat((_request, call) =>
       call === 1
-        ? { toolCalls: [addNote(''), addNote(42), { name: 'add_note', input: {} }, ...many] }
+        ? {
+            toolCalls: [
+              suggestNote(''),
+              suggestNote(42),
+              { name: 'suggest_note', input: {} },
+              ...many,
+              update({ name: 'A different title' }),
+            ],
+          }
         : { text: 'Ok.' },
     )
     await send(ada, START)
-    expect(notesOf(ctx, idea.id)).toHaveLength(1 + MAX_NOTES_PER_REPLY) // Ada's own, and the cap
+    expect(await suggestedNotes(thread)).toHaveLength(MAX_NOTES_PER_REPLY)
+    // The note cap does not use up the allowance for other kinds of suggestion.
+    expect((await thread()).messages.at(-1)!.proposals.map((p) => p.tool)).toContain('update_idea')
 
     await send(ada, say('Go on.'))
     const results = (
       ctx.chats.at(-1)!.request.messages.at(-1)!.content as LLMContentBlock[]
     ).filter((b) => b.type === 'tool_result')
-    expect(results).toHaveLength(3 + many.length)
-    expect(results.filter((r) => r.type === 'tool_result' && !r.isError)).toHaveLength(
-      MAX_NOTES_PER_REPLY,
-    )
+    expect(results).toHaveLength(3 + many.length + 1)
+    expect(results.filter((r) => r.type === 'tool_result' && r.isError)).toHaveLength(3 + 2)
   })
 
-  it("are reported back to the AI, and shown to it among the idea's notes on the next turn", async () => {
-    const { ctx, ada, send } = await world()
+  it('tell the AI on its next turn what became of each: added, ignored or still waiting', async () => {
+    const { ctx, ada, send, thread, decide } = await world()
     ctx.setChat((_request, call) =>
       call === 1
-        ? { toolCalls: [addNote('A new point.'), addNote('erosion loops')] }
+        ? {
+            toolCalls: [
+              suggestNote('Added one.'),
+              suggestNote('Ignored one.'),
+              suggestNote('Waiting.'),
+            ],
+          }
         : { text: 'Thanks.' },
     )
     await send(ada, START)
+    const [added, ignored] = await suggestedNotes(thread)
+    await decide(ada, added!.id, 'accept')
+    await decide(ada, ignored!.id, 'dismiss')
     await send(ada, say('What next?'))
     const content = ctx.chats.at(-1)!.request.messages.at(-1)!.content as LLMContentBlock[]
     expect(content.flatMap((b) => (b.type === 'tool_result' ? [b.content] : []))).toEqual([
-      'Recorded as a note.',
-      'Not recorded: the idea already has this point in its notes.',
+      'The writer added this to the notes: “Added one.”',
+      'The writer ignored this suggestion. Nothing was added.',
+      'The writer has not decided on this suggestion yet. Nothing has been added to the notes.',
     ])
     // The snapshot carries the new note, since the idea changed.
-    expect(textOf(content)).toContain('- A new point.')
+    expect(textOf(content)).toContain('- Added one.')
   })
 
-  it('show as removed once the writer deletes the note', async () => {
-    const { ctx, ada, idea, send, thread } = await world()
-    ctx.setChat(() => ({ toolCalls: [addNote('A new point.')] }))
+  it('can be ignored and brought back, but only an ignored one', async () => {
+    const { ctx, ada, base, send, thread, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('One.'), suggestNote('Two.')] }))
     await send(ada, START)
-    const note = ctx.store.notes.list(idea.id).at(-1)!
-    ctx.store.notes.remove(idea.id, note.id)
-    expect((await thread()).messages.at(-1)!.notes).toMatchObject([
-      { text: 'A new point.', outcome: 'added', removed: true },
-    ])
+    const [one, two] = await suggestedNotes(thread)
+    await decide(ada, one!.id, 'dismiss')
+    const back = await ada.post(`${base}/proposals/${one!.id}/reconsider`, {})
+    expect(back.status).toBe(200)
+    expect(await back.json()).toMatchObject({ status: 'pending', decidedByName: null })
+    expect((await ada.post(`${base}/proposals/${one!.id}/reconsider`, {})).status).toBe(409) // pending
+    await decide(ada, two!.id, 'accept')
+    expect((await ada.post(`${base}/proposals/${two!.id}/reconsider`, {})).status).toBe(409) // added
+    expect((await decide(ada, one!.id, 'accept')).status).toBe(200) // and it can now be added
+  })
+
+  it('stop at the most notes an idea can hold, when they are added', async () => {
+    const { ctx, ada, idea, send, thread, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('Fits'), suggestNote('Does not fit')] }))
+    await send(ada, START)
+    for (let i = 1; i < MAX_IDEA_NOTES - 1; i++)
+      ctx.store.notes.append(idea.publicationId, idea.id, null, `n${i}`)
+    const [fits, doesNot] = await suggestedNotes(thread)
+    expect((await decide(ada, fits!.id, 'accept')).status).toBe(200)
+    const full = await decide(ada, doesNot!.id, 'accept')
+    expect(full.status).toBe(409)
+    expect((await full.json()).error).toMatch(/up to \d+ notes/)
+    expect(ctx.store.notes.count(idea.id)).toBe(MAX_IDEA_NOTES)
+  })
+
+  it('are suggested only to the conversation they were made in, and by no one else', async () => {
+    const { ctx, ada, ideas, idea, send, thread } = await world()
+    ctx.setChat(() => ({ toolCalls: [suggestNote('Mine.')] }))
+    await send(ada, START)
+    const [suggestion] = await suggestedNotes(thread)
+    const second = (await (await ada.post(`${ideas}/${idea.id}/conversations`, {})).json()) as {
+      id: string
+    }
+    const wrong = await ada.patch(
+      `${ideas}/${idea.id}/conversations/${second.id}/proposals/${suggestion!.id}`,
+      {
+        text: 'X',
+      },
+    )
+    expect(wrong.status).toBe(404)
+  })
+})
+
+describe('editing and bringing back other suggestions (#295)', () => {
+  it('lets a suggested new idea be edited, and creates it as edited', async () => {
+    const { ctx, ada, ideas, base, send, proposalsOf, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [create({ name: 'A spin-off', notes: '- first\n- second' })] }))
+    await send(ada, START)
+    const [proposal] = await proposalsOf()
+    const edited = await ada.patch(`${base}/proposals/${proposal!.id}`, {
+      name: 'A better spin-off',
+      notes: '- first, edited',
+    })
+    expect(edited.status).toBe(200)
+    expect(await edited.json()).toMatchObject({
+      input: { name: 'A better spin-off', notes: '- first, edited' },
+    })
+    const accepted = await (await decide(ada, proposal!.id, 'accept')).json()
+    const made = await (await ada.get(`${ideas}/${accepted.createdIdeaId}`)).json()
+    expect(made).toMatchObject({ name: 'A better spin-off', notes: '- first, edited' })
+    expect(
+      (await ada.patch(`${base}/proposals/${proposal!.id}`, { name: 'Too late' })).status,
+    ).toBe(409)
+  })
+
+  it('lets a suggested title be edited, and applies it as edited', async () => {
+    const { ctx, ada, ideas, idea, base, send, proposalsOf, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [update({ name: 'A sharper title' })] }))
+    await send(ada, START)
+    const [proposal] = await proposalsOf()
+    expect((await ada.patch(`${base}/proposals/${proposal!.id}`, { notes: 'x' })).status).toBe(400)
+    await ada.patch(`${base}/proposals/${proposal!.id}`, { name: '  The sharpest title ' })
+    await decide(ada, proposal!.id, 'accept')
+    expect((await (await ada.get(`${ideas}/${idea.id}`)).json()).name).toBe('The sharpest title')
+  })
+
+  it('does not let a suggested page be edited, but brings back one that was ignored', async () => {
+    const { ctx, ada, base, send, proposalsOf, decide } = await world()
+    ctx.setChat(() => ({ toolCalls: [create({ name: 'Another idea', notes: '- a' })] }))
+    await send(ada, START)
+    const [proposal] = await proposalsOf()
+    await decide(ada, proposal!.id, 'dismiss')
+    const back = await ada.post(`${base}/proposals/${proposal!.id}/reconsider`, {})
+    expect(await back.json()).toMatchObject({ status: 'pending' })
+    expect((await ada.post(`${base}/proposals/nope/reconsider`, {})).status).toBe(404)
   })
 })
 
@@ -1042,7 +1197,7 @@ describe('stopping a reply', () => {
     const store = ctx.store
     const llm = new FakeLLMProvider(undefined, () => ({
       text: 'one two three four',
-      toolCalls: [update({ name: 'never made' }), addNote('never noted')],
+      toolCalls: [update({ name: 'never made' }), suggestNote('never noted')],
     }))
     const service = new BrainstormService({
       store,

@@ -1,5 +1,4 @@
 import {
-  AddNoteToolInputSchema,
   CreateIdeaToolInputSchema,
   linkKey,
   LLMAuthError,
@@ -15,6 +14,7 @@ import {
   MAX_PROPOSALS_PER_REPLY,
   MAX_READING_SUGGESTIONS_PER_REPLY,
   noteKey,
+  SuggestNoteToolInputSchema,
   SuggestReadingToolInputSchema,
   UpdateIdeaToolInputSchema,
   type BrainstormEvent,
@@ -32,12 +32,12 @@ import {
   type SendMessageInput,
 } from '@wordwright/core'
 import {
-  ADD_NOTE_TOOL_PROMPT,
   NAME_CONVERSATION_TOOL_PROMPT,
   BRAINSTORM_KICKOFF_PROMPT,
   BRAINSTORM_RULES_PROMPT,
   CREATE_IDEA_TOOL_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
+  SUGGEST_NOTE_TOOL_PROMPT,
   SUGGEST_READING_TOOL_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
 } from '@wordwright/prompts'
@@ -57,14 +57,14 @@ import { fail, notFound } from '../errors'
 export const REPLY_TIMEOUT_MS = 180_000
 
 /**
- * What the AI can do. `add_note` takes effect at once (it only ever adds a short note, which the writer can
- * delete); the others only ever become proposals a person accepts.
+ * What the AI can do. `name_conversation` takes effect at once (it only ever labels the conversation, which a person
+ * can rename); the others only ever become suggestions a person adds or ignores.
  */
 export const BRAINSTORM_TOOLS = [
   llmTool({
-    name: 'add_note',
-    description: ADD_NOTE_TOOL_PROMPT,
-    schema: AddNoteToolInputSchema,
+    name: 'suggest_note',
+    description: SUGGEST_NOTE_TOOL_PROMPT,
+    schema: SuggestNoteToolInputSchema,
   }),
   llmTool({
     name: 'update_idea',
@@ -399,7 +399,7 @@ export class BrainstormService {
       const content = proposal
         ? describeDecision(proposal)
         : note
-          ? describeNote(note)
+          ? describeNote(note, block.name)
           : 'This could not be used, so nothing was changed.'
       return [{ type: 'tool_result', toolCallId: block.id, content, isError: !proposal && !note }]
     })
@@ -531,7 +531,7 @@ export class BrainstormService {
       usage: done.usage,
     })
 
-    this.recordNotes(id, idea, user.id, calls)
+    this.suggestNotes(id, idea, calls)
     this.nameConversation(conversationId, calls)
 
     // The AI's input is untrusted: anything that doesn't validate is kept in the history (the model
@@ -565,23 +565,23 @@ export class BrainstormService {
   }
 
   /**
-   * Adds the points the AI recorded to the idea's notes, in the name of the person whose message led to them.
-   * The input is untrusted: only valid text is used, at most `MAX_NOTES_PER_REPLY` per reply, and a point the
-   * idea already has (ignoring case and closing punctuation) or a full idea is recorded as such, not added.
+   * Turns the points the AI suggested as notes into suggestions, which a person adds or ignores (nothing is added
+   * here). The input is untrusted: only valid text is used, at most `MAX_NOTES_PER_REPLY` per reply, and a point the
+   * idea already has (ignoring case and closing punctuation), a repeat within the reply, or a full idea is recorded
+   * as not suggested, so the AI can be told why.
    */
-  private recordNotes(
+  private suggestNotes(
     messageId: string,
     idea: Idea,
-    userId: string,
     calls: { id: string; name: string; input: unknown }[],
   ) {
     const { conversations, notes } = this.d.store
     const have = new Set(notes.list(idea.id).map((n) => noteKey(n.text)))
-    let count = notes.count(idea.id)
+    const full = notes.count(idea.id) >= MAX_IDEA_NOTES
     let handled = 0
     for (const call of calls) {
-      if (call.name !== 'add_note' || handled >= MAX_NOTES_PER_REPLY) continue
-      const parsed = AddNoteToolInputSchema.safeParse(call.input)
+      if (call.name !== 'suggest_note' || handled >= MAX_NOTES_PER_REPLY) continue
+      const parsed = SuggestNoteToolInputSchema.safeParse(call.input)
       if (!parsed.success) continue
       handled++
       const { text } = parsed.data
@@ -592,21 +592,18 @@ export class BrainstormService {
           text,
           outcome: 'duplicate',
         })
-      } else if (count >= MAX_IDEA_NOTES) {
+      } else if (full) {
         conversations.addRecordedNote(messageId, { toolCallId: call.id, text, outcome: 'full' })
       } else {
-        const note = notes.append(idea.publicationId, idea.id, userId, text, 'brainstorm')
-        conversations.addRecordedNote(messageId, {
+        conversations.addProposal(messageId, {
           toolCallId: call.id,
-          text,
-          outcome: 'added',
-          noteId: note.id,
+          tool: 'suggest_note',
+          input: { text },
+          base: null,
         })
         have.add(key)
-        count++
       }
     }
-    if (handled > 0) this.d.store.ideas.touch(idea.id)
   }
 
   /**
@@ -753,7 +750,9 @@ export class BrainstormService {
 
     store.transaction(() => {
       let createdIdeaId: string | undefined
-      if (proposal.tool === 'suggest_reading') {
+      if (proposal.tool === 'suggest_note') {
+        this.addSuggestedNote(idea, proposal, user)
+      } else if (proposal.tool === 'suggest_reading') {
         this.addSuggestedReading(idea, proposal)
       } else if (proposal.tool === 'update_idea') {
         // Threads from before notes were recorded directly may carry notes; they are no longer applied.
@@ -772,6 +771,27 @@ export class BrainstormService {
       }
     })
     return this.viewProposal(store.conversations.proposal(conversationId, proposalId)!, idea)
+  }
+
+  /**
+   * Adds a suggested note, in the name of the person adding it. The notes are looked at again now: the writer may
+   * have written the same point meanwhile, or the idea may have filled up. A refusal leaves the suggestion waiting.
+   */
+  private addSuggestedNote(idea: Idea, proposal: ProposalRecord, user: BrainstormUser) {
+    const { notes, ideas } = this.d.store
+    const text = proposal.input.text
+    if (!text) throw fail(404, 'Not found')
+    if (notes.list(idea.id).some((n) => noteKey(n.text) === noteKey(text))) {
+      throw fail(409, 'That point is already in your notes. Ignore this suggestion.')
+    }
+    if (notes.count(idea.id) >= MAX_IDEA_NOTES) {
+      throw fail(
+        409,
+        `An idea can have up to ${MAX_IDEA_NOTES} notes. Delete or merge some to make room.`,
+      )
+    }
+    notes.append(idea.publicationId, idea.id, user.id, text, 'brainstorm')
+    ideas.touch(idea.id)
   }
 
   /**
@@ -825,6 +845,55 @@ export class BrainstormService {
     if (!proposal) throw fail(404, 'Not found')
     if (!conversations.decide(proposal.id, 'dismissed', user.id)) {
       throw fail(409, `This suggestion was already ${proposal.status}.`)
+    }
+    return this.viewProposal(conversations.proposal(conversationId, proposalId)!, idea)
+  }
+
+  /**
+   * Changes what a suggestion says while it is still waiting, so the edit is what gets added (and what other
+   * members see). A note's text, or an idea's name and starting notes; a suggested page cannot be edited.
+   */
+  edit(
+    idea: Idea,
+    conversationId: string,
+    proposalId: string,
+    changes: { text?: string; name?: string; notes?: string },
+  ): Proposal {
+    const { conversations } = this.d.store
+    const proposal = conversations.proposal(this.find(idea, conversationId).id, proposalId)
+    if (!proposal) throw notFound()
+    if (proposal.status !== 'pending') {
+      throw fail(409, `This suggestion was already ${proposal.status}, so it can't be changed.`)
+    }
+    const input = { ...proposal.input }
+    if (proposal.tool === 'suggest_note') {
+      if (changes.text === undefined) throw fail(400, 'Write something in the note')
+      input.text = changes.text
+    } else if (proposal.tool === 'create_idea') {
+      if (changes.name === undefined && changes.notes === undefined) {
+        throw fail(400, 'Change the name or the notes')
+      }
+      if (changes.name !== undefined) input.name = changes.name
+      if (changes.notes !== undefined) input.notes = changes.notes
+    } else if (proposal.tool === 'update_idea') {
+      if (changes.name === undefined) throw fail(400, 'Write the new title')
+      input.name = changes.name
+    } else {
+      throw fail(409, "A suggested page can't be changed. Ignore it, or add it as it is.")
+    }
+    if (!conversations.updateInput(proposal.id, input)) {
+      throw fail(409, 'This suggestion was just decided by someone else.')
+    }
+    return this.viewProposal(conversations.proposal(conversationId, proposalId)!, idea)
+  }
+
+  /** Brings back a suggestion that was ignored, so it can be decided again. */
+  reconsider(idea: Idea, conversationId: string, proposalId: string): Proposal {
+    const { conversations } = this.d.store
+    const proposal = conversations.proposal(this.find(idea, conversationId).id, proposalId)
+    if (!proposal) throw notFound()
+    if (!conversations.reopen(proposal.id)) {
+      throw fail(409, 'Only a suggestion that was ignored can be brought back.')
     }
     return this.viewProposal(conversations.proposal(conversationId, proposalId)!, idea)
   }
@@ -908,19 +977,31 @@ export function addressesWrittenBy(messages: MessageRecord[]): Set<string> {
 }
 
 /** What the AI is told about a point it recorded when it next speaks. */
-function describeNote(n: RecordedNoteRecord): string {
+function describeNote(n: RecordedNoteRecord, tool: string): string {
+  // `add_note` is how notes were recorded before they were suggested (#295): old threads still hold such calls.
+  const verb = tool === 'suggest_note' ? 'suggested' : 'recorded'
   switch (n.outcome) {
     case 'added':
       return 'Recorded as a note.'
     case 'duplicate':
-      return 'Not recorded: the idea already has this point in its notes.'
+      return `Not ${verb}: the idea already has this point in its notes.`
     case 'full':
-      return 'Not recorded: the idea already has as many notes as it can hold.'
+      return `Not ${verb}: the idea already has as many notes as it can hold.`
   }
 }
 
 /** What the AI is told about a suggestion when it next speaks. */
 function describeDecision(p: ProposalRecord): string {
+  if (p.tool === 'suggest_note') {
+    switch (p.status) {
+      case 'accepted':
+        return `The writer added this to the notes: “${p.input.text ?? ''}”`
+      case 'dismissed':
+        return 'The writer ignored this suggestion. Nothing was added.'
+      case 'pending':
+        return 'The writer has not decided on this suggestion yet. Nothing has been added to the notes.'
+    }
+  }
   switch (p.status) {
     case 'accepted':
       return p.tool === 'create_idea'

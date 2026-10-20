@@ -584,7 +584,7 @@ describe('an idea’s landing page: tutorial mode (#232)', () => {
     /^Describe the areas you want to look into and your AI will suggest some pages worth reading\. You can choose whether to add them to your reading list\.$/,
     /^Read the articles on this idea’s reading list and take notes on them\. Items can be tagged and moved to another idea\.$/,
     /^Review, tag and arrange your notes\. They are what you draw on when you write\.$/,
-    /^Use your AI to help you refine your idea\. It will ask you questions and add the points you make to your notes\.$/,
+    /^Use your AI to help you refine your idea\. It will ask you questions and suggest the points you make as notes\.$/,
     /^Write your draft\. You can ask for human reviews as well as getting your AI to critique or suggest options to rephrase a short passage\.$/,
   ]
 

@@ -606,6 +606,37 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE idea_conversations ADD COLUMN title TEXT;
   ALTER TABLE idea_conversations ADD COLUMN title_source TEXT CHECK (title_source IN ('ai', 'writer'));
   `,
+  // A suggestion can be a note (#295): the AI suggests notes rather than adding them. The `tool` check names the
+  // kinds, so the table is rebuilt to allow the new one (SQLite cannot change a check in place).
+  {
+    foreignKeysOff: true,
+    run: (db) => {
+      db.exec(`
+        CREATE TABLE idea_proposals_new (
+          id TEXT PRIMARY KEY,
+          message_id TEXT NOT NULL REFERENCES idea_messages(id) ON DELETE CASCADE,
+          tool_call_id TEXT NOT NULL,
+          tool TEXT NOT NULL CHECK (tool IN ('update_idea', 'create_idea', 'suggest_reading', 'suggest_note')),
+          input TEXT NOT NULL,
+          -- The idea's title when it was suggested, to notice if it has changed since.
+          base TEXT,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'dismissed')),
+          decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+          decided_at TEXT,
+          created_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+          -- Only for suggest_reading: what looking at the address found.
+          check_status TEXT CHECK (check_status IN ('found', 'no-title', 'not-found', 'not-public')),
+          fetched_title TEXT,
+          fetched_authors TEXT NOT NULL DEFAULT '[]'
+        );
+        INSERT INTO idea_proposals_new SELECT id, message_id, tool_call_id, tool, input, base, status, decided_by,
+          decided_at, created_idea_id, check_status, fetched_title, fetched_authors FROM idea_proposals;
+        DROP TABLE idea_proposals;
+        ALTER TABLE idea_proposals_new RENAME TO idea_proposals;
+        CREATE INDEX idea_proposals_message ON idea_proposals(message_id);
+      `)
+    },
+  },
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

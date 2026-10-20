@@ -4,6 +4,7 @@ import {
   BulkTagInputSchema,
   AcceptProposalInputSchema,
   ConversationTitleInputSchema,
+  ProposalEditInputSchema,
   DraftInputSchema,
   DraftOrderSchema,
   IdeaInputSchema,
@@ -228,6 +229,22 @@ export function ideaRoutes(
         validateJson(ConversationTitleInputSchema),
         (c) =>
           c.json(brainstorm.rename(find(c), param(c, 'conversationId'), c.req.valid('json').title)),
+      )
+      .patch(
+        '/:id/conversations/:conversationId/proposals/:proposalId',
+        validateJson(ProposalEditInputSchema),
+        (c) =>
+          c.json(
+            brainstorm.edit(
+              find(c),
+              param(c, 'conversationId'),
+              param(c, 'proposalId'),
+              c.req.valid('json'),
+            ),
+          ),
+      )
+      .post('/:id/conversations/:conversationId/proposals/:proposalId/reconsider', (c) =>
+        c.json(brainstorm.reconsider(find(c), param(c, 'conversationId'), param(c, 'proposalId'))),
       )
       .delete('/:id/conversations/:conversationId', (c) => {
         brainstorm.delete(find(c), param(c, 'conversationId'))

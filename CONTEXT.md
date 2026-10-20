@@ -143,12 +143,16 @@ _Avoid_: Suggestion (that implies replacement text pushed at the writer), propos
 ### Refining
 
 **Refine**:
-The fourth step of an idea (04): a conversation in which your AI asks questions about the idea and adds the points the writer makes to its notes. It may suggest a sharper title, a separate idea or a page to read, but only the writer decides on those. Visiting the page spends nothing; the conversation starts from the “Refine with your AI” button.
+The fourth step of an idea (04): a conversation in which your AI asks questions about the idea and suggests the points the writer makes as notes. It may suggest a sharper title, a separate idea or a page to read, but only the writer decides on those. Visiting the page spends nothing; the conversation starts from the “Refine with your AI” button.
 _Avoid_: Brainstorm, coach, chat (in what people see)
 
 **Conversation**:
 One run of Refine on an idea, with your AI speaking first. An idea holds up to five, shown one at a time (newest first, paged like research), each titled (your AI names it on its first reply, marked as your AI’s until someone renames it; the date it began and who began it stand in until there is one). Everyone in the publication sees them all, any member can delete one, and each has only its own messages and suggestions. Your AI is sent the idea again with a message whenever its title, notes or reading list have changed since the last one in that conversation.
 _Avoid_: Thread, session, chat (in what people see)
+
+**Suggestion**:
+Something your AI puts forward beside its reply in Refine: a note, a page to read, a new idea or a new title for the idea. It sits in a list above the reply’s words and changes nothing until a person adds it. Each can be edited first, added, or ignored (and brought back).
+_Avoid_: Proposal, card, recommendation (in what people see)
 
 ### Explaining
 

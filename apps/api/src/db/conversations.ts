@@ -47,7 +47,14 @@ export interface ProposalRecord {
   messageId: string
   toolCallId: string
   tool: ProposalTool
-  input: { name?: string; notes?: string; url?: string; title?: string; why?: string }
+  input: {
+    name?: string
+    notes?: string
+    text?: string
+    url?: string
+    title?: string
+    why?: string
+  }
   /** The title when suggested (legacy threads also hold the notes). */
   base: { name: string; notes?: string } | null
   /** `suggest_reading` only: where it came from and what looking at the address found. */
@@ -307,6 +314,27 @@ export class ConversationStore {
            WHERE id = ? AND status = 'pending'`,
         )
         .run(status, userId, nowIso(), createdIdeaId ?? null, id).changes > 0
+    )
+  }
+
+  /** Changes what is suggested, but only while it is still waiting. Returns whether it was. */
+  updateInput(id: string, input: ProposalRecord['input']): boolean {
+    return (
+      this.db
+        .prepare(`UPDATE idea_proposals SET input = ? WHERE id = ? AND status = 'pending'`)
+        .run(JSON.stringify(input), id).changes > 0
+    )
+  }
+
+  /** Brings back a suggestion that was ignored, to be decided again. Returns whether it was one. */
+  reopen(id: string): boolean {
+    return (
+      this.db
+        .prepare(
+          `UPDATE idea_proposals SET status = 'pending', decided_by = NULL, decided_at = NULL
+           WHERE id = ? AND status = 'dismissed'`,
+        )
+        .run(id).changes > 0
     )
   }
 

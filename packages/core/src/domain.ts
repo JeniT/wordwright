@@ -928,8 +928,9 @@ export const IdeaUpdateSchema = z.object({
 export type IdeaUpdate = z.infer<typeof IdeaUpdateSchema>
 
 // ---- Brainstorming: a conversation about an idea ------------------------
-// As the writer talks, the AI records the points they make as notes (`add_note`, applied straight away). Anything
-// bigger it can only *propose* (a new title, or a new idea); nothing of that is written until a person accepts.
+// As the writer talks, the AI suggests the points they make as notes (`suggest_note`), and anything bigger (a new
+// title, a new idea, a page to read). Nothing is written until a person adds it (#295; before that, notes were added
+// straight away).
 // See docs/brainstorming.md.
 
 export const BRAINSTORM_MESSAGE_MAX = 10_000
@@ -958,9 +959,16 @@ export const NameConversationToolInputSchema = z.object({
 /** A person renaming a conversation. */
 export const ConversationTitleInputSchema = z.object({ title: ConversationTitleSchema })
 
-/** What the AI sends when it records a point as a note. Untrusted: always validate. */
-export const AddNoteToolInputSchema = z.object({
+/** What the AI sends when it suggests a point as a note. Untrusted: always validate. */
+export const SuggestNoteToolInputSchema = z.object({
   text: NoteTextSchema.describe("One point the writer made, in the writer's own words"),
+})
+
+/** A person editing a suggestion that is still waiting: its note text, or an idea's name and starting notes. */
+export const ProposalEditInputSchema = z.object({
+  text: NoteTextSchema.optional(),
+  name: IdeaNameSchema.optional(),
+  notes: z.string().max(10_000).optional(),
 })
 
 /** What the AI sends when it suggests changing the idea being discussed. Untrusted: always validate. */
@@ -996,7 +1004,12 @@ export const SuggestReadingToolInputSchema = z.object({
 /** More than this many reading suggestions in one reply is the AI running away with it. */
 export const MAX_READING_SUGGESTIONS_PER_REPLY = 3
 
-export const ProposalToolSchema = z.enum(['update_idea', 'create_idea', 'suggest_reading'])
+export const ProposalToolSchema = z.enum([
+  'update_idea',
+  'create_idea',
+  'suggest_reading',
+  'suggest_note',
+])
 export type ProposalTool = z.infer<typeof ProposalToolSchema>
 export const ProposalStatusSchema = z.enum(['pending', 'accepted', 'dismissed'])
 export type ProposalStatus = z.infer<typeof ProposalStatusSchema>
@@ -1030,6 +1043,8 @@ export const ProposalSchema = z.object({
   input: z.object({
     name: z.string().optional(),
     notes: z.string().optional(),
+    /** A `suggest_note`'s text. */
+    text: z.string().optional(),
     url: z.string().optional(),
     title: z.string().optional(),
     why: z.string().optional(),

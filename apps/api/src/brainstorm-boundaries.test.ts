@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  AddNoteToolInputSchema,
+  SuggestNoteToolInputSchema,
   CreateIdeaToolInputSchema,
   IdeaDraftSchema,
   NameConversationToolInputSchema,
@@ -22,7 +22,7 @@ describe('what the brainstorm AI can touch', () => {
    * docs/responsible-ai.md first. The evals harness imports the same tool list, so it will see the change too.
    */
   const ALLOWED_INPUTS = {
-    add_note: ['text'],
+    suggest_note: ['text'],
     update_idea: ['name'],
     create_idea: ['name', 'notes'],
     suggest_reading: ['url', 'title', 'why'],
@@ -44,7 +44,7 @@ describe('what the brainstorm AI can touch', () => {
   it('never takes the idea, a draft or a publication from what the AI sends', () => {
     const planted = { ideaId: 'other', draftId: 'd-1', publicationId: 'p-2', body: 'x', id: 'y' }
     for (const [schema, input] of [
-      [AddNoteToolInputSchema, { text: 'A point' }],
+      [SuggestNoteToolInputSchema, { text: 'A point' }],
       [UpdateIdeaToolInputSchema, { name: 'A title' }],
       [NameConversationToolInputSchema, { title: 'A label' }],
       [CreateIdeaToolInputSchema, { name: 'A title', notes: '- a' }],

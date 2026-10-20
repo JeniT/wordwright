@@ -47,13 +47,13 @@ hitting publish, not session length, message count or return visits. So:
 
 Every AI feature must say which rung it is on, and the default ceiling is rung 4.
 
-| Rung | The AI…                                                  | Examples                                       | Status                            |
-| ---- | -------------------------------------------------------- | ---------------------------------------------- | --------------------------------- |
-| 1    | **Asks** questions                                       | Brainstorm questions                           | Default                           |
-| 2    | **Reflects**: records or summarises what the writer said | Brainstorm adds a note in the writer's words   | Default                           |
-| 3    | **Critiques**: says what is weak, and where              | Critique that points at problems               | Default, rationed (see 1)         |
-| 4    | **Offers alternatives** to text the writer wrote         | Several titles/openings drawn from the draft   | Allowed, with the safeguards in 4 |
-| 5    | **Originates** text the writer would publish             | A written opening from nothing; a full rewrite | Out of scope                      |
+| Rung | The AI…                                                  | Examples                                         | Status                            |
+| ---- | -------------------------------------------------------- | ------------------------------------------------ | --------------------------------- |
+| 1    | **Asks** questions                                       | Brainstorm questions                             | Default                           |
+| 2    | **Reflects**: records or summarises what the writer said | Brainstorm suggests a note in the writer's words | Default                           |
+| 3    | **Critiques**: says what is weak, and where              | Critique that points at problems                 | Default, rationed (see 1)         |
+| 4    | **Offers alternatives** to text the writer wrote         | Several titles/openings drawn from the draft     | Allowed, with the safeguards in 4 |
+| 5    | **Originates** text the writer would publish             | A written opening from nothing; a full rewrite   | Out of scope                      |
 
 Chores that are not writing (fetching a link's title, finding a feed, formatting) are not on the ladder and are
 fine to automate. Framing, angle, evidence and voice are protected. If a person's need is real but sits on rung 5
@@ -105,9 +105,10 @@ the origin follows the text:
 
 A bare Accept button invites automation bias: judging is effortful and clicking is not. Where the AI proposes a
 change, prefer **accept and edit** (the proposal lands in an editable field), or ask the writer to restate the point.
-Some things (a tool that records a note the writer just said) are fine to apply at once because the writer's own
-words are the source; those are on rung 2, bounded in code (add only, capped per reply, no repeats), and carry an
-origin. Anything that originates a framing the writer did not state (a title, a new idea) remains a proposal.
+Brainstorm does not add the notes it hears: it suggests them (#295), in the writer's words, and the writer adds, edits
+or ignores each. That is rung 2, bounded in code (suggest only, capped per reply, no repeats), and what is added
+carries an origin. The one thing applied at once is the label it gives its own conversation, which a person can rename.
+Anything that originates a framing the writer did not state (a title, a new idea) is a suggestion too.
 
 ### 7. Stance is the user's; boundaries are the app's
 

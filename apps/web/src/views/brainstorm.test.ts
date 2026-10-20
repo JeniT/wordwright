@@ -608,74 +608,105 @@ describe('the brainstorm page', () => {
   describe('suggestions', () => {
     const withProposals = (...proposals: Proposal[]) =>
       mockConversation([kickoff(), aiMessage('Try this.', { proposals })])
+    /** The server's answer to deciding on a suggestion, and the thread as it is read afterwards. */
+    const decidesAs = (
+      api: ReturnType<typeof mockConversation>,
+      id: string,
+      action: 'accept' | 'dismiss' | 'reconsider',
+      changes: Partial<Proposal>,
+      seen?: (body: unknown) => void,
+    ) =>
+      http.post(`${conversationUrl}/proposals/${id}/${action}`, async ({ request }) => {
+        seen?.(await request.json())
+        const message = api.messages.find((m) => m.proposals.some((p) => p.id === id))!
+        message.proposals = message.proposals.map((p) => (p.id === id ? { ...p, ...changes } : p))
+        return HttpResponse.json(message.proposals.find((p) => p.id === id))
+      })
 
-    it('show a new title against the current one, with accept and dismiss', async () => {
+    it('sit above the AI’s words, outside their box, so the question is by the reply box', async () => {
+      withProposals(
+        proposal({ tool: 'suggest_note', input: { text: 'A point.' } }),
+        proposal({ input: { name: 'Why rivers loop' } }),
+      )
+      await renderAt(page)
+      const notes = await screen.findByRole('region', { name: 'Suggested notes' })
+      const words = screen.getByText('Try this.')
+      expect(notes.compareDocumentPosition(words) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(notes.closest('.panel-sunken')).toBeNull()
+      expect(words.closest('.panel-sunken')).not.toBeNull()
+      expect(
+        within(words.closest('.panel-sunken') as HTMLElement).queryByText('A point.'),
+      ).toBeNull()
+      // One line says what the highlighting means.
+      expect(screen.getByText('Highlighted text is what your AI suggested.')).toHaveClass('bg-mark')
+    })
+
+    it('show a new title against the current one, with edit, use and ignore', async () => {
       withProposals(proposal({ input: { name: 'Why rivers loop' } }))
       await renderAt(page)
-      const card = (
-        await screen.findByRole('heading', { name: 'Suggested change to this idea' })
-      ).closest('section')!
-      expect(within(card).getByText('Why rivers meander')).toHaveClass('line-through') // what it replaces
-      expect(within(card).getByText('Why rivers loop')).toBeInTheDocument()
-      expect(within(card).getByRole('button', { name: 'Accept: a new title' })).toBeInTheDocument()
-      expect(within(card).getByRole('button', { name: 'Dismiss: a new title' })).toBeInTheDocument()
+      const row = within(await screen.findByRole('region', { name: 'Suggested ideas' }))
+      expect(row.getByText('Why rivers meander')).toHaveClass('line-through') // what it replaces
+      expect(row.getByText('Why rivers loop')).toHaveClass('bg-mark')
+      expect(row.getByRole('button', { name: /^Edit a new title/ })).toBeInTheDocument()
+      expect(
+        row.getByRole('button', { name: 'Use this title: a new title, “Why rivers loop”' }),
+      ).toBeInTheDocument()
+      expect(row.getByRole('button', { name: /^Ignore: a new title/ })).toBeInTheDocument()
     })
 
-    it('are accepted with one press, and then show who accepted them', async () => {
-      let accepted: unknown
+    it('are used with one press, and then show who did', async () => {
+      let sent: unknown
       const api = withProposals(proposal({ id: 'p-upd' }))
       server.use(
-        http.post(`${conversationUrl}/proposals/p-upd/accept`, async ({ request }) => {
-          accepted = await request.json()
-          api.messages[1]!.proposals = [
-            proposal({ id: 'p-upd', status: 'accepted', decidedByName: 'Ada' }),
-          ]
-          return HttpResponse.json(api.messages[1]!.proposals[0])
-        }),
+        decidesAs(
+          api,
+          'p-upd',
+          'accept',
+          { status: 'accepted', decidedByName: 'Ada' },
+          (b) => (sent = b),
+        ),
       )
       await renderAt(page)
-      await fireEvent.click(await screen.findByRole('button', { name: /^Accept:/ }))
-      expect(await screen.findByText('Accepted by Ada.')).toBeInTheDocument()
-      expect(accepted).toEqual({})
-      expect(screen.queryByRole('button', { name: /^Accept:/ })).toBeNull()
+      await fireEvent.click(await screen.findByRole('button', { name: /^Use this title:/ }))
+      expect(await screen.findByText(/used as the title by Ada/)).toBeInTheDocument()
+      expect(sent).toEqual({})
+      expect(screen.queryByRole('button', { name: /^Use this title:/ })).toBeNull()
     })
 
-    it('are dismissed with one press', async () => {
+    it('are ignored with one press, and brought back with another', async () => {
       const api = withProposals(proposal({ id: 'p-no' }))
       server.use(
-        http.post(`${conversationUrl}/proposals/p-no/dismiss`, () => {
-          api.messages[1]!.proposals = [
-            proposal({ id: 'p-no', status: 'dismissed', decidedByName: 'Ada' }),
-          ]
-          return HttpResponse.json(api.messages[1]!.proposals[0])
-        }),
+        decidesAs(api, 'p-no', 'dismiss', { status: 'dismissed', decidedByName: 'Ada' }),
+        decidesAs(api, 'p-no', 'reconsider', { status: 'pending', decidedByName: null }),
       )
       await renderAt(page)
-      await fireEvent.click(await screen.findByRole('button', { name: /^Dismiss:/ }))
-      expect(await screen.findByText('Dismissed by Ada.')).toBeInTheDocument()
+      await fireEvent.click(await screen.findByRole('button', { name: /^Ignore:/ }))
+      expect(await screen.findByText(/title ignored/)).toBeInTheDocument()
+      await fireEvent.click(screen.getByRole('button', { name: /^Stop ignoring:/ }))
+      expect(await screen.findByRole('button', { name: /^Use this title:/ })).toBeInTheDocument()
     })
 
-    it('warn when the title has changed, and say "apply anyway" instead of "accept"', async () => {
+    it('warn when the title has changed, and say "apply anyway" instead of "use this title"', async () => {
       let body: unknown
       const api = withProposals(
         proposal({ id: 'p-stale', stale: true, input: { name: 'Another title' } }),
       )
       server.use(
-        http.post(`${conversationUrl}/proposals/p-stale/accept`, async ({ request }) => {
-          body = await request.json()
-          api.messages[1]!.proposals = [
-            proposal({ id: 'p-stale', status: 'accepted', decidedByName: 'Ada' }),
-          ]
-          return HttpResponse.json(api.messages[1]!.proposals[0])
-        }),
+        decidesAs(
+          api,
+          'p-stale',
+          'accept',
+          { status: 'accepted', stale: false, decidedByName: 'Ada' },
+          (b) => (body = b),
+        ),
       )
       await renderAt(page)
       expect(
         await screen.findByText(/The title has changed since this was suggested/),
       ).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /^Accept:/ })).toBeNull()
-      await fireEvent.click(screen.getByRole('button', { name: 'Apply anyway: a new title' }))
-      expect(await screen.findByText('Accepted by Ada.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^Use this title:/ })).toBeNull()
+      await fireEvent.click(screen.getByRole('button', { name: /^Apply anyway:/ }))
+      expect(await screen.findByText(/used as the title by Ada/)).toBeInTheDocument()
       expect(body).toEqual({ overwrite: true })
     })
 
@@ -687,11 +718,12 @@ describe('the brainstorm page', () => {
         ),
       )
       await renderAt(page)
-      await fireEvent.click(await screen.findByRole('button', { name: /^Accept:/ }))
+      await fireEvent.click(await screen.findByRole('button', { name: /^Use this title:/ }))
       expect(await screen.findByRole('alert')).toHaveTextContent('already dismissed')
+      expect(screen.getByRole('button', { name: /^Use this title:/ })).toBeEnabled()
     })
 
-    it('offer a new idea, and link to it once accepted', async () => {
+    it('offer a new idea like an idea in a list, and link to it once created', async () => {
       withProposals(
         proposal({
           tool: 'create_idea',
@@ -706,19 +738,197 @@ describe('the brainstorm page', () => {
         }),
       )
       await renderAt(page)
-      const cards = await screen.findAllByRole('heading', { name: 'Suggested new idea' })
-      expect(cards).toHaveLength(2)
-      expect(screen.getByText('Oxbow lakes')).toBeInTheDocument()
-      expect(screen.getByText('Where meanders end.')).toBeInTheDocument()
+      const list = within(await screen.findByRole('region', { name: 'Suggested ideas' }))
+      expect(list.getAllByRole('listitem')).toHaveLength(2)
+      expect(list.getByText('Oxbow lakes')).toHaveClass('bg-mark')
+      expect(list.getByText('Where meanders end.')).toBeInTheDocument()
       expect(
-        screen.getByRole('button', { name: /^Accept: a new idea, “Oxbow lakes”/ }),
+        list.getByRole('button', { name: 'Create idea: a new idea, “Oxbow lakes”' }),
       ).toBeInTheDocument()
-      expect(screen.getByText('No notes yet.')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: 'Open the new idea' })).toHaveAttribute(
+      expect(list.getByRole('link', { name: 'Open the new idea' })).toHaveAttribute(
         'href',
         '/p/ada-substack/ideas/i2/notes',
       )
-      expect(screen.getByText('Accepted by Bob.')).toBeInTheDocument()
+      expect(list.getByText(/created by Bob/)).toBeInTheDocument()
+    })
+
+    it('let a new idea’s name and notes be edited before it is created', async () => {
+      const api = withProposals(
+        proposal({
+          id: 'p-new',
+          tool: 'create_idea',
+          input: { name: 'Oxbow lakes', notes: '- a' },
+        }),
+      )
+      const sent: unknown[] = []
+      server.use(
+        http.patch(`${conversationUrl}/proposals/p-new`, async ({ request }) => {
+          const body = (await request.json()) as { name?: string; notes?: string }
+          sent.push(body)
+          api.messages[1]!.proposals = [
+            proposal({
+              id: 'p-new',
+              tool: 'create_idea',
+              input: { name: body.name ?? 'Oxbow lakes', notes: body.notes ?? '- a' },
+            }),
+          ]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Edit a new idea/ }))
+      const name = screen.getByLabelText('Suggested idea')
+      expect(name).toHaveFocus()
+      await fireEvent.update(name, 'Cut-off meanders')
+      await fireEvent.update(screen.getByLabelText('Starting notes'), '- a\n- b')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      expect(await screen.findByText('Cut-off meanders')).toBeInTheDocument()
+      expect(sent).toEqual([{ name: 'Cut-off meanders', notes: '- a\n- b' }])
+      expect(screen.queryByLabelText('Suggested idea')).toBeNull()
+    })
+  })
+
+  describe('suggested notes', () => {
+    const note = (overrides: Partial<Proposal> = {}) =>
+      proposal({
+        tool: 'suggest_note',
+        input: { text: 'Meanders speed up erosion.' },
+        ...overrides,
+      })
+
+    it('are listed with edit, add and ignore beside each, in the highlighter', async () => {
+      mockConversation([kickoff(), aiMessage('Try this.', { proposals: [note({ id: 'n1' })] })])
+      await renderAt(page)
+      const list = within(await screen.findByRole('region', { name: 'Suggested notes' }))
+      expect(list.getByText('Meanders speed up erosion.')).toHaveClass('bg-mark')
+      for (const name of ['Edit suggested note', 'Add to notes', 'Ignore']) {
+        expect(list.getByRole('button', { name: new RegExp(`^${name}: Meanders`) })).toBeEnabled()
+      }
+    })
+
+    it('are added with the tick, which says who added it', async () => {
+      let sent: unknown
+      const api = mockConversation([
+        kickoff(),
+        aiMessage('Try this.', { proposals: [note({ id: 'n1' })] }),
+      ])
+      server.use(
+        http.post(`${conversationUrl}/proposals/n1/accept`, async ({ request }) => {
+          sent = await request.json()
+          api.messages[1]!.proposals = [
+            note({ id: 'n1', status: 'accepted', decidedByName: 'Ada' }),
+          ]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Add to notes:/ }))
+      expect(await screen.findByText(/added to the notes by Ada/)).toBeInTheDocument()
+      expect(sent).toEqual({})
+      expect(screen.queryByRole('button', { name: /^Add to notes:/ })).toBeNull()
+    })
+
+    it('are edited in place: the field takes focus, Save sends the edit, and focus returns', async () => {
+      const api = mockConversation([
+        kickoff(),
+        aiMessage('Try this.', { proposals: [note({ id: 'n1' })] }),
+      ])
+      const sent: unknown[] = []
+      server.use(
+        http.patch(`${conversationUrl}/proposals/n1`, async ({ request }) => {
+          const body = (await request.json()) as { text: string }
+          sent.push(body)
+          api.messages[1]!.proposals = [note({ id: 'n1', input: { text: body.text } })]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Edit suggested note:/ }))
+      const field = screen.getByLabelText('Suggested note')
+      expect(field).toHaveFocus()
+      expect(field).toHaveValue('Meanders speed up erosion.')
+      await fireEvent.update(field, 'Meanders feed their own erosion.')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      expect(await screen.findByText('Meanders feed their own erosion.')).toBeInTheDocument()
+      expect(sent).toEqual([{ text: 'Meanders feed their own erosion.' }])
+      expect(screen.queryByLabelText('Suggested note')).toBeNull()
+      expect(screen.getByRole('button', { name: /^Edit suggested note:/ })).toHaveFocus()
+    })
+
+    it('can be edited and then left alone: Cancel or Escape send nothing', async () => {
+      mockConversation([kickoff(), aiMessage('Try this.', { proposals: [note({ id: 'n1' })] })])
+      const sent: unknown[] = []
+      server.use(
+        http.patch(`${conversationUrl}/proposals/n1`, async ({ request }) => {
+          sent.push(await request.json())
+          return HttpResponse.json(note({ id: 'n1' }))
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Edit suggested note:/ }))
+      await fireEvent.update(screen.getByLabelText('Suggested note'), 'Something else')
+      await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.getByText('Meanders speed up erosion.')).toBeInTheDocument()
+      await fireEvent.click(screen.getByRole('button', { name: /^Edit suggested note:/ }))
+      await fireEvent.keyDown(screen.getByLabelText('Suggested note'), { key: 'Escape' })
+      expect(screen.queryByLabelText('Suggested note')).toBeNull()
+      expect(sent).toEqual([])
+    })
+
+    it('keep the field open and say why when an edit could not be saved', async () => {
+      mockConversation([kickoff(), aiMessage('Try this.', { proposals: [note({ id: 'n1' })] })])
+      server.use(
+        http.patch(`${conversationUrl}/proposals/n1`, () =>
+          HttpResponse.json(
+            { error: 'This suggestion was just decided by someone else.' },
+            { status: 409 },
+          ),
+        ),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Edit suggested note:/ }))
+      await fireEvent.update(screen.getByLabelText('Suggested note'), 'Changed')
+      await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('just decided by someone else')
+      expect(screen.getByLabelText('Suggested note')).toBeInTheDocument()
+    })
+
+    it('are ignored with the cross, and can be brought back', async () => {
+      const api = mockConversation([
+        kickoff(),
+        aiMessage('Try this.', { proposals: [note({ id: 'n1' })] }),
+      ])
+      server.use(
+        http.post(`${conversationUrl}/proposals/n1/dismiss`, () => {
+          api.messages[1]!.proposals = [note({ id: 'n1', status: 'dismissed' })]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+        http.post(`${conversationUrl}/proposals/n1/reconsider`, () => {
+          api.messages[1]!.proposals = [note({ id: 'n1' })]
+          return HttpResponse.json(api.messages[1]!.proposals[0])
+        }),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Ignore:/ }))
+      expect(await screen.findByText(/· ignored/)).toBeInTheDocument()
+      await fireEvent.click(screen.getByRole('button', { name: /^Stop ignoring:/ }))
+      expect(await screen.findByRole('button', { name: /^Add to notes:/ })).toBeInTheDocument()
+    })
+
+    it('say why one could not be added, and stay to be ignored', async () => {
+      mockConversation([kickoff(), aiMessage('Try this.', { proposals: [note({ id: 'n1' })] })])
+      server.use(
+        http.post(`${conversationUrl}/proposals/n1/accept`, () =>
+          HttpResponse.json(
+            { error: 'That point is already in your notes. Ignore this suggestion.' },
+            { status: 409 },
+          ),
+        ),
+      )
+      await renderAt(page)
+      await fireEvent.click(await screen.findByRole('button', { name: /^Add to notes:/ }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('already in your notes')
+      expect(screen.getByRole('button', { name: /^Ignore:/ })).toBeEnabled()
     })
   })
 
@@ -790,54 +1000,68 @@ const reading = (
     },
     ...overrides,
   })
-const suggestionCard = () => screen.getByRole('region', { name: /^Suggested reading/ })
+const readingList = () => screen.findByRole('region', { name: 'Suggested reading' })
 
 describe('suggested reading', () => {
-  it('shows the address, the page’s own title, and the AI’s reason in the highlighter', async () => {
-    mockConversation([kickoff(), aiMessage('Try this.', { proposals: [reading()] })])
+  it('is laid out as the Research page lists its findings: title as a link, website, authors, reason', async () => {
+    mockConversation([
+      kickoff(),
+      aiMessage('Try this.', {
+        proposals: [reading({}, { fetchedAuthors: ['A. Writer', 'B. Author'] })],
+      }),
+    ])
     await renderAt(page)
-    const card = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
-    expect(card.getByText(/Your AI is passing on an address you gave it/)).toBeInTheDocument()
-    expect(card.getByText('https://example.org/river-physics')).toBeInTheDocument()
-    expect(card.getByText(/The page's own title:/)).toBeInTheDocument()
-    expect(card.getAllByText('River Physics: a primer').length).toBeGreaterThan(0)
-    expect(card.queryByText('The physics of rivers')).toBeNull() // what the AI called it is not shown
-    expect(card.getByText(/Highlighted text is your AI’s reason/)).toHaveClass('bg-mark')
-    expect(card.getByText('It explains how bends grow.')).toHaveClass('bg-mark')
-    expect(card.getByText(/the page exists/)).toBeInTheDocument()
-    const open = card.getByRole('link', { name: /Open the page/ })
-    expect(open).toHaveAttribute('href', 'https://example.org/river-physics')
-    expect(open).toHaveAttribute('target', '_blank')
-    expect(open).toHaveAttribute('rel', expect.stringContaining('noopener'))
-    expect(card.getByRole('button', { name: /^Accept: .*River Physics: a primer/ })).toBeEnabled()
+    const list = within(await readingList())
+    const title = list.getByRole('link', { name: /^River Physics: a primer/ })
+    expect(title).toHaveAttribute('href', 'https://example.org/river-physics')
+    expect(title).toHaveAttribute('target', '_blank')
+    expect(title).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    expect(list.getByText(/example\.org · A\. Writer, B\. Author/)).toBeInTheDocument()
+    expect(list.getByText('It explains how bends grow.')).toHaveClass('bg-mark')
+    expect(list.queryByText('The physics of rivers')).toBeNull() // what the AI called it is not shown
+    expect(list.getByRole('button', { name: /^Add to reading list: River Physics/ })).toBeEnabled()
+    expect(list.getByRole('button', { name: /^Ignore: River Physics/ })).toBeEnabled()
   })
 
-  it('adds the page when accepted, and then says it was added', async () => {
-    const card = reading()
-    let accepted = false
-    const api = mockConversation(
-      [kickoff(), aiMessage('Try this.', { proposals: [card] })],
-      [
-        http.post(`${conversationUrl}/proposals/${card.id}/accept`, async ({ request }) => {
-          expect(await request.json()).toEqual({})
-          accepted = true
-          api.messages = [
-            kickoff(),
-            aiMessage('Try this.', {
-              proposals: [{ ...card, status: 'accepted', decidedByName: 'Ada' }],
-            }),
-          ]
-          return HttpResponse.json({ ...card, status: 'accepted', decidedByName: 'Ada' })
-        }),
-      ],
+  it('adds the page when ticked, and then says it is in the reading list, with no way to take it back here', async () => {
+    const card = reading({ id: 'r1' })
+    let accepted: unknown
+    const api = mockConversation([kickoff(), aiMessage('Try this.', { proposals: [card] })])
+    server.use(
+      http.post(`${conversationUrl}/proposals/r1/accept`, async ({ request }) => {
+        accepted = await request.json()
+        api.messages[1]!.proposals = [{ ...card, status: 'accepted', decidedByName: 'Ada' }]
+        return HttpResponse.json(api.messages[1]!.proposals[0])
+      }),
     )
     await renderAt(page)
-    await fireEvent.click(await screen.findByRole('button', { name: /^Accept: / }))
-    await waitFor(() => expect(accepted).toBe(true))
-    expect(await screen.findByText('Added to the reading list by Ada.')).toBeInTheDocument()
+    await fireEvent.click(await screen.findByRole('button', { name: /^Add to reading list:/ }))
+    expect(await screen.findByText(/in the reading list/)).toBeInTheDocument()
+    expect(accepted).toEqual({})
+    expect(screen.queryByRole('button', { name: /^Take off the reading list/ })).toBeNull()
   })
 
-  it('says a page with no readable title is unconfirmed, and what it would be listed as', async () => {
+  it('can be ignored, and brought back', async () => {
+    const card = reading({ id: 'r1' })
+    const api = mockConversation([kickoff(), aiMessage('Try this.', { proposals: [card] })])
+    server.use(
+      http.post(`${conversationUrl}/proposals/r1/dismiss`, () => {
+        api.messages[1]!.proposals = [{ ...card, status: 'dismissed' }]
+        return HttpResponse.json(api.messages[1]!.proposals[0])
+      }),
+      http.post(`${conversationUrl}/proposals/r1/reconsider`, () => {
+        api.messages[1]!.proposals = [card]
+        return HttpResponse.json(card)
+      }),
+    )
+    await renderAt(page)
+    await fireEvent.click(await screen.findByRole('button', { name: /^Ignore:/ }))
+    expect(await screen.findByText(/ignored/)).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('button', { name: /^Stop ignoring:/ }))
+    expect(await screen.findByRole('button', { name: /^Add to reading list:/ })).toBeInTheDocument()
+  })
+
+  it('says a page with no readable title is unconfirmed', async () => {
     mockConversation([
       kickoff(),
       aiMessage('Try this.', {
@@ -845,54 +1069,41 @@ describe('suggested reading', () => {
       }),
     ])
     await renderAt(page)
-    const card = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
-    expect(card.getByText(/couldn't read a title from this page/)).toBeInTheDocument()
-    expect(card.getByText(/listed as “The physics of rivers”, the AI's guess/)).toBeInTheDocument()
-    expect(card.queryByText(/The page's own title:/)).toBeNull()
-    expect(card.getByRole('button', { name: /^Accept: / })).toBeEnabled() // allowed, with the warning
+    const list = within(await readingList())
+    expect(list.getByText('We couldn’t confirm the title of this page.')).toBeInTheDocument()
+    expect(list.getByRole('button', { name: /^Add to reading list:/ })).toBeEnabled() // allowed, with the warning
   })
 
   it.each([
-    ['not-found', /^We couldn’t find a website at this address, so it can’t be added\.$/],
-    ['not-public', /^This address isn’t a public website, so it can’t be added\.$/],
-  ] as const)('flags a %s address and allows only dismissing it', async (check, message) => {
-    const card = reading({}, { check, fetchedTitle: null })
-    let dismissed = false
-    mockConversation(
-      [kickoff(), aiMessage('Try this.', { proposals: [card] })],
-      [
-        http.post(`${conversationUrl}/proposals/${card.id}/dismiss`, () => {
-          dismissed = true
-          return HttpResponse.json({ ...card, status: 'dismissed' })
-        }),
-      ],
-    )
+    ['not-found', 'We couldn’t find a website at this address, so it can’t be added.'],
+    ['not-public', 'This address isn’t a public website, so it can’t be added.'],
+  ] as const)('flags a %s address and allows only ignoring it', async (check, message) => {
+    mockConversation([
+      kickoff(),
+      aiMessage('Try this.', { proposals: [reading({}, { check, fetchedTitle: null })] }),
+    ])
     await renderAt(page)
-    const region = within(await screen.findByRole('region', { name: /^Suggested reading/ }))
-    expect(region.getByText(message)).toBeInTheDocument()
-    expect(region.getByRole('button', { name: /^Accept: / })).toBeDisabled()
-    await fireEvent.click(region.getByRole('button', { name: /^Dismiss: / }))
-    await waitFor(() => expect(dismissed).toBe(true))
+    const list = within(await readingList())
+    expect(list.getByText(message)).toBeInTheDocument()
+    expect(list.getByRole('button', { name: /^Add to reading list:/ })).toBeDisabled()
+    expect(list.getByRole('button', { name: /^Ignore:/ })).toBeEnabled()
   })
 
-  it('shows why an acceptance was refused, and leaves the suggestion to decide on', async () => {
-    const card = reading()
-    mockConversation(
-      [kickoff(), aiMessage('Try this.', { proposals: [card] })],
-      [
-        http.post(`${conversationUrl}/proposals/${card.id}/accept`, () =>
-          HttpResponse.json(
-            { error: 'That link is already in this idea. Dismiss this suggestion.' },
-            { status: 409 },
-          ),
+  it('shows why adding was refused, and leaves the suggestion to decide on', async () => {
+    const card = reading({ id: 'r1' })
+    mockConversation([kickoff(), aiMessage('Try this.', { proposals: [card] })])
+    server.use(
+      http.post(`${conversationUrl}/proposals/r1/accept`, () =>
+        HttpResponse.json(
+          { error: 'That link is already in this idea. Dismiss this suggestion.' },
+          { status: 409 },
         ),
-      ],
+      ),
     )
     await renderAt(page)
-    await fireEvent.click(await screen.findByRole('button', { name: /^Accept: / }))
+    await fireEvent.click(await screen.findByRole('button', { name: /^Add to reading list:/ }))
     expect(await screen.findByRole('alert')).toHaveTextContent('already in this idea')
-    expect(suggestionCard()).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^Accept: / })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /^Add to reading list:/ })).toBeEnabled()
   })
 })
 
@@ -1050,7 +1261,7 @@ describe('several conversations', () => {
 
 describe('the refine page: tutorial mode', () => {
   const text =
-    /^Your AI asks questions about this idea and adds the points you make to its notes\.$/
+    /^Your AI asks questions about this idea and suggests the points you make as notes\.$/
   const setup = async (on: boolean) => {
     mockConversation()
     server.use(

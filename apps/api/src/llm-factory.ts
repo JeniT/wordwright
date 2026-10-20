@@ -74,9 +74,9 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
   }
   if (/note that/i.test(said)) {
     return {
-      text: 'Good point. I have noted it.',
+      text: 'Good point. I have suggested it as a note.',
       toolCalls: [
-        { name: 'add_note', input: { text: said.replace(/^.*?note that\s*/i, '').trim() } },
+        { name: 'suggest_note', input: { text: said.replace(/^.*?note that\s*/i, '').trim() } },
       ],
     }
   }
