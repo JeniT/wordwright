@@ -301,4 +301,24 @@ describe('migrations', () => {
     expect(db.prepare('SELECT count(*) AS n FROM idea_conversations').get()).toEqual({ n: 0 })
     expect(db.prepare('SELECT count(*) AS n FROM idea_messages').get()).toEqual({ n: 0 })
   })
+
+  it('leaves existing conversations without a title, which only the AI or a person can then give (#294)', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -1)) // conversations, but no titles yet
+    db.exec(`
+      INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
+      INSERT INTO idea_conversations (id, idea_id, created_at) VALUES ('c', 'i', 't');
+    `)
+
+    migrate(db, 'test')
+
+    expect(db.prepare('SELECT title, title_source FROM idea_conversations').all()).toEqual([
+      { title: null, title_source: null },
+    ])
+    db.exec("UPDATE idea_conversations SET title = 'A', title_source = 'ai'")
+    // A source must be one of the two that can give a title.
+    expect(() => db.exec("UPDATE idea_conversations SET title_source = 'robot'")).toThrow()
+  })
 })

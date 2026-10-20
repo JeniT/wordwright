@@ -27,6 +27,7 @@ import { takeHeldMessage } from '../lib/pending-message'
 import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
 import ReplyProblemAlert from '../components/ReplyProblemAlert.vue'
 import QueryState from '../components/QueryState.vue'
+import SaveStatus from '../components/SaveStatus.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 
 const props = defineProps<{ publicationId: string; id: string }>()
@@ -444,9 +445,7 @@ const busyNote = computed(() =>
               </template>
             </div>
             <p v-if="current.title" class="mb-1 text-sm text-ink-soft">{{ startedOn }}</p>
-            <p v-if="rename.isError.value" role="alert" class="mb-2 text-danger">
-              {{ errorMessage(rename.error.value) }}
-            </p>
+            <SaveStatus :mutation="rename" saved="" class="mb-2" />
             <p v-if="remove.isError.value" role="alert" class="mb-2 text-danger">
               {{ errorMessage(remove.error.value) }}
             </p>

@@ -548,11 +548,6 @@ export class BrainstormService {
   }
 
   /**
-   * Adds the points the AI recorded to the idea's notes, in the name of the person whose message led to them.
-   * The input is untrusted: only valid text is used, at most `MAX_NOTES_PER_REPLY` per reply, and a point the
-   * idea already has (ignoring case and closing punctuation) or a full idea is recorded as such, not added.
-   */
-  /**
    * The AI names the conversation on its first reply. The input is untrusted: only a valid title counts, only the
    * first valid call in a reply, and only if there is no title yet (so a person's rename is never overridden).
    */
@@ -569,6 +564,11 @@ export class BrainstormService {
     }
   }
 
+  /**
+   * Adds the points the AI recorded to the idea's notes, in the name of the person whose message led to them.
+   * The input is untrusted: only valid text is used, at most `MAX_NOTES_PER_REPLY` per reply, and a point the
+   * idea already has (ignoring case and closing punctuation) or a full idea is recorded as such, not added.
+   */
   private recordNotes(
     messageId: string,
     idea: Idea,

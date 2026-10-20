@@ -69,6 +69,9 @@ export interface RecordedNoteRecord extends RecordedNote {
 }
 
 /** A Refine conversation as stored: when it began, and who began it (the author of its first message). */
+/** Who gave a conversation its title: the AI, or a person (after which the AI never changes it). */
+export type TitleSource = 'ai' | 'writer'
+
 export interface ConversationRecord {
   id: string
   ideaId: string
@@ -76,7 +79,7 @@ export interface ConversationRecord {
   startedByName: string | null
   title: string | null
   /** Who gave the title: the AI, or a person (after which the AI never changes it). */
-  titleSource: 'ai' | 'writer' | null
+  titleSource: TitleSource | null
 }
 
 /**
@@ -115,7 +118,7 @@ export class ConversationStore {
   }
 
   /** Gives a conversation its title. The AI's only counts if there is none yet; a person's always does. */
-  setTitle(id: string, title: string, source: 'ai' | 'writer'): boolean {
+  setTitle(id: string, title: string, source: TitleSource): boolean {
     return (
       this.db
         .prepare(
@@ -320,7 +323,7 @@ function toConversation(row: Record<string, unknown>): ConversationRecord {
     createdAt: row.created_at as string,
     startedByName: (row.started_by_name as string | null) ?? null,
     title: (row.title as string | null) ?? null,
-    titleSource: (row.title_source as 'ai' | 'writer' | null) ?? null,
+    titleSource: (row.title_source as TitleSource | null) ?? null,
   }
 }
 
