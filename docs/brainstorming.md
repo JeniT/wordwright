@@ -101,6 +101,13 @@ If the thread is empty, **Brainstorm** creates a hidden "kick-off" turn: the sna
 the session by probing the idea. It is stored (the API needs the conversation to start with a user turn) but
 displayed as a short "Refine started" line, not as a message the person wrote.
 
+### A reply of tool calls alone (#305)
+
+A model that calls tools and says nothing ends its turn expecting the results. So `brainstormTurn` sends them back
+(each call answered, with a note to write the message in words) and streams what it says as the reply: one extra
+request, only when a reply has calls and no words, further calls ignored. The stored message is the words, then the
+calls. The evals use the same function.
+
 ### Conversation storage and replay
 
 - Up to five conversations per idea (`MAX_CONVERSATIONS_PER_IDEA`), each a thread shared by all members, stored in our neutral format: **text and tool calls only**.

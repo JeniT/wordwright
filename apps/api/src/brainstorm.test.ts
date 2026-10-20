@@ -1252,6 +1252,86 @@ describe('deleting a conversation', () => {
   })
 })
 
+describe('a reply of tool calls with no words (#305)', () => {
+  const name = (title: string) => ({ name: 'name_conversation', input: { title } })
+  const toolsOnly = () => ({ toolCalls: [name('River bends'), suggestNote('A point.')] })
+
+  it('is continued: the tool results go back and the model’s words are the reply', async () => {
+    const { ctx, ada, send, thread } = await world()
+    ctx.setChat((_request, call) => (call === 1 ? toolsOnly() : { text: 'What is the one claim?' }))
+    const { events } = await send(ada, START)
+
+    expect(ctx.chats).toHaveLength(2)
+    const streamed = events.map((e) => (e.type === 'text' ? e.text : '')).join('')
+    expect(streamed).toBe('What is the one claim?')
+    expect(types(events).at(-1)).toBe('done')
+    // The calls stand: the title was given and the note is a waiting suggestion.
+    const last = (await thread()).messages.at(-1)!
+    expect(last).toMatchObject({ role: 'assistant', text: 'What is the one claim?' })
+    expect(last.proposals).toMatchObject([{ tool: 'suggest_note', status: 'pending' }])
+
+    // What the second request carried: the calls, answered, with a nudge to write in words.
+    const messages = ctx.chats[1]!.request.messages
+    const [calls, results] = messages.slice(-2) as [
+      { role: string; content: LLMContentBlock[] },
+      { role: string; content: LLMContentBlock[] },
+    ]
+    expect(calls.role).toBe('assistant')
+    expect(
+      calls.content
+        .filter((b) => b.type === 'tool_call')
+        .map((b) => b.type === 'tool_call' && b.name),
+    ).toEqual(['name_conversation', 'suggest_note'])
+    expect(results.role).toBe('user')
+    expect(results.content.filter((b) => b.type === 'tool_result')).toHaveLength(2)
+    expect(textOf(results.content)).toMatch(/message to the writer, in words/)
+  })
+
+  it('is stored words first, so the thread replays as the model would have written it', async () => {
+    const { ctx, ada, send } = await world()
+    ctx.setChat((_request, call) =>
+      call === 1 ? toolsOnly() : call === 2 ? { text: 'What is the claim?' } : { text: 'Thanks.' },
+    )
+    await send(ada, START)
+    await send(ada, say('Rivers are lazy.'))
+    const replayed = ctx.chats.at(-1)!.request.messages
+    const assistant = replayed.find((m) => m.role === 'assistant')!
+    const blocks = assistant.content as LLMContentBlock[]
+    expect(blocks.map((b) => b.type)).toEqual(['text', 'tool_call', 'tool_call'])
+    // And its calls are answered in the writer's next turn, as for any reply.
+    const next = replayed.at(-1)!.content as LLMContentBlock[]
+    expect(next.filter((b) => b.type === 'tool_result')).toHaveLength(2)
+  })
+
+  it('makes one request when the reply already has words', async () => {
+    const { ctx, ada, send } = await world()
+    ctx.setChat(() => ({ text: 'What is the claim?', toolCalls: [suggestNote('A point.')] }))
+    await send(ada, START)
+    expect(ctx.chats).toHaveLength(1)
+  })
+
+  it('makes one request when there are neither calls nor words, which is still an error', async () => {
+    const { ctx, ada, send } = await world()
+    ctx.setChat(() => ({ text: '' }))
+    const { events } = await send(ada, START)
+    expect(ctx.chats).toHaveLength(1)
+    expect(types(events).at(-1)).toBe('error')
+  })
+
+  it('ignores more tool calls in the continuation, and still saves if it too has no words', async () => {
+    const { ctx, ada, send, thread } = await world()
+    ctx.setChat((_request, call) =>
+      call === 1 ? toolsOnly() : { toolCalls: [suggestNote('Another point.')] },
+    )
+    const { events } = await send(ada, START)
+    expect(ctx.chats).toHaveLength(2) // one continuation, never a loop
+    expect(types(events).at(-1)).toBe('done')
+    const last = (await thread()).messages.at(-1)!
+    expect(last.text).toBe('')
+    expect(last.proposals.map((p) => p.input.text)).toEqual(['A point.'])
+  })
+})
+
 describe('naming a conversation (#294)', () => {
   const name = (title: unknown) => ({ name: 'name_conversation', input: { title } })
   const summaryOf = async (ada: TestClient, ideas: string, ideaId: string, id: string) =>

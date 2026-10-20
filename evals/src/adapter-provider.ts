@@ -1,6 +1,7 @@
 import { CASES } from './cases'
 import { buildAdapter, buildResearch, choiceFromEnv } from './factory'
 import { brainstormRequest, critiqueRequest, rephraseRequest, researchRequest } from './request'
+import { brainstormTurn } from '../../apps/api/src/services/brainstorm'
 import { renderReply } from './render'
 import type { LLMChatEvent } from '@wordwright/core'
 
@@ -29,7 +30,7 @@ export default class AdapterProvider {
       if (c.app === 'critique') return { output: await llm.complete(critiqueRequest(c)) }
       if (c.app === 'rephrase') return { output: await llm.complete(rephraseRequest(c)) }
       const events: LLMChatEvent[] = []
-      for await (const e of llm.chat(brainstormRequest(c))) events.push(e)
+      for await (const e of brainstormTurn(llm, brainstormRequest(c))) events.push(e)
       return { output: renderReply(events) }
     } catch (err) {
       return { error: (err as Error).message }

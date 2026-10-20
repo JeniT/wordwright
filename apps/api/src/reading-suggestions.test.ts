@@ -139,7 +139,9 @@ describe('the coach suggesting a page', () => {
   it('tells the AI, when it next speaks, that an address could not be found', async () => {
     const { ctx, ada, say } = await world()
     ctx.setChat((_request, call) =>
-      call === 1 ? { toolCalls: [suggest(MISSING), suggest(OK)] } : { text: 'Noted.' },
+      call === 1
+        ? { text: 'Two pages.', toolCalls: [suggest(MISSING), suggest(OK)] }
+        : { text: 'Noted.' },
     )
     await say(ada)
     await say(ada, 'Thanks')
@@ -251,7 +253,9 @@ describe('the coach suggesting a page', () => {
 
   it('does nothing to the list when dismissed, and says so to the AI', async () => {
     const { ctx, ada, say, proposals, readingList, decide } = await world()
-    ctx.setChat((_request, call) => (call === 1 ? { toolCalls: [suggest(OK)] } : { text: 'ok' }))
+    ctx.setChat((_request, call) =>
+      call === 1 ? { text: 'Try this.', toolCalls: [suggest(OK)] } : { text: 'ok' },
+    )
     await say(ada)
     await decide((await proposals())[0]!.id, 'dismiss')
     expect(await readingList()).toHaveLength(1)

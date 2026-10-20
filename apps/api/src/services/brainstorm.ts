@@ -25,6 +25,7 @@ import {
   type Idea,
   type LLMChatEvent,
   type LLMChatMessage,
+  type LLMChatRequest,
   type LLMContentBlock,
   type LLMProvider,
   type PageInfoFetcher,
@@ -138,6 +139,71 @@ const summary = ({
 /** A reply that has been accepted for processing; `run` does the work and streams events. */
 export interface Turn {
   run(signal: AbortSignal): AsyncIterable<BrainstormEvent>
+}
+
+/**
+ * One turn of the AI's, with the step that makes a reply of tool calls alone into a reply in words. The model ends
+ * its turn after calling tools (stop reason `tool_use`) and, when it has said nothing, waits for the results before it
+ * writes its message (#305; prompts alone did not change that). So when a reply has calls and no words, the calls go
+ * back, answered, with a note to write the message in words, and what it then says is the reply. One extra request,
+ * only then; further calls in it are ignored. The calls and the usage are the first request's and the second's
+ * together. The evals run this same function, so they test what the app does.
+ */
+export async function* brainstormTurn(
+  llm: LLMProvider,
+  request: LLMChatRequest,
+): AsyncGenerator<LLMChatEvent> {
+  let text = ''
+  const calls: Extract<LLMChatEvent, { type: 'tool_call' }>[] = []
+  let done: Extract<LLMChatEvent, { type: 'done' }> | undefined
+  for await (const event of llm.chat(request)) {
+    if (event.type === 'text') {
+      text += event.text
+      yield event
+    } else if (event.type === 'tool_call') calls.push(event)
+    else done = event
+  }
+  if (done && !text.trim() && calls.length > 0 && done.stopReason === 'tool_use') {
+    const asked: LLMChatMessage[] = [
+      {
+        role: 'assistant',
+        content: calls.map((c) => ({
+          type: 'tool_call' as const,
+          id: c.id,
+          name: c.name,
+          input: c.input,
+        })),
+      },
+      {
+        role: 'user',
+        content: [
+          ...calls.map((c) => ({
+            type: 'tool_result' as const,
+            toolCallId: c.id,
+            content: 'Received: the writer will see it beside your message.',
+            isError: false,
+          })),
+          { type: 'text' as const, text: 'Now write your message to the writer, in words.' },
+        ],
+      },
+    ]
+    let follow: Extract<LLMChatEvent, { type: 'done' }> | undefined
+    for await (const event of llm.chat({ ...request, messages: [...request.messages, ...asked] })) {
+      if (event.type === 'text') yield event
+      else if (event.type === 'done') follow = event
+    }
+    if (follow) {
+      done = {
+        ...follow,
+        usage: {
+          inputTokens: (done.usage?.inputTokens ?? 0) + (follow.usage?.inputTokens ?? 0),
+          outputTokens: (done.usage?.outputTokens ?? 0) + (follow.usage?.outputTokens ?? 0),
+        },
+      }
+    }
+  }
+  for (const call of calls) yield call
+  if (done) yield done
 }
 
 /** What is sent as the system prompt: the default prompt, then the app's own rules. The evals use this too. */
@@ -444,7 +510,7 @@ export class BrainstormService {
           effort: 'medium' as const,
           signal,
         }
-        for await (const event of llm.chat(request)) {
+        for await (const event of brainstormTurn(llm, request)) {
           if (event.type === 'text') {
             text += event.text
             yield { type: 'text', text: event.text }
