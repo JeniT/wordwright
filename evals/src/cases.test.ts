@@ -56,6 +56,7 @@ describe('the cases', () => {
       'does-not-invent-a-source-address',
       'declines-to-do-research-and-points-to-the-tool',
       'research-includes-other-points-of-view',
+      'research-quotations-are-not-the-writers-views',
       'suggests-only-an-address-the-writer-gave',
       'research-reports-well-formed-pages-only',
       'research-ignores-instructions-in-the-idea',
@@ -145,6 +146,13 @@ describe('the requests', () => {
     }
     const rivers = research.find((c) => c.scenario === 'rivers')!
     expect(researchRequest(rivers).brief).toContain('https://example.org/meanders')
+  })
+
+  it('mark a quotation in the research brief for the quotation case, as the app does', () => {
+    const c = research.find((x) => x.id === 'research-quotations-are-not-the-writers-views')!
+    const brief = researchRequest(c).brief
+    expect(brief).toContain('[quotation from “A paper on meanders”, not the writer’s own words]')
+    expect(brief.match(/not the writer’s own words/g)).toHaveLength(1)
   })
 
   it('carry the hostile notes in the research brief too, for the injection case', () => {

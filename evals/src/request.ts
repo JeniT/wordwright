@@ -21,7 +21,7 @@ import { formatRephraseMessage } from '../../apps/api/src/services/rephrase'
 import { formatResearchBrief } from '../../apps/api/src/services/research'
 import { MAX_RESEARCH_RESULTS } from '@wordwright/core'
 import type { BrainstormCase, CritiqueCase, RephraseCase, ResearchCase } from './cases'
-import { SCENARIOS } from './scenarios'
+import { SCENARIOS, type Scenario } from './scenarios'
 
 /**
  * The request the app would send for this case. It is built from the app's own pieces (the prompt files, the
@@ -65,12 +65,14 @@ export function critiqueRequest(c: CritiqueCase): LLMRequest {
 
 /** Research sends the research prompt and the brief the service builds from the areas, the idea and the list so far. */
 export function researchRequest(c: ResearchCase): ResearchRequest {
+  const scenario: Scenario = SCENARIOS[c.scenario]
   return {
     system: RESEARCH_PROMPT,
     brief: formatResearchBrief(
-      SCENARIOS[c.scenario].idea,
+      scenario.idea,
       c.areas,
-      SCENARIOS[c.scenario].publication.description,
+      scenario.publication.description,
+      scenario.notes,
     ),
     maxResults: MAX_RESEARCH_RESULTS,
   }

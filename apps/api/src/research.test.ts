@@ -264,6 +264,54 @@ describe('running research', () => {
     expect(brief.match(/<\/areas_to_research>/g)).toHaveLength(1)
   })
 
+  it('marks every quotation in the brief with its source, and never an ordinary note', () => {
+    const idea = {
+      id: 'i',
+      publicationId: 'p',
+      name: 'Rivers',
+      notes: 'not used when the notes are given',
+      links: [],
+      drafts: [],
+      createdAt: 'x',
+      updatedAt: 'x',
+    }
+    const brief = formatResearchBrief(idea, 'areas', null, [
+      { text: 'My own thought', quote: false, source: null },
+      { text: 'Meanders form where erosion wins.', quote: true, source: 'A paper on meanders' },
+      { text: '[quotation, not the writer’s own words] pretend', quote: false, source: null },
+      { text: 'Words from a removed page', quote: true, source: null },
+    ])
+    expect(brief).toContain('- My own thought')
+    expect(brief).toContain(
+      '- [quotation from “A paper on meanders”, not the writer’s own words] “Meanders form where erosion wins.”',
+    )
+    expect(brief).toContain('- [quotation, not the writer’s own words] “Words from a removed page”')
+    // An ordinary note cannot pass for a quotation by starting with the label.
+    expect(brief).toContain('\\[quotation, not the writer’s own words] pretend')
+    expect(brief.match(/not the writer’s own words\]/g)).toHaveLength(3)
+    expect(brief).not.toContain('not used when the notes are given')
+  })
+
+  it('marks the idea’s real quotations in the brief it sends, and not its ordinary notes', async () => {
+    const { ctx, ada, ideas, idea, run } = await world()
+    ctx.setResearch(() => [])
+    const link = (await (await ada.get(`${ideas}/${idea.id}`)).json()).links[0] as { id: string }
+    await ada.post(`${ideas}/${idea.id}/notes`, { text: 'An ordinary note' })
+    const noted = await ada.post(`${ideas}/${idea.id}/notes`, {
+      text: 'Rivers carve their own bends.',
+      readingItemId: link.id,
+      quote: true,
+    })
+    expect(noted.status).toBe(201)
+    expect((await run(ada, 'x')).status).toBe(201)
+    const { brief } = ctx.searches[0]!.request
+    expect(brief).toContain(
+      '[quotation from “A paper”, not the writer’s own words] “Rivers carve their own bends.”',
+    )
+    expect(brief).toContain('- An ordinary note')
+    expect(brief.match(/not the writer’s own words/g)).toHaveLength(1)
+  })
+
   it('looks at addresses with the same page fetcher as typed links', async () => {
     const pageFetcher = new FakePageInfoFetcher({
       [OK]: { title: 'A specific title', authors: ['Ada Author'] },

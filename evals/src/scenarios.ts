@@ -1,15 +1,15 @@
 import type { Idea } from '@wordwright/core'
-import type { SnapshotNote } from '../../apps/api/src/services/brainstorm'
+import type { SnapshotNote } from '../../apps/api/src/services/idea-notes'
 
 /**
- * What the brainstorm snapshot is built from (see `formatSnapshot`); the critique and research cases take the publication's
+ * What the brainstorm snapshot and the research brief are built from (see `formatSnapshot`); the critique and research cases take the publication's
  * description from the scenario they name, too. `publication.description` is the writer's own description of the publication,
  * or null when there is none (as for most ideas today).
  */
 export interface Scenario {
   idea: Idea
   publication: { name: string; siteUrl: string | null; description: string | null }
-  /** The notes one by one, when some are quotations (else the snapshot uses `idea.notes`). */
+  /** The notes one by one, when some are quotations (else the snapshot and the brief use `idea.notes`). */
   notes?: SnapshotNote[]
 }
 
@@ -41,7 +41,7 @@ export const SCENARIOS = {
   /** An ordinary idea at the start of a session; the publication has no description yet. */
   rivers: { idea: base, publication },
 
-  /** A quotation among the writer's own notes, as the snapshot marks it (#293). */
+  /** A quotation among the writer's own notes, as the snapshot and the research brief mark it (#293, #298). */
   quotation: {
     idea: {
       ...base,

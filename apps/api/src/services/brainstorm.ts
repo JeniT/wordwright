@@ -6,7 +6,6 @@ import {
   LLMRateLimitError,
   llmTool,
   NameConversationToolInputSchema,
-  notesToMarkdown,
   MAX_CONVERSATIONS_PER_IDEA,
   MAX_IDEA_LINKS,
   MAX_IDEA_NOTES,
@@ -52,6 +51,7 @@ import type {
 import type { Store } from '../db/store'
 import { ReadingChecker, type CheckedReading } from './reading-suggestions'
 import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
+import { escape, notesText, snapshotNotes, type SnapshotNote } from './idea-notes'
 import { fail, notFound } from '../errors'
 
 /** A reply that takes longer than this is abandoned (and its lock freed). */
@@ -208,38 +208,6 @@ export async function* brainstormTurn(
 
 /** What is sent as the system prompt: the default prompt, then the app's own rules. The evals use this too. */
 export const brainstormSystem = () => `${DEFAULT_BRAINSTORM_PROMPT}\n\n${BRAINSTORM_RULES_PROMPT}`
-
-/** Keeps text we insert from closing or imitating the snapshot's own tags. */
-const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-/** One of the idea's notes as the AI is shown it. */
-export interface SnapshotNote {
-  text: string
-  /** Someone else's exact words, kept word for word. */
-  quote: boolean
-  /** The title of the reading item it was taken from, if that is still on the list. */
-  source: string | null
-}
-
-/**
- * The notes as bullets. A quotation says so, and where it is from, in front of its words, which are in quotation
- * marks: it is context for the conversation, not something the writer thinks, and the AI must not take it as theirs.
- * Null when no notes are given (the caller then falls back to the idea's notes as one text).
- */
-function notesText(notes: SnapshotNote[] | undefined): string | null {
-  if (!notes) return null
-  if (!notes.length) return '(none yet)'
-  return escape(
-    notesToMarkdown(
-      notes.map((n) =>
-        n.quote
-          ? `[quotation${n.source ? ` from “${n.source}”` : ''}, not the writer’s own words] “${n.text.trim()}”`
-          : // Only the app marks a quotation, so an ordinary note cannot start with the label and pass for one.
-            n.text.replace(/^(\s*)\[(?=quotation)/i, '$1\\['),
-      ),
-    ),
-  )
-}
 
 interface Publication {
   name: string
@@ -473,14 +441,9 @@ export class BrainstormService {
 
   private snapshot(idea: Idea, userId: string): string {
     const publication = this.d.store.publications.get(idea.publicationId, userId)
-    const { notes, reading } = this.d.store
     return formatSnapshot({
       idea,
-      notes: notes.list(idea.id).map((n) => ({
-        text: n.text,
-        quote: n.quote,
-        source: (n.readingItemId && reading.get(idea.id, n.readingItemId)?.title) || null,
-      })),
+      notes: snapshotNotes(this.d.store, idea),
       publication: {
         name: publication?.name ?? 'this publication',
         siteUrl: publication?.siteUrl ?? null,

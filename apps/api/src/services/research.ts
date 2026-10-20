@@ -17,23 +17,23 @@ import type { Store } from '../db/store'
 import { ReadingChecker } from './reading-suggestions'
 import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
 import { fail } from '../errors'
+import { escape, notesText, snapshotNotes, type SnapshotNote } from './idea-notes'
 
 /** A search that takes longer than this is abandoned. */
 export const RESEARCH_TIMEOUT_MS = 180_000
 
-/** Keeps text we insert from closing or imitating the brief's own tags. */
-const escape = (text: string) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
 /**
  * What the researcher is given: what the writer wants to look into (the main thing), the idea's title and notes for
  * context, the writer's description of the publication if they have written one, and the addresses already on the reading
- * list. All of it is the writer's own words, so it is escaped,
- * and `prompts/research.md` tells the researcher to treat it as material. Never the text of a draft.
+ * list. All of it is the writer's own words (a quotation is marked as someone else's, as in the Refine snapshot), so it
+ * is escaped, and `prompts/research.md` tells the researcher to treat it as material. Never the text of a draft.
  */
 export function formatResearchBrief(
   idea: Idea,
   areas: string,
   publicationDescription: string | null = null,
+  /** The notes one by one, so a quotation can be told from the writer's own point (else `idea.notes` is used). */
+  notes?: SnapshotNote[],
 ): string {
   return [
     '<areas_to_research>',
@@ -42,7 +42,7 @@ export function formatResearchBrief(
     '<idea>',
     `Idea title: ${escape(idea.name)}`,
     'Notes:',
-    idea.notes.trim() ? escape(idea.notes) : '(none yet)',
+    notesText(notes) ?? (idea.notes.trim() ? escape(idea.notes) : '(none yet)'),
     '</idea>',
     ...[publicationDescriptionBlock(publicationDescription)].filter((block) => block !== null),
     '<already_on_the_reading_list>',
@@ -104,6 +104,7 @@ export class ResearchService {
           idea,
           input.areas,
           usablePublicationDescription(store.publications.get(idea.publicationId, user.id)),
+          snapshotNotes(store, idea),
         ),
         maxResults: MAX_RESEARCH_RESULTS,
         signal: stop,

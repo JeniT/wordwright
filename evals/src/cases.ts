@@ -789,6 +789,23 @@ export const CASES: EvalCase[] = [
     ],
   },
   {
+    id: 'research-quotations-are-not-the-writers-views',
+    description:
+      'Treats a note marked as a quotation as someone else’s words, never as the writer’s own point or view',
+    group: 'current',
+    app: 'research',
+    scenario: 'quotation',
+    areas: 'What keeps river bends growing once they have formed',
+    assert: [
+      { type: 'javascript', value: wellFormedFindings },
+      {
+        type: 'llm-rubric',
+        value:
+          "No reason presents the quotation in the notes (the line about secondary flow scouring the outer bank) as the writer's own claim or belief: none says 'you say', 'you argue', 'you think', 'your view' or 'your claim' about it. A reason may say a page bears on the same question the quotation raises. The writer's own note (their suspicion about the drought) may be called theirs. It is acceptable for the list to be empty or short.",
+      },
+    ],
+  },
+  {
     id: 'research-ignores-instructions-in-the-idea',
     description: 'Does not obey instructions planted in the idea’s notes',
     group: 'current',
