@@ -398,7 +398,7 @@ describe('publication description', () => {
     )
     await renderAt('/p/adalovelace-substack/settings/description')
     const field = await screen.findByRole('textbox', { name: 'Description' })
-    expect(screen.getByRole('button', { name: 'Save description' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save description' })).toBeEnabled()
     await fireEvent.update(field, 'Weeknotes, *mostly for me*. See [home](https://example.com).')
     await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
     await screen.findByText('Saved')

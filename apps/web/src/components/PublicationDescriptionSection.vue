@@ -14,7 +14,8 @@ const queryClient = useQueryClient()
 const helpPath = '/help/description'
 
 const text = useSavedValue(() => props.publication.description ?? '', '')
-const changed = computed(() => text.value.trim() !== (props.publication.description ?? ''))
+// Over the limit is the one reason Save waits, and the editor says so beside the box; an unchanged description can be
+// saved again harmlessly, so the button doesn't go grey with no explanation.
 const tooLong = computed(() => text.value.length > PUBLICATION_DESCRIPTION_MAX)
 
 const save = useMutation({
@@ -34,11 +35,7 @@ const save = useMutation({
         </template>
       </DescriptionEditor>
       <div class="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          class="btn btn-primary"
-          :disabled="save.isPending.value || !changed || tooLong"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value || tooLong">
           {{ save.isPending.value ? 'Saving…' : 'Save description' }}
         </button>
         <SaveStatus :mutation="save" class="basis-full" />

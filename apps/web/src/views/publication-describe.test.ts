@@ -101,7 +101,7 @@ describe('describing a publication: guidance and the box', () => {
     await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.queryByText(/AI draft/)).toBeNull() // nothing is marked as the AI's
     const save = screen.getByRole('button', { name: 'Save description' })
-    expect(save).toBeDisabled() // nothing to save yet
+    expect(save).toBeEnabled() // never greyed out without a reason
     await fireEvent.update(
       screen.getByRole('textbox', { name: 'Description' }),
       'Personal weeknotes, mostly for me.',
@@ -202,6 +202,20 @@ describe('the publication page after creating', () => {
     await renderAt('/p/ada-publication')
     await screen.findByRole('region', { name: 'About this publication' })
     expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
+  })
+})
+
+describe('the Save button', () => {
+  it('waits only while the description is over the limit, and then only that', async () => {
+    const { calls } = fakeServer()
+    await renderAt('/p/ada-publication/settings/description')
+    const box = await screen.findByRole('textbox', { name: 'Description' })
+    const save = screen.getByRole('button', { name: 'Save description' })
+    await fireEvent.update(box, 'x'.repeat(5001))
+    expect(save).toBeDisabled()
+    await fireEvent.update(box, 'x'.repeat(5000))
+    expect(save).toBeEnabled()
+    expect(calls).toEqual([])
   })
 })
 

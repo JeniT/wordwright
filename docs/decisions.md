@@ -2125,3 +2125,10 @@ The research brief used to send the idea's notes as one text, so a quotation cou
 ## Numbered steps are verbs: Search becomes Scan, Notes becomes Note (#261, #307)
 
 Step names say what you do on the page. "Search" searched nothing (it lists the feeds' recent posts) and "Notes" was the only noun, so they became **Scan** and **Note** at both levels. Rejected for 01: Feeds (a noun, and the settings page's name), Browse and Skim (they sound like reading, which is step 02), Watch and Follow (they suggest subscribing). The rule covers numbered steps only; settings pages (Details, Feeds, Sharing...) and a publication's Ideas list are exempt. Counts stay nouns ("5 notes"), and "notes" remains the noun everywhere else. The step key `search` became `scan` and its address `/p/:id/scan`; the old `/search` address redirects, and #308 sweeps such redirects before launch.
+
+## Save on the Description page is never greyed out without a reason (#239)
+
+Clearing the description and the page's heading (`StepHeading`, like its siblings) were settled by #241. What was left was
+a Save button that was disabled when nothing had changed, with no explanation. It is now disabled only while saving and when
+the text is over the limit (the editor says how far over, beside the box). Saving an unchanged description is harmless,
+so there is no "nothing to save" state to explain.
