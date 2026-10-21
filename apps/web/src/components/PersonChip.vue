@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A person's name as a small rounded chip: who took a note, who edits a draft. This is a trusted space, so people are
+ * A person's name as a small rounded chip, saying who recorded, wrote or edits something: a note, a comment, a Refine message, a draft. This is a trusted space, so people are
  * named (never "you"); someone whose account has gone reads "A former member". Users have no pictures yet.
  */
 defineProps<{ name: string | null }>()

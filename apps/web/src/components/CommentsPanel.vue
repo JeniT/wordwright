@@ -51,7 +51,6 @@ const emit = defineEmits<{
 }>()
 
 const showResolved = ref(false)
-const cardProps = computed(() => ({ isEditor: props.isEditor }))
 
 type Entry = DraftComment & { number: number }
 /** Numbered by place in the whole list, so showing the resolved ones does not renumber the others. */
@@ -139,7 +138,7 @@ const audience = computed(() =>
             :entry="c"
             :kind="c.block === WHOLE_DRAFT ? 'plain' : 'show'"
             :active="c.id === activeId"
-            v-bind="cardProps"
+            :is-editor="isEditor"
             @show="emit('show', c.id)"
             @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"
           />
@@ -158,7 +157,7 @@ const audience = computed(() =>
               :ref="remember(c.id)"
               :entry="c"
               kind="changed"
-              v-bind="cardProps"
+              :is-editor="isEditor"
               @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"
             />
           </li>

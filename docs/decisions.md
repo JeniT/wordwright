@@ -675,8 +675,8 @@ inside it when accounts get one.
 comment or a Refine message, who edits a draft. A name inside a sentence stays text: "asked by Ada", the offered/waiting
 callouts and handover notices (bold prose), "added by Ada" on a suggestion. Your own name is a chip like anyone's: comments
 no longer say "You", because the rule everywhere is the person's name. "A former member" is the one wording for a
-missing name in a chip, and the offer callout; "Someone" is gone. Sentences that name a person who has gone say nothing
-rather than "asked by a former member".
+missing name in a chip and in the offer callout, which cannot make sense without a name; "Someone" is gone. A sentence
+whose meaning survives without the name ("asked by Ada") says nothing instead of "asked by a former member".
 
 **Kept names, audited (#313).** Every place that shows a person's name was checked against "Names stay if the person
 chooses". Two sentences lost a kept name: a review's "asked by" (`draft_reviews.kept_inviter_name`) and a suggestion's

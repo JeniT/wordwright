@@ -60,6 +60,7 @@ export class IdeaStore {
         title: d.title as string,
         updatedAt: d.updated_at as string,
         editorId: d.editor_id as string,
+        // Only a guard: removing an account hands its drafts to an owner first, so an editor is never missing.
         editorName: (d.editor_name as string | null) ?? 'A former member',
         publishedAt: (d.published_at as string | null) ?? null,
         publishedUrl: (d.published_url as string | null) ?? null,
