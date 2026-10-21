@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useMutation } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import { READING_DRAG_TYPE } from '../lib/note-drag'
 import { nameList } from '../lib/note-label'
-import { hasAllTags, stillUsed, tagsUsedOn } from '../lib/note-tags'
+import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import DraftCard from './DraftCard.vue'
 import Explain from './Explain.vue'
 import NoteTags from './NoteTags.vue'
@@ -26,12 +26,8 @@ const inserting = useMutation({ mutationFn: (item: IdeaLink) => props.insertLink
 const label = (item: IdeaLink) => item.title || item.url
 
 const usedTags = computed(() => tagsUsedOn(props.readingList))
-const tagFilter = ref<string[]>([])
-watch(usedTags, (tags) => {
-  const still = stillUsed(tagFilter.value, tags)
-  if (still.length !== tagFilter.value.length) tagFilter.value = still
-})
-const shown = computed(() => props.readingList.filter((item) => hasAllTags(item, tagFilter.value)))
+const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
+const shown = computed(() => props.readingList.filter((item) => matchesTags(item)))
 </script>
 
 <template>

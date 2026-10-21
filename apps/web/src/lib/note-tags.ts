@@ -1,3 +1,5 @@
+import { ref, watch, type Ref } from 'vue'
+
 /** Anything that carries tags: a note, a reading-list item. */
 type Tagged = { tags: readonly string[] }
 
@@ -35,6 +37,19 @@ export const hasAllTags = (item: Tagged, tags: readonly string[]) =>
 /** The chosen tags that something still carries: a tag nothing has any more can't be what is shown. */
 export const stillUsed = (chosen: readonly string[], used: readonly string[]) =>
   chosen.filter((c) => used.some((u) => u.toLowerCase() === c.toLowerCase()))
+
+/**
+ * The tags chosen to narrow a list, kept to tags something still carries (one nothing has any more can't be what is
+ * shown). `matches` is whether an item has all of them.
+ */
+export function useTagFilter(usedTags: Ref<readonly string[]>) {
+  const chosen = ref<string[]>([])
+  watch(usedTags, (tags) => {
+    const still = stillUsed(chosen.value, tags)
+    if (still.length !== chosen.value.length) chosen.value = still
+  })
+  return { chosen, matches: (item: Tagged) => hasAllTags(item, chosen.value) }
+}
 
 /**
  * The complete order of all notes after the visible ones (a filtered view) were rearranged: hidden notes stay

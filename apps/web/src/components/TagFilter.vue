@@ -19,14 +19,15 @@ function add(event: Event) {
   // Back to the prompt, so the next tag is one choice away.
   select.value = ''
 }
-const remove = (tag: string) => (chosen.value = chosen.value.filter((c) => c !== tag))
+const remove = (tag: string) =>
+  (chosen.value = chosen.value.filter((c) => c.toLowerCase() !== tag.toLowerCase()))
 </script>
 
 <template>
   <div v-if="tags.length || chosen.length" class="mb-3 flex flex-wrap items-center gap-2">
     <template v-if="offered.length">
       <label :for="selectId" class="sr-only">Filter by tag</label>
-      <select :id="selectId" class="field !min-h-8 !w-auto !py-0.5 text-sm" @change="add">
+      <select :id="selectId" class="field field-compact !w-auto" @change="add">
         <option value="" selected>Choose a tag</option>
         <option v-for="tag in offered" :key="tag" :value="tag">{{ tag }}</option>
       </select>

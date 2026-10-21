@@ -7,7 +7,7 @@ import { api, errorMessage } from '../lib/api'
 import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import { useIdeaNotes } from '../lib/queries'
-import { hasAllTags, orderWithHidden, stillUsed, tagsUsedOn } from '../lib/note-tags'
+import { orderWithHidden, tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -51,14 +51,8 @@ const {
 
 // ---- tags: a flat label on a note, and showing only the notes with every chosen tag
 const usedTags = computed(() => tagsUsedOn(notes.data.value ?? []))
-const tagFilter = ref<string[]>([])
-watch(usedTags, (tags) => {
-  const still = stillUsed(tagFilter.value, tags)
-  if (still.length !== tagFilter.value.length) tagFilter.value = still
-})
-const visibleNotes = computed(() =>
-  (notes.data.value ?? []).filter((n) => hasAllTags(n, tagFilter.value)),
-)
+const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
+const visibleNotes = computed(() => (notes.data.value ?? []).filter((n) => matchesTags(n)))
 
 // ---- adding
 const draft = ref('')

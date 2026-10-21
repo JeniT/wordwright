@@ -4,7 +4,7 @@ import type { IdeaLink } from '@wordwright/core'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
-import { hasAllTags, stillUsed, tagsUsedOn } from '../lib/note-tags'
+import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
@@ -46,11 +46,7 @@ watch(
 )
 // Only the items with every chosen tag. A tag nothing carries any more can't be what is shown.
 const usedTags = computed(() => tagsUsedOn(list.links.value ?? []))
-const tagFilter = ref<string[]>([])
-watch(usedTags, (tags) => {
-  const still = stillUsed(tagFilter.value, tags)
-  if (still.length !== tagFilter.value.length) tagFilter.value = still
-})
+const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
 watch([showRead, tagFilter], () => {
   justRead.value = new Set()
   clearSelection()
@@ -69,8 +65,7 @@ const filterSummary = computed(() => {
 })
 const shown = computed(() =>
   (list.links.value ?? []).filter(
-    (l) =>
-      (!l.readAt || showRead.value || justRead.value.has(l.id)) && hasAllTags(l, tagFilter.value),
+    (l) => (!l.readAt || showRead.value || justRead.value.has(l.id)) && matchesTags(l),
   ),
 )
 

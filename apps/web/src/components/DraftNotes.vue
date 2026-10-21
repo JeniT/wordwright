@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
@@ -12,7 +12,7 @@ import Explain from './Explain.vue'
 import DraftCard from './DraftCard.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
-import { hasAllTags, stillUsed, tagsUsedOn } from '../lib/note-tags'
+import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import NoteTags from './NoteTags.vue'
 import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
@@ -35,15 +35,9 @@ const { notes } = useIdeaNotes(
   () => props.publicationId,
   () => props.ideaId,
 )
-const tagFilter = ref<string[]>([])
 const usedTags = computed(() => tagsUsedOn((notes.data.value ?? []).filter((n) => !n.addedAt)))
-watch(usedTags, (tags) => {
-  const still = stillUsed(tagFilter.value, tags)
-  if (still.length !== tagFilter.value.length) tagFilter.value = still
-})
-const waiting = computed(() =>
-  (notes.data.value ?? []).filter((n) => !n.addedAt && hasAllTags(n, tagFilter.value)),
-)
+const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
+const waiting = computed(() => (notes.data.value ?? []).filter((n) => !n.addedAt && matchesTags(n)))
 const added = computed(() => (notes.data.value ?? []).filter((n) => n.addedAt))
 const showAdded = ref(false)
 
