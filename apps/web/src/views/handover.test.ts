@@ -97,11 +97,13 @@ describe('handing a draft over (#155)', () => {
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Offer draft' }))
     const choose = screen.getByLabelText('Member')
+    // Plain text, whatever the tutorial setting: it says what happens to who owns the draft.
     expect(
-      screen.getByRole('button', { name: 'About handing over a draft' }),
-    ).toHaveAccessibleDescription(
-      /Each draft can only have one editor.*It remains yours until they accept it/,
-    )
+      screen.getByText(
+        /Each draft can only have one editor.*It remains yours until they accept it/,
+      ),
+    ).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'About handing over a draft' })).toBeNull()
     expect(within(choose).queryByRole('option', { name: 'Ada Lovelace' })).toBeNull() // not oneself
     await fireEvent.update(choose, 'u2')
     const dialog = screen.getByRole('dialog', { name: 'Offer draft' })

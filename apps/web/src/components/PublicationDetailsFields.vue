@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { useSiteIconPreview } from '../lib/site-icon-preview'
-import Explain from './Explain.vue'
 import PublicationImage from './PublicationImage.vue'
 import TextField from './TextField.vue'
 
@@ -22,23 +21,27 @@ const siteUrl = defineModel<string>('siteUrl', { required: true })
   <TextField
     v-model="name"
     label="Publication name"
+    explain-label="About the name"
     required
     autocomplete="off"
     hint="For example, “Weekly letters” or “My blog”."
-  />
-  <Explain v-if="existing" label="About the name" class="-mt-2 mb-4">
-    Changing the name changes the publication’s address.
-  </Explain>
+  >
+    <template v-if="existing" #explain
+      >Changing the name changes the publication’s address.</template
+    >
+  </TextField>
   <TextField
     v-model="siteUrl"
     label="Website (optional)"
+    explain-label="About the website"
     autocomplete="off"
     hint="Where it gets published."
     @focusout="siteIcon.look(siteUrl, existing?.siteUrl)"
-  />
-  <Explain label="About the website" class="-mt-2 mb-4">
-    We fetch the site’s icon from this address and use it until you add a picture.
-  </Explain>
+  >
+    <template #explain>
+      We fetch the site’s icon from this address and use it until you add a picture.
+    </template>
+  </TextField>
   <p v-if="existing && siteIcon.icon.value" class="meta -mt-2 mb-4 flex items-center gap-2">
     <PublicationImage
       :id="existing.id"

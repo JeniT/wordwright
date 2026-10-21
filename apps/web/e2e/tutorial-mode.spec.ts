@@ -63,3 +63,32 @@ test('the menu row and the help page are accessible in light, dark and on a phon
   await expect(page.getByRole('heading', { level: 1, name: 'About tutorial mode' })).toBeVisible()
   await noViolations(page, 'help page, phone, dark')
 })
+
+test('with tutorial mode off, an info icon sits beside what it explains, not on a line of its own', async ({
+  page,
+}) => {
+  await signUp(page)
+  await expect(page.getByRole('link', { name: 'New publication' })).toBeVisible()
+  await page.getByRole('switch', { name: 'Tutorial' }).click()
+  await expect(page.getByRole('switch', { name: 'Tutorial' })).not.toBeChecked()
+
+  // Beside a button: the same row, to its right.
+  const button = await page.getByRole('link', { name: 'New publication' }).boundingBox()
+  const icon = await page.getByRole('button', { name: 'About publications' }).boundingBox()
+  expect(Math.abs(icon!.y + icon!.height / 2 - (button!.y + button!.height / 2))).toBeLessThan(
+    button!.height,
+  )
+  expect(icon!.x).toBeGreaterThan(button!.x + button!.width - 1)
+
+  // On a field: at the right of its label row, level with the label.
+  await page.goto('/publications/new')
+  const label = await page.getByText('Website (optional)').boundingBox()
+  const fieldIcon = await page.getByRole('button', { name: 'About the website' }).boundingBox()
+  expect(
+    Math.abs(fieldIcon!.y + fieldIcon!.height / 2 - (label!.y + label!.height / 2)),
+  ).toBeLessThan(label!.height)
+  expect(fieldIcon!.x).toBeGreaterThan(label!.x + label!.width)
+  await noViolations(page, 'icons in place, light')
+  await page.setViewportSize({ width: 390, height: 800 })
+  await noViolations(page, 'icons in place, phone')
+})

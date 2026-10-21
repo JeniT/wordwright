@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blockHash } from '@wordwright/core'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
+import { expectNoLoneInfoIcons } from '../testing/info-icons'
 import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
 useMockServer({ warm: ['draft'] })
@@ -1420,6 +1421,25 @@ describe('what the editing page says, and where', () => {
       /never rewrites/,
     )
     expect(screen.getByRole('button', { name: 'About rephrasing' })).toBeInTheDocument()
+  })
+
+  it('puts each icon beside its own button, and none on a line of its own', async () => {
+    mockEditor(() => new Response(null))
+    await renderAt('/p/p1/drafts/d1')
+    const critique = await screen.findByRole('button', { name: 'Critique' })
+    const row = critique.parentElement!
+    expect(row.contains(screen.getByRole('button', { name: 'About Critique' }))).toBe(true)
+    expect(row.contains(screen.getByRole('button', { name: 'About rephrasing' }))).toBe(true)
+    expect(row.contains(screen.getByRole('button', { name: 'Rephrase' }))).toBe(true)
+    expectNoLoneInfoIcons(document.body)
+  })
+
+  it('has no info icon beside the Notes tab, only the tutorial note', async () => {
+    mockEditor(() => new Response(null))
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('button', { name: 'Critique' })
+    expect(screen.queryByRole('button', { name: 'About adding notes' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'About inserting links' })).toBeNull()
   })
 
   it('writes the same explanations out in tutorial mode', async () => {

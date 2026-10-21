@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '../lib/api'
-import Explain from './Explain.vue'
+import HeadingRow from './HeadingRow.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import InfoTip from './InfoTip.vue'
@@ -64,7 +64,7 @@ const removeLlmKey = useMutation({
   <section aria-labelledby="llm-heading">
     <!-- In the guide it is a step inside the first-run checklist (an h2 section), so one level down. -->
     <!-- The guide's explanation sits with the heading: an icon beside it, or written out below it in tutorial mode. -->
-    <div class="mb-1 flex flex-wrap items-center gap-2">
+    <HeadingRow label="About your AI key" class="!mb-1">
       <component
         :is="props.guide ? 'h3' : 'h2'"
         id="llm-heading"
@@ -76,11 +76,11 @@ const removeLlmKey = useMutation({
         >What the AI mark means is explained in
         <RouterLink to="/help/ai-settings" class="link">Your AI settings</RouterLink>.</InfoTip
       >
-      <Explain v-if="props.guide" label="About your AI key">
+      <template v-if="props.guide" #explain>
         Wordwright has no AI of its own: you connect yours. Buttons with the AI mark send your text
         to it, and nothing else does.
-      </Explain>
-    </div>
+      </template>
+    </HeadingRow>
     <template v-if="props.guide">
       <p class="mb-3">
         <NewTabLink to="/help/api-key" class="link">How to get an API key</NewTabLink>

@@ -603,6 +603,10 @@ async function requestCritique() {
           >
             Critique
           </AiButton>
+          <Explain v-if="canEdit" label="About Critique" class="-ml-2">
+            Your AI comments on the draft’s weakest points. It never rewrites; each comment is yours
+            to resolve.
+          </Explain>
           <button
             v-if="canEdit"
             type="button"
@@ -613,6 +617,10 @@ async function requestCritique() {
           >
             Rephrase
           </button>
+          <Explain v-if="canEdit" label="About rephrasing" class="-ml-2">
+            Rephrase opens a window where your AI offers different ways to put your words. You
+            choose, edit and use one yourself.
+          </Explain>
           <button
             v-if="draft.data.value?.ideaId"
             ref="openButton"
@@ -630,17 +638,9 @@ async function requestCritique() {
           Critique will send this publication’s description and this draft’s title and text to your
           AI. It will not send your notes.
         </p>
-        <Explain v-if="canEdit" label="About Critique" class="mt-2">
-          Your AI comments on the draft’s weakest points. It never rewrites; each comment is yours
-          to resolve.
-        </Explain>
         <p v-if="canEdit && rephraseProblem" id="rephrase-hint" class="mt-2 text-sm text-ink-soft">
           {{ rephraseProblem }}
         </p>
-        <Explain v-if="canEdit" label="About rephrasing" class="mt-2">
-          Rephrase opens a window where your AI offers different ways to put your words. You choose,
-          edit and use one yourself.
-        </Explain>
         <p v-if="rephraseNotice" role="alert" class="mt-2 text-danger">{{ rephraseNotice }}</p>
         <div
           v-if="autosave.state.value === 'failed'"

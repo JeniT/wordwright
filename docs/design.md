@@ -261,6 +261,26 @@ A form that clears itself still owes the person some sign that it worked, but no
   on the next hover or focus. The pointer can move from the icon onto the tip without it closing.
 - Never the only place for something the person needs to finish the task. That is what the test above catches.
 
+#### Where the icon goes
+
+The icon explains one control or heading, so it sits beside that, and **is never alone on a line**. (The look it
+had when it fell on a line of its own, under a heading or a field, was the reason for these rules.)
+
+- **After a button:** `Explain` in the same flex row, right after the button (Critique, Rephrase, New publication).
+- **On a heading:** wrap the heading in `HeadingRow` with an `explain` slot: the icon is right-aligned on the
+  heading's row. In tutorial mode the text is written out below the heading.
+- **On a field:** the field's `explain` slot (with `explain-label`): the icon is at the right end of the label row, and in
+  tutorial mode the text is written out under the label.
+- **In a toolbar:** `Explain` with `ml-auto`, so it is at the right end of the row (bulk tagging).
+- **Not for a whole panel or tab.** The side panel beside a draft is narrow and its tab names say what each is, so its
+  explanations are `tutorial-only` (no icon). The same goes for anything that has no single control or heading to
+  sit beside.
+- **Text that avoids a mistake is plain text** (the hand-over dialog's “It remains yours until they accept it”), not
+  behind `Explain`.
+
+`expectNoLoneInfoIcons` (`src/testing/info-icons.ts`) is the test: call it, with tutorial mode off, on any page that
+has an icon.
+
 ### Tutorial mode
 
 New people need more than the icons give: what each kind of page is for, what the AI buttons do, what they will spend.
@@ -272,7 +292,7 @@ always in view and always available both ways:
   using the site gets new text on pages they know. A reviewer-only account never has it; when it becomes a full
   account it is turned on, as for any new account.
 - **One component, `Explain`,** takes the same `label` and slot as the old `InfoTip`. Off: the icon and bubble. On: the
-  same text written out below its control, in `tutorial-note` (ink-soft, a thin left rule), no icon. `<Explain
+  same text written out below its control (at the end of its row), in `tutorial-note` (ink-soft, a thin left rule), no icon. `<Explain
 tutorial-only>` is for what a page is for, which has no icon: it shows nothing when the mode is off. The text is
   written once, so the two versions can't drift. Two sentences at most in both modes.
 - **It never adds anything the person needs to avoid a mistake:** that is on the page for everyone. Review checklist:

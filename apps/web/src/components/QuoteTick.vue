@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import Explain from './Explain.vue'
-
 /** The tick for a quotation, with what it does; used with `useQuoteTick` (lib/quote-tick.ts). */
 defineProps<{ tickedByPaste: boolean }>()
 const isQuote = defineModel<boolean>({ required: true })
@@ -23,11 +21,9 @@ defineEmits<{ ticked: [] }>()
         Ticked because you pasted it. Untick it if these are your words.
       </template>
     </p>
-    <div class="flex">
-      <Explain label="About quotations">
-        You can’t edit notes that are marked as quotations. They can be inserted directly as
-        quotations into your drafts.
-      </Explain>
-    </div>
+    <p class="ml-6 text-sm text-ink-soft">
+      You can’t edit notes that are marked as quotations. They can be inserted directly as
+      quotations into your drafts.
+    </p>
   </div>
 </template>

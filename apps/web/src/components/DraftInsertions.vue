@@ -45,7 +45,7 @@ const rows = computed(() =>
     <summary class="cursor-pointer font-medium">
       Where some of the words came from ({{ rows.length }})
     </summary>
-    <Explain label="About this record" class="mt-2">
+    <Explain tutorial-only class="mt-2">
       Words you pulled in from notes, or took from an AI option, keep a record of where they came
       from, even after you change them.
     </Explain>

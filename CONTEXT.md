@@ -182,3 +182,11 @@ _Avoid_: Proposal, card, recommendation (in what people see)
 **Tutorial mode**:
 A setting on a person's account that shows the explanations otherwise kept behind info icons (and short page-purpose lines that appear nowhere else) written out on the page. On for new accounts, off for others, switched from the menu at any time. It never holds anything a person needs to avoid a mistake.
 _Avoid_: Onboarding, walkthrough, help mode
+
+**Info icon**:
+A small icon that holds a short explanation of one control or heading, shown on hover, focus or tap. It sits next to the thing it explains: right after a button, or at the right-hand end of the heading or field label it belongs to. Never alone on a line, and never used to explain a whole panel or tab.
+_Avoid_: Tooltip (that is a plain label on hover), help button
+
+**Tutorial note**:
+The same explanation as an info icon, written out on the page below what it explains while tutorial mode is on. Some tutorial notes (what a page is for) have no icon at all and appear only in tutorial mode.
+_Avoid_: Hint (a hint is always shown), help text

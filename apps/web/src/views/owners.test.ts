@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { expectNoLoneInfoIcons } from '../testing/info-icons'
 import { renderAt, server, signedInAs, sourcesList, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -136,6 +137,11 @@ describe('owners in the people list', () => {
       await renderAt('/p/p1/settings/sharing')
       const info = await screen.findByRole('button', { name: 'About owners' })
       expect(info).toHaveAccessibleDescription(/^Owners can also change the publication/)
+      // On the People heading's row, not on a line of its own.
+      expect(info.closest('div')!.contains(screen.getByRole('heading', { name: 'People' }))).toBe(
+        true,
+      )
+      expectNoLoneInfoIcons(document.body)
     })
 
     it('is written out in tutorial mode', async () => {

@@ -82,7 +82,8 @@ const label = (note: IdeaNote) => {
     <p v-if="onlyEditor" class="mb-3 text-sm text-ink-soft">
       Only {{ onlyEditor }}, the draft’s editor, can add notes to the draft.
     </p>
-    <Explain v-else label="About adding notes" class="mb-3">
+    <!-- Said once for the panel, not behind an icon: the panel is narrow, and each note's button says what it does. -->
+    <Explain v-else tutorial-only class="mb-3">
       Add a note to put its words after the paragraph you are in, or drag it by its grip to where
       you want it. The draft is saved as you do.
     </Explain>

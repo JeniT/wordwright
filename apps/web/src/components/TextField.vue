@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useId } from 'vue'
+import Explain from './Explain.vue'
 
 defineProps<{
   label: string
+  /** The explanation's icon name ("About the name"); needed with the `explain` slot. */
+  explainLabel?: string
   type?: string
   autocomplete?: string
   hint?: string
@@ -20,6 +23,8 @@ defineProps<{
 defineSlots<{
   /** A hint with a link in it; for plain words use the `hint` prop. */
   hint?(): unknown
+  /** An explanation of the field, as an info icon at the right of the label row (see `Explain`). */
+  explain?(): unknown
 }>()
 const model = defineModel<string>({ required: true })
 const id = useId()
@@ -27,9 +32,17 @@ const id = useId()
 
 <template>
   <div class="mb-4">
-    <label :for="id" class="mb-1 block text-sm font-medium" :class="hideLabel ? 'sr-only' : ''">{{
-      label
-    }}</label>
+    <div
+      class="mb-1 flex flex-wrap items-center justify-between gap-x-2"
+      :class="hideLabel && !$slots.explain ? 'sr-only' : ''"
+    >
+      <label :for="id" class="block text-sm font-medium" :class="hideLabel ? 'sr-only' : ''">{{
+        label
+      }}</label>
+      <Explain v-if="$slots.explain" :label="explainLabel ?? 'More information'"
+        ><slot name="explain"
+      /></Explain>
+    </div>
     <input
       :id="id"
       v-model="model"

@@ -80,7 +80,7 @@ function toggleRemoving(tag: string) {
         {{ item.tag }}
       </button>
     </div>
-    <Explain label="About tagging several at once">
+    <Explain label="About tagging several at once" class="ml-auto">
       Tags are added to what each {{ noun }} already has, up to {{ MAX_NOTE_TAGS }} each. Press a
       tag under Remove to take it off all of them.
     </Explain>

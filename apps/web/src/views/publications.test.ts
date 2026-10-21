@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { expectNoLoneInfoIcons } from '../testing/info-icons'
 import {
   llmSettings,
   renderAt,
@@ -628,6 +629,12 @@ describe('the pages of publication settings', () => {
     expect(settingsLabels).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'About the website' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'About the name' })).toBeInTheDocument()
+    // Each icon is on its field's label row, not alone below the field.
+    for (const name of ['About the name', 'About the website']) {
+      const row = screen.getByRole('button', { name }).closest('div')!.parentElement!
+      expect(row.querySelector('label')).not.toBeNull()
+    }
+    expectNoLoneInfoIcons(document.body)
     expect(screen.getByText('Where it gets published.')).toBeInTheDocument()
     expect(screen.queryByText(/for example https/i)).toBeNull()
   })

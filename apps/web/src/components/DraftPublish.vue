@@ -3,7 +3,7 @@ import { computed, ref, useTemplateRef } from 'vue'
 import { useSavedValue } from '../lib/forms'
 import { renderMarkdown } from '../lib/markdown'
 import { useSetPublished } from '../lib/queries'
-import Explain from './Explain.vue'
+import HeadingRow from './HeadingRow.vue'
 import PublishedNote from './PublishedNote.vue'
 import SaveStatus from './SaveStatus.vue'
 import SwitchField from './SwitchField.vue'
@@ -95,11 +95,13 @@ async function copyRich() {
 
 <template>
   <section id="publish" aria-labelledby="publish-heading" class="mt-12 border-t border-line pt-6">
-    <h2 id="publish-heading" class="h3">Publish</h2>
-    <Explain label="About publishing" class="mt-1">
-      Copy the draft and paste it where you publish. Then mark it published: it leaves Keep writing,
-      and your idea stays here with its notes, reading list and drafts.
-    </Explain>
+    <HeadingRow label="About publishing" class="!mb-0">
+      <h2 id="publish-heading" class="h3">Publish</h2>
+      <template #explain>
+        Copy the draft and paste it where you publish. Then mark it published: it leaves Keep
+        writing, and your idea stays here with its notes, reading list and drafts.
+      </template>
+    </HeadingRow>
     <div class="mt-4 flex flex-wrap items-center gap-2">
       <button type="button" class="btn btn-primary" :disabled="empty" @click="copyRich">
         Copy

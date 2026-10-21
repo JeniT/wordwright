@@ -23,7 +23,7 @@ const label = (item: IdeaLink) => item.title || item.url
     <p v-if="onlyEditor" class="mb-3 text-sm text-ink-soft">
       Only {{ onlyEditor }}, the draft’s editor, can put links in the draft.
     </p>
-    <Explain v-else label="About inserting links" class="mb-3">
+    <Explain v-else tutorial-only class="mb-3">
       Put a link to something you have read in the line you are writing. Anything you haven’t marked
       as read, you’ll be asked about first.
     </Explain>

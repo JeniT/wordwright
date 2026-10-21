@@ -2,7 +2,6 @@
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useHandover, useHandoverActions } from '../lib/draft-people'
-import Explain from './Explain.vue'
 import ModalDialog from './ModalDialog.vue'
 
 /** The editor offers the draft to a named member, who chooses whether to accept (CONTEXT.md, "Handover"). */
@@ -44,10 +43,11 @@ const submit = () =>
     :footer="!others.length"
     @close="emit('close')"
   >
-    <Explain label="About handing over a draft" class="mb-3">
+    <!-- Plain text: it says what happens to who owns the draft, which people need to see to avoid a mistake. -->
+    <p class="mb-3">
       Each draft can only have one editor. If you want to hand this draft over to another editor,
       you can offer it to them. It remains yours until they accept it.
-    </Explain>
+    </p>
     <form v-if="others.length" class="flex flex-wrap items-end gap-3" @submit.prevent="submit">
       <div>
         <label for="handover-to" class="mb-1 block font-medium">Member</label>

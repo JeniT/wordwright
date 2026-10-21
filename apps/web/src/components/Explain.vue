@@ -7,6 +7,10 @@ import InfoTip from './InfoTip.vue'
  * tutorial mode is off, written out on the page below its control while it is on. The text is written once, so the
  * two can't drift apart. Two sentences at most, and never the only place for something needed to avoid a mistake.
  *
+ * Put it in the row of the thing it explains (after a button, or in a `HeadingRow`, or in a field's `explain` slot):
+ * the icon then sits beside that thing, and the written-out text takes the full width at the end of the row. It is
+ * never left on a line of its own, and never explains a whole panel or tab (use `tutorialOnly` for that).
+ *
  * `tutorialOnly` is for what a page is for, which has no icon: it says nothing unless tutorial mode is on.
  */
 defineProps<{
@@ -18,7 +22,7 @@ const tutorial = useTutorialMode()
 </script>
 
 <template>
-  <p v-if="tutorial" class="tutorial-note basis-full">
+  <p v-if="tutorial" class="tutorial-note order-last basis-full">
     <slot />
   </p>
   <InfoTip v-else-if="!tutorialOnly" :label="label ?? 'More information'"><slot /></InfoTip>
