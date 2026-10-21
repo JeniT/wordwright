@@ -150,10 +150,11 @@ describe('EditorView critique', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
     await screen.findByText('A decent start.')
     const points = within(await commentsRegion()).getAllByRole('listitem')
-    expect(points[0]).toHaveTextContent('Some text')
+    expect(points[0]).not.toHaveTextContent('Some text') // no excerpt: the paragraph is on the page
     expect(points[0]).toHaveTextContent('Tighten the opening.')
     expect(points[0]).toHaveTextContent('Readers skim.')
-    expect(points[1]).toHaveTextContent('The whole draft')
+    expect(points[1]).toHaveTextContent('General')
+    expect(points[1]!.querySelector('.chip-quiet')).not.toBeNull()
     expect(points[1]).toHaveTextContent('The order is odd.')
     // Only the paragraph point is marked, in the text; the whole-piece point has no paragraph to mark.
     expect(await screen.findAllByRole('button', { name: /^Comment \d/ })).toHaveLength(1)
@@ -228,10 +229,11 @@ describe('EditorView critique', () => {
     vi.unstubAllGlobals()
   })
 
-  it('counts the open comments on the tab, and the count follows what is set aside', async () => {
+  it('shows no count on the Comments tab, so the tab bar never wraps', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1'), pointOn('p2')]))
     await renderAt('/p/p1/drafts/d1')
-    expect(await screen.findByRole('tab', { name: 'Comments, 2' })).toBeTruthy()
+    expect(await screen.findByRole('tab', { name: 'Comments' })).toBeTruthy()
+    expect(screen.queryByRole('tab', { name: /Comments, / })).toBeNull()
   })
 
   it('shows the Comments tab as soon as a critique is asked for, with the wait in it', async () => {
@@ -292,12 +294,10 @@ describe('EditorView critique', () => {
     await showTab('Comments')
     const resolve = await screen.findByRole('switch', { name: 'Resolved: comment 1' })
     expect(resolve).not.toBeChecked()
-    expect(screen.getByRole('tab', { name: 'Comments, 2' })).toBeTruthy()
     await fireEvent.click(resolve)
-    // Its mark is gone, the tab counts one fewer, and the comment is hidden rather than deleted.
+    // Its mark is gone and the comment is hidden rather than deleted.
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Comment 1' })).toBeNull())
     expect(screen.getByRole('button', { name: 'Comment 2' })).toBeTruthy()
-    expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy()
     expect(within(await commentsRegion()).getAllByRole('listitem')).toHaveLength(1)
     expect(screen.queryByText('Resolved: comment 1')).toBeNull()
 
@@ -419,7 +419,6 @@ describe('EditorView comments from members', () => {
     const region = await commentsRegion()
     expect(await within(region).findByText('Bob Byron on the opening.')).toBeTruthy()
     expect(within(region).queryByRole('switch')).toBeNull()
-    expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy()
     // Said to them: who will see what they write.
     expect(region).toHaveTextContent('Only you and Ada Lovelace, the editor, will see this.')
   })
@@ -491,7 +490,7 @@ describe('EditorView comments from members', () => {
     await showTab('Comments')
     const items = await within(await commentsRegion()).findAllByRole('listitem')
     await waitFor(() => expect(items).toHaveLength(3))
-    expect(items[0]).toHaveTextContent('AI critique')
+    expect(items[0]).toHaveTextContent('Your AI')
     expect(items[0]!.querySelector('.chip-ai')).not.toBeNull()
     expect(items[1]).toHaveTextContent('Bob Byron')
     expect(items[1]!.querySelector('.chip-ai')).toBeNull() // the highlighter is only for the AI
@@ -502,8 +501,8 @@ describe('EditorView comments from members', () => {
     // A person's comment is marked in the text too, but not in the highlighter.
     const marks = await screen.findAllByRole('button', { name: /^Comment \d/ })
     expect(marks).toHaveLength(3)
-    expect(marks[0]).not.toHaveClass('is-person')
-    expect(marks[1]).toHaveClass('is-person')
+    expect(marks[0]).toHaveClass('is-ai')
+    expect(marks[1]).not.toHaveClass('is-ai')
   })
 
   it('names a commenter whose account is gone without a name', async () => {
@@ -534,7 +533,6 @@ describe('EditorView comments from members', () => {
     const region = await commentsRegion()
     await within(region).findByRole('heading', { name: 'This passage has changed' })
     expect(region).toHaveTextContent('About the old words.')
-    expect(screen.getByRole('tab', { name: 'Comments, 1' })).toBeTruthy() // still open
   })
 
   it('says it is loading, and what to do when the comments could not be loaded', async () => {

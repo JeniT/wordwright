@@ -76,18 +76,6 @@
   vertical-align: middle;
   user-select: none;
 }
-.prose-editor .ProseMirror .comment-mark {
-  background: var(--color-mark);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-.prose-editor .ProseMirror .comment-mark.is-person {
-  background: var(--color-surface);
-}
-.prose-editor .ProseMirror .comment-mark[aria-current='true'] {
-  border-color: var(--color-accent);
-  outline: 2px solid var(--color-accent);
-}
 
 /* A link in the draft must read as a link (the reset makes anchors look like their text). */
 .prose-editor .ProseMirror a {

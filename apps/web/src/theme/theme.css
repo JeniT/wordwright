@@ -351,6 +351,35 @@
     background: var(--color-accent-wash);
   }
 }
+/*
+ * A comment's number: the same round marker beside the paragraph in the draft and on the comment's card, so the two
+ * are plainly the same thing. The highlighter (`is-ai`) is for the AI's comments; a person's is plain. The one being
+ * looked at has the accent edge and outline.
+ */
+@utility comment-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  &.is-ai {
+    background: var(--color-mark);
+    border-color: var(--color-mark);
+  }
+  &[aria-current='true'],
+  &.is-active {
+    border-color: var(--color-accent);
+    outline: 2px solid var(--color-accent);
+  }
+}
 @utility chip {
   display: inline-flex;
   align-items: center;

@@ -89,8 +89,12 @@ An owner moving a draft's editor role to another member without the current edit
 ### Review
 
 **Comment**:
-A remark about a paragraph or the whole draft, from a person or from the AI, that the editor decides what to do with. Never carries replacement text.
+A remark about a passage, a paragraph or, as a general comment, the whole draft, from a person or from the AI, that the editor decides what to do with. Never carries replacement text.
 _Avoid_: Suggestion, feedback item, point (the AI's critique "points" are comments)
+
+**General comment**:
+A comment about the whole draft rather than a paragraph. It has no mark in the text; its card carries a "General" chip. (The code calls its anchor `WHOLE_DRAFT`.)
+_Avoid_: Whole-draft comment, overall comment
 
 **Resolved** (comment):
 Set aside by the draft's editor as dealt with: hidden, never deleted, for everyone.

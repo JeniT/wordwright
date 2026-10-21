@@ -2180,3 +2180,9 @@ Drafts had no way to say they were done, so a draft written weeks ago stayed in 
 The link accepts only `http:` and `https:`, checked by the shared schema, because it becomes an `href` that other members click: a `javascript:` or `data:` address would be a script in someone else's session. It opens in a new tab with `noopener noreferrer`, and the service never fetches it (no one's page is read, and nothing can be made to request an internal address).
 
 On the idea's Draft page a published draft keeps its place. The order is the reading order of a linked set, so sinking a published Part 1 below an unpublished Part 2 would break the series. The row is washed green (`ok-wash`) and carries a "Published Oct 20, 2026" chip with a tick (words and icon, never colour alone); "View post" sits beside the row link because a link cannot sit inside one. A published draft always leaves Keep writing, even with comments waiting: the switch is the writer saying they have finished with it, and un-marking brings it back.
+
+## Comment cards match the marks in the text (#332)
+
+- **One marker.** A comment's number is the same round `comment-marker` in the draft and on its card, so it is clear they match. A card is a plain 1px box holding the Resolved switch; the marker and text are one button, not two.
+- **No excerpt, no count.** The paragraph is on the page beside the mark, so the card does not repeat it. The Comments tab carries no count: it pushed "Reviews" onto a second line. A general comment (about the whole draft) has a "General" chip; the AI's say "Your AI".
+- **No help page change.** No help page describes comments, so none moved.

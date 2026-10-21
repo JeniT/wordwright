@@ -79,7 +79,7 @@ async function focusPoint(id: string, { focus = true } = {}) {
   const el = document.getElementById(`comment-${id}`)
   if (!el) return
   scrollAreaToTop(el, scrollAreaOf(el))
-  if (focus) el.focus({ preventScroll: true })
+  if (focus) el.querySelector<HTMLElement>('[data-comment-button]')?.focus({ preventScroll: true })
 }
 defineExpose({ focusPoint, revert: (id: string) => cards.value[id]?.revert() })
 
@@ -106,7 +106,10 @@ const audience = computed(() =>
       >
     </p>
     <template v-if="round && !pending">
-      <p>{{ round.summary }}</p>
+      <p>
+        <span class="chip chip-ai mr-1">Your AI</span>
+        {{ round.summary }}
+      </p>
       <p v-if="round.ready" class="mt-2 text-ink-soft">
         Nothing important left to fix. What remains is a matter of taste, so it may be time to
         publish.

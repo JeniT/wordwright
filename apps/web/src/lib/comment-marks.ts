@@ -90,9 +90,7 @@ export const CommentMarks = Extension.create<CommentMarkOptions, CommentMarkStor
       for (const p of points) {
         const button = document.createElement('button')
         button.type = 'button'
-        button.className = p.byAi
-          ? 'btn btn-sm btn-icon comment-mark'
-          : 'btn btn-sm btn-icon comment-mark is-person'
+        button.className = p.byAi ? 'comment-marker is-ai' : 'comment-marker'
         button.dataset.pointId = p.id
         button.textContent = String(p.number)
         button.setAttribute('aria-label', p.label)

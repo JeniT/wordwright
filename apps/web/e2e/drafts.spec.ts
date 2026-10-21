@@ -257,7 +257,8 @@ test('register, write, save and request a critique', async ({ page }) => {
   )
   await expect(side.getByText('A fake critique: one thing to look at.')).toBeVisible()
   const comment = side.getByRole('button', { name: /Fake critique: the opening could say/ })
-  await expect(comment).toContainText('Rivers rarely flow straight.')
+  await expect(comment).toContainText('Your AI')
+  await expect(comment).not.toContainText('Rivers rarely flow straight.') // no excerpt: it is on the page
 
   // The point is marked beside the paragraph it is about, and the page is still accessible with the marks in.
   const mark = page.getByRole('button', { name: 'Comment 1' })
@@ -310,17 +311,14 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Comment 1' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
-  // The editor resolves a comment when they have dealt with it. It is hidden, not deleted, and the tab counts one fewer.
+  // The editor resolves a comment when they have dealt with it. It is hidden, not deleted, and stays out of the list.
   const side2 = page.getByRole('complementary')
-  await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
   await side2.getByRole('switch', { name: 'Resolved: comment 1' }).click()
-  await expect(side2.getByRole('tab', { name: 'Comments, 1' })).toBeVisible()
   await expect(side2.getByRole('switch', { name: 'Resolved: comment 1' })).toHaveCount(0)
   await side2.getByRole('switch', { name: 'Show resolved (1)' }).check()
   await expect(side2.getByRole('switch', { name: 'Resolved: comment 1' })).toBeChecked()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'a resolved comment').toEqual([])
   await side2.getByRole('switch', { name: 'Resolved: comment 1' }).uncheck()
-  await expect(side2.getByRole('tab', { name: 'Comments, 2' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
 
   // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.

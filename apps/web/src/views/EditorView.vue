@@ -372,7 +372,7 @@ const hasReviews = computed(() => {
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
-  { id: 'comments', label: 'Comments', count: openComments.value },
+  { id: 'comments', label: 'Comments' },
   ...(hasReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
 ])
 const sideTab = ref('notes')
@@ -446,7 +446,6 @@ const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
 /** Comments not yet resolved, as this person sees them: what the tab counts. */
-const openComments = computed(() => comments.value.filter((c) => !c.resolved).length)
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
@@ -713,7 +712,7 @@ async function requestCritique() {
         :class="notesOpen ? '' : 'max-lg:invisible max-lg:translate-x-full'"
         @keydown.esc="notesOpen && closeNotes()"
       >
-        <h2 id="draft-side-heading" class="sr-only">Notes, reading list and comments</h2>
+        <h2 id="draft-side-heading" class="sr-only">Notes, reading list, comments and reviews</h2>
         <button
           ref="closeButton"
           type="button"
