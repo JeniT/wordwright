@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blockHash } from '@wordwright/core'
-import { NOTE_DRAG_TYPE } from '../lib/note-drag'
+import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
 import { expectNoLoneInfoIcons } from '../testing/info-icons'
 import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
 
@@ -601,6 +601,7 @@ function mockDrafting(
     insertions?: ReturnType<typeof insertion>[]
     /** When the reading-list item (l1, "A paper") was marked read; null while it isn't. */
     readAt?: string | null
+    authors?: string[]
   } = {},
 ) {
   const state = {
@@ -631,6 +632,7 @@ function mockDrafting(
         id: 'l1',
         url: 'https://example.org/paper',
         title: 'A paper',
+        authors: start.authors ?? [],
         readAt: state.readAt,
         origin: 'entered',
       },
@@ -860,11 +862,11 @@ describe('the notes beside the draft', () => {
     })
     const editorEl = () => document.querySelector('.ProseMirror')!
     const grip = async (start: RegExp) =>
-      (await screen.findByText(start)).closest('li')!.querySelector('[data-testid="note-grip"]')!
+      (await screen.findByText(start)).closest('li')!.querySelector('[data-testid="rail"]')!
 
     afterEach(() => vi.restoreAllMocks())
 
-    it('picks a note up by its grip, carrying only its id', async () => {
+    it('picks a note up by its rail, carrying only its id', async () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       const drag = carrying(NOTE_DRAG_TYPE, '')
@@ -900,6 +902,54 @@ describe('the notes beside the draft', () => {
         'href',
         'https://example.org/paper',
       )
+    })
+
+    it('picks a reading item up by its rail too, carrying only its id', async () => {
+      mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Reading list')
+      const drag = carrying(READING_DRAG_TYPE, '')
+      const rail = (await screen.findByText('Not marked as read'))
+        .closest('li')!
+        .querySelector('[data-testid="rail"]')!
+      await fireEvent.dragStart(rail, drag)
+      expect(drag.dataTransfer.setData).toHaveBeenCalledWith(READING_DRAG_TYPE, 'l1')
+      expect(drag.dataTransfer.effectAllowed).toBe('copy')
+    })
+
+    it('puts a dropped reading item in the draft as a link, with who wrote it, and saves', async () => {
+      const api = mockDrafting({
+        readAt: '2026-01-02T00:00:00Z',
+        authors: ['Ada Lovelace', 'Bo Chen'],
+      })
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'l1'))
+
+      await waitFor(() => expect(api.saved).toHaveLength(1))
+      expect(api.saved[0]!.body).toContain(
+        '[A paper](https://example.org/paper) by Ada Lovelace and Bo Chen',
+      )
+      expect(api.posted).toEqual([]) // a link is not a note: nothing is set aside
+    })
+
+    it('asks first when the dropped reading item is not marked read, and inserts nothing yet', async () => {
+      const api = mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'l1'))
+      expect(
+        await screen.findByRole('dialog', { name: 'You haven’t marked this as read' }),
+      ).toBeInTheDocument()
+      expect(api.saved).toEqual([])
+    })
+
+    it('says so when a dropped reading item is no longer on the list', async () => {
+      mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await screen.findByText('Erosion loops.')
+      await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'gone'))
+      expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that reading item")
     })
 
     it('ignores anything else dropped on the draft (a file, some text)', async () => {
@@ -955,7 +1005,7 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       await fireEvent.click(
         await within(await screen.findByRole('complementary')).findByRole('button', {
-          name: 'Insert a link to A paper',
+          name: 'Add a link to A paper to the draft',
         }),
       )
     }
@@ -969,7 +1019,23 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       const list = within(await screen.findByRole('region', { name: 'Reading list' }))
       expect(await list.findByText('A paper')).toBeInTheDocument()
-      expect(list.getByText('Read')).toBeInTheDocument()
+      expect(list.queryByText('Not marked as read')).toBeNull() // read is the quiet default
+    })
+
+    it('shows who wrote an item, and offers to add it with one icon button named for it', async () => {
+      mockDrafting({ readAt: '2026-01-02T00:00:00Z', authors: ['Ada Lovelace', 'Bo Chen'] })
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Reading list')
+      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      expect(await list.findByText('by Ada Lovelace and Bo Chen')).toBeInTheDocument()
+      expect(list.getByRole('button', { name: 'Add a link to A paper to the draft' })).toBeTruthy()
+    })
+
+    it('marks an item that has not been read, and no other', async () => {
+      mockDrafting()
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Reading list')
+      expect(await screen.findByText('Not marked as read')).toBeInTheDocument()
     })
 
     it('says so when there is nothing on the reading list', async () => {
@@ -989,7 +1055,12 @@ describe('the notes beside the draft', () => {
         ),
       )
       await renderAt('/p/p1/drafts/d1')
-      expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+      await showTab('Reading list')
+      expect(await screen.findByText(/Nothing on the reading list yet\./)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Add to it on the idea page.' })).toHaveAttribute(
+        'href',
+        '/p/p1/ideas/i1/read',
+      )
     })
 
     it('puts a link to a read item in the line being written, and saves the draft, without asking', async () => {
@@ -1066,7 +1137,7 @@ describe('the notes beside the draft', () => {
         expect(api.saved[0]!.body).toContain('[A paper](https://example.org/paper)')
         expect(screen.queryByRole('dialog')).toBeNull()
         const list = within(screen.getByRole('region', { name: 'Reading list' }))
-        expect(await list.findByText('Read')).toBeInTheDocument() // the list now shows it as read
+        await waitFor(() => expect(list.queryByText('Not marked as read')).toBeNull()) // now shown as read
       })
 
       it('opens it in a new tab on "Read it now", inserting nothing and keeping the draft as it is', async () => {
@@ -1470,21 +1541,21 @@ describe('a draft has one editor (#154)', () => {
     )
   })
 
-  it('says who can add the notes, instead of offering to', async () => {
+  it('says who can add to the draft, once, instead of offering to', async () => {
     mockDrafting()
     server.use(http.get('*/api/publications/p1/drafts/d1', () => HttpResponse.json(bobsDraft)))
     await renderAt('/p/p1/drafts/d1')
     const notes = within(await screen.findByRole('complementary'))
     await notes.findByText('Erosion loops.')
     expect(
-      notes.getByText(/Only Bob Jones, the draft’s editor, can add notes to the draft/),
+      notes.getByText('Only Bob Jones, the draft’s editor, can add to the draft.'),
     ).toBeTruthy()
     expect(notes.queryByRole('button', { name: /^Add note/ })).toBeNull()
+    expect(notes.queryByTestId('rail')).toBeNull()
     await showTab('Reading list')
-    expect(
-      await screen.findByText(/Only Bob Jones, the draft’s editor, can put links/),
-    ).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /^Insert a link/ })).toBeNull()
+    expect(await screen.findByText('Not marked as read')).toBeTruthy() // the item is listed
+    expect(screen.queryByRole('button', { name: /^Add a link/ })).toBeNull()
+    expect(screen.queryByTestId('rail')).toBeNull()
   })
 
   it('sends the version a save was made from, and the next save the version after it', async () => {

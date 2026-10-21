@@ -219,9 +219,9 @@ async function mayCite(item: IdeaLink): Promise<boolean> {
 }
 
 /** Puts a link to a reading-list item in the line being written, if it may be cited, and saves the draft. */
-async function insertLink(item: IdeaLink) {
+async function insertLink(item: IdeaLink, at?: number) {
   if (!(await mayCite(item))) return
-  if (!editor.value?.insertInlineMarkdown(linkMarkdown(item))) {
+  if (!editor.value?.insertInlineMarkdown(linkMarkdown(item), at)) {
     throw new Error("The draft isn't ready yet. Try again in a moment.")
   }
   try {
@@ -253,7 +253,8 @@ async function insertNote(note: IdeaNote, at?: number) {
   }
 }
 
-// A note dragged from the side bar and dropped on the text goes in exactly as the button would put it, at the drop point.
+// A note or reading item dragged from the side bar and dropped on the text goes in exactly as the button would put
+// it, at the drop point.
 const dropNotice = ref('')
 const dropProblem = ref('')
 let dropping = false
@@ -280,6 +281,25 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
   } finally {
     dropping = false
     await refreshNotesEverywhere(queryClient)
+  }
+}
+
+async function onReadingDrop(itemId: string, position: number | undefined) {
+  if (dropping) return
+  const item = idea.data.value?.links.find((l) => l.id === itemId)
+  dropNotice.value = ''
+  dropProblem.value = ''
+  if (!item) {
+    dropProblem.value = "We couldn't find that reading item. Reload the page and try again."
+    return
+  }
+  dropping = true
+  try {
+    await insertLink(item, position)
+  } catch (err) {
+    dropProblem.value = errorMessage(err)
+  } finally {
+    dropping = false
   }
 }
 
@@ -579,6 +599,7 @@ async function requestCritique() {
           :editable="canEdit"
           @selection-change="selection = $event"
           @note-drop="onNoteDrop"
+          @reading-drop="onReadingDrop"
           @point-pick="pickPoint"
           @located="located = new Set($event)"
         />
@@ -720,6 +741,9 @@ async function requestCritique() {
         >
           Close panel
         </button>
+        <p v-if="!canEdit" class="mb-3 text-sm text-ink-soft">
+          Only {{ draft.data.value.editorName }}, the draft’s editor, can add to the draft.
+        </p>
         <TabPanels v-model="sideTab" :tabs="sideTabs" label="Beside the draft">
           <template #notes>
             <DraftNotes
@@ -727,19 +751,16 @@ async function requestCritique() {
               :idea-id="draft.data.value.ideaId"
               :reading-list="idea.data.value?.links ?? []"
               :insert="insertNote"
-              :only-editor="canEdit ? undefined : draft.data.value.editorName"
+              :can-add="canEdit"
             />
-            <p v-if="dropProblem" role="alert" class="mt-3 text-danger">{{ dropProblem }}</p>
-            <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
-            <p v-if="citeNotice" class="mt-3 text-sm text-ink-soft" aria-live="polite">
-              {{ citeNotice }}
-            </p>
           </template>
           <template #reading>
             <DraftReadingList
+              :publication-id="publicationId"
+              :idea-id="draft.data.value.ideaId"
               :reading-list="idea.data.value?.links ?? []"
               :insert-link="insertLink"
-              :only-editor="canEdit ? undefined : draft.data.value.editorName"
+              :can-add="canEdit"
             />
           </template>
           <template v-if="hasReviews" #reviews>
@@ -769,6 +790,12 @@ async function requestCritique() {
             />
           </template>
         </TabPanels>
+        <!-- Outside the tabs: a drop or an unread item can be answered while another tab is showing. -->
+        <p v-if="dropProblem" role="alert" class="mt-3 text-danger">{{ dropProblem }}</p>
+        <p class="sr-only" aria-live="polite">{{ dropNotice }}</p>
+        <p v-if="citeNotice" class="mt-3 text-sm text-ink-soft" aria-live="polite">
+          {{ citeNotice }}
+        </p>
       </aside>
 
       <RephraseDialog

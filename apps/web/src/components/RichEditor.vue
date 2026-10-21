@@ -14,7 +14,7 @@ import {
   type CommentMarkPoint,
   type CommentMarkStorage,
 } from '../lib/comment-marks'
-import { NOTE_DRAG_TYPE } from '../lib/note-drag'
+import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
 import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
 
@@ -38,7 +38,28 @@ const emit = defineEmits<{
   located: [ids: string[]]
   /** A note from the side bar was dropped on the text, at this position in it (unknown when it can't be worked out). */
   noteDrop: [noteId: string, position: number | undefined]
+  /** A reading item from the side bar was dropped on the text: its link goes in at this position (as for a note). */
+  readingDrop: [itemId: string, position: number | undefined]
 }>()
+
+/** What a drag from the side bar carries, if it is one of ours: which kind, and the id. */
+function dragged(event: DragEvent): { type: 'note' | 'reading'; id: string } | null {
+  const types = event.dataTransfer?.types
+  if (!types) return null
+  for (const [type, kind] of [
+    [NOTE_DRAG_TYPE, 'note'],
+    [READING_DRAG_TYPE, 'reading'],
+  ] as const) {
+    if (types.includes(type)) return { type: kind, id: event.dataTransfer!.getData(type) }
+  }
+  return null
+}
+const isOurs = (event: DragEvent) =>
+  !!event.dataTransfer?.types.some((t) => t === NOTE_DRAG_TYPE || t === READING_DRAG_TYPE)
+function hand(drag: { type: 'note' | 'reading'; id: string }, position: number | undefined) {
+  if (drag.type === 'note') emit('noteDrop', drag.id, position)
+  else emit('readingDrop', drag.id, position)
+}
 
 /** Whether the writer has put the cursor in the text yet; until then insertions go at the end. */
 let touched = false
@@ -72,15 +93,12 @@ const editor = useEditor({
       // Notes dragged from the side bar land where they are dropped. These are DOM-level handlers, ahead of
       // ProseMirror's own drop handling, which only calls its `handleDrop` once it has worked out a position.
       dragover: (_view, event) => {
-        if (event.dataTransfer?.types.includes(NOTE_DRAG_TYPE))
-          event.dataTransfer.dropEffect = 'copy'
+        if (isOurs(event)) event.dataTransfer!.dropEffect = 'copy'
         return false // the drop cursor still follows the pointer
       },
       drop: (view, event) => {
-        const id = event.dataTransfer?.types.includes(NOTE_DRAG_TYPE)
-          ? event.dataTransfer.getData(NOTE_DRAG_TYPE)
-          : ''
-        if (!id) return false // something else (a file, some text) is dropped: the editor's own business
+        const drag = dragged(event)
+        if (!drag?.id) return false // something else (a file, some text) is dropped: the editor's own business
         event.preventDefault()
         let position: number | undefined
         try {
@@ -88,7 +106,7 @@ const editor = useEditor({
         } catch {
           position = undefined
         }
-        emit('noteDrop', id, position)
+        hand(drag, position)
         return true
       },
       click: (_view, event) => {
@@ -200,15 +218,22 @@ function insertMarkdown(markdown: string, at?: number): boolean {
   const target = $to.parent.textContent.length ? $to.after() : $to.pos
   return e.chain().focus().insertContentAt(target, markdown, { contentType: 'markdown' }).run()
 }
-/** Puts Markdown (a link) into the line where the cursor is, without starting a new paragraph. */
-function insertInlineMarkdown(markdown: string): boolean {
+/**
+ * Puts Markdown (a link) into the line where the cursor is, without starting a new paragraph, or exactly at `at` if
+ * given (a drop).
+ */
+function insertInlineMarkdown(markdown: string, at?: number): boolean {
   if (sourceMode.value) return insertIntoSource(markdown, true)
   const e = editor.value
   if (!e) return false
-  if (!touched) e.commands.focus('end')
+  if (at === undefined && !touched) e.commands.focus('end')
   // Parsed as a paragraph, of which only the inline content (the link and its text) goes into the current line.
   const inline = e.markdown?.parse(markdown).content?.[0]?.content
   if (!inline) return false
+  if (at !== undefined) {
+    const position = Math.min(Math.max(at, 0), e.state.doc.content.size)
+    return e.chain().focus().insertContentAt(position, inline).run()
+  }
   return e.chain().focus().insertContent(inline).run()
 }
 /** The paragraph (or heading...) a comment is about, if it is in the text now. */
@@ -283,18 +308,16 @@ function insertIntoSource(markdown: string, inline = false): boolean {
   return true
 }
 function onSourceDragover(event: DragEvent) {
-  if (!event.dataTransfer?.types.includes(NOTE_DRAG_TYPE)) return
+  if (!isOurs(event)) return
   event.preventDefault() // a text box refuses what it does not know unless told otherwise
-  event.dataTransfer.dropEffect = 'copy'
+  event.dataTransfer!.dropEffect = 'copy'
 }
 function onSourceDrop(event: DragEvent) {
-  const id = event.dataTransfer?.types.includes(NOTE_DRAG_TYPE)
-    ? event.dataTransfer.getData(NOTE_DRAG_TYPE)
-    : ''
-  if (!id) return // something else: the box's own business
+  const drag = dragged(event)
+  if (!drag?.id) return // something else: the box's own business
   event.preventDefault()
-  // A text box cannot say where in its text a drop landed, so the note goes where the cursor is.
-  emit('noteDrop', id, undefined)
+  // A text box cannot say where in its text a drop landed, so it goes where the cursor is.
+  hand(drag, undefined)
 }
 
 // Switching between the editor and the box: the box is plain text, so what is selected, and where, no longer applies.

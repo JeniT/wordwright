@@ -5,11 +5,11 @@ import { RouterLink } from 'vue-router'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
-import { dragLabel, removeDragLabel } from '../lib/drag-label'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import Explain from './Explain.vue'
+import DraftCard from './DraftCard.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
 import { hasTag, tagsUsedOn } from '../lib/note-tags'
@@ -25,8 +25,8 @@ const props = defineProps<{
   readingList: readonly IdeaLink[]
   /** Puts the note in the draft and saves it; rejects (with a message) if that didn't work. */
   insert: (note: IdeaNote) => Promise<void>
-  /** Who may add notes to the draft when it is not the person looking (the draft's editor); undefined if they may. */
-  onlyEditor?: string
+  /** The person may add notes to the draft (only the draft's editor may). */
+  canAdd: boolean
 }>()
 const refineTo = computed(() => refineRoute(props.publicationId, props.ideaId))
 const queryClient = useQueryClient()
@@ -60,14 +60,6 @@ const putBack = useMutation({
   onSettled: refresh,
 })
 
-/** Drag a note out of the list, to drop it on the draft (see RichEditor). Only the note's id travels. */
-function onDragStart(event: DragEvent, note: IdeaNote) {
-  if (!event.dataTransfer) return
-  event.dataTransfer.effectAllowed = 'copy'
-  event.dataTransfer.setData(NOTE_DRAG_TYPE, note.id)
-  event.dataTransfer.setDragImage(dragLabel(label(note)), 12, 12)
-}
-
 /** A short name for a note, for button labels. */
 const label = (note: IdeaNote) => {
   const first = note.text.split('\n', 1)[0]!
@@ -79,13 +71,9 @@ const label = (note: IdeaNote) => {
   <div>
     <!-- The tab beside the draft already says "Notes"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-notes-heading" class="sr-only">Notes</h2>
-    <p v-if="onlyEditor" class="mb-3 text-sm text-ink-soft">
-      Only {{ onlyEditor }}, the draft’s editor, can add notes to the draft.
-    </p>
     <!-- Said once for the panel, not behind an icon: the panel is narrow, and each note's button says what it does. -->
-    <Explain v-else tutorial-only class="mb-3">
-      Add a note to put its words after the paragraph you are in, or drag it by its grip to where
-      you want it. The draft is saved as you do.
+    <Explain tutorial-only class="mb-3">
+      Add a note to the paragraph you are in, or drag it into the draft.
     </Explain>
 
     <QueryState :query="notes" what="the notes" loading="Loading notes…">
@@ -104,50 +92,25 @@ const label = (note: IdeaNote) => {
       </p>
 
       <ul v-if="waiting.length" aria-label="Notes to add" class="mb-3 space-y-2">
-        <li
+        <DraftCard
           v-for="note in waiting"
           :key="note.id"
-          class="flex gap-2 rounded-ctl border border-line bg-surface p-3"
+          :can-add="canAdd"
+          :drag="{ type: NOTE_DRAG_TYPE, id: note.id }"
+          :label="label(note)"
+          :add-name="`Add ${label(note)} to the draft`"
+          :busy="adding.isPending.value && adding.variables.value?.id === note.id"
+          @add="adding.mutate(note)"
         >
-          <!-- Dragging needs a mouse, and the draft is behind the drawer on a phone, so the grip is for wide screens;
-               everyone can use the button. -->
-          <span
-            v-if="!onlyEditor"
-            class="hidden cursor-grab select-none text-ink-soft lg:inline"
-            draggable="true"
-            title="Drag into the draft"
-            aria-hidden="true"
-            data-testid="note-grip"
-            @dragstart="onDragStart($event, note)"
-            @dragend="removeDragLabel"
-          >
-            ⠿
-          </span>
-          <div class="min-w-0 flex-1">
-            <NoteText :note="note" />
-            <NoteTags :tags="note.tags" />
-            <p class="mt-1 text-xs text-ink-soft">
-              <NoteOrigin
-                v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
-                :author-name="note.authorName"
-              />
-            </p>
-            <button
-              v-if="!onlyEditor"
-              type="button"
-              class="btn btn-sm btn-outline mt-2"
-              :disabled="adding.isPending.value"
-              :aria-label="`Add ${label(note)} to the draft`"
-              @click="adding.mutate(note)"
-            >
-              {{
-                adding.isPending.value && adding.variables.value?.id === note.id
-                  ? 'Adding…'
-                  : 'Add to draft'
-              }}
-            </button>
-          </div>
-        </li>
+          <NoteText :note="note" />
+          <NoteTags :tags="note.tags" />
+          <p class="mt-1 text-xs text-ink-soft">
+            <NoteOrigin
+              v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
+              :author-name="note.authorName"
+            />
+          </p>
+        </DraftCard>
       </ul>
       <p v-if="adding.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(adding.error.value) }}
@@ -165,6 +128,7 @@ const label = (note: IdeaNote) => {
             class="rounded-ctl border border-line bg-sunken p-3 text-ink-soft"
           >
             <NoteText :note="note" />
+            <NoteTags :tags="note.tags" />
             <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
                 v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"

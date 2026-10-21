@@ -419,6 +419,11 @@ comment, a Refine message, a draft's editor. It is always the name (your own too
 when the account has gone and the name wasn't kept. A name inside a sentence ("asked by Ada", a callout, a handover
 notice) is plain text, bold where it already is; a chip never sits inside running text.
 
+**A rail that only drags.** A card that is a source to take from, such as a note or reading item beside the draft
+(`DraftCard`), has the same rail and grip but no arrows and no click behaviour: dragging it onto the draft is the
+only thing the rail does. It shows from `lg` up (a phone cannot drag), and the icon button **Add to draft** beside it
+is the route for keyboards, touch and screen readers.
+
 **The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
 select checkbox. On a reorderable list the rail is **the handle**: the whole rail is the drag area (a `grab` cursor, so a
 tall row has a big handle) and it **tints to `accent-wash` under the pointer**, which shows how far it reaches. A **six-dot

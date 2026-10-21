@@ -155,8 +155,8 @@ tests inject fakes and nothing hits the network.
   can be unticked. The choice is for the visit, not saved.
   **Linking to the reading list while drafting:** the drawer's Reading list inserts a link to an item; if it isn't marked
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
-  **Dragging notes into a draft:** the drafting side bar's notes can be dragged by their grip onto the draft, landing where
-  they are dropped (the _Add to draft_ button does the same at the cursor).
+  **Dragging notes and reading items into a draft:** the drafting side bar's notes and reading items can be dragged by their rail onto the draft, landing where
+  they are dropped (the _Add to draft_ button does the same at the cursor). A reading item goes in as a link with its authors (“Title by A and B”).
   **The publication's own reading list and notes** have their own places: the reading list is the publication's
   **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each item opens its own reading page at
   `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the publication's. They are the idea's screens with a different owner (reading list, reading page, notes with

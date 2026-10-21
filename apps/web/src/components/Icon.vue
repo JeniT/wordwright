@@ -36,6 +36,7 @@ defineProps<{
     | 'markdown'
     | 'more'
     | 'move'
+    | 'insert'
   size?: number
 }>()
 </script>
@@ -170,6 +171,11 @@ defineProps<{
       <path d="M3 12h12" />
       <path d="m10 7 5 5-5 5" />
       <path d="M21 4v16" />
+    </template>
+    <template v-else-if="name === 'insert'">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
     </template>
     <polygon v-else-if="name === 'filter'" points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     <template v-else>

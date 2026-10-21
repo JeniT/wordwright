@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { IdeaLink, IdeaNote } from '@wordwright/core'
-import { noteMarkdown } from './note-insert'
+import { linkMarkdown, noteMarkdown } from './note-insert'
 
 const note = (extra: Partial<IdeaNote> = {}): IdeaNote => ({
   id: 'n1',
@@ -68,5 +68,22 @@ describe('the Markdown a note becomes in a draft', () => {
     expect(noteMarkdown(note({ quote: true }), [item({ title: 'On [bends]' })])).toContain(
       '[On bends](',
     )
+  })
+
+  it('says who wrote the source after its link, in the draft’s own words', () => {
+    const authors = ['Ada Lovelace', 'Bo Chen']
+    expect(linkMarkdown(item({ authors }))).toBe(
+      '[A paper](https://example.org/paper) by Ada Lovelace and Bo Chen',
+    )
+    expect(noteMarkdown(note(), [item({ authors })])).toBe(
+      'Meanders grow. ([A paper](https://example.org/paper) by Ada Lovelace and Bo Chen)',
+    )
+    expect(noteMarkdown(note({ quote: true }), [item({ authors: ['Ada Lovelace'] })])).toBe(
+      '> Meanders grow.\n>\n> — [A paper](https://example.org/paper) by Ada Lovelace',
+    )
+  })
+
+  it('leaves out “by” when nobody is named', () => {
+    expect(linkMarkdown(item({ authors: [] }))).toBe('[A paper](https://example.org/paper)')
   })
 })

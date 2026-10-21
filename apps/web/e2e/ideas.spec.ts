@@ -769,7 +769,7 @@ test('a link to something on the reading list goes in only once it has been read
   await expect(body.locator('a')).toHaveAttribute('href', 'https://example.org/meanders')
   await expect(body.locator('a')).toHaveCSS('text-decoration-line', 'underline')
   await expect(body.locator('p')).toHaveCount(1)
-  await expect(side.getByText('Read', { exact: true })).toBeVisible()
+  await expect(side.getByText('Not marked as read')).toHaveCount(0)
 
   // From now on it goes straight in, and the idea's reading list shows it ticked.
   await insert.click()
@@ -858,6 +858,32 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   ).toHaveAttribute('href', 'https://example.org/meanders')
 })
 
+test('a reading item is added to the draft as a link that says who wrote it', async ({ page }) => {
+  await signUpWithPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Read')
+  await page.getByLabel('Web address', { exact: true }).fill('example.org/authored')
+  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await expect(page.getByText(/Added “/)).toBeVisible()
+
+  await startDraft(page)
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await body.click()
+  await body.pressSequentially('Rivers never run straight, as ')
+  const side = page.getByRole('complementary')
+  await side.getByRole('tab', { name: 'Reading list' }).click()
+  await expect(side.getByText('by Ada Author and Bo Writer')).toBeVisible()
+  await noViolations(page, 'drafting page, reading list')
+
+  await side.getByRole('button', { name: /^Add a link to .* to the draft$/ }).click()
+  await page
+    .getByRole('dialog', { name: 'You haven’t marked this as read' })
+    .getByRole('button', { name: 'Mark as read' })
+    .click()
+  await expect(body.locator('a')).toHaveAttribute('href', 'https://example.org/authored')
+  await expect(body).toContainText('by Ada Author and Bo Writer')
+})
+
 test('a note dragged from the side bar lands in the draft where it is dropped', async ({
   page,
 }) => {
@@ -885,7 +911,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   const note = side
     .getByText('Deposition on the inside.', { exact: true })
     .locator('xpath=ancestor::li[1]')
-  await note.getByTestId('note-grip').dragTo(paragraphs.nth(1), { targetPosition: { x: 4, y: 4 } })
+  await note.getByTestId('rail').dragTo(paragraphs.nth(1), { targetPosition: { x: 4, y: 4 } })
   await expect(paragraphs).toHaveText([
     'First paragraph.',
     'Deposition on the inside.',
