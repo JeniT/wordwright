@@ -12,7 +12,13 @@ import {
   type TestClient,
 } from './test-helpers'
 
-type Review = { id: string; state: string; draftTitle: string; publicationName: string }
+type Review = {
+  id: string
+  state: string
+  draftTitle: string
+  publicationName: string
+  inviterName: string | null
+}
 
 describe('reviewers (#157)', () => {
   let ctx: ReturnType<typeof setup>
@@ -413,6 +419,40 @@ describe('reviewers (#157)', () => {
       }
       expect(JSON.stringify(allRows(ctx))).not.toContain('"Dee"')
       expect(JSON.stringify(allRows(ctx))).not.toContain('drop@example.com')
+    })
+  })
+
+  describe('when the person who asked goes', () => {
+    it('keeps their name on the review if they chose to, and no trace if not', async () => {
+      for (const keepName of [true, false]) {
+        const email = keepName ? 'keep@example.com' : 'drop@example.com'
+        const bobsDraft = await createDraft(bob, publication, {
+          title: `Bob ${keepName}`,
+          body: 'x',
+        })
+        const res = await bob.post(
+          `/api/publications/${publication}/drafts/${bobsDraft.id}/send-for-review`,
+          { emails: [email] },
+        )
+        expect(res.status).toBe(202)
+        await settle()
+        const rae = ctx.client()
+        const reg = await rae.post('/api/auth/register-reviewer', {
+          token: lastReviewToken(ctx.mailer),
+          name: 'Rae',
+          password: PASSWORD,
+        })
+        expect(reg.status).toBe(201)
+        expect((await bob.delete('/api/account', { password: PASSWORD, keepName })).status).toBe(
+          204,
+        )
+        expect((await reviewsOf(rae))[0]).toMatchObject({ inviterName: keepName ? 'Bob' : null })
+        if (keepName) {
+          bob = ctx.client()
+          await register(bob, 'bob@example.com', 'Bob')
+          await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+        }
+      }
     })
   })
 

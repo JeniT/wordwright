@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, useTemplateRef } from 'vue'
+import { useTemplateRef } from 'vue'
 import type { DraftComment } from '@wordwright/core'
+import PersonChip from './PersonChip.vue'
 import SwitchField from './SwitchField.vue'
 
 /**
@@ -9,7 +10,7 @@ import SwitchField from './SwitchField.vue'
  * (pressing it shows the paragraph); one about the whole draft, or about a paragraph that has been rewritten, has
  * nothing to show. A resolved comment stays where it is, quieter.
  */
-const props = defineProps<{
+defineProps<{
   entry: DraftComment & { number: number }
   /** `show`: pressing it shows its paragraph. `plain`: nothing to show. `changed`: the paragraph was rewritten. */
   kind: 'show' | 'plain' | 'changed'
@@ -19,19 +20,10 @@ const props = defineProps<{
    * them. (A member sees only their own, so there is no need to name the author.)
    */
   isEditor?: boolean
-  /** The signed-in person, so their own comments say "You". */
-  viewerId?: string
 }>()
 const emit = defineEmits<{ show: []; setResolved: [resolved: boolean] }>()
 const flip = useTemplateRef<InstanceType<typeof SwitchField>>('flip')
 defineExpose({ revert: () => flip.value?.revert() })
-
-const author = computed(() => {
-  const e = props.entry
-  if (e.byAi) return 'AI critique'
-  if (e.authorId !== null && e.authorId === props.viewerId) return 'You'
-  return e.authorName ?? 'A former member'
-})
 </script>
 
 <template>
@@ -57,10 +49,8 @@ const author = computed(() => {
           entry.number
         }}</span>
         <template v-if="isEditor || entry.byAi">
-          <span :class="entry.byAi ? 'chip chip-ai mr-1' : 'font-medium text-ink'">{{
-            author
-          }}</span>
-          <span v-if="!entry.byAi">: </span>
+          <span v-if="entry.byAi" class="chip chip-ai mr-1">AI critique</span>
+          <PersonChip v-else class="mr-2" :name="entry.authorName" />
         </template>
         <template v-if="kind === 'show'">“{{ entry.excerpt }}”</template>
         <template v-else-if="kind === 'changed'">It was: “{{ entry.excerpt }}”</template>

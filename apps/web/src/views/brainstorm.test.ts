@@ -534,8 +534,9 @@ describe('the brainstorm page', () => {
       aiMessage('', { stopReason: 'refusal' }),
     ])
     await renderAt(page)
-    expect(await screen.findByText('Bob')).toBeInTheDocument()
-    expect(screen.getByText('Someone')).toBeInTheDocument() // an account that has gone
+    expect(await screen.findByText('Bob')).toHaveClass('rounded-full') // a name chip, as on a note
+    expect(screen.getByText('A former member')).toHaveClass('rounded-full') // an account that has gone
+    expect(screen.queryByText('Someone')).toBeNull()
     expect(screen.getByText(/This reply was cut short/)).toBeInTheDocument()
     expect(screen.getByText('The reply was stopped here.')).toBeInTheDocument()
     expect(screen.getByText(/declined to answer that/)).toBeInTheDocument()

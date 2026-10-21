@@ -1611,6 +1611,23 @@ describe('what is kept when things are deleted', () => {
     ])
   })
 
+  it('keeps the name of whoever added a suggestion if they chose to, and shows no one if not', async () => {
+    for (const keepName of [true, false]) {
+      const { ctx, ada, send, thread, decide, addBob } = await world()
+      ctx.setChat(() => ({ text: 'A point.', toolCalls: [suggestNote('Meanders move.')] }))
+      await send(ada, START)
+      const bob = await addBob()
+      const proposals = async () => (await thread()).messages.flatMap((m) => m.proposals)
+      const [suggestion] = await proposals()
+      expect((await decide(bob, suggestion!.id, 'accept')).status).toBe(200)
+      expect((await bob.delete('/api/account', { password: PASSWORD, keepName })).status).toBe(204)
+      expect((await proposals())[0]).toMatchObject({
+        status: 'accepted',
+        decidedByName: keepName ? 'Bob' : null,
+      })
+    }
+  })
+
   it("keeps a departed member's messages in a shared publication, without their name if they chose that", async () => {
     const { ada, send, thread, addBob } = await world()
     const bob = await addBob()

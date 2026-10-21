@@ -346,7 +346,7 @@ export class ConversationStore {
   }
 
   private proposalSql(rest: string) {
-    return `SELECT p.*, u.name AS decided_by_name FROM idea_proposals p
+    return `SELECT p.*, COALESCE(u.name, p.kept_decided_by_name) AS decided_by_name FROM idea_proposals p
             LEFT JOIN users u ON u.id = p.decided_by ${rest}`
   }
 }

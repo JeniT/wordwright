@@ -37,7 +37,6 @@ const props = defineProps<{
   located: ReadonlySet<string>
   activeId: string | null
   isEditor: boolean
-  viewerId: string | undefined
   editorName: string
   /** The paragraphs of the draft as saved, to choose what a new comment is about. */
   blocks: { id: string; text: string }[]
@@ -52,7 +51,7 @@ const emit = defineEmits<{
 }>()
 
 const showResolved = ref(false)
-const cardProps = computed(() => ({ isEditor: props.isEditor, viewerId: props.viewerId }))
+const cardProps = computed(() => ({ isEditor: props.isEditor }))
 
 type Entry = DraftComment & { number: number }
 /** Numbered by place in the whole list, so showing the resolved ones does not renumber the others. */

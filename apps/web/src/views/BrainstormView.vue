@@ -15,6 +15,7 @@ import Explain from '../components/Explain.vue'
 import Markdown from '../components/Markdown.vue'
 import NextStep from '../components/NextStep.vue'
 import PageNav from '../components/PageNav.vue'
+import PersonChip from '../components/PersonChip.vue'
 import SharedThreadNotice from '../components/SharedThreadNotice.vue'
 import SuggestionList from '../components/SuggestionList.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
@@ -485,9 +486,7 @@ const busyNote = computed(() =>
                   v-if="message.role === 'user'"
                   class="ml-8 rounded-ctl border border-line bg-surface p-3"
                 >
-                  <p class="mb-1 text-sm font-medium text-ink-soft">
-                    {{ message.authorName ?? 'Someone' }}
-                  </p>
+                  <p class="mb-1"><PersonChip :name="message.authorName" /></p>
                   <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
                 </div>
                 <template v-else>

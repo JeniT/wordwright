@@ -481,7 +481,7 @@ describe('EditorView comments from members', () => {
     expect(screen.getByLabelText('Your comment')).toHaveValue('Still here.')
   })
 
-  it('shows the editor everyone’s comments by author, the AI’s marked, and their own as "You"', async () => {
+  it('shows the editor everyone’s comments by author as a name chip, the AI’s marked, their own named like anyone’s', async () => {
     mockEditor(
       () => new Response(null, { status: 500 }),
       round([pointOn('p1'), saidBy('p2', 'Bob Byron'), saidBy('p3', 'Ada Lovelace')]),
@@ -494,7 +494,10 @@ describe('EditorView comments from members', () => {
     expect(items[0]!.querySelector('.chip-ai')).not.toBeNull()
     expect(items[1]).toHaveTextContent('Bob Byron')
     expect(items[1]!.querySelector('.chip-ai')).toBeNull() // the highlighter is only for the AI
-    expect(items[2]).toHaveTextContent('You')
+    expect(items[2]).toHaveTextContent('Ada Lovelace') // the viewer: named, never "You"
+    expect(items[2]).not.toHaveTextContent('You')
+    expect(within(items[1]!).getByText('Bob Byron')).toHaveClass('rounded-full')
+    expect(within(items[2]!).getByText('Ada Lovelace')).toHaveClass('rounded-full')
     // A person's comment is marked in the text too, but not in the highlighter.
     const marks = await screen.findAllByRole('button', { name: /^Comment \d/ })
     expect(marks).toHaveLength(3)
@@ -509,7 +512,9 @@ describe('EditorView comments from members', () => {
     )
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
-    expect(await within(await commentsRegion()).findByText('A former member')).toBeTruthy()
+    expect(await within(await commentsRegion()).findByText('A former member')).toHaveClass(
+      'rounded-full',
+    )
   })
 
   it('keeps a comment whose passage was rewritten open, apart from the rest', async () => {

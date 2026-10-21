@@ -148,7 +148,7 @@ export class ReviewStore {
     return this.db
       .prepare(
         `SELECT r.id, r.state, r.created_at, s.title AS draft_title, p.name AS publication_name,
-                inviter.name AS inviter_name
+                COALESCE(inviter.name, r.kept_inviter_name) AS inviter_name
          FROM draft_reviews r
          JOIN draft_snapshots s ON s.id = r.snapshot_id
          JOIN drafts d ON d.id = r.draft_id

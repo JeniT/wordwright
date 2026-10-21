@@ -671,6 +671,19 @@ Notes, the reading page, the notes beside the draft and the draft's record of wh
 the author of a piece (#63). Users have no pictures yet (only publications do), so the chip is their name; a picture can go
 inside it when accounts get one.
 
+**Where a chip is used, and where it isn't (#313).** The chip is an attribution label: who recorded a note, who wrote a
+comment or a Refine message, who edits a draft. A name inside a sentence stays text: "asked by Ada", the offered/waiting
+callouts and handover notices (bold prose), "added by Ada" on a suggestion. Your own name is a chip like anyone's: comments
+no longer say "You", because the rule everywhere is the person's name. "A former member" is the one wording for a
+missing name in a chip, and the offer callout; "Someone" is gone. Sentences that name a person who has gone say nothing
+rather than "asked by a former member".
+
+**Kept names, audited (#313).** Every place that shows a person's name was checked against "Names stay if the person
+chooses". Two sentences lost a kept name: a review's "asked by" (`draft_reviews.kept_inviter_name`) and a suggestion's
+"added by" (`idea_proposals.kept_decided_by_name`); both now follow the same rule as the rest. Not gaps: a draft's editor
+(drafts are handed to an owner before an account goes, so the editor is never missing; the "A former member" in
+`ideas.ts` is only a guard), handover offers (they go with the sender) and review invitations (they cascade).
+
 ## Who wrote a reading-list item (#63)
 
 A reading-list item has `authors`: a list of names (stored as JSON in `idea_links.authors`, at most 10, 100 characters

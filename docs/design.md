@@ -394,6 +394,11 @@ Accent means "act here", so it appears at most once per visible group, never onc
 and quiet buttons. A chip is a **fact**, not a control: use `chip-quiet` (flat) so that only what you can press has a
 strong outline, and give an item one link (the title), with its host as plain text.
 
+**Names of people.** A name is a `PersonChip` when it labels who recorded, wrote or edits something: a note's origin, a
+comment, a Refine message, a draft's editor. It is always the name (your own too, never "You"), and "A former member"
+when the account has gone and the name wasn't kept. A name inside a sentence ("asked by Ada", a callout, a handover
+notice) is plain text, bold where it already is; a chip never sits inside running text.
+
 **The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
 select checkbox. On a reorderable list the rail is **the handle**: the whole rail is the drag area (a `grab` cursor, so a
 tall row has a big handle) and it **tints to `accent-wash` under the pointer**, which shows how far it reaches. A **six-dot

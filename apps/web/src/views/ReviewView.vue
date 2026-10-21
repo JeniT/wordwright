@@ -9,7 +9,6 @@ import QueryState from '../components/QueryState.vue'
 import RichEditor from '../components/RichEditor.vue'
 import { api, errorMessage } from '../lib/api'
 import { queryKeys } from '../lib/queries'
-import { useSessionStore } from '../stores/session'
 
 /**
  * One review: the copy of the draft that was sent (a snapshot, not the editor's latest words) and the comments this
@@ -18,7 +17,6 @@ import { useSessionStore } from '../stores/session'
  */
 const props = defineProps<{ id: string }>()
 const queryClient = useQueryClient()
-const session = useSessionStore()
 const review = useQuery({
   queryKey: computed(() => queryKeys.review(props.id)),
   queryFn: () => api.getReview(props.id),
@@ -85,11 +83,7 @@ const end = useMutation({
           </p>
           <ol v-else class="space-y-3">
             <li v-for="(c, i) in review.data.value.comments" :key="c.id">
-              <CommentCard
-                :entry="{ ...c, number: i + 1 }"
-                kind="plain"
-                :viewer-id="session.user?.id"
-              />
+              <CommentCard :entry="{ ...c, number: i + 1 }" kind="plain" />
             </li>
           </ol>
           <CommentForm

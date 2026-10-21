@@ -652,6 +652,12 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE drafts ADD COLUMN published_at TEXT;
   ALTER TABLE drafts ADD COLUMN published_url TEXT;
   `,
+  // Two more places that name a person in a sentence ("asked by", "added by") keep the name if the person chose to
+  // (#313). Copied at account deletion like the other kept_* columns.
+  `
+  ALTER TABLE draft_reviews ADD COLUMN kept_inviter_name TEXT;
+  ALTER TABLE idea_proposals ADD COLUMN kept_decided_by_name TEXT;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

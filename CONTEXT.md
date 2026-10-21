@@ -75,6 +75,10 @@ One piece of writing belonging to an idea; the thing that gets published.
 The one member currently responsible for changing a draft's title and body and for publishing it. Everyone else can read and comment.
 _Avoid_: Holder, author, lock, assignee
 
+**Name chip**:
+A person's name as a small rounded label saying who recorded, wrote or edits something (a note, a comment, a Refine message, a draft). It is always the name, never "you", and reads "A former member" when the account has gone and the name wasn't kept. It labels; it is not used inside a sentence.
+_Avoid_: Author badge, avatar, byline (a byline is the author of a piece)
+
 **Handover**:
 The explicit transfer of a draft's editor role: the editor offers the draft to a named member, who accepts it. Until accepted the offerer stays editor, and can withdraw the offer. A member can ask for the draft, which only prompts the editor, and can withdraw the request.
 _Avoid_: Transfer, claim

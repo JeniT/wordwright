@@ -762,7 +762,6 @@ async function requestCritique() {
               :located="located"
               :active-id="activePointId"
               :is-editor="canEdit"
-              :viewer-id="session.user?.id"
               :editor-name="draft.data.value.editorName"
               :blocks="blocks"
               :add="addComment"

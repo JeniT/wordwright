@@ -48,7 +48,7 @@ const any = computed(() => {
 
     <div v-for="o in attention.data.value?.offered" :key="`o-${o.draftId}`" class="callout">
       <p class="mb-2">
-        <strong>{{ o.fromName ?? 'Someone' }}</strong> has offered you the draft
+        <strong>{{ o.fromName ?? 'A former member' }}</strong> has offered you the draft
         <RouterLink
           :to="{ name: 'draft', params: { publicationId, id: o.draftId } }"
           class="link"
