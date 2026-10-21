@@ -445,7 +445,6 @@ const blocks = computed(() => splitBlocks(draft.data.value?.body ?? ''))
 const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
-/** Comments not yet resolved, as this person sees them: what the tab counts. */
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())

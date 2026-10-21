@@ -29,7 +29,7 @@ defineExpose({ revert: () => flip.value?.revert() })
 <template>
   <div
     :id="`comment-${entry.id}`"
-    class="rounded-ctl border border-line bg-surface p-3"
+    class="panel p-3"
     :class="entry.resolved || kind === 'changed' ? 'text-ink-soft' : ''"
   >
     <component
