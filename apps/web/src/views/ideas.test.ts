@@ -753,22 +753,24 @@ describe('idea page', () => {
       await screen.findByRole('link', { name: 'A paper' })
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       await openFilters()
-      const filter = screen.getByRole('group', { name: 'Show items with a tag' })
+      const select = screen.getByRole('combobox', { name: 'Filter by tag' })
       expect(
-        within(filter)
-          .getAllByRole('button')
-          .map((b) => b.textContent?.trim()),
+        Array.from(select.querySelectorAll('option')).map((o) => o.textContent?.trim()),
       ).toEqual([
-        'All',
+        'Choose a tag',
         'background', // "Background" and "background" are one tag
         'part 2',
       ])
-      await fireEvent.click(within(filter).getByRole('button', { name: 'part 2' }))
+      await fireEvent.update(select, 'part 2')
       expect(screen.getByRole('link', { name: 'A paper' })).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: 'Other' })).toBeNull()
-      await fireEvent.click(within(filter).getByRole('button', { name: 'background' }))
+      // Tags narrow the list: an item needs all of them.
+      await fireEvent.update(select, 'background')
+      expect(screen.getByRole('link', { name: 'A paper' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Third' })).toBeNull()
+      await fireEvent.click(screen.getByRole('button', { name: 'Stop filtering by part 2' }))
       expect(screen.getByRole('link', { name: 'Third' })).toBeInTheDocument()
-      await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Stop filtering by background' }))
       expect(screen.getByRole('link', { name: 'Other' })).toBeInTheDocument()
     })
 
@@ -777,16 +779,12 @@ describe('idea page', () => {
       await screen.findByRole('link', { name: 'A paper' })
       const funnel = screen.getByRole('button', { name: 'Filter' })
       expect(funnel).toHaveAttribute('aria-expanded', 'false')
-      expect(screen.queryByRole('group', { name: 'Show items with a tag' })).toBeNull()
+      expect(screen.queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
       await fireEvent.click(funnel)
       expect(funnel).toHaveAttribute('aria-expanded', 'true')
-      await fireEvent.click(
-        within(screen.getByRole('group', { name: 'Show items with a tag' })).getByRole('button', {
-          name: 'part 2',
-        }),
-      )
+      await fireEvent.update(screen.getByRole('combobox', { name: 'Filter by tag' }), 'part 2')
       await fireEvent.click(screen.getByRole('button', { name: 'Close the filters' }))
-      expect(screen.queryByRole('group', { name: 'Show items with a tag' })).toBeNull()
+      expect(screen.queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
       // Still filtering, and the header says so.
       expect(screen.getByRole('button', { name: 'Filter (on: part 2)' })).toBeInTheDocument()
       expect(screen.getByText('part 2', { selector: '.chip' })).toBeInTheDocument()
@@ -797,11 +795,7 @@ describe('idea page', () => {
       await openTagged()
       await screen.findByRole('link', { name: 'A paper' })
       await openFilters()
-      await fireEvent.click(
-        within(screen.getByRole('group', { name: 'Show items with a tag' })).getByRole('button', {
-          name: 'background',
-        }),
-      )
+      await fireEvent.update(screen.getByRole('combobox', { name: 'Filter by tag' }), 'background')
       await fireEvent.click(screen.getByRole('checkbox', { name: 'Select all items on this page' }))
       expect(screen.getByText('2 selected')).toBeInTheDocument() // A paper and Third, not Other
       expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
@@ -812,7 +806,7 @@ describe('idea page', () => {
     it('has no filter, and no funnel, while nothing is tagged or read', async () => {
       await open()
       await screen.findByRole('link', { name: 'A paper' })
-      expect(screen.queryByRole('group', { name: 'Show items with a tag' })).toBeNull()
+      expect(screen.queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
       expect(screen.queryByRole('button', { name: /^Filter/ })).toBeNull()
     })
 
@@ -1543,7 +1537,7 @@ describe('idea page', () => {
         fakeNotes(three)
         await open()
         await screen.findByText('Erosion loops.')
-        expect(within(region()).queryByRole('group', { name: 'Show notes with a tag' })).toBeNull()
+        expect(within(region()).queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
         expect(within(region()).queryByRole('list', { name: 'Tags' })).toBeNull()
       })
 
@@ -1559,33 +1553,44 @@ describe('idea page', () => {
         ).toEqual(['intro', 'draft 2'])
       })
 
-      it('can be used to show only the notes with one tag (ignoring case), and then all again', async () => {
+      it('can be used to narrow the notes to those with all the chosen tags (ignoring case), and then to all again', async () => {
         fakeNotes(tagged())
         await open()
         await screen.findByText('Erosion loops.')
         await openFilters()
-        const filter = within(region()).getByRole('group', { name: 'Show notes with a tag' })
-        // Each tag once, whatever its case, and "All" first.
+        const select = within(region()).getByRole('combobox', { name: 'Filter by tag' })
+        // Each tag once, whatever its case, and no "All".
         expect(
-          within(filter)
-            .getAllByRole('button')
-            .map((b) => b.textContent?.trim()),
-        ).toEqual(['All', 'intro', 'draft 2'])
-        expect(within(filter).getByRole('button', { name: 'All' })).toHaveAttribute(
-          'aria-pressed',
-          'true',
-        )
+          Array.from(select.querySelectorAll('option')).map((o) => o.textContent?.trim()),
+        ).toEqual(['Choose a tag', 'intro', 'draft 2'])
 
-        await fireEvent.click(within(filter).getByRole('button', { name: 'intro' }))
+        await fireEvent.update(select, 'intro')
         expect(texts()).toEqual(['Erosion loops.', 'Oxbow lakes.'])
-        expect(within(filter).getByRole('button', { name: 'intro' })).toHaveAttribute(
-          'aria-pressed',
-          'true',
+        await fireEvent.update(select, 'draft 2')
+        // A note needs both tags.
+        expect(texts()).toEqual(['Erosion loops.'])
+        await fireEvent.click(
+          within(region()).getByRole('button', { name: 'Stop filtering by intro' }),
         )
-        await fireEvent.click(within(filter).getByRole('button', { name: 'draft 2' }))
         expect(texts()).toEqual(['Erosion loops.', 'Deposition inside the bend.'])
-        await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
+        await fireEvent.click(
+          within(region()).getByRole('button', { name: 'Stop filtering by draft 2' }),
+        )
         expect(texts()).toHaveLength(4)
+      })
+
+      it('says so when no note has all the chosen tags', async () => {
+        fakeNotes([
+          { ...note('n1', 'Erosion loops.'), tags: ['intro'] },
+          { ...note('n2', 'Oxbow lakes.'), tags: ['draft 2'] },
+        ])
+        await open()
+        await screen.findByText('Erosion loops.')
+        await openFilters()
+        const select = within(region()).getByRole('combobox', { name: 'Filter by tag' })
+        await fireEvent.update(select, 'draft 2')
+        await fireEvent.update(select, 'intro')
+        expect(screen.getByText('No notes have all these tags.')).toBeInTheDocument()
       })
 
       it('lets the notes shown be put in order, leaving the hidden ones where they were', async () => {
@@ -1593,7 +1598,10 @@ describe('idea page', () => {
         await open()
         await screen.findByText('Erosion loops.')
         await openFilters()
-        await fireEvent.click(within(region()).getByRole('button', { name: 'draft 2' }))
+        await fireEvent.update(
+          within(region()).getByRole('combobox', { name: 'Filter by tag' }),
+          'draft 2',
+        )
         await showArrows()
         // Shown: n1, n2. Move n2 above n1; n3 and n4 are hidden and keep their places.
         await fireEvent.click(
@@ -1607,7 +1615,10 @@ describe('idea page', () => {
         await open()
         await screen.findByText('Only one.')
         await openFilters()
-        await fireEvent.click(within(region()).getByRole('button', { name: 'solo' }))
+        await fireEvent.update(
+          within(region()).getByRole('combobox', { name: 'Filter by tag' }),
+          'solo',
+        )
         expect(texts()).toEqual(['Only one.'])
         await fireEvent.click(
           screen.getByRole('button', { name: /^Add tags to note “Only one\.”/ }),
@@ -1616,7 +1627,7 @@ describe('idea page', () => {
           screen.getByRole('button', { name: /^Remove the tag solo from note “Only one\.”/ }),
         )
         await waitFor(() => expect(texts()).toEqual(['Only one.', 'Other.']))
-        expect(within(region()).queryByRole('group', { name: 'Show notes with a tag' })).toBeNull()
+        expect(within(region()).queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
       })
 
       it('are added one at a time under the note: Enter saves a tag and keeps the field, the tick closes it', async () => {

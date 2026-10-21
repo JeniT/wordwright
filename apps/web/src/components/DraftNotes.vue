@@ -12,7 +12,7 @@ import Explain from './Explain.vue'
 import DraftCard from './DraftCard.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
-import { hasTag, tagsUsedOn } from '../lib/note-tags'
+import { hasAllTags, stillUsed, tagsUsedOn } from '../lib/note-tags'
 import NoteTags from './NoteTags.vue'
 import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
@@ -35,15 +35,14 @@ const { notes } = useIdeaNotes(
   () => props.publicationId,
   () => props.ideaId,
 )
-const tagFilter = ref<string | null>(null)
+const tagFilter = ref<string[]>([])
 const usedTags = computed(() => tagsUsedOn((notes.data.value ?? []).filter((n) => !n.addedAt)))
 watch(usedTags, (tags) => {
-  if (tagFilter.value && !tags.some((t) => t.toLowerCase() === tagFilter.value!.toLowerCase())) {
-    tagFilter.value = null
-  }
+  const still = stillUsed(tagFilter.value, tags)
+  if (still.length !== tagFilter.value.length) tagFilter.value = still
 })
 const waiting = computed(() =>
-  (notes.data.value ?? []).filter((n) => !n.addedAt && hasTag(n, tagFilter.value)),
+  (notes.data.value ?? []).filter((n) => !n.addedAt && hasAllTags(n, tagFilter.value)),
 )
 const added = computed(() => (notes.data.value ?? []).filter((n) => n.addedAt))
 const showAdded = ref(false)
@@ -88,7 +87,7 @@ const label = (note: IdeaNote) => {
       </p>
       <TagFilter v-model="tagFilter" :tags="usedTags" />
       <p v-if="notes.data.value?.length && !waiting.length" class="text-ink-soft">
-        {{ tagFilter ? 'No notes left with this tag.' : 'All your notes are in a draft.' }}
+        {{ tagFilter.length ? 'No notes have all these tags.' : 'All your notes are in a draft.' }}
       </p>
 
       <ul v-if="waiting.length" aria-label="Notes to add" class="mb-3 space-y-2">

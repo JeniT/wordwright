@@ -7,7 +7,7 @@ import { api, errorMessage } from '../lib/api'
 import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import { useIdeaNotes } from '../lib/queries'
-import { hasTag, orderWithHidden, tagsUsedOn } from '../lib/note-tags'
+import { hasAllTags, orderWithHidden, stillUsed, tagsUsedOn } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -49,17 +49,15 @@ const {
   () => props.ideaId,
 )
 
-// ---- tags: a flat label on a note, and showing only the notes with one
+// ---- tags: a flat label on a note, and showing only the notes with every chosen tag
 const usedTags = computed(() => tagsUsedOn(notes.data.value ?? []))
-const tagFilter = ref<string | null>(null)
-// A tag that no note has any more can't be what is shown.
+const tagFilter = ref<string[]>([])
 watch(usedTags, (tags) => {
-  if (tagFilter.value && !tags.some((t) => t.toLowerCase() === tagFilter.value!.toLowerCase())) {
-    tagFilter.value = null
-  }
+  const still = stillUsed(tagFilter.value, tags)
+  if (still.length !== tagFilter.value.length) tagFilter.value = still
 })
 const visibleNotes = computed(() =>
-  (notes.data.value ?? []).filter((n) => hasTag(n, tagFilter.value)),
+  (notes.data.value ?? []).filter((n) => hasAllTags(n, tagFilter.value)),
 )
 
 // ---- adding
@@ -456,13 +454,13 @@ const label = (note: IdeaNote) => {
         >.
       </p>
       <div v-else ref="list" class="mb-4">
-        <p v-if="!visibleNotes.length" class="text-ink-soft">No notes have this tag.</p>
+        <p v-if="!visibleNotes.length" class="text-ink-soft">No notes have all these tags.</p>
         <ReorderableList
           v-else
           :items="visibleNotes"
           :item-label="label"
           :save="saveOrder"
-          :keep-toolbar="!!tagFilter"
+          :keep-toolbar="tagFilter.length > 0"
           align-top
         >
           <template #toolbar>
@@ -473,7 +471,7 @@ const label = (note: IdeaNote) => {
               :selected-on-page="chosen.length"
               noun="notes"
               :can-filter="usedTags.length > 0"
-              :filter-summary="tagFilter ?? undefined"
+              :filter-summary="tagFilter.length ? tagFilter.join(' · ') : undefined"
               :form-open="formOpen"
               :confirm-label="confirmLabel"
               :can-confirm="canConfirm"
@@ -548,7 +546,7 @@ const label = (note: IdeaNote) => {
           <template #rail="{ item: note }">
             <!-- With one note and no filter there is no toolbar to act from, so nothing to select for. -->
             <input
-              v-if="visibleNotes.length > 1 || tagFilter"
+              v-if="visibleNotes.length > 1 || tagFilter.length"
               type="checkbox"
               :checked="selected.includes(note.id)"
               :aria-label="`Select ${label(note)}`"

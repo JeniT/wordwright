@@ -579,10 +579,12 @@ order given, a tag unique per note ignoring case) and go with the note.
   "intro" are one tag; empty or over-long tags are refused with a message. Editing a note's tags is part of editing
   the note (a comma-separated field, with the tags already used on the idea offered as buttons); only what changed
   is sent.
-- **Filter, not a view.** A row of buttons (All, then each tag) narrows the notes list, and the drafting drawer,
-  to the notes with that tag. It appears only once some note has a tag. In the drawer it offers only tags on notes
-  that can still be added. If the last note with the filtered tag loses it (or is added to the draft), the filter
-  quietly goes back to All.
+- **Filter, not a view.** A "Filter by tag" select narrows the notes list, the reading list and the drafting pane
+  (notes and reading items) to what carries **every** chosen tag (#333; before, one tag at a time, with an "All"
+  button that didn't say what was filtering). Each chosen tag stays as a removable chip ("Stop filtering by …"), so
+  a filtered list never looks like the whole list. It appears only once something has a tag, and each list keeps its
+  own choice. In the drafting pane it offers only tags on what can still be added. If the last item with a chosen tag
+  loses it (or is added to the draft), that tag quietly drops out of the filter.
 - **Putting notes in order while filtered** still works: the notes that are hidden keep their places and the
   visible ones take the places the visible ones had, so the server still gets the complete order it requires.
 - **Not tags:** the AI's snapshot doesn't include them, and brainstorm doesn't tag notes (it can't edit notes).

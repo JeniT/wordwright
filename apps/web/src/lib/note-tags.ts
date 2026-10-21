@@ -28,8 +28,13 @@ export function tagsUsedOn(items: readonly Tagged[]): string[] {
   return [...seen.values()]
 }
 
-export const hasTag = (item: Tagged, tag: string | null) =>
-  tag === null || item.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
+/** Whether the item carries every one of these tags (ignoring case); no tags asked for means everything. */
+export const hasAllTags = (item: Tagged, tags: readonly string[]) =>
+  tags.every((tag) => item.tags.some((t) => t.toLowerCase() === tag.toLowerCase()))
+
+/** The chosen tags that something still carries: a tag nothing has any more can't be what is shown. */
+export const stillUsed = (chosen: readonly string[], used: readonly string[]) =>
+  chosen.filter((c) => used.some((u) => u.toLowerCase() === c.toLowerCase()))
 
 /**
  * The complete order of all notes after the visible ones (a filtered view) were rearranged: hidden notes stay

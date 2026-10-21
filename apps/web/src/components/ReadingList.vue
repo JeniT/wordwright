@@ -4,7 +4,7 @@ import type { IdeaLink } from '@wordwright/core'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
-import { hasTag, tagsUsedOn } from '../lib/note-tags'
+import { hasAllTags, stillUsed, tagsUsedOn } from '../lib/note-tags'
 import { usePaging } from '../lib/paging'
 import { useReadingList } from '../lib/reading'
 import AddLinkForm from './AddLinkForm.vue'
@@ -44,13 +44,12 @@ watch(
   },
   { immediate: true },
 )
-// Only the items with one tag, when the writer picks one. A tag nothing carries any more can't be what is shown.
+// Only the items with every chosen tag. A tag nothing carries any more can't be what is shown.
 const usedTags = computed(() => tagsUsedOn(list.links.value ?? []))
-const tagFilter = ref<string | null>(null)
+const tagFilter = ref<string[]>([])
 watch(usedTags, (tags) => {
-  if (tagFilter.value && !tags.some((t) => t.toLowerCase() === tagFilter.value!.toLowerCase())) {
-    tagFilter.value = null
-  }
+  const still = stillUsed(tagFilter.value, tags)
+  if (still.length !== tagFilter.value.length) tagFilter.value = still
 })
 watch([showRead, tagFilter], () => {
   justRead.value = new Set()
@@ -59,18 +58,19 @@ watch([showRead, tagFilter], () => {
 })
 /** A new item is unread and untagged: show it, whatever was filtering the list. */
 function showAdded() {
-  tagFilter.value = null
+  tagFilter.value = []
   paging.first()
 }
 const readCount = computed(() => (list.links.value ?? []).filter((l) => l.readAt).length)
 /** What is filtering the list, for the funnel to say while the filters are folded away. */
 const filterSummary = computed(() => {
-  const parts = [tagFilter.value, showRead.value ? 'including read' : null].filter(Boolean)
+  const parts = [...tagFilter.value, showRead.value ? 'including read' : null].filter(Boolean)
   return parts.length ? parts.join(' · ') : undefined
 })
 const shown = computed(() =>
   (list.links.value ?? []).filter(
-    (l) => (!l.readAt || showRead.value || justRead.value.has(l.id)) && hasTag(l, tagFilter.value),
+    (l) =>
+      (!l.readAt || showRead.value || justRead.value.has(l.id)) && hasAllTags(l, tagFilter.value),
   ),
 )
 
@@ -320,7 +320,7 @@ function removeChosen() {
             @cancel="cancelForm"
           >
             <template #filters>
-              <TagFilter v-model="tagFilter" :tags="usedTags" noun="items" class="!mb-0" />
+              <TagFilter v-model="tagFilter" :tags="usedTags" class="!mb-0" />
               <SwitchField
                 v-if="readCount"
                 v-model="showRead"
@@ -388,7 +388,13 @@ function removeChosen() {
               @move="startMovingOne(link)"
             />
           </ul>
-          <p v-else class="px-4 py-3 text-ink-soft">Everything on the list has been read.</p>
+          <p v-else class="px-4 py-3 text-ink-soft">
+            {{
+              tagFilter.length
+                ? 'No items have all these tags.'
+                : 'Everything on the list has been read.'
+            }}
+          </p>
         </div>
         <PageNav
           v-if="paging.pageCount.value > 1"

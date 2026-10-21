@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { useMutation } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
 import type { IdeaLink } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
 import { READING_DRAG_TYPE } from '../lib/note-drag'
 import { nameList } from '../lib/note-label'
+import { hasAllTags, stillUsed, tagsUsedOn } from '../lib/note-tags'
 import DraftCard from './DraftCard.vue'
 import Explain from './Explain.vue'
+import NoteTags from './NoteTags.vue'
+import TagFilter from './TagFilter.vue'
 
 const props = defineProps<{
   publicationId: string
@@ -20,6 +24,14 @@ const props = defineProps<{
 
 const inserting = useMutation({ mutationFn: (item: IdeaLink) => props.insertLink(item) })
 const label = (item: IdeaLink) => item.title || item.url
+
+const usedTags = computed(() => tagsUsedOn(props.readingList))
+const tagFilter = ref<string[]>([])
+watch(usedTags, (tags) => {
+  const still = stillUsed(tagFilter.value, tags)
+  if (still.length !== tagFilter.value.length) tagFilter.value = still
+})
+const shown = computed(() => props.readingList.filter((item) => hasAllTags(item, tagFilter.value)))
 </script>
 
 <template>
@@ -38,9 +50,13 @@ const label = (item: IdeaLink) => item.title || item.url
         Add to it on the idea page.
       </RouterLink>
     </p>
-    <ul v-else aria-label="Reading items to add" class="space-y-2">
+    <TagFilter v-model="tagFilter" :tags="usedTags" />
+    <p v-if="readingList.length && !shown.length" class="text-ink-soft">
+      No items have all these tags.
+    </p>
+    <ul v-else-if="shown.length" aria-label="Reading items to add" class="space-y-2">
       <DraftCard
-        v-for="item in readingList"
+        v-for="item in shown"
         :key="item.id"
         :can-add="canAdd"
         :drag="{ type: READING_DRAG_TYPE, id: item.id }"
@@ -53,6 +69,7 @@ const label = (item: IdeaLink) => item.title || item.url
         <p v-if="item.authors.length" class="text-xs text-ink-soft">
           by {{ nameList(item.authors) }}
         </p>
+        <NoteTags :tags="item.tags" />
         <p v-if="!item.readAt" class="mt-1">
           <span class="chip chip-quiet">Not marked as read</span>
         </p>

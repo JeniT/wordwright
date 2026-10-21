@@ -448,7 +448,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
     ).toBeVisible()
   }
   // No filter until something is tagged.
-  const filter = page.getByRole('group', { name: 'Show items with a tag' })
+  const filter = page.getByRole('combobox', { name: 'Filter by tag' })
   await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0) // no funnel yet
 
   // Tags go in one at a time under the link: type, Enter, type, Enter, then the tick.
@@ -466,11 +466,11 @@ test('tags reading-list items, one or several at once, and filters the list by a
 
   // Show only that tag's items, then all again; the tag survives a reload.
   await openFilters(page)
-  await filter.getByRole('button', { name: 'part 1' }).click()
+  await filter.selectOption('part 1')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.net', exact: true }),
   ).toHaveCount(0)
-  await filter.getByRole('button', { name: 'All' }).click()
+  await page.getByRole('button', { name: 'Stop filtering by part 1' }).click()
   await expect(
     page.getByRole('link', { name: 'Fake title for example.net', exact: true }),
   ).toBeVisible()
@@ -488,10 +488,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await page.getByRole('button', { name: 'Tag 2 items' }).click()
   await expect(page.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
   await openFilters(page)
-  await page
-    .getByRole('group', { name: 'Show items with a tag' })
-    .getByRole('button', { name: 'shared' })
-    .click()
+  await page.getByRole('combobox', { name: 'Filter by tag' }).selectOption('shared')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.net', exact: true }),
   ).toBeVisible()
@@ -580,11 +577,11 @@ test('tags several notes at once, then takes a tag off them all again', async ({
 
   // Both notes carry the tags, the third does not, and the tag now filters.
   await openFilters(page)
-  const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
-  await filter.getByRole('button', { name: 'section one' }).click()
+  const filter = notes.getByRole('combobox', { name: 'Filter by tag' })
+  await filter.selectOption('section one')
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
   await expect(notes.getByText('Deposition on the inside.')).toBeVisible()
-  await filter.getByRole('button', { name: 'All' }).click()
+  await notes.getByRole('button', { name: 'Stop filtering by section one' }).click()
 
   // The tag can be taken off both in one go (a new filter clears the selection, so choose them again).
   await notes.getByRole('checkbox', { name: /^Select note “Erosion/ }).check()
@@ -592,8 +589,8 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await notes.getByRole('button', { name: 'Tag…' }).click()
   await notes.getByRole('button', { name: 'Remove “intro”' }).click()
   await notes.getByRole('button', { name: 'Tag 2 notes' }).click()
-  await expect(filter.getByRole('button', { name: 'intro' })).toHaveCount(0)
-  await expect(filter.getByRole('button', { name: 'section one' })).toBeVisible()
+  await expect(filter.locator('option', { hasText: 'intro' })).toHaveCount(0)
+  await expect(filter.locator('option', { hasText: 'section one' })).toHaveCount(1)
   await page.reload()
   await expect(page.getByRole('button', { name: /^Filter/ })).toBeVisible() // the funnel, folded
 })
@@ -613,7 +610,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
     await expect(notes.getByText(text)).toBeVisible()
   }
   // No filter until something is tagged.
-  await expect(notes.getByRole('group', { name: 'Show notes with a tag' })).toHaveCount(0)
+  await expect(notes.getByRole('combobox', { name: 'Filter by tag' })).toHaveCount(0)
 
   // One at a time under each note: type a tag, Enter, the next, then the tick.
   const tag = async (noteStart: string, tags: string[]) => {
@@ -638,12 +635,12 @@ test('tags group notes by draft or section, and filter them on the idea page and
 
   // Show only one tag's notes; they can still be put in order, and "All" brings the rest back.
   await openFilters(page)
-  const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
-  await filter.getByRole('button', { name: 'part 1' }).click()
+  const filter = notes.getByRole('combobox', { name: 'Filter by tag' })
+  await filter.selectOption('part 1')
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
   await showArrowsFor(notes, /^Reorder note “Erosion/)
   await notes.getByRole('button', { name: /^Move note “Erosion.*up/ }).click()
-  await filter.getByRole('button', { name: 'All' }).click()
+  await notes.getByRole('button', { name: 'Stop filtering by part 1' }).click()
   await expect(notes.getByRole('listitem').filter({ hasText: 'Deposition' }).first()).toBeVisible()
   await page.reload()
   const after = page.getByRole('region', { name: 'Notes' })
@@ -652,10 +649,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   // Beside the draft, the same tags narrow the list to what belongs in this part.
   await startDraft(page)
   const side = page.getByRole('complementary')
-  await side
-    .getByRole('group', { name: 'Show notes with a tag' })
-    .getByRole('button', { name: 'Part 2' })
-    .click()
+  await side.getByRole('combobox', { name: 'Filter by tag' }).selectOption('Part 2')
   await expect(side.getByText('Oxbow lakes form')).toBeVisible()
   await expect(side.getByText('Deposition on the inside.')).toHaveCount(0)
   await noViolations(page, 'drafting page filtered by a tag')

@@ -472,8 +472,9 @@ change is one request and all or nothing, so a note that would exceed the limit 
 **The toolbar (`ListToolbar`).** On the **left**, after the select-all checkbox (which sits above the rail of row
 checkboxes), a **filter button** with the funnel icon; on the **right**, once something is selected, the actions for the
 selected items with a "3 selected" count. Until then the actions are not shown. The filters are folded away: the funnel
-(`aria-expanded`, only offered when there is something to filter by) opens a row of them under the header (tag buttons
-and, on a reading list, the Show read items switch), which a close button folds again. While it is folded and a filter is
+(`aria-expanded`, only offered when there is something to filter by) opens a row of them under the header (the
+**Filter by tag** select, whose chosen tags stay beside it as removable chips named "Stop filtering by {tag}" and
+narrow the list to what has all of them, and, on a reading list, the Show read items switch), which a close button folds again. While it is folded and a filter is
 on, the funnel is marked and a small chip says what is filtering, so a filtered list never looks like the whole list.
 **An action that needs input takes over the header**: Tag… and Move to… hide the other actions, and the rest of the
 header holds their form, ending in a **tick** (confirm; named "Tag 3 notes", "Move 2 items") and a **cross** (cancel)

@@ -602,6 +602,8 @@ function mockDrafting(
     /** When the reading-list item (l1, "A paper") was marked read; null while it isn't. */
     readAt?: string | null
     authors?: string[]
+    /** Replaces the reading list (by default just l1, "A paper"). */
+    links?: { id: string; title: string; tags: string[] }[]
   } = {},
 ) {
   const state = {
@@ -627,16 +629,25 @@ function mockDrafting(
     publicationId: 'p1',
     name: 'An idea',
     notes: '',
-    links: [
-      {
-        id: 'l1',
-        url: 'https://example.org/paper',
-        title: 'A paper',
-        authors: start.authors ?? [],
-        readAt: state.readAt,
-        origin: 'entered',
-      },
-    ],
+    links: start.links
+      ? start.links.map((l) => ({
+          ...l,
+          url: `https://example.org/${l.id}`,
+          authors: [],
+          readAt: null,
+          origin: 'entered',
+        }))
+      : [
+          {
+            id: 'l1',
+            url: 'https://example.org/paper',
+            title: 'A paper',
+            authors: start.authors ?? [],
+            readAt: state.readAt,
+            origin: 'entered',
+            tags: [],
+          },
+        ],
     drafts: [],
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
@@ -1199,21 +1210,23 @@ describe('the notes beside the draft', () => {
         .filter((li) => li.querySelector('p'))
         .map((li) => li.querySelector('p')!.textContent)
 
-    it('are shown on the notes, and can narrow the list to one tag, for adding what belongs in this part', async () => {
+    it('are shown on the notes, and can narrow the list to the tags chosen, for adding what belongs in this part', async () => {
       mockDrafting({ notes: tagged() })
       await renderAt('/p/p1/drafts/d1')
       const notes = within(await screen.findByRole('complementary'))
       await notes.findByText('Erosion loops.')
-      const filter = notes.getByRole('group', { name: 'Show notes with a tag' })
+      const select = notes.getByRole('combobox', { name: 'Filter by tag' })
       // Only tags on notes that can still be added are offered; "solo" is only on an added note.
       expect(
-        within(filter)
-          .getAllByRole('button')
-          .map((b) => b.textContent?.trim()),
-      ).toEqual(['All', 'intro', 'part 2'])
-      await fireEvent.click(within(filter).getByRole('button', { name: 'part 2' }))
+        Array.from(select.querySelectorAll('option')).map((o) => o.textContent?.trim()),
+      ).toEqual(['Choose a tag', 'intro', 'part 2'])
+      await fireEvent.update(select, 'part 2')
       expect(listed()).toEqual(['Deposition inside the bend.'])
-      await fireEvent.click(within(filter).getByRole('button', { name: 'All' }))
+      await fireEvent.update(select, 'intro')
+      expect(notes.queryByRole('list', { name: 'Notes to add' })).toBeNull()
+      expect(notes.getByText('No notes have all these tags.')).toBeInTheDocument()
+      await fireEvent.click(notes.getByRole('button', { name: 'Stop filtering by intro' }))
+      await fireEvent.click(notes.getByRole('button', { name: 'Stop filtering by part 2' }))
       expect(listed()).toEqual([
         'Erosion loops.',
         'Deposition inside the bend.',
@@ -1221,17 +1234,57 @@ describe('the notes beside the draft', () => {
       ])
     })
 
+    it('are shown on the reading items, which can be narrowed to those with all the chosen tags', async () => {
+      mockDrafting({
+        links: [
+          { id: 'l1', title: 'A paper', tags: ['background', 'part 2'] },
+          { id: 'l2', title: 'Other', tags: ['background'] },
+          { id: 'l3', title: 'Bare', tags: [] },
+        ],
+      })
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Reading list')
+      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      await list.findByText('A paper')
+      expect(list.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
+      const select = list.getByRole('combobox', { name: 'Filter by tag' })
+      await fireEvent.update(select, 'background')
+      expect(list.queryByText('Bare')).toBeNull()
+      await fireEvent.update(select, 'part 2')
+      expect(list.getByText('A paper')).toBeInTheDocument()
+      expect(list.queryByText('Other')).toBeNull()
+      await fireEvent.click(list.getByRole('button', { name: 'Stop filtering by background' }))
+      await fireEvent.click(list.getByRole('button', { name: 'Stop filtering by part 2' }))
+      expect(list.getByText('Bare')).toBeInTheDocument()
+    })
+
+    it('says so when no reading item has all the chosen tags', async () => {
+      mockDrafting({
+        links: [
+          { id: 'l1', title: 'A paper', tags: ['a'] },
+          { id: 'l2', title: 'Other', tags: ['b'] },
+        ],
+      })
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Reading list')
+      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      const select = await list.findByRole('combobox', { name: 'Filter by tag' })
+      await fireEvent.update(select, 'a')
+      await fireEvent.update(select, 'b')
+      expect(list.getByText('No items have all these tags.')).toBeInTheDocument()
+    })
+
     it('say so when nothing is left with the tag once its notes are in the draft', async () => {
       mockDrafting({ notes: tagged() })
       await renderAt('/p/p1/drafts/d1')
       const notes = within(await screen.findByRole('complementary'))
-      await fireEvent.click(await notes.findByRole('button', { name: 'intro' }))
+      await fireEvent.update(await notes.findByRole('combobox', { name: 'Filter by tag' }), 'intro')
       await fireEvent.click(
         notes.getByRole('button', { name: /^Add note “Erosion loops\.” to the draft/ }),
       )
       // The tag is no longer on anything that can be added, so the filter goes back to everything.
       await waitFor(() => expect(listed()).toContain('Untagged thought.'))
-      expect(notes.queryByRole('button', { name: 'intro' })).toBeNull()
+      expect(notes.queryByRole('button', { name: 'Stop filtering by intro' })).toBeNull()
     })
   })
 

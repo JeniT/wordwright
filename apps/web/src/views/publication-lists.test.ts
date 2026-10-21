@@ -1172,7 +1172,7 @@ describe('moving notes', () => {
     ])
     await renderAt('/p/ada-substack/notes')
     await openFilters()
-    await fireEvent.click(await screen.findByRole('button', { name: /^intro/ }))
+    await fireEvent.update(await screen.findByRole('combobox', { name: 'Filter by tag' }), 'intro')
     await fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Select all notes on this page' }),
     )
@@ -1215,7 +1215,7 @@ describe('moving notes', () => {
     await fireEvent.click(await screen.findByRole('checkbox', { name: /^Select note “Untagged/ }))
     expect(screen.getByText('1 selected')).toBeInTheDocument()
     await openFilters()
-    await fireEvent.click(screen.getByRole('button', { name: /^intro/ }))
+    await fireEvent.update(screen.getByRole('combobox', { name: 'Filter by tag' }), 'intro')
     expect(screen.getByText('0 selected')).toBeInTheDocument()
   })
 
