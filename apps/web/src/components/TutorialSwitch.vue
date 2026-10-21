@@ -10,8 +10,7 @@ import SwitchField from './SwitchField.vue'
  * its tooltip saying why, so there is no alert to dismiss. See "Tutorial mode" in docs/design.md.
  */
 const ON_TIP = 'Shows explanations on each page. Turn off once you know your way round.'
-const BROKEN_TIP =
-  'Sorry you can’t change this right now. Reload the page to reactivate the switch.'
+const BROKEN_TIP = 'Sorry, we couldn’t save that. Please reload the page to try again.'
 
 const on = useTutorialMode()
 const save = useUpdateTutorial()

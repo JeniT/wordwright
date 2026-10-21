@@ -8,7 +8,7 @@ useMockServer({ warm: ['reviews'] })
 // The Tutorial switch in the account area of the menu (#314). See "Tutorial mode" in docs/design.md.
 
 const TIP = 'Shows explanations on each page. Turn off once you know your way round.'
-const BROKEN = 'Sorry you can’t change this right now. Reload the page to reactivate the switch.'
+const BROKEN = 'Sorry, we couldn’t save that. Please reload the page to try again.'
 
 function signedInWith(tutorialMode: boolean) {
   server.use(
