@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
 import HelpPage from '../components/HelpPage.vue'
 </script>
 
@@ -14,16 +13,11 @@ import HelpPage from '../components/HelpPage.vue'
     </p>
     <h2 class="mb-1 font-display text-xl font-semibold">Turning it on or off</h2>
     <p class="mb-4">
-      It is on when you create an account. Once you have seen every kind of page that has a
-      tutorial, we ask once whether you would like to turn it off. You can change it at any time
-      with the <strong>Tutorial mode</strong> switch in
-      <RouterLink :to="{ name: 'account-display' }" class="link">your account settings</RouterLink>,
-      and turning it back on doesn’t make us forget which pages you have seen.
+      It is on when you create an account. The <strong>Tutorial</strong> switch is at the bottom of
+      the menu, so you can turn it off once you know your way round, and back on whenever you want a
+      reminder, for example after a break or on a page you don’t use often.
     </p>
     <h2 class="mb-1 font-display text-xl font-semibold">What we keep</h2>
-    <p>
-      Just the switch, the names of the kinds of page you have seen, and whether you answered the
-      offer to turn it off. They are kept with your account and removed with it.
-    </p>
+    <p>Just the switch. It is kept with your account and removed with it.</p>
   </HelpPage>
 </template>

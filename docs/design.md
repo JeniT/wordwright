@@ -265,24 +265,30 @@ A form that clears itself still owes the person some sign that it worked, but no
 
 New people need more than the icons give: what each kind of page is for, what the AI buttons do, what they will spend.
 Experienced people find that same text noise. So the fuller explanations are written once and shown only in **tutorial
-mode**, which is an account setting (`user_settings.tutorial_mode`, and the **Tutorial mode** switch in account
-settings, which is always available both ways):
+mode**, an account setting (`user_settings.tutorial_mode`) with a **Tutorial** switch in the account area of the menu,
+always in view and always available both ways:
 
-- **On for new accounts, off for everyone else by default.** A reviewer-only account never has it; when it becomes a
-  full account it is turned on, as for any new account.
+- **On for new accounts, off for everyone else by default.** Accounts that predate it stay off, so nobody already
+  using the site gets new text on pages they know. A reviewer-only account never has it; when it becomes a full
+  account it is turned on, as for any new account.
 - **One component, `Explain`,** takes the same `label` and slot as the old `InfoTip`. Off: the icon and bubble. On: the
   same text written out below its control, in `tutorial-note` (ink-soft, a thin left rule), no icon. `<Explain
 tutorial-only>` is for what a page is for, which has no icon: it shows nothing when the mode is off. The text is
   written once, so the two versions can't drift. Two sentences at most in both modes.
 - **It never adds anything the person needs to avoid a mistake:** that is on the page for everyone. Review checklist:
   take every `Explain` away; could the person still finish the task and avoid a mistake?
-- **Kinds of page.** A route opts in with `meta: { tutorial: true }` and a `name`; the name is its kind. An `Explain`
-  that shows in tutorial mode records the page's kind as seen (kept on the account, so it follows the person). A
-  test (`tutorial-routes.test.ts`) requires each opted-in route to have a test that renders it with
-  `tutorialMode: true`. The content-crit issue for a page adds `meta.tutorial` with its text.
-- **The offer to turn it off.** Once every opted-in kind has been seen, the **next** page (not the one that completed
-  the set) shows an info notice once: "Turn off tutorial mode" or "Keep it on". Either answer is kept and it never
-  returns. Not shown on a quiet page (`meta.quiet`, the editor).
+- **Kinds of page.** A route opts in with `meta: { tutorial: true }` and a `name`; the name is its kind. A test
+  (`tutorial-routes.test.ts`) requires each opted-in route to have a test that renders it with `tutorialMode: true`.
+  The content-crit issue for a page adds `meta.tutorial` with its text.
+- **The switch.** The menu's account area has two compact rows: the person's name with **Sign out** and the settings
+  button, then the **Tutorial** switch (the small size, since the row is crowded) with the **Help** link. Its tooltip
+  (`v-tip`) says what it does. It shows the change at once and saves in the background. If saving fails it goes back
+  to the saved setting and becomes `aria-disabled` (not `disabled`, so the keyboard can still reach the reason) until
+  the page is reloaded, held in the component and not in storage; its tooltip then says so. There is no alert.
+- **No offer, no reminders.** Nothing asks the person to turn it off, and nothing turns it back on. The switch is
+  always in view, and a person who comes back after a break turns it on themselves. The help page says so.
+- **Reviewer-only accounts** have no switch, because no page they can open has tutorial text. The first time one does,
+  the switch is added to the reviewer header (beside Help and Sign out).
 
 ### Notices
 
@@ -292,11 +298,11 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
 | Kind     | Means                      | Look (`notice` +)                                    | Example                           |
 | -------- | -------------------------- | ---------------------------------------------------- | --------------------------------- |
 | **warn** | Something needs doing      | `notice-warn`: accent border, `accent-wash` fill     | Please confirm your email address |
-| **info** | An offer, nothing is wrong | `notice-info`: `surface` fill, `line` border (quiet) | Turn tutorial mode off? (once)    |
+| **info** | An offer, nothing is wrong | `notice-info`: `surface` fill, `line` border (quiet) | An offer you have set going       |
 
 - Each is a labelled `region` (not a live region, so it doesn't interrupt a screen reader). The text is short; the
   buttons sit under it and wrap at 390px. An info notice has a short title, one sentence, a primary button and a quiet one.
-- A **quiet** page (`meta.quiet`, the editor) shows warn notices but holds back the notice bar's info notices (the offer to turn tutorial mode off), so nothing interrupts writing. **A notice the page draws about its own subject is not held back**: the editor shows, as notices under the bar, a handover waiting for an answer (warn) and an offer or request the person has set going, with its Withdraw button (info), so they never wonder whether Wordwright forgot what they did. Handover and review are buttons in a quiet row beside “← All drafts” that open dialogs (`ModalDialog`, or `ConfirmDialog` for Ask for this draft), so the writer stays on the draft.
+- A **quiet** page (`meta.quiet`, the editor) shows warn notices but holds back the notice bar's info notices, so nothing interrupts writing. **A notice the page draws about its own subject is not held back**: the editor shows, as notices under the bar, a handover waiting for an answer (warn) and an offer or request the person has set going, with its Withdraw button (info), so they never wonder whether Wordwright forgot what they did. Handover and review are buttons in a quiet row beside “← All drafts” that open dialogs (`ModalDialog`, or `ConfirmDialog` for Ask for this draft), so the writer stays on the draft.
 - A notice that can fail says so in a `role="alert"` line with what to do next, and stays.
 
 ### Links that open in a new tab
@@ -350,7 +356,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 - A switch that repeats on every row of a list (Read, Keep, Resolved) is **compact** (`<SwitchField compact>`, the
   `switch-compact` class): a smaller track, knob and label, but the same 44px-high target and the same visible label.
   So are the switches in a list toolbar or panel header (Show read items, Show resolved) and the option in the move
-  dialog. A switch that sits alone on a page or in settings (Tutorial mode, Read on the item page) keeps the full size.
+  dialog. A switch that sits alone on a page or in settings (Read on the item page) keeps the full size; the Tutorial switch in the menu is the small one.
 - A switch's label is a fixed word ("Read", never "Unread"). On is shown by the knob's place and a tick, not by colour
   alone. It flips under the finger and goes back (`revert()`) if saving fails.
 - Put explanations in `meta` text and only where they apply (an item that isn't kept says on which day it goes), not in

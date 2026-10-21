@@ -176,5 +176,5 @@ _Avoid_: Proposal, card, recommendation (in what people see)
 ### Explaining
 
 **Tutorial mode**:
-A setting on a person's account that shows the explanations otherwise kept behind info icons (and short page-purpose lines that appear nowhere else) written out on the page. On for new accounts, off for others, switchable at any time. It never holds anything a person needs to avoid a mistake.
+A setting on a person's account that shows the explanations otherwise kept behind info icons (and short page-purpose lines that appear nowhere else) written out on the page. On for new accounts, off for others, switched from the menu at any time. It never holds anything a person needs to avoid a mistake.
 _Avoid_: Onboarding, walkthrough, help mode
