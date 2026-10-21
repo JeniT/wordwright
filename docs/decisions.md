@@ -612,6 +612,8 @@ a quotation that has been "improved" is no longer a quotation.
 
 ## Linking to something you haven't read asks first (T34)
 
+_The **Insert link** button below is now **Add to draft**, as on notes (#331)._
+
 The drafting drawer has a **Reading list** section: each item with whether it is read, and an **Insert link** button
 that puts a link to it in the line being written (inline, not a new paragraph) and saves the draft. If the item
 isn't marked read, the writer is asked first, in a modal dialog with three ways out: **Cancel** (focused, so a stray

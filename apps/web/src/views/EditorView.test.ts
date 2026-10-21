@@ -1005,7 +1005,7 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       await fireEvent.click(
         await within(await screen.findByRole('complementary')).findByRole('button', {
-          name: 'Add a link to A paper to the draft',
+          name: 'Add a link to “A paper” to the draft',
         }),
       )
     }
@@ -1028,7 +1028,9 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       const list = within(await screen.findByRole('region', { name: 'Reading list' }))
       expect(await list.findByText('by Ada Lovelace and Bo Chen')).toBeInTheDocument()
-      expect(list.getByRole('button', { name: 'Add a link to A paper to the draft' })).toBeTruthy()
+      expect(
+        list.getByRole('button', { name: 'Add a link to “A paper” to the draft' }),
+      ).toBeTruthy()
     })
 
     it('marks an item that has not been read, and no other', async () => {

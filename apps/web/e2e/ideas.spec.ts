@@ -875,7 +875,7 @@ test('a reading item is added to the draft as a link that says who wrote it', as
   await expect(side.getByText('by Ada Author and Bo Writer')).toBeVisible()
   await noViolations(page, 'drafting page, reading list')
 
-  await side.getByRole('button', { name: /^Add a link to .* to the draft$/ }).click()
+  await side.getByRole('button', { name: /^Add a link to “.*” to the draft$/ }).click()
   await page
     .getByRole('dialog', { name: 'You haven’t marked this as read' })
     .getByRole('button', { name: 'Mark as read' })

@@ -232,7 +232,11 @@ function insertInlineMarkdown(markdown: string, at?: number): boolean {
   if (!inline) return false
   if (at !== undefined) {
     const position = Math.min(Math.max(at, 0), e.state.doc.content.size)
-    return e.chain().focus().insertContentAt(position, inline).run()
+    // Between paragraphs there is no line to put a link in, so it gets one of its own.
+    const content = e.state.doc.resolve(position).parent.inlineContent
+      ? inline
+      : { type: 'paragraph', content: inline }
+    return e.chain().focus().insertContentAt(position, content).run()
   }
   return e.chain().focus().insertContent(inline).run()
 }
