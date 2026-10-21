@@ -429,15 +429,7 @@ describe('the research page: tutorial mode', () => {
     /^Describe the areas you want to look into and your AI will suggest pages worth reading, aiming for a range of opinions\. Add the ones you want to your reading list\.$/
   const setup = async (on: boolean) => {
     mockResearch()
-    server.use(
-      signedInAs(on ? { ...testUser, tutorialMode: true } : testUser),
-      http.get('*/api/account/tutorial', () =>
-        HttpResponse.json({ on, seen: [], answered: false }),
-      ),
-      http.post('*/api/account/tutorial/seen', () =>
-        HttpResponse.json({ on, seen: [], answered: false }),
-      ),
-    )
+    server.use(signedInAs(on ? { ...testUser, tutorialMode: true } : testUser))
     // The route 'idea-research' is this kind of page (see tutorial-routes.test.ts).
     await renderAt(page)
     await screen.findByText('No research yet.')

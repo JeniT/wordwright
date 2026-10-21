@@ -1385,12 +1385,6 @@ describe('idea page', () => {
           listPublications,
           http.get(ideaUrl, () => HttpResponse.json(idea)),
           http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
-          http.get('*/api/account/tutorial', () =>
-            HttpResponse.json({ on, seen: [], answered: false }),
-          ),
-          http.post('*/api/account/tutorial/seen', () =>
-            HttpResponse.json({ on, seen: [], answered: false }),
-          ),
         )
         await renderAt('/p/ada-substack/ideas/i1/notes')
         await screen.findByText('Erosion loops.')
@@ -2263,22 +2257,12 @@ describe('idea page', () => {
       expect(screen.queryByRole('button', { name: 'More information' })).toBeNull()
     })
 
-    it('writes out what a draft is in tutorial mode, and records the page as seen', async () => {
+    it('writes out what a draft is in tutorial mode', async () => {
       fakeIdea()
-      const seen: string[] = []
-      server.use(
-        signedInAs({ ...testUser, tutorialMode: true }),
-        http.get('*/api/account/tutorial', () =>
-          HttpResponse.json({ on: true, seen: [], answered: false }),
-        ),
-        http.post('*/api/account/tutorial/seen', async ({ request }) => {
-          seen.push(((await request.json()) as { kind: string }).kind)
-          return HttpResponse.json({ on: true, seen, answered: false })
-        }),
-      )
-      await renderAt('/p/ada-substack/ideas/i1/drafts')
+      server.use(signedInAs({ ...testUser, tutorialMode: true }))
+      const { router } = await renderAt('/p/ada-substack/ideas/i1/drafts')
       expect(await screen.findByText(/A draft is one piece of writing/)).toBeInTheDocument()
-      await waitFor(() => expect(seen).toEqual(['idea-drafts']))
+      expect(router.currentRoute.value.name).toBe('idea-drafts')
     })
 
     it('has no arrows when there are no drafts', async () => {

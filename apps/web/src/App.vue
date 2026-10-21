@@ -11,6 +11,7 @@ import { useModal } from './lib/modal'
 import { useNav } from './lib/nav'
 import { usePublicationAddressRedirect, usePublications } from './lib/usePublications'
 import ThemeChoice from './components/ThemeChoice.vue'
+import TutorialSwitch from './components/TutorialSwitch.vue'
 import { useSessionStore } from './stores/session'
 
 const session = useSessionStore()
@@ -174,18 +175,19 @@ useModal({
           <SideMenu />
 
           <div class="mt-auto border-t border-line px-5 py-4">
-            <div class="flex items-center justify-between gap-2">
-              <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
+            <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">
+                Sign out
+              </button>
               <SettingsButton
                 :to="{ name: 'account' }"
                 label="Account settings"
                 :current="nav.level.value === 'account'"
               />
             </div>
-            <div class="mt-2 flex flex-wrap items-center gap-3">
-              <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">
-                Sign out
-              </button>
+            <div class="mt-1 flex flex-wrap items-center justify-between gap-x-3">
+              <TutorialSwitch />
               <RouterLink :to="{ name: 'help' }" class="link text-sm">Help</RouterLink>
             </div>
           </div>

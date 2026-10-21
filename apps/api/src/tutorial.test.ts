@@ -17,67 +17,38 @@ async function ada() {
   return { ctx, client, me }
 }
 
-describe('tutorial mode (#198)', () => {
-  it('is on for a new account, and nothing has been seen or answered yet', async () => {
-    const { client, me } = await ada()
+describe('tutorial mode (#198, #314)', () => {
+  it('is on for a new account', async () => {
+    const { me } = await ada()
     expect(me.tutorialMode).toBe(true)
-    expect(await (await client.get('/api/account/tutorial')).json()).toEqual({
-      on: true,
-      seen: [],
-      answered: false,
-    })
   })
 
   it('is off for an account that predates it', async () => {
     const { ctx, client, me } = await ada()
     ctx.db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(me.id)
     expect((await (await client.get('/api/auth/me')).json()).tutorialMode).toBe(false)
-    expect((await (await client.get('/api/account/tutorial')).json()).on).toBe(false)
   })
 
-  it('can be switched off and on again, and switching it on keeps what was seen', async () => {
+  it('can be switched off and on again', async () => {
     const { client } = await ada()
-    await client.post('/api/account/tutorial/seen', { kind: 'publication-ideas' })
     const off = await client.put('/api/account/tutorial', { on: false })
-    expect(await off.json()).toMatchObject({ on: false, seen: ['publication-ideas'] })
+    expect(await off.json()).toEqual({ on: false })
     expect((await (await client.get('/api/auth/me')).json()).tutorialMode).toBe(false)
     const on = await client.put('/api/account/tutorial', { on: true })
-    expect(await on.json()).toMatchObject({ on: true, seen: ['publication-ideas'] })
+    expect(await on.json()).toEqual({ on: true })
     expect((await (await client.get('/api/auth/me')).json()).tutorialMode).toBe(true)
   })
 
-  it('remembers that the offer to turn it off was answered', async () => {
+  it('refuses a change that does not say on or off', async () => {
     const { client } = await ada()
-    const res = await client.put('/api/account/tutorial', { answered: true })
-    expect(await res.json()).toMatchObject({ on: true, answered: true })
-    expect((await (await client.get('/api/account/tutorial')).json()).answered).toBe(true)
+    expect((await client.put('/api/account/tutorial', {})).status).toBe(400)
+    expect((await client.put('/api/account/tutorial', { on: 'yes' })).status).toBe(400)
   })
 
-  describe('pages seen', () => {
-    it('records each kind of page once', async () => {
-      const { client } = await ada()
-      await client.post('/api/account/tutorial/seen', { kind: 'publication-ideas' })
-      await client.post('/api/account/tutorial/seen', { kind: 'idea-research' })
-      const again = await client.post('/api/account/tutorial/seen', { kind: 'publication-ideas' })
-      expect((await again.json()).seen).toEqual(['publication-ideas', 'idea-research'])
-    })
-
-    it('refuses anything that is not a route name', async () => {
-      const { client } = await ada()
-      for (const kind of ['', 'Has Spaces', '<script>', 'x'.repeat(65)]) {
-        const res = await client.post('/api/account/tutorial/seen', { kind })
-        expect(res.status).toBe(400)
-      }
-    })
-
-    it('stops growing at a limit, so a client cannot fill the table', async () => {
-      const { client } = await ada()
-      let last
-      for (let i = 0; i < 105; i++) {
-        last = await client.post('/api/account/tutorial/seen', { kind: `page-${i}` })
-      }
-      expect((await last!.json()).seen).toHaveLength(100)
-    })
+  it('no longer keeps track of pages seen or an offer answered (#314)', async () => {
+    const { client } = await ada()
+    expect((await client.get('/api/account/tutorial')).status).toBe(404)
+    expect((await client.post('/api/account/tutorial/seen', { kind: 'x' })).status).toBe(404)
   })
 
   describe('reviewer-only accounts', () => {
@@ -103,9 +74,7 @@ describe('tutorial mode (#198)', () => {
     it('never has it, and cannot reach the setting (as with all of /account)', async () => {
       const { rae, user } = await reviewerAndWriter()
       expect(user.tutorialMode).toBe(false)
-      expect((await rae.get('/api/account/tutorial')).status).toBe(404)
       expect((await rae.put('/api/account/tutorial', { on: true })).status).toBe(404)
-      expect((await rae.post('/api/account/tutorial/seen', { kind: 'x' })).status).toBe(404)
     })
 
     it('gets it when they start writing, as any new account does', async () => {
@@ -118,7 +87,7 @@ describe('tutorial mode (#198)', () => {
 
   it('is removed with the account', async () => {
     const { ctx, client, me } = await ada()
-    await client.post('/api/account/tutorial/seen', { kind: 'publication-ideas' })
+    await client.put('/api/account/tutorial', { on: false })
     const gone = await client.delete('/api/account', {
       password: PASSWORD,
     })
@@ -127,8 +96,8 @@ describe('tutorial mode (#198)', () => {
     expect(rows).toEqual([])
   })
 
-  it('is not shown to signed-out visitors', async () => {
+  it('cannot be changed by signed-out visitors', async () => {
     const ctx = setup()
-    expect((await ctx.client().get('/api/account/tutorial')).status).toBe(401)
+    expect((await ctx.client().put('/api/account/tutorial', { on: true })).status).toBe(401)
   })
 })

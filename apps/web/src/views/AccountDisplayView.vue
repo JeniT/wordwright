@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppearanceSection from '../components/AppearanceSection.vue'
-import TutorialSettingsSection from '../components/TutorialSettingsSection.vue'
 import StepHeading from '../components/StepHeading.vue'
 </script>
 
@@ -9,7 +8,6 @@ import StepHeading from '../components/StepHeading.vue'
     <StepHeading>Display</StepHeading>
     <div class="space-y-10">
       <AppearanceSection />
-      <TutorialSettingsSection />
     </div>
   </div>
 </template>

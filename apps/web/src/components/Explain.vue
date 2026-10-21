@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRecordKindSeen, useTutorialMode } from '../lib/tutorial'
+import { useTutorialMode } from '../lib/tutorial'
 import InfoTip from './InfoTip.vue'
 
 /**
@@ -8,7 +8,6 @@ import InfoTip from './InfoTip.vue'
  * two can't drift apart. Two sentences at most, and never the only place for something needed to avoid a mistake.
  *
  * `tutorialOnly` is for what a page is for, which has no icon: it says nothing unless tutorial mode is on.
- * Showing it in tutorial mode also counts the page as seen (see `lib/tutorial.ts`).
  */
 defineProps<{
   /** The icon's name ("About moving links"). Not needed with `tutorialOnly`. */
@@ -16,7 +15,6 @@ defineProps<{
   tutorialOnly?: boolean
 }>()
 const tutorial = useTutorialMode()
-useRecordKindSeen()
 </script>
 
 <template>

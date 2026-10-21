@@ -36,67 +36,14 @@ describe('AccountView', () => {
     expect(screen.getAllByRole('radiogroup', { name: 'Appearance' })).toHaveLength(1)
   })
 
-  describe('tutorial mode', () => {
-    function signedInWith(tutorialMode: boolean) {
-      server.use(
-        signedInAs({ ...testUser, tutorialMode }),
-        http.get('*/api/publications', () => HttpResponse.json([publication])),
-        http.get('*/api/account/tutorial', () =>
-          HttpResponse.json({ on: tutorialMode, seen: [], answered: false }),
-        ),
-      )
-    }
-    const tutorialSwitch = () => screen.findByRole('switch', { name: 'Tutorial mode' })
-
-    it('shows whether it is on, and explains what it does', async () => {
-      signedInWith(true)
-      await renderAt('/account/display')
-      expect(await tutorialSwitch()).toBeChecked()
-      expect(screen.getByRole('region', { name: 'Tutorial mode' })).toHaveTextContent(
-        /Explains each page/i,
-      )
-    })
-
-    it('turns it off at once, saved as soon as it is flipped', async () => {
-      signedInWith(true)
-      const puts: unknown[] = []
-      server.use(
-        http.put('*/api/account/tutorial', async ({ request }) => {
-          puts.push(await request.json())
-          return HttpResponse.json({ on: false, seen: [], answered: false })
-        }),
-      )
-      await renderAt('/account/display')
-      await fireEvent.click(await tutorialSwitch())
-      await waitFor(() => expect(puts).toEqual([{ on: false }]))
-      expect(await screen.findByText('Saved')).toBeVisible()
-      expect(await tutorialSwitch()).not.toBeChecked()
-    })
-
-    it('turns it on again from off', async () => {
-      signedInWith(false)
-      server.use(
-        http.put('*/api/account/tutorial', () =>
-          HttpResponse.json({ on: true, seen: ['publication-ideas'], answered: true }),
-        ),
-      )
-      await renderAt('/account/display')
-      await fireEvent.click(await tutorialSwitch())
-      await waitFor(async () => expect(await tutorialSwitch()).toBeChecked())
-    })
-
-    it('puts the switch back and says why when it could not be saved', async () => {
-      signedInWith(true)
-      server.use(
-        http.put('*/api/account/tutorial', () =>
-          HttpResponse.json({ error: 'We could not save that. Try again.' }, { status: 500 }),
-        ),
-      )
-      await renderAt('/account/display')
-      await fireEvent.click(await tutorialSwitch())
-      expect(await screen.findByRole('alert')).toHaveTextContent('We could not save that')
-      expect(await tutorialSwitch()).toBeChecked()
-    })
+  it('no longer has a Tutorial mode section: the switch is in the menu (#314)', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+    )
+    await renderAt('/account/display')
+    await screen.findByRole('heading', { level: 1, name: 'Display' })
+    expect(screen.queryByRole('region', { name: 'Tutorial mode' })).toBeNull()
   })
 
   it('keeps the long privacy advice off the page, with links to it and to the key guide', async () => {

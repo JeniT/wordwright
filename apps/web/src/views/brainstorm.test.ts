@@ -1284,15 +1284,7 @@ describe('the refine page: tutorial mode', () => {
     /^Your AI asks questions about this idea and suggests the points you make as notes\.$/
   const setup = async (on: boolean) => {
     mockConversation()
-    server.use(
-      signedInAs(on ? { ...testUser, tutorialMode: true } : testUser),
-      http.get('*/api/account/tutorial', () =>
-        HttpResponse.json({ on, seen: [], answered: false }),
-      ),
-      http.post('*/api/account/tutorial/seen', () =>
-        HttpResponse.json({ on, seen: [], answered: false }),
-      ),
-    )
+    server.use(signedInAs(on ? { ...testUser, tutorialMode: true } : testUser))
     // The route 'brainstorm' is this kind of page (see tutorial-routes.test.ts).
     await renderAt(page)
     await screen.findByRole('button', { name: 'Refine with your AI' })

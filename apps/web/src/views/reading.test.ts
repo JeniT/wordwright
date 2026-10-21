@@ -203,29 +203,13 @@ describe('reading page', () => {
   })
 
   describe('in tutorial mode', () => {
-    /** Tutorial mode on, and the kinds of page the app is told have been seen (the route's name). */
-    const tutorial = () => {
-      const seen: string[] = []
-      return {
-        seen,
-        handlers: [
-          signedInAs({ ...testUser, tutorialMode: true }),
-          http.get('*/api/account/tutorial', () =>
-            HttpResponse.json({ on: true, seen: [], answered: false }),
-          ),
-          http.post('*/api/account/tutorial/seen', async ({ request }) => {
-            seen.push(((await request.json()) as { kind: string }).kind)
-            return HttpResponse.json({ on: true, seen, answered: false })
-          }),
-        ],
-      }
-    }
+    /** Tutorial mode on. */
+    const tutorial = () => [signedInAs({ ...testUser, tutorialMode: true })]
 
     it('writes out how to take notes beside the page, and what a quotation is', async () => {
-      const { seen, handlers } = tutorial()
+      const handlers = tutorial()
       await open('l1', handlers)
       await screen.findByRole('heading', { level: 1, name: 'A paper' })
-      await waitFor(() => expect(seen).toEqual(['reading']))
       expect(
         screen.getByText(
           'Arrange this page and the page you’re reading side-by-side in a split view to make taking notes easier.',
@@ -237,7 +221,7 @@ describe('reading page', () => {
     })
 
     it('does the same on the publication’s own reading item, which also offers a New idea tab', async () => {
-      const { seen, handlers } = tutorial()
+      const handlers = tutorial()
       server.use(
         ...handlers,
         signedInAs({ ...testUser, tutorialMode: true }),
@@ -245,9 +229,9 @@ describe('reading page', () => {
         http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(idea.links)),
         http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
       )
-      await renderAt('/p/ada-substack/reading/l1')
+      const { router } = await renderAt('/p/ada-substack/reading/l1')
+      expect(router.currentRoute.value.name).toBe('publication-reading-item')
       await screen.findByRole('heading', { level: 1, name: 'A paper' })
-      await waitFor(() => expect(seen).toEqual(['publication-reading-item']))
       expect(screen.getByText(/in a split view/)).toBeInTheDocument()
       const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
       expect(tabs.map((t) => t.textContent?.trim())).toEqual([

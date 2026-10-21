@@ -550,7 +550,7 @@ export const MIGRATIONS: Migration[] = [
   CREATE INDEX moves_to_publication ON moves(to_publication_id) WHERE to_publication_id IS NOT NULL;
   `,
   // Tutorial mode (#198). tutorial_mode null = the default = off, so accounts that predate it stay off; registration
-  // writes 1. tutorial_seen is a JSON list of route names, tutorial_answered is the one-time offer to turn it off.
+  // writes 1. tutorial_seen and tutorial_answered are no longer read or written (#314); migrations are append-only.
   `
   ALTER TABLE user_settings ADD COLUMN tutorial_mode INTEGER CHECK (tutorial_mode IN (0, 1));
   ALTER TABLE user_settings ADD COLUMN tutorial_seen TEXT;

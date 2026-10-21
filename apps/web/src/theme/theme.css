@@ -516,17 +516,19 @@
       content: '✓';
     }
   }
-  & > input:hover:not(:disabled) + [data-switch-track] {
+  & > input:hover:not(:disabled, [aria-disabled='true']) + [data-switch-track] {
     border-color: var(--color-ink);
   }
   & > input:focus-visible + [data-switch-track] {
     outline: 3px solid var(--color-focus);
     outline-offset: 2px;
   }
-  & > input:disabled {
+  & > input:disabled,
+  & > input[aria-disabled='true'] {
     cursor: not-allowed;
   }
-  & > input:disabled + [data-switch-track] {
+  & > input:disabled + [data-switch-track],
+  & > input[aria-disabled='true'] + [data-switch-track] {
     opacity: 0.55;
   }
   /* Compact: for a switch that repeats on every row of a list. Smaller track, knob and label; the row height (and so

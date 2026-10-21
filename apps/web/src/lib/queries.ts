@@ -40,8 +40,6 @@ export const queryKeys = {
   llm: () => ['llm'] as const,
   /** The models the provider offers the saved key (the account page). */
   llmModels: () => ['llm-models'] as const,
-  /** Tutorial mode's seen pages and answered offer (#198). */
-  tutorial: () => ['tutorial'] as const,
   reviews: () => ['reviews'] as const,
   /** Invitations to join a publication that are waiting for this person. */
   myInvitations: () => ['my-invitations'] as const,
@@ -88,7 +86,6 @@ export type QueryRoot =
   | 'recent-posts'
   | 'research'
   | 'sources'
-  | 'tutorial'
 
 /** Refreshes everything under each root. */
 export const invalidateRoots = (queryClient: QueryClient, ...roots: QueryRoot[]) =>

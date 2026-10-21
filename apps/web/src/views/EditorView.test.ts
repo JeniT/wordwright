@@ -1398,20 +1398,7 @@ describe('publishing from the draft page', () => {
 })
 
 describe('what the editing page says, and where', () => {
-  const tutorial = (on: boolean) => {
-    const seen: string[] = []
-    server.use(
-      signedInAs({ ...testUser, tutorialMode: on }),
-      http.get('*/api/account/tutorial', () =>
-        HttpResponse.json({ on, seen: [], answered: false }),
-      ),
-      http.post('*/api/account/tutorial/seen', async ({ request }) => {
-        seen.push(((await request.json()) as { kind: string }).kind)
-        return HttpResponse.json({ on, seen, answered: false })
-      }),
-    )
-    return seen
-  }
+  const tutorial = (on: boolean) => server.use(signedInAs({ ...testUser, tutorialMode: on }))
 
   it('says on the page what Critique sends and does not send, whatever the mode', async () => {
     mockEditor(() => new Response(null))
@@ -1435,14 +1422,13 @@ describe('what the editing page says, and where', () => {
     expect(screen.getByRole('button', { name: 'About rephrasing' })).toBeInTheDocument()
   })
 
-  it('writes the same explanations out in tutorial mode, and records the page as seen', async () => {
+  it('writes the same explanations out in tutorial mode', async () => {
     mockEditor(() => new Response(null))
-    const seen = tutorial(true)
+    tutorial(true)
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/never rewrites/)).toBeInTheDocument()
     expect(screen.getByText(/different ways to put your words/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'About Critique' })).toBeNull()
-    await waitFor(() => expect(seen).toContain('draft'))
   })
 })
 

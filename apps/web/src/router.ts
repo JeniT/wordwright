@@ -20,9 +20,9 @@ declare module 'vue-router' {
     ideaFromDraft?: boolean
     /** Pages used beside another window (reading a source): the side menu folds away at every width. */
     compact?: boolean
-    /** The page has tutorial text (#198): visiting it with tutorial mode on counts towards having seen every kind. */
+    /** The page has tutorial text (#198), so a test must render it with tutorial mode on (tutorial-routes.test.ts). */
     tutorial?: boolean
-    /** Info notices (like the offer to turn tutorial mode off) are held back here, so nothing interrupts writing. */
+    /** Info notices are held back here, so nothing interrupts writing (the editor). */
     quiet?: boolean
   }
 }

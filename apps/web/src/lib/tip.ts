@@ -8,7 +8,8 @@ import type { Directive } from 'vue'
  * One tooltip is shared by the whole page and appended to `<body>`, positioned with `fixed`, so a menu or list that
  * scrolls or clips its children can't cut it off. It stays while the pointer moves onto it, and Escape dismisses it
  * without moving focus (WCAG 1.4.13). A press that focuses the button (a tap or click) doesn't pop it up: only a
- * hover, or focus that came by keyboard.
+ * hover, or focus that came by keyboard. Focus anywhere inside the element counts (`focusin`), so a tip can sit on a
+ * wrapper such as a switch's label.
  */
 const HIDE_DELAY_MS = 150
 const GAP_PX = 2
@@ -103,14 +104,14 @@ export const vTip: Directive<HTMLElement, string | undefined> = {
     el.addEventListener('pointerenter', onEnter)
     el.addEventListener('pointerleave', hideSoon)
     el.addEventListener('pointerdown', onPress)
-    el.addEventListener('focus', onFocus)
-    el.addEventListener('blur', onBlur)
+    el.addEventListener('focusin', onFocus)
+    el.addEventListener('focusout', onBlur)
     state.cleanup = () => {
       el.removeEventListener('pointerenter', onEnter)
       el.removeEventListener('pointerleave', hideSoon)
       el.removeEventListener('pointerdown', onPress)
-      el.removeEventListener('focus', onFocus)
-      el.removeEventListener('blur', onBlur)
+      el.removeEventListener('focusin', onFocus)
+      el.removeEventListener('focusout', onBlur)
     }
   },
   updated(el, binding) {

@@ -1,7 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { TutorialSeenInputSchema } from '@wordwright/core'
 import { routes } from './router'
 
 /** Every file under `dir` whose name ends in `.test.ts`. */
@@ -20,17 +19,7 @@ describe('pages with tutorial text (#198)', () => {
     expect(routes.find((r) => r.name === 'draft')?.meta?.quiet).toBe(true)
   })
 
-  it('have names the server will accept as a kind of page', () => {
-    for (const route of named) {
-      const parsed = TutorialSeenInputSchema.safeParse({ kind: route.name })
-      expect(
-        parsed.success,
-        `${String(route.name)} must be lower-case letters, digits and hyphens`,
-      ).toBe(true)
-    }
-  })
-
-  it('have a name, which is how the app remembers having seen their kind of page', () => {
+  it('have a name, which is how a test finds the one that renders them', () => {
     for (const route of named) expect(route.name, route.path).toBeTruthy()
   })
 

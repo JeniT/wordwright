@@ -8,6 +8,9 @@ import { useTemplateRef } from 'vue'
  *
  * It flips under the finger at once; `modelValue` is what is saved. If saving fails the parent calls `revert()` to
  * put the switch back to `modelValue`.
+ *
+ * `unavailable` is for a switch that can't be changed right now but must still be reached by the keyboard, so its
+ * reason (a tooltip, `describedBy`) can be read: it is `aria-disabled`, not `disabled`, and a press changes nothing.
  */
 const props = defineProps<{
   modelValue: boolean
@@ -15,12 +18,19 @@ const props = defineProps<{
   /** The accessible name, when it needs more than the visible label. */
   name?: string
   disabled?: boolean
+  unavailable?: boolean
+  /** The id of text that describes the switch (a tooltip's words, read out with its name). */
+  describedBy?: string
   /** A smaller switch for one that repeats on every row of a list. */
   compact?: boolean
 }>()
 const emit = defineEmits<{ 'update:modelValue': [on: boolean] }>()
 const input = useTemplateRef<HTMLInputElement>('input')
 function flipped() {
+  if (props.unavailable) {
+    input.value!.checked = props.modelValue
+    return
+  }
   emit('update:modelValue', input.value!.checked)
 }
 defineExpose({
@@ -39,6 +49,8 @@ defineExpose({
       :checked="modelValue"
       :disabled="disabled"
       :aria-label="name"
+      :aria-disabled="unavailable ? 'true' : undefined"
+      :aria-describedby="describedBy"
       @change="flipped"
     />
     <span data-switch-track aria-hidden="true"></span>
