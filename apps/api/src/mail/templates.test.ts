@@ -34,6 +34,7 @@ describe('review and handover emails', () => {
       expect(mail.text).toContain('a publication')
       expect(mail.text).not.toMatch(/[“”"]/)
       expect(mail.html).toContain('an untitled draft')
+      expect(mail.html).toContain('a publication')
       expect(mail.html).not.toContain('<strong>an untitled')
     }
   })
@@ -67,6 +68,17 @@ describe('review and handover emails', () => {
     it('says how many comments there are', () => {
       expect(finished(1).text).toContain('and left 1 comment.')
       expect(finished(2).html).toContain('Read the comments')
+    })
+
+    it('does not quote an untitled draft', () => {
+      const mail = reviewFinishedEmail({
+        reviewerName: 'Rae',
+        draftTitle: '',
+        commentCount: 1,
+        link: 'l',
+      })
+      expect(mail.text).toContain('finished reviewing an untitled draft and left')
+      expect(mail.html).not.toContain('<strong>an untitled')
     })
 
     it('says so plainly when there are none', () => {

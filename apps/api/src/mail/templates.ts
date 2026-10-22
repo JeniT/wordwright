@@ -13,6 +13,7 @@ const NO_PUBLICATION = 'a publication'
 
 /** A real title or name in curly quotes; the fallback is a phrase, so it is never quoted. */
 const quoted = (value: string, fallback: string) => (value.trim() ? `“${value.trim()}”` : fallback)
+const plain = (value: string, fallback: string) => escapeHtml(value.trim() || fallback)
 const bold = (value: string, fallback: string) =>
   value.trim() ? `<strong>${escapeHtml(value.trim())}</strong>` : fallback
 
@@ -151,7 +152,7 @@ Open it here (you’ll create a reviewer account or sign in with this email addr
 ${link}
 
 If you weren’t expecting this, ignore this email and nothing will happen. To decline, or to stop invitations from ${inviterName} or from everyone, use the same link.`,
-    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on ${bold(draftTitle, UNTITLED)}, a draft in ${escapeHtml(publicationName.trim() || NO_PUBLICATION)} on Wordwright.</p>
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on ${bold(draftTitle, UNTITLED)}, a draft in ${plain(publicationName, NO_PUBLICATION)} on Wordwright.</p>
 <p>You can read this draft and comment on it. You won’t see anything else, or anyone else’s comments. You’ll read a snapshot of the draft as it is now, so later edits won’t change what you read. You can stop reviewing whenever you like.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Review the draft</a></p>
 <p style="font-size:14px">You’ll create a reviewer account or sign in with this email address. The link expires in ${ttlDays} days. If the button doesn’t work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
@@ -174,7 +175,7 @@ export function reviewRequestEmail(input: {
 You’ll read a snapshot of the draft as it is now, so later edits won’t change what you read. Only the draft’s editor sees what you write. Sign in to open it:
 
 ${link}`,
-    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on ${bold(draftTitle, UNTITLED)}, a draft in ${escapeHtml(publicationName.trim() || NO_PUBLICATION)} on Wordwright.</p>
+    html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on ${bold(draftTitle, UNTITLED)}, a draft in ${plain(publicationName, NO_PUBLICATION)} on Wordwright.</p>
 <p>You’ll read a snapshot of the draft as it is now, so later edits won’t change what you read. Only the draft’s editor sees what you write. Sign in to open it.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Review the draft</a></p>`),
   }
@@ -220,7 +221,7 @@ export function handoverOfferEmail(input: {
 Open the draft to accept or decline. Nothing changes until you accept:
 
 ${link}`,
-    html: layout(`<p><strong>${escapeHtml(fromName)}</strong> has offered to hand you ${bold(draftTitle, UNTITLED)} in ${escapeHtml(publicationName.trim() || NO_PUBLICATION)}, so you become its editor, the one person who changes its words.</p>
+    html: layout(`<p><strong>${escapeHtml(fromName)}</strong> has offered to hand you ${bold(draftTitle, UNTITLED)} in ${plain(publicationName, NO_PUBLICATION)}, so you become its editor, the one person who changes its words.</p>
 <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Open the draft</a></p>
 <p style="font-size:14px">Nothing changes until you accept. If the button doesn’t work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>`),
   }
