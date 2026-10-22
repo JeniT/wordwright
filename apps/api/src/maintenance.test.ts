@@ -199,7 +199,7 @@ describe('reminding before deleting', () => {
     const [email] = reminders(ctx)
     expect(email!.to).toBe('late@example.com')
     expect(email!.subject).toBe('Your account will be deleted in 3 days unless you confirm it')
-    expect(email!.text).toContain("we'll delete it in 3 days")
+    expect(email!.text).toContain('we’ll delete it in 3 days')
 
     // Once only, however often the job runs.
     expect(maintenance().remindUnconfirmedAccounts()).toBe(0)
@@ -354,7 +354,7 @@ describe('the signup email', () => {
     const ctx = setup({ unconfirmedAccountTtlDays: 14 })
     await register(ctx.client(), 'ada@example.com', 'Ada')
     const email = ctx.mailer.outbox.at(-1)!
-    expect(email.text).toContain("we'll delete it after 14 days")
+    expect(email.text).toContain('we’ll delete it after 14 days')
     expect(email.html).toContain('after 14 days')
   })
 

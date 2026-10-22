@@ -79,7 +79,7 @@ describe('reviewers (#157)', () => {
         subject: 'Ada asked you to review a draft',
       })
       expect(mail.text).toContain('Meanders')
-      expect(mail.text).toMatch(/that one draft.*nothing else/s)
+      expect(mail.text).toMatch(/read this draft and comment on it.*snapshot/s)
       expect(mail.text).toContain('/review-invite?token=')
     })
 
@@ -554,7 +554,7 @@ describe('reviewers (#157)', () => {
         to: 'ada@example.com',
         subject: 'Rae has finished reviewing Meanders',
       })
-      expect(sent[0]!.text).toContain('has finished reviewing "Meanders" and left 2 comments')
+      expect(sent[0]!.text).toContain('has finished reviewing “Meanders” and left 2 comments')
       expect(sent[0]!.text).not.toContain('Secret remark')
       expect(sent[0]!.text).toContain(`/p/${publication}/drafts/${draftId}`)
     })

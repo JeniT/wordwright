@@ -83,7 +83,7 @@ export class ReviewService {
     }
 
     const publication = store.publications.get(draft.publicationId, editor.id)
-    const publicationName = publication?.name ?? 'a publication'
+    const publicationName = publication?.name ?? ''
     const snapshot = store.transaction(() => {
       const made = store.reviews.createSnapshot(draft.id, draft.title, draft.body, editor.id)
       for (const id of memberIds) store.reviews.grant(made.id, draft.id, id, editor.id)

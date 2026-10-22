@@ -54,7 +54,7 @@ export class HandoverService {
           ...handoverOfferEmail({
             fromName: editor.name,
             draftTitle: draft.title,
-            publicationName: publication?.name ?? 'a publication',
+            publicationName: publication?.name ?? '',
             link: `${this.d.publicUrl}/p/${draft.publicationId}/drafts/${draft.id}`,
           }),
         },
