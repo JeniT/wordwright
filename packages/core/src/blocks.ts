@@ -82,9 +82,9 @@ export function locateBlock(
   // Rewritten, not just edited further on: the paragraph that has kept the most of its words, if that is half or more.
   // Block ids are no help here (they shift when a paragraph is added above), so only the words count.
   const was = point.text ?? point.excerpt.replace(/…$/, '')
-  const scores = candidates.map((c) => sharedWords(was, c.text))
-  const { of } = scores[0] ?? sharedWords(was, '')
+  const of = sharedWords(was, '').of
   if (of < MIN_PAIRING_WORDS) return null
+  const scores = candidates.map((c) => sharedWords(was, c.text))
   const best = Math.max(0, ...scores.map((s) => s.shared))
   if (best === 0 || best * 2 < of) return null
   return nearest(scores.flatMap((s, i) => (s.shared === best ? [i] : [])))

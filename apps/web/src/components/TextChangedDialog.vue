@@ -40,7 +40,7 @@ const runs = computed<{ then: Run[]; now: Run[] } | null>(() =>
           <h3 id="then-heading" class="mb-1 font-medium">Then</h3>
           <p class="whitespace-pre-wrap">
             <template v-for="(r, i) in runs?.then ?? [{ text: was, changed: false }]" :key="i">
-              <del v-if="r.changed" class="text-ink-soft">{{ r.text }}</del>
+              <del v-if="r.changed" class="text-ink-soft line-through">{{ r.text }}</del>
               <template v-else>{{ r.text }}</template>
               {{ ' ' }}
             </template>
