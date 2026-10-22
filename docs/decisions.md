@@ -2232,3 +2232,9 @@ The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), 
 - **Ctrl or ⌘ + K opens the link dialog** from the rich-text editor (the toolbar listens on the editor's element), and the Link tooltip says so. In the Markdown box it does nothing, as there is no dialog to fill in.
 - **Status line above the toolbar:** `SaveStatus` on the left (its text is a polite status, so it changes only when the save state does, not on each key), the word count on the right. The count is of the body's text, not its Markdown (so `##` and list markers are not words); with a selection it is "N of M words". The failure and conflict callouts below the draft stay, since they carry the Try again button; the status line points to them.
 - **Help page** (Formatting your draft) mentions the line and the Ctrl+K shortcut.
+
+## Draft page wording; the provenance panel is hidden (#341, from #338)
+
+- **"Where some of the words came from" is no longer on the draft page.** The `draft_insertions` record and its API stay: they are kept, not displayed. Principle 5 of `docs/responsible-ai.md` is amended to say so. **Flag for the owner:** the principle said provenance is "visible"; it now persists and can be shown again, but the writer does not see it on the page.
+- **Critique's privacy note sits beside its button** (as Send does on Refine), and the looks count is its hint text below the row.
+- **Tutorial notes** for Comment, Rephrase, and the two side-panel notes were removed; the Rephrase title button has an explanation, and the Formatting help page says what Comment and Rephrase do.

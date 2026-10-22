@@ -477,14 +477,9 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await expect(bodyBox).not.toContainText('outside bank erodes')
   await expect(rephrase).toHaveAttribute('aria-disabled', 'true') // the selection is gone
 
-  // It is saved, and its beginnings are on record.
+  // It is saved.
   await page.reload()
   await expect(bodyBox).toContainText('Fake option 2 of round 2, in my words.')
-  await page.getByText('Where some of the words came from (1)').click()
-  await expect(
-    page.getByText(/began as an AI option, for “Warmer, like speaking to a friend”/),
-  ).toBeVisible()
-  await expect(page.getByText('Still as inserted')).toBeVisible()
 })
 
 test('rephrases the title once the draft is long enough, and records the option used', async ({
@@ -548,13 +543,9 @@ test('rephrases the title once the draft is long enough, and records the option 
   await expect(titleField).toHaveValue('Fake option 1 of round 1.')
   await expect(rephraseTitle).toBeFocused()
 
-  // The title is saved, and where it began is on record.
+  // The title is saved.
   await page.reload()
   await expect(titleField).toHaveValue('Fake option 1 of round 1.')
-  await page.getByText('Where some of the words came from (1)').click()
-  await expect(
-    page.getByText(/A title that began as an AI option, for “Curious, and promising an answer”/),
-  ).toBeVisible()
 })
 
 test('closing the Rephrase window with Escape changes nothing and returns to the button', async ({

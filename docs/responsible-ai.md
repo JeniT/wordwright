@@ -88,10 +88,10 @@ Titles, openings, closings and social posts stay in scope, with these rules:
   aim, up to the round limit of one window (see 1). There is no per-draft quota.
 - **Origin kept.** The chosen text records that it began as an AI option, and whether the writer edited it.
 
-### 5. Provenance is visible and persists
+### 5. Provenance persists (and is not always shown)
 
 Every piece of content the AI contributed to has an **origin** (`entered`, `brainstorm`, `reading`, and so on), and
-the origin follows the text:
+the origin follows the text. It is recorded and kept; the draft page no longer lists it (#341), so the record can be shown again without a migration:
 
 - When a note is inserted into a draft (#33), the inserted passage keeps the note's origin; it does not become
   anonymous prose.

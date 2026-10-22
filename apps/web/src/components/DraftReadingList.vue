@@ -8,7 +8,6 @@ import { READING_DRAG_TYPE } from '../lib/note-drag'
 import { nameList } from '../lib/note-label'
 import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import DraftCard from './DraftCard.vue'
-import Explain from './Explain.vue'
 import NoteTags from './NoteTags.vue'
 import TagFilter from './TagFilter.vue'
 
@@ -34,9 +33,6 @@ const shown = computed(() => props.readingList.filter((item) => matchesTags(item
   <section aria-labelledby="draft-reading-heading">
     <!-- The tab beside the draft already says "Reading list"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-reading-heading" class="sr-only">Reading list</h2>
-    <Explain tutorial-only class="mb-3">
-      Add a link to something you have read, in the line you are writing.
-    </Explain>
     <p v-if="!readingList.length" class="text-ink-soft">
       Nothing on the reading list yet.
       <RouterLink

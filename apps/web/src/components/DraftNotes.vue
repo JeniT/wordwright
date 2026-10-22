@@ -8,7 +8,6 @@ import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
 import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
-import Explain from './Explain.vue'
 import DraftCard from './DraftCard.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
@@ -64,10 +63,6 @@ const label = (note: IdeaNote) => {
   <div>
     <!-- The tab beside the draft already says "Notes"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-notes-heading" class="sr-only">Notes</h2>
-    <!-- Said once for the panel, not behind an icon: the panel is narrow, and each note's button says what it does. -->
-    <Explain tutorial-only class="mb-3">
-      Add a note to the paragraph you are in, or drag it into the draft.
-    </Explain>
 
     <QueryState :query="notes" what="the notes" loading="Loading notes…">
       <p v-if="!notes.data.value?.length" class="text-ink-soft">

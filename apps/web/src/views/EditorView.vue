@@ -9,7 +9,6 @@ import PublishedNote from '../components/PublishedNote.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
-import DraftInsertions from '../components/DraftInsertions.vue'
 import DraftNotes from '../components/DraftNotes.vue'
 import { useHandover, useReviewers } from '../lib/draft-people'
 import DraftActions from '../components/DraftActions.vue'
@@ -666,6 +665,11 @@ async function requestCritique() {
           >
             Rephrase title
           </button>
+          <Explain v-if="canEdit" label="About rephrasing the title" class="-ml-2">
+            You can ask your AI for title options here. The
+            <Icon name="ai" class="inline align-text-bottom" /> button in the toolbar also enables
+            you to ask your AI for options for rephrasing text you select in your draft.
+          </Explain>
         </div>
         <p
           v-if="canEdit && titleProblem"
@@ -708,11 +712,6 @@ async function requestCritique() {
             <p v-if="rephraseNotice" role="alert" class="mt-1 text-sm text-danger">
               {{ rephraseNotice }}
             </p>
-            <Explain v-if="canEdit" tutorial-only>
-              Comment is for the words you have selected, or the paragraph you are in. Rephrase
-              offers other ways to put the words you have selected; you choose and edit one
-              yourself.
-            </Explain>
           </template>
         </RichEditor>
         <p v-if="/\]\(/.test(body)" class="mt-2 text-sm text-ink-soft">
@@ -735,9 +734,18 @@ async function requestCritique() {
             Critique
           </AiButton>
           <Explain v-if="canEdit" label="About Critique" class="-ml-2">
-            Your AI comments on the draft’s weakest points. It never rewrites; each comment is yours
-            to resolve.
+            If you ask for a critique, your AI will give you comments on how to improve your draft.
+            AI will always find something wrong with your text, so you can only do this a limited
+            number of times for a draft; you can change this limit in your user settings.
           </Explain>
+          <p
+            v-if="canEdit"
+            id="critique-sent"
+            class="min-w-0 flex-1 basis-64 text-sm text-ink-soft"
+          >
+            Critique will send this publication’s description and this draft’s title and text to
+            your AI. It will not send your notes.
+          </p>
           <button
             v-if="draft.data.value?.ideaId"
             ref="openButton"
@@ -750,9 +758,15 @@ async function requestCritique() {
             Open panel
           </button>
         </div>
-        <p v-if="canEdit" id="critique-sent" class="mt-2 text-sm text-ink-soft">
-          Critique will send this publication’s description and this draft’s title and text to your
-          AI. It will not send your notes.
+        <p v-if="looks && canEdit" id="critique-looks" class="mt-2 text-sm text-ink-soft">
+          <template v-if="outOfLooks">
+            You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
+            this draft. The next step is to
+            <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. Change
+            how many looks a draft gets in your
+            <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
+          </template>
+          <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
         </p>
         <div
           v-if="autosave.state.value === 'failed'"
@@ -781,23 +795,6 @@ async function requestCritique() {
             what you typed somewhere safe, then reload the page.
           </p>
         </div>
-        <p v-if="looks && canEdit" id="critique-looks" class="mt-2 text-sm text-ink-soft">
-          <template v-if="outOfLooks">
-            You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
-            this draft. The next step is to
-            <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. Change
-            how many looks a draft gets in your
-            <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
-          </template>
-          <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
-        </p>
-
-        <DraftInsertions
-          :publication-id="publicationId"
-          :draft-id="id"
-          :idea-id="draft.data.value?.ideaId"
-          :body="body"
-        />
 
         <DraftPublish
           v-if="canEdit && draft.data.value"

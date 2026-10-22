@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blockHash } from '@wordwright/core'
 import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
 import { expectNoLoneInfoIcons } from '../testing/info-icons'
-import { renderAt, server, signedInAs, testUser, useMockServer, expectOrigin } from '../test-utils'
+import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer({ warm: ['draft'] })
 
@@ -1365,36 +1365,11 @@ describe('the notes beside the draft', () => {
     })
   })
 
-  describe('where the words came from', () => {
-    it('lists what was pulled in, with its origin, and whether it is still as inserted', async () => {
-      mockDrafting({
-        insertions: [
-          insertion('Some text', { origin: 'brainstorm' }),
-          insertion('Words that were rewritten since.', {
-            origin: 'reading',
-            noteAuthorId: null,
-            noteAuthorName: 'Bob',
-            source: { title: 'A paper', url: 'https://example.org/paper' },
-          }),
-        ],
-      })
-      await renderAt('/p/p1/drafts/d1')
-      const summary = (await screen.findByText('Where some of the words came from (2)')).closest(
-        'details',
-      )!
-      const rows = within(summary).getAllByRole('listitem')
-      expectOrigin(rows[0]!, 'From conversation with your AI', 'Ada')
-      expect(rows[0]).toHaveTextContent('Still as inserted')
-      expectOrigin(rows[1]!, 'From A paper', 'Bob')
-      expect(rows[1]).toHaveTextContent('Edited or removed since')
-    })
-
-    it('is not shown when nothing has been pulled in', async () => {
-      mockDrafting()
-      await renderAt('/p/p1/drafts/d1')
-      await screen.findByText('Erosion loops.')
-      expect(screen.queryByText(/Where some of the words came from/)).toBeNull()
-    })
+  it('keeps the record of where words came from but does not list it on the page (#341)', async () => {
+    mockDrafting({ insertions: [insertion('Some text', { origin: 'brainstorm' })] })
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByText('Erosion loops.')
+    expect(screen.queryByText(/Where some of the words came from/)).toBeNull()
   })
 
   describe('on a phone', () => {
@@ -1612,6 +1587,9 @@ describe('what the editing page says, and where', () => {
       ),
     ).toBeInTheDocument()
     expect(button).toHaveAccessibleDescription(/It will not send your notes/)
+    expect(button.parentElement).toContainElement(
+      screen.getByText(/Critique will send this publication/),
+    )
   })
 
   it('keeps the explanations behind info icons while tutorial mode is off', async () => {
@@ -1619,9 +1597,11 @@ describe('what the editing page says, and where', () => {
     await renderAt('/p/p1/drafts/d1')
     await screen.findByRole('button', { name: 'Critique' })
     expect(screen.getByRole('button', { name: 'About Critique' })).toHaveAccessibleDescription(
-      /never rewrites/,
+      /a limited number of times for a draft/,
     )
-    expect(screen.queryByRole('button', { name: 'About rephrasing' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'About rephrasing the title' }),
+    ).toHaveAccessibleDescription(/ask your AI for title options/)
   })
 
   it('puts each icon beside its own button, and none on a line of its own', async () => {
@@ -1645,8 +1625,11 @@ describe('what the editing page says, and where', () => {
     mockEditor(() => new Response(null))
     tutorial(true)
     await renderAt('/p/p1/drafts/d1')
-    expect(await screen.findByText(/never rewrites/)).toBeInTheDocument()
-    expect(screen.getByText(/Rephrase offers other ways to put the words/)).toBeInTheDocument()
+    expect(await screen.findByText(/a limited number of times for a draft/)).toBeInTheDocument()
+    expect(screen.getByText(/ask your AI for title options/)).toBeInTheDocument()
+    expect(screen.queryByText(/Comment is for the words/)).toBeNull()
+    expect(screen.queryByText(/Add a note to the paragraph you are in/)).toBeNull()
+    expect(screen.queryByText(/Add a link to something you have read/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'About Critique' })).toBeNull()
   })
 })

@@ -42,6 +42,12 @@ import HelpPage from '../components/HelpPage.vue'
         there is no Save button.
       </li>
     </ul>
+    <h2 class="mb-2 font-display text-xl font-semibold">Comment and Rephrase</h2>
+    <p class="mb-6">
+      Comment is for the words you have selected, or the paragraph you are in. Rephrase offers other
+      ways to put the words you have selected; you choose one and edit it yourself. Rephrase title,
+      beside the title, does the same for the title.
+    </p>
     <h2 class="mb-2 font-display text-xl font-semibold">Editing the Markdown</h2>
     <p class="mb-2">
       The last button, Edit as Markdown, swaps the draft for the Markdown itself in a plain text

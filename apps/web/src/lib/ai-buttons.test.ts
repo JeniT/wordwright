@@ -59,7 +59,9 @@ describe('AI buttons', () => {
     for (const file of vueFiles(src)) {
       if (file.endsWith('AiButton.vue') || file.endsWith('Icon.vue')) continue
       const text = readFileSync(file, 'utf8')
-      expect(text.includes('name="ai"'), file).toBe(file.endsWith('HelpAiSettingsView.vue'))
+      // The help page and the Rephrase title explanation show the mark in text, not on a button.
+      const shownInText = file.endsWith('HelpAiSettingsView.vue') || file.endsWith('EditorView.vue')
+      expect(text.includes('name="ai"'), file).toBe(shownInText)
     }
   })
 })
