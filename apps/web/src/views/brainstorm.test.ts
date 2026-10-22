@@ -464,7 +464,7 @@ describe('the brainstorm page', () => {
       await type('Please answer')
       await sendWithKeyboard()
 
-      expect(await screen.findByRole('alert')).toHaveTextContent('Add your Anthropic API key')
+      expect(await screen.findByRole('alert')).toHaveTextContent('Your AI needs your key first.')
       expect(screen.getByRole('link', { name: 'Add your AI key' })).toHaveAttribute(
         'href',
         '/account/ai',

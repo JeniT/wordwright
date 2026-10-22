@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
-import { RouterLink } from 'vue-router'
 import {
   WHOLE_DRAFT,
   type CommentInput,
   type CritiqueRound,
   type DraftComment,
 } from '@wordwright/core'
-import { ApiError, errorMessage } from '../lib/api'
+import { errorMessage } from '../lib/api'
+import { keyProblemOf } from '../lib/key-problem'
+import AiProblemAlert from './AiProblemAlert.vue'
 import type { QueryStatus } from '../lib/queries'
 import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
 import CommentCard from './CommentCard.vue'
@@ -96,15 +97,11 @@ const audience = computed(() =>
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="comments-heading" class="sr-only">Comments</h2>
     <p v-if="pending" role="status">Reading your draft…</p>
-    <p v-else-if="error" role="alert" class="text-danger">
-      {{ errorMessage(error) }}
-      <RouterLink
-        v-if="error instanceof ApiError && [400, 409].includes(error.status)"
-        to="/account/ai"
-        class="underline"
-        >Go to account settings</RouterLink
-      >
-    </p>
+    <AiProblemAlert
+      v-else-if="error"
+      :message="errorMessage(error)"
+      :key-problem="keyProblemOf(error)"
+    />
     <template v-if="round && !pending">
       <p>
         <span class="chip chip-ai mr-1">Your AI</span>

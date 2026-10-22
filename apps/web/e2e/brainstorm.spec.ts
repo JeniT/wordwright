@@ -313,7 +313,7 @@ test('without an AI key, says where to add one and keeps the way open to try aga
 }) => {
   await setUp(page, { withKey: false })
   await startBrainstorming(page)
-  await expect(page.getByRole('alert')).toContainText('Add your Anthropic API key')
+  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
   await expect(page.getByRole('alert').getByRole('link', { name: 'Add your AI key' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Refine with your AI' })).toBeVisible()
   await noViolations(page, 'brainstorm page asking for a key')
@@ -350,6 +350,6 @@ test('without an AI key, a reply from the idea’s page lands where the key is a
     .getByRole('region', { name: 'Refine' })
     .getByRole('button', { name: 'Refine with your AI' })
     .click()
-  await expect(page.getByRole('alert')).toContainText(/API key/)
+  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
   await expect(page.getByRole('alert').getByRole('link', { name: 'Add your AI key' })).toBeVisible()
 })

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, useId } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, useId } from 'vue'
 import { RESEARCH_AREAS_MAX } from '@wordwright/core'
-import { ApiError, api, errorMessage } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import { keyProblemOf } from '../lib/key-problem'
+import AiProblemAlert from './AiProblemAlert.vue'
 import { invalidateRoots } from '../lib/queries'
 import AiButton from './AiButton.vue'
 
@@ -25,10 +26,6 @@ const search = useMutation({
   },
   // Another member may have researched too, so read the whole list again.
   onSettled: () => invalidateRoots(queryClient, 'research'),
-})
-const needsKey = computed(() => {
-  const err = search.error.value
-  return err instanceof ApiError && err.status === 409 && /API key/i.test(err.message)
 })
 function submit() {
   const text = areas.value.trim()
@@ -75,15 +72,11 @@ function submit() {
     <p v-if="search.isPending.value" class="mt-2 text-sm text-ink-soft">
       Searching the web. This can take up to a minute.
     </p>
-    <div
+    <AiProblemAlert
       v-if="search.isError.value"
-      role="alert"
-      class="mt-3 rounded-ctl border border-danger bg-danger-wash p-3 text-danger"
-    >
-      <p>{{ errorMessage(search.error.value) }}</p>
-      <p v-if="needsKey" class="mt-1">
-        <RouterLink to="/account/ai" class="underline">Add your AI key</RouterLink>
-      </p>
-    </div>
+      class="mt-3"
+      :message="errorMessage(search.error.value)"
+      :key-problem="keyProblemOf(search.error.value)"
+    />
   </form>
 </template>

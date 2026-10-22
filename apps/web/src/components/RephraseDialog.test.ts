@@ -256,7 +256,7 @@ describe('RephraseDialog', () => {
     show()
     await ask('Plainer for someone new')
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('Add your Anthropic API key')
+    expect(alert).toHaveTextContent('Your AI needs your key first.')
     expect(within(alert).getByRole('link', { name: 'Add your AI key' })).toHaveAttribute(
       'href',
       '/account/ai',

@@ -231,8 +231,8 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   // No key yet: we're pointed at account settings rather than silently failing.
   await page.getByRole('button', { name: 'Critique' }).click()
-  await expect(page.getByRole('alert')).toContainText('Add your Anthropic API key')
-  await page.getByRole('link', { name: 'Go to account settings' }).click()
+  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
+  await page.getByRole('alert').getByRole('link', { name: 'Add your AI key' }).click()
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-test-key-1234')
   await page.getByRole('button', { name: 'Save key' }).first().click()

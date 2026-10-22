@@ -131,8 +131,8 @@ describe('EditorView critique', () => {
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
     await screen.findByRole('alert')
-    await screen.findByText(/Add your Anthropic API key/)
-    await screen.findByRole('link', { name: 'Go to account settings' })
+    await screen.findByText('Your AI needs your key first.', { exact: false })
+    await screen.findByRole('link', { name: 'Add your AI key' })
   })
 
   it('shows the critique when it works, and marks the paragraph a point is about', async () => {

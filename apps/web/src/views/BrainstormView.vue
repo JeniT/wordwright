@@ -20,13 +20,14 @@ import SharedThreadNotice from '../components/SharedThreadNotice.vue'
 import SuggestionList from '../components/SuggestionList.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
 import StepHeading from '../components/StepHeading.vue'
-import { ApiError, api, errorMessage } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
+import { keyProblemOf, type KeyProblem } from '../lib/key-problem'
 import { useInlineEdit } from '../lib/inline-edit'
 import { vTip } from '../lib/tip'
 import Icon from '../components/Icon.vue'
 import { takeHeldMessage } from '../lib/pending-message'
 import { invalidateRoots, queryKeys, useIdea } from '../lib/queries'
-import ReplyProblemAlert from '../components/ReplyProblemAlert.vue'
+import AiProblemAlert from '../components/AiProblemAlert.vue'
 import QueryState from '../components/QueryState.vue'
 import SaveStatus from '../components/SaveStatus.vue'
 import IdeaGate from '../components/IdeaGate.vue'
@@ -151,8 +152,7 @@ const none = computed(() => !!list.data.value && ordered.value.length === 0 && !
 // ---- sending ----------------------------------------------------------------
 interface ReplyProblem {
   message: string
-  /** `missing-key`: none saved yet. `rejected-key`: the provider refused it. Either way the fix is in account settings. */
-  keyProblem: 'missing-key' | 'rejected-key' | null
+  keyProblem: KeyProblem | null
 }
 const replyProblem = ref<ReplyProblem | null>(null)
 const announcement = ref('')
@@ -162,10 +162,7 @@ let controller: AbortController | undefined
 function problemFrom(err: unknown): ReplyProblem {
   return {
     message: errorMessage(err),
-    keyProblem:
-      err instanceof ApiError && err.status === 409 && /API key/i.test(err.message)
-        ? 'missing-key'
-        : null,
+    keyProblem: keyProblemOf(err),
   }
 }
 
@@ -467,8 +464,9 @@ const busyNote = computed(() =>
             reading list to your AI. It will not send your drafts.
           </p>
         </div>
-        <ReplyProblemAlert
+        <AiProblemAlert
           v-if="(none || empty) && replyProblem"
+          class="mb-4"
           :message="replyProblem.message"
           :key-problem="replyProblem.keyProblem"
         />
@@ -547,8 +545,9 @@ const busyNote = computed(() =>
           <p ref="bottom" class="sr-only" aria-hidden="true"></p>
           <p class="sr-only" role="status">{{ announcement }}</p>
 
-          <ReplyProblemAlert
+          <AiProblemAlert
             v-if="replyProblem"
+            class="mb-4"
             :message="replyProblem.message"
             :key-problem="replyProblem.keyProblem"
           />

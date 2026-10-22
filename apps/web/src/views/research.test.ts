@@ -153,7 +153,7 @@ describe('the research page', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Research' })).toBeDisabled())
   })
 
-  it('says what happened when the search fails, with account settings for a key problem', async () => {
+  it('says what happened when the search fails, with the AI key link for a key problem', async () => {
     mockResearch()
     server.use(
       http.post(base, () =>
@@ -167,8 +167,8 @@ describe('the research page', () => {
     await fireEvent.update(await areasBox(), 'Anything')
     await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('rejected your API key')
-    expect(within(alert).getByRole('link', { name: 'Add your AI key' })).toHaveAttribute(
+    expect(alert).toHaveTextContent('Your AI provider didn’t accept your key')
+    expect(within(alert).getByRole('link', { name: 'your AI key settings' })).toHaveAttribute(
       'href',
       '/account/ai',
     )
