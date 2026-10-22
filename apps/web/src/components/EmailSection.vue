@@ -45,12 +45,16 @@ const change = useMutation({
         autocomplete="current-password"
         required
       />
-      <SaveStatus :mutation="change" class="mb-3">
+      <SaveStatus :mutation="change" :unsaved="!!newEmail || !!password" class="mb-3">
         Link sent to <strong>{{ sentTo }}</strong
         >. Open it within 24 hours.
       </SaveStatus>
-      <button type="submit" class="btn btn-primary" :disabled="change.isPending.value">
-        Send confirmation link
+      <button
+        type="submit"
+        class="btn btn-primary"
+        :disabled="change.isPending.value || !newEmail.trim() || !password"
+      >
+        {{ change.isPending.value ? 'Saving…' : 'Send confirmation link' }}
       </button>
     </form>
 

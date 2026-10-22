@@ -457,6 +457,7 @@ describe('idea page', () => {
         HttpResponse.json({ error: 'Describe your idea in a few words' }, { status: 400 }),
       ),
     ])
+    await fireEvent.update(await screen.findByLabelText("What's your core idea?"), 'A new idea')
     await fireEvent.click(await screen.findByRole('button', { name: 'Save idea' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Describe your idea')
   })
@@ -488,6 +489,7 @@ describe('idea page', () => {
         return HttpResponse.json(idea)
       }),
     ])
+    await fireEvent.update(await screen.findByLabelText("What's your core idea?"), 'A new idea')
     await fireEvent.click(await screen.findByRole('button', { name: 'Save idea' }))
     expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
     finish()

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CRITIQUE_ROUNDS_DEFAULT, CRITIQUE_ROUNDS_MAX, CRITIQUE_ROUNDS_MIN } from '@wordwright/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { computed } from 'vue'
 import { api, errorMessage } from '../lib/api'
 import InfoTip from './InfoTip.vue'
 import SaveStatus from './SaveStatus.vue'
@@ -17,6 +18,7 @@ const choices = Array.from(
   { length: CRITIQUE_ROUNDS_MAX - CRITIQUE_ROUNDS_MIN + 1 },
   (_, i) => CRITIQUE_ROUNDS_MIN + i,
 )
+const unsaved = computed(() => rounds.value !== settings.data.value?.rounds)
 const save = useMutation({
   mutationFn: () => api.saveCritiqueSettings(rounds.value),
   onSuccess: (saved) => queryClient.setQueryData(['critique-settings'], saved),
@@ -62,11 +64,11 @@ const save = useMutation({
         <button
           type="submit"
           class="btn btn-primary"
-          :disabled="save.isPending.value || !settings.data.value"
+          :disabled="save.isPending.value || !settings.data.value || !unsaved"
         >
-          Save limit
+          {{ save.isPending.value ? 'Saving…' : 'Save limit' }}
         </button>
-        <SaveStatus :mutation="save" class="basis-full" />
+        <SaveStatus :mutation="save" :unsaved="unsaved" class="basis-full" />
       </div>
     </form>
   </section>

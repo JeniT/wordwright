@@ -73,14 +73,19 @@ const save = useMutation({
         :hint="shownHint"
         :invalid="invalid"
       />
-      <SaveStatus :mutation="save" :saved="prompt ? '' : 'Saved'" class="mb-3" />
+      <SaveStatus
+        :mutation="save"
+        :saved="prompt ? '' : 'Saved'"
+        :unsaved="!prompt && !isCurrent"
+        class="mb-3"
+      />
       <div class="flex flex-wrap gap-2">
         <button
           type="submit"
           class="btn btn-primary"
           :disabled="save.isPending.value || !handle.trim() || invalid || isCurrent"
         >
-          {{ prompt ? 'Use this username' : 'Save username' }}
+          {{ save.isPending.value ? 'Saving…' : prompt ? 'Use this username' : 'Save username' }}
         </button>
         <button
           v-if="prompt"

@@ -67,4 +67,25 @@ describe('SaveStatus', () => {
     render(SaveStatus, { props: { mutation: mutation({ success: true }), saved: '' } })
     expect(screen.queryByRole('status')).toBeNull()
   })
+
+  it('hides Saved while the form has unsaved changes, and brings it back when they match again', async () => {
+    const view = render(SaveStatus, { props: { mutation: mutation({ success: true }) } })
+    expect(screen.getByRole('status')).toHaveTextContent('Saved')
+    await view.rerender({ mutation: mutation({ success: true }), unsaved: true })
+    expect(screen.queryByRole('status')).toBeNull()
+    await view.rerender({ mutation: mutation({ success: true }), unsaved: false })
+    expect(screen.getByRole('status')).toHaveTextContent('Saved')
+  })
+
+  it('keeps an error, and the saving words, while the form has unsaved changes', () => {
+    const { unmount } = render(SaveStatus, {
+      props: { mutation: mutation({ error: new Error('Too long.') }), unsaved: true },
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent('Too long.')
+    unmount()
+    render(SaveStatus, {
+      props: { mutation: mutation({ pending: true }), saving: 'Saving…', unsaved: true },
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Saving…')
+  })
 })

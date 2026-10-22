@@ -101,7 +101,7 @@ describe('describing a publication: guidance and the box', () => {
     await screen.findByRole('textbox', { name: 'Description' })
     expect(screen.queryByText(/AI draft/)).toBeNull() // nothing is marked as the AI's
     const save = screen.getByRole('button', { name: 'Save description' })
-    expect(save).toBeEnabled() // never greyed out without a reason
+    expect(save).toBeDisabled() // nothing to save yet
     await fireEvent.update(
       screen.getByRole('textbox', { name: 'Description' }),
       'Personal weeknotes, mostly for me.',

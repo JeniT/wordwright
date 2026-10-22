@@ -388,18 +388,20 @@ describe('publication page', () => {
 describe('publication description', () => {
   it('lets the owner write it, and shows it saved', async () => {
     const bodies: unknown[] = []
+    let stored: Record<string, unknown> = substack
     server.use(
       signedInAs(testUser),
-      listPublications([substack]),
+      http.get('*/api/publications', () => HttpResponse.json([stored])),
       http.put('*/api/publications/adalovelace-substack/description', async ({ request }) => {
         const body = (await request.json()) as { description: string }
         bodies.push(body)
-        return HttpResponse.json({ ...substack, description: body.description })
+        stored = { ...substack, description: body.description }
+        return HttpResponse.json(stored)
       }),
     )
     await renderAt('/p/adalovelace-substack/settings/description')
     const field = await screen.findByRole('textbox', { name: 'Description' })
-    expect(screen.getByRole('button', { name: 'Save description' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Save description' })).toBeDisabled()
     await fireEvent.update(field, 'Weeknotes, *mostly for me*. See [home](https://example.com).')
     await fireEvent.click(screen.getByRole('button', { name: 'Save description' }))
     await screen.findByText('Saved')
@@ -459,16 +461,14 @@ describe('publication settings', () => {
 
   it('lets the owner change the name and website, showing the address as stored', async () => {
     let sent: unknown
+    let stored: Record<string, unknown> = substack
     server.use(
       signedInAs(testUser),
-      listPublications([substack]),
+      http.get('*/api/publications', () => HttpResponse.json([stored])),
       http.patch('*/api/publications/adalovelace-substack', async ({ request }) => {
         sent = await request.json()
-        return HttpResponse.json({
-          ...substack,
-          name: 'Renamed',
-          siteUrl: 'https://new.example.com',
-        })
+        stored = { ...substack, name: 'Renamed', siteUrl: 'https://new.example.com' }
+        return HttpResponse.json(stored)
       }),
     )
     await renderAt('/p/adalovelace-substack/settings/details')

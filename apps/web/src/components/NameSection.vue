@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
+import { computed } from 'vue'
 import { api } from '../lib/api'
 import { useSessionStore } from '../stores/session'
 import TextField from './TextField.vue'
@@ -9,6 +10,8 @@ import { useSavedValue } from '../lib/forms'
 const session = useSessionStore()
 // Follows the account if it is loaded after this section appears, or changed elsewhere.
 const name = useSavedValue(() => session.user?.name, '')
+
+const unsaved = computed(() => name.value.trim() !== session.user?.name)
 
 const save = useMutation({
   mutationFn: () => api.changeName(name.value),
@@ -29,13 +32,13 @@ const save = useMutation({
         :maxlength="100"
         required
       />
-      <SaveStatus :mutation="save" class="mb-3" />
+      <SaveStatus :mutation="save" :unsaved="unsaved" class="mb-3" />
       <button
         type="submit"
         class="btn btn-primary"
-        :disabled="save.isPending.value || !name.trim() || name.trim() === session.user.name"
+        :disabled="save.isPending.value || !name.trim() || !unsaved"
       >
-        Save name
+        {{ save.isPending.value ? 'Saving…' : 'Save name' }}
       </button>
     </form>
   </section>

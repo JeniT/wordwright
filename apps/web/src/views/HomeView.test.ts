@@ -186,7 +186,7 @@ describe('landing page: connecting an AI key', () => {
     const steps = screen.getAllByRole('listitem').filter((li) => li.dataset.step)
     expect(steps[0]).toHaveTextContent('01')
     expect(steps[1]).toHaveTextContent('02')
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled() // until a key is typed
     const create = screen.getByRole('link', { name: 'New publication' })
     expect(create).toBeVisible()
     // inline-block would override the button's flex centring and push its label off-centre.

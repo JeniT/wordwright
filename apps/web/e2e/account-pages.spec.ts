@@ -118,3 +118,24 @@ test('Your AI leads with the key, keeps the long advice on help pages, and links
   await page.setViewportSize({ width: 390, height: 800 })
   await noViolations(page, 'Your AI settings help page, phone')
 })
+
+test('"Saved" shows only while the form matches what was saved', async ({ page }) => {
+  await signUp(page)
+  await page.goto('/account/details')
+  const name = page.getByRole('textbox', { name: 'Name', exact: true })
+  const save = page.getByRole('button', { name: 'Save name' })
+  const saved = page.getByText('Saved', { exact: true })
+  await expect(save).toBeDisabled() // nothing to save yet
+  await name.fill('Una Second')
+  await save.click()
+  await expect(saved).toBeVisible()
+  await name.fill('Una Third')
+  await expect(saved).toBeHidden() // edited and not saved
+  await expect(save).toBeEnabled()
+  await name.fill('Una Second')
+  await expect(saved).toBeVisible() // back to what was saved
+  await name.fill('Una Third')
+  await save.click()
+  await expect(saved).toBeVisible()
+  await noViolations(page, 'details after saving')
+})

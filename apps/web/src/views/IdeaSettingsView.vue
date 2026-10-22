@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import DangerZone from '../components/DangerZone.vue'
@@ -28,6 +28,8 @@ const name = useSavedValue(
   '',
   () => idea.data.value?.id,
 )
+
+const unsaved = computed(() => name.value !== idea.data.value?.name)
 
 const refreshLists = () => invalidateRoots(queryClient, 'ideas')
 
@@ -59,10 +61,14 @@ const remove = useMutation({
       <form class="mb-10" @submit.prevent="save.mutate()">
         <TextField v-model="name" label="What's your core idea?" required autocomplete="off" />
         <div class="flex flex-wrap items-center gap-3">
-          <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="save.isPending.value || !unsaved"
+          >
             {{ save.isPending.value ? 'Saving…' : 'Save idea' }}
           </button>
-          <SaveStatus :mutation="save" class="basis-full" />
+          <SaveStatus :mutation="save" :unsaved="unsaved" class="basis-full" />
         </div>
       </form>
 

@@ -251,13 +251,14 @@ describe('AccountView: AI assistant key', () => {
     )
     await renderAt('/account/ai')
     const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
-    await waitFor(() => expect(save).toBeEnabled()) // the saved settings have loaded
+    expect(save).toBeDisabled() // nothing to save yet
     expect(screen.getByLabelText('Anthropic API key')).toHaveAttribute('placeholder', 'sk-ant-...')
     expect(screen.queryByLabelText('Model')).toBeNull() // the provider lists models for a key
     expect(screen.getByText('Save a key to choose a model.')).toBeInTheDocument()
     const field = screen.getByLabelText('Anthropic API key')
     expect(field).toHaveAttribute('type', 'password')
     await fireEvent.update(field, '  sk-ant-secret-1234567890  ')
+    await waitFor(() => expect(save).toBeEnabled()) // typed, and the saved settings have loaded
     await fireEvent.click(save)
 
     // The saved key now shows, elided, in the empty field, with the way to keep it.
@@ -283,10 +284,9 @@ describe('AccountView: AI assistant key', () => {
     )
     await renderAt('/account/ai')
     const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
-    expect(save).toBeDisabled() // still loading
-    await waitFor(() => expect(save).toBeEnabled())
+    expect(save).toBeDisabled() // still loading, and nothing typed
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-secret-1234567890')
-    expect(save).toBeEnabled()
+    await waitFor(() => expect(save).toBeEnabled()) // typed, and the saved settings have loaded
     await fireEvent.click(save)
     await screen.findByPlaceholderText('sk-ant-api03-AbC...7890')
   })
@@ -305,8 +305,8 @@ describe('AccountView: AI assistant key', () => {
     )
     await renderAt('/account/ai')
     const save = (await screen.findAllByRole('button', { name: 'Save key' }))[0]!
-    await waitFor(() => expect(save).toBeEnabled()) // settings loaded
     await fireEvent.update(screen.getByLabelText('Anthropic API key'), 'sk-ant-wrong-1234567890')
+    await waitFor(() => expect(save).toBeEnabled()) // settings loaded
     await fireEvent.click(save)
     expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/)
   })
@@ -497,7 +497,9 @@ describe('AccountView: critiques of a draft', () => {
       'button',
       { name: 'Save limit' },
     )
-    await waitFor(() => expect(save).toBeEnabled()) // not until the saved number has arrived
+    expect(save).toBeDisabled() // nothing to save until the number is changed
+    await fireEvent.update(screen.getByLabelText('Critiques per draft'), '2')
+    await waitFor(() => expect(save).toBeEnabled())
     await fireEvent.click(save)
     await screen.findByText('Choose a number from 1 to 5')
   })

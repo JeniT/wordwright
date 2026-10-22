@@ -32,6 +32,12 @@ const retired = computed(
 const apiKey = ref('')
 // The saved key as the provider's console shows it, in the empty field: it goes as soon as a new one is typed.
 const currentKey = computed(() => (props.guide ? null : (llm.data.value?.keyHint ?? null)))
+// A typed key, or a different model from the saved one, is waiting to be saved.
+const unsaved = computed(
+  () =>
+    apiKey.value.trim() !== '' ||
+    (hasKey.value && !!model.value && model.value !== llm.data.value?.model),
+)
 const saveLlm = useMutation({
   mutationFn: () =>
     api.saveLlmSettings({
@@ -137,7 +143,7 @@ const removeLlmKey = useMutation({
         <button
           type="submit"
           class="btn btn-primary"
-          :disabled="saveLlm.isPending.value || llm.isPending.value"
+          :disabled="saveLlm.isPending.value || llm.isPending.value || !unsaved"
         >
           {{ saveLlm.isPending.value ? 'Checking key…' : props.guide ? 'Save' : 'Save key' }}
         </button>
@@ -152,7 +158,12 @@ const removeLlmKey = useMutation({
         >
           <Icon name="remove" />
         </HoldButton>
-        <SaveStatus :mutation="[saveLlm, removeLlmKey]" saved="Saved" class="basis-full" />
+        <SaveStatus
+          :mutation="[saveLlm, removeLlmKey]"
+          saved="Saved"
+          :unsaved="unsaved"
+          class="basis-full"
+        />
       </div>
     </form>
   </section>

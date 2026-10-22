@@ -23,8 +23,13 @@ const props = withDefaults(
     saving?: string
     /** A message of the form's own, shown when nothing is wrong (for example what a reset did). */
     text?: string
+    /**
+     * The form holds changes that aren't saved. "Saved" is only true while the form matches what was saved, so it
+     * is hidden then and comes back if the person edits back to the saved value. A running save and an error stay.
+     */
+    unsaved?: boolean
   }>(),
-  { saved: 'Saved', saving: '', text: '' },
+  { saved: 'Saved', saving: '', text: '', unsaved: false },
 )
 const slots = useSlots()
 const all = computed(() => (Array.isArray(props.mutation) ? props.mutation : [props.mutation]))
@@ -32,7 +37,7 @@ const failed = computed(() => all.value.find((m) => m.isError.value))
 const state = computed<'saving' | 'text' | 'saved' | 'idle'>(() => {
   if (props.text) return 'text'
   if (all.value.some((m) => m.isPending.value)) return 'saving'
-  if (all.value.some((m) => m.isSuccess.value)) return 'saved'
+  if (!props.unsaved && all.value.some((m) => m.isSuccess.value)) return 'saved'
   return 'idle'
 })
 const message = computed(

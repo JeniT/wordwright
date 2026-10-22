@@ -49,10 +49,15 @@ const setup = useMutation({
       <SaveStatus
         :mutation="change"
         saved="Password changed. We've signed out your other devices and emailed you a notice."
+        :unsaved="!!currentPassword || !!newPassword"
         class="mb-3"
       />
-      <button type="submit" class="btn btn-primary" :disabled="change.isPending.value">
-        Save password
+      <button
+        type="submit"
+        class="btn btn-primary"
+        :disabled="change.isPending.value || !currentPassword || !newPassword"
+      >
+        {{ change.isPending.value ? 'Saving…' : 'Save password' }}
       </button>
     </form>
 

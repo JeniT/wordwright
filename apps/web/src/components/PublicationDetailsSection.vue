@@ -28,6 +28,12 @@ const isOwner = computed(() => props.publication.role === 'owner')
 const name = ref(props.publication.name)
 const siteUrl = ref(props.publication.siteUrl ?? '')
 const siteIcon = useSiteIconPreview()
+// Saved is only true while the fields match the publication as stored.
+const detailsUnsaved = computed(
+  () =>
+    name.value !== props.publication.name ||
+    siteUrl.value.trim() !== (props.publication.siteUrl ?? ''),
+)
 const saveDetails = useMutation({
   mutationFn: () =>
     api.updatePublication(props.publication.id, {
@@ -77,10 +83,14 @@ const removeImage = useMutation({
           :existing="publication"
         />
         <div class="flex flex-wrap items-center gap-3">
-          <button type="submit" class="btn btn-primary" :disabled="saveDetails.isPending.value">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="saveDetails.isPending.value || !detailsUnsaved"
+          >
             {{ saveDetails.isPending.value ? 'Saving…' : 'Save details' }}
           </button>
-          <SaveStatus :mutation="saveDetails" class="basis-full" />
+          <SaveStatus :mutation="saveDetails" :unsaved="detailsUnsaved" class="basis-full" />
         </div>
       </form>
       <dl v-else class="text-sm">

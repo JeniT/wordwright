@@ -72,8 +72,25 @@ describe('your name on the account page', () => {
     const button = screen.getByRole('button', { name: 'Save name' })
     await fireEvent.click(button)
     expect(button).toBeDisabled()
+    expect(button).toHaveTextContent('Saving…')
     await fireEvent.click(button)
     await screen.findByText('Saved')
     expect(calls).toBe(1)
+  })
+
+  it('says Saved only while the field matches what was saved', async () => {
+    server.use(
+      http.put('*/api/account/name', () => HttpResponse.json({ ...testUser, name: 'Ada King' })),
+    )
+    await open()
+    const field = await screen.findByLabelText('Name', { selector: 'input' })
+    await fireEvent.update(field, 'Ada King')
+    await fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
+    await screen.findByText('Saved')
+    await fireEvent.update(field, 'Ada Kingsley')
+    expect(screen.queryByText('Saved')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeEnabled()
+    await fireEvent.update(field, 'Ada King')
+    expect(screen.getByText('Saved')).toBeInTheDocument()
   })
 })
