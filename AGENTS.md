@@ -179,6 +179,10 @@ directly**, and `gh issue list --label inbox` is the queue.
      tasks, each its own issue, plus a design note in `docs/` if the reasoning needs a home.
    - **Decision issues** (label `decision`) for what the owner must choose: the question, the options with
      trade-offs, your recommendation, and which tasks it blocks.
+   - **Every task and decision issue gets a milestone**: `Alpha features`, `Go live`, `Beta features` or `Ideal world`
+     (`gh api repos/JeniT/wordwright/milestones -q '.[].title'` lists them; pass `--milestone "<title>"` to
+     `gh issue create`, or `gh issue edit <n> --milestone "<title>"`). Agree it with the owner in the triage
+     conversation, with your recommendation. A raw `inbox` issue needs none until it is triaged.
    - **Nothing**: "won't do" or "already covered", with the reason. Label `wontfix` or `duplicate`.
 4. Files them, then tidies the original: comment with links to everything it produced (`Triaged into #31, #32;
 decision #33`), remove `inbox`, and close it. If the owner wants to keep it as the umbrella for several tasks,
@@ -299,7 +303,8 @@ Each kind of page gets one review of every word on it, filed as an issue labelle
 - **Likely conflict spots:** `packages/core/src/domain.ts`, `apps/api/src/app.ts`, `server.ts`, and the
   `MIGRATIONS` array. If two branches add a migration, the second to merge **renumbers** theirs (append after
   the other) and reruns the tests. Keep changes to those files small and additive.
-- If you find a bug or gap outside your task, file an issue (`gh issue create`, label `ready` or `backlog`, or `inbox` if it needs talking through) rather than
+- If you find a bug or gap outside your task, file an issue (`gh issue create`, label `ready` or `backlog` and a
+  `--milestone` (your best guess; the owner can move it), or just `inbox` if it needs talking through) rather than
   widening the task.
 - If a decision belongs to the owner (a service to choose, a product trade-off, anything costing money),
   file an issue labelled `decision` and work on something else.
