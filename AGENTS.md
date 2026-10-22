@@ -179,7 +179,9 @@ directly**, and `gh issue list --label inbox` is the queue.
      tasks, each its own issue, plus a design note in `docs/` if the reasoning needs a home.
    - **Decision issues** (label `decision`) for what the owner must choose: the question, the options with
      trade-offs, your recommendation, and which tasks it blocks.
-   - **Every task and decision issue gets a milestone**: `Alpha features`, `Go live`, `Beta features` or `Ideal world`
+   - **Every task and decision issue gets a milestone**: `Alpha features` (a 1.0 working locally, not deployed),
+     `Go live` (a production version others can use), `Beta features` (features we know we want, which can wait until
+     others are trying the app) or `Ideal world` (things we might want some day, not sure they are necessary)
      (`gh api repos/JeniT/wordwright/milestones -q '.[].title'` lists them; pass `--milestone "<title>"` to
      `gh issue create`, or `gh issue edit <n> --milestone "<title>"`). Agree it with the owner in the triage
      conversation, with your recommendation. A raw `inbox` issue needs none until it is triaged.
