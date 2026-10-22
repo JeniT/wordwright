@@ -53,8 +53,9 @@ async function registerUser(page: Page, name = 'Ada Lovelace', { withPublication
 
 /** From the publication list, opens the first publication ("<name>'s writing"). */
 async function openFirstPublication(page: Page) {
+  // Scoped to the publications list: Home's Keep writing rows also have "writing" in their link names, once loaded.
   await page
-    .getByRole('main')
+    .getByRole('region', { name: 'Your publications' })
     .getByRole('link', { name: /writing/ })
     .click()
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
