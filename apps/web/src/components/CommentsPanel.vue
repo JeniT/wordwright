@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import {
   WHOLE_DRAFT,
   type CommentInput,
@@ -12,7 +12,7 @@ import AiProblemAlert from './AiProblemAlert.vue'
 import type { QueryStatus } from '../lib/queries'
 import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
 import CommentCard from './CommentCard.vue'
-import CommentForm from './CommentForm.vue'
+import CommentComposer from './CommentComposer.vue'
 import QueryState from './QueryState.vue'
 import Explain from './Explain.vue'
 import SwitchField from './SwitchField.vue'
@@ -39,8 +39,8 @@ const props = defineProps<{
   activeId: string | null
   isEditor: boolean
   editorName: string
-  /** The paragraphs of the draft as saved, to choose what a new comment is about. */
-  blocks: { id: string; text: string }[]
+  /** A comment is being written (the Comment button was pressed); null when not, `target: null` for a general one. */
+  composing: { target: { block: string; number: number; quote: string | null } | null } | null
   add: (input: CommentInput) => Promise<unknown>
   /** Why the last Resolved switch could not be saved, if it could not. */
   resolveProblem?: string
@@ -49,6 +49,8 @@ const emit = defineEmits<{
   /** A comment was pressed: show it in the draft. */
   show: [id: string]
   setResolved: [id: string, resolved: boolean]
+  /** The composer closed, with the comment added or not. */
+  closeComposer: []
 }>()
 
 const showResolved = ref(false)
@@ -82,13 +84,19 @@ async function focusPoint(id: string, { focus = true } = {}) {
   scrollAreaToTop(el, scrollAreaOf(el))
   if (focus) el.querySelector<HTMLElement>('[data-comment-button]')?.focus({ preventScroll: true })
 }
-defineExpose({ focusPoint, revert: (id: string) => cards.value[id]?.revert() })
 
 const audience = computed(() =>
-  props.isEditor
-    ? 'You can see everyone’s comments. Each member sees only their own.'
-    : `Only you and ${props.editorName}, the editor, will see this.`,
+  props.isEditor ? undefined : `Only you and ${props.editorName}, the editor, will see this.`,
 )
+const composer = useTemplateRef<InstanceType<typeof CommentComposer>>('composer')
+defineExpose({
+  focusPoint,
+  revert: (id: string) => cards.value[id]?.revert(),
+  focusComposer: async () => {
+    await nextTick()
+    composer.value?.focus()
+  },
+})
 </script>
 
 <template>
@@ -96,6 +104,16 @@ const audience = computed(() =>
   <section aria-labelledby="comments-heading" :class="shown.length > 1 ? 'pb-[70vh]' : ''">
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="comments-heading" class="sr-only">Comments</h2>
+    <CommentComposer
+      v-if="composing"
+      ref="composer"
+      class="mb-4"
+      :target="composing.target"
+      :add="add"
+      :audience="audience"
+      @done="emit('closeComposer')"
+      @cancel="emit('closeComposer')"
+    />
     <p v-if="pending" role="status">Reading your draft…</p>
     <AiProblemAlert
       v-else-if="error"
@@ -116,11 +134,9 @@ const audience = computed(() =>
     <QueryState :query="query" what="the comments">
       <p v-if="!comments.length && !round && !pending" class="text-sm text-ink-soft">
         <template v-if="isEditor">
-          No comments yet. Press Critique, or add your own below.
+          No comments yet. Press Critique, or select words and press Comment.
         </template>
-        <template v-else>
-          You haven’t commented yet. Pick a paragraph below, or the whole draft.
-        </template>
+        <template v-else> You haven’t commented yet. Select words and press Comment. </template>
       </p>
       <Explain v-if="isEditor && !comments.length && !round && !pending" tutorial-only class="mt-2">
         Each comment is marked beside the paragraph it is about. Resolved comments are hidden, never
@@ -166,7 +182,5 @@ const audience = computed(() =>
 
       <p v-if="resolveProblem" role="alert" class="mt-3 text-danger">{{ resolveProblem }}</p>
     </QueryState>
-
-    <CommentForm :blocks="blocks" :add="add" :audience="audience" />
   </section>
 </template>

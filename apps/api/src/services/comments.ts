@@ -47,6 +47,8 @@ export function addComment(
       block: block?.id ?? WHOLE_DRAFT,
       hash: block?.hash ?? null,
       excerpt: block ? excerptOf(block.text) : '',
+      // Only words that are really in the paragraph can be underlined later, so anything else is dropped.
+      quote: block && input.quote && block.text.includes(input.quote) ? input.quote : null,
       text: input.text,
     },
     review?.id ?? null,

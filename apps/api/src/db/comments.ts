@@ -8,6 +8,7 @@ export interface NewComment {
   block: string
   hash: string | null
   excerpt: string
+  quote: string | null
   text: string
 }
 
@@ -51,8 +52,8 @@ export class CommentStore {
     const id = randomUUID()
     this.db
       .prepare(
-        `INSERT INTO draft_comments (id, draft_id, author_id, review_id, block, block_hash, excerpt, text, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO draft_comments (id, draft_id, author_id, review_id, block, block_hash, excerpt, quote, text, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -62,6 +63,7 @@ export class CommentStore {
         comment.block,
         comment.hash,
         comment.excerpt,
+        comment.quote,
         comment.text,
         nowIso(),
       )
@@ -100,6 +102,7 @@ export class CommentStore {
       authorName: r.author_name as string | null,
       block: r.block as string,
       excerpt: r.excerpt as string,
+      quote: (r.quote as string | null) ?? null,
       hash: r.block_hash as string | null,
       text: r.text as string,
       reason: r.reason as string | null,

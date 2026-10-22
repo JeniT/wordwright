@@ -69,6 +69,18 @@
 .prose-editor .ProseMirror .comment-block.is-active {
   border-left-color: var(--color-accent);
 }
+.prose-editor .ProseMirror .comment-quote {
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+.prose-editor .ProseMirror .comment-quote.is-ai {
+  text-decoration-color: var(--color-mark);
+}
+.prose-editor .ProseMirror .comment-block.is-active .comment-quote {
+  text-decoration-color: var(--color-accent);
+}
 .prose-editor .ProseMirror .comment-marks {
   display: inline-flex;
   gap: 0.25rem;

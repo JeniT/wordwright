@@ -399,14 +399,15 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await page.keyboard.type('It drifts across the valley over centuries.')
   await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
-  // Nothing selected: the button waits, and says why.
+  // Nothing selected: the button is unavailable (but reachable), and says why when pressed.
   const rephrase = page.getByRole('button', { name: 'Rephrase', exact: true })
-  await expect(rephrase).toBeDisabled()
+  await expect(rephrase).toHaveAttribute('aria-disabled', 'true')
+  await rephrase.click({ force: true }) // Playwright treats aria-disabled as disabled; a person can press it
   await expect(page.getByText('Select some of your draft to rephrase it.')).toBeVisible()
 
   // Select a paragraph (a triple click) and ask.
   await bodyBox.getByText('The river bends').click({ clickCount: 3 })
-  await expect(rephrase).toBeEnabled()
+  await expect(rephrase).not.toHaveAttribute('aria-disabled')
   await rephrase.click()
   const dialog = page.getByRole('dialog', { name: 'Rephrase this passage' })
   await expect(dialog.getByLabel('Current wording')).toHaveValue(
@@ -460,7 +461,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await expect(bodyBox).toContainText('Fake option 2 of round 2, in my words.')
   await expect(bodyBox).toContainText('It drifts across the valley over centuries.')
   await expect(bodyBox).not.toContainText('outside bank erodes')
-  await expect(rephrase).toBeDisabled() // the selection is gone
+  await expect(rephrase).toHaveAttribute('aria-disabled', 'true') // the selection is gone
 
   // It is saved, and its beginnings are on record.
   await page.reload()
@@ -972,10 +973,16 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   const bobSide = bob.getByRole('complementary')
   await bobSide.getByRole('tab', { name: /^Comments/ }).click()
   await expect(bobSide.getByText(/You haven’t commented yet/)).toBeVisible()
-  await bobSide.getByLabel('About').selectOption({ label: '1. Rivers rarely flow straight.' })
+  // He has no toolbar: he selects the words, and presses Add comment above the text.
+  await bob
+    .getByRole('textbox', { name: 'Draft body' })
+    .getByText('Rivers rarely')
+    .click({ clickCount: 3 })
+  await bob.getByRole('button', { name: 'Add comment' }).first().click()
+  await expect(bobSide.getByRole('heading', { name: 'Comment on paragraph 1' })).toBeVisible()
   await bobSide.getByLabel('Your comment').fill('Lovely first line.')
   await bobSide.getByRole('button', { name: 'Add comment' }).click()
-  await expect(bobSide.getByText('Comment added')).toBeVisible()
+  await expect(bobSide.getByLabel('Your comment')).toHaveCount(0) // the new card is the confirmation
   await expect(bobSide.getByRole('listitem')).toHaveCount(1)
   await expect(bob.getByRole('button', { name: 'Comment 1' })).toBeVisible()
   expect((await new AxeBuilder({ page: bob }).analyze()).violations, 'Bob’s comment').toEqual([])
@@ -1004,6 +1011,50 @@ test('only a draft’s editor can change it: another member sees it read-only', 
     bob.getByRole('textbox', { name: 'Draft body' }).getByText('They bend instead.'),
   ).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
+test('the editor comments from the toolbar on selected words, which are underlined in the text', async ({
+  page,
+}) => {
+  await registerUser(page)
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers bend')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  const bodyBox = page.getByRole('textbox', { name: 'Draft body' })
+  await bodyBox.click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('They bend instead, over centuries.')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+
+  // The old form is gone; Comment and Rephrase sit together in the toolbar.
+  await expect(page.getByRole('button', { name: 'Add a comment' })).toHaveCount(0)
+  const toolbar = page.getByRole('toolbar', { name: 'Formatting' })
+  await expect(toolbar.getByRole('button', { name: 'Comment' })).toBeVisible()
+  await expect(toolbar.getByRole('button', { name: 'Rephrase' })).toBeVisible()
+
+  // Select two words in the second paragraph (a double click, then Shift+Right to take another word).
+  await bodyBox.getByText('They bend instead').dblclick({ position: { x: 10, y: 8 } })
+  await toolbar.getByRole('button', { name: 'Comment' }).click()
+  const side = page.getByRole('complementary')
+  await expect(side.getByRole('heading', { name: 'Comment on paragraph 2' })).toBeVisible()
+  await expect(side.getByLabel('Your comment')).toBeFocused()
+  await expect(side.getByRole('switch', { name: 'General comment' })).not.toBeChecked()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the composer').toEqual([])
+  await side.getByLabel('Your comment').fill('Say why.')
+  await side.getByRole('button', { name: 'Add comment' }).click()
+  await expect(side.getByLabel('Your comment')).toHaveCount(0)
+  await expect(side.getByText('Say why.')).toBeVisible()
+  await expect(bodyBox.locator('.comment-quote')).toHaveText('They')
+
+  // A general comment, from the switch.
+  await toolbar.getByRole('button', { name: 'Comment' }).click()
+  await side.getByRole('switch', { name: 'General comment' }).click()
+  await expect(side.getByRole('heading', { name: 'General comment' })).toBeVisible()
+  await side.getByRole('button', { name: 'Cancel' }).click()
+  await expect(side.getByLabel('Your comment')).toHaveCount(0)
 })
 
 test('the editor offers a draft; the member declines once and accepts the next time', async ({
@@ -1128,8 +1179,11 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
     'contenteditable',
     'false',
   )
-  await rae.getByRole('textbox', { name: 'Your comment' }).fill('Which rivers do you mean?')
   await rae.getByRole('button', { name: 'Add comment' }).click()
+  const raeDialog = rae.getByRole('dialog', { name: 'Add a comment' })
+  await expect(raeDialog.getByRole('heading', { name: 'General comment' })).toBeVisible() // nothing selected
+  await raeDialog.getByLabel('Your comment').fill('Which rivers do you mean?')
+  await raeDialog.getByRole('button', { name: 'Add comment' }).click()
   await expect(rae.getByText('Which rivers do you mean?')).toBeVisible()
   expect((await new AxeBuilder({ page: rae }).analyze()).violations).toEqual([])
 
@@ -1185,7 +1239,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await page.getByRole('dialog').getByRole('button', { name: 'Close these reviews' }).click()
   await sam.reload()
   await expect(sam.getByTestId('review-ended')).toContainText('closed')
-  await expect(sam.getByRole('textbox', { name: 'Your comment' })).toHaveCount(0)
+  await expect(sam.getByRole('button', { name: 'Add comment' })).toHaveCount(0)
 
   // Rae chooses to start writing: a full account, sent to the home page.
   await rae.getByRole('link', { name: '← All your reviews' }).click()
@@ -1265,8 +1319,9 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await rae.getByLabel('What should we call you?').fill('Rae')
   await rae.getByLabel('Choose a password').fill(PASSWORD)
   await rae.getByRole('button', { name: 'Read the draft' }).click()
-  await rae.getByRole('textbox', { name: 'Your comment' }).fill('Which rivers?')
   await rae.getByRole('button', { name: 'Add comment' }).click()
+  await rae.getByRole('dialog').getByLabel('Your comment').fill('Which rivers?')
+  await rae.getByRole('dialog').getByRole('button', { name: 'Add comment' }).click()
   await expect(rae.getByText('Which rivers?')).toBeVisible()
 
   // While Rae is reading, Bob's landing page lists the draft under Keep writing; once she ends, it says she is done.
@@ -1662,6 +1717,7 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   page,
 }) => {
   test.setTimeout(90_000)
+  await page.setViewportSize({ width: 1500, height: 900 }) // wide enough for every button, with Comment and Rephrase
   await registerUser(page)
   await openFirstPublication(page)
   await createIdea(page, 'Formatting')

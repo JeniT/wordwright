@@ -17,7 +17,12 @@ const props = defineProps<{
   tools: ToolName[]
   /** Offer the "Edit as Markdown" button. */
   markdownToggle?: boolean
+  /** Offer the Comment and Rephrase buttons, apart from the formatting, on the right. */
+  actions?: boolean
+  /** Words that can be rephrased are selected; until then Rephrase says why not when pressed. */
+  rephraseReady?: boolean
 }>()
+const emit = defineEmits<{ comment: []; rephrase: [] }>()
 const markdownMode = defineModel<boolean>('markdownMode', { default: false })
 
 const SLOT = 38 // a button (2.25rem) and the gap after it, in pixels
@@ -32,7 +37,7 @@ const hidden = computed(() => props.tools.slice(fitting.value ?? props.tools.len
 function measure() {
   const width = bar.value?.clientWidth ?? 0
   if (!width) return // not laid out (or not in a browser): show everything
-  const toggle = props.markdownToggle ? SLOT : 0
+  const toggle = (props.markdownToggle ? SLOT : 0) + (props.actions ? 2 * SLOT + 8 : 0)
   const grouped = props.tools.some((name) => TOOLS[name].group) ? 8 : 0 // a group's border and padding
   const all = props.tools.length
   fitting.value =
@@ -84,6 +89,7 @@ const order = computed(() => [
         ...shown.value.filter((name) => !toolProps(name).disabled),
         ...(hidden.value.length ? ['more'] : []),
       ]),
+  ...(props.actions ? ['comment', 'rephrase'] : []),
   ...(props.markdownToggle ? ['markdown'] : []),
 ])
 const tabStop = computed(() => (order.value.includes(roving.value) ? roving.value : order.value[0]))
@@ -246,9 +252,37 @@ function removeLink() {
         </template>
       </template>
 
+      <!-- Never in the More menu: they are what the writer does with words they have selected. -->
+      <span
+        v-if="actions"
+        role="group"
+        aria-label="Comment and rephrase"
+        class="ml-auto flex gap-0.5 rounded-ctl border border-line p-0.5"
+      >
+        <ToolButton
+          label="Comment"
+          title="Comment on the selected words or the paragraph you are in"
+          icon="comment"
+          :pressed="false"
+          momentary
+          :unavailable="markdownMode"
+          v-bind="rovingProps('comment')"
+          @press="emit('comment')"
+        />
+        <ToolButton
+          label="Rephrase"
+          title="Rephrase the selected words"
+          icon="ai"
+          :pressed="false"
+          momentary
+          :unavailable="markdownMode || !rephraseReady"
+          v-bind="rovingProps('rephrase')"
+          @press="emit('rephrase')"
+        />
+      </span>
       <ToolButton
         v-if="markdownToggle"
-        class="ml-auto"
+        :class="actions ? '' : 'ml-auto'"
         label="Edit as Markdown"
         title="Edit as Markdown"
         icon="markdown"

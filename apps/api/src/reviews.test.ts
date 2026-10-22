@@ -250,6 +250,23 @@ describe('reviewers (#157)', () => {
       expect(bobSees.map((c: { authorName: string }) => c.authorName)).toEqual(['Bob'])
     })
 
+    it('keeps the words a reviewer selected, checked against their snapshot', async () => {
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      const res = await rae.post(`/api/reviews/${id}/comments`, {
+        block: 'b1',
+        text: 'Which ones?',
+        quote: 'Rivers',
+      })
+      expect((await res.json()).quote).toBe('Rivers')
+      const stray = await rae.post(`/api/reviews/${id}/comments`, {
+        block: 'b1',
+        text: 'Hmm',
+        quote: 'Lakes',
+      })
+      expect((await stray.json()).quote).toBeNull()
+    })
+
     it('refuses a comment on a paragraph that isn’t there, and one for someone else’s review', async () => {
       const { rae } = await joinAsReviewer()
       const id = (await reviewsOf(rae))[0]!.id

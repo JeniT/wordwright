@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
+import type { Editor } from '@tiptap/vue-3'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blockHash } from '@wordwright/core'
@@ -159,6 +160,21 @@ describe('EditorView critique', () => {
     // Only the paragraph point is marked, in the text; the whole-piece point has no paragraph to mark.
     expect(await screen.findAllByRole('button', { name: /^Comment \d/ })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Comment 1' })).toBeTruthy()
+  })
+
+  it('underlines the selected words of a comment, where the paragraph still has them', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([
+        saidBy('c1', 'Ada Lovelace', { quote: 'ome te' }),
+        saidBy('c2', 'Ada Lovelace', { quote: 'words that are gone' }),
+      ]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await waitFor(() => expect(document.querySelectorAll('.comment-quote')).toHaveLength(1))
+    expect(document.querySelector('.comment-quote')).toHaveTextContent('ome te')
+    // The other comment still marks its paragraph, as before.
+    expect(await screen.findByRole('button', { name: 'Comment 2' })).toBeTruthy()
   })
 
   it('shows the critique kept from last time, without asking for another', async () => {
@@ -419,7 +435,9 @@ describe('EditorView comments from members', () => {
     const region = await commentsRegion()
     expect(await within(region).findByText('Bob Byron on the opening.')).toBeTruthy()
     expect(within(region).queryByRole('switch')).toBeNull()
-    // Said to them: who will see what they write.
+    // They comment from a bar above the text, since they have no toolbar; the composer says who will see it.
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    expect(await within(region).findByLabelText('Your comment')).toBeInTheDocument()
     expect(region).toHaveTextContent('Only you and Ada Lovelace, the editor, will see this.')
   })
 
@@ -431,36 +449,45 @@ describe('EditorView comments from members', () => {
     expect(within(await commentsRegion()).queryByRole('listitem')).toBeNull()
   })
 
-  it('adds a comment on a chosen paragraph, or on the whole draft, and clears the form', async () => {
+  it('comments from the toolbar: on the paragraph the caret is in, then as a general comment', async () => {
     const sent: unknown[] = []
-    const state = mockEditor(() => new Response(null, { status: 500 }), null, undefined, bob)
+    const state = mockEditor(() => new Response(null, { status: 500 }), null)
     server.use(
       http.post('*/api/publications/p1/drafts/d1/comments', async ({ request }) => {
         const input = (await request.json()) as { block: string; text: string }
         sent.push(input)
-        state.comments.push(saidBy('c1', 'Bob Byron', { authorId: 'u2', text: input.text }))
+        state.comments.push(saidBy('c1', 'Ada Lovelace', { authorId: 'u1', text: input.text }))
         return HttpResponse.json(state.comments.at(-1), { status: 201 })
       }),
     )
     await renderAt('/p/p1/drafts/d1')
-    await showTab('Comments')
-    const about = await screen.findByLabelText('About')
-    expect(
-      within(about)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['The whole draft', '1. Some text'])
-    const button = screen.getByRole('button', { name: 'Add comment' })
-    expect(button).toBeDisabled() // nothing to say yet
-    await fireEvent.update(about, 'b1')
-    await fireEvent.update(screen.getByLabelText('Your comment'), 'This drags.')
-    await fireEvent.click(button)
-    expect(await screen.findByText('Comment added')).toBeTruthy()
-    expect(sent).toEqual([{ block: 'b1', text: 'This drags.' }])
-    expect(screen.getByLabelText('Your comment')).toHaveValue('')
-    // It is on the list, and marked beside its paragraph.
+    const editor = await screen.findByRole('textbox', { name: 'Draft body' })
+    expect(screen.queryByRole('button', { name: 'Add a comment' })).toBeNull() // the old form is gone
+    await fireEvent.focusIn(editor)
+    ;(
+      document.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }
+    ).editor.commands.setTextSelection({ from: 2, to: 6 })
+    await fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
+    const field = await screen.findByLabelText('Your comment')
+    await waitFor(() => expect(field).toHaveFocus()) // typing can start at once
+    expect(screen.getByRole('heading', { name: 'Comment on paragraph 1' })).toBeInTheDocument()
+    expect(screen.queryByText(/will see this/)).toBeNull() // the editor's own composer has no audience line
+    expect(screen.getByRole('button', { name: 'Add comment' })).toBeDisabled() // nothing to say yet
+    await fireEvent.update(field, 'This drags.')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    await waitFor(() => expect(sent).toEqual([{ block: 'b1', text: 'This drags.', quote: 'ome' }]))
+    await waitFor(() => expect(screen.queryByLabelText('Your comment')).toBeNull()) // closed; the new card is the confirmation
+    expect(screen.queryByText('Comment added')).toBeNull()
     expect(await within(await commentsRegion()).findByText('This drags.')).toBeTruthy()
     expect(await screen.findByRole('button', { name: 'Comment 1' })).toBeTruthy()
+
+    // With the caret in the title, it is a general comment.
+    await fireEvent.focusIn(screen.getByLabelText('Title'))
+    await fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
+    expect(await screen.findByRole('heading', { name: 'General comment' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'General comment' })).toBeChecked()
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByLabelText('Your comment')).toBeNull()
   })
 
   it('says why a comment could not be added, and keeps what was written', async () => {
@@ -474,9 +501,11 @@ describe('EditorView comments from members', () => {
       ),
     )
     await renderAt('/p/p1/drafts/d1')
-    await showTab('Comments')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add comment' }))
     await fireEvent.update(await screen.findByLabelText('Your comment'), 'Still here.')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    await fireEvent.click(
+      within(await commentsRegion()).getByRole('button', { name: 'Add comment' }),
+    )
     expect(await screen.findByRole('alert')).toHaveTextContent("isn't in the draft any more")
     expect(screen.getByLabelText('Your comment')).toHaveValue('Still here.')
   })
@@ -1544,7 +1573,7 @@ describe('what the editing page says, and where', () => {
     expect(screen.getByRole('button', { name: 'About Critique' })).toHaveAccessibleDescription(
       /never rewrites/,
     )
-    expect(screen.getByRole('button', { name: 'About rephrasing' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'About rephrasing' })).toBeNull()
   })
 
   it('puts each icon beside its own button, and none on a line of its own', async () => {
@@ -1553,8 +1582,6 @@ describe('what the editing page says, and where', () => {
     const critique = await screen.findByRole('button', { name: 'Critique' })
     const row = critique.parentElement!
     expect(row.contains(screen.getByRole('button', { name: 'About Critique' }))).toBe(true)
-    expect(row.contains(screen.getByRole('button', { name: 'About rephrasing' }))).toBe(true)
-    expect(row.contains(screen.getByRole('button', { name: 'Rephrase' }))).toBe(true)
     expectNoLoneInfoIcons(document.body)
   })
 
@@ -1571,7 +1598,7 @@ describe('what the editing page says, and where', () => {
     tutorial(true)
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/never rewrites/)).toBeInTheDocument()
-    expect(screen.getByText(/different ways to put your words/)).toBeInTheDocument()
+    expect(screen.getByText(/Rephrase offers other ways to put the words/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'About Critique' })).toBeNull()
   })
 })

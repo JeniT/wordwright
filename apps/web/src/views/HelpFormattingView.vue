@@ -46,12 +46,12 @@ import HelpPage from '../components/HelpPage.vue'
     </p>
     <ul class="list-disc space-y-2 pl-5">
       <li>
-        Comments from a critique can’t be shown, because they sit on the formatted paragraphs. They
-        are kept, and come back when you switch back.
+        Comments can’t be shown, because they sit on the formatted paragraphs. They are kept, and
+        come back when you switch back.
       </li>
       <li>
-        Rephrase works on the Markdown you have selected, symbols included, and notes and links from
-        the side bar go in at the cursor.
+        The Comment and Rephrase buttons wait until you switch back, because they work on the
+        formatted draft. Notes and links from the side bar go in at the cursor.
       </li>
     </ul>
   </HelpPage>

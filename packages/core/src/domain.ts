@@ -1388,6 +1388,9 @@ export type RephraseResult = z.infer<typeof RephraseResultSchema>
 
 // ---- Comments on a draft ------------------------------------------------
 
+/** The most words from the text a comment can be made on: it points at a phrase, it does not copy a passage. */
+export const COMMENT_QUOTE_MAX_LENGTH = 300
+
 /** The longest comment a person can write: it is a remark about the writing, not a rewrite of it. */
 export const COMMENT_MAX_LENGTH = 2000
 
@@ -1410,6 +1413,8 @@ export const CommentSchema = z.object({
   block: z.string(),
   /** The start of that block, to show which one it is and to find it again after edits; empty for `whole`. */
   excerpt: z.string(),
+  /** The selected words the comment is about, within that paragraph; null when it is about the paragraph or the draft. */
+  quote: z.string().nullable().default(null),
   /** The block's `blockHash` when it was written; null for `whole`. */
   hash: z.string().nullable(),
   text: z.string(),
@@ -1425,6 +1430,8 @@ export type DraftComment = z.infer<typeof CommentSchema>
 export const CommentInputSchema = z.object({
   block: z.string().min(1).max(20),
   text: z.string().trim().min(1).max(COMMENT_MAX_LENGTH),
+  /** The words selected in that paragraph; kept only if the paragraph has exactly those words. */
+  quote: z.string().min(1).max(COMMENT_QUOTE_MAX_LENGTH).optional(),
 })
 export type CommentInput = z.infer<typeof CommentInputSchema>
 

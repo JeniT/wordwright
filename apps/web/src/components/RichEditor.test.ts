@@ -166,8 +166,8 @@ describe('RichEditor in Markdown mode', () => {
     expect(state.markdownMode).toBe(false)
   })
 
-  it('reports the selection as offsets in the text, and replaces it for Rephrase', async () => {
-    const { state, handle, selections } = show('One two three four five six', {
+  it('reports the selection in the Markdown box as offsets in the text', async () => {
+    const { selections } = show('One two three four five six', {
       markdownMode: true,
     })
     const text = box()
@@ -179,10 +179,6 @@ describe('RichEditor in Markdown mode', () => {
       text: 'two three four',
       sameBlock: true,
     })
-    expect(handle.value!.replaceRange(4, 18, 'twos', 'two three four')).toBe(true)
-    expect(state.markdown).toBe('One twos five six')
-    expect(handle.value!.replaceRange(0, 3, 'Uno', 'Two')).toBe(false) // not what it was
-    expect(state.markdown).toBe('One twos five six')
   })
 
   it('adds a note after the paragraph the cursor is in, and a link at the cursor', async () => {

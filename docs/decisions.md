@@ -2191,6 +2191,14 @@ On the idea's Draft page a published draft keeps its place. The order is the rea
 - **No excerpt, no count.** The paragraph is on the page beside the mark, so the card does not repeat it. The Comments tab carries no count: it pushed "Reviews" onto a second line. A general comment (about the whole draft) has a "General" chip; the AI's say "Your AI".
 - **No help page change.** No help page describes comments, so none moved.
 
+## Comments from the toolbar (#334, part of #330)
+
+- **Comment and Rephrase are toolbar buttons, not a form and a button below the text.** Both act on words, so they sit where the writer is looking. The old "Add a comment" form made the writer pick a paragraph from a list; now the caret or selection says which. Rephrase was moved with it: it is available only for a usable selection, and when it isn't, pressing it says why (the button is `aria-disabled`, not `disabled`, so a keyboard user can reach the reason). In Markdown mode both are unavailable, so Rephrase no longer has a Markdown branch.
+- **Rephrase "doesn't work below the text": not reproduced.** In Chromium, selecting words (a triple click, in a long draft, with or without an autosave in between) and pressing the old button below the text opened the window every time, so there was no fault to fix in the selection handling. The move into the toolbar removes the distance between the selection and the button; a test now covers selecting, pressing and replacing from the toolbar.
+- **`quote` is checked on the server, underlined on the client.** The server keeps the selected words only if the paragraph's Markdown contains them exactly, so a selection that spans formatting marks falls back to marking the whole paragraph rather than storing words the editor can't find. A reviewer's words are checked against their snapshot, as their paragraph is. Migration: a nullable `draft_comments.quote`.
+- **Members who can't edit commented through the form; they now have a bar.** A member who isn't the editor has no toolbar, and the form is gone, so they get the same sticky **Add comment** bar as reviewers. Their composer opens in the Comments tab; a reviewer's in a dialog, since a reviewer's page has no tabs.
+- **Help page.** The Formatting page's Markdown section said Rephrase works in the box; it now says Comment and Rephrase wait.
+
 ## Notes and reading items alike in the drafting pane (#331, part of #330)
 
 The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), so the two lists look and behave alike. Before, notes had a bare grip glyph and an "Add to draft" text button, and reading items had neither dragging nor the same name for the action ("Insert link").

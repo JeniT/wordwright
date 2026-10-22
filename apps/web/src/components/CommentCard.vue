@@ -13,7 +13,7 @@ import SwitchField from './SwitchField.vue'
 defineProps<{
   entry: DraftComment & { number: number }
   /** `show`: pressing it shows its paragraph. `plain`: nothing to show. `changed`: the paragraph was rewritten. */
-  kind: 'show' | 'plain' | 'changed'
+  kind: 'show' | 'plain' | 'changed' | 'static'
   active?: boolean
   /**
    * The viewer is the draft's editor: they see everyone's comments, so each names its author, and only they resolve

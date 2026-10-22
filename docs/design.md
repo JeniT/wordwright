@@ -176,7 +176,7 @@ chooses its tools (`DESCRIPTION_TOOLS`, `DRAFT_TOOLS` in `lib/editor-tools.ts`);
   link, and the "Enter a web address…" error inline. Focus goes to the field and returns to the button; Escape cancels.
 - **Markdown mode** (drafts only): the button swaps the editor for a monospace `<textarea>` with the same Markdown (`aria-pressed`; remembered in
   this browser, in `localStorage`, never account data). The formatting buttons hide; the comments tab says "Comments cannot be shown while editing
-  Markdown."; Rephrase and the notes and links from the side bar still work, on offsets in the text and at the cursor. Switching back loads the text
+  Markdown."; Comment and Rephrase are `aria-disabled` and say why when pressed (they work on the formatted draft); the notes and links from the side bar still work, at the cursor. Switching back loads the text
   into the editor without counting as an edit.
 
 `DescriptionEditor` is a small rich-text field for short, formatted text (today the publication description), so people don't have to know
@@ -195,10 +195,20 @@ Marks are ProseMirror decorations (`lib/comment-marks.ts`): they are drawn, neve
 `getMarkdown()`. They sit at the end of the line rather than in the margin so they cost no width on a phone. A comment
 whose paragraph has been rewritten loses its mark and moves to "This passage has changed" in the panel.
 
+### Comment and Rephrase in the toolbar (#334)
+
+The draft's toolbar ends with a small group, apart from the formatting and never in the **More** menu: **Comment** (speech-bubble icon, tooltip "Comment on the selected words or the paragraph you are in") and **Rephrase** (the AI icon, tooltip "Rephrase the selected words"), then the Markdown button. A button that can't be used now is `aria-disabled` rather than `disabled`, so it stays in the tab order (`ToolButton` `unavailable`); pressing it puts the reason in a status line under the toolbar (Rephrase: the selection reason; both in Markdown mode). A tutorial-only line under the toolbar covers both buttons. "Rephrase title" stays beside the title.
+
+**Comment** acts on the paragraph holding the caret or the start of the selection. With the caret in the title, nowhere in the body clicked yet, or no paragraph found, it opens a general comment. The **composer** (`CommentComposer`) is a `panel` at the top of the Comments tab (it opens the tab, or the drawer on a phone, and takes focus): a heading "Comment on paragraph 4" or "General comment", the selected words quoted, a compact **General comment** switch, the member's "Only you and {name}, the editor, will see this." (the editor's own has no audience line), a "Your comment" field that starts as one line and grows to a cap (`max-h-28` on a phone, `max-h-52` from `sm`), **Add comment** and **Cancel**. There is no "added" message: the new card is the confirmation. The paragraph being commented on has the active edge while the composer is open.
+
+**Selected words.** A comment made on words inside one paragraph keeps them (`quote`, up to 300 characters; the server keeps it only if the paragraph's text contains exactly those words). Where the paragraph still contains them they are underlined in the text (`comment-quote`: `line-strong` for a person, never the highlighter, which is the AI's); where it no longer does, the paragraph is marked as before. A selection across paragraphs puts the comment on the first, with no words.
+
+**People without a toolbar** (a member who isn't the editor, and reviewers) get a sticky, right-aligned bar above the text with a spelled-out **Add comment** button (icon and words). Members use the composer in their Comments tab; reviewers get a dialog ("Add a comment") with the same composer, which shows the selected words, or the start of the paragraph. A reviewer can only comment on paragraphs of their own snapshot.
+
 ### The Rephrase window and its options
 
-Rephrase (the button beside Critique, enabled only while words inside one paragraph are selected, with the
-reason beside it when not) opens a **modal dialog** on top of the draft. It is built with `lib/modal.ts` (`useModal`,
+Rephrase (a toolbar button, see _Comment and Rephrase in the toolbar_ above; available only while words inside one paragraph are selected, with the
+reason in the line under the toolbar when it is pressed without) opens a **modal dialog** on top of the draft. It is built with `lib/modal.ts` (`useModal`,
 shared with `ConfirmDialog`): focus goes in (to the Aim, since the wording is filled in), Tab stays inside, Escape and
 Cancel close it, and focus returns to the Rephrase button. It is `max-w-2xl`, scrolls inside itself (`max-h-[90vh]`) and
 fits a 390px phone. Order, top to bottom: the **current wording** (editable; a line under it says when only some of the words are bold, italic or linked, because new wording goes in plain, #244), the **Aim** ("What should it do?"), the

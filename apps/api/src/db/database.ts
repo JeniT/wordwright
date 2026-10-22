@@ -658,6 +658,10 @@ export const MIGRATIONS: Migration[] = [
   ALTER TABLE draft_reviews ADD COLUMN kept_inviter_name TEXT;
   ALTER TABLE idea_proposals ADD COLUMN kept_decided_by_name TEXT;
   `,
+  // A comment made on selected words remembers them (#334). Null for a comment on a whole paragraph or the draft.
+  `
+  ALTER TABLE draft_comments ADD COLUMN quote TEXT;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

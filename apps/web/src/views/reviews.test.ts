@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
+import type { Editor } from '@tiptap/vue-3'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
@@ -95,7 +96,7 @@ describe('reading one review', () => {
       http.get('*/api/reviews/r1', () => HttpResponse.json(detail)),
     )
 
-  it('shows the draft read-only with only their own comments, and a form to add another', async () => {
+  it('shows the draft read-only with only their own comments, and an Add comment bar that opens a dialog', async () => {
     const posted: unknown[] = []
     open({
       ...summary(),
@@ -114,10 +115,45 @@ describe('reading one review', () => {
       expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
     )
     expect(screen.getByText('Lovely start')).toBeTruthy()
-    expect(screen.getByText(/Only you and the draft’s editor will see this/)).toBeTruthy()
-    await fireEvent.update(screen.getByLabelText('Your comment'), 'Which rivers?')
-    await fireEvent.click(screen.getByRole('button', { name: /Add comment|Post|Send/ }))
+    expect(screen.queryByRole('toolbar')).toBeNull() // reviewers have no toolbar, only the bar
+    expect(screen.queryByLabelText('Your comment')).toBeNull() // the form is no longer on the page
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Add a comment' })
+    // Nothing selected in the snapshot: a general comment.
+    expect(within(dialog).getByRole('heading', { name: 'General comment' })).toBeTruthy()
+    expect(within(dialog).getByText(/Only you and the draft’s editor will see this/)).toBeTruthy()
+    await fireEvent.update(within(dialog).getByLabelText('Your comment'), 'Which rivers?')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add comment' }))
     await waitFor(() => expect(posted).toEqual([{ block: 'whole', text: 'Which rivers?' }]))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('comments on the paragraph and words selected in the snapshot', async () => {
+    const posted: unknown[] = []
+    open({
+      ...summary(),
+      draft: { title: 'Meanders', body: 'Rivers bend.\n\nThey do wander.' },
+      comments: [],
+    })
+    server.use(
+      http.post('*/api/reviews/r1/comments', async ({ request }) => {
+        posted.push(await request.json())
+        return HttpResponse.json(comment({ id: 'c2' }), { status: 201 })
+      }),
+    )
+    await renderAt('/reviews/r1')
+    await waitFor(() =>
+      expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
+    )
+    const dom = document.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }
+    dom.editor.commands.setTextSelection({ from: 15, to: 19 }) // "They" in the second paragraph
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Add a comment' })
+    expect(within(dialog).getByRole('heading', { name: 'Comment on paragraph 2' })).toBeTruthy()
+    expect(within(dialog).getByText('“They”')).toBeTruthy()
+    await fireEvent.update(within(dialog).getByLabelText('Your comment'), 'Who?')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add comment' }))
+    await waitFor(() => expect(posted).toEqual([{ block: 'b2', text: 'Who?', quote: 'They' }]))
   })
 
   it('lets them end the review, which stays on the page as a read-only snapshot', async () => {
@@ -146,7 +182,7 @@ describe('reading one review', () => {
     // Still there: the snapshot and the comments, but nothing to add to or end.
     expect(screen.getByText('Lovely start')).toBeTruthy()
     expect(document.querySelector('.ProseMirror')).not.toBeNull()
-    expect(screen.queryByRole('textbox', { name: 'Your comment' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add comment' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 
@@ -162,7 +198,7 @@ describe('reading one review', () => {
     )
     expect(screen.getByText('Lovely start')).toBeTruthy()
     expect(await screen.findByText('Rivers bend.')).toBeTruthy()
-    expect(screen.queryByRole('textbox', { name: 'Your comment' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add comment' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 

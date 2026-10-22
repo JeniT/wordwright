@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import { splitBlocks, type CommentInput } from '@wordwright/core'
+import { WHOLE_DRAFT, excerptOf, splitBlocks, type CommentInput } from '@wordwright/core'
 import CommentCard from '../components/CommentCard.vue'
-import CommentForm from '../components/CommentForm.vue'
+import CommentComposer from '../components/CommentComposer.vue'
+import ModalDialog from '../components/ModalDialog.vue'
 import QueryState from '../components/QueryState.vue'
 import RichEditor from '../components/RichEditor.vue'
 import { api, errorMessage } from '../lib/api'
@@ -23,6 +24,27 @@ const review = useQuery({
 })
 const blocks = computed(() => splitBlocks(review.data.value?.draft.body ?? ''))
 const body = computed(() => review.data.value?.draft.body ?? '')
+
+const editor = useTemplateRef<InstanceType<typeof RichEditor>>('editor')
+/** The comment being written: about the paragraph (and words) selected in the snapshot, or general. */
+const composing = ref<{
+  target: { block: string; number: number; quote: string | null; excerpt: string } | null
+} | null>(null)
+function startComment() {
+  const at = editor.value?.commentTarget()
+  const block = at ? blocks.value[at.index] : undefined
+  composing.value = {
+    target:
+      at && block
+        ? {
+            block: block.id,
+            number: at.index + 1,
+            quote: at.quote,
+            excerpt: excerptOf(block.text, 80),
+          }
+        : null,
+  }
+}
 
 async function add(input: CommentInput) {
   await api.commentOnReview(props.id, input)
@@ -74,7 +96,13 @@ const end = useMutation({
         <p v-else class="callout mb-4 text-sm">
           You are reading a snapshot of the draft as it was when it was sent to you.
         </p>
-        <RichEditor :model-value="body" :editable="false" />
+        <RichEditor
+          ref="editor"
+          :model-value="body"
+          :editable="false"
+          :comment-bar="review.data.value.state === 'open'"
+          @comment="startComment"
+        />
 
         <section class="mt-8" aria-labelledby="mine">
           <h2 id="mine" class="mb-2 font-display text-xl font-semibold">Your comments</h2>
@@ -83,16 +111,29 @@ const end = useMutation({
           </p>
           <ol v-else class="space-y-3">
             <li v-for="(c, i) in review.data.value.comments" :key="c.id">
-              <CommentCard :entry="{ ...c, number: i + 1 }" kind="plain" />
+              <CommentCard
+                :entry="{ ...c, number: i + 1 }"
+                :kind="c.block === WHOLE_DRAFT ? 'plain' : 'static'"
+              />
             </li>
           </ol>
-          <CommentForm
-            v-if="review.data.value.state === 'open'"
-            :blocks="blocks"
+        </section>
+
+        <ModalDialog
+          :open="!!composing"
+          title="Add a comment"
+          :footer="false"
+          @close="composing = null"
+        >
+          <CommentComposer
+            v-if="composing"
+            :target="composing.target"
             :add="add"
             audience="Only you and the draft’s editor will see this."
+            @done="composing = null"
+            @cancel="composing = null"
           />
-        </section>
+        </ModalDialog>
 
         <section
           v-if="review.data.value.state === 'open'"

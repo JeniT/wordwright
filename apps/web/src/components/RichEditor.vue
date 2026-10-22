@@ -7,13 +7,16 @@ import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { DRAFT_TOOLS } from '../lib/editor-tools'
+import Icon from './Icon.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import {
   CommentMarks,
   commentMarksKey,
+  textBlocks,
   type CommentMarkPoint,
   type CommentMarkStorage,
 } from '../lib/comment-marks'
+import { COMMENT_QUOTE_MAX_LENGTH } from '@wordwright/core'
 import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
 import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
@@ -28,6 +31,12 @@ const props = defineProps<{
   activePointId?: string | null
   /** False for someone who may read the draft but not change it. */
   editable?: boolean
+  /** Offer Comment and Rephrase in the toolbar. */
+  actions?: boolean
+  /** Words that can be rephrased are selected. */
+  rephraseReady?: boolean
+  /** For someone who can't edit but can comment (a member, a reviewer): a bar above the text with Add comment. */
+  commentBar?: boolean
 }>()
 const emit = defineEmits<{
   /** The selection changed; null when nothing is selected. */
@@ -36,6 +45,10 @@ const emit = defineEmits<{
   pointPick: [id: string]
   /** Which comments found their paragraph in the text as it is now. */
   located: [ids: string[]]
+  /** Comment was pressed in the toolbar. */
+  comment: []
+  /** Rephrase was pressed in the toolbar. */
+  rephrase: []
   /** A note from the side bar was dropped on the text, at this position in it (unknown when it can't be worked out). */
   noteDrop: [noteId: string, position: number | undefined]
   /** A reading item from the side bar was dropped on the text: its link goes in at this position (as for a note). */
@@ -147,13 +160,6 @@ const editor = useEditor({
  * The change reaches `model` like typing.
  */
 function replaceRange(from: number, to: number, text: string, expected: string): boolean {
-  if (sourceMode.value) {
-    // In the Markdown box the positions are offsets in the text itself.
-    if (to > model.value.length || model.value.slice(from, to) !== expected) return false
-    model.value = model.value.slice(0, from) + text + model.value.slice(to)
-    placeSourceCaret(from + text.length)
-    return true
-  }
   const e = editor.value
   if (!e) return false
   const size = e.state.doc.content.size
@@ -336,7 +342,30 @@ watch(sourceMode, (on) => {
   }
 })
 
+/**
+ * What a comment made now would be about: the paragraph holding the caret or the start of the selection (counted among
+ * the paragraphs that hold text, as the comment marks count them) and, if the selection is words within that one
+ * paragraph, the words. Null when the caret has not been in the text, or in the Markdown box.
+ */
+function commentTarget(): { index: number; text: string; quote: string | null } | null {
+  const e = editor.value
+  if (sourceMode.value || !e) return null
+  const { from, to, empty, $from, $to } = e.state.selection
+  if (!touched && empty) return null
+  const blocks = textBlocks(e.state.doc)
+  const start = $from.parent.isTextblock ? $from.before() : -1
+  const index = blocks.findIndex((b) => b.pos === start)
+  if (index === -1) return null
+  const quote = empty || !$from.sameParent($to) ? '' : e.state.doc.textBetween(from, to, ' ').trim()
+  return {
+    index,
+    text: blocks[index]!.text,
+    quote: quote && quote.length <= COMMENT_QUOTE_MAX_LENGTH ? quote : null,
+  }
+}
+
 defineExpose({
+  commentTarget,
   insertMarkdown,
   insertInlineMarkdown,
   replaceRange,
@@ -381,7 +410,22 @@ watch(model, (value) => {
         :editor="editor"
         :tools="DRAFT_TOOLS"
         markdown-toggle
+        :actions="actions"
+        :rephrase-ready="rephraseReady"
+        @comment="emit('comment')"
+        @rephrase="emit('rephrase')"
       />
+      <!-- The reason a button did nothing, and what the two do. -->
+      <slot name="toolbar-notes" />
+    </div>
+    <div
+      v-if="commentBar"
+      class="sticky top-0 z-10 mb-3 flex justify-end border-b border-line bg-paper py-1"
+    >
+      <button type="button" class="btn btn-outline btn-sm" @click="emit('comment')">
+        <Icon name="comment" />
+        Add comment
+      </button>
     </div>
     <EditorContent v-show="!sourceMode" :editor="editor" class="prose-editor" />
     <textarea

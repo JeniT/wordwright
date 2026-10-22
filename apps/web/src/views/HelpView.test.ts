@@ -142,6 +142,6 @@ describe('Help', () => {
         expect(main.textContent, tool.label).toContain(tool.shortcut.replace('Mod', 'Ctrl'))
       }
     }
-    expect(within(main).getByText(/Comments from a critique can’t be shown/)).toBeInTheDocument()
+    expect(within(main).getByText(/The Comment and Rephrase buttons wait/)).toBeInTheDocument()
   })
 })

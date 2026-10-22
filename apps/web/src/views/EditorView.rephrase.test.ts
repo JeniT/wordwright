@@ -107,43 +107,47 @@ const rephraseButton = () => screen.findByRole('button', { name: 'Rephrase' })
 const editorText = () => document.querySelector('.ProseMirror')!.textContent
 
 describe('EditorView: Rephrase', () => {
-  it('is disabled, and says why, until some words are selected', async () => {
+  it('is in the toolbar, unavailable until some words are selected, and says why when pressed', async () => {
     mockDraft()
     await renderAt('/p/p1/drafts/d1')
     const button = await rephraseButton()
-    expect(button).toBeDisabled()
-    expect(button).toHaveAccessibleDescription(/Select some of your draft to rephrase it/)
+    expect(button.closest('[role="toolbar"]')).not.toBeNull()
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).not.toBeDisabled() // still reachable by keyboard
+    await fireEvent.click(button)
+    expect(await screen.findByText('Select some of your draft to rephrase it.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Rephrase this passage' })).toBeNull()
   })
 
-  it('is enabled for words inside one paragraph, and says what it is for', async () => {
+  it('is available for words inside one paragraph, with its purpose in the tooltip', async () => {
     mockDraft()
     await renderAt('/p/p1/drafts/d1')
     await select(5, 40) // "river bends because the outside bank"
-    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
-    // Nothing blocks it, so no hint; what it is for is behind the info icon.
-    expect(await rephraseButton()).not.toHaveAccessibleDescription()
-    expect(screen.getByRole('button', { name: 'About rephrasing' })).toHaveAccessibleDescription(
-      /different ways to put your words/,
-    )
+    await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
+    expect(screen.queryByRole('button', { name: 'About rephrasing' })).toBeNull()
+    expect(screen.queryByText('Select some of your draft to rephrase it.')).toBeNull()
   })
 
-  it('is disabled for a selection across paragraphs, or too small, with what to do', async () => {
+  it('says what to do when pressed on a selection across paragraphs, or a small one', async () => {
     mockDraft()
     await renderAt('/p/p1/drafts/d1')
     await select(5, 80) // into the second paragraph
-    await waitFor(async () => expect(await rephraseButton()).toBeDisabled())
-    expect(await rephraseButton()).toHaveAccessibleDescription(new RegExp(ONE_PARAGRAPH))
-    await select(5, 12)
     await waitFor(async () =>
-      expect(await rephraseButton()).toHaveAccessibleDescription(/at least 5 words/),
+      expect(await rephraseButton()).toHaveAttribute('aria-disabled', 'true'),
     )
+    await fireEvent.click(await rephraseButton())
+    expect(await screen.findByText(ONE_PARAGRAPH)).toBeInTheDocument()
+    await select(5, 12)
+    await fireEvent.click(await rephraseButton())
+    expect(await screen.findByText(/at least 5 words/)).toBeInTheDocument()
+    expect(screen.queryByText(ONE_PARAGRAPH)).toBeNull()
   })
 
   it('opens on the selected words, and replaces exactly them with the chosen option, then saves and records it', async () => {
     const { saved, recorded, asked } = mockDraft()
     await renderAt('/p/p1/drafts/d1')
     await select(1, 56) // the whole first sentence
-    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
     await fireEvent.click(await rephraseButton())
 
     const dialog = await screen.findByRole('dialog', { name: 'Rephrase this passage' })
@@ -181,7 +185,7 @@ describe('EditorView: Rephrase', () => {
     const { saved, recorded } = mockDraft()
     await renderAt('/p/p1/drafts/d1')
     await select(5, 40)
-    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
     await fireEvent.click(await rephraseButton())
     const dialog = await screen.findByRole('dialog')
     await fireEvent.update(
@@ -198,7 +202,7 @@ describe('EditorView: Rephrase', () => {
     const { saved, recorded } = mockDraft()
     await renderAt('/p/p1/drafts/d1')
     await select(5, 40)
-    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
     ;(await rephraseButton()).focus() // a click focuses the button in a browser; jsdom's does not
     await fireEvent.click(await rephraseButton())
     await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
@@ -213,7 +217,7 @@ describe('EditorView: Rephrase', () => {
     const { saved, recorded } = mockDraft()
     await renderAt('/p/p1/drafts/d1')
     await select(1, 56)
-    await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+    await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
     await fireEvent.click(await rephraseButton())
     const dialog = await screen.findByRole('dialog')
     await fireEvent.update(
@@ -236,7 +240,7 @@ describe('EditorView: Rephrase', () => {
     /** Opens the window on the first sentence (positions 1 to 56) and replaces it with `words`. */
     async function replaceFirstSentence(words: string) {
       await select(1, 56)
-      await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+      await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
       await fireEvent.click(await rephraseButton())
       const dialog = await screen.findByRole('dialog')
       return {
@@ -259,7 +263,9 @@ describe('EditorView: Rephrase', () => {
       expect(within(dialog).queryByText(/others aren’t/)).toBeNull()
       await use()
       expect(firstParagraphHtml()).toBe('<em>Rivers wander as banks wear away.</em>')
-      await waitFor(async () => expect(await rephraseButton()).toBeDisabled()) // the cursor follows them; nothing is selected
+      await waitFor(async () =>
+        expect(await rephraseButton()).toHaveAttribute('aria-disabled', 'true'),
+      ) // the cursor follows them; nothing is selected
       await waitFor(() =>
         expect(saved.at(-1)?.body).toContain('*Rivers wander as banks wear away.*'),
       )
@@ -271,7 +277,7 @@ describe('EditorView: Rephrase', () => {
       })
       await renderAt('/p/p1/drafts/d1')
       await select(1, 57) // the sentence and the space after it
-      await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
+      await waitFor(async () => expect(await rephraseButton()).not.toHaveAttribute('aria-disabled'))
       await fireEvent.click(await rephraseButton())
       const dialog = await screen.findByRole('dialog')
       expect(within(dialog).queryByText(/others aren’t/)).toBeNull()
@@ -304,31 +310,18 @@ describe('EditorView: Rephrase', () => {
   describe('in Markdown mode', () => {
     afterEach(() => localStorage.removeItem('wordwright:draft-markdown-mode'))
 
-    it('replaces the selected Markdown', async () => {
+    it('is unavailable in Markdown mode, and says so when pressed', async () => {
       localStorage.setItem('wordwright:draft-markdown-mode', 'true')
-      const { saved } = mockDraft(testUser, {
-        body: 'The river **bends** because the bank erodes.',
-      })
+      mockDraft()
       await renderAt('/p/p1/drafts/d1')
-      const box = (await screen.findByRole('textbox', {
-        name: 'Draft body, as Markdown',
-      })) as HTMLTextAreaElement
-      await waitFor(() => expect(box.value).toContain('river **bends**'))
-      box.setSelectionRange(0, box.value.length)
-      await fireEvent.select(box)
-      await waitFor(async () => expect(await rephraseButton()).toBeEnabled())
-      await fireEvent.click(await rephraseButton())
-      const dialog = await screen.findByRole('dialog')
-      expect(within(dialog).getByLabelText('Current wording')).toHaveValue(
-        'The river **bends** because the bank erodes.',
+      const button = await rephraseButton()
+      expect(button).toHaveAttribute('aria-disabled', 'true')
+      await fireEvent.click(button)
+      expect(await screen.findByText(/Switch off Edit as Markdown/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Comment' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
       )
-      await fireEvent.update(
-        within(dialog).getByLabelText('Current wording'),
-        'Rivers wander as banks wear away.',
-      )
-      await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
-      await waitFor(() => expect(box.value).toBe('Rivers wander as banks wear away.'))
-      await waitFor(() => expect(saved.at(-1)?.body).toBe('Rivers wander as banks wear away.'))
     })
 
     it('says in place of the comments that they cannot be shown', async () => {

@@ -37,6 +37,7 @@ defineProps<{
     | 'more'
     | 'move'
     | 'insert'
+    | 'comment'
   size?: number
 }>()
 </script>
@@ -172,6 +173,10 @@ defineProps<{
       <path d="m10 7 5 5-5 5" />
       <path d="M21 4v16" />
     </template>
+    <path
+      v-else-if="name === 'comment'"
+      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+    />
     <template v-else-if="name === 'insert'">
       <path d="M12 3v12" />
       <path d="m7 10 5 5 5-5" />

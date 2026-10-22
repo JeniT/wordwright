@@ -27,7 +27,9 @@ import {
   ONE_PARAGRAPH,
   REPHRASE,
   WHOLE_DRAFT,
+  blockHash,
   countWords,
+  excerptOf,
   splitBlocks,
   wordingProblem,
   type IdeaLink,
@@ -317,6 +319,22 @@ const rephraseProblem = computed(() => {
   if (!s) return 'Select some of your draft to rephrase it.'
   return s.sameBlock ? wordingProblem('passage', s.text) : ONE_PARAGRAPH
 })
+/** Why Comment or Rephrase did nothing when pressed, said under the toolbar (the buttons stay reachable by keyboard). */
+const toolReason = ref('')
+const MARKDOWN_REASON =
+  'Comment and Rephrase work on the formatted draft. Switch off Edit as Markdown to use them.'
+watch([selection, markdownMode], () => (toolReason.value = ''))
+function pressRephrase() {
+  if (markdownMode.value) {
+    toolReason.value = MARKDOWN_REASON
+    return
+  }
+  if (rephraseProblem.value) {
+    toolReason.value = rephraseProblem.value
+    return
+  }
+  openRephrase()
+}
 function openRephrase() {
   const s = selection.value
   if (!s || rephraseProblem.value) return
@@ -460,16 +478,67 @@ const addComment = useAddComment(
   () => props.publicationId,
   () => props.id,
 )
-/** The paragraphs a new comment can be about: the draft as saved, because that is what the server finds them in. */
-const blocks = computed(() => splitBlocks(draft.data.value?.body ?? ''))
+/** Where the caret last was, so Comment knows whether it is in the draft's words or the title. */
+const caretIn = ref<'title' | 'body' | null>(null)
+function noteFocus(event: FocusEvent) {
+  const el = event.target as HTMLElement
+  if (el.id === 'title') caretIn.value = 'title'
+  else if (el.closest('.ProseMirror')) caretIn.value = 'body'
+}
+/** A comment being written: about a paragraph (and perhaps words in it), or null target for a general one. */
+const composing = ref<{
+  target: { block: string; number: number; quote: string | null } | null
+} | null>(null)
+async function startComment() {
+  if (markdownMode.value) {
+    toolReason.value = MARKDOWN_REASON
+    return
+  }
+  toolReason.value = ''
+  // The server finds the paragraph in the saved draft, so what is on the page is saved first.
+  try {
+    await autosave.flush()
+  } catch {
+    toolReason.value = notSavedYet('Your words are').message
+    return
+  }
+  const at = !canEdit.value || caretIn.value === 'body' ? editor.value?.commentTarget() : null
+  const block = at ? splitBlocks(body.value)[at.index] : undefined
+  composing.value = {
+    target: at && block ? { block: block.id, number: at.index + 1, quote: at.quote } : null,
+  }
+  sideTab.value = 'comments'
+  if (!sideIsBeside() && !notesOpen.value) await openNotes()
+  void commentsPanel.value?.focusComposer()
+}
 const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
 const located = ref<ReadonlySet<string>>(new Set())
-const markPoints = computed<CommentMarkPoint[]>(() =>
-  comments.value.flatMap((c, i) =>
+/** The paragraph being commented on gets the active edge (and its words their underline) while the comment is written. */
+const composingPoint = computed<CommentMarkPoint[]>(() => {
+  const target = composing.value?.target
+  const block = target && splitBlocks(body.value).find((b) => b.id === target.block)
+  if (!target || !block) return []
+  return [
+    {
+      id: 'composing',
+      block: block.id,
+      hash: blockHash(block.text),
+      excerpt: excerptOf(block.text),
+      number: 0,
+      label: 'Comment being written',
+      byAi: false,
+      quote: target.quote,
+      edge: true,
+    },
+  ]
+})
+const markPoints = computed<CommentMarkPoint[]>(() => [
+  ...composingPoint.value,
+  ...comments.value.flatMap((c, i) =>
     c.block === WHOLE_DRAFT
       ? []
       : [
@@ -481,11 +550,12 @@ const markPoints = computed<CommentMarkPoint[]>(() =>
             number: i + 1,
             label: `Comment ${i + 1}`,
             byAi: c.byAi,
+            quote: c.quote,
             hidden: c.resolved, // a resolved comment has no mark in the text, but still finds its paragraph
           },
         ],
   ),
-)
+])
 
 /** A mark in the text was pressed: show its comment, opening the side area if it is a drawer. */
 async function pickPoint(id: string) {
@@ -525,6 +595,7 @@ async function requestCritique() {
       <article
         class="min-w-0 max-w-2xl"
         :class="markPoints.length ? 'pb-[60vh]' : ''"
+        @focusin="noteFocus"
         @focusout="canEdit && quietly()"
         @keydown="onSaveKey"
       >
@@ -597,12 +668,31 @@ async function requestCritique() {
           :comment-marks="markPoints"
           :active-point-id="activePointId"
           :editable="canEdit"
+          :actions="canEdit"
+          :comment-bar="!canEdit"
+          :rephrase-ready="!rephraseProblem"
+          @comment="startComment"
+          @rephrase="pressRephrase"
           @selection-change="selection = $event"
           @note-drop="onNoteDrop"
           @reading-drop="onReadingDrop"
           @point-pick="pickPoint"
           @located="located = new Set($event)"
-        />
+        >
+          <template #toolbar-notes>
+            <p role="status" class="text-sm text-ink-soft" :class="toolReason ? 'mt-1' : ''">
+              {{ toolReason }}
+            </p>
+            <p v-if="rephraseNotice" role="alert" class="mt-1 text-sm text-danger">
+              {{ rephraseNotice }}
+            </p>
+            <Explain v-if="canEdit" tutorial-only>
+              Comment is for the words you have selected, or the paragraph you are in. Rephrase
+              offers other ways to put the words you have selected; you choose and edit one
+              yourself.
+            </Explain>
+          </template>
+        </RichEditor>
         <p v-if="/\]\(/.test(body)" class="mt-2 text-sm text-ink-soft">
           Ctrl or ⌘ and click a link to open it.
         </p>
@@ -627,20 +717,6 @@ async function requestCritique() {
             to resolve.
           </Explain>
           <button
-            v-if="canEdit"
-            type="button"
-            class="btn btn-outline"
-            :disabled="!!rephraseProblem"
-            :aria-describedby="rephraseProblem ? 'rephrase-hint' : undefined"
-            @click="openRephrase"
-          >
-            Rephrase
-          </button>
-          <Explain v-if="canEdit" label="About rephrasing" class="-ml-2">
-            Rephrase opens a window where your AI offers different ways to put your words. You
-            choose, edit and use one yourself.
-          </Explain>
-          <button
             v-if="draft.data.value?.ideaId"
             ref="openButton"
             type="button"
@@ -657,10 +733,6 @@ async function requestCritique() {
           Critique will send this publication’s description and this draft’s title and text to your
           AI. It will not send your notes.
         </p>
-        <p v-if="canEdit && rephraseProblem" id="rephrase-hint" class="mt-2 text-sm text-ink-soft">
-          {{ rephraseProblem }}
-        </p>
-        <p v-if="rephraseNotice" role="alert" class="mt-2 text-danger">{{ rephraseNotice }}</p>
         <div
           v-if="autosave.state.value === 'failed'"
           role="alert"
@@ -782,11 +854,12 @@ async function requestCritique() {
               :active-id="activePointId"
               :is-editor="canEdit"
               :editor-name="draft.data.value.editorName"
-              :blocks="blocks"
+              :composing="composing"
               :add="addComment"
               :resolve-problem="resolveProblem"
               @show="showInDraft"
               @set-resolved="resolve"
+              @close-composer="composing = null"
             />
           </template>
         </TabPanels>

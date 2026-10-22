@@ -19,6 +19,7 @@ type Comment = {
   authorName: string | null
   block: string
   excerpt: string
+  quote: string | null
   hash: string | null
   text: string
   reason: string | null
@@ -74,6 +75,43 @@ describe('comments on a draft (#156)', () => {
         reason: null,
         resolved: false,
       })
+    })
+
+    it('keeps the words the comment was made on, when they are in that paragraph', async () => {
+      const res = await bob.post(`${base()}/comments`, {
+        block: 'b2',
+        text: 'Which one?',
+        quote: 'Second',
+      })
+      expect(res.status).toBe(201)
+      expect(await res.json()).toMatchObject({ block: 'b2', quote: 'Second' })
+      expect((await list(ada))[0]).toMatchObject({ quote: 'Second' })
+    })
+
+    it('has no quote unless the words are in the paragraph, or for the whole draft', async () => {
+      const elsewhere = await bob.post(`${base()}/comments`, {
+        block: 'b2',
+        text: 'x',
+        quote: 'First',
+      })
+      expect((await elsewhere.json()).quote).toBeNull()
+      const whole = await bob.post(`${base()}/comments`, {
+        block: 'whole',
+        text: 'y',
+        quote: 'First',
+      })
+      expect((await whole.json()).quote).toBeNull()
+      expect((await say(bob, 'z')).status).toBe(201)
+      expect((await list(ada)).at(-1)!.quote).toBeNull()
+    })
+
+    it('refuses a quote longer than 300 characters', async () => {
+      const res = await bob.post(`${base()}/comments`, {
+        block: 'b1',
+        text: 'x',
+        quote: 'a'.repeat(301),
+      })
+      expect(res.status).toBe(400)
     })
 
     it('lets a member comment on the whole draft', async () => {
