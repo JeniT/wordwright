@@ -431,8 +431,8 @@ notice) is plain text, bold where it already is; a chip never sits inside runnin
 
 **A rail that only drags.** A card that is a source to take from, such as a note or reading item beside the draft
 (`DraftCard`), has the same rail and grip but no arrows and no click behaviour: dragging it onto the draft is the
-only thing the rail does. It shows from `lg` up (a phone cannot drag), and the icon button **Add to draft** beside it
-is the route for keyboards, touch and screen readers.
+only thing the rail does. Its grip shows from `lg` up (a phone cannot drag), and the icon button **Insert at cursor** at
+the top of the rail (always shown) is the route for keyboards, touch and screen readers.
 
 **The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
 select checkbox. On a reorderable list the rail is **the handle**: the whole rail is the drag area (a `grab` cursor, so a
@@ -483,7 +483,7 @@ change is one request and all or nothing, so a note that would exceed the limit 
 checkboxes), a **filter button** with the funnel icon; on the **right**, once something is selected, the actions for the
 selected items with a "3 selected" count. Until then the actions are not shown. The filters are folded away: the funnel
 (`aria-expanded`, only offered when there is something to filter by) opens a row of them under the header (the
-**Filter by tag** select, whose chosen tags stay beside it as removable chips named "Stop filtering by {tag}" and
+**Filter by tag** text box (a tag icon on its left; it suggests the tags on the list that are not chosen yet, and Return adds one and keeps the focus), whose chosen tags stay beside it as removable chips named "Stop filtering by {tag}" and
 narrow the list to what has all of them, and, on a reading list, the Show read items switch), which a close button folds again. While it is folded and a filter is
 on, the funnel is marked and a small chip says what is filtering, so a filtered list never looks like the whole list.
 **An action that needs input takes over the header**: Tag… and Move to… hide the other actions, and the rest of the

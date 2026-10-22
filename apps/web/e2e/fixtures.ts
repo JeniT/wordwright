@@ -1,4 +1,4 @@
-import { expect, test as base, type Page } from '@playwright/test'
+import { expect, test as base, type Locator, type Page } from '@playwright/test'
 import { HOLD_MS } from '../src/lib/hold-settings'
 
 /**
@@ -188,4 +188,11 @@ export async function openFilters(page: Page) {
 export async function showReadItems(page: Page) {
   await openFilters(page)
   await page.getByRole('switch', { name: /^Show read items/ }).check()
+}
+
+/** Adds a tag to a list's tag filter the way a person does: type it, press Return; the box keeps focus. */
+export async function addFilterTag(filter: Locator, tag: string) {
+  await filter.fill(tag)
+  await filter.press('Enter')
+  await expect(filter).toBeFocused()
 }

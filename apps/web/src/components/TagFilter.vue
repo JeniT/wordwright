@@ -1,37 +1,138 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue'
+import { computed, ref, useId } from 'vue'
 import Icon from './Icon.vue'
 
 /**
- * Narrows a list to what carries every chosen tag. A select adds a tag; each chosen tag stays as a chip that takes it
- * away again, so a filtered list never looks like the whole list. Not shown at all until something has a tag.
+ * Narrows a list to what carries every chosen tag. A text box with a tag icon suggests the tags on the list that are
+ * not chosen yet as you type; Return adds one and leaves the focus in the box for the next. Each chosen tag stays as a
+ * chip that takes it away again, so a filtered list never looks like the whole list. Not shown at all until something
+ * has a tag.
  */
 const props = defineProps<{ tags: readonly string[] }>()
 const chosen = defineModel<string[]>({ default: () => [] })
-const selectId = useId()
+const inputId = useId()
+const listId = useId()
+const messageId = useId()
 
-const isChosen = (tag: string) => chosen.value.some((c) => c.toLowerCase() === tag.toLowerCase())
+const text = ref('')
+const open = ref(false)
+const active = ref(-1)
+const message = ref('')
+
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+const isChosen = (tag: string) => chosen.value.some((c) => same(c, tag))
 const offered = computed(() => props.tags.filter((t) => !isChosen(t)))
+const suggestions = computed(() => {
+  const typed = text.value.trim().toLowerCase()
+  return offered.value.filter((t) => t.toLowerCase().includes(typed))
+})
+const showList = computed(() => open.value && suggestions.value.length > 0)
+const optionId = (i: number) => `${listId}-${i}`
 
-function add(event: Event) {
-  const select = event.target as HTMLSelectElement
-  if (select.value) chosen.value = [...chosen.value, select.value]
-  // Back to the prompt, so the next tag is one choice away.
-  select.value = ''
+function change() {
+  message.value = ''
+  open.value = true
+  active.value = -1
 }
-const remove = (tag: string) =>
-  (chosen.value = chosen.value.filter((c) => c.toLowerCase() !== tag.toLowerCase()))
+
+function add(tag: string) {
+  chosen.value = [...chosen.value, tag]
+  text.value = ''
+  message.value = ''
+  active.value = -1
+  // The list is for choosing the next tag: closed until they ask again, with focus still in the box.
+  open.value = false
+}
+
+function enter() {
+  const typed = text.value.trim()
+  const picked = suggestions.value[active.value]
+  if (picked) return add(picked)
+  if (!typed) return
+  const match = offered.value.find((t) => same(t, typed))
+  if (match) return add(match)
+  message.value = isChosen(typed)
+    ? `Already filtering by “${typed}”.`
+    : `No notes or links are tagged “${typed}”. Pick one from the list.`
+}
+
+function move(step: 1 | -1) {
+  open.value = true
+  const n = suggestions.value.length
+  if (!n) return
+  active.value = (active.value + step + n) % n
+}
+
+function escape(event: KeyboardEvent) {
+  if (!showList.value) return
+  // Only the list closes, not a drawer or dialog the filter sits in.
+  event.stopPropagation()
+  open.value = false
+  active.value = -1
+}
+
+const remove = (tag: string) => (chosen.value = chosen.value.filter((c) => !same(c, tag)))
 </script>
 
 <template>
   <div v-if="tags.length || chosen.length" class="mb-3 flex flex-wrap items-center gap-2">
-    <template v-if="offered.length">
-      <label :for="selectId" class="sr-only">Filter by tag</label>
-      <select :id="selectId" class="field field-compact !w-auto" @change="add">
-        <option value="" selected>Choose a tag</option>
-        <option v-for="tag in offered" :key="tag" :value="tag">{{ tag }}</option>
-      </select>
-    </template>
+    <div v-if="offered.length" class="relative">
+      <label :for="inputId" class="sr-only">Filter by tag</label>
+      <span class="pointer-events-none absolute inset-y-0 left-2 flex items-center text-ink-soft">
+        <Icon name="label" :size="16" />
+      </span>
+      <input
+        :id="inputId"
+        v-model="text"
+        type="text"
+        role="combobox"
+        autocomplete="off"
+        placeholder="Filter by tag"
+        class="field field-compact !w-48 !pl-8"
+        aria-autocomplete="list"
+        :aria-expanded="showList"
+        :aria-controls="listId"
+        :aria-activedescendant="showList && active >= 0 ? optionId(active) : undefined"
+        :aria-describedby="message ? messageId : undefined"
+        :aria-invalid="message ? true : undefined"
+        @input="change"
+        @focus="open = true"
+        @blur="open = false"
+        @keydown.enter.prevent="enter"
+        @keydown.down.prevent="move(1)"
+        @keydown.up.prevent="move(-1)"
+        @keydown.esc="escape"
+      />
+      <ul
+        v-show="showList"
+        :id="listId"
+        role="listbox"
+        aria-label="Tags"
+        class="panel absolute left-0 top-full z-20 mt-1 max-h-60 w-full min-w-48 overflow-auto p-1"
+      >
+        <li
+          v-for="(tag, i) in suggestions"
+          :id="optionId(i)"
+          :key="tag"
+          role="option"
+          :aria-selected="i === active"
+          class="cursor-pointer rounded-ctl px-2 py-1 text-sm"
+          :class="i === active ? 'bg-accent-wash' : 'hover:bg-sunken'"
+          @mousedown.prevent="add(tag)"
+        >
+          {{ tag }}
+        </li>
+      </ul>
+    </div>
+    <p
+      v-if="message"
+      :id="messageId"
+      role="alert"
+      class="flex items-center gap-1 text-sm text-danger"
+    >
+      <Icon name="alert" :size="14" />
+      {{ message }}
+    </p>
     <ul v-if="chosen.length" aria-label="Filtering by" class="flex flex-wrap gap-1">
       <li v-for="tag in chosen" :key="tag" class="chip chip-quiet">
         {{ tag }}

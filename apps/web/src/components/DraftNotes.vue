@@ -86,7 +86,6 @@ const label = (note: IdeaNote) => {
           :can-add="canAdd"
           :drag="{ type: NOTE_DRAG_TYPE, id: note.id }"
           :label="label(note)"
-          :add-name="`Add ${label(note)} to the draft`"
           :busy="adding.isPending.value && adding.variables.value?.id === note.id"
           @add="adding.mutate(note)"
         >

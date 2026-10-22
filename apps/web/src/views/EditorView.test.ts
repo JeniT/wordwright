@@ -5,7 +5,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blockHash } from '@wordwright/core'
 import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
 import { expectNoLoneInfoIcons } from '../testing/info-icons'
-import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
+import {
+  chooseTag,
+  renderAt,
+  server,
+  signedInAs,
+  testUser,
+  useMockServer,
+  suggestedTags,
+} from '../test-utils'
 
 useMockServer({ warm: ['draft'] })
 
@@ -815,7 +823,7 @@ describe('the notes beside the draft', () => {
     await waitFor(() => expect(api.putBack).toEqual([{ id: 'n4', added: false }]))
     // Now it can be added again, so it is listed with the others.
     expect(
-      await notes.findByRole('button', { name: /^Add note “Already used\.”/ }),
+      await notes.findByRole('button', { name: /^Insert at cursor: note “Already used\.”/ }),
     ).toBeInTheDocument()
   })
 
@@ -852,7 +860,7 @@ describe('the notes beside the draft', () => {
       const api = mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
-        await screen.findByRole('button', { name: /^Add note “Erosion loops\.” to the draft/ }),
+        await screen.findByRole('button', { name: /^Insert at cursor: note “Erosion loops\.”/ }),
       )
 
       await waitFor(() => expect(api.posted).toEqual([{ noteId: 'n1', text: 'Erosion loops.' }]))
@@ -868,7 +876,7 @@ describe('the notes beside the draft', () => {
       const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
-        await screen.findByRole('button', { name: /^Add note “A useful quote\.” to the draft/ }),
+        await screen.findByRole('button', { name: /^Insert at cursor: note “A useful quote\.”/ }),
       )
       await waitFor(() => expect(api.posted).toHaveLength(1))
       expect(api.posted[0]).toEqual({
@@ -893,7 +901,7 @@ describe('the notes beside the draft', () => {
       await renderAt('/p/p1/drafts/d1')
       expect(await screen.findByRole('link', { name: /A paper/ })).toBeInTheDocument()
       await fireEvent.click(
-        await screen.findByRole('button', { name: /^Add note “Meanders grow\.” to the draft/ }),
+        await screen.findByRole('button', { name: /^Insert at cursor: note “Meanders grow\.”/ }),
       )
       await waitFor(() => expect(api.posted).toHaveLength(1))
       expect(api.posted[0]).toEqual({
@@ -911,14 +919,14 @@ describe('the notes beside the draft', () => {
       api.saveFails = true
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
-        await screen.findByRole('button', { name: /^Add note “Erosion loops\.” to the draft/ }),
+        await screen.findByRole('button', { name: /^Insert at cursor: note “Erosion loops\.”/ }),
       )
       expect(await within(drawer()).findByRole('alert')).toHaveTextContent(
         "couldn't save the draft",
       )
       expect(api.posted).toEqual([])
       expect(
-        within(drawer()).getByRole('button', { name: /^Add note “Erosion loops\.”/ }),
+        within(drawer()).getByRole('button', { name: /^Insert at cursor: note “Erosion loops\.”/ }),
       ).toBeEnabled()
     })
 
@@ -927,7 +935,7 @@ describe('the notes beside the draft', () => {
       api.postFails = true
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
-        await screen.findByRole('button', { name: /^Add note “Erosion loops\.” to the draft/ }),
+        await screen.findByRole('button', { name: /^Insert at cursor: note “Erosion loops\.”/ }),
       )
       expect(await within(drawer()).findByRole('alert')).toHaveTextContent(
         "couldn't mark the note as added",
@@ -1093,7 +1101,7 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       await fireEvent.click(
         await within(await screen.findByRole('complementary')).findByRole('button', {
-          name: 'Add a link to “A paper” to the draft',
+          name: 'Insert at cursor: “A paper”',
         }),
       )
     }
@@ -1116,9 +1124,7 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       const list = within(await screen.findByRole('region', { name: 'Reading list' }))
       expect(await list.findByText('by Ada Lovelace and Bo Chen')).toBeInTheDocument()
-      expect(
-        list.getByRole('button', { name: 'Add a link to “A paper” to the draft' }),
-      ).toBeTruthy()
+      expect(list.getByRole('button', { name: 'Insert at cursor: “A paper”' })).toBeTruthy()
     })
 
     it('marks an item that has not been read, and no other', async () => {
@@ -1266,7 +1272,7 @@ describe('the notes beside the draft', () => {
       const api = mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
-        await screen.findByRole('button', { name: /^Add note “A useful quote\.” to the draft/ }),
+        await screen.findByRole('button', { name: /^Insert at cursor: note “A useful quote\.”/ }),
       )
       await waitFor(() => expect(api.posted).toHaveLength(1))
       expect(screen.queryByRole('dialog')).toBeNull()
@@ -1294,12 +1300,10 @@ describe('the notes beside the draft', () => {
       await notes.findByText('Erosion loops.')
       const select = notes.getByRole('combobox', { name: 'Filter by tag' })
       // Only tags on notes that can still be added are offered; "solo" is only on an added note.
-      expect(
-        Array.from(select.querySelectorAll('option')).map((o) => o.textContent?.trim()),
-      ).toEqual(['Choose a tag', 'intro', 'part 2'])
-      await fireEvent.update(select, 'part 2')
+      expect(await suggestedTags(select)).toEqual(['intro', 'part 2'])
+      await chooseTag(select, 'part 2')
       expect(listed()).toEqual(['Deposition inside the bend.'])
-      await fireEvent.update(select, 'intro')
+      await chooseTag(select, 'intro')
       expect(notes.queryByRole('list', { name: 'Notes to add' })).toBeNull()
       expect(notes.getByText('No notes have all these tags.')).toBeInTheDocument()
       await fireEvent.click(notes.getByRole('button', { name: 'Stop filtering by intro' }))
@@ -1325,9 +1329,9 @@ describe('the notes beside the draft', () => {
       await list.findByText('A paper')
       expect(list.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       const select = list.getByRole('combobox', { name: 'Filter by tag' })
-      await fireEvent.update(select, 'background')
+      await chooseTag(select, 'background')
       expect(list.queryByText('Bare')).toBeNull()
-      await fireEvent.update(select, 'part 2')
+      await chooseTag(select, 'part 2')
       expect(list.getByText('A paper')).toBeInTheDocument()
       expect(list.queryByText('Other')).toBeNull()
       await fireEvent.click(list.getByRole('button', { name: 'Stop filtering by background' }))
@@ -1346,8 +1350,8 @@ describe('the notes beside the draft', () => {
       await showTab('Reading list')
       const list = within(await screen.findByRole('region', { name: 'Reading list' }))
       const select = await list.findByRole('combobox', { name: 'Filter by tag' })
-      await fireEvent.update(select, 'a')
-      await fireEvent.update(select, 'b')
+      await chooseTag(select, 'a')
+      await chooseTag(select, 'b')
       expect(list.getByText('No items have all these tags.')).toBeInTheDocument()
     })
 
@@ -1355,9 +1359,9 @@ describe('the notes beside the draft', () => {
       mockDrafting({ notes: tagged() })
       await renderAt('/p/p1/drafts/d1')
       const notes = within(await screen.findByRole('complementary'))
-      await fireEvent.update(await notes.findByRole('combobox', { name: 'Filter by tag' }), 'intro')
+      await chooseTag(await notes.findByRole('combobox', { name: 'Filter by tag' }), 'intro')
       await fireEvent.click(
-        notes.getByRole('button', { name: /^Add note “Erosion loops\.” to the draft/ }),
+        notes.getByRole('button', { name: /^Insert at cursor: note “Erosion loops\.”/ }),
       )
       // The tag is no longer on anything that can be added, so the filter goes back to everything.
       await waitFor(() => expect(listed()).toContain('Untagged thought.'))

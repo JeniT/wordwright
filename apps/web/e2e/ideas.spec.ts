@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import {
   expect,
+  addFilterTag,
   goTo,
   openFilters,
   showReadItems,
@@ -294,7 +295,9 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await noViolations(page, 'drafting page with notes beside it')
 
   // Adding a note puts its words after the paragraph you are in, saves the draft, and sets the note aside.
-  await side.getByRole('button', { name: /^Add note “Erosion on the outside/ }).click()
+  await side
+    .getByRole('button', { name: /^Insert at cursor: note “Erosion on the outside/ })
+    .click()
   await expect(body).toContainText('Erosion on the outside of each bend.')
   await expect(side.getByText('Erosion on the outside of each bend.', { exact: true })).toHaveCount(
     0,
@@ -311,7 +314,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await side.getByLabel('Show added (1)').check()
   await side.getByRole('button', { name: /^Put note “Erosion on the outside/ }).click()
   await expect(
-    side.getByRole('button', { name: /^Add note “Erosion on the outside/ }),
+    side.getByRole('button', { name: /^Insert at cursor: note “Erosion on the outside/ }),
   ).toBeVisible()
 
   // The record survives a reload.
@@ -332,7 +335,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   const side = page.getByRole('complementary')
   await expect(side.getByText('The moon pulls the sea.')).toBeVisible()
   await noViolations(page, 'notes drawer open on a phone')
-  await side.getByRole('button', { name: /^Add note “The moon/ }).click()
+  await side.getByRole('button', { name: /^Insert at cursor: note “The moon/ }).click()
   await page.getByRole('button', { name: 'Close panel' }).click()
   await expect(page.getByRole('complementary')).toBeHidden()
   await expect(page.getByRole('textbox', { name: 'Draft body' })).toContainText(
@@ -460,7 +463,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
 
   // Show only that tag's items, then all again; the tag survives a reload.
   await openFilters(page)
-  await filter.selectOption('part 1')
+  await addFilterTag(filter, 'part 1')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.net', exact: true }),
   ).toHaveCount(0)
@@ -482,7 +485,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await page.getByRole('button', { name: 'Tag 2 items' }).click()
   await expect(page.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
   await openFilters(page)
-  await page.getByRole('combobox', { name: 'Filter by tag' }).selectOption('shared')
+  await addFilterTag(page.getByRole('combobox', { name: 'Filter by tag' }), 'shared')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.net', exact: true }),
   ).toBeVisible()
@@ -572,7 +575,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   // Both notes carry the tags, the third does not, and the tag now filters.
   await openFilters(page)
   const filter = notes.getByRole('combobox', { name: 'Filter by tag' })
-  await filter.selectOption('section one')
+  await addFilterTag(filter, 'section one')
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
   await expect(notes.getByText('Deposition on the inside.')).toBeVisible()
   await notes.getByRole('button', { name: 'Stop filtering by section one' }).click()
@@ -583,8 +586,10 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await notes.getByRole('button', { name: 'Tag…' }).click()
   await notes.getByRole('button', { name: 'Remove “intro”' }).click()
   await notes.getByRole('button', { name: 'Tag 2 notes' }).click()
-  await expect(filter.locator('option', { hasText: 'intro' })).toHaveCount(0)
-  await expect(filter.locator('option', { hasText: 'section one' })).toHaveCount(1)
+  await filter.fill('intro')
+  await expect(notes.getByRole('option')).toHaveCount(0) // nothing carries it now
+  await filter.fill('section')
+  await expect(notes.getByRole('option', { name: 'section one' })).toHaveCount(1)
   await page.reload()
   await expect(page.getByRole('button', { name: /^Filter/ })).toBeVisible() // the funnel, folded
 })
@@ -630,7 +635,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   // Show only one tag's notes; they can still be put in order, and "All" brings the rest back.
   await openFilters(page)
   const filter = notes.getByRole('combobox', { name: 'Filter by tag' })
-  await filter.selectOption('part 1')
+  await addFilterTag(filter, 'part 1')
   await expect(notes.getByText('Oxbow lakes form')).toHaveCount(0)
   await showArrowsFor(notes, /^Reorder note “Erosion/)
   await notes.getByRole('button', { name: /^Move note “Erosion.*up/ }).click()
@@ -643,7 +648,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   // Beside the draft, the same tags narrow the list to what belongs in this part.
   await startDraft(page)
   const side = page.getByRole('complementary')
-  await side.getByRole('combobox', { name: 'Filter by tag' }).selectOption('Part 2')
+  await addFilterTag(side.getByRole('combobox', { name: 'Filter by tag' }), 'Part 2')
   await expect(side.getByText('Oxbow lakes form')).toBeVisible()
   await expect(side.getByText('Deposition on the inside.')).toHaveCount(0)
   await noViolations(page, 'drafting page filtered by a tag')
@@ -698,7 +703,7 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await body.pressSequentially('My opening paragraph.')
   await page
     .getByRole('complementary')
-    .getByRole('button', { name: /^Add note “Meanders grow/ })
+    .getByRole('button', { name: /^Insert at cursor: note “Meanders grow/ })
     .click()
   const quoted = body.locator('blockquote')
   await expect(quoted).toContainText('Meanders grow because banks erode.')
@@ -827,7 +832,7 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   const body = page.getByRole('textbox', { name: 'Draft body' })
   await page
     .getByRole('complementary')
-    .getByRole('button', { name: /^Add note “Meanders grow/ })
+    .getByRole('button', { name: /^Insert at cursor: note “Meanders grow/ })
     .click()
   // The source is a link in the words ("… (Title)"), not just its title in brackets: it is underlined, and
   // it is in the saved Markdown as [Title](address).
@@ -861,7 +866,7 @@ test('a reading item is added to the draft as a link that says who wrote it', as
   await expect(side.getByText('by Ada Author and Bo Writer')).toBeVisible()
   await noViolations(page, 'drafting page, reading list')
 
-  await side.getByRole('button', { name: /^Add a link to “.*” to the draft$/ }).click()
+  await side.getByRole('button', { name: /^Insert at cursor: “.*”$/ }).click()
   await page
     .getByRole('dialog', { name: 'You haven’t marked this as read' })
     .getByRole('button', { name: 'Mark as read' })
@@ -915,7 +920,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   ])
   await page
     .getByRole('complementary')
-    .getByRole('button', { name: /^Add note “Erosion/ })
+    .getByRole('button', { name: /^Insert at cursor: note “Erosion/ })
     .click()
   await expect(body).toContainText('Erosion on the outside of each bend.')
 })

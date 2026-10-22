@@ -53,7 +53,6 @@ const shown = computed(() => props.readingList.filter((item) => matchesTags(item
         :can-add="canAdd"
         :drag="{ type: READING_DRAG_TYPE, id: item.id }"
         :label="`“${label(item)}”`"
-        :add-name="`Add a link to “${label(item)}” to the draft`"
         :busy="inserting.isPending.value && inserting.variables.value?.id === item.id"
         @add="inserting.mutate(item)"
       >

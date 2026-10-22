@@ -2242,3 +2242,9 @@ The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), 
 ### Draft publish section: one chip, link form folded away (#342)
 
 Once a draft is marked published, the Publish section shows just the green "Published" chip, as the row on the Draft page does; the green box around it said the same thing twice, so `PublishedNote` is gone (readers who aren't the editor see the chip and "View post" in a plain line). Once there is a link, its form folds away behind an edit icon button after "View post"; Save or Escape closes it and focus returns to the button. With no link the form shows, since it is the only way to add one.
+
+### Insert at cursor, and a typing tag filter (#343, part of #338)
+
+- **"Add to draft" is now "Insert at cursor"**, the same icon button, moved to the top of the drag rail. The rail is always drawn for someone who may edit (the button must work on a phone); only its grip is wide-screen. The accessible name is “Insert at cursor: ” plus the item's short label (a note's first words, a reading item's title).
+- **The tag filter is a combobox, not a select.** A text box with a tag icon suggests the tags on that list not yet chosen (substring, ignoring case); Return adds the active suggestion or an exactly typed tag and focus stays for the next. A tag nothing carries is refused with a message rather than creating a filter that can show nothing. Escape closes only the suggestions. Chips and "an item needs all of them" are unchanged.
+- **Help page:** no page described either control.

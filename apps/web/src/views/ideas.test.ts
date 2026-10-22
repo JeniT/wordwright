@@ -10,6 +10,8 @@ import {
   testUser,
   useMockServer,
   expectOrigin,
+  chooseTag,
+  suggestedTags,
 } from '../test-utils'
 
 useMockServer({ warm: ['publication'] })
@@ -756,18 +758,15 @@ describe('idea page', () => {
       expect(screen.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       await openFilters()
       const select = screen.getByRole('combobox', { name: 'Filter by tag' })
-      expect(
-        Array.from(select.querySelectorAll('option')).map((o) => o.textContent?.trim()),
-      ).toEqual([
-        'Choose a tag',
+      expect(await suggestedTags(select)).toEqual([
         'background', // "Background" and "background" are one tag
         'part 2',
       ])
-      await fireEvent.update(select, 'part 2')
+      await chooseTag(select, 'part 2')
       expect(screen.getByRole('link', { name: 'A paper' })).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: 'Other' })).toBeNull()
       // Tags narrow the list: an item needs all of them.
-      await fireEvent.update(select, 'background')
+      await chooseTag(select, 'background')
       expect(screen.getByRole('link', { name: 'A paper' })).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: 'Third' })).toBeNull()
       await fireEvent.click(screen.getByRole('button', { name: 'Stop filtering by part 2' }))
@@ -784,7 +783,7 @@ describe('idea page', () => {
       expect(screen.queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
       await fireEvent.click(funnel)
       expect(funnel).toHaveAttribute('aria-expanded', 'true')
-      await fireEvent.update(screen.getByRole('combobox', { name: 'Filter by tag' }), 'part 2')
+      await chooseTag(screen.getByRole('combobox', { name: 'Filter by tag' }), 'part 2')
       await fireEvent.click(screen.getByRole('button', { name: 'Close the filters' }))
       expect(screen.queryByRole('combobox', { name: 'Filter by tag' })).toBeNull()
       // Still filtering, and the header says so.
@@ -797,7 +796,7 @@ describe('idea page', () => {
       await openTagged()
       await screen.findByRole('link', { name: 'A paper' })
       await openFilters()
-      await fireEvent.update(screen.getByRole('combobox', { name: 'Filter by tag' }), 'background')
+      await chooseTag(screen.getByRole('combobox', { name: 'Filter by tag' }), 'background')
       await fireEvent.click(screen.getByRole('checkbox', { name: 'Select all items on this page' }))
       expect(screen.getByText('2 selected')).toBeInTheDocument() // A paper and Third, not Other
       expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
@@ -1562,13 +1561,11 @@ describe('idea page', () => {
         await openFilters()
         const select = within(region()).getByRole('combobox', { name: 'Filter by tag' })
         // Each tag once, whatever its case, and no "All".
-        expect(
-          Array.from(select.querySelectorAll('option')).map((o) => o.textContent?.trim()),
-        ).toEqual(['Choose a tag', 'intro', 'draft 2'])
+        expect(await suggestedTags(select)).toEqual(['intro', 'draft 2'])
 
-        await fireEvent.update(select, 'intro')
+        await chooseTag(select, 'intro')
         expect(texts()).toEqual(['Erosion loops.', 'Oxbow lakes.'])
-        await fireEvent.update(select, 'draft 2')
+        await chooseTag(select, 'draft 2')
         // A note needs both tags.
         expect(texts()).toEqual(['Erosion loops.'])
         await fireEvent.click(
@@ -1590,8 +1587,8 @@ describe('idea page', () => {
         await screen.findByText('Erosion loops.')
         await openFilters()
         const select = within(region()).getByRole('combobox', { name: 'Filter by tag' })
-        await fireEvent.update(select, 'draft 2')
-        await fireEvent.update(select, 'intro')
+        await chooseTag(select, 'draft 2')
+        await chooseTag(select, 'intro')
         expect(screen.getByText('No notes have all these tags.')).toBeInTheDocument()
       })
 
@@ -1600,7 +1597,7 @@ describe('idea page', () => {
         await open()
         await screen.findByText('Erosion loops.')
         await openFilters()
-        await fireEvent.update(
+        await chooseTag(
           within(region()).getByRole('combobox', { name: 'Filter by tag' }),
           'draft 2',
         )
@@ -1617,10 +1614,7 @@ describe('idea page', () => {
         await open()
         await screen.findByText('Only one.')
         await openFilters()
-        await fireEvent.update(
-          within(region()).getByRole('combobox', { name: 'Filter by tag' }),
-          'solo',
-        )
+        await chooseTag(within(region()).getByRole('combobox', { name: 'Filter by tag' }), 'solo')
         expect(texts()).toEqual(['Only one.'])
         await fireEvent.click(
           screen.getByRole('button', { name: /^Add tags to note “Only one\.”/ }),

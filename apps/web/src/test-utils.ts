@@ -184,3 +184,15 @@ export async function openFilters() {
   const button = await screen.findByRole('button', { name: /^Filter/ })
   if (button.getAttribute('aria-expanded') !== 'true') await fireEvent.click(button)
 }
+
+/** Types a tag into a "Filter by tag" box and presses Return, as a person adds one to the filter. */
+export async function chooseTag(box: HTMLElement, tag: string) {
+  await fireEvent.update(box, tag)
+  await fireEvent.keyDown(box, { key: 'Enter' })
+}
+
+/** The tags a "Filter by tag" box suggests when it has focus and nothing typed. */
+export async function suggestedTags(box: HTMLElement) {
+  await fireEvent.focus(box)
+  return screen.queryAllByRole('option').map((o) => o.textContent?.trim())
+}
