@@ -375,8 +375,13 @@ const wordCountText = computed(() => {
   const e = editor.value
   const markdown = model.value // read so that every change to the text recounts
   const plain = sourceMode.value || !e ? markdown : e.getText({ blockSeparator: '\n' })
-  const total = countWords(plain)
-  const chosen = selectedText.value ? countWords(selectedText.value) : 0
+  // In the Markdown box the marks (`##`, `-`, `**`) are not words, so only pieces with a letter or digit count.
+  const count = (text: string) =>
+    sourceMode.value
+      ? text.split(/\s+/).filter((piece) => /[\p{L}\p{N}]/u.test(piece)).length
+      : countWords(text)
+  const total = count(plain)
+  const chosen = selectedText.value ? count(selectedText.value) : 0
   const words = (n: number) => `${n} ${n === 1 ? 'word' : 'words'}`
   return chosen ? `${chosen} of ${words(total)}` : words(total)
 })

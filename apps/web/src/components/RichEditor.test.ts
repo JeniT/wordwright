@@ -81,6 +81,25 @@ describe('RichEditor toolbar', () => {
     await waitFor(() => expect(count).toHaveTextContent('2 of 5 words'))
   })
 
+  it('does not count Markdown marks as words in the Markdown box', async () => {
+    show('## A title\n\n- one two', { markdownMode: true })
+    await waitFor(() => expect(screen.getByTestId('word-count')).toHaveTextContent('4 words'))
+  })
+
+  it('moves along the new order with the arrow keys, ending on the Markdown button', async () => {
+    show('Words')
+    await screen.findByRole('textbox', { name: 'Draft body' })
+    const link = button('Link')
+    link.focus()
+    await fireEvent.keyDown(link, { key: 'ArrowRight' })
+    expect(button('Remove link')).not.toHaveFocus() // off with no link under the cursor: skipped
+    expect(button('Bulleted list')).toHaveFocus()
+    await fireEvent.keyDown(button('Bulleted list'), { key: 'End' })
+    expect(button('Edit as Markdown')).toHaveFocus()
+    await fireEvent.keyDown(button('Edit as Markdown'), { key: 'ArrowLeft' })
+    expect(button('Code block')).toHaveFocus()
+  })
+
   it('has no toolbar for someone who may only read the draft', async () => {
     show('Words', { editable: false })
     await screen.findByRole('textbox', { name: 'Draft body' })
