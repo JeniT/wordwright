@@ -261,7 +261,7 @@ function removeLink() {
       >
         <ToolButton
           label="Comment"
-          title="Comment on the selected words or the paragraph you are in"
+          title="Comment on the selected words"
           icon="comment"
           :pressed="false"
           momentary

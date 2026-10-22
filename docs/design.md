@@ -203,7 +203,7 @@ The draft's toolbar ends with a small group, apart from the formatting and never
 
 **Selected words.** A comment made on words inside one paragraph keeps them (`quote`, up to 300 characters; the server keeps it only if the paragraph's text contains exactly those words). Where the paragraph still contains them they are underlined in the text (`comment-quote`: `line-strong` for a person, never the highlighter, which is the AI's); where it no longer does, the paragraph is marked as before. A selection across paragraphs puts the comment on the first, with no words.
 
-**People without a toolbar** (a member who isn't the editor, and reviewers) get a sticky, right-aligned bar above the text with a spelled-out **Add comment** button (icon and words). Members use the composer in their Comments tab; reviewers get a dialog ("Add a comment") with the same composer, which shows the selected words, or the start of the paragraph. A reviewer can only comment on paragraphs of their own snapshot.
+**People without a toolbar** (a member who isn't the editor, and reviewers) get a sticky, right-aligned bar above the text with a spelled-out **Add comment** button (icon and words). Members use the composer in their Comments tab; reviewers get a dialog ("Add comment") with the same composer, which shows the selected words, or the start of the paragraph. A reviewer can only comment on paragraphs of their own snapshot.
 
 ### The Rephrase window and its options
 

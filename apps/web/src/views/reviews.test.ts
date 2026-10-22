@@ -118,7 +118,7 @@ describe('reading one review', () => {
     expect(screen.queryByRole('toolbar')).toBeNull() // reviewers have no toolbar, only the bar
     expect(screen.queryByLabelText('Your comment')).toBeNull() // the form is no longer on the page
     await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Add a comment' })
+    const dialog = await screen.findByRole('dialog', { name: 'Add comment' })
     // Nothing selected in the snapshot: a general comment.
     expect(within(dialog).getByRole('heading', { name: 'General comment' })).toBeTruthy()
     expect(within(dialog).getByText(/Only you and the draft’s editor will see this/)).toBeTruthy()
@@ -148,7 +148,7 @@ describe('reading one review', () => {
     const dom = document.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }
     dom.editor.commands.setTextSelection({ from: 15, to: 19 }) // "They" in the second paragraph
     await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Add a comment' })
+    const dialog = await screen.findByRole('dialog', { name: 'Add comment' })
     expect(within(dialog).getByRole('heading', { name: 'Comment on paragraph 2' })).toBeTruthy()
     expect(within(dialog).getByText('“They”')).toBeTruthy()
     await fireEvent.update(within(dialog).getByLabelText('Your comment'), 'Who?')

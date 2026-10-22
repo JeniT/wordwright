@@ -40,7 +40,10 @@ const props = defineProps<{
   isEditor: boolean
   editorName: string
   /** A comment is being written (the Comment button was pressed); null when not, `target: null` for a general one. */
-  composing: { target: { block: string; number: number; quote: string | null } | null } | null
+  composing: {
+    id: number
+    target: { block: string; number: number; quote: string | null } | null
+  } | null
   add: (input: CommentInput) => Promise<unknown>
   /** Why the last Resolved switch could not be saved, if it could not. */
   resolveProblem?: string
@@ -106,6 +109,7 @@ defineExpose({
     <h2 id="comments-heading" class="sr-only">Comments</h2>
     <CommentComposer
       v-if="composing"
+      :key="composing.id"
       ref="composer"
       class="mb-4"
       :target="composing.target"

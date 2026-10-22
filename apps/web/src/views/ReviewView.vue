@@ -4,6 +4,7 @@ import { computed, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import { WHOLE_DRAFT, excerptOf, splitBlocks, type CommentInput } from '@wordwright/core'
 import CommentCard from '../components/CommentCard.vue'
+import { blockFor } from '../lib/comment-target'
 import CommentComposer from '../components/CommentComposer.vue'
 import ModalDialog from '../components/ModalDialog.vue'
 import QueryState from '../components/QueryState.vue'
@@ -32,13 +33,14 @@ const composing = ref<{
 } | null>(null)
 function startComment() {
   const at = editor.value?.commentTarget()
-  const block = at ? blocks.value[at.index] : undefined
+  const found = at ? blockFor(at, blocks.value) : null
+  const block = found ? blocks.value.find((b) => b.id === found.id) : undefined
   composing.value = {
     target:
-      at && block
+      at && found && block
         ? {
-            block: block.id,
-            number: at.index + 1,
+            block: found.id,
+            number: found.number,
             quote: at.quote,
             excerpt: excerptOf(block.text, 80),
           }
@@ -121,7 +123,7 @@ const end = useMutation({
 
         <ModalDialog
           :open="!!composing"
-          title="Add a comment"
+          title="Add comment"
           :footer="false"
           @close="composing = null"
         >

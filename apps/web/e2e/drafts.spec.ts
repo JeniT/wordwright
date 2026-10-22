@@ -1180,7 +1180,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
     'false',
   )
   await rae.getByRole('button', { name: 'Add comment' }).click()
-  const raeDialog = rae.getByRole('dialog', { name: 'Add a comment' })
+  const raeDialog = rae.getByRole('dialog', { name: 'Add comment' })
   await expect(raeDialog.getByRole('heading', { name: 'General comment' })).toBeVisible() // nothing selected
   await raeDialog.getByLabel('Your comment').fill('Which rivers do you mean?')
   await raeDialog.getByRole('button', { name: 'Add comment' }).click()

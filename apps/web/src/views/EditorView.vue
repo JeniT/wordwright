@@ -48,6 +48,7 @@ import {
   useResolveComment,
   useIdea,
 } from '../lib/queries'
+import { blockFor } from '../lib/comment-target'
 import type { CommentMarkPoint } from '../lib/comment-marks'
 import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 import type { TextSelection } from '../lib/text-selection'
@@ -486,7 +487,9 @@ function noteFocus(event: FocusEvent) {
   else if (el.closest('.ProseMirror')) caretIn.value = 'body'
 }
 /** A comment being written: about a paragraph (and perhaps words in it), or null target for a general one. */
+let composings = 0
 const composing = ref<{
+  id: number
   target: { block: string; number: number; quote: string | null } | null
 } | null>(null)
 async function startComment() {
@@ -503,9 +506,10 @@ async function startComment() {
     return
   }
   const at = !canEdit.value || caretIn.value === 'body' ? editor.value?.commentTarget() : null
-  const block = at ? splitBlocks(body.value)[at.index] : undefined
+  const block = at ? blockFor(at, splitBlocks(body.value)) : null
   composing.value = {
-    target: at && block ? { block: block.id, number: at.index + 1, quote: at.quote } : null,
+    id: ++composings,
+    target: at && block ? { block: block.id, number: block.number, quote: at.quote } : null,
   }
   sideTab.value = 'comments'
   if (!sideIsBeside() && !notesOpen.value) await openNotes()
