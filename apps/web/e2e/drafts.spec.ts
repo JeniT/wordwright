@@ -124,6 +124,10 @@ test('a draft saves itself while you write, and the words are there after a relo
   await page.keyboard.type('Rivers rarely flow straight.')
   await expect(page.getByText('Not saved yet')).toBeVisible()
   await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('word-count')).toHaveText('4 words') // the body only, not the title
+  await page.keyboard.press('ControlOrMeta+K')
+  await expect(page.getByRole('dialog', { name: 'Add a link' })).toBeVisible()
+  await page.keyboard.press('Escape')
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
   await page.reload()

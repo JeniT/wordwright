@@ -50,17 +50,35 @@ describe('RichEditor toolbar', () => {
       'Heading 3',
       'Bold',
       'Italic',
-      'Inline code',
-      'Quote',
-      'Bulleted list',
-      'Numbered list',
-      'Code block',
       'Link',
       'Remove link',
+      'Bulleted list',
+      'Numbered list',
+      'Quote',
+      'Inline code',
+      'Code block',
       'Edit as Markdown',
     ])
+    expect(within(toolbar).getAllByRole('separator')).toHaveLength(3)
     const styles = within(toolbar).getByRole('group', { name: 'Text style' })
     expect(within(styles).getAllByRole('button')).toHaveLength(3)
+  })
+
+  it('opens the link dialog with Ctrl+K from the text', async () => {
+    const { editor } = show('Visit our site')
+    await screen.findByRole('textbox', { name: 'Draft body' })
+    editor().commands.selectAll()
+    await fireEvent.keyDown(document.querySelector('.ProseMirror')!, { key: 'k', ctrlKey: true })
+    expect(await screen.findByRole('dialog', { name: 'Add a link' })).toBeInTheDocument()
+  })
+
+  it('counts the words of the body, and "N of M" with some selected', async () => {
+    const { editor } = show('# A title\n\nOne two three.')
+    await screen.findByRole('textbox', { name: 'Draft body' })
+    const count = screen.getByTestId('word-count')
+    await waitFor(() => expect(count).toHaveTextContent('5 words'))
+    editor().commands.setTextSelection({ from: 10, to: 17 }) // "One two"
+    await waitFor(() => expect(count).toHaveTextContent('2 of 5 words'))
   })
 
   it('has no toolbar for someone who may only read the draft', async () => {

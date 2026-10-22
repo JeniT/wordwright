@@ -121,6 +121,7 @@ export const TOOLS: Record<ToolName, Tool> = {
   link: {
     label: 'Link',
     icon: 'link',
+    shortcut: 'Mod+K',
     isActive: (e) => e.isActive('link'),
   },
   unlink: {
@@ -143,21 +144,24 @@ export const DESCRIPTION_TOOLS: ToolName[] = [
   'unlink',
 ]
 
-/** The toolbar of the draft. */
+/** The toolbar of the draft, in the order it shows. */
 export const DRAFT_TOOLS: ToolName[] = [
   'paragraph',
   'heading2',
   'heading3',
   'bold',
   'italic',
-  'code',
-  'quote',
-  'bulletList',
-  'orderedList',
-  'codeBlock',
   'link',
   'unlink',
+  'bulletList',
+  'orderedList',
+  'quote',
+  'code',
+  'codeBlock',
 ]
+
+/** The draft's tools that end a section: a divider follows each, unless nothing is left after it on the bar. */
+export const DRAFT_DIVIDERS: ToolName[] = ['heading3', 'unlink', 'quote']
 
 const onMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 

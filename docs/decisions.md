@@ -2225,3 +2225,10 @@ The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), 
 - **Every save button says "Saving…" while it runs**, except the AI key, which says "Checking key…" because that is what takes the time.
 - Email and Password clear their fields after success, so their message ("Link sent…", "Password changed…") goes as soon as anything is typed again.
 - **No help page change.** No help page describes this.
+
+## Draft toolbar order, and the status line (#340, part of #338)
+
+- **Order follows the job:** text style, then emphasis and links, then lists and quote, then code. Sections are separated by thin dividers, not boxes; `DRAFT_DIVIDERS` names the last tool of each section. A divider is not drawn at the end of what is shown, so the More menu never leaves one dangling. Comment, Rephrase and Edit as Markdown sit together on the right and are never in More.
+- **Ctrl or ⌘ + K opens the link dialog** from the rich-text editor (the toolbar listens on the editor's element), and the Link tooltip says so. In the Markdown box it does nothing, as there is no dialog to fill in.
+- **Status line above the toolbar:** `SaveStatus` on the left (its text is a polite status, so it changes only when the save state does, not on each key), the word count on the right. The count is of the body's text, not its Markdown (so `##` and list markers are not words); with a selection it is "N of M words". The failure and conflict callouts below the draft stay, since they carry the Try again button; the status line points to them.
+- **Help page** (Formatting your draft) mentions the line and the Ctrl+K shortcut.

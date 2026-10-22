@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import type { Editor } from '@tiptap/vue-3'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, useTemplateRef } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  useId,
+  useTemplateRef,
+  watchEffect,
+} from 'vue'
 import { TOOLS, toolTitle, type Tool, type ToolName } from '../lib/editor-tools'
 import LinkDialog from './LinkDialog.vue'
 import ToolButton from './ToolButton.vue'
@@ -10,11 +19,15 @@ import ToolButton from './ToolButton.vue'
  * offers; the buttons are icon-only (each named, with a tooltip that gives its shortcut) and say what is on at the
  * cursor with `aria-pressed`. The bar is a single tab stop; the arrow keys move along it. Buttons that do not fit
  * the width move into a More menu rather than wrapping or scrolling. The draft also offers a switch to Markdown
- * (`markdownToggle`), which hides the formatting buttons because they act on the rich-text editor.
+ * (`markdownToggle`), which hides the formatting buttons because they act on the rich-text editor. Comment, Rephrase
+ * and the toggle sit together on the right and are never in the More menu. Ctrl or ⌘ and K opens the link dialog
+ * from the text.
  */
 const props = defineProps<{
   editor: Editor | undefined
   tools: ToolName[]
+  /** Tools that end a section: a divider follows each (unless the bar has nothing after it). */
+  dividers?: ToolName[]
   /** Offer the "Edit as Markdown" button. */
   markdownToggle?: boolean
   /** Offer the Comment and Rephrase buttons, apart from the formatting, on the right. */
@@ -26,6 +39,7 @@ const emit = defineEmits<{ comment: []; rephrase: [] }>()
 const markdownMode = defineModel<boolean>('markdownMode', { default: false })
 
 const SLOT = 38 // a button (2.25rem) and the gap after it, in pixels
+const DIVIDER = 13 // a divider (1px) with its margins and the gaps beside it
 const barId = useId()
 const bar = useTemplateRef<HTMLElement>('bar')
 
@@ -37,13 +51,13 @@ const hidden = computed(() => props.tools.slice(fitting.value ?? props.tools.len
 function measure() {
   const width = bar.value?.clientWidth ?? 0
   if (!width) return // not laid out (or not in a browser): show everything
-  const toggle = (props.markdownToggle ? SLOT : 0) + (props.actions ? 2 * SLOT + 8 : 0)
-  const grouped = props.tools.some((name) => TOOLS[name].group) ? 8 : 0 // a group's border and padding
+  const right = (props.markdownToggle ? SLOT : 0) + (props.actions ? 2 * SLOT : 0)
   const all = props.tools.length
+  const dividers = props.dividers?.length ?? 0
   fitting.value =
-    all * SLOT + toggle + grouped <= width
+    all * SLOT + dividers * DIVIDER + right <= width
       ? null
-      : Math.max(1, Math.floor((width - toggle - grouped - SLOT - 12) / SLOT))
+      : Math.max(1, Math.floor((width - right - SLOT - 12 - dividers * DIVIDER) / SLOT))
 }
 let observer: ResizeObserver | undefined
 onMounted(() => {
@@ -65,6 +79,12 @@ function chunks(names: ToolName[]): { group?: string; names: ToolName[] }[] {
   }
   return out
 }
+
+/** Whether a divider follows this tool: it ends a section and something is shown after it. */
+const dividerAfter = (name: ToolName) =>
+  !!props.dividers?.includes(name) && shown.value.indexOf(name) < shown.value.length - 1
+
+const DIVIDER_CLASS = 'mx-1 h-5 w-px shrink-0 bg-line-strong'
 
 const active = (tool: Tool) => !!props.editor && tool.isActive(props.editor)
 /** What a tool's button shows: the same wherever it sits (the bar, a group or the More menu). */
@@ -168,6 +188,20 @@ function closeLink() {
     if (document.activeElement === document.body) props.editor?.commands.focus()
   })
 }
+// Ctrl or ⌘ and K, from the text. (In the Markdown box there is no link dialog to open.)
+watchEffect((onCleanup) => {
+  const e = props.editor
+  if (!e || e.isDestroyed || !props.tools.includes('link')) return
+  const dom = e.view.dom
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey)) return
+    if (event.shiftKey || event.altKey) return
+    event.preventDefault() // the browser's own use of it (the address bar's search)
+    openLink()
+  }
+  dom.addEventListener('keydown', onKey)
+  onCleanup(() => dom.removeEventListener('keydown', onKey))
+})
 function applyLink(href: string) {
   const e = props.editor
   if (!e) return
@@ -200,26 +234,23 @@ function removeLink() {
     >
       <template v-if="!markdownMode">
         <template v-for="(chunk, i) in chunks(shown)" :key="i">
-          <span
-            v-if="chunk.group"
-            role="group"
-            :aria-label="chunk.group"
-            class="flex gap-0.5 rounded-ctl border border-line p-0.5"
-          >
-            <ToolButton
-              v-for="name in chunk.names"
-              :key="name"
-              v-bind="{ ...toolProps(name), ...rovingProps(name) }"
-              @press="press(name)"
-            />
+          <span v-if="chunk.group" role="group" :aria-label="chunk.group" class="flex gap-1">
+            <template v-for="name in chunk.names" :key="name">
+              <ToolButton
+                v-bind="{ ...toolProps(name), ...rovingProps(name) }"
+                @press="press(name)"
+              />
+              <span v-if="dividerAfter(name)" :class="DIVIDER_CLASS" role="separator"></span>
+            </template>
           </span>
           <template v-else>
-            <ToolButton
-              v-for="name in chunk.names"
-              :key="name"
-              v-bind="{ ...toolProps(name), ...rovingProps(name) }"
-              @press="press(name)"
-            />
+            <template v-for="name in chunk.names" :key="name">
+              <ToolButton
+                v-bind="{ ...toolProps(name), ...rovingProps(name) }"
+                @press="press(name)"
+              />
+              <span v-if="dividerAfter(name)" :class="DIVIDER_CLASS" role="separator"></span>
+            </template>
           </template>
         </template>
 
@@ -252,44 +283,40 @@ function removeLink() {
         </template>
       </template>
 
-      <!-- Never in the More menu: they are what the writer does with words they have selected. -->
-      <span
-        v-if="actions"
-        role="group"
-        aria-label="Comment and rephrase"
-        class="ml-auto flex gap-0.5 rounded-ctl border border-line p-0.5"
-      >
+      <!-- Never in the More menu: Comment and Rephrase are what the writer does with words they have selected. -->
+      <div v-if="actions || markdownToggle" class="ml-auto flex gap-1">
+        <span v-if="actions" role="group" aria-label="Comment and rephrase" class="flex gap-1">
+          <ToolButton
+            label="Comment"
+            title="Comment on the selected words"
+            icon="comment"
+            :pressed="false"
+            momentary
+            :unavailable="markdownMode"
+            v-bind="rovingProps('comment')"
+            @press="emit('comment')"
+          />
+          <ToolButton
+            label="Rephrase"
+            title="Rephrase the selected words"
+            icon="ai"
+            :pressed="false"
+            momentary
+            :unavailable="markdownMode || !rephraseReady"
+            v-bind="rovingProps('rephrase')"
+            @press="emit('rephrase')"
+          />
+        </span>
         <ToolButton
-          label="Comment"
-          title="Comment on the selected words"
-          icon="comment"
-          :pressed="false"
-          momentary
-          :unavailable="markdownMode"
-          v-bind="rovingProps('comment')"
-          @press="emit('comment')"
+          v-if="markdownToggle"
+          label="Edit as Markdown"
+          title="Edit as Markdown"
+          icon="markdown"
+          :pressed="markdownMode"
+          v-bind="rovingProps('markdown')"
+          @press="markdownMode = !markdownMode"
         />
-        <ToolButton
-          label="Rephrase"
-          title="Rephrase the selected words"
-          icon="ai"
-          :pressed="false"
-          momentary
-          :unavailable="markdownMode || !rephraseReady"
-          v-bind="rovingProps('rephrase')"
-          @press="emit('rephrase')"
-        />
-      </span>
-      <ToolButton
-        v-if="markdownToggle"
-        :class="actions ? '' : 'ml-auto'"
-        label="Edit as Markdown"
-        title="Edit as Markdown"
-        icon="markdown"
-        :pressed="markdownMode"
-        v-bind="rovingProps('markdown')"
-        @press="markdownMode = !markdownMode"
-      />
+      </div>
     </div>
 
     <LinkDialog

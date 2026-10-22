@@ -5,8 +5,8 @@ import StarterKit from '@tiptap/starter-kit'
 import { Mark } from '@tiptap/pm/model'
 import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { computed, nextTick, useTemplateRef, watch } from 'vue'
-import { DRAFT_TOOLS } from '../lib/editor-tools'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { DRAFT_DIVIDERS, DRAFT_TOOLS } from '../lib/editor-tools'
 import Icon from './Icon.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import {
@@ -16,7 +16,7 @@ import {
   type CommentMarkPoint,
   type CommentMarkStorage,
 } from '../lib/comment-marks'
-import { COMMENT_QUOTE_MAX_LENGTH } from '@wordwright/core'
+import { COMMENT_QUOTE_MAX_LENGTH, countWords } from '@wordwright/core'
 import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
 import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
@@ -54,6 +54,12 @@ const emit = defineEmits<{
   /** A reading item from the side bar was dropped on the text: its link goes in at this position (as for a note). */
   readingDrop: [itemId: string, position: number | undefined]
 }>()
+
+/** The selection changed: the count of words and the page (through `selectionChange`) both hear. */
+function emitSelection(selection: TextSelection | null) {
+  selectedText.value = selection?.text ?? ''
+  emit('selectionChange', selection)
+}
 
 /** What a drag from the side bar carries, if it is one of ours: which kind, and the id. */
 function dragged(event: DragEvent): { type: 'note' | 'reading'; id: string } | null {
@@ -139,8 +145,7 @@ const editor = useEditor({
   },
   onSelectionUpdate: ({ editor }) => {
     const { from, to, empty, $from, $to } = editor.state.selection
-    emit(
-      'selectionChange',
+    emitSelection(
       empty
         ? null
         : {
@@ -281,9 +286,9 @@ function reportSourceSelection() {
   const box = source.value
   if (!box) return
   const { selectionStart: from, selectionEnd: to } = box
-  if (from === to) return emit('selectionChange', null)
+  if (from === to) return emitSelection(null)
   const text = box.value.slice(from, to)
-  emit('selectionChange', { from, to, text, sameBlock: !/\n\s*\n/.test(text) })
+  emitSelection({ from, to, text, sameBlock: !/\n\s*\n/.test(text) })
 }
 function placeSourceCaret(offset: number) {
   nextTick(() => {
@@ -291,7 +296,7 @@ function placeSourceCaret(offset: number) {
     if (!box) return
     box.focus()
     box.setSelectionRange(offset, offset)
-    emit('selectionChange', null)
+    emitSelection(null)
   })
 }
 /**
@@ -332,7 +337,7 @@ function onSourceDrop(event: DragEvent) {
 
 // Switching between the editor and the box: the box is plain text, so what is selected, and where, no longer applies.
 watch(sourceMode, (on) => {
-  emit('selectionChange', null)
+  emitSelection(null)
   if (on) {
     nextTick(() => source.value?.focus())
   } else {
@@ -363,6 +368,18 @@ function commentTarget(): { index: number; text: string; quote: string | null } 
     quote: quote && quote.length <= COMMENT_QUOTE_MAX_LENGTH ? quote : null,
   }
 }
+
+// ---- the word count, for the body only; with words selected it is "N of M words"
+const selectedText = ref('')
+const wordCountText = computed(() => {
+  const e = editor.value
+  const markdown = model.value // read so that every change to the text recounts
+  const plain = sourceMode.value || !e ? markdown : e.getText({ blockSeparator: '\n' })
+  const total = countWords(plain)
+  const chosen = selectedText.value ? countWords(selectedText.value) : 0
+  const words = (n: number) => `${n} ${n === 1 ? 'word' : 'words'}`
+  return chosen ? `${chosen} of ${words(total)}` : words(total)
+})
 
 defineExpose({
   commentTarget,
@@ -405,10 +422,16 @@ watch(model, (value) => {
       v-if="editable !== false"
       class="sticky top-0 z-10 mb-3 border-b border-line bg-paper py-1"
     >
+      <!-- Above the buttons: the save state (the page's, in the slot) and how long the text is. -->
+      <div class="mb-1 flex items-baseline justify-between gap-3 text-sm text-ink-soft">
+        <div class="min-h-5"><slot name="status" /></div>
+        <p data-testid="word-count">{{ wordCountText }}</p>
+      </div>
       <EditorToolbar
         v-model:markdown-mode="markdownMode"
         :editor="editor"
         :tools="DRAFT_TOOLS"
+        :dividers="DRAFT_DIVIDERS"
         markdown-toggle
         :actions="actions"
         :rephrase-ready="rephraseReady"

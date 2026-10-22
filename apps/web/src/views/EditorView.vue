@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
+import SaveStatus from '../components/SaveStatus.vue'
 import PersonChip from '../components/PersonChip.vue'
 import PublishedNote from '../components/PublishedNote.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -117,17 +118,23 @@ const autosave = useAutosave({
 })
 /** The draft was saved from somewhere else since this page loaded it: what is typed here is kept, not sent. */
 const conflict = computed(() => autosave.state.value === 'halted')
-const saveStatus = computed(
-  () =>
-    ({
-      idle: '',
-      unsaved: 'Not saved yet',
-      saving: 'Saving…',
-      saved: 'Saved',
-      failed: '',
-      halted: '',
-    })[autosave.state.value],
-)
+/** The save line above the toolbar, as `SaveStatus` takes it: the words say what to do next when the save didn't happen. */
+const saveLine = computed(() => ({
+  mutation: {
+    isPending: computed(() => autosave.state.value === 'saving'),
+    isSuccess: computed(() => autosave.state.value === 'saved'),
+    isError: computed(() => false), // failures are said below the draft, with their button
+    error: ref<unknown>(null),
+  },
+  text: {
+    idle: '',
+    unsaved: 'Not saved yet',
+    saving: '',
+    saved: '',
+    failed: 'Not saved. Check your connection, then use Try again below the draft.',
+    halted: 'Not saved: the draft was changed somewhere else. See below.',
+  }[autosave.state.value],
+}))
 /** Why a save that something else was waiting on didn't happen, with what the person can do about it. */
 function notSavedYet(what: string) {
   return new Error(
@@ -686,6 +693,14 @@ async function requestCritique() {
           @point-pick="pickPoint"
           @located="paragraphs = $event"
         >
+          <template v-if="canEdit" #status>
+            <SaveStatus
+              :mutation="saveLine.mutation"
+              saving="Saving…"
+              saved="Saved"
+              :text="saveLine.text"
+            />
+          </template>
           <template #toolbar-notes>
             <p role="status" class="text-sm text-ink-soft" :class="toolReason ? 'mt-1' : ''">
               {{ toolReason }}
@@ -734,7 +749,6 @@ async function requestCritique() {
           >
             Open panel
           </button>
-          <p v-if="canEdit && saveStatus" class="text-sm text-ink-soft">{{ saveStatus }}</p>
         </div>
         <p v-if="canEdit" id="critique-sent" class="mt-2 text-sm text-ink-soft">
           Critique will send this publication’s description and this draft’s title and text to your

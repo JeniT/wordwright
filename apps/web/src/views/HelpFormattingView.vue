@@ -7,7 +7,10 @@ import HelpPage from '../components/HelpPage.vue'
     <p class="mb-4">
       The row of buttons above your draft formats the words you have selected, or the line the
       cursor is in. Point at a button to see its name and its shortcut. On a narrow screen the
-      buttons that don’t fit are under the three dots.
+      buttons that don’t fit are under the three dots. Comment, Rephrase and the Markdown button sit
+      together on the right and are always there. Above the buttons, the left says whether your
+      draft is saved and the right counts the words of the draft (not the title); with words
+      selected it reads, for example, “12 of 480 words”.
     </p>
     <h2 class="mb-2 font-display text-xl font-semibold">What you can use</h2>
     <ul class="mb-4 list-disc space-y-2 pl-5">
@@ -33,7 +36,7 @@ import HelpPage from '../components/HelpPage.vue'
       <li>Bold: Ctrl+B. Italic: Ctrl+I. Inline code: Ctrl+E.</li>
       <li>Heading 2: Ctrl+Alt+2. Heading 3: Ctrl+Alt+3. Paragraph: Ctrl+Alt+0.</li>
       <li>Quote: Ctrl+Shift+B. Bulleted list: Ctrl+Shift+8. Numbered list: Ctrl+Shift+7.</li>
-      <li>Code block: Ctrl+Alt+C.</li>
+      <li>Code block: Ctrl+Alt+C. Link: Ctrl+K.</li>
       <li>
         Save now: Ctrl+S. Your draft also saves itself a couple of seconds after you stop typing, so
         there is no Save button.
