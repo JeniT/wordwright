@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blockHash, excerptOf, locateBlock, splitBlocks } from './blocks'
+import { blockHash, excerptOf, locateBlock, sharedWords, splitBlocks } from './blocks'
 
 const texts = (md: string) => splitBlocks(md).map((b) => b.text)
 
@@ -107,6 +107,52 @@ describe('locateBlock', () => {
 
   it('does not match on a short start', () => {
     expect(locateBlock(point('Rivers.', 0), text('Rivers run.'))).toBeNull()
+  })
+
+  describe('pairing by shared words', () => {
+    const was = 'The river bends because the outer bank erodes faster than the inner one.'
+    // The start has been rewritten, so neither the hash nor the start of the excerpt finds it.
+    const edited = 'Rivers bend because the outer bank erodes faster than the inner one, slowly.'
+    const withText = (index: number) => ({ ...point(was, index), text: was })
+
+    it('finds a rewritten paragraph that keeps at least half its words', () => {
+      expect(locateBlock(withText(0), text('Other.', edited))).toBe(1)
+    })
+
+    it('follows the paragraph when one is added above it (block ids shift)', () => {
+      expect(locateBlock(withText(0), text('A new opening paragraph.', 'Another.', edited))).toBe(2)
+    })
+
+    it('does not guess when the paragraph was rewritten past half its words', () => {
+      expect(locateBlock(withText(0), text('The river is long and wide.'))).toBeNull()
+    })
+
+    it('gives up when the paragraph is deleted', () => {
+      expect(
+        locateBlock(withText(1), text('Something quite different now.', 'Nor this.')),
+      ).toBeNull()
+    })
+
+    it('takes the one sharing most words, and the nearest on a tie', () => {
+      const weaker = 'The river bends because the outer bank wears away slowly over many years.'
+      expect(locateBlock(withText(0), text(weaker, edited))).toBe(1)
+      const closer = 'Rivers bend because the outer bank erodes faster than the inner one.'
+      const tie = 'Rivers bend because the outer bank erodes faster than the inner one!'
+      expect(locateBlock(withText(5), text(closer, 'x', 'y', 'z', 'w', tie))).toBe(5)
+      expect(locateBlock(withText(0), text(closer, tie))).toBe(0)
+    })
+
+    it('pairs by the excerpt alone for an older comment that kept nothing more', () => {
+      const old = { ...point(was, 0), excerpt: was.slice(0, 60) + '…' }
+      expect(locateBlock(old, text(edited))).toBe(0)
+    })
+  })
+})
+
+describe('sharedWords', () => {
+  it('counts the words of the first that the second also has, repeats included', () => {
+    expect(sharedWords('the cat and the dog', 'The dog, the cat')).toEqual({ shared: 4, of: 5 })
+    expect(sharedWords('', 'anything')).toEqual({ shared: 0, of: 0 })
   })
 })
 

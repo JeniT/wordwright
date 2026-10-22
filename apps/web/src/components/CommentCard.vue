@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
 import type { DraftComment } from '@wordwright/core'
+import Icon from './Icon.vue'
 import PersonChip from './PersonChip.vue'
 import SwitchField from './SwitchField.vue'
 
@@ -8,30 +9,29 @@ import SwitchField from './SwitchField.vue'
  * One comment, in a plain box: its number (the same round marker as in the draft; the AI's in the highlighter), who
  * wrote it, what it says, and, for the draft's editor, a Resolved switch. The marker and the text together are one
  * button when the paragraph is still in the draft (pressing it shows the paragraph); a general comment (about the
- * whole draft, marked with a chip), or one about a paragraph that has been rewritten, has nothing to show. A resolved comment stays where it is, quieter.
+ * whole draft, marked with a chip), or one whose paragraph is gone, has nothing to show. When the paragraph has been
+ * edited since, a Text changed button opens the old and new side by side. A resolved comment stays where it is, quieter.
  */
 defineProps<{
   entry: DraftComment & { number: number }
-  /** `show`: pressing it shows its paragraph. `plain`: nothing to show. `changed`: the paragraph was rewritten. */
-  kind: 'show' | 'plain' | 'changed' | 'static'
+  /** `show`: pressing it shows its paragraph. `plain`: a general comment. `static`: nothing to show. */
+  kind: 'show' | 'plain' | 'static'
   active?: boolean
   /**
    * The viewer is the draft's editor: they see everyone's comments, so each names its author, and only they resolve
    * them. (A member sees only their own, so there is no need to name the author.)
    */
   isEditor?: boolean
+  /** Its paragraph has been edited since (or is gone): offers the Then and Now. Never for a reviewer or a resolved comment. */
+  textChanged?: boolean
 }>()
-const emit = defineEmits<{ show: []; setResolved: [resolved: boolean] }>()
+const emit = defineEmits<{ show: []; setResolved: [resolved: boolean]; showChange: [] }>()
 const flip = useTemplateRef<InstanceType<typeof SwitchField>>('flip')
 defineExpose({ revert: () => flip.value?.revert() })
 </script>
 
 <template>
-  <div
-    :id="`comment-${entry.id}`"
-    class="panel p-3"
-    :class="entry.resolved || kind === 'changed' ? 'text-ink-soft' : ''"
-  >
+  <div :id="`comment-${entry.id}`" class="panel p-3" :class="entry.resolved ? 'text-ink-soft' : ''">
     <component
       :is="kind === 'show' ? 'button' : 'div'"
       :type="kind === 'show' ? 'button' : undefined"
@@ -61,6 +61,16 @@ defineExpose({ revert: () => flip.value?.revert() })
         <span v-if="kind === 'show'" class="sr-only">Press to show it in the draft.</span>
       </span>
     </component>
+    <button
+      v-if="textChanged && !entry.resolved"
+      type="button"
+      class="btn btn-sm btn-outline mt-2"
+      :aria-label="`Text changed: comment ${entry.number}`"
+      @click="emit('showChange')"
+    >
+      <Icon name="edit" />
+      Text changed
+    </button>
     <SwitchField
       v-if="isEditor"
       ref="flip"

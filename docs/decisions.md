@@ -1353,7 +1353,7 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   and nothing counts rounds yet (T9c). A point stores its block id, the block's hash and the start of its text.
   The editor places each point again whenever the text changes (`locateBlock`, `@wordwright/core`): first a paragraph with
   the same words (nearest to where it was, if two are alike), then one that still starts with the same words, and
-  otherwise none, so a point is never put on the wrong paragraph; it shows under "This passage has changed" instead.
+  otherwise none, so a point is never put on the wrong paragraph; it shows under "This passage has changed" instead. (Superseded by #335: see _Text changed_ below.)
   The hash ignores case, spacing, punctuation, list markers and link addresses, so a paragraph reads the same from
   the Markdown (what the model was shown) as from the editor (what is placed). Two paragraphs with the same words
   and a heavy rewrite are the known blind spots. Marks are decorations, so they never reach the saved text. A point
@@ -2208,3 +2208,12 @@ The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), 
 - **Reading items drag too.** They travel as their id under `application/x-wordwright-reading-item`, like a note, and the drop handler looks the item up on the idea's list. Unlike a note it goes in as a link in the line at the drop point (`insertInlineMarkdown(markdown, at)`), and it asks first if the item isn't marked read, as the button does.
 - **Who wrote it, in running words.** A link to a reading item is `[Title](address) by A and B` (no “by” when no one is named). The same text ends a note taken from an item (`words ([Title](address) by A and B)`) and a quotation's last line (`> — [Title](address) by A and B`). A separator such as “|” reads as a citation format, which is wrong in narrative text, so the quotation follows the narrative form, not the other way round.
 - **Status lines live outside the tabs.** A failed drop, and “Opened … in a new tab”, used to sit inside the Notes tab, where they could not be seen from the Reading list tab that caused them. They are shown below the tabs now. Who may add is said once above the tabs (“Only {name}, the draft’s editor, can add to the draft.”), not once per tab.
+
+## Text changed on a comment (#335, part of #330)
+
+- **The whole paragraph is kept with the comment.** `draft_comments.block_text` (append-only migration) is filled when the comment is made: from the live draft for the editor, members and the AI, from the snapshot for a reviewer. Older comments and general ones have null; for the older ones the 90-character excerpt stands in, and the dialog says "The full original wasn’t kept." and marks no changes, because a diff against a fragment would show everything after it as added.
+- **Found again by shared words, not block id.** Ids are positions, so they shift when a paragraph is added above. `locateBlock` tries the same words, then the same start, then (new) the paragraph that shares the most words with the old one, if that is at least half of the old one's words and the old one has at least four; the nearest wins a tie. Below that it gives up rather than mark the wrong paragraph. The unchanged cases come first so a paragraph that did not change never moves to a lookalike.
+- **Changed means the hash differs.** The editor reports each located comment's paragraph text; the flag shows when its hash is not the comment's, or the paragraph is not found. The old "This passage has changed" group is gone: such a comment stays in its place in the list, without a mark.
+- **No diff dependency.** `lib/word-diff.ts` is a word-level longest-common-subsequence, enough for paragraph-sized text. Then is shown as plain words (`plainText` drops Markdown markers and link addresses) so it differs from Now only where the words do. Marks are `<ins>` underline and `<del>` strike-through, not colour.
+- **Only the editor and members see it, and only while open.** Reviewers' pages never pass the flag. A resolved comment is dealt with, so its flag goes.
+- **No help page change.** No help page describes comments, so none moved.

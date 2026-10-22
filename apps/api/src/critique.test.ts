@@ -117,6 +117,7 @@ describe('kept critiques', () => {
       authorName: null,
       block: 'b1',
       excerpt: 'First paragraph.',
+      blockText: 'First paragraph.',
       hash: blockHash('First paragraph.'),
       text: 'Needs a stronger opening.',
       reason: 'It is the first thing read.',

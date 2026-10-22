@@ -8,6 +8,8 @@ export interface NewComment {
   block: string
   hash: string | null
   excerpt: string
+  /** The whole paragraph, or null for a general comment. */
+  blockText: string | null
   quote: string | null
   text: string
 }
@@ -20,11 +22,17 @@ export class CommentStore {
   constructor(private readonly db: DatabaseSync) {}
 
   /** Keeps the points of a critique round as the AI's comments, in the order made (most important first). */
-  addFromCritique(draftId: string, roundId: string, points: readonly CritiquePoint[]) {
+  addFromCritique(
+    draftId: string,
+    roundId: string,
+    points: readonly CritiquePoint[],
+    /** The draft's blocks as the AI was shown them, to keep each point's whole paragraph. */
+    blocks: readonly { id: string; text: string }[] = [],
+  ) {
     const at = nowIso()
     const insert = this.db.prepare(
-      `INSERT INTO draft_comments (id, draft_id, round_id, rank, block, block_hash, excerpt, text, reason, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO draft_comments (id, draft_id, round_id, rank, block, block_hash, excerpt, block_text, text, reason, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     points.forEach((p, rank) =>
       insert.run(
@@ -35,6 +43,7 @@ export class CommentStore {
         p.block,
         p.hash,
         p.excerpt,
+        blocks.find((b) => b.id === p.block)?.text ?? null,
         p.point,
         p.reason,
         at,
@@ -52,8 +61,8 @@ export class CommentStore {
     const id = randomUUID()
     this.db
       .prepare(
-        `INSERT INTO draft_comments (id, draft_id, author_id, review_id, block, block_hash, excerpt, quote, text, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO draft_comments (id, draft_id, author_id, review_id, block, block_hash, excerpt, block_text, quote, text, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -63,6 +72,7 @@ export class CommentStore {
         comment.block,
         comment.hash,
         comment.excerpt,
+        comment.blockText,
         comment.quote,
         comment.text,
         nowIso(),
@@ -102,6 +112,7 @@ export class CommentStore {
       authorName: r.author_name as string | null,
       block: r.block as string,
       excerpt: r.excerpt as string,
+      blockText: (r.block_text as string | null) ?? null,
       quote: (r.quote as string | null) ?? null,
       hash: r.block_hash as string | null,
       text: r.text as string,

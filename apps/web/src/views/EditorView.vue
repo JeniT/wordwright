@@ -520,7 +520,9 @@ const looks = computed(() => lastCritique.data.value)
 const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
-const located = ref<ReadonlySet<string>>(new Set())
+/** The words of each comment's paragraph as the text has it now; a comment whose paragraph is gone is not in it. */
+const paragraphs = ref<Readonly<Record<string, string>>>({})
+const located = computed<ReadonlySet<string>>(() => new Set(Object.keys(paragraphs.value)))
 /** The paragraph being commented on gets the active edge (and its words their underline) while the comment is written. */
 const composingPoint = computed<CommentMarkPoint[]>(() => {
   const target = composing.value?.target
@@ -551,6 +553,7 @@ const markPoints = computed<CommentMarkPoint[]>(() => [
             block: c.block,
             hash: c.hash,
             excerpt: c.excerpt,
+            blockText: c.blockText,
             number: i + 1,
             label: `Comment ${i + 1}`,
             byAi: c.byAi,
@@ -681,7 +684,7 @@ async function requestCritique() {
           @note-drop="onNoteDrop"
           @reading-drop="onReadingDrop"
           @point-pick="pickPoint"
-          @located="located = new Set($event)"
+          @located="paragraphs = $event"
         >
           <template #toolbar-notes>
             <p role="status" class="text-sm text-ink-soft" :class="toolReason ? 'mt-1' : ''">
@@ -855,6 +858,7 @@ async function requestCritique() {
               :pending="critique.isPending.value"
               :error="critique.error.value ?? lastCritique.error.value"
               :located="located"
+              :paragraphs="paragraphs"
               :active-id="activePointId"
               :is-editor="canEdit"
               :editor-name="draft.data.value.editorName"

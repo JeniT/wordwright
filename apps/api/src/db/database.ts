@@ -662,6 +662,11 @@ export const MIGRATIONS: Migration[] = [
   `
   ALTER TABLE draft_comments ADD COLUMN quote TEXT;
   `,
+  // The whole paragraph a comment was made on, so "Text changed" can show it beside the paragraph as it is now (#335).
+  // Null for comments made before this, which keep only their excerpt, and for general ones.
+  `
+  ALTER TABLE draft_comments ADD COLUMN block_text TEXT;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

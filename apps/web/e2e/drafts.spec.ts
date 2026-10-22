@@ -307,10 +307,20 @@ test('register, write, save and request a critique', async ({ page }) => {
     .click()
   await expect(page.getByText('A fake critique: one thing to look at.')).toBeVisible()
 
-  // Rewriting the paragraph takes the mark away and moves the point to its own list.
+  // Rewriting the paragraph takes the mark away; the comment stays in the list with a Text changed button, which
+  // shows the old paragraph beside the (now missing) new one.
   await page.getByRole('textbox', { name: 'Draft body' }).fill('Meanders come from erosion.')
-  await expect(page.getByRole('button', { name: 'Comment 1' })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Comment 1', exact: true })).toHaveCount(0)
+  await page
+    .getByRole('complementary')
+    .getByRole('button', { name: 'Text changed: comment 1' })
+    .click()
+  const changed = page.getByRole('dialog', { name: 'Text changed' })
+  await expect(changed.getByText('This paragraph isn’t in the draft now.')).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'the Text changed dialog').toEqual(
+    [],
+  )
+  await page.keyboard.press('Escape')
 
   // The editor resolves a comment when they have dealt with it. It is hidden, not deleted, and stays out of the list.
   const side2 = page.getByRole('complementary')
@@ -320,7 +330,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(side2.getByRole('switch', { name: 'Resolved: comment 1' })).toBeChecked()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'a resolved comment').toEqual([])
   await side2.getByRole('switch', { name: 'Resolved: comment 1' }).uncheck()
-  await expect(page.getByRole('heading', { name: 'This passage has changed' })).toBeVisible()
+  await expect(side2.getByRole('button', { name: 'Text changed: comment 1' })).toBeVisible()
 
   // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.
   await expect(page.getByText('1 of 3 looks used')).toBeVisible()

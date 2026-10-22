@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import {
   WHOLE_DRAFT,
+  blockHash,
   type CommentInput,
   type CritiqueRound,
   type DraftComment,
@@ -14,15 +15,17 @@ import { scrollAreaOf, scrollAreaToTop } from '../lib/scroll'
 import CommentCard from './CommentCard.vue'
 import CommentComposer from './CommentComposer.vue'
 import QueryState from './QueryState.vue'
+import TextChangedDialog from './TextChangedDialog.vue'
 import Explain from './Explain.vue'
 import SwitchField from './SwitchField.vue'
 
 /**
  * The comments on the draft, from members and from the AI's critique, in one list. The editor sees every one and
  * says which are resolved; everyone else sees only their own (the server decides; this shows what it sent). Pressing
- * a comment about a paragraph shows that paragraph in the draft. One about a paragraph that has since been rewritten
- * is listed apart, without a mark, rather than put on the wrong paragraph, and stays open until the editor resolves
- * it. Resolved comments are hidden, not deleted, and the editor can show them again.
+ * a comment about a paragraph shows that paragraph in the draft. A paragraph is found again by the words it shares
+ * with the old one; one that has been edited since gets a Text changed button (then and now), and one that is gone is
+ * listed without a mark rather than put on the wrong paragraph. Resolved comments are hidden, not deleted, and the
+ * editor can show them again.
  */
 const props = defineProps<{
   /** The comments query, shown with its own loading and error states. */
@@ -36,6 +39,8 @@ const props = defineProps<{
   error: unknown
   /** Ids of the comments whose paragraph is in the text now. */
   located: ReadonlySet<string>
+  /** The words of each located comment's paragraph as the draft has them now. */
+  paragraphs: Readonly<Record<string, string>>
   activeId: string | null
   isEditor: boolean
   editorName: string
@@ -63,12 +68,14 @@ type Entry = DraftComment & { number: number }
 const numbered = computed<Entry[]>(() => props.comments.map((c, i) => ({ ...c, number: i + 1 })))
 const resolvedCount = computed(() => numbered.value.filter((c) => c.resolved).length)
 const shown = computed(() => numbered.value.filter((c) => showResolved.value || !c.resolved))
-const placed = computed(() =>
-  shown.value.filter((c) => c.block === WHOLE_DRAFT || props.located.has(c.id)),
-)
-const changed = computed(() =>
-  shown.value.filter((c) => c.block !== WHOLE_DRAFT && !props.located.has(c.id)),
-)
+
+/** Its paragraph has been edited since it was written, or is gone. */
+function textChanged(c: DraftComment) {
+  if (c.block === WHOLE_DRAFT || c.hash === null) return false
+  const now = props.paragraphs[c.id]
+  return now === undefined || blockHash(now) !== c.hash
+}
+const reading = ref<DraftComment | null>(null)
 
 /** Each comment, so a Resolved switch that could not be saved can be put back. */
 const cards = ref<Record<string, InstanceType<typeof CommentCard> | null>>({})
@@ -151,40 +158,29 @@ defineExpose({
         <SwitchField v-model="showResolved" compact :label="`Show resolved (${resolvedCount})`" />
       </div>
 
-      <ol v-if="placed.length" class="mt-3 space-y-3">
-        <li v-for="c in placed" :key="c.id">
+      <ol v-if="shown.length" class="mt-3 space-y-3">
+        <li v-for="c in shown" :key="c.id">
           <CommentCard
             :ref="remember(c.id)"
             :entry="c"
-            :kind="c.block === WHOLE_DRAFT ? 'plain' : 'show'"
+            :kind="c.block === WHOLE_DRAFT ? 'plain' : located.has(c.id) ? 'show' : 'static'"
             :active="c.id === activeId"
             :is-editor="isEditor"
+            :text-changed="textChanged(c)"
             @show="emit('show', c.id)"
+            @show-change="reading = c"
             @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"
           />
         </li>
       </ol>
 
-      <template v-if="changed.length">
-        <h3 class="mt-4 font-medium">This passage has changed</h3>
-        <p class="text-sm text-ink-soft">
-          The paragraph these comments were about has been rewritten, so they have no mark in the
-          text.
-        </p>
-        <ol class="mt-2 space-y-3">
-          <li v-for="c in changed" :key="c.id">
-            <CommentCard
-              :ref="remember(c.id)"
-              :entry="c"
-              kind="changed"
-              :is-editor="isEditor"
-              @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"
-            />
-          </li>
-        </ol>
-      </template>
-
       <p v-if="resolveProblem" role="alert" class="mt-3 text-danger">{{ resolveProblem }}</p>
     </QueryState>
+    <TextChangedDialog
+      :open="!!reading"
+      :comment="reading"
+      :now="reading ? (paragraphs[reading.id] ?? null) : null"
+      @close="reading = null"
+    />
   </section>
 </template>

@@ -59,7 +59,13 @@ const MIN_SNIPPET = 12
  * changed too much (or gone), when the point is shown without a marker rather than put on the wrong paragraph.
  */
 export function locateBlock(
-  point: { hash: string; excerpt: string; index: number },
+  point: {
+    hash: string
+    excerpt: string
+    index: number
+    /** The whole paragraph as it was, when it was kept; otherwise the excerpt stands in for it. */
+    text?: string | null
+  },
   candidates: readonly { text: string }[],
 ): number | null {
   const nearest = (matches: number[]) =>
@@ -70,7 +76,38 @@ export function locateBlock(
   if (same.length) return nearest(same)
   const start = plainWords(point.excerpt.replace(/…$/, ''))
   if (start.length < MIN_SNIPPET) return null
-  return nearest(plain.flatMap((words, i) => (words.startsWith(start) ? [i] : [])))
+  const byStart = nearest(plain.flatMap((words, i) => (words.startsWith(start) ? [i] : [])))
+  if (byStart !== null) return byStart
+
+  // Rewritten, not just edited further on: the paragraph that has kept the most of its words, if that is half or more.
+  // Block ids are no help here (they shift when a paragraph is added above), so only the words count.
+  const was = point.text ?? point.excerpt.replace(/…$/, '')
+  const scores = candidates.map((c) => sharedWords(was, c.text))
+  const { of } = scores[0] ?? sharedWords(was, '')
+  if (of < MIN_PAIRING_WORDS) return null
+  const best = Math.max(0, ...scores.map((s) => s.shared))
+  if (best === 0 || best * 2 < of) return null
+  return nearest(scores.flatMap((s, i) => (s.shared === best ? [i] : [])))
+}
+
+/** Fewer words than this are too little to tell one paragraph from another by the words they share. */
+const MIN_PAIRING_WORDS = 4
+
+/** How many of the words of `was` (repeats counted) `now` also has, and how many words `was` has. */
+export function sharedWords(was: string, now: string): { shared: number; of: number } {
+  const words = (s: string) => plainWords(s).split(' ').filter(Boolean)
+  const have = new Map<string, number>()
+  for (const w of words(now)) have.set(w, (have.get(w) ?? 0) + 1)
+  const old = words(was)
+  let shared = 0
+  for (const w of old) {
+    const left = have.get(w) ?? 0
+    if (left > 0) {
+      shared++
+      have.set(w, left - 1)
+    }
+  }
+  return { shared, of: old.length }
 }
 
 export function splitBlocks(markdown: string): Block[] {

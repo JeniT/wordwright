@@ -65,7 +65,7 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
         }
         store.transaction(() => {
           const round = store.critiques.add(draft.id, critique)
-          store.comments.addFromCritique(draft.id, round.id, critique.points)
+          store.comments.addFromCritique(draft.id, round.id, critique.points, blocks)
         })
         return c.json(critiqueState(store, draft.id, userId))
       } catch (err) {

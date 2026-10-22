@@ -1415,6 +1415,8 @@ export const CommentSchema = z.object({
   excerpt: z.string(),
   /** The selected words the comment is about, within that paragraph; null when it is about the paragraph or the draft. */
   quote: z.string().nullable().default(null),
+  /** The whole of that paragraph as it was when the comment was made; null for `whole`, and for comments from before it was kept. */
+  blockText: z.string().nullable().default(null),
   /** The block's `blockHash` when it was written; null for `whole`. */
   hash: z.string().nullable(),
   text: z.string(),

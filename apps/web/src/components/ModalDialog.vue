@@ -7,8 +7,15 @@ import { useModal } from '../lib/modal'
  * that must be confirmed uses `ConfirmDialog`; this is for everything else, so they all behave alike.
  */
 const props = withDefaults(
-  defineProps<{ open: boolean; title: string; closeLabel?: string; footer?: boolean }>(),
-  { closeLabel: 'Close', footer: true },
+  defineProps<{
+    open: boolean
+    title: string
+    closeLabel?: string
+    footer?: boolean
+    /** Room for two columns side by side. */
+    wide?: boolean
+  }>(),
+  { closeLabel: 'Close', footer: true, wide: false },
 )
 const emit = defineEmits<{ close: [] }>()
 
@@ -38,7 +45,8 @@ useModal({
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
-        class="panel max-h-[90vh] w-full max-w-lg overflow-y-auto p-6 text-sm"
+        class="panel max-h-[90vh] w-full overflow-y-auto p-6 text-sm"
+        :class="wide ? 'max-w-3xl' : 'max-w-lg'"
       >
         <h2 :id="titleId" class="mb-3 font-display text-xl font-semibold">{{ title }}</h2>
         <slot />

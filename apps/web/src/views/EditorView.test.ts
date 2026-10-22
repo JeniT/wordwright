@@ -272,7 +272,7 @@ describe('EditorView critique', () => {
     await screen.findByText('A decent start.')
   })
 
-  it('lists a point whose paragraph has been rewritten apart, without a mark', async () => {
+  it('lists a point whose paragraph is gone in place, without a mark, and says so in Text changed', async () => {
     mockEditor(
       () => new Response(null, { status: 500 }),
       round([
@@ -288,9 +288,57 @@ describe('EditorView critique', () => {
     await screen.findByRole('button', { name: 'Comment 1' })
     await showTab('Comments')
     const region = await commentsRegion()
-    await within(region).findByRole('heading', { name: 'This passage has changed' })
+    expect(within(region).queryByRole('heading', { name: 'This passage has changed' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Comment 2' })).toBeNull()
     expect(region).toHaveTextContent('This one is gone.')
+    // Only the comment whose paragraph was edited or is gone has the flag.
+    expect(within(region).getAllByRole('button', { name: /^Text changed/ })).toHaveLength(1)
+    await fireEvent.click(within(region).getByRole('button', { name: 'Text changed: comment 2' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Text changed' })
+    expect(dialog).toHaveTextContent('A paragraph that is not in the draft any more.')
+    expect(dialog).toHaveTextContent('The full original wasn’t kept.')
+    expect(dialog).toHaveTextContent('This paragraph isn’t in the draft now.')
+    expect(dialog).toHaveTextContent('This one is gone.')
+  })
+
+  it('finds an edited paragraph again, marks it, and shows then and now with the changed words marked', async () => {
+    const was = 'Some text for the opening'
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([pointOn('p1', { hash: blockHash(was), excerpt: was, blockText: was })]),
+    )
+    server.use(
+      http.get('*/api/publications/p1/drafts/d1', () =>
+        HttpResponse.json({ ...draft, body: 'Some text for the new opening' }),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('button', { name: 'Comment 1' }) // paired by its words: it keeps its mark
+    await showTab('Comments')
+    const region = await commentsRegion()
+    await fireEvent.click(await within(region).findByRole('button', { name: /^Text changed/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Text changed' })
+    expect(within(dialog).getByRole('heading', { name: 'Then' })).toBeTruthy()
+    expect(within(dialog).getByRole('heading', { name: 'Now' })).toBeTruthy()
+    // Not by colour alone: an added word is underlined text, a removed one is struck through.
+    expect(within(dialog).getByText('new').tagName).toBe('INS')
+    expect(dialog).not.toHaveTextContent('The full original wasn’t kept.')
+    expect(dialog).toHaveTextContent('Tighten the opening.')
+  })
+
+  it('has no Text changed button on a comment that is resolved, or whose paragraph is as it was', async () => {
+    mockEditor(
+      () => new Response(null, { status: 500 }),
+      round([
+        pointOn('p1'),
+        pointOn('p2', { hash: blockHash('Gone.'), excerpt: 'Gone.', resolved: true }),
+      ]),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await showTab('Comments')
+    const region = await commentsRegion()
+    await within(region).findByText('Tighten the opening.')
+    expect(within(region).queryByRole('button', { name: /^Text changed/ })).toBeNull()
   })
 
   it('resolves a comment, which takes its mark away and hides it, and shows it again on request', async () => {
@@ -546,7 +594,7 @@ describe('EditorView comments from members', () => {
     )
   })
 
-  it('keeps a comment whose passage was rewritten open, apart from the rest', async () => {
+  it('keeps a comment whose passage was rewritten open, with the flag for the editor', async () => {
     mockEditor(
       () => new Response(null, { status: 500 }),
       round([
@@ -560,8 +608,8 @@ describe('EditorView comments from members', () => {
     await renderAt('/p/p1/drafts/d1')
     await showTab('Comments')
     const region = await commentsRegion()
-    await within(region).findByRole('heading', { name: 'This passage has changed' })
-    expect(region).toHaveTextContent('About the old words.')
+    await within(region).findByText('About the old words.')
+    expect(within(region).getByRole('button', { name: 'Text changed: comment 1' })).toBeTruthy()
   })
 
   it('says it is loading, and what to do when the comments could not be loaded', async () => {

@@ -14,6 +14,8 @@ export interface CommentMarkPoint {
   block: string
   hash: string | null
   excerpt: string
+  /** The whole paragraph as it was, when it was kept: finds the paragraph again when it has been rewritten. */
+  blockText?: string | null
   /** Shown on the mark: 1 for the most important point. */
   number: number
   /** Said by the mark to a screen reader. */
@@ -32,8 +34,8 @@ export interface CommentMarkOptions {
   points: () => CommentMarkPoint[]
   activeId: () => string | null
   onPick: (id: string) => void
-  /** Says which points found their paragraph in the text as it is now (the others have "changed"). */
-  onLocated: (ids: string[]) => void
+  /** Says which points found their paragraph in the text as it is now, and what that paragraph says (the others are gone). */
+  onLocated: (paragraphs: Record<string, string>) => void
 }
 
 /** Where the words `quote` are in a paragraph that starts at `pos`, as document positions; null if it no longer holds them. */
@@ -67,6 +69,8 @@ export const commentMarksKey = new PluginKey('commentMarks')
 /** Where each point's paragraph is in the document now, by the point's id. Kept in the editor's storage. */
 export interface CommentMarkStorage {
   positions: Map<string, number>
+  /** The words of that paragraph now, by the point's id. */
+  texts: Map<string, string>
 }
 
 /** The paragraphs (and headings, code blocks...) that hold text, with where each starts. */
@@ -90,7 +94,7 @@ export const CommentMarks = Extension.create<CommentMarkOptions, CommentMarkStor
     onLocated: () => {},
   }),
 
-  addStorage: () => ({ positions: new Map<string, number>() }),
+  addStorage: () => ({ positions: new Map<string, number>(), texts: new Map<string, string>() }),
 
   addProseMirrorPlugins() {
     const { options, storage } = this
@@ -99,18 +103,25 @@ export const CommentMarks = Extension.create<CommentMarkOptions, CommentMarkStor
     function place(doc: ProseNode) {
       const blocks = textBlocks(doc)
       const positions = new Map<string, number>()
+      const texts = new Map<string, string>()
       const byBlock = new Map<number, CommentMarkPoint[]>()
       for (const p of options.points()) {
         if (p.block === WHOLE_DRAFT || p.hash === null) continue
         const at = locateBlock(
-          { hash: p.hash, excerpt: p.excerpt, index: Number(p.block.slice(1)) - 1 },
+          {
+            hash: p.hash,
+            excerpt: p.excerpt,
+            text: p.blockText,
+            index: Number(p.block.slice(1)) - 1,
+          },
           blocks,
         )
         if (at === null) continue
         positions.set(p.id, blocks[at]!.pos)
+        texts.set(p.id, blocks[at]!.text)
         if (!p.hidden) byBlock.set(at, [...(byBlock.get(at) ?? []), p])
       }
-      return { blocks, positions, byBlock }
+      return { blocks, positions, texts, byBlock }
     }
 
     function widget(points: CommentMarkPoint[], active: string | null) {
@@ -137,8 +148,9 @@ export const CommentMarks = Extension.create<CommentMarkOptions, CommentMarkStor
         key: commentMarksKey,
         props: {
           decorations: (state) => {
-            const { blocks, positions, byBlock } = place(state.doc)
+            const { blocks, positions, texts, byBlock } = place(state.doc)
             storage.positions = positions
+            storage.texts = texts
             const active = options.activeId()
             const decorations: Decoration[] = []
             for (const [at, points] of byBlock) {
@@ -188,11 +200,11 @@ export const CommentMarks = Extension.create<CommentMarkOptions, CommentMarkStor
         view: () => {
           // Told after the view has drawn (and once at the start), not while the decorations are being worked out.
           const report = () => {
-            const ids = [...storage.positions.keys()].sort()
-            const key = ids.join()
+            const paragraphs = Object.fromEntries(storage.texts)
+            const key = JSON.stringify(Object.entries(paragraphs).sort())
             if (key === lastLocated) return
             lastLocated = key
-            options.onLocated(ids)
+            options.onLocated(paragraphs)
           }
           queueMicrotask(report)
           return { update: report }

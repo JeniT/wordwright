@@ -44,7 +44,7 @@ const emit = defineEmits<{
   /** A comment mark was pressed. */
   pointPick: [id: string]
   /** Which comments found their paragraph in the text as it is now. */
-  located: [ids: string[]]
+  located: [paragraphs: Record<string, string>]
   /** Comment was pressed in the toolbar. */
   comment: []
   /** Rephrase was pressed in the toolbar. */
@@ -96,7 +96,7 @@ const editor = useEditor({
       points: () => props.commentMarks ?? [],
       activeId: () => props.activePointId ?? null,
       onPick: (id) => emit('pointPick', id),
-      onLocated: (ids) => emit('located', ids),
+      onLocated: (paragraphs) => emit('located', paragraphs),
     }),
     Placeholder.configure({ placeholder: 'Start writing…' }),
   ],

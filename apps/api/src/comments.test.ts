@@ -20,6 +20,7 @@ type Comment = {
   block: string
   excerpt: string
   quote: string | null
+  blockText: string | null
   hash: string | null
   text: string
   reason: string | null
@@ -75,6 +76,13 @@ describe('comments on a draft (#156)', () => {
         reason: null,
         resolved: false,
       })
+    })
+
+    it('keeps the whole paragraph with the comment, as the draft has it now', async () => {
+      const res = await say(bob, 'This drags.', 'b2')
+      expect(await res.json()).toMatchObject({ blockText: 'Second paragraph.' })
+      expect((await list(ada))[0]).toMatchObject({ blockText: 'Second paragraph.' })
+      expect((await (await say(bob, 'All of it.', 'whole')).json()).blockText).toBeNull()
     })
 
     it('keeps the words the comment was made on, when they are in that paragraph', async () => {

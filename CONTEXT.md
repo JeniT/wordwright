@@ -96,6 +96,10 @@ _Avoid_: Suggestion, feedback item, point (the AI's critique "points" are commen
 A comment about the whole draft rather than a paragraph. It has no mark in the text; its card carries a "General" chip. (The code calls its anchor `WHOLE_DRAFT`.)
 _Avoid_: Whole-draft comment, overall comment
 
+**Text changed**:
+The flag on a comment whose paragraph has been edited since (or is gone): a button on its card, for the editor and for members on their own comments, never on a resolved comment or for a reviewer. It opens **Then** (the paragraph as it was when the comment was made) beside **Now** (as the draft has it), with the changed words marked.
+_Avoid_: Stale, outdated, orphaned (comment)
+
 **Resolved** (comment):
 Set aside by the draft's editor as dealt with: hidden, never deleted, for everyone.
 _Avoid_: Dismissed, read (the earlier names)
