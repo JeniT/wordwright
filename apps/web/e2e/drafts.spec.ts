@@ -173,6 +173,13 @@ test('marking a draft published takes it out of Keep writing, and it keeps its p
   const post = publish.getByRole('link', { name: /View post/ })
   await expect(post).toHaveAttribute('href', 'https://example.com/meanders')
   await expect(post).toHaveAttribute('target', '_blank')
+  // With a link saved the form folds away behind an edit button.
+  await expect(publish.getByLabel(/Link to the published post/)).toHaveCount(0)
+  const edit = publish.getByRole('button', { name: 'Edit link to the published post' })
+  await edit.click()
+  await expect(publish.getByLabel(/Link to the published post/)).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(edit).toBeFocused()
 
   // Looked at in light, dark and on a phone.
   const violations = async (what: string) =>

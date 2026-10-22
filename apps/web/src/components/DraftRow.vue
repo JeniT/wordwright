@@ -40,9 +40,9 @@ const changed = computed(() =>
         <span class="min-w-0 text-lg font-semibold break-words">{{
           title || 'Untitled draft'
         }}</span>
-        <span class="flex flex-wrap items-baseline gap-2">
+        <span class="flex flex-wrap items-center gap-2">
           <PublishedChip v-if="publishedAt" :published-at="publishedAt" />
-          <span v-if="editorName !== undefined"
+          <span v-if="editorName !== undefined" class="inline-flex items-center"
             ><span class="sr-only">Editor: </span><PersonChip :name="editorName"
           /></span>
         </span>

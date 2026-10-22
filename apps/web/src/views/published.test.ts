@@ -113,22 +113,58 @@ describe('marking a draft published, on the Draft page (#311)', () => {
     expect(await within(section).findByText('Saved')).toBeVisible()
   })
 
-  it('shows what is already saved, and turning it off takes the note and the link away', async () => {
+  it('with a saved link shows the chip and View post, hides the form, and edit opens it and returns focus', async () => {
     const state = mockDraft({ publishedAt: MARKED, publishedUrl: 'https://example.com/meanders' })
     await renderAt('/p/p1/drafts/d1')
     const section = await publishSection()
-    expect(await within(section).findByLabelText(/Link to the published post/)).toHaveValue(
-      'https://example.com/meanders',
+    expect(await within(section).findByRole('link', { name: /View post/ })).toBeVisible()
+    expect(within(section).queryByLabelText(/Link to the published post/)).toBeNull()
+    expect(section.querySelector('.callout')).toBeNull()
+    await fireEvent.click(
+      within(section).getByRole('button', { name: 'Edit link to the published post' }),
     )
-    expect(within(section).getByRole('switch', { name: 'I’ve published this draft' })).toBeChecked()
+    const field = await within(section).findByLabelText(/Link to the published post/)
+    expect(field).toHaveValue('https://example.com/meanders')
+    await waitFor(() => expect(field).toHaveFocus())
+    await fireEvent.keyDown(field, { key: 'Escape' })
+    await waitFor(() =>
+      expect(within(section).queryByLabelText(/Link to the published post/)).toBeNull(),
+    )
+    await waitFor(() =>
+      expect(
+        within(section).getByRole('button', { name: 'Edit link to the published post' }),
+      ).toHaveFocus(),
+    )
+    await fireEvent.click(
+      within(section).getByRole('button', { name: 'Edit link to the published post' }),
+    )
+    await fireEvent.update(
+      await within(section).findByLabelText(/Link to the published post/),
+      'https://example.com/new',
+    )
+    await fireEvent.click(within(section).getByRole('button', { name: 'Save link' }))
+    await waitFor(() =>
+      expect(state.sent).toEqual([{ published: true, url: 'https://example.com/new' }]),
+    )
+    await waitFor(() =>
+      expect(within(section).queryByLabelText(/Link to the published post/)).toBeNull(),
+    )
+  })
+
+  it('turning it off takes the chip and the link away', async () => {
+    const state = mockDraft({ publishedAt: MARKED, publishedUrl: 'https://example.com/meanders' })
+    await renderAt('/p/p1/drafts/d1')
+    const section = await publishSection()
+    expect(
+      await within(section).findByRole('switch', { name: 'I’ve published this draft' }),
+    ).toBeChecked()
     await fireEvent.click(
       within(section).getByRole('switch', { name: 'I’ve published this draft' }),
     )
     await waitFor(() => expect(state.sent).toEqual([{ published: false }]))
     await waitFor(() =>
-      expect(within(section).queryByLabelText(/Link to the published post/)).toBeNull(),
+      expect(within(section).queryByRole('link', { name: /View post/ })).toBeNull(),
     )
-    expect(within(section).queryByRole('link', { name: /View post/ })).toBeNull()
   })
 
   it('says what went wrong and puts the switch back if it could not be saved', async () => {

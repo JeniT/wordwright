@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useSavedValue } from '../lib/forms'
+import { useInlineEdit } from '../lib/inline-edit'
 import { renderMarkdown } from '../lib/markdown'
 import { useSetPublished } from '../lib/queries'
+import { vTip } from '../lib/tip'
 import HeadingRow from './HeadingRow.vue'
-import PublishedNote from './PublishedNote.vue'
+import Icon from './Icon.vue'
+import NewTabLink from './NewTabLink.vue'
+import PublishedChip from './PublishedChip.vue'
 import SaveStatus from './SaveStatus.vue'
 import SwitchField from './SwitchField.vue'
 
@@ -40,7 +44,32 @@ const link = useSavedValue(
 function toggle(on: boolean) {
   setPublished.mutate({ published: on }, { onError: () => publishedSwitch.value?.revert() })
 }
-const saveLink = () => setPublished.mutate({ published: true, url: link.value })
+
+// Once there is a link the form folds away behind an edit button, so the saved state is just the chip and the link.
+const editButton = useTemplateRef<HTMLButtonElement>('editButton')
+const linkForm = useTemplateRef<HTMLFormElement>('linkForm')
+const {
+  editing,
+  start: startEditing,
+  stop: stopEditing,
+} = useInlineEdit<'link'>({
+  field: () => linkForm.value?.querySelector('input'),
+  trigger: () => editButton.value,
+})
+watch(
+  () => [props.draftId, props.publishedAt],
+  () => {
+    editing.value = null
+  },
+)
+const showForm = computed(() => !props.publishedUrl || editing.value !== null)
+function saveLink() {
+  setPublished.mutate({ published: true, url: link.value }, { onSuccess: () => void stopEditing() })
+}
+function cancelEditing() {
+  link.value = props.publishedUrl ?? ''
+  void stopEditing()
+}
 
 const heading = computed(() => props.title.trim() || 'Untitled')
 const markdown = computed(() => `# ${heading.value}\n\n${props.body.trim()}\n`)
@@ -98,8 +127,8 @@ async function copyRich() {
     <HeadingRow label="About publishing" class="!mb-0">
       <h2 id="publish-heading" class="h3">Publish</h2>
       <template #explain>
-        Copy the draft and paste it where you publish. Then mark it published: it leaves Keep
-        writing, and your idea stays here with its notes, reading list and drafts.
+        Copy the draft as either rich text or Markdown to paste wherever you publish. Marking it
+        published means you won’t be prompted to keep writing it.
       </template>
     </HeadingRow>
     <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -125,8 +154,29 @@ async function copyRich() {
         @update:model-value="toggle"
       />
       <template v-if="publishedAt">
-        <PublishedNote class="mt-3" :published-at="publishedAt" :published-url="publishedUrl" />
-        <form class="mt-3 flex flex-wrap items-end gap-2" @submit.prevent="saveLink">
+        <p class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <PublishedChip :published-at="publishedAt" />
+          <span v-if="publishedUrl && !showForm" class="inline-flex items-center gap-1">
+            <NewTabLink :href="publishedUrl" class="link">View post</NewTabLink>
+            <button
+              ref="editButton"
+              v-tip="'Edit link'"
+              type="button"
+              class="btn btn-sm btn-icon btn-ghost"
+              aria-label="Edit link to the published post"
+              @click="startEditing('link')"
+            >
+              <Icon name="edit" />
+            </button>
+          </span>
+        </p>
+        <form
+          v-if="showForm"
+          ref="linkForm"
+          class="mt-3 flex flex-wrap items-end gap-2"
+          @submit.prevent="saveLink"
+          @keydown.esc="publishedUrl && cancelEditing()"
+        >
           <div class="min-w-0 flex-1 basis-64">
             <label for="published-url" class="mb-1 block text-sm font-medium"
               >Link to the published post <span class="meta font-normal">(optional)</span></label

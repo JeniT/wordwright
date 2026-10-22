@@ -2238,3 +2238,7 @@ The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), 
 - **"Where some of the words came from" is no longer on the draft page.** The `draft_insertions` record and its API stay: they are kept, not displayed. Principle 5 of `docs/responsible-ai.md` is amended to say so. **Flag for the owner:** the principle said provenance is "visible"; it now persists and can be shown again, but the writer does not see it on the page.
 - **Critique's privacy note sits beside its button** (as Send does on Refine), and the looks count is its hint text below the row.
 - **Tutorial notes** for Comment, Rephrase, and the two side-panel notes were removed; the Rephrase title button has an explanation, and the Formatting help page says what Comment and Rephrase do.
+
+### Draft publish section: one chip, link form folded away (#342)
+
+Once a draft is marked published, the Publish section shows just the green "Published" chip, as the row on the Draft page does; the green box around it said the same thing twice, so `PublishedNote` is gone (readers who aren't the editor see the chip and "View post" in a plain line). Once there is a link, its form folds away behind an edit icon button after "View post"; Save or Escape closes it and focus returns to the button. With no link the form shows, since it is the only way to add one.

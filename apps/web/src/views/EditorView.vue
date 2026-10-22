@@ -5,7 +5,7 @@ import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import SaveStatus from '../components/SaveStatus.vue'
 import PersonChip from '../components/PersonChip.vue'
-import PublishedNote from '../components/PublishedNote.vue'
+import PublishedChip from '../components/PublishedChip.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
@@ -636,12 +636,19 @@ async function requestCritique() {
           <PersonChip :name="draft.data.value.editorName" />
           is this draft’s editor. You can read it, but only they can change it.
         </p>
-        <PublishedNote
+        <p
           v-if="draft.data.value?.publishedAt && !canEdit"
-          class="mb-4"
-          :published-at="draft.data.value.publishedAt"
-          :published-url="draft.data.value.publishedUrl"
-        />
+          role="status"
+          class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+        >
+          <PublishedChip :published-at="draft.data.value.publishedAt" />
+          <NewTabLink
+            v-if="draft.data.value.publishedUrl"
+            :href="draft.data.value.publishedUrl"
+            class="link"
+            >View post</NewTabLink
+          >
+        </p>
         <h1 class="sr-only">Drafting “{{ title || 'Untitled' }}”</h1>
         <label class="sr-only" for="title">Title</label>
         <div

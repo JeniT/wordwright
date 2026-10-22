@@ -1525,7 +1525,7 @@ describe('publishing from the draft page', () => {
     const section = await openDraft()
     expect(
       within(section).getByRole('button', { name: 'About publishing' }),
-    ).toHaveAccessibleDescription(/it leaves Keep writing, and your idea stays here/)
+    ).toHaveAccessibleDescription(/Copy the draft as either rich text or Markdown/)
   })
 
   it('copies the title and body as rich text, with plain text beside it', async () => {
