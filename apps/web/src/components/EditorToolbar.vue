@@ -10,7 +10,7 @@ import {
   useTemplateRef,
   watchEffect,
 } from 'vue'
-import { TOOLS, toolTitle, type Tool, type ToolName } from '../lib/editor-tools'
+import { TOOLS, toolTitle, type Tool, type ToolName, type ToolSection } from '../lib/editor-tools'
 import LinkDialog from './LinkDialog.vue'
 import ToolButton from './ToolButton.vue'
 
@@ -26,8 +26,8 @@ import ToolButton from './ToolButton.vue'
 const props = defineProps<{
   editor: Editor | undefined
   tools: ToolName[]
-  /** Tools that end a section: a divider follows each (unless the bar has nothing after it). */
-  dividers?: ToolName[]
+  /** The tools in sections: each is a labelled group with a rule before it (the first has none). */
+  sections?: ToolSection[]
   /** Offer the "Edit as Markdown" button. */
   markdownToggle?: boolean
   /** Offer the Comment and Rephrase buttons, apart from the formatting, on the right. */
@@ -39,7 +39,7 @@ const emit = defineEmits<{ comment: []; rephrase: [] }>()
 const markdownMode = defineModel<boolean>('markdownMode', { default: false })
 
 const SLOT = 38 // a button (2.25rem) and the gap after it, in pixels
-const DIVIDER = 13 // a divider (1px) with its margins and the gaps beside it
+const RULE = 13 // the rule before a section (1px), its padding and the gap beside it
 const barId = useId()
 const bar = useTemplateRef<HTMLElement>('bar')
 
@@ -53,11 +53,11 @@ function measure() {
   if (!width) return // not laid out (or not in a browser): show everything
   const right = (props.markdownToggle ? SLOT : 0) + (props.actions ? 2 * SLOT : 0)
   const all = props.tools.length
-  const dividers = props.dividers?.length ?? 0
+  const rules = Math.max((props.sections?.length ?? 0) - 1, 0)
   fitting.value =
-    all * SLOT + dividers * DIVIDER + right <= width
+    all * SLOT + rules * RULE + right <= width
       ? null
-      : Math.max(1, Math.floor((width - right - SLOT - 12 - dividers * DIVIDER) / SLOT))
+      : Math.max(1, Math.floor((width - right - SLOT - 12 - rules * RULE) / SLOT))
 }
 let observer: ResizeObserver | undefined
 onMounted(() => {
@@ -68,23 +68,12 @@ onMounted(() => {
 })
 onBeforeUnmount(() => observer?.disconnect())
 
-/** Consecutive tools of one group sit together; the text styles are announced as a group. */
-function chunks(names: ToolName[]): { group?: string; names: ToolName[] }[] {
-  const out: { group?: string; names: ToolName[] }[] = []
-  for (const name of names) {
-    const group = TOOLS[name].group
-    const last = out.at(-1)
-    if (last && group && last.group === group) last.names.push(name)
-    else out.push({ group, names: [name] })
-  }
-  return out
-}
-
-/** Whether a divider follows this tool: it ends a section and something is shown after it. */
-const dividerAfter = (name: ToolName) =>
-  !!props.dividers?.includes(name) && shown.value.indexOf(name) < shown.value.length - 1
-
-const DIVIDER_CLASS = 'mx-1 h-5 w-px shrink-0 bg-line-strong'
+/** What is shown of each section: the sections with at least one button that fits. */
+const shownSections = computed(() =>
+  (props.sections ?? [])
+    .map((section) => ({ ...section, tools: section.tools.filter((n) => shown.value.includes(n)) }))
+    .filter((section) => section.tools.length),
+)
 
 const active = (tool: Tool) => !!props.editor && tool.isActive(props.editor)
 /** What a tool's button shows: the same wherever it sits (the bar, a group or the More menu). */
@@ -233,25 +222,35 @@ function removeLink() {
       @keydown="onKeydown"
     >
       <template v-if="!markdownMode">
-        <template v-for="(chunk, i) in chunks(shown)" :key="i">
-          <span v-if="chunk.group" role="group" :aria-label="chunk.group" class="flex gap-1">
-            <template v-for="name in chunk.names" :key="name">
-              <ToolButton
-                v-bind="{ ...toolProps(name), ...rovingProps(name) }"
-                @press="press(name)"
-              />
-              <span v-if="dividerAfter(name)" :class="DIVIDER_CLASS" role="separator"></span>
-            </template>
+        <!-- A rule is the left border of every section but the first, drawn shorter than the buttons. -->
+        <template v-if="sections">
+          <span
+            v-for="(section, i) in shownSections"
+            :key="section.label"
+            role="group"
+            :aria-label="section.label"
+            class="relative flex items-center gap-1"
+            :class="
+              i > 0
+                ? 'ml-1 pl-2 before:absolute before:inset-y-2 before:left-0 before:w-px before:bg-line-strong'
+                : ''
+            "
+          >
+            <ToolButton
+              v-for="name in section.tools"
+              :key="name"
+              v-bind="{ ...toolProps(name), ...rovingProps(name) }"
+              @press="press(name)"
+            />
           </span>
-          <template v-else>
-            <template v-for="name in chunk.names" :key="name">
-              <ToolButton
-                v-bind="{ ...toolProps(name), ...rovingProps(name) }"
-                @press="press(name)"
-              />
-              <span v-if="dividerAfter(name)" :class="DIVIDER_CLASS" role="separator"></span>
-            </template>
-          </template>
+        </template>
+        <template v-else>
+          <ToolButton
+            v-for="name in shown"
+            :key="name"
+            v-bind="{ ...toolProps(name), ...rovingProps(name) }"
+            @press="press(name)"
+          />
         </template>
 
         <template v-if="hidden.length">

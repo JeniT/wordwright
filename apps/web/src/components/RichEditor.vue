@@ -6,7 +6,7 @@ import { Mark } from '@tiptap/pm/model'
 import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
-import { DRAFT_DIVIDERS, DRAFT_TOOLS } from '../lib/editor-tools'
+import { DRAFT_SECTIONS, DRAFT_TOOLS } from '../lib/editor-tools'
 import Icon from './Icon.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import {
@@ -436,7 +436,7 @@ watch(model, (value) => {
         v-model:markdown-mode="markdownMode"
         :editor="editor"
         :tools="DRAFT_TOOLS"
-        :dividers="DRAFT_DIVIDERS"
+        :sections="DRAFT_SECTIONS"
         markdown-toggle
         :actions="actions"
         :rephrase-ready="rephraseReady"

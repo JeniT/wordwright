@@ -23,16 +23,12 @@ export interface Tool {
   icon: IconName
   /** What the tooltip adds after the name; `Mod` stands for Ctrl or ⌘. */
   shortcut?: string
-  /** Tools of one group sit together and are announced as a group (the text styles are a choice of one). */
-  group?: string
   isActive: (editor: Editor) => boolean
   /** An action, not a state: it is never "pressed", and is off when it would do nothing. */
   isDisabled?: (editor: Editor) => boolean
   /** Not set for the link, which asks for an address first (see EditorToolbar). */
   run?: (chain: Chain) => Chain
 }
-
-const STYLES = 'Text style'
 
 /** Whether any of the selection, or the cursor, is in a link. */
 function inLink(editor: Editor): boolean {
@@ -48,7 +44,6 @@ export const TOOLS: Record<ToolName, Tool> = {
     label: 'Paragraph',
     icon: 'paragraph',
     shortcut: 'Mod+Alt+0',
-    group: STYLES,
     isActive: (e) =>
       e.isActive('paragraph') && !e.isActive('listItem') && !e.isActive('blockquote'),
     run: (c) => c.setParagraph(),
@@ -57,7 +52,6 @@ export const TOOLS: Record<ToolName, Tool> = {
     label: 'Heading 2',
     icon: 'heading-2',
     shortcut: 'Mod+Alt+2',
-    group: STYLES,
     isActive: (e) => e.isActive('heading', { level: 2 }),
     run: (c) => c.toggleHeading({ level: 2 }),
   },
@@ -65,7 +59,6 @@ export const TOOLS: Record<ToolName, Tool> = {
     label: 'Heading 3',
     icon: 'heading-3',
     shortcut: 'Mod+Alt+3',
-    group: STYLES,
     isActive: (e) => e.isActive('heading', { level: 3 }),
     run: (c) => c.toggleHeading({ level: 3 }),
   },
@@ -144,24 +137,22 @@ export const DESCRIPTION_TOOLS: ToolName[] = [
   'unlink',
 ]
 
-/** The toolbar of the draft, in the order it shows. */
-export const DRAFT_TOOLS: ToolName[] = [
-  'paragraph',
-  'heading2',
-  'heading3',
-  'bold',
-  'italic',
-  'link',
-  'unlink',
-  'bulletList',
-  'orderedList',
-  'quote',
-  'code',
-  'codeBlock',
+/** A run of tools that belong together: announced as a group, and set off from the next one by a rule. */
+export interface ToolSection {
+  label: string
+  tools: ToolName[]
+}
+
+/** The sections of the draft's toolbar, in the order they show. */
+export const DRAFT_SECTIONS: ToolSection[] = [
+  { label: 'Text style', tools: ['paragraph', 'heading2', 'heading3'] },
+  { label: 'Emphasis and links', tools: ['bold', 'italic', 'link', 'unlink'] },
+  { label: 'Lists and quotes', tools: ['bulletList', 'orderedList', 'quote'] },
+  { label: 'Code', tools: ['code', 'codeBlock'] },
 ]
 
-/** The draft's tools that end a section: a divider follows each, unless nothing is left after it on the bar. */
-export const DRAFT_DIVIDERS: ToolName[] = ['heading3', 'unlink', 'quote']
+/** The toolbar of the draft. */
+export const DRAFT_TOOLS: ToolName[] = DRAFT_SECTIONS.flatMap((section) => section.tools)
 
 const onMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, useSlots, type Ref } from 'vue'
 import { errorMessage } from '../lib/api'
+import Icon from './Icon.vue'
 
 type Mutation = {
   isPending: Ref<boolean>
@@ -50,5 +51,10 @@ const message = computed(
   <p v-else-if="state === 'saved' && slots.default" role="status" class="text-sm text-ink-soft">
     <slot />
   </p>
-  <p v-else-if="message" role="status" class="text-sm text-ink-soft">{{ message }}</p>
+  <p v-else-if="message" role="status" class="text-sm text-ink-soft">
+    <!-- A tick beside "Saved", so it is not only words; the words say it to a screen reader. -->
+    <Icon v-if="state === 'saved'" name="check" :size="14" class="mr-1 inline align-[-2px]" />{{
+      message
+    }}
+  </p>
 </template>

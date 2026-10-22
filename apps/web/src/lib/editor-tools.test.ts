@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DESCRIPTION_TOOLS, DRAFT_DIVIDERS, DRAFT_TOOLS, TOOLS, toolTitle } from './editor-tools'
+import { DESCRIPTION_TOOLS, DRAFT_SECTIONS, DRAFT_TOOLS, TOOLS, toolTitle } from './editor-tools'
 
 describe('editor tools', () => {
   it('give a tooltip with the shortcut, if there is one', () => {
@@ -17,7 +17,13 @@ describe('editor tools', () => {
     }
   })
 
-  it('put the draft tools in groups, with a divider only inside the list', () => {
+  it('put the draft tools in labelled sections, in order, each tool once', () => {
+    expect(DRAFT_SECTIONS.map((s) => s.label)).toEqual([
+      'Text style',
+      'Emphasis and links',
+      'Lists and quotes',
+      'Code',
+    ])
     expect(DRAFT_TOOLS).toEqual([
       'paragraph',
       'heading2',
@@ -32,7 +38,5 @@ describe('editor tools', () => {
       'code',
       'codeBlock',
     ])
-    for (const name of DRAFT_DIVIDERS) expect(DRAFT_TOOLS.indexOf(name)).toBeGreaterThanOrEqual(0)
-    expect(DRAFT_TOOLS.at(-1)).not.toBe(DRAFT_DIVIDERS.at(-1))
   })
 })

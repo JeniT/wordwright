@@ -39,7 +39,7 @@ const box = () =>
 afterEach(() => vi.unstubAllGlobals())
 
 describe('RichEditor toolbar', () => {
-  it('offers the draft’s formatting as named icon buttons, with the text styles as one group', async () => {
+  it('offers the draft’s formatting as named icon buttons, in labelled groups', async () => {
     show('Words')
     await screen.findByRole('textbox', { name: 'Draft body' })
     const toolbar = screen.getByRole('toolbar', { name: 'Formatting' })
@@ -59,7 +59,11 @@ describe('RichEditor toolbar', () => {
       'Code block',
       'Edit as Markdown',
     ])
-    expect(within(toolbar).getAllByRole('separator')).toHaveLength(3)
+    expect(
+      within(toolbar)
+        .getAllByRole('group')
+        .map((g) => g.getAttribute('aria-label')),
+    ).toEqual(['Text style', 'Emphasis and links', 'Lists and quotes', 'Code'])
     const styles = within(toolbar).getByRole('group', { name: 'Text style' })
     expect(within(styles).getAllByRole('button')).toHaveLength(3)
   })
