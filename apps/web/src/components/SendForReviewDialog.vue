@@ -9,7 +9,7 @@ import ModalDialog from './ModalDialog.vue'
 /**
  * Sending the draft for review. The draft's title and body are frozen as a snapshot, and the people asked (by email, or
  * members of the publication) read and comment on that, not on later edits (ADR 0001). Only the editor sends. Who is
- * reviewing, and how far they have got, is the Reviews tab beside the draft (`ReviewsPanel`), which `sent` brings forward.
+ * reviewing, and how far they have got, is the Reviews tab beside the draft (`ReviewsPanel`).
  */
 const props = defineProps<{
   open: boolean
@@ -18,7 +18,7 @@ const props = defineProps<{
   /** Saves the draft's latest words first; rejects (with why) if it can't. */
   prepare?: () => Promise<unknown>
 }>()
-const emit = defineEmits<{ close: []; sent: [] }>()
+const emit = defineEmits<{ close: [] }>()
 const queryClient = useQueryClient()
 const { others } = useHandover(
   () => props.publicationId,
@@ -49,7 +49,6 @@ const send = useMutation({
     await queryClient.invalidateQueries({
       queryKey: queryKeys.reviewers(props.publicationId, props.draftId),
     })
-    emit('sent')
     emit('close')
   },
 })

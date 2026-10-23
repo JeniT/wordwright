@@ -408,12 +408,12 @@ const { isOwner } = useHandover(
   () => props.publicationId,
   () => props.id,
 )
-const hasReviews = computed(() => canEdit.value || isOwner.value)
+const canSeeReviews = computed(() => canEdit.value || isOwner.value)
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
   { id: 'comments', label: 'Comments' },
-  ...(hasReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
+  ...(canSeeReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
 ])
 const sideTab = ref('notes')
 const notesOpen = ref(false)
@@ -853,7 +853,7 @@ async function requestCritique() {
               :can-add="canEdit"
             />
           </template>
-          <template v-if="hasReviews" #reviews>
+          <template v-if="canSeeReviews" #reviews>
             <ReviewsPanel :publication-id="publicationId" :draft-id="id" :prepare="saveFirst" />
           </template>
           <template #comments>

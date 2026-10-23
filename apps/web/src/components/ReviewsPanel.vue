@@ -174,11 +174,11 @@ const stateLabel: Record<ReviewState, string> = {
   <section aria-labelledby="reviews-heading" class="text-sm">
     <!-- The tab beside the draft already says "Reviews"; the heading is for screen readers moving by headings. -->
     <h2 id="reviews-heading" class="sr-only">Reviews</h2>
-    <p v-if="isEditor" class="mb-3">
+    <div v-if="isEditor" class="mb-3">
       <button type="button" class="btn btn-outline btn-sm" @click="sending = true">
         Send for review
       </button>
-    </p>
+    </div>
     <p v-if="problem" role="alert" class="mb-3 text-danger">{{ problem }}</p>
     <QueryState :query="list" what="who is reviewing">
       <p v-if="!current" class="text-ink-soft" data-testid="no-reviews">
