@@ -318,7 +318,7 @@ const remove = useMutation({
   onSuccess: async () => {
     replyProblem.value = null
     chosen.value = null // the newest that is left
-    await invalidateRoots(queryClient, 'conversation')
+    await invalidateRoots(queryClient, 'conversation', 'idea')
   },
   onSettled: () => (confirmingDelete.value = false),
 })
