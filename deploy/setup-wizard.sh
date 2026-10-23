@@ -311,7 +311,7 @@ pause "Press Enter."
 # ── 4 ─────────────────────────────────────────────────────────────────────
 stage "Put the deploy files on the server"
 ssh_app "mkdir -p $REMOTE_DIR"
-scp_app "$DEPLOY_DIR/compose.yaml" "$DEPLOY_DIR/deploy.sh" "$DEPLOY_DIR/backup.sh" "$DEPLOY_DIR/production.env.example" \
+scp_app "$DEPLOY_DIR/compose.yaml" "$DEPLOY_DIR/deploy.sh" "$DEPLOY_DIR/backup.sh" "$DEPLOY_DIR/rollback.sh" "$DEPLOY_DIR/production.env.example" \
   "$DEPLOY_DIR/server-setup.sh" "$APP_USER@$SERVER_IP:$REMOTE_DIR/"
 ssh_app "chmod +x $REMOTE_DIR/*.sh"
 ssh_app "ls -l $REMOTE_DIR"

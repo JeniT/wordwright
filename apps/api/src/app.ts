@@ -34,7 +34,7 @@ import { ExportService } from './services/export'
 import { LlmKeyService } from './services/llm'
 import { EmailChangeService } from './services/email-change'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
-import { DomainError } from './errors'
+import { DomainError, describeError } from './errors'
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -230,7 +230,9 @@ export function createApp(deps: AppDeps) {
   app.onError((err, c) => {
     if (err instanceof DomainError) return c.json({ error: err.message }, err.status)
     if (err instanceof HTTPException) return c.json({ error: err.message }, err.status)
-    console.error(`${c.req.method} ${new URL(c.req.url).pathname} failed:`, err)
+    ;(deps.logger ?? console).error(
+      `${c.req.method} ${new URL(c.req.url).pathname} failed: ${describeError(err)}`,
+    )
     return c.json({ error: 'Internal server error' }, 500)
   })
   return app

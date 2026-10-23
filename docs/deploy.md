@@ -43,10 +43,11 @@ see exactly what runs as root.
 | `deploy/compose.yaml`           | The two services, the volumes, the health check, and a cap on log size (the disk is small).     |
 | `deploy/Caddyfile`              | HTTPS, security headers, the web app with its fallback page, `/api/*` and `/health` to the API. |
 | `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed. |
-| `deploy/deploy.sh`              | Backs up, pulls, restarts, waits until ready.                                                   |
+| `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                     |
 | `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                              |
 | `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                     |
 | `deploy/backup.sh`              | One backup onto the server's own disk; the nightly timer runs it.                               |
+| `deploy/rollback.sh`            | Back to an older build and the database from before the update.                                 |
 | `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                      |
 | `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                   |
 
@@ -100,17 +101,25 @@ restore rehearsal in #322. Keep the retention short: a deleted account's data sh
 ## Rolling back
 
 Migrations only go forward, and a build refuses a database made by a newer one ("created by a newer version of this
-app"). So going back to an older build means going back to a database from before it:
+app"). So going back to an older build means going back to a database from before it. On the server, in `~/wordwright`:
 
-1. `docker compose stop api`
-2. Set `WORDWRIGHT_TAG` to the older commit hash in `.env`.
-3. Replace the database with the backup `deploy.sh` took (the newest in `/data/backups`, dated before the update),
-   and delete `wordwright.sqlite-wal` and `-shm` beside it:
-   `docker compose run --rm --no-deps api sh -c 'cd /data && cp backups/<file> wordwright.sqlite && rm -f wordwright.sqlite-wal wordwright.sqlite-shm'`
-4. `./deploy.sh`
+```bash
+./rollback.sh <older commit hash>            # uses the newest backup in ~/backups: the one deploy.sh took before the update
+./rollback.sh <older commit hash> <file>     # or name a backup
+```
 
-Anything written since that backup is lost, so the sooner you decide the better. If the old build only needs a
-configuration fix, change `.env` and run `docker compose up -d` instead; nothing about the data changes.
+It shows which build and which backup (with its time), says that anything written after that time will be lost, and
+waits for you to type `rollback`. Then it stops the app, **moves** the current database aside to `/data/replaced-<time>`
+in the volume (nothing is deleted), puts the backup in its place, sets `WORDWRIGHT_TAG` in `.env`, and runs
+`./deploy.sh`. The sooner you decide, the less is lost. The backup is put in by streaming it into the container, so it
+works whoever owns the file on the server.
+
+Find the older hash in the Images runs on GitHub (Actions → Images), or the line `WORDWRIGHT_TAG=` in your notes from the
+last deploy. If the old build only needs a configuration fix, change `.env` and run `docker compose up -d` instead;
+nothing about the data changes.
+
+A rehearsal on the real server is part of #17: deploy a build, register a test account, roll back to the previous build,
+and check the test account is gone and the app is healthy. Try it before the alpha has real accounts.
 
 ## The firewall, and outgoing mail
 
@@ -171,6 +180,22 @@ After any change to the sender or the DNS, sign up with a Gmail (or other) addre
 (Gmail: ⋮ → Show original). Look for `dkim=pass` for `wordwright.io`, `spf=pass` and `dmarc=pass`. The first
 real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, with DMARC at `p=none`; tightening that to
 `quarantine` once a couple of weeks of reports have come in clean is a later step (#322).
+
+## What the logs hold
+
+Production logs must hold no request bodies, AI keys, tokens, reset or invitation links, or writing. What is there:
+
+- **The app** (`docker compose logs api`): start-up lines (the SMTP check, the address it listens on), the method and path
+  of a request that failed with an unexpected error plus the error's **type, code and stack frames, never its message**
+  (library messages can quote a request or a key), a failed email as an error code and the user's ID (never the address
+  or the link), and the type of an AI provider error. Paths contain publication IDs and usernames, so the logs are
+  personal data, if mildly so: they are capped at 50 MB per container and rotate (`compose.yaml`).
+- **Caddy** (`docker compose logs web`): start-up and certificate lines, and errors (which can include a visitor's IP
+  address). It writes no access log.
+- **Nothing sensitive travels in a URL**: tokens and keys go in request bodies, and only the path is ever logged.
+
+Two tests keep it so: an unexpected error is logged without its message, and every file that writes to the log is on a
+reviewed list (`apps/api/src/errors.test.ts`), so a new log line forces a look at what it prints.
 
 ## Looking at it
 

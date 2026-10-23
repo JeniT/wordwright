@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 
 if docker compose ps --status running --services 2>/dev/null | grep -qx api; then
   echo "Backing up the database before the update..."
-  docker compose exec -T api node /app/scripts/backup-db.mjs /data/backups
+  ./backup.sh
 else
   echo "The app is not running (a first deploy?), so there is nothing to back up."
 fi

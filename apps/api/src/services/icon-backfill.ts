@@ -1,4 +1,5 @@
 import type { Store } from '../db/store'
+import { describeError } from '../errors'
 import { isSquareIcon } from './icon-shape'
 
 /**
@@ -23,7 +24,7 @@ export async function backfillIconShapes(
       done++
     }
   } catch (error) {
-    logger.error('Could not check the shape of stored icons', error)
+    logger.error(`Could not check the shape of stored icons: ${describeError(error)}`)
   }
   return done
 }
