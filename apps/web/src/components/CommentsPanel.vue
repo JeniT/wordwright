@@ -127,8 +127,23 @@ defineExpose({
   <section aria-labelledby="comments-heading" :class="shown.length > 1 ? 'pb-[70vh]' : ''">
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="comments-heading" class="sr-only">Comments</h2>
-    <div v-if="!composing" class="mb-3 flex justify-end">
-      <button type="button" class="btn btn-sm btn-outline" @click="emit('startComment')">
+    <!-- Show resolved on the left, Add comment on the right, on one line. -->
+    <div
+      v-if="!composing || (isEditor && resolvedCount)"
+      class="mb-3 flex items-center justify-between gap-3"
+    >
+      <SwitchField
+        v-if="isEditor && resolvedCount"
+        v-model="showResolved"
+        compact
+        :label="`Show resolved (${resolvedCount})`"
+      />
+      <button
+        v-if="!composing"
+        type="button"
+        class="btn btn-sm btn-outline ml-auto"
+        @click="emit('startComment')"
+      >
         Add comment
       </button>
     </div>
@@ -171,10 +186,6 @@ defineExpose({
         Each comment is marked beside the paragraph it is about. Resolved comments are hidden, never
         deleted.
       </Explain>
-
-      <div v-if="isEditor && resolvedCount" class="mt-3">
-        <SwitchField v-model="showResolved" compact :label="`Show resolved (${resolvedCount})`" />
-      </div>
 
       <ol v-if="shown.length" class="mt-3 space-y-3">
         <li v-for="c in shown" :key="c.id">
