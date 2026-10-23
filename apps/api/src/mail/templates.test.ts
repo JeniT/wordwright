@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
+  EMAIL_COLOURS,
   handoverOfferEmail,
   reviewFinishedEmail,
   reviewInvitationEmail,
@@ -88,5 +90,33 @@ describe('review and handover emails', () => {
       expect(mail.html).toContain('Open the draft')
       expect(mail.html).not.toContain('Read the comments')
     })
+  })
+})
+
+describe('email colours', () => {
+  const palette = readFileSync(
+    new URL('../../../web/src/theme/palette-ember.css', import.meta.url),
+    'utf8',
+  )
+  // The first definition of a role is the light palette.
+  const light = (role: string) => palette.match(new RegExp(`--${role}:\\s*(#[0-9a-f]{6})`, 'i'))![1]
+
+  it('match the Ember light palette, so they cannot drift', () => {
+    expect(EMAIL_COLOURS.button).toBe(light('accent'))
+    expect(EMAIL_COLOURS.onButton).toBe(light('on-accent'))
+    expect(EMAIL_COLOURS.page).toBe(light('paper'))
+    expect(EMAIL_COLOURS.text).toBe(light('ink'))
+    expect(EMAIL_COLOURS.muted).toBe(light('ink-soft'))
+  })
+
+  it('are used by the buttons in a rendered email', () => {
+    const { html } = reviewInvitationEmail({ ...base, inviterName: 'Ada', ttlDays: 14 })
+    expect(html).toContain(`background:${EMAIL_COLOURS.button};color:${EMAIL_COLOURS.onButton}`)
+  })
+
+  it('are the only colours in the templates', () => {
+    const source = readFileSync(new URL('./templates.ts', import.meta.url), 'utf8')
+    const outside = source.replace(/export const EMAIL_COLOURS = \{[^}]*\}/, '')
+    expect(outside.match(/#[0-9a-f]{6}\b|#[0-9a-f]{3}[;"' ]/gi)).toBeNull()
   })
 })

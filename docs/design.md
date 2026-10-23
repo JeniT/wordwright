@@ -73,6 +73,8 @@ Use the role that matches the _meaning_. Values below are Ember light; dark has 
 | `focus`                                                | `#b0440c` | Keyboard focus ring (set globally; you rarely touch it)                                                                                                               |
 | `tint-1`..`tint-6` (`tint-1` class)                    | muted     | Lettered tiles when there is no picture                                                                                                                               |
 
+Emails are light-only and use the Ember accent for their buttons. Their colours are the constants `EMAIL_COLOURS` in `apps/api/src/mail/templates.ts`, which a test keeps equal to the light palette above.
+
 Rules:
 
 - **Never write a colour value** (hex, `rgb()`, a Tailwind palette name) in a component. If you need a new role,
