@@ -471,6 +471,12 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await expect(
     page.getByRole('link', { name: 'Fake title for example.net', exact: true }),
   ).toBeVisible()
+  // Tab completes a typed start of a tag, and leaves focus in the box.
+  await filter.fill('back')
+  await filter.press('Tab')
+  await expect(page.getByRole('button', { name: 'Stop filtering by background' })).toBeVisible()
+  await expect(filter).toBeFocused()
+  await page.getByRole('button', { name: 'Stop filtering by background' }).click()
   await page.reload()
   await expect(page.getByRole('list', { name: 'Tags' }).getByText('background')).toBeVisible()
   await noViolations(page, 'reading list with tags')

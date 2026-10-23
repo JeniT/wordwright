@@ -66,6 +66,105 @@ describe('TagFilter', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('adds the first match on Return when only part of a tag is typed', async () => {
+    const { emitted } = render(TagFilter, { props: { tags, modelValue: [] } })
+    await fireEvent.update(box(), 'so')
+    await press('Enter')
+    expect(emitted()['update:modelValue']).toEqual([[['sources']]])
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('prefers a tag typed in full over an earlier one that merely starts with it', async () => {
+    const { emitted } = render(TagFilter, {
+      props: { tags: ['introduction', 'intro'], modelValue: [] },
+    })
+    await fireEvent.update(box(), 'intro')
+    await press('Enter')
+    expect(emitted()['update:modelValue']).toEqual([[['intro']]])
+  })
+
+  describe('Tab', () => {
+    const tab = (props: { tags: string[]; modelValue?: string[] }) => {
+      const view = render(TagFilter, { props: { modelValue: [], ...props } })
+      const pressed = async () => {
+        const event = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true, bubbles: true })
+        box().dispatchEvent(event)
+        await Promise.resolve()
+        return event.defaultPrevented
+      }
+      return { ...view, pressed }
+    }
+
+    it('adds the only suggestion, keeping focus', async () => {
+      const { emitted, pressed } = tab({ tags })
+      box().focus()
+      await fireEvent.update(box(), 'sou')
+      expect(await pressed()).toBe(true)
+      expect(emitted()['update:modelValue']).toEqual([[['sources']]])
+      expect(box()).toHaveFocus()
+    })
+
+    it('adds the highlighted suggestion', async () => {
+      const { emitted, pressed } = tab({ tags })
+      box().focus()
+      await press('ArrowDown')
+      await press('ArrowDown')
+      expect(await pressed()).toBe(true)
+      expect(emitted()['update:modelValue']).toEqual([[['part 2']]])
+    })
+
+    it('completes to what the suggestions share, without adding a chip', async () => {
+      const { emitted, pressed } = tab({ tags: ['delete', 'deliver', 'sources'] })
+      await fireEvent.update(box(), 'd')
+      expect(await pressed()).toBe(true)
+      expect(box().value).toBe('del')
+      expect(emitted()['update:modelValue']).toBeUndefined()
+      expect(options()).toEqual(['delete', 'deliver'])
+    })
+
+    it('completes ignoring case, keeping the tags’ spelling', async () => {
+      const { pressed } = tab({ tags: ['Delete', 'Deliver'] })
+      await fireEvent.update(box(), 'D')
+      await pressed()
+      expect(box().value).toBe('Del')
+    })
+
+    it('moves on when the suggestions share nothing more than what is typed', async () => {
+      const { emitted, pressed } = tab({ tags: ['delete', 'dozen'] })
+      await fireEvent.update(box(), 'd')
+      expect(await pressed()).toBe(false)
+      expect(box().value).toBe('d')
+      expect(emitted()['update:modelValue']).toBeUndefined()
+    })
+
+    it('moves on when some suggestions only contain the text', async () => {
+      const { pressed } = tab({ tags: ['part 2', 'depart'] })
+      await fireEvent.update(box(), 'part')
+      expect(await pressed()).toBe(false)
+      expect(box().value).toBe('part')
+    })
+
+    it('moves on from an empty box, even with the suggestions showing', async () => {
+      const { emitted, pressed } = tab({ tags })
+      await fireEvent.focus(box())
+      expect(await pressed()).toBe(false)
+      expect(emitted()['update:modelValue']).toBeUndefined()
+    })
+
+    it('moves on when nothing matches', async () => {
+      const { pressed } = tab({ tags })
+      await fireEvent.update(box(), 'zebra')
+      expect(await pressed()).toBe(false)
+    })
+
+    it('moves on once the suggestions are closed with Escape', async () => {
+      const { pressed } = tab({ tags: ['delete'] })
+      await fireEvent.update(box(), 'de')
+      await press('Escape')
+      expect(await pressed()).toBe(false)
+    })
+  })
+
   it('closes the suggestions on Escape', async () => {
     render(TagFilter, { props: { tags, modelValue: [] } })
     await fireEvent.focus(box())

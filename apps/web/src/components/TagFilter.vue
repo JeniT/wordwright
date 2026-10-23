@@ -4,7 +4,8 @@ import Icon from './Icon.vue'
 
 /**
  * Narrows a list to what carries every chosen tag. A text box with a tag icon suggests the tags on the list that are
- * not chosen yet as you type; Return adds one and leaves the focus in the box for the next. Each chosen tag stays as a
+ * not chosen yet as you type; Return (or Tab, when it can tell which) adds one and leaves the focus in the box for the
+ * next. Each chosen tag stays as a
  * chip that takes it away again, so a filtered list never looks like the whole list. Not shown at all until something
  * has a tag.
  */
@@ -49,11 +50,49 @@ function enter() {
   const picked = suggestions.value[active.value]
   if (picked) return add(picked)
   if (!typed) return
-  const match = offered.value.find((t) => same(t, typed))
+  // A tag typed in full wins over an earlier one that merely starts with it; otherwise the first match.
+  const match = offered.value.find((t) => same(t, typed)) ?? suggestions.value[0]
   if (match) return add(match)
   message.value = isChosen(typed)
     ? `Already filtering by “${typed}”.`
     : `No notes or links are tagged “${typed}”. Pick one from the list.`
+}
+
+/**
+ * Tab completes like a shell: a highlighted or only suggestion is chosen, and several that share more than has been
+ * typed fill in the shared part. Anything else lets Tab move on, so the box never traps the keyboard, and a bare
+ * focus (nothing typed, nothing arrowed to) never changes the filter.
+ */
+function tab(event: KeyboardEvent) {
+  const typed = text.value.trim()
+  if (!showList.value || (!typed && active.value < 0)) return
+  const picked =
+    suggestions.value[active.value] ??
+    (suggestions.value.length === 1 ? suggestions.value[0] : undefined)
+  if (picked) {
+    event.preventDefault()
+    return add(picked)
+  }
+  const shared = commonPrefix(suggestions.value)
+  const starts = suggestions.value.every((t) => t.toLowerCase().startsWith(typed.toLowerCase()))
+  if (!starts || shared.length <= typed.length) return
+  event.preventDefault()
+  text.value = shared
+}
+
+function commonPrefix(tags: readonly string[]) {
+  let prefix = tags[0] ?? ''
+  for (const tag of tags) {
+    let n = 0
+    while (
+      n < prefix.length &&
+      n < tag.length &&
+      prefix.charAt(n).toLowerCase() === tag.charAt(n).toLowerCase()
+    )
+      n++
+    prefix = prefix.slice(0, n)
+  }
+  return prefix
 }
 
 function move(step: 1 | -1) {
@@ -101,6 +140,7 @@ const remove = (tag: string) => (chosen.value = chosen.value.filter((c) => !same
         @keydown.enter.prevent="enter"
         @keydown.down.prevent="move(1)"
         @keydown.up.prevent="move(-1)"
+        @keydown.tab="tab"
         @keydown.esc="escape"
       />
       <ul
