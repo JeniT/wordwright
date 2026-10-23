@@ -20,13 +20,13 @@ Run the wizard on your own computer, from this repository:
 deploy/setup-wizard.sh
 ```
 
-It walks you through eleven steps and does the typing on the server for you, over SSH. It needs `ssh`, `scp`,
+It walks you through twelve steps and does the typing on the server for you, over SSH. It needs `ssh`, `scp`,
 `rsync`, `curl`, `node` and a signed-in `gh`. What it does, in order: checks the DNS record and your SSH key; runs
 `deploy/server-setup.sh base` on the server (an account `wordwright` for the app, Docker, a firewall for SSH, 80 and
 443, automatic security updates with a restart at 04:30 when one needs it); switches off root login and passwords
 once you have shown the new login works; copies the deploy files; runs the Images workflow; gives the server a
 read-only token for the private images; makes the two secrets and sends them to the server; takes the Scaleway SMTP
-details; starts the app and checks `https://app.wordwright.io/health`; walks you through checking real email; and
+details; takes the Google sign-in ID and secret if you have them; starts the app and checks `https://app.wordwright.io/health`; walks you through checking real email; and
 installs a nightly backup timer and fetches a first copy to your computer.
 
 Secrets go from your keyboard to the server and are never written on your computer. The one file it keeps
@@ -210,9 +210,12 @@ once the privacy notice and terms are live.
 
 ### Putting the client on the server
 
-The ID and secret live only in `~/wordwright/.env` on the server, never in the repository or a chat. Edit the file there
-(`nano .env`, set both lines), then `docker compose up -d`; a plain `restart` does not read `.env` again. Back the secret up
-with the other secrets, apart from the data.
+The ID and secret live only in `~/wordwright/.env` on the server, never in the repository or a chat. Run
+`deploy/setup-wizard.sh`: its Google stage asks for the client ID, then the secret (hidden), and sends both to the
+server like the other secrets; re-running it keeps what the server has unless you say to replace it. Then apply them
+with `docker compose up -d` in `~/wordwright` (the wizard's first deploy does this itself; a plain `restart` does not
+read `.env` again). Or edit by hand: `nano .env`, set both lines (the app refuses to start with only one), then
+`docker compose up -d`. Keep the secret in your password manager too, apart from the data.
 
 ### Checking it
 

@@ -243,7 +243,7 @@ remote_env_has() { ssh_app "grep -q '^$1=.' $REMOTE_DIR/.env 2>/dev/null"; }
 
 run_wizard() {
 
-TOTAL_STAGES=11
+TOTAL_STAGES=12
 
 banner "Wordwright: set up the production server"
 
@@ -424,9 +424,35 @@ elif remote_env_has SMTP_URL; then say "Kept the SMTP settings already on the se
 else warn "No SMTP settings on the server: the app will refuse to start. Run the wizard again and enter the password."; exit 1; fi
 
 # ── 9 ─────────────────────────────────────────────────────────────────────
+stage "Google sign-in (optional)"
+say "Without it people sign in with email and a password only. Set it up in Google Cloud first (docs/deploy.md, 'Google sign-in')."
+if remote_env_has GOOGLE_CLIENT_SECRET && ! confirm "The server already has Google sign-in settings. Replace them?"; then
+  say "Kept the Google settings already on the server."
+elif confirm "Enter the Google client ID and secret now?"; then
+  note "The redirect URI registered with Google must be exactly: https://$SITE/api/auth/oauth/google/callback"
+  ask GOOGLE_CLIENT_ID "Client ID (ends .apps.googleusercontent.com):"
+  [[ "$GOOGLE_CLIENT_ID" == *.apps.googleusercontent.com ]] || warn "That does not look like a Google client ID; check it if sign-in fails."
+  write_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+  ask_secret GOOGLE_CLIENT_SECRET "Client secret (hidden):"
+  if [[ -n "$GOOGLE_CLIENT_ID" && -n "$GOOGLE_CLIENT_SECRET" ]]; then
+    printf 'GOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\n' "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" | remote_env_set
+    unset GOOGLE_CLIENT_SECRET
+    say "✓ sent to the server"
+    SKIPPED+=("Google sign-in: add each alpha writer's Google address as a test user while the app is in Testing (docs/deploy.md), then try it (issue #350)")
+  else
+    unset GOOGLE_CLIENT_SECRET
+    warn "Both are needed, so nothing was sent. Run the wizard again to retry."
+    SKIPPED+=("Google sign-in is off until both the ID and the secret are entered (issue #350)")
+  fi
+else
+  SKIPPED+=("Google sign-in is off until it is set up (issue #350); run the wizard again to enter it")
+fi
+pause "Press Enter."
+
+# ── 10 ─────────────────────────────────────────────────────────────────────
 stage "First deploy"
 say "This writes the address settings, then pulls the images and starts the app."
-printf 'SITE_ADDRESS=%s\nPUBLIC_URL=https://%s\nNODE_ENV=production\nGOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\nWORDWRIGHT_TAG=%s\n' \
+printf 'SITE_ADDRESS=%s\nPUBLIC_URL=https://%s\nNODE_ENV=production\nWORDWRIGHT_TAG=%s\n' \
   "$SITE" "$SITE" "$IMAGE_TAG" | remote_env_set
 confirm "Start the app now?" || exit 1
 ssh_app_tty "cd $REMOTE_DIR && ./deploy.sh"
@@ -447,7 +473,7 @@ fi
 open_url "https://$SITE"
 pause "Do you see the Wordwright sign-in page? Press Enter."
 
-# ── 10 ────────────────────────────────────────────────────────────────────
+# ── 11 ────────────────────────────────────────────────────────────────────
 stage "Check the email really arrives"
 warn "Anyone who knows the address can create an account until the alpha approval feature (#328) is built. Don't share it yet."
 open_url "https://$SITE"
@@ -459,7 +485,7 @@ if ! confirm "Did the email arrive, in the inbox, with all three passing?"; then
   SKIPPED+=("Email deliverability: fix and re-test (issue #349). Scaleway's logs show what was sent.")
 fi
 
-# ── 11 ────────────────────────────────────────────────────────────────────
+# ── 12 ────────────────────────────────────────────────────────────────────
 stage "Nightly backups, and a copy on this computer"
 say "A timer on the server backs up the database at 02:30 every night and keeps 14 days."
 confirm "Install the timer and take a first backup now?" || exit 1
@@ -475,7 +501,6 @@ rsync -a -e "ssh -i \"$SSH_KEY\" -o IdentitiesOnly=yes -o ControlPath=$CTL_DIR/%
 ls -l "$LOCAL_BACKUP_DIR"
 printf -v fetch_cmd 'rsync -a -e "ssh -i %q" %s@%s:backups/ %q/' "$SSH_KEY" "$APP_USER" "$SERVER_IP" "$LOCAL_BACKUP_DIR"
 SKIPPED+=("Fetch backups regularly: $fetch_cmd   (until a proper off-site copy is set up, issue #17)")
-SKIPPED+=("Google sign-in is off until it is set up (issue #350)")
 
 finish
 }
