@@ -108,6 +108,15 @@ Figures are tabular by default so counts and dates align. Don't add other typefa
 - **Spacing:** Tailwind's scale; page sections `mb-8`–`mb-12`, panel padding `p-4`/`p-5`/`p-6`. Read neighbouring
   screens first and match them.
 
+## Icons
+
+- **One set, one weight:** [Phosphor](https://phosphoricons.com/) **bold** (MIT), drawn by `Icon` in `Icon.vue`. People never import an icon
+  file in a component; they write `<Icon name="…">`. A new icon is one import and one name there (the SVG files are
+  `@phosphor-icons/core/assets/bold/<name>-bold.svg`; only the ones imported are bundled).
+- **The AI sparkle is ours.** No icon pack has one like it, so `ai` is hand-drawn as a stroke icon whose stroke width (2.25
+  in its 24-unit box) is chosen to match Phosphor bold at the same size. Keep the two in step if the weight ever changes.
+- Icons are decoration (`aria-hidden`); the control that holds one has its own name. Colour comes from `currentColor`.
+
 ## Components (utilities in `theme.css`)
 
 Use these instead of long utility strings. If you find yourself repeating a recipe, add a component here.
@@ -197,7 +206,7 @@ whose paragraph has been rewritten is found again by the words it shares with th
 
 ### Comment and Rephrase in the toolbar (#334)
 
-The draft's toolbar ends with a group (no border; it sits right-aligned with the Markdown button), apart from the formatting and never in the **More** menu: **Comment** (speech-bubble icon, tooltip "Comment on the selected words or the paragraph you are in") and **Rephrase** (the AI icon, tooltip "Rephrase the selected words"), then the Markdown button. A button that can't be used now is `aria-disabled` rather than `disabled`, so it stays in the tab order (`ToolButton` `unavailable`); pressing it puts the reason in a status line under the toolbar (Rephrase: the selection reason; both in Markdown mode). A tutorial-only line under the toolbar covers both buttons. "Rephrase title" stays beside the title.
+The draft's toolbar ends with a group (no border; it sits right-aligned with the Markdown button), apart from the formatting and never in the **More** menu: **Comment** (`chat` speech-bubble icon, tooltip "Comment on the selected words or the paragraph you are in") and **Rephrase** (the AI icon, tooltip "Rephrase the selected words"), then the Markdown button. A button that can't be used now is `aria-disabled` rather than `disabled`, so it stays in the tab order (`ToolButton` `unavailable`); pressing it puts the reason in a status line under the toolbar (Rephrase: the selection reason; both in Markdown mode). A tutorial-only line under the toolbar covers both buttons. "Rephrase title" stays beside the title.
 
 **Comment** acts on the paragraph holding the caret or the start of the selection. With the caret in the title, nowhere in the body clicked yet, or no paragraph found, it opens a general comment. The **composer** (`CommentComposer`) is a `panel` at the top of the Comments tab (it opens the tab, or the drawer on a phone, and takes focus): a heading "Comment on paragraph 4" or "General comment", the selected words quoted, a compact **General comment** switch, the member's "Only you and {name}, the editor, will see this." (the editor's own has no audience line), a "Your comment" field that starts as one line and grows to a cap (`max-h-28` on a phone, `max-h-52` from `sm`), **Add comment** and **Cancel**. There is no "added" message: the new card is the confirmation. The paragraph being commented on has the active edge while the composer is open.
 
