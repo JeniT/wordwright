@@ -46,8 +46,10 @@ see exactly what runs as root.
 | `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                     |
 | `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                              |
 | `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                     |
-| `deploy/backup.sh`              | One backup onto the server's own disk; the nightly timer runs it.                               |
+| `deploy/backup.sh`              | One backup onto the server's own disk, and off-site if set up; the nightly timer runs it.       |
 | `deploy/rollback.sh`            | Back to an older build and the database from before the update.                                 |
+| `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                        |
+| `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                       |
 | `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                      |
 | `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                   |
 
@@ -93,10 +95,54 @@ The wizard installs a timer that runs `deploy/backup.sh` at 02:30 every night: t
 result into `~/backups` on the server (14 days kept; `BACKUP_KEEP_DAYS` changes it). Fetch them with
 `rsync -a wordwright@<server>:backups/ <a folder on your computer>/`.
 
-Those copies are still on the server's disk, so they do not survive losing the machine until you fetch them. **Copy them somewhere else regularly**, and
-back up the secrets apart from the data (`KEY_ENCRYPTION_SECRET` in particular: without it stored AI keys cannot be
-read, and without `SESSION_SECRET` everyone is signed out). Where they go, and the nightly schedule, are in #17 and the
-restore rehearsal in #322. Keep the retention short: a deleted account's data should not linger in old copies.
+Those copies are on the server's own disk, so by themselves they do not survive losing the server. Two more things
+keep them safe: the encrypted off-site copy below, and the secrets kept apart from the data (`KEY_ENCRYPTION_SECRET`
+in particular: without it stored AI keys cannot be read, and without `SESSION_SECRET` everyone is signed out). Keep
+the retention short: a deleted account's data should not linger in old copies.
+
+### Off-site copies (Scaleway Object Storage)
+
+`deploy/offsite-wizard.sh` (run on your computer, after the setup wizard) sets this up. It walks you through making a
+separate Scaleway project, a private bucket with versioning and an expiry rule, and an API key that reaches only that
+project, then writes the settings to `~/wordwright/offsite.env` on the server (mode 600). After that, **every
+`backup.sh` run, so every night, also uploads the new backup** with `deploy/offsite.sh`.
+
+- **Encrypted first.** rclone's "crypt" encrypts each file, and its name, on the server with a password and a salt
+  that the wizard makes for you and shows once. **Put them in your password manager** next to `KEY_ENCRYPTION_SECRET`:
+  without them the off-site backups cannot be opened by anyone, you included. Scaleway holds only scrambled files.
+- **Why a separate project and key.** The key on the server can only reach the backups bucket, nothing else you have
+  at Scaleway. It can delete in that bucket, which is why the bucket has versioning: a deletion can be undone.
+- **Retention.** The bucket's rule expires backups after 30 days (and old versions after 7), so a deleted account's
+  data can remain in the backups for up to about 37 days. Say so in the data map (#320). The server keeps 14 days.
+- **A failed upload** leaves the local backup in place but makes the nightly run fail (`systemctl status
+wordwright-backup.service`, `journalctl -u wordwright-backup.service`). A 403 means the key or its policy, a 404 the
+  bucket name or region. A mistyped bucket name is an error, never a new bucket (the wizard turns bucket creation off).
+- **rclone** runs from a pinned container image (`RCLONE_IMAGE` in `deploy/offsite.sh`), so nothing is installed on the
+  server and the version only changes when someone changes that line.
+
+On the server, in `~/wordwright`:
+
+```bash
+./offsite.sh list                  # the backups in the bucket, with their real names
+./offsite.sh fetch <name>          # bring one back to ~/restored, decrypted
+./offsite.sh verify                # fetch the newest, check the database opens and is intact, delete the copy
+```
+
+### Restoring from the off-site copy
+
+If the server is fine but the database is not, fetch a backup and roll back to it (rollback.sh takes any file):
+
+```bash
+./offsite.sh list
+./offsite.sh fetch wordwright-20261023-023000.sqlite
+./rollback.sh <the build you want> ~/restored/wordwright-20261023-023000.sqlite
+```
+
+If the server is gone: make a new one with `deploy/setup-wizard.sh`, then before anyone uses it, stop the app, put your
+**saved** `KEY_ENCRYPTION_SECRET` (and `SESSION_SECRET`) into `~/wordwright/.env` in place of the new ones the wizard
+made (a new key secret makes every stored AI key unreadable), run `deploy/offsite-wizard.sh` and answer **no** to "is
+this the first time" to enter the saved encryption password and salt, then fetch the newest backup and roll back to it as
+above. This path is written but has not been practised yet: the restore rehearsal in #322 should do it once.
 
 ## Rolling back
 
