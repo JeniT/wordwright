@@ -49,7 +49,7 @@ const asked = () => actions.ask.mutate(undefined, { onSettled: close })
         class="btn btn-outline btn-sm"
         @click="open = 'offer'"
       >
-        Offer draft
+        Handover draft
       </button>
       <button
         v-if="!isEditor && !myAsk && !offeredToMe"

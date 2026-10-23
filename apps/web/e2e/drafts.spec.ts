@@ -1105,16 +1105,16 @@ test('the editor offers a draft; the member declines once and accepts the next t
 
   const offer = async () => {
     await page.goto(draftUrl)
-    await page.getByRole('button', { name: 'Offer draft', exact: true }).click()
+    await page.getByRole('button', { name: 'Handover draft', exact: true }).click()
     await page.getByLabel('Member', { exact: true }).selectOption({ label: 'Bob' })
-    await page.getByRole('dialog').getByRole('button', { name: 'Offer draft' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Handover draft' }).click()
     await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
   }
 
   // Ada offers, then takes it back from the notice, then offers again; she keeps the pen throughout.
   await offer()
   await page.getByRole('button', { name: 'Withdraw the offer' }).click()
-  await expect(page.getByRole('button', { name: 'Offer draft', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Handover draft', exact: true })).toBeVisible()
   await offer()
   // Bob is told on the draft page and declines.
   await expect(page.getByRole('button', { name: 'Critique' })).toBeVisible()
@@ -1139,7 +1139,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   // Ada sees the request, offers again, and this time Bob accepts: the pen moves.
   await page.goto(draftUrl)
   await expect(page.getByText('Bob asked for this draft')).toBeVisible()
-  await page.getByRole('button', { name: 'Offer draft to Bob' }).click()
+  await page.getByRole('button', { name: 'Handover draft to Bob' }).click()
   await bob.reload()
   await bob.getByTestId('offered-to-me').getByRole('button', { name: 'Accept' }).click()
   await expect(bob.getByRole('button', { name: 'Critique' })).toBeVisible()
@@ -1308,9 +1308,9 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
 
   // Ada offers the draft to Bob: she is told she is waiting, he is told it was offered.
   await page.goto(draftUrl)
-  await page.getByRole('button', { name: 'Offer draft', exact: true }).click()
+  await page.getByRole('button', { name: 'Handover draft', exact: true }).click()
   await page.getByLabel('Member', { exact: true }).selectOption({ label: 'Bob' })
-  await page.getByRole('dialog').getByRole('button', { name: 'Offer draft' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Handover draft' }).click()
   await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
   await page.goto(publicationUrl)
   await expect(page.getByRole('region', { name: 'Waiting for you' })).toContainText(
@@ -1327,9 +1327,9 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await bob.reload()
   await expect(bob.getByRole('region', { name: 'Waiting for you' })).toHaveCount(0)
   await page.goto(draftUrl)
-  await page.getByRole('button', { name: 'Offer draft', exact: true }).click()
+  await page.getByRole('button', { name: 'Handover draft', exact: true }).click()
   await page.getByLabel('Member', { exact: true }).selectOption({ label: 'Bob' })
-  await page.getByRole('dialog').getByRole('button', { name: 'Offer draft' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Handover draft' }).click()
   await expect(page.getByText('You stay its editor until they accept')).toBeVisible()
   await bob.reload()
   await bob.getByRole('button', { name: 'Accept Meanders' }).click()

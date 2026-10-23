@@ -95,7 +95,7 @@ describe('handing a draft over (#155)', () => {
   it('lets the editor offer the draft to a named member, and says they are emailed and choose whether to accept', async () => {
     const calls = mockPage(ada, { role: 'owner' })
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Offer draft' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Handover draft' }))
     const choose = screen.getByLabelText('Member')
     // Plain text, whatever the tutorial setting: it says what happens to who owns the draft.
     expect(
@@ -106,8 +106,8 @@ describe('handing a draft over (#155)', () => {
     expect(screen.queryByRole('button', { name: 'About handing over a draft' })).toBeNull()
     expect(within(choose).queryByRole('option', { name: 'Ada Lovelace' })).toBeNull() // not oneself
     await fireEvent.update(choose, 'u2')
-    const dialog = screen.getByRole('dialog', { name: 'Offer draft' })
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Offer draft' }))
+    const dialog = screen.getByRole('dialog', { name: 'Handover draft' })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Handover draft' }))
     await waitFor(() =>
       expect(calls).toEqual([{ method: 'POST', path: '/offer', body: { userId: 'u2' } }]),
     )
@@ -117,7 +117,7 @@ describe('handing a draft over (#155)', () => {
   it('closes the offer dialog with Cancel or Escape and offers nothing', async () => {
     const calls = mockPage(ada, { role: 'owner' })
     await renderAt('/p/p1/drafts/d1')
-    const opener = await screen.findByRole('button', { name: 'Offer draft' })
+    const opener = await screen.findByRole('button', { name: 'Handover draft' })
     await fireEvent.click(opener)
     await fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
@@ -141,10 +141,10 @@ describe('handing a draft over (#155)', () => {
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.update(await screen.findByLabelText('Title'), 'Just typed')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Offer draft' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Handover draft' }))
     await fireEvent.update(screen.getByLabelText('Member'), 'u2')
-    const dialog = screen.getByRole('dialog', { name: 'Offer draft' })
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Offer draft' }))
+    const dialog = screen.getByRole('dialog', { name: 'Handover draft' })
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Handover draft' }))
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(order).toEqual(['save'])
   })
@@ -157,7 +157,7 @@ describe('handing a draft over (#155)', () => {
     const notice = await screen.findByRole('region', { name: 'Offer made' })
     expect(notice).toHaveTextContent('You have offered this draft to Bob Jones')
     expect(notice).toHaveTextContent('You stay its editor until they accept')
-    expect(screen.queryByRole('button', { name: 'Offer draft' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Handover draft' })).toBeNull()
     await fireEvent.click(screen.getByRole('button', { name: 'Withdraw the offer' }))
     await waitFor(() => expect(calls).toEqual([{ method: 'DELETE', path: '/offer' }]))
   })
@@ -169,7 +169,7 @@ describe('handing a draft over (#155)', () => {
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/asked for this draft/)).toBeTruthy()
     await fireEvent.click(screen.getByRole('button', { name: 'Not now: Bob Jones' }))
-    await fireEvent.click(screen.getByRole('button', { name: 'Offer draft to Bob Jones' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Handover draft to Bob Jones' }))
     await waitFor(() =>
       expect(calls).toEqual([
         { method: 'DELETE', path: '/asks/a1' },
@@ -353,7 +353,7 @@ describe('handing a draft over (#155)', () => {
     const asked = await screen.findByRole('region', { name: 'Cy Young asked for this draft' })
     expect(asked).toHaveClass('notice-warn')
     // The editor already has an offer open, so a second cannot be made from the request.
-    expect(within(asked).queryByRole('button', { name: /^Offer draft/ })).toBeNull()
+    expect(within(asked).queryByRole('button', { name: /^Handover draft/ })).toBeNull()
     expect(screen.getByRole('region', { name: 'Offer made' })).toHaveClass('notice-info')
   })
 })
