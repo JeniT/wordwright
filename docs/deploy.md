@@ -115,6 +115,10 @@ project, then writes the settings to `~/wordwright/offsite.env` on the server (m
   not meet.
 - **Why a separate project and key.** The key on the server can only reach the backups bucket, nothing else you have
   at Scaleway. It can delete in that bucket, which is why the bucket has versioning: a deletion can be undone.
+- **The lifecycle rule** (set on a separate page after the bucket is created), for all objects: expire the current version
+  after **30** days; non-current versions **7** days after they become non-current, with "non-current versions to
+  retain" at **0** (a higher number keeps deleted backups for ever, since each backup name has at most one old version);
+  and expire delete markers that have no non-current versions.
 - **Retention.** The bucket's rule expires backups after 30 days (and old versions after 7), so a deleted account's
   data can remain in the backups for up to about 37 days. Say so in the data map (#320). The server keeps 14 days.
 - **A failed upload** leaves the local backup in place but makes the nightly run fail (`systemctl status
