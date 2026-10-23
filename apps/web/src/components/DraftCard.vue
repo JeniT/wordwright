@@ -34,7 +34,7 @@ function onDragStart(event: DragEvent) {
   <li class="flex overflow-hidden rounded-ctl border border-line bg-surface">
     <div
       v-if="canAdd"
-      class="list-rail list-rail-grab select-none"
+      class="list-rail list-rail-grab relative select-none lg:min-h-20"
       draggable="true"
       data-testid="rail"
       @dragstart="onDragStart"
@@ -51,7 +51,7 @@ function onDragStart(event: DragEvent) {
         <Icon :name="busy ? 'working' : 'insert'" :class="{ 'motion-safe:animate-spin': busy }" />
       </button>
       <svg
-        class="list-rail-grip mt-1 hidden lg:block"
+        class="list-rail-grip absolute top-[max(50%,3.75rem)] left-1/2 hidden -translate-x-1/2 -translate-y-1/2 lg:block"
         width="10"
         height="16"
         viewBox="0 0 10 16"
