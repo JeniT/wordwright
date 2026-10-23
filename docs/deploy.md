@@ -181,7 +181,46 @@ After any change to the sender or the DNS, sign up with a Gmail (or other) addre
 real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, with DMARC at `p=none`; tightening that to
 `quarantine` once a couple of weeks of reports have come in clean is a later step (#322).
 
-## What the logs hold
+## Google sign-in
+
+Optional: without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` the app works with email sign-in only (#350).
+
+**Where it stands (23 Oct 2026):** the Google Cloud project, consent screen and OAuth client exist, with the app in
+**Testing** (not published). The privacy notice and terms links on the consent screen wait for #321, and the proper
+verification waits until after #320 and #321.
+
+### The decision: stay in Testing for the private alpha
+
+The app asks only for `openid`, `email` and `profile`, which Google counts as non-sensitive, so verification is a
+brand and policy review rather than a security assessment. It is still not needed yet: while the publishing status is
+**Testing**, up to 100 listed test users can sign in, and the alpha is invitation-only anyway (#328). What testing
+costs: signing in shows an "unverified app" page that a test user passes with **Continue**, and anyone not on the list
+is turned away by Google before the app sees them. **Add each alpha writer's Google address to the test users first**
+(Google Auth Platform → Audience → Test users). Move to **In production** and submit for verification when the alpha
+passes 100 people, or when the warning page puts people off, whichever is first; it can take days or weeks, so start
+once the privacy notice and terms are live.
+
+### The Google Cloud settings
+
+- **Project** `Wordwright`; **consent screen** type External, app name `Wordwright`, support and developer contact emails.
+- **Scopes:** `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`. Add no others.
+- **OAuth client** (Web application): authorised redirect URI exactly
+  `https://app.wordwright.io/api/auth/oauth/google/callback` (`PUBLIC_URL` plus the path; a trailing slash or `http` makes
+  Google answer `redirect_uri_mismatch`). No JavaScript origin is needed: the app uses the code flow.
+
+### Putting the client on the server
+
+The ID and secret live only in `~/wordwright/.env` on the server, never in the repository or a chat. Edit the file there
+(`nano .env`, set both lines), then `docker compose up -d`; a plain `restart` does not read `.env` again. Back the secret up
+with the other secrets, apart from the data.
+
+### Checking it
+
+1. Sign in with Google as a test user who has no account yet. A new account should be created (and, once #328 lands,
+   start as `waiting`).
+2. Sign in again as the same person: it should go straight in, to the same account.
+3. Sign in with a Google account that is not on the test list: Google should refuse with "access blocked".
+4. If Google shows `redirect_uri_mismatch`, compare the URI in the error with the one above.
 
 Production logs must hold no request bodies, AI keys, tokens, reset or invitation links, or writing. What is there:
 
