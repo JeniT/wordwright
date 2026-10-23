@@ -1,4 +1,5 @@
 import type {
+  CommentEdit,
   CommentInput,
   Draft,
   DraftReviewers,
@@ -16,7 +17,7 @@ import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
 import { reviewFinishedEmail, reviewInvitationEmail, reviewRequestEmail } from '../mail/templates'
 import type { AccountService, Session } from './accounts'
-import { addComment } from './comments'
+import { addComment, deleteComment, editComment } from './comments'
 
 export const REVIEW_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -281,6 +282,33 @@ export class ReviewService {
       id: review.id,
       body: snapshot.body,
     })
+  }
+
+  /** The review this reviewer owns, still open: the only place their comments can change. */
+  private openReviewOf(user: UserRecord, reviewId: string) {
+    const review = this.d.store.reviews.ownedBy(reviewId, user.id)
+    if (!review) throw fail(404, 'Not found')
+    if (review.state !== 'open') {
+      throw fail(409, 'This review has ended, so you can’t change comments.')
+    }
+    return review
+  }
+
+  editComment(user: UserRecord, reviewId: string, commentId: string, edit: CommentEdit) {
+    const review = this.openReviewOf(user, reviewId)
+    return editComment(
+      this.d.store,
+      this.draftOf(review.draftId),
+      user.id,
+      commentId,
+      edit,
+      review.id,
+    )
+  }
+
+  deleteComment(user: UserRecord, reviewId: string, commentId: string): void {
+    const review = this.openReviewOf(user, reviewId)
+    deleteComment(this.d.store, this.draftOf(review.draftId), user.id, commentId, review.id)
   }
 
   /** "End review": the reviewer is finished. The editor is emailed once, and the review becomes read-only. */

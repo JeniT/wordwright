@@ -43,6 +43,8 @@ import {
   refreshNotesEverywhere,
   useDraft,
   useAddComment,
+  useDeleteComment,
+  useEditComment,
   useDraftComments,
   useDraftCritique,
   useResolveComment,
@@ -481,6 +483,14 @@ function resolve(commentId: string, resolved: boolean) {
   resolveProblem.value = ''
   setResolved.mutate({ commentId, resolved })
 }
+const editComment = useEditComment(
+  () => props.publicationId,
+  () => props.id,
+)
+const deleteComment = useDeleteComment(
+  () => props.publicationId,
+  () => props.id,
+)
 const addComment = useAddComment(
   () => props.publicationId,
   () => props.id,
@@ -882,10 +892,14 @@ async function requestCritique() {
               :editor-name="draft.data.value.editorName"
               :composing="composing"
               :add="addComment"
+              :me="session.user?.id ?? null"
+              :edit="editComment"
+              :remove="deleteComment"
               :resolve-problem="resolveProblem"
               @show="showInDraft"
               @set-resolved="resolve"
               @close-composer="composing = null"
+              @start-comment="startComment"
             />
           </template>
         </TabPanels>

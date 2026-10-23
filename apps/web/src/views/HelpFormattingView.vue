@@ -46,7 +46,14 @@ import HelpPage from '../components/HelpPage.vue'
     <p class="mb-6">
       Comment is for the words you have selected, or the paragraph you are in. Rephrase offers other
       ways to put the words you have selected; you choose one and edit it yourself. Rephrase title,
-      beside the title, does the same for the title.
+      beside the title, does the same for the title. The Add comment button at the top of the
+      Comments tab does the same as Comment.
+    </p>
+    <p class="mb-6">
+      You can change your own comments. Edit changes the wording and leaves a small “edited” mark;
+      Delete removes the comment for good, so it asks you to hold the button or tap it twice. Once
+      the editor has resolved a comment it can’t be changed. The editor can’t change anyone else’s
+      comments, or the AI’s: they resolve them instead.
     </p>
     <h2 class="mb-2 font-display text-xl font-semibold">Editing the Markdown</h2>
     <p class="mb-2">

@@ -492,7 +492,7 @@ describe('EditorView comments from members', () => {
     expect(await within(region).findByText('Bob Byron on the opening.')).toBeTruthy()
     expect(within(region).queryByRole('switch')).toBeNull()
     // They comment from a bar above the text, since they have no toolbar; the composer says who will see it.
-    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    await fireEvent.click(within(region).getByRole('button', { name: 'Add comment' }))
     expect(await within(region).findByLabelText('Your comment')).toBeInTheDocument()
     expect(region).toHaveTextContent('Only you and Ada Lovelace, the editor, will see this.')
   })

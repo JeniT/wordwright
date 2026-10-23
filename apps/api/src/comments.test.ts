@@ -25,6 +25,7 @@ type Comment = {
   text: string
   reason: string | null
   resolved: boolean
+  edited: boolean
 }
 
 describe('comments on a draft (#156)', () => {
@@ -280,6 +281,91 @@ describe('comments on a draft (#156)', () => {
       expect((await ada.put(`${base()}/comments/nope`, { resolved: true })).status).toBe(404)
       expect((await ada.put(`${base()}/comments/${mine.id}`, { resolved: 'yes' })).status).toBe(400)
       expect((await list(ada))[0]!.resolved).toBe(false)
+    })
+  })
+
+  describe('editing and deleting your own (#344)', () => {
+    let mine: Comment
+    const one = (id: string) => `${base()}/comments/${id}`
+    beforeEach(async () => {
+      mine = await (
+        await bob.post(`${base()}/comments`, { block: 'b2', text: 'Drags.', quote: 'Second' })
+      ).json()
+    })
+
+    it('lets the author reword it, keeping the paragraph and marked words, and marks it edited', async () => {
+      expect(mine.edited).toBe(false)
+      const res = await bob.patch(one(mine.id), { text: '  Drags a little.  ' })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({
+        id: mine.id,
+        text: 'Drags a little.',
+        edited: true,
+        block: 'b2',
+        quote: 'Second',
+        hash: mine.hash,
+      })
+      expect(await list(bob)).toMatchObject([{ text: 'Drags a little.', edited: true }])
+    })
+
+    it('lets the editor reword and delete their own comment', async () => {
+      const own = await (await say(ada, 'Mine.')).json()
+      expect((await ada.patch(one(own.id), { text: 'Still mine.' })).status).toBe(200)
+      expect((await ada.delete(one(own.id))).status).toBe(204)
+      expect((await list(ada)).map((c) => c.id)).toEqual([mine.id])
+    })
+
+    it('refuses nobody’s but the author’s: not the editor, an owner, another member, nor the AI’s', async () => {
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
+      const ai = (await list(ada)).find((c) => c.byAi)!
+      for (const [who, id] of [
+        [ada, mine.id],
+        [cat, mine.id],
+        [ada, ai.id],
+      ] as const) {
+        expect((await who.patch(one(id), { text: 'x' })).status).toBe(404)
+        expect((await who.delete(one(id))).status).toBe(404)
+      }
+      expect((await list(ada)).find((c) => c.id === mine.id)).toMatchObject({
+        text: 'Drags.',
+        edited: false,
+      })
+      expect((await list(ada)).some((c) => c.id === ai.id)).toBe(true)
+    })
+
+    it('refuses once resolved, and brings it back when the editor un-resolves', async () => {
+      await ada.put(one(mine.id), { resolved: true })
+      const asBob = await bob.patch(one(mine.id), { text: 'x' })
+      expect(asBob.status).toBe(409)
+      await ada.put(one(mine.id), { resolved: false })
+      expect((await bob.patch(one(mine.id), { text: 'Again.' })).status).toBe(200)
+    })
+
+    it('refuses empty or over-long words, and a comment from another draft', async () => {
+      expect((await bob.patch(one(mine.id), { text: '   ' })).status).toBe(400)
+      expect(
+        (await bob.patch(one(mine.id), { text: 'x'.repeat(COMMENT_MAX_LENGTH + 1) })).status,
+      ).toBe(400)
+      const other = await createDraft(ada, publication, { title: 'U', body: 'Other.' })
+      const there = `/api/publications/${publication}/drafts/${other.id}/comments/${mine.id}`
+      expect((await bob.patch(there, { text: 'x' })).status).toBe(404)
+      expect((await bob.delete(there)).status).toBe(404)
+    })
+
+    it('deletes for good, and a critique look is not given back', async () => {
+      await saveKey(ada)
+      await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
+      const before = (await (await ada.get(`${base()}/critique`)).json()).used
+      expect((await bob.delete(one(mine.id))).status).toBe(204)
+      expect(await list(bob)).toEqual([])
+      expect(await list(ada)).not.toContainEqual(expect.objectContaining({ id: mine.id }))
+      expect((await bob.delete(one(mine.id))).status).toBe(404)
+      expect((await (await ada.get(`${base()}/critique`)).json()).used).toBe(before)
+    })
+
+    it('needs sign-in', async () => {
+      expect((await ctx.client().patch(one(mine.id), { text: 'x' })).status).toBe(401)
+      expect((await ctx.client().delete(one(mine.id))).status).toBe(401)
     })
   })
 

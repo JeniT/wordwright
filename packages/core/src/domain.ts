@@ -1424,6 +1424,8 @@ export const CommentSchema = z.object({
   reason: z.string().nullable(),
   /** The editor set it aside as dealt with: hidden, not deleted. */
   resolved: z.boolean(),
+  /** The author changed the wording after writing it (shown as a small "edited" mark). */
+  edited: z.boolean().default(false),
   createdAt: z.string(),
 })
 export type DraftComment = z.infer<typeof CommentSchema>
@@ -1436,6 +1438,12 @@ export const CommentInputSchema = z.object({
   quote: z.string().min(1).max(COMMENT_QUOTE_MAX_LENGTH).optional(),
 })
 export type CommentInput = z.infer<typeof CommentInputSchema>
+
+/** An author rewording their own comment. Only the words change: the paragraph and the marked words stay. */
+export const CommentEditSchema = z.object({
+  text: z.string().trim().min(1).max(COMMENT_MAX_LENGTH),
+})
+export type CommentEdit = z.infer<typeof CommentEditSchema>
 
 /** Sets a comment aside (it stays on record and the editor can show it again), or brings it back. */
 export const CommentResolveSchema = z.object({ resolved: z.boolean() })

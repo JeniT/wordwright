@@ -281,6 +281,48 @@ describe('reviewers (#157)', () => {
       expect((await other.post(`/api/reviews/${id}/end`, {})).status).toBe(404)
     })
 
+    it('lets a reviewer reword and delete their own comment while the review is open, and not after', async () => {
+      await bob.post(`${draftUrl()}/comments`, { block: 'whole', text: 'Bob’s view' })
+      const { rae } = await joinAsReviewer()
+      const id = (await reviewsOf(rae))[0]!.id
+      const made = await (
+        await rae.post(`/api/reviews/${id}/comments`, { block: 'b1', text: 'Which rivers?' })
+      ).json()
+      const url = `/api/reviews/${id}/comments/${made.id}`
+      const edited = await rae.patch(url, { text: 'Which rivers, exactly?' })
+      expect(await edited.json()).toMatchObject({ text: 'Which rivers, exactly?', edited: true })
+
+      // The editor and other members cannot reach it through the draft's routes.
+      const editorUrl = `${draftUrl()}/comments/${made.id}`
+      expect((await ada.patch(editorUrl, { text: 'x' })).status).toBe(404)
+      expect((await ada.delete(editorUrl)).status).toBe(404)
+      // Nor can a reviewer change a comment that is not theirs, or from another review.
+      const bobs = (await (await ada.get(`${draftUrl()}/comments`)).json()).find(
+        (c: { authorName: string }) => c.authorName === 'Bob',
+      )
+      expect(
+        (await rae.patch(`/api/reviews/${id}/comments/${bobs.id}`, { text: 'x' })).status,
+      ).toBe(404)
+      const { rae: other } = await joinAsReviewer('other@example.com', 'Otto')
+      expect((await other.patch(url, { text: 'x' })).status).toBe(404)
+
+      // Resolved: no more changes.
+      await ada.put(editorUrl, { resolved: true })
+      expect((await rae.patch(url, { text: 'x' })).status).toBe(409)
+      await ada.put(editorUrl, { resolved: false })
+
+      expect((await rae.delete(url)).status).toBe(204)
+      expect((await (await rae.get(`/api/reviews/${id}`)).json()).comments).toEqual([])
+
+      const kept = await (
+        await rae.post(`/api/reviews/${id}/comments`, { block: 'whole', text: 'Kept' })
+      ).json()
+      await rae.post(`/api/reviews/${id}/end`, {})
+      const after = `/api/reviews/${id}/comments/${kept.id}`
+      expect((await rae.patch(after, { text: 'x' })).status).toBe(409)
+      expect((await rae.delete(after)).status).toBe(409)
+    })
+
     it('lets the reviewer end the review, and the editor close it: read-only, with the snapshot and the comments kept', async () => {
       const { rae } = await joinAsReviewer()
       const id = (await reviewsOf(rae))[0]!.id

@@ -25,7 +25,7 @@ import SwitchField from './SwitchField.vue'
  * a comment about a paragraph shows that paragraph in the draft. A paragraph is found again by the words it shares
  * with the old one; one that has been edited since gets a Text changed button (then and now), and one that is gone is
  * listed without a mark rather than put on the wrong paragraph. Resolved comments are hidden, not deleted, and the
- * editor can show them again.
+ * editor can show them again. A person can reword or delete their own comment (never someone else's) until it is resolved.
  */
 const props = defineProps<{
   /** The comments query, shown with its own loading and error states. */
@@ -50,6 +50,12 @@ const props = defineProps<{
     target: { block: string; number: number; quote: string | null } | null
   } | null
   add: (input: CommentInput) => Promise<unknown>
+  /** The signed-in person: the editor can change only their own comments, not everyone's. */
+  me: string | null
+  /** Rewords one of their own comments. */
+  edit: (id: string, text: string) => Promise<unknown>
+  /** Deletes one of their own comments for good. */
+  remove: (id: string) => Promise<unknown>
   /** Why the last Resolved switch could not be saved, if it could not. */
   resolveProblem?: string
 }>()
@@ -59,6 +65,8 @@ const emit = defineEmits<{
   setResolved: [id: string, resolved: boolean]
   /** The composer closed, with the comment added or not. */
   closeComposer: []
+  /** The Add comment button: the same as the toolbar's Comment button. */
+  startComment: []
 }>()
 
 const showResolved = ref(false)
@@ -68,6 +76,11 @@ type Entry = DraftComment & { number: number }
 const numbered = computed<Entry[]>(() => props.comments.map((c, i) => ({ ...c, number: i + 1 })))
 const resolvedCount = computed(() => numbered.value.filter((c) => c.resolved).length)
 const shown = computed(() => numbered.value.filter((c) => showResolved.value || !c.resolved))
+
+/** Their own, written by a person, not yet resolved. (A member is only sent their own, so only the editor needs the check.) */
+function canChange(c: DraftComment) {
+  return !c.byAi && !c.resolved && (!props.isEditor || c.authorId === props.me)
+}
 
 /** Its paragraph has been edited since it was written, or is gone. */
 function textChanged(c: DraftComment) {
@@ -114,6 +127,11 @@ defineExpose({
   <section aria-labelledby="comments-heading" :class="shown.length > 1 ? 'pb-[70vh]' : ''">
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="comments-heading" class="sr-only">Comments</h2>
+    <div v-if="!composing" class="mb-3 flex justify-end">
+      <button type="button" class="btn btn-sm btn-outline" @click="emit('startComment')">
+        Add comment
+      </button>
+    </div>
     <CommentComposer
       v-if="composing"
       :key="composing.id"
@@ -167,6 +185,9 @@ defineExpose({
             :active="c.id === activeId"
             :is-editor="isEditor"
             :text-changed="textChanged(c)"
+            :can-change="canChange(c)"
+            :save="(text) => edit(c.id, text)"
+            :remove="() => remove(c.id)"
             @show="emit('show', c.id)"
             @show-change="reading = c"
             @set-resolved="(resolved) => emit('setResolved', c.id, resolved)"

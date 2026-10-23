@@ -667,6 +667,10 @@ export const MIGRATIONS: Migration[] = [
   `
   ALTER TABLE draft_comments ADD COLUMN block_text TEXT;
   `,
+  // An author can reword their own comment (#344); when they did, so the card can say "edited".
+  `
+  ALTER TABLE draft_comments ADD COLUMN edited_at TEXT;
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

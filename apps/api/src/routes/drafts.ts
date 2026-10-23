@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import {
+  CommentEditSchema,
   CommentInputSchema,
   CommentResolveSchema,
   DraftInsertionInputSchema,
@@ -14,7 +15,7 @@ import {
 } from '@wordwright/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
-import { addComment, visibleComments } from '../services/comments'
+import { addComment, deleteComment, editComment, visibleComments } from '../services/comments'
 import { critiqueState } from '../services/critique'
 import { requireEditor } from '../services/draft-editor'
 import type { HandoverService } from '../services/handover'
@@ -99,6 +100,17 @@ export function draftRoutes(
           throw notFound()
         }
         return c.json(visibleComments(store, draft, c.get('user').id))
+      })
+      // Authors reword or delete their own comment (the editor included, on their own only), while it is unresolved.
+      .patch('/:id/comments/:commentId', validateJson(CommentEditSchema), (c) => {
+        const draft = draftOf(c)
+        return c.json(
+          editComment(store, draft, c.get('user').id, param(c, 'commentId'), c.req.valid('json')),
+        )
+      })
+      .delete('/:id/comments/:commentId', (c) => {
+        deleteComment(store, draftOf(c), c.get('user').id, param(c, 'commentId'))
+        return c.body(null, 204)
       })
       // Words pulled into the draft from the idea's notes, and where they came from.
       .get('/:id/insertions', (c) => {

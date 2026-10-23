@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import {
   ChangeHandleInputSchema,
+  CommentEditSchema,
   CommentInputSchema,
   DeclineInvitationInputSchema,
   InvitationTokenInputSchema,
@@ -33,6 +34,20 @@ export function reviewRoutes(reviews: ReviewService, accounts: AccountService) {
       .post('/:id/comments', validateJson(CommentInputSchema), (c) =>
         c.json(reviews.comment(c.get('user'), param(c, 'id'), c.req.valid('json')), 201),
       )
+      .patch('/:id/comments/:commentId', validateJson(CommentEditSchema), (c) =>
+        c.json(
+          reviews.editComment(
+            c.get('user'),
+            param(c, 'id'),
+            param(c, 'commentId'),
+            c.req.valid('json'),
+          ),
+        ),
+      )
+      .delete('/:id/comments/:commentId', (c) => {
+        reviews.deleteComment(c.get('user'), param(c, 'id'), param(c, 'commentId'))
+        return c.body(null, 204)
+      })
       .post('/:id/end', (c) => {
         reviews.end(c.get('user'), param(c, 'id'))
         return c.body(null, 204)

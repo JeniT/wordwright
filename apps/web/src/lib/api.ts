@@ -51,6 +51,7 @@ import {
   SourceSchema,
   UserSchema,
   type BrainstormEvent,
+  type CommentEdit,
   type CommentInput,
   type DraftInput,
   type DraftPublishedInput,
@@ -279,6 +280,10 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     getReview: (id: string) => get(ReviewDetailSchema, 'GET', `/reviews/${id}`),
     commentOnReview: (id: string, input: CommentInput) =>
       get(CommentSchema, 'POST', `/reviews/${id}/comments`, input),
+    editReviewComment: (id: string, commentId: string, input: CommentEdit) =>
+      get(CommentSchema, 'PATCH', `/reviews/${id}/comments/${commentId}`, input),
+    deleteReviewComment: (id: string, commentId: string) =>
+      act('DELETE', `/reviews/${id}/comments/${commentId}`),
     endReview: (id: string) => act('POST', `/reviews/${id}/end`),
     /** Chooses a username and becomes a full account. */
     startWriting: (handle: string) => get(UserSchema, 'POST', '/reviews/start-writing', { handle }),
@@ -703,6 +708,17 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(CommentSchema.array(), 'GET', `${drafts(publicationId)}/${draftId}/comments`),
     addComment: (publicationId: string, draftId: string, input: CommentInput) =>
       get(CommentSchema, 'POST', `${drafts(publicationId)}/${draftId}/comments`, input),
+    /** Rewords the person's own comment. */
+    editComment: (publicationId: string, draftId: string, commentId: string, input: CommentEdit) =>
+      get(
+        CommentSchema,
+        'PATCH',
+        `${drafts(publicationId)}/${draftId}/comments/${commentId}`,
+        input,
+      ),
+    /** Deletes the person's own comment for good. */
+    deleteComment: (publicationId: string, draftId: string, commentId: string) =>
+      act('DELETE', `${drafts(publicationId)}/${draftId}/comments/${commentId}`),
     /** The editor sets a comment aside (or, with `resolved: false`, brings it back). Answers with the comments as they now are. */
     setCommentResolved: (
       publicationId: string,

@@ -273,7 +273,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   await expect(comment).not.toContainText('Rivers rarely flow straight.') // no excerpt: it is on the page
 
   // The point is marked beside the paragraph it is about, and the page is still accessible with the marks in.
-  const mark = page.getByRole('button', { name: 'Comment 1' })
+  const mark = page.getByRole('button', { name: 'Comment 1', exact: true })
   await expect(mark).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   for (const tab of ['Notes', 'Reading list', 'Comments']) {
@@ -311,7 +311,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   // It is kept with the draft: after a reload it is still there (under Comments), and nothing was asked again.
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Comment 1' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Comment 1', exact: true })).toBeVisible()
   await page
     .getByRole('complementary')
     .getByRole('tab', { name: /^Comments/ })
@@ -365,7 +365,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   // The rewrite was saved as it was typed. Putting the opening back brings its comment's mark back.
   await page.getByRole('textbox', { name: 'Draft body' }).fill('Rivers rarely flow straight.')
-  await expect(page.getByRole('button', { name: 'Comment 1' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Comment 1', exact: true })).toBeVisible()
 
   // On a phone nothing spills sideways.
   await page.setViewportSize({ width: 390, height: 800 })
@@ -996,8 +996,26 @@ test('only a draft’s editor can change it: another member sees it read-only', 
   await bobSide.getByRole('button', { name: 'Add comment' }).click()
   await expect(bobSide.getByLabel('Your comment')).toHaveCount(0) // the new card is the confirmation
   await expect(bobSide.getByRole('listitem')).toHaveCount(1)
-  await expect(bob.getByRole('button', { name: 'Comment 1' })).toBeVisible()
+  await expect(bob.getByRole('button', { name: 'Comment 1', exact: true })).toBeVisible()
   expect((await new AxeBuilder({ page: bob }).analyze()).violations, 'Bob’s comment').toEqual([])
+
+  // The Add comment button at the top of the tab starts a general comment when the caret is not in the text. Its
+  // author can reword it (it then says edited) and delete it for good.
+  await bobSide.getByRole('button', { name: 'Add comment' }).click()
+  await bobSide.getByLabel('Your comment').fill('A second thought.')
+  await bobSide.getByRole('button', { name: 'Add comment' }).click()
+  const second = bobSide.getByRole('listitem').nth(1)
+  await second.getByRole('button', { name: /^Edit comment/ }).click()
+  await second.getByLabel('Your comment').fill('A better second thought.')
+  await second.getByRole('button', { name: 'Save' }).click()
+  await expect(second).toContainText('A better second thought.')
+  await expect(second).toContainText('edited')
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations, 'an edited comment').toEqual(
+    [],
+  )
+  await second.getByRole('button', { name: /^Delete comment/ }).dblclick()
+  await expect(bobSide.getByText('A better second thought.')).toHaveCount(0)
+  await expect(bobSide.getByRole('listitem')).toHaveCount(1)
 
   await page.goto(draftUrl)
   const adaSide = page.getByRole('complementary')

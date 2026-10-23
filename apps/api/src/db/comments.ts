@@ -118,6 +118,7 @@ export class CommentStore {
       text: r.text as string,
       reason: r.reason as string | null,
       resolved: r.resolved_at !== null,
+      edited: r.edited_at !== null,
       createdAt: r.created_at as string,
     }))
   }
@@ -128,6 +129,23 @@ export class CommentStore {
       this.db
         .prepare('UPDATE draft_comments SET resolved_at = ? WHERE id = ? AND draft_id = ?')
         .run(resolved ? nowIso() : null, id, draftId).changes > 0
+    )
+  }
+
+  /** Rewords a comment of this draft, keeping everything else; false if the draft has no such comment. */
+  setText(draftId: string, id: string, text: string): boolean {
+    return (
+      this.db
+        .prepare('UPDATE draft_comments SET text = ?, edited_at = ? WHERE id = ? AND draft_id = ?')
+        .run(text, nowIso(), id, draftId).changes > 0
+    )
+  }
+
+  /** Removes a comment for good; false if the draft has no such comment. */
+  remove(draftId: string, id: string): boolean {
+    return (
+      this.db.prepare('DELETE FROM draft_comments WHERE id = ? AND draft_id = ?').run(id, draftId)
+        .changes > 0
     )
   }
 }

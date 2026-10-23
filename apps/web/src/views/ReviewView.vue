@@ -52,6 +52,15 @@ async function add(input: CommentInput) {
   await api.commentOnReview(props.id, input)
   await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
 }
+async function editMine(commentId: string, text: string) {
+  await api.editReviewComment(props.id, commentId, { text })
+  await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
+}
+async function deleteMine(commentId: string) {
+  await api.deleteReviewComment(props.id, commentId)
+  await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
+  await queryClient.invalidateQueries({ queryKey: queryKeys.reviews() })
+}
 const end = useMutation({
   mutationFn: () => api.endReview(props.id),
   // Ending is final for this copy: the page stays, now read-only, with the copy and the comments.
@@ -116,6 +125,9 @@ const end = useMutation({
               <CommentCard
                 :entry="{ ...c, number: i + 1 }"
                 :kind="c.block === WHOLE_DRAFT ? 'plain' : 'static'"
+                :can-change="review.data.value.state === 'open' && !c.resolved"
+                :save="(text) => editMine(c.id, text)"
+                :remove="() => deleteMine(c.id)"
               />
             </li>
           </ol>

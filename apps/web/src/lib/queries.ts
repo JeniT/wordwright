@@ -199,6 +199,24 @@ export function useAddComment(publicationId: Get<string>, draftId: Get<string>) 
   }
 }
 
+/** Rewords the person's own comment, then refreshes the list. */
+export function useEditComment(publicationId: Get<string>, draftId: Get<string>) {
+  const queryClient = useQueryClient()
+  return async (commentId: string, text: string) => {
+    await api.editComment(publicationId(), draftId(), commentId, { text })
+    await invalidateRoots(queryClient, 'comments')
+  }
+}
+
+/** Deletes the person's own comment for good, then refreshes what shows comments. */
+export function useDeleteComment(publicationId: Get<string>, draftId: Get<string>) {
+  const queryClient = useQueryClient()
+  return async (commentId: string) => {
+    await api.deleteComment(publicationId(), draftId(), commentId)
+    await invalidateRoots(queryClient, 'comments', 'attention', 'draft-reviewers', 'active-drafts')
+  }
+}
+
 /** The editor resolving a comment (or bringing it back): keeps the list the server answers with. */
 export function useResolveComment(
   publicationId: Get<string>,

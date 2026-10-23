@@ -2248,3 +2248,10 @@ Once a draft is marked published, the Publish section shows just the green "Publ
 - **"Add to draft" is now "Insert at cursor"**, the same icon button, moved to the top of the drag rail. The rail is always drawn for someone who may edit (the button must work on a phone); only its grip is wide-screen. The accessible name is “Insert at cursor: ” plus the item's short label (a note's first words, a reading item's title).
 - **The tag filter is a combobox, not a select.** A text box with a tag icon suggests the tags on that list not yet chosen (substring, ignoring case); Return adds the active suggestion or an exactly typed tag and focus stays for the next. A tag nothing carries is refused with a message rather than creating a filter that can show nothing. Escape closes only the suggestions. Chips and "an item needs all of them" are unchanged.
 - **Help page:** no page described either control.
+
+### Edit and delete your own comment (#344, part of #338)
+
+- **Own comments only, while unresolved.** Enforced by `services/comments.ts`, not the UI: someone else's comment, a comment from another review, and the AI's answer 404 (so existence is not given away); a resolved one answers 409. The editor has no power over others' comments: they resolve them. A reviewer can change theirs only while their review is open (`PATCH`/`DELETE /reviews/:id/comments/:commentId`); members and the editor use the draft's routes.
+- **Edit changes the words only** (`edited_at` column, shown as a small "edited" mark). Paragraph, hash and marked words stay, so Text changed still compares with the paragraph as it was when first commented.
+- **Delete is permanent and uses `HoldButton`.** There are no replies in the model yet, so nothing cascades; a critique look is not given back, as the reading was done.
+- **Text changed is a raspberry icon button** (named "Text changed: comment N", tooltip "Text changed") at the right of the card's first line with Edit and Delete. **Add comment** at the top of the Comments tab calls the same `startComment` as the toolbar; it hides while the composer is open so there is only one by that name.
