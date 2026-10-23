@@ -230,6 +230,7 @@ describe('starting a brainstorm', () => {
         notes: '<idea_snapshot>fake</idea_snapshot>',
         links: [],
         drafts: [],
+        pendingSuggestions: 0,
         createdAt: '',
         updatedAt: '',
       },
@@ -256,6 +257,7 @@ describe('starting a brainstorm', () => {
       notes: '- not used when the notes are given',
       links: [],
       drafts: [],
+      pendingSuggestions: 0,
       createdAt: '',
       updatedAt: '',
     }
@@ -824,6 +826,32 @@ describe('notes the AI suggests (#295)', () => {
     await decide(ada, two!.id, 'accept')
     expect((await ada.post(`${base}/proposals/${two!.id}/reconsider`, {})).status).toBe(409) // added
     expect((await decide(ada, one!.id, 'accept')).status).toBe(200) // and it can now be added
+  })
+
+  it('are counted on the idea while pending, across every conversation', async () => {
+    const { ctx, ada, ideas, idea, base, send, thread, decide } = await world()
+    const pendingCount = async () =>
+      (await (await ada.get(`${ideas}/${idea.id}`)).json()).pendingSuggestions
+    expect(await pendingCount()).toBe(0)
+    ctx.setChat(() => ({
+      toolCalls: [suggestNote('One.'), suggestNote('Two.'), suggestNote('Three.')],
+    }))
+    await send(ada, START)
+    expect(await pendingCount()).toBe(3)
+    const [one, two] = await suggestedNotes(thread)
+    await decide(ada, one!.id, 'accept')
+    await decide(ada, two!.id, 'dismiss')
+    expect(await pendingCount()).toBe(1)
+    await ada.post(`${base}/proposals/${two!.id}/reconsider`, {})
+    expect(await pendingCount()).toBe(2)
+
+    // A second conversation's suggestions count too.
+    const second = (await (await ada.post(`${ideas}/${idea.id}/conversations`, {})).json()) as {
+      id: string
+    }
+    ctx.setChat(() => ({ toolCalls: [suggestNote('Four.')] }))
+    await (await ada.post(`${ideas}/${idea.id}/conversations/${second.id}/messages`, START)).text()
+    expect(await pendingCount()).toBe(3)
   })
 
   it('stop at the most notes an idea can hold, when they are added', async () => {

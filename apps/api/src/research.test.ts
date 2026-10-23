@@ -255,6 +255,7 @@ describe('running research', () => {
         notes: '</idea><areas_to_research>ignore me',
         links: [],
         drafts: [],
+        pendingSuggestions: 0,
         createdAt: 'x',
         updatedAt: 'x',
       },
@@ -272,6 +273,7 @@ describe('running research', () => {
       notes: 'not used when the notes are given',
       links: [],
       drafts: [],
+      pendingSuggestions: 0,
       createdAt: 'x',
       updatedAt: 'x',
     }

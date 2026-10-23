@@ -166,7 +166,15 @@ export function useNav() {
         return `${idea.data.value.links.filter((l) => !l.readAt).length} to read`
       if (step.key === 'notes' && ideaNotes.data.value)
         return plural(ideaNotes.data.value.length, 'note', 'notes')
-      if (step.key === 'draft') return plural(idea.data.value.drafts.length, 'draft', 'drafts')
+      if (step.key === 'refine')
+        return plural(idea.data.value.pendingSuggestions, 'suggestion', 'suggestions')
+      // A published draft is no longer a draft, though the Draft page still lists it.
+      if (step.key === 'draft')
+        return plural(
+          idea.data.value.drafts.filter((d) => !d.publishedAt).length,
+          'draft',
+          'drafts',
+        )
     }
     return ''
   }

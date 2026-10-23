@@ -974,6 +974,8 @@ export const IdeaSchema = z.object({
   links: z.array(IdeaLinkSchema),
   /** In the order the person has set (new drafts go last): for a linked set of posts, the reading order. */
   drafts: z.array(IdeaDraftSchema),
+  /** Suggestions from Refine that nobody has accepted or ignored yet, across all the idea's conversations (#346). */
+  pendingSuggestions: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })

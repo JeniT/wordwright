@@ -353,6 +353,20 @@ describe('ideas', () => {
       expect((await (await ada.get(ideas())).json())[0].draftCount).toBe(2)
     })
 
+    it('count as drafts only until they are marked published, though the idea still lists them', async () => {
+      const idea = await (await ada.post(ideas(), { name: 'A series on rivers' })).json()
+      const first = await (
+        await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Part 1' })
+      ).json()
+      await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Part 2' })
+      const draftCount = async () => (await (await ada.get(ideas())).json())[0].draftCount
+      await ada.put(`/api/publications/${publication}/drafts/${first.id}/published`, {
+        published: true,
+      })
+      expect(await draftCount()).toBe(1)
+      expect((await (await ada.get(`${ideas()}/${idea.id}`)).json()).drafts).toHaveLength(2)
+    })
+
     it('say who edits each, so a list of drafts with different editors can show it', async () => {
       const idea = await (await ada.post(ideas(), { name: 'A series' })).json()
       const draft = await (

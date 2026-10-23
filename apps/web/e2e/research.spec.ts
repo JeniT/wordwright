@@ -63,7 +63,9 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   ).toBeDisabled()
   await noViolations(page, 'research page with a run to review')
   const menu = page.getByRole('navigation', { name: 'Idea' })
-  await expect(menu.getByText('3 suggestions')).toBeVisible() // the menu counts what is still to decide
+  await expect(
+    menu.getByRole('link', { name: /Research/ }).getByText('3 suggestions'),
+  ).toBeVisible() // the menu counts what is still to decide
 
   // Nothing is on the reading list until pages are added.
   await goTo(page, 'Read')
@@ -82,7 +84,9 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await run.getByRole('button', { name: 'Ignore: A report that has moved' }).click()
   await expect(run.getByRole('img', { name: 'Ignored' })).toHaveCount(1)
   await expect(run.getByText('Highlighted text is your AI’s reason')).toHaveCount(0) // all decided
-  await expect(menu.getByText('0 suggestions')).toBeVisible()
+  await expect(
+    menu.getByRole('link', { name: /Research/ }).getByText('0 suggestions'),
+  ).toBeVisible()
   await noViolations(page, 'research page with decided pages')
 
   // The reading list has them, marked, with the AI's reason kept.

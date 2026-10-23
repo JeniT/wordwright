@@ -39,7 +39,18 @@ const idea = {
       publishedAt: null,
       publishedUrl: null,
     },
+    // Published, so no longer counted as a draft in the menu.
+    {
+      id: 'd0',
+      title: 'Part 0',
+      updatedAt: '2026-01-01T00:00:00Z',
+      editorId: 'u1',
+      editorName: 'Ada',
+      publishedAt: '2026-01-02T00:00:00Z',
+      publishedUrl: null,
+    },
   ],
+  pendingSuggestions: 3,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-02T00:00:00Z',
 }
@@ -228,6 +239,7 @@ describe('the menu in an idea', () => {
     expect(within(nav).getByRole('link', { name: 'Note' })).toHaveAttribute('aria-current', 'page')
     expect(await within(nav).findByText('2 to read')).toBeInTheDocument()
     expect(within(nav).getByText('1 draft')).toBeInTheDocument()
+    expect(within(nav).getByText('3 suggestions')).toBeInTheDocument() // Refine: pending ones
     // Only pages still waiting for a decision count, across every run.
     expect(await within(nav).findByText('2 suggestions')).toBeInTheDocument()
     expect(within(nav).queryByRole('link', { name: 'Idea settings' })).toBeNull()
@@ -237,6 +249,23 @@ describe('the menu in an idea', () => {
       '/p/ada-substack',
     )
     expect((await header.findAllByText('Why rivers meander')).length).toBeGreaterThan(0)
+  })
+
+  it('says 1 suggestion and 0 drafts in the singular and zero', async () => {
+    mockApp()
+    server.use(
+      http.get('*/api/publications/ada-substack/ideas/i1', () =>
+        HttpResponse.json({
+          ...idea,
+          pendingSuggestions: 1,
+          drafts: idea.drafts.map((d) => ({ ...d, publishedAt: '2026-01-02T00:00:00Z' })),
+        }),
+      ),
+    )
+    await renderAt('/p/ada-substack/ideas/i1/notes')
+    const nav = await screen.findByRole('navigation', { name: 'Idea' })
+    expect(await within(nav).findByText('1 suggestion')).toBeInTheDocument()
+    expect(within(nav).getByText('0 drafts')).toBeInTheDocument()
   })
 
   it('stays with the idea on the drafting page, with Draft as the current step', async () => {

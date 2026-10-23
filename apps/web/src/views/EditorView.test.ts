@@ -66,6 +66,7 @@ function mockEditor(
         notes: '',
         links: [],
         drafts: [],
+        pendingSuggestions: 0,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
       }),
@@ -734,6 +735,7 @@ function mockDrafting(
           },
         ],
     drafts: [],
+    pendingSuggestions: 0,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
   })
@@ -1145,6 +1147,7 @@ describe('the notes beside the draft', () => {
             notes: '',
             links: [],
             drafts: [],
+            pendingSuggestions: 0,
             createdAt: '2026-01-01T00:00:00Z',
             updatedAt: '2026-01-01T00:00:00Z',
           }),

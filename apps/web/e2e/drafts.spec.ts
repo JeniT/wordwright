@@ -168,6 +168,10 @@ test('marking a draft published takes it out of Keep writing, and it keeps its p
   const publish = page.getByRole('region', { name: 'Publish' })
   await publish.getByRole('switch', { name: 'I’ve published this draft' }).click()
   await expect(publish.locator('.chip-ok')).toContainText('Published')
+  // The menu no longer counts it as a draft (#346).
+  await expect(
+    page.getByRole('navigation', { name: 'Idea' }).getByRole('link', { name: /Draft/ }),
+  ).toContainText('0 drafts')
   await publish.getByLabel(/Link to the published post/).fill('https://example.com/meanders')
   await publish.getByRole('button', { name: 'Save link' }).click()
   const post = publish.getByRole('link', { name: /View post/ })

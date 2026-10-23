@@ -331,6 +331,7 @@ describe('the address checks', () => {
       },
     ],
     drafts: [],
+    pendingSuggestions: 0,
     createdAt: 'x',
     updatedAt: 'x',
   }

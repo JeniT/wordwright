@@ -153,10 +153,22 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   // A suggestion can be ignored, and brought back.
   await goTo(page, 'Refine')
   await say(page, 'Please note that deltas build outwards')
+  // The menu counts the suggestions still waiting under Refine, and follows each decision (#346).
+  const waiting = async () => {
+    const refine = page
+      .getByRole('navigation', { name: 'Idea' })
+      .getByRole('link', { name: /Refine/ })
+    const text = (await refine.innerText()).match(/(\d+) suggestions?/)
+    return text ? Number(text[1]) : -1
+  }
+  await expect.poll(waiting).toBeGreaterThan(0)
+  const before = await waiting()
   await page.getByRole('button', { name: /^Ignore: deltas/ }).click()
   await expect(page.getByText(/· ignored/)).toBeVisible()
+  await expect.poll(waiting).toBe(before - 1)
   await page.getByRole('button', { name: /^Stop ignoring: deltas/ }).click()
   await expect(page.getByRole('button', { name: /^Add to notes: deltas/ })).toBeVisible()
+  await expect.poll(waiting).toBe(before)
 })
 
 test('a spin-off idea can be accepted and opened, and a suggestion can be dismissed', async ({

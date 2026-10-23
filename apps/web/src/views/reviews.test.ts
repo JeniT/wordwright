@@ -391,6 +391,7 @@ describe('asking someone to review a draft', () => {
           notes: '',
           links: [],
           drafts: [],
+          pendingSuggestions: 0,
           createdAt: 'x',
           updatedAt: 'x',
         }),

@@ -69,7 +69,7 @@ _Avoid_: Guest, commenter, viewer
 ### Drafts and responsibility
 
 **Draft**:
-One piece of writing belonging to an idea; the thing that gets published.
+One piece of writing belonging to an idea; the thing that gets published. It is counted as a draft (in the menu and the idea list) until it is marked published, though it stays in the idea's draft list.
 
 **Editor** (of a draft):
 The one member currently responsible for changing a draft's title and body and for publishing it. Everyone else can read and comment.

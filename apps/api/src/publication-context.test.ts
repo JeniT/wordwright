@@ -56,6 +56,7 @@ const idea: Idea = {
   notes: 'Erosion loops.',
   links: [],
   drafts: [],
+  pendingSuggestions: 0,
   createdAt: '',
   updatedAt: '',
 }

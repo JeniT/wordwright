@@ -30,7 +30,7 @@ export class IdeaStore {
     return this.db
       .prepare(
         `SELECT i.id, i.name, i.updated_at,
-           (SELECT count(*) FROM drafts d WHERE d.idea_id = i.id) AS draft_count
+           (SELECT count(*) FROM drafts d WHERE d.idea_id = i.id AND d.published_at IS NULL) AS draft_count
          FROM ideas i WHERE i.publication_id = ? ORDER BY i.updated_at DESC, i.rowid DESC`,
       )
       .all(publicationId)
@@ -65,6 +65,12 @@ export class IdeaStore {
         publishedAt: (d.published_at as string | null) ?? null,
         publishedUrl: (d.published_url as string | null) ?? null,
       }))
+    const pending = this.db
+      .prepare(
+        `SELECT count(*) AS n FROM idea_proposals p JOIN idea_messages m ON m.id = p.message_id
+         WHERE m.idea_id = ? AND p.status = 'pending'`,
+      )
+      .get(id)!.n as number
     return {
       id,
       publicationId: row.publication_id as string,
@@ -73,6 +79,7 @@ export class IdeaStore {
       notes: notesToMarkdown(this.notes.list(id).map((n) => n.text)),
       links,
       drafts,
+      pendingSuggestions: pending,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     }
