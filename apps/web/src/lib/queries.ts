@@ -217,6 +217,22 @@ export function useDeleteComment(publicationId: Get<string>, draftId: Get<string
   }
 }
 
+/** A reviewer rewording or deleting their own comment on a review; both refresh the review and the reviews list. */
+export function useReviewComments(reviewId: Get<string>) {
+  const queryClient = useQueryClient()
+  const refresh = () => invalidateRoots(queryClient, 'review', 'reviews')
+  return {
+    edit: async (commentId: string, text: string) => {
+      await api.editReviewComment(reviewId(), commentId, { text })
+      await refresh()
+    },
+    remove: async (commentId: string) => {
+      await api.deleteReviewComment(reviewId(), commentId)
+      await refresh()
+    },
+  }
+}
+
 /** The editor resolving a comment (or bringing it back): keeps the list the server answers with. */
 export function useResolveComment(
   publicationId: Get<string>,

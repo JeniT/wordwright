@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useMutation } from '@tanstack/vue-query'
-import { nextTick, ref, useId, useTemplateRef } from 'vue'
+import { computed, ref, useId, useTemplateRef } from 'vue'
 import { COMMENT_MAX_LENGTH, type DraftComment } from '@wordwright/core'
+import { useInlineEdit } from '../lib/inline-edit'
 import { vTip } from '../lib/tip'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
@@ -43,22 +44,16 @@ const flip = useTemplateRef<InstanceType<typeof SwitchField>>('flip')
 defineExpose({ revert: () => flip.value?.revert() })
 
 const id = useId()
-const editing = ref(false)
 const draft = ref('')
 const field = useTemplateRef<HTMLTextAreaElement>('field')
 const editButton = useTemplateRef<HTMLButtonElement>('editButton')
-
-async function startEdit() {
+const edit = useInlineEdit<'comment'>({ field: () => field.value, trigger: () => editButton.value })
+const editing = computed(() => edit.editing.value !== null)
+function startEdit() {
   draft.value = props.entry.text
-  editing.value = true
-  await nextTick()
-  field.value?.focus()
+  return edit.start('comment')
 }
-async function stopEdit() {
-  editing.value = false
-  await nextTick()
-  editButton.value?.focus()
-}
+const stopEdit = () => edit.stop()
 const saving = useMutation({
   mutationFn: () => props.save!(draft.value),
   onSuccess: stopEdit,

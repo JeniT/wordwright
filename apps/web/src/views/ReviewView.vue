@@ -10,7 +10,7 @@ import ModalDialog from '../components/ModalDialog.vue'
 import QueryState from '../components/QueryState.vue'
 import RichEditor from '../components/RichEditor.vue'
 import { api, errorMessage } from '../lib/api'
-import { queryKeys } from '../lib/queries'
+import { queryKeys, useReviewComments } from '../lib/queries'
 
 /**
  * One review: the copy of the draft that was sent (a snapshot, not the editor's latest words) and the comments this
@@ -52,15 +52,7 @@ async function add(input: CommentInput) {
   await api.commentOnReview(props.id, input)
   await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
 }
-async function editMine(commentId: string, text: string) {
-  await api.editReviewComment(props.id, commentId, { text })
-  await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
-}
-async function deleteMine(commentId: string) {
-  await api.deleteReviewComment(props.id, commentId)
-  await queryClient.invalidateQueries({ queryKey: queryKeys.review(props.id) })
-  await queryClient.invalidateQueries({ queryKey: queryKeys.reviews() })
-}
+const { edit: editMine, remove: deleteMine } = useReviewComments(() => props.id)
 const end = useMutation({
   mutationFn: () => api.endReview(props.id),
   // Ending is final for this copy: the page stays, now read-only, with the copy and the comments.
