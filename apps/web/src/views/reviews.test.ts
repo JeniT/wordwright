@@ -156,7 +156,7 @@ describe('reading one review', () => {
     await waitFor(() => expect(posted).toEqual([{ block: 'b2', text: 'Who?', quote: 'They' }]))
   })
 
-  it('lets them end the review, which stays on the page as a read-only snapshot', async () => {
+  it('lets them end the review, which stays on the page, read-only', async () => {
     let state = 'open'
     server.use(
       signedInAs(reviewer),
@@ -174,19 +174,22 @@ describe('reading one review', () => {
       http.get('*/api/reviews', () => HttpResponse.json([summary({ state })])),
     )
     await renderAt('/reviews/r1')
-    expect(
-      await screen.findByText(/a snapshot of the draft as it was when it was sent/),
-    ).toBeTruthy()
-    await fireEvent.click(await screen.findByRole('button', { name: 'End review' }))
-    expect(await screen.findByTestId('review-ended')).toHaveTextContent('You ended this review')
-    // Still there: the snapshot and the comments, but nothing to add to or end.
+    const endButton = await screen.findByRole('button', { name: 'End review' })
+    expect(screen.queryByText(/snapshot/i)).toBeNull()
+    expect(screen.queryByTestId('review-ended')).toBeNull()
+    await fireEvent.click(endButton)
+    expect(await screen.findByTestId('review-ended')).toHaveTextContent(
+      'You ended this review. Your comments are kept, but you can’t add more.',
+    )
+    expect(screen.queryByText(/snapshot/i)).toBeNull()
+    // Still there: the draft and the comments, but nothing to add to or end.
     expect(screen.getByText('Lovely start')).toBeTruthy()
     expect(document.querySelector('.ProseMirror')).not.toBeNull()
     expect(screen.queryByRole('button', { name: 'Add comment' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 
-  it('keeps the snapshot and the comments when the editor has closed the review', async () => {
+  it('keeps the draft and the comments when the editor has closed the review', async () => {
     open({
       ...summary({ state: 'closed' }),
       draft: { title: 'Meanders', body: 'Rivers bend.' },
@@ -194,8 +197,9 @@ describe('reading one review', () => {
     })
     await renderAt('/reviews/r1')
     expect(await screen.findByTestId('review-ended')).toHaveTextContent(
-      'This review is closed, so you can’t add comments',
+      'This review is closed, so you can’t add comments. Your comments are kept.',
     )
+    expect(screen.queryByText(/snapshot/i)).toBeNull()
     expect(screen.getByText('Lovely start')).toBeTruthy()
     expect(await screen.findByText('Rivers bend.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Add comment' })).toBeNull()

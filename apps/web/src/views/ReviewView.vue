@@ -85,19 +85,14 @@ const end = useMutation({
           class="callout mb-4"
           data-testid="review-ended"
         >
-          You ended this review. The snapshot you read and your comments are kept, but you can’t add
-          more.
+          You ended this review. Your comments are kept, but you can’t add more.
         </p>
         <p
           v-else-if="review.data.value.state === 'closed'"
           class="callout mb-4"
           data-testid="review-ended"
         >
-          This review is closed, so you can’t add comments. The snapshot you read and your comments
-          are kept.
-        </p>
-        <p v-else class="callout mb-4 text-sm">
-          You are reading a snapshot of the draft as it was when it was sent to you.
+          This review is closed, so you can’t add comments. Your comments are kept.
         </p>
         <RichEditor
           ref="editor"
