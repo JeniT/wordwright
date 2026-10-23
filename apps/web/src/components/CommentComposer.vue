@@ -3,11 +3,10 @@ import { useMutation } from '@tanstack/vue-query'
 import { computed, nextTick, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
 import { COMMENT_MAX_LENGTH, WHOLE_DRAFT, type CommentInput } from '@wordwright/core'
 import SaveStatus from './SaveStatus.vue'
-import SwitchField from './SwitchField.vue'
 
 /**
- * Writing one comment, from the Comment button: about the paragraph (or the words in it) that was chosen, or, with the
- * General comment switch, about the draft as a whole. A comment is words about the writing, never words to put in it,
+ * Writing one comment, from the Comment button: about the paragraph (or the words in it) that was chosen, or, with no
+ * paragraph (the title was chosen, or nothing), about the draft as a whole. A comment is words about the writing, never words to put in it,
  * so there is no way to offer replacement text here. The field starts as one line and grows as the comment does, up
  * to a limit (smaller on a phone). The new comment's card is the confirmation, so there is no "added" message.
  */
@@ -21,26 +20,19 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ done: []; cancel: [] }>()
 
-const general = ref(!props.target)
-watch(
-  () => props.target,
-  (target) => (general.value = !target),
-)
 const text = ref('')
 const id = useId()
 const field = useTemplateRef<HTMLTextAreaElement>('field')
 
 const heading = computed(() =>
-  general.value || !props.target
-    ? 'General comment'
-    : `Comment on paragraph ${props.target.number}`,
+  props.target ? `Comment on paragraph ${props.target.number}` : 'General comment',
 )
 const post = useMutation({
   mutationFn: () =>
     props.add({
-      block: general.value || !props.target ? WHOLE_DRAFT : props.target.block,
+      block: props.target ? props.target.block : WHOLE_DRAFT,
       text: text.value,
-      ...(!general.value && props.target?.quote ? { quote: props.target.quote } : {}),
+      ...(props.target?.quote ? { quote: props.target.quote } : {}),
     }),
   onSuccess: () => {
     text.value = ''
@@ -68,12 +60,11 @@ defineExpose({ focus: () => field.value?.focus() })
   >
     <h3 :id="`${id}-heading`" class="font-medium">{{ heading }}</h3>
     <p
-      v-if="!general && (target?.quote || target?.excerpt)"
+      v-if="target?.quote || target?.excerpt"
       class="border-l-2 border-line-strong pl-2 text-sm text-ink-soft"
     >
       “{{ target.quote || target.excerpt }}”
     </p>
-    <SwitchField v-model="general" compact label="General comment" :unavailable="!target" />
     <p v-if="audience" class="text-sm text-ink-soft">{{ audience }}</p>
     <div>
       <label class="text-sm" :for="`${id}-text`">Your comment</label>

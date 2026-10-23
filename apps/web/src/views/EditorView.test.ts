@@ -542,7 +542,7 @@ describe('EditorView comments from members', () => {
     await fireEvent.focusIn(screen.getByLabelText('Title'))
     await fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
     expect(await screen.findByRole('heading', { name: 'General comment' })).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'General comment' })).toBeChecked()
+    expect(screen.queryByRole('switch', { name: 'General comment' })).toBeNull()
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByLabelText('Your comment')).toBeNull()
   })

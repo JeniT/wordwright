@@ -27,38 +27,43 @@ import SwitchField from './SwitchField.vue'
  * listed without a mark rather than put on the wrong paragraph. Resolved comments are hidden, not deleted, and the
  * editor can show them again. A person can reword or delete their own comment (never someone else's) until it is resolved.
  */
-const props = defineProps<{
-  /** The comments query, shown with its own loading and error states. */
-  query: QueryStatus
-  comments: DraftComment[]
-  /** The latest critique (its summary), if this person may see it. */
-  round: CritiqueRound | null | undefined
-  /** A critique is being made. */
-  pending: boolean
-  /** Why the last critique could not be made, if it could not. */
-  error: unknown
-  /** Ids of the comments whose paragraph is in the text now. */
-  located: ReadonlySet<string>
-  /** The words of each located comment's paragraph as the draft has them now. */
-  paragraphs: Readonly<Record<string, string>>
-  activeId: string | null
-  isEditor: boolean
-  editorName: string
-  /** A comment is being written (the Comment button was pressed); null when not, `target: null` for a general one. */
-  composing: {
-    id: number
-    target: { block: string; number: number; quote: string | null } | null
-  } | null
-  add: (input: CommentInput) => Promise<unknown>
-  /** The signed-in person: the editor can change only their own comments, not everyone's. */
-  me: string | null
-  /** Rewords one of their own comments. */
-  edit: (id: string, text: string) => Promise<unknown>
-  /** Deletes one of their own comments for good. */
-  remove: (id: string) => Promise<unknown>
-  /** Why the last Resolved switch could not be saved, if it could not. */
-  resolveProblem?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    /** The comments query, shown with its own loading and error states. */
+    query: QueryStatus
+    comments: DraftComment[]
+    /** The latest critique (its summary), if this person may see it. */
+    round: CritiqueRound | null | undefined
+    /** A critique is being made. */
+    pending: boolean
+    /** Why the last critique could not be made, if it could not. */
+    error: unknown
+    /** Ids of the comments whose paragraph is in the text now. */
+    located: ReadonlySet<string>
+    /** The words of each located comment's paragraph as the draft has them now. */
+    paragraphs: Readonly<Record<string, string>>
+    activeId: string | null
+    isEditor: boolean
+    editorName: string
+    /** A comment is being written (the Comment button was pressed); null when not, `target: null` for a general one. */
+    composing: {
+      id: number
+      target: { block: string; number: number; quote: string | null } | null
+    } | null
+    add: (input: CommentInput) => Promise<unknown>
+    /** The signed-in person: the editor can change only their own comments, not everyone's. */
+    me: string | null
+    /** Rewords one of their own comments. */
+    edit: (id: string, text: string) => Promise<unknown>
+    /** Deletes one of their own comments for good. */
+    remove: (id: string) => Promise<unknown>
+    /** Why the last Resolved switch could not be saved, if it could not. */
+    resolveProblem?: string
+    /** Shows the Add comment button; a page with its own (a reviewer's) turns it off. */
+    canComment?: boolean
+  }>(),
+  { canComment: true },
+)
 const emit = defineEmits<{
   /** A comment was pressed: show it in the draft. */
   show: [id: string]
@@ -129,7 +134,7 @@ defineExpose({
     <h2 id="comments-heading" class="sr-only">Comments</h2>
     <!-- Show resolved on the left, Add comment on the right, on one line. -->
     <div
-      v-if="!composing || (isEditor && resolvedCount)"
+      v-if="(!composing && canComment) || (isEditor && resolvedCount)"
       class="mb-3 flex items-center justify-between gap-3"
     >
       <SwitchField
@@ -139,7 +144,7 @@ defineExpose({
         :label="`Show resolved (${resolvedCount})`"
       />
       <button
-        v-if="!composing"
+        v-if="!composing && canComment"
         type="button"
         class="btn btn-sm btn-outline ml-auto"
         @click="emit('startComment')"

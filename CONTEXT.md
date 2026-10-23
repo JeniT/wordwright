@@ -111,7 +111,7 @@ Its author rewording it, while it is unresolved (and, for a reviewer, while thei
 Its author removing it for good, on the same terms as Edit. Permanent, and a critique look is not given back. The editor deals with other people's and the AI's comments by resolving, never by deleting.
 
 **General comment**:
-A comment about the whole draft rather than a paragraph. It has no mark in the text; its card carries a "General" chip. (The code calls its anchor `WHOLE_DRAFT`.)
+A comment about the whole draft rather than a paragraph: either made with the title selected, or made with nothing selected. It has no mark in the text; its card carries a "General" chip. (The code calls its anchor `WHOLE_DRAFT`.)
 _Avoid_: Whole-draft comment, overall comment
 
 **Text changed**:

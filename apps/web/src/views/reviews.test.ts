@@ -114,9 +114,13 @@ describe('reading one review', () => {
     await waitFor(() =>
       expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
     )
-    expect(screen.getByText('Lovely start')).toBeTruthy()
+    const panel = screen.getByRole('tabpanel', { name: 'Comments' })
+    expect(within(panel).getByText('Lovely start')).toBeTruthy()
+    expect(within(panel).getByText('General')).toBeTruthy()
     expect(screen.queryByRole('toolbar')).toBeNull() // reviewers have no toolbar, only the bar
     expect(screen.queryByLabelText('Your comment')).toBeNull() // the form is no longer on the page
+    expect(screen.queryByRole('heading', { name: 'Your comments' })).toBeNull() // they sit beside the draft
+    expect(screen.getAllByRole('button', { name: 'Add comment' })).toHaveLength(1)
     await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
     const dialog = await screen.findByRole('dialog', { name: 'Add comment' })
     // Nothing selected in the snapshot: a general comment.
@@ -156,6 +160,60 @@ describe('reading one review', () => {
     await waitFor(() => expect(posted).toEqual([{ block: 'b2', text: 'Who?', quote: 'They' }]))
   })
 
+  it('comments on the title as a general comment, with the title selected', async () => {
+    const posted: unknown[] = []
+    open({
+      ...summary(),
+      draft: { title: 'Meanders', body: 'Rivers bend.' },
+      comments: [],
+    })
+    server.use(
+      http.post('*/api/reviews/r1/comments', async ({ request }) => {
+        posted.push(await request.json())
+        return HttpResponse.json(comment({ id: 'c2' }), { status: 201 })
+      }),
+    )
+    await renderAt('/reviews/r1')
+    await waitFor(() =>
+      expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
+    )
+    const dom = document.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }
+    dom.editor.commands.setTextSelection({ from: 2, to: 5 })
+    await fireEvent.focusIn(screen.getByLabelText('Title'))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Add comment' })
+    expect(within(dialog).getByRole('heading', { name: 'General comment' })).toBeTruthy()
+    expect(within(dialog).queryByRole('switch')).toBeNull()
+    await fireEvent.update(within(dialog).getByLabelText('Your comment'), 'Nice title.')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add comment' }))
+    await waitFor(() => expect(posted).toEqual([{ block: 'whole', text: 'Nice title.' }]))
+  })
+
+  it('shows End review under the draft and under the comments while open, and in neither once ended', async () => {
+    open({
+      ...summary(),
+      draft: { title: 'Meanders', body: 'x' },
+      comments: [],
+    })
+    await renderAt('/reviews/r1')
+    expect(await screen.findAllByRole('button', { name: 'End review' })).toHaveLength(2)
+    expect(
+      within(screen.getByRole('tabpanel', { name: 'Comments' })).getByRole('button', {
+        name: 'End review',
+      }),
+    ).toBeTruthy()
+  })
+
+  it('says so when they have not commented yet, and when the comments cannot be loaded', async () => {
+    open({ ...summary(), draft: { title: 'Meanders', body: 'x' }, comments: [] })
+    await renderAt('/reviews/r1')
+    expect(
+      within(await screen.findByRole('tabpanel', { name: 'Comments' })).getByText(
+        /You haven’t commented yet/,
+      ),
+    ).toBeTruthy()
+  })
+
   it('lets them end the review, which stays on the page, read-only', async () => {
     let state = 'open'
     server.use(
@@ -174,10 +232,14 @@ describe('reading one review', () => {
       http.get('*/api/reviews', () => HttpResponse.json([summary({ state })])),
     )
     await renderAt('/reviews/r1')
-    const endButton = await screen.findByRole('button', { name: 'End review' })
+    await screen.findAllByRole('button', { name: 'End review' })
     expect(screen.queryByText(/snapshot/i)).toBeNull()
     expect(screen.queryByTestId('review-ended')).toBeNull()
-    await fireEvent.click(endButton)
+    await fireEvent.click(
+      within(await screen.findByRole('tabpanel', { name: 'Comments' })).getByRole('button', {
+        name: 'End review',
+      }),
+    )
     expect(await screen.findByTestId('review-ended')).toHaveTextContent(
       'You ended this review. Your comments are kept, but you can’t add more.',
     )

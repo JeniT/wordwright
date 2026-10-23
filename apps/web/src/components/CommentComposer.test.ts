@@ -11,21 +11,11 @@ const show = (props: InstanceType<typeof CommentComposer>['$props']) =>
 const target = { block: 'b4', number: 4, quote: 'the outside bank' }
 
 describe('CommentComposer', () => {
-  it('is headed by the paragraph it is about and flips to a general comment with the switch', async () => {
-    const add = vi.fn().mockResolvedValue(undefined)
-    const { emitted } = show({ target, add })
+  it('is headed by the paragraph it is about, and has no General comment switch', () => {
+    show({ target, add: vi.fn() })
     expect(screen.getByRole('heading', { name: 'Comment on paragraph 4' })).toBeInTheDocument()
     expect(screen.getByText('“the outside bank”')).toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('switch', { name: 'General comment' }))
-    expect(screen.getByRole('heading', { name: 'General comment' })).toBeInTheDocument()
-    expect(screen.queryByText('“the outside bank”')).toBeNull()
-    await fireEvent.update(screen.getByLabelText('Your comment'), 'Overall, lovely.')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
-    await waitFor(() =>
-      expect(add).toHaveBeenCalledWith({ block: 'whole', text: 'Overall, lovely.' }),
-    )
-    await waitFor(() => expect(emitted().done).toHaveLength(1))
-    expect(screen.queryByText(/Comment added|Saved/)).toBeNull() // the new card is the confirmation
+    expect(screen.queryByRole('switch')).toBeNull()
   })
 
   it('sends the paragraph and the selected words', async () => {
@@ -42,12 +32,18 @@ describe('CommentComposer', () => {
     )
   })
 
-  it('is general when there is no paragraph, and the switch cannot change that', async () => {
-    show({ target: null, add: vi.fn() })
+  it('is general when there is no paragraph (the title, or nothing selected)', async () => {
+    const add = vi.fn().mockResolvedValue(undefined)
+    const { emitted } = show({ target: null, add })
     expect(screen.getByRole('heading', { name: 'General comment' })).toBeInTheDocument()
-    await fireEvent.click(screen.getByRole('switch', { name: 'General comment' }))
-    expect(screen.getByRole('heading', { name: 'General comment' })).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'General comment' })).toBeChecked()
+    expect(screen.queryByRole('switch')).toBeNull()
+    await fireEvent.update(screen.getByLabelText('Your comment'), 'Overall, lovely.')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add comment' }))
+    await waitFor(() =>
+      expect(add).toHaveBeenCalledWith({ block: 'whole', text: 'Overall, lovely.' }),
+    )
+    await waitFor(() => expect(emitted().done).toHaveLength(1))
+    expect(screen.queryByText(/Comment added|Saved/)).toBeNull() // the new card is the confirmation
   })
 
   it('says who will see it, waits for words, and keeps them when it fails', async () => {

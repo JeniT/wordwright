@@ -1075,7 +1075,6 @@ test('the editor comments from the toolbar on selected words, which are underlin
   const side = page.getByRole('complementary')
   await expect(side.getByRole('heading', { name: 'Comment on paragraph 2' })).toBeVisible()
   await expect(side.getByLabel('Your comment')).toBeFocused()
-  await expect(side.getByRole('switch', { name: 'General comment' })).not.toBeChecked()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'the composer').toEqual([])
   await side.getByLabel('Your comment').fill('Say why.')
   await side.getByRole('button', { name: 'Add comment' }).click()
@@ -1083,10 +1082,11 @@ test('the editor comments from the toolbar on selected words, which are underlin
   await expect(side.getByText('Say why.')).toBeVisible()
   await expect(bodyBox.locator('.comment-quote')).toHaveText('They')
 
-  // A general comment, from the switch.
+  // A general comment: select the title, then Comment. There is no switch.
+  await page.getByLabel('Title').focus()
   await toolbar.getByRole('button', { name: 'Comment' }).click()
-  await side.getByRole('switch', { name: 'General comment' }).click()
   await expect(side.getByRole('heading', { name: 'General comment' })).toBeVisible()
+  await expect(side.getByRole('switch', { name: 'General comment' })).toHaveCount(0)
   await side.getByRole('button', { name: 'Cancel' }).click()
   await expect(side.getByLabel('Your comment')).toHaveCount(0)
 })
@@ -1219,7 +1219,27 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await expect(raeDialog.getByRole('heading', { name: 'General comment' })).toBeVisible() // nothing selected
   await raeDialog.getByLabel('Your comment').fill('Which rivers do you mean?')
   await raeDialog.getByRole('button', { name: 'Add comment' }).click()
-  await expect(rae.getByText('Which rivers do you mean?')).toBeVisible()
+  // Her comments sit beside the draft, in the panel.
+  const raePanel = rae.getByRole('tabpanel', { name: 'Comments' })
+  await expect(raePanel.getByText('Which rivers do you mean?')).toBeVisible()
+  await expect(raePanel.getByText('General')).toBeVisible()
+  await expect(rae.getByRole('switch', { name: 'General comment' })).toHaveCount(0)
+
+  // With the title selected, Comment makes a general comment...
+  await rae.getByLabel('Title').focus()
+  await rae.getByRole('button', { name: 'Add comment' }).click()
+  await expect(raeDialog.getByRole('heading', { name: 'General comment' })).toBeVisible()
+  await raeDialog.getByLabel('Your comment').fill('Lovely title.')
+  await raeDialog.getByRole('button', { name: 'Add comment' }).click()
+  await expect(raePanel.getByText('Lovely title.')).toBeVisible()
+
+  // ...and with words in a paragraph selected, one about that paragraph.
+  await rae.getByText('Rivers rarely flow straight.', { exact: true }).dblclick()
+  await rae.getByRole('button', { name: 'Add comment' }).click()
+  await expect(raeDialog.getByRole('heading', { name: 'Comment on paragraph 1' })).toBeVisible()
+  await raeDialog.getByLabel('Your comment').fill('Rarely?')
+  await raeDialog.getByRole('button', { name: 'Add comment' }).click()
+  await expect(raePanel.getByText('Rarely?')).toBeVisible()
   expect((await new AxeBuilder({ page: rae }).analyze()).violations).toEqual([])
 
   // Ada sees the comment as it is made, labelled with Rae's name, and how far Rae has got.
@@ -1227,21 +1247,24 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
   await page.getByRole('tab', { name: /^Comments/ }).click()
   await expect(page.getByText('Which rivers do you mean?')).toBeVisible()
   await expect(
-    page.getByRole('tabpanel', { name: /^Comments/ }).getByText('Rae', { exact: true }),
+    page
+      .getByRole('tabpanel', { name: /^Comments/ })
+      .getByText('Rae', { exact: true })
+      .first(),
   ).toBeVisible()
   await page.getByRole('tab', { name: /^Reviews/ }).click()
-  await expect(page.getByText(/Rae · Reading · 1 comment/)).toBeVisible()
+  await expect(page.getByText(/Rae · Reading · 3 comments/)).toBeVisible()
 
   // Rae ends the review: the page stays, read-only, and Ada can see it finished.
-  await rae.getByRole('button', { name: 'End review' }).click()
+  await raePanel.getByRole('button', { name: 'End review' }).click()
   await expect(rae.getByTestId('review-ended')).toContainText('You ended this review')
   await expect(rae.getByText('Which rivers do you mean?')).toBeVisible()
   await expect(rae.getByRole('button', { name: 'End review' })).toHaveCount(0)
   await page.reload()
   await page.getByRole('tab', { name: /^Reviews/ }).click()
-  await expect(page.getByText(/Rae · Finished · 1 comment/)).toBeVisible()
+  await expect(page.getByText(/Rae · Finished · 3 comments/)).toBeVisible()
   const finished = await waitForEmail(adaEmail, 'Rae has finished reviewing Meanders')
-  expect(finished.text).toContain('left 1 comment')
+  expect(finished.text).toContain('left 3 comments')
 
   // A second reviewer is closed out by the editor before they finish.
   const secondEmail = `sam-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
@@ -1365,7 +1388,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   await bob.goto(publicationUrl)
   const keepWriting = bob.getByRole('region', { name: 'Keep writing' })
   await expect(keepWriting).toContainText('0 of 1 reviews complete · 1 unresolved comment')
-  await rae.getByRole('button', { name: 'End review' }).click()
+  await rae.getByRole('button', { name: 'End review' }).first().click()
   await expect(rae.getByTestId('review-ended')).toBeVisible()
   await bob.reload()
   await expect(keepWriting).toContainText('1 of 1 reviews complete · 1 unresolved comment')
