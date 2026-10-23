@@ -9,8 +9,31 @@ containers with Docker Compose:
 **There must be exactly one `api` container.** The rate limiter lives in its memory and the database is one file; a
 second copy would split the limits and fight over the file. Don't scale it.
 
-Setting up the server itself (accounts, firewall, Docker), the domain, DNS and email are in #349; this page is
-what runs on it.
+The domain and DNS (Gandi), the Scaleway account and the Google sign-in are set up in their own dashboards (#349, #350);
+the server itself is set up by a wizard (next section). This page is what runs on it.
+
+## Setting up a new server
+
+Run the wizard on your own computer, from this repository:
+
+```bash
+deploy/setup-wizard.sh
+```
+
+It walks you through eleven steps and does the typing on the server for you, over SSH. It needs `ssh`, `scp`,
+`rsync`, `curl`, `node` and a signed-in `gh`. What it does, in order: checks the DNS record and your SSH key; runs
+`deploy/server-setup.sh base` on the server (an account `wordwright` for the app, Docker, a firewall for SSH, 80 and
+443, automatic security updates with a restart at 04:30 when one needs it); switches off root login and passwords
+once you have shown the new login works; copies the deploy files; runs the Images workflow; gives the server a
+read-only token for the private images; makes the two secrets and sends them to the server; takes the Scaleway SMTP
+details; starts the app and checks `https://app.wordwright.io/health`; walks you through checking real email; and
+installs a nightly backup timer and fetches a first copy to your computer.
+
+Secrets go from your keyboard to the server and are never written on your computer. The one file it keeps
+(`deploy/.env.server-setup`, ignored by git) holds only non-secret answers, so you can stop with Ctrl-C and run it again
+where it left off. It keeps secrets the server already has, rather than making new ones: **a new
+`KEY_ENCRYPTION_SECRET` would make every saved AI key unreadable.** Read `deploy/server-setup.sh` first if you want to
+see exactly what runs as root.
 
 ## The files
 
@@ -21,6 +44,9 @@ what runs on it.
 | `deploy/Caddyfile`              | HTTPS, security headers, the web app with its fallback page, `/api/*` and `/health` to the API. |
 | `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed. |
 | `deploy/deploy.sh`              | Backs up, pulls, restarts, waits until ready.                                                   |
+| `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                              |
+| `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                     |
+| `deploy/backup.sh`              | One backup onto the server's own disk; the nightly timer runs it.                               |
 | `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                      |
 | `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                   |
 
@@ -62,7 +88,11 @@ The database is backed up with `scripts/backup-db.mjs`, which uses SQLite's own 
 docker compose exec -T api node /app/scripts/backup-db.mjs /data/backups   # keeps 14 days (BACKUP_KEEP_DAYS)
 ```
 
-That keeps the copies on the same disk, so they do not survive losing the machine. **Copy them somewhere else**, and
+The wizard installs a timer that runs `deploy/backup.sh` at 02:30 every night: the script above, then a copy of the
+result into `~/backups` on the server (14 days kept; `BACKUP_KEEP_DAYS` changes it). Fetch them with
+`rsync -a wordwright@<server>:backups/ <a folder on your computer>/`.
+
+Those copies are still on the server's disk, so they do not survive losing the machine until you fetch them. **Copy them somewhere else regularly**, and
 back up the secrets apart from the data (`KEY_ENCRYPTION_SECRET` in particular: without it stored AI keys cannot be
 read, and without `SESSION_SECRET` everyone is signed out). Where they go, and the nightly schedule, are in #17 and the
 restore rehearsal in #322. Keep the retention short: a deleted account's data should not linger in old copies.
