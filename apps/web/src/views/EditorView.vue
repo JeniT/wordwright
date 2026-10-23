@@ -671,11 +671,7 @@ async function requestCritique() {
             you to ask your AI for options for rephrasing text you select in your draft.
           </Explain>
         </div>
-        <p
-          v-if="canEdit && titleProblem"
-          id="title-rephrase-hint"
-          class="mb-6 text-sm text-ink-soft"
-        >
+        <p v-if="canEdit && titleProblem" id="title-rephrase-hint" class="text-sm text-ink-soft">
           {{ titleProblem }}
         </p>
 

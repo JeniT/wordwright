@@ -87,14 +87,15 @@ Rules:
 
 IBM Plex Sans in four files (400, 400 italic, 500, 600). Sizes, set once:
 
-| Use                                   | Class / rule                             | Notes                                                          |
-| ------------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
-| Page title                            | `h1`                                     | 28–38px, 600, balanced                                         |
-| Section heading                       | `h2`                                     | 20px, 600                                                      |
-| Subsection / card heading             | `h3`                                     | 17px, 600                                                      |
-| Body, labels, buttons                 | default (16px) / `text-sm` for secondary | Never below 14px for anything read, 12px only for tabular tags |
-| Secondary line (dates, hosts, counts) | `meta`                                   | 14px, `ink-soft`, tabular figures                              |
-| The editor and the AI's replies       | `.prose-editor`, `.markdown`             | 18px, line-height 1.75, same family                            |
+| Use                                               | Class / rule                             | Notes                                                                                  |
+| ------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| Page title                                        | `h1`                                     | 28–38px, 600, balanced                                                                 |
+| Section heading                                   | `h2`                                     | 20px, 600                                                                              |
+| Subsection / card heading                         | `h3`                                     | 17px, 600                                                                              |
+| Body, labels, buttons                             | default (16px) / `text-sm` for secondary | Never below 14px for anything read (except `btn-sm`, 13px), 12px only for tabular tags |
+| Secondary line (dates, hosts, counts)             | `meta`                                   | 14px, `ink-soft`, tabular figures                                                      |
+| The editor and the AI's replies                   | `.prose-editor`, `.markdown`             | 16px (`--draft-size`), line-height 1.7, same family                                    |
+| Notes, reading items, comments (beside the draft) | `#draft-notes`                           | 15px (`--pane-size`); their secondary lines keep `text-xs` and `text-sm`               |
 
 Figures are tabular by default so counts and dates align. Don't add other typefaces. Headings use `font-display`
 (currently the same family), so a different display face is one line in `theme.css`.
@@ -128,7 +129,7 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `btn btn-neutral`                                                 | Everything else: Cancel, Previous/Next                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `btn btn-danger` / `btn btn-danger-solid`                         | Delete: outline to start, solid only on the final confirmation                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `btn btn-quiet`                                                   | Low-emphasis text actions and reorder grips. Keeps a faint outline                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `btn-sm`                                                          | Add to any `btn` in dense lists (36px high; normal is 44px)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `btn-sm`                                                          | Add to any `btn` in dense lists (32px high, 13px text; normal is 36px high, 14px text; both set by `--ctl-h-sm` and `--ctl-h` in `theme.css`)                                                                                                                                                                                                                                                                                                                                                                                          |
 | `btn-ghost`                                                       | An icon-only button with no border or fill at rest, the icon in `ink-soft`; `hover-wash` fill on hover and focus (`line` on a recessed strip); `accent-wash` and an accent icon when it is the current page (`aria-current`) or a toggle that is on (`aria-pressed`). Add `btn-ghost-danger` for Remove (raspberry on hover, focus and while armed)                                                                                                                                                                                    |
 | `btn-icon`                                                        | With `btn-sm btn-ghost`: a square button holding only an `Icon`, named by an `aria-label` and a tooltip                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `AiButton` (with a `btn` variant)                                 | Every button that makes an AI request, or leads straight to one: see _AI buttons_ below                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -392,7 +393,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 - **Checkboxes only ever mean "select".** Never use one to trigger an action or to hold a state; never use a button for
   a yes/no state.
 - A switch that repeats on every row of a list (Read, Keep, Resolved) is **compact** (`<SwitchField compact>`, the
-  `switch-compact` class): a smaller track, knob and label, but the same 44px-high target and the same visible label.
+  `switch-compact` class): a smaller track, knob and label, but the same 44px-high target (switches were not shrunk with the buttons) and the same visible label.
   So are the switches in a list toolbar or panel header (Show read items, Show resolved) and the option in the move
   dialog. A switch that sits alone on a page or in settings (Read on the item page) keeps the full size; the Tutorial switch in the menu is the small one.
 - A switch's label is a fixed word ("Read", never "Unread"). On is shown by the knob's place and a tick, not by colour
@@ -407,10 +408,10 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
   the familiar formatting symbols; see the editors' toolbar below.)
 - **Icon only** (`btn btn-sm btn-icon btn-ghost` + `Icon`, no border) for actions that repeat on every row, are rare, and have a
   universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove A paper") and
-  a tooltip (`v-tip`, below); a 36px target.
+  a tooltip (`v-tip`, below); a 32px target.
 - **A single-use action on a page** may be icon-only too, when the icon is as universal and the action is quiet: the pencil
   beside a reading item's title (Edit title and authors). The same rules apply: an `aria-label` that says what it does,
-  a tooltip, and a 36px target.
+  a tooltip, and a 32px target.
 - **Tooltip on an icon-only button: `v-tip`, not `title`** (`lib/tip.ts`; on a `HoldButton`, its `tip` prop). The browser's `title`
   shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
   pointer moves onto it, goes on Escape (focus stays), and is `aria-hidden`: the `aria-label` is the name, the tooltip a
@@ -452,7 +453,7 @@ focusing its hidden "Reorder" button) swaps the grip for small up/down arrows, o
 so nothing moves. Hover alone never shows them, so the grip is there when the pointer arrives. They go again when the
 person clicks a rail away from the arrows (a click on a rail toggles them), clicks elsewhere, leaves the list, presses Escape or starts dragging, so the two never compete. For the
 keyboard and screen readers the hidden button is there too (with it focused, the arrow keys move the row). The arrows
-are 28px (above the 24px WCAG 2.2 minimum), an exception to the 36px rule for small buttons because there are two to a
+are 28px (above the 24px WCAG 2.2 minimum), an exception to the 32px rule for small buttons because there are two to a
 row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
@@ -717,7 +718,7 @@ same cards, callouts and chips as everywhere else.
 
 - Contrast: enforced by `palette.test.ts` (text 4.5:1, borders and focus 3:1) in light and dark.
 - **Focus:** one 3px outline in `focus`, from the base layer. Don't remove outlines or restyle focus per control.
-- **Targets:** buttons 44px (`btn-sm` and icon buttons 36px; the settings gear is 44px, since it sits alone), checkboxes 20px, switches 44px high with their label (44px wide too, except a compact switch in a list row, whose track is smaller but whose target is not).
+- **Targets:** buttons 36px (`btn-sm` and icon buttons 32px; the settings gear is 44px, since it sits alone), checkboxes 20px, switches 44px high with their label (44px wide too, except a compact switch in a list row, whose track is smaller but whose target is not). Buttons are below the usual 44px touch size but above WCAG 2.2's 24px minimum.
 - **Text:** 16px minimum in fields (stops iOS zoom), links underlined, no text in images.
 - **Motion:** reduced motion is honoured globally; don't add animation that carries meaning.
 - **Not by colour alone:** errors have words and (where it fits) an icon; AI-suggested things have a label, not just
