@@ -112,6 +112,10 @@ export function createApp(deps: AppDeps) {
 
   const app = new Hono<AppEnv>()
   app.get('/health', (c) => c.json({ status: 'ok' }))
+  // Health says the process is up; ready says it can serve (database open and migrated). Containers use ready.
+  app.get('/ready', (c) =>
+    store.ready() ? c.json({ status: 'ready' }) : c.json({ status: 'not ready' }, 503),
+  )
 
   const api = new Hono<AppEnv>()
   api.use(sameOriginOnly(new URL(publicUrl).origin))

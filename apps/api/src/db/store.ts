@@ -3,7 +3,7 @@ import { ConversationStore } from './conversations'
 import { CredentialStore } from './credentials'
 import { CommentStore } from './comments'
 import { CritiqueStore } from './critiques'
-import { openDatabase, transaction } from './database'
+import { isReady, openDatabase, transaction } from './database'
 import { DraftStore } from './drafts'
 import { FeedDecisionStore } from './feed-decisions'
 import { HandoverStore } from './handovers'
@@ -42,6 +42,8 @@ export interface Store {
   userSettings: UserSettingsStore
   /** Run several writes atomically. */
   transaction<T>(fn: () => T): T
+  /** Whether the database answers and is fully migrated (the readiness check). */
+  ready(): boolean
 }
 
 export function createStore(db: DatabaseSync): Store {
@@ -66,6 +68,7 @@ export function createStore(db: DatabaseSync): Store {
     credentials: new CredentialStore(db),
     userSettings: new UserSettingsStore(db),
     transaction: (fn) => transaction(db, fn),
+    ready: () => isReady(db),
   }
 }
 

@@ -746,6 +746,21 @@ export function migrate(
   }
 }
 
+/**
+ * True when the database answers and has every migration applied, for the readiness check. Never throws: a broken
+ * database is "not ready", not a crashed request.
+ */
+export function isReady(db: DatabaseSync, migrations: Migration[] = MIGRATIONS): boolean {
+  try {
+    const { user_version: version } = db.prepare('PRAGMA user_version').get() as {
+      user_version: number
+    }
+    return version === migrations.length
+  } catch {
+    return false
+  }
+}
+
 /** Runs `fn` atomically. Not re-entrant; call it from the service layer only. */
 export function transaction<T>(db: DatabaseSync, fn: () => T): T {
   db.exec('BEGIN IMMEDIATE')

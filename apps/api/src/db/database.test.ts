@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it } from 'vitest'
-import { DatabaseError, MIGRATIONS, migrate, openDatabase } from './database'
+import { DatabaseError, isReady, MIGRATIONS, migrate, openDatabase } from './database'
 import { PUBLICATION_REFERENCES } from './publications'
 
 const dirs: string[] = []
@@ -410,5 +410,18 @@ describe('migrations', () => {
     ).toBeTruthy()
     db.exec("DELETE FROM idea_messages WHERE id = 'm'")
     expect(db.prepare('SELECT count(*) AS n FROM idea_proposals').get()).toEqual({ n: 0 })
+  })
+})
+
+describe('isReady', () => {
+  it('is true for a fully migrated database', () => {
+    expect(isReady(openDatabase(':memory:'))).toBe(true)
+  })
+
+  it('is false when migrations are missing, and when the database is closed', () => {
+    const db = new DatabaseSync(':memory:')
+    expect(isReady(db)).toBe(false)
+    db.close()
+    expect(isReady(db)).toBe(false)
   })
 })

@@ -1,0 +1,32 @@
+# Builds the two production images and pushes them to GitHub's container registry (ghcr.io), where the server pulls them
+# (docs/deploy.md). Run by hand for the commit you want to ship: Actions → Images → Run workflow. Only the docker
+# command line is used, so there are no third-party actions to trust or keep up to date.
+name: Images
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Log in to ghcr.io
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+      - name: Build and push
+        run: |
+          # ghcr.io wants lower case; the tag is the commit, so a deploy (and a rollback) names exactly one build.
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          for target in api web; do
+            image="ghcr.io/$owner/wordwright-$target"
+            docker build --target "$target" -t "$image:$GITHUB_SHA" -t "$image:latest" .
+            docker push "$image:$GITHUB_SHA"
+            docker push "$image:latest"
+          done
+          echo "Pushed $GITHUB_SHA. On the server set WORDWRIGHT_TAG=$GITHUB_SHA in .env and run ./deploy.sh." >> "$GITHUB_STEP_SUMMARY"

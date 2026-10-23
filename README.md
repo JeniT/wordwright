@@ -420,6 +420,9 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 
 ## Notes and next steps
 
+- **Deploying:** production is two containers on one machine (the API and Caddy); the files and steps are in
+  [docs/deploy.md](docs/deploy.md). `GET /health` says the process is up and `GET /ready` that the database is open and
+  migrated.
 - **Storage:** stores in `apps/api/src/db` use `node:sqlite` with versioned migrations
   (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
 - **UI components:** Tailwind plus our own component classes ([docs/design.md](docs/design.md)); add headless primitives

@@ -1,0 +1,19 @@
+# Keep the build context small and free of anything private. The image gets only what the build needs.
+.git
+.github
+.worktrees
+**/node_modules
+**/dist
+**/coverage
+**/data
+**/playwright-report
+**/test-results
+**/.e2e-data
+**/.env
+**/.env.*
+!**/.env.example
+docs
+**/e2e
+**/*.test.ts
+**/*.test.mjs
+.DS_Store
