@@ -82,6 +82,11 @@ export function createApp(deps: AppDeps) {
     factory: deps.llmFactory,
     researchFactory: deps.researchFactory,
   })
+  const clock = deps.now && (() => deps.now!().getTime())
+  const limiter = (max: number, windowMs: number) => new RateLimiter(max, windowMs, clock)
+  // One shared bucket (the API doesn't see client IPs) for every way of making an account: each sends an email or
+  // adds a row. The email form and the Google callback both draw on it.
+  const registerLimiter = limiter(deps.signupsPerHour ?? 30, HOUR)
   const hasher = deps.hasher ?? createScryptHasher()
   const accounts = new AccountService({
     store,
@@ -93,6 +98,7 @@ export function createApp(deps: AppDeps) {
     unconfirmedTtlDays: deps.unconfirmedAccountTtlDays ?? DEFAULT_UNCONFIRMED_TTL_DAYS,
     approvalRequired: deps.approvalRequired,
     adminEmails: deps.adminEmails?.map((e) => e.trim().toLowerCase()).filter(Boolean),
+    signupAllowed: () => registerLimiter.allow('register'),
   })
 
   const emailChanges = new EmailChangeService({
@@ -104,8 +110,6 @@ export function createApp(deps: AppDeps) {
     logger: deps.logger,
   })
 
-  const clock = deps.now && (() => deps.now!().getTime())
-  const limiter = (max: number, windowMs: number) => new RateLimiter(max, windowMs, clock)
   /** Guessable or costly actions: 10 tries per 15 minutes. */
   const attempts = () => limiter(10, 15 * MINUTE)
 
@@ -142,8 +146,7 @@ export function createApp(deps: AppDeps) {
       resetLimiter: attempts(),
       handleCheckLimiter: limiter(120, MINUTE),
       verificationLimiter: limiter(3, HOUR),
-      // One shared bucket (the API doesn't see client IPs): each sign-up sends an email and makes a row.
-      registerLimiter: limiter(deps.signupsPerHour ?? 30, HOUR),
+      registerLimiter,
     }),
   )
   const exportService = new ExportService(store, deps.now)

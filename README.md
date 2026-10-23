@@ -321,7 +321,7 @@ tests inject fakes and nothing hits the network.
   Approve and decline email the person (`approvedEmail` with a sign-in link, `declinedEmail` with no reason) and write
   `admin_audit` (admin, action, person, time: ids only, so the log survives either account going, with the person
   unlinked). A repeated decision changes nothing and sends nothing; an admin cannot decide about themselves or another
-  admin. Sign-ups are throttled (30 an hour, one shared bucket) and decisions (120 an hour per admin). Not built: an
+  admin. Sign-ups are throttled (`SIGNUPS_PER_HOUR`, 30 an hour, one bucket shared by the email form and Google, which counts only a sign-in that would make a new account) and decisions (120 an hour per admin). Not built: an
   email to the owner when someone is waiting (the issue's optional item); the list is the queue.
 - **Sharing is by invitation.** An owner (with a confirmed address) enters an email; we send a link valid
   for 7 days that works whether or not the person has an account yet. The invitee signs in or signs up with

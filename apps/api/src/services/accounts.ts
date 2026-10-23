@@ -40,7 +40,8 @@ export class AccountError extends Error {
       | 'no_password'
       | 'password_unchanged'
       | 'password_exists'
-      | 'sole_owner',
+      | 'sole_owner'
+      | 'too_many_signups',
     message: string,
   ) {
     super(message)
@@ -65,6 +66,11 @@ export interface AccountServiceDeps {
   approvalRequired?: boolean
   /** Addresses that become admins once confirmed (`ADMIN_EMAILS`). Lower case. */
   adminEmails?: string[]
+  /**
+   * Asked just before a sign-in through an identity provider would make a new account (never for someone who already has
+   * one). The same allowance as the email form's, so Google is not a way round it.
+   */
+  signupAllowed?: () => boolean
 }
 
 export interface Session {
@@ -485,6 +491,12 @@ export class AccountService {
         }
         store.users.linkIdentity(byEmail.id, provider, claims.subject)
         return byEmail
+      }
+      if (this.d.signupAllowed && !this.d.signupAllowed()) {
+        throw new AccountError(
+          'too_many_signups',
+          'A lot of people have signed up in the last hour. Try again later.',
+        )
       }
       const created = store.users.create({
         name: claims.name,

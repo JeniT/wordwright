@@ -302,6 +302,16 @@ docker compose exec api ./node_modules/.bin/tsx src/admin-cli.ts grant someone@e
 docker compose exec api ./node_modules/.bin/tsx src/admin-cli.ts revoke someone@example.com
 ```
 
+On a server whose `.env` already exists (the wizard does not write `ADMIN_EMAILS`), set it and recreate the container:
+
+```bash
+cd ~/wordwright
+grep -q '^ADMIN_EMAILS=' .env && sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=jeni@wordwright.io|' .env || echo 'ADMIN_EMAILS=jeni@wordwright.io' >> .env
+docker compose up -d
+```
+
+An account that already exists becomes an admin (and is approved) the next time it is used, once its email is confirmed.
+
 Approving and declining email the person, so email has to be working first (see above). Everyone who had an account
 before approval began is already approved.
 

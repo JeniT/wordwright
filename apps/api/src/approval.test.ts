@@ -325,6 +325,59 @@ describe('signing up', () => {
   })
 })
 
+describe('signing up with Google', () => {
+  const claims = (n: number) => ({
+    subject: `g${n}`,
+    email: `g${n}@example.com`,
+    emailVerified: true,
+    name: `Gail ${n}`,
+  })
+  /** The redirect and callback, as a browser does them; answers where the callback sent the browser. */
+  const signIn = async (client: TestClient) => {
+    const start = await client.get('/api/auth/oauth/google/start')
+    const state = new URL(start.headers.get('location')!).searchParams.get('state')!
+    const res = await client.get(`/api/auth/oauth/google/callback?code=good-code&state=${state}`)
+    return res.headers.get('location')!
+  }
+
+  it('shares the email form’s allowance, so Google is not a way round it', async () => {
+    const idp = new FakeIdentityProvider(claims(1), 'google', 'Google')
+    const ctx = setup({ approvalRequired: true, identityProviders: [idp], signupsPerHour: 2 })
+    // One sign-up by email, one by Google: the allowance is used up.
+    await signUp(ctx.client(), 'p@example.com', 'Pat')
+    expect(await signIn(ctx.client())).not.toContain('error=')
+    idp.claims = claims(2)
+    const refused = ctx.client()
+    expect(await signIn(refused)).toContain('error=too_many_signups')
+    expect(ctx.store.users.findByEmail('g2@example.com')).toBeUndefined()
+    expect((await refused.get('/api/auth/me')).status).toBe(401)
+    // The email form is refused too: it is one allowance.
+    expect(
+      (
+        await ctx.client().post('/api/auth/register', {
+          name: 'Quin',
+          email: 'q@example.com',
+          password: PASSWORD,
+          handle: 'quin',
+        })
+      ).status,
+    ).toBe(429)
+  })
+
+  it('still lets someone who already has an account sign in, however many have signed up', async () => {
+    const idp = new FakeIdentityProvider(claims(1), 'google', 'Google')
+    const ctx = setup({ approvalRequired: true, identityProviders: [idp], signupsPerHour: 1 })
+    expect(await signIn(ctx.client())).not.toContain('error=')
+    // Allowance used up: a second visit by the same person, and a person who signed up by email, both go in.
+    expect(await signIn(ctx.client())).not.toContain('error=')
+    const bea = await signUp(ctx.client(), 'bea@example.com', 'Bea').catch(() => null)
+    expect(bea).toBeNull() // the form is refused...
+    ctx.store.users.create({ name: 'Cy', email: 'cy@example.com', emailVerified: true })
+    idp.claims = { ...claims(3), email: 'cy@example.com' } // ...but linking Google to an existing account is not a sign-up
+    expect(await signIn(ctx.client())).not.toContain('error=')
+  })
+})
+
 describe('the admin command and settings', () => {
   it('grants and revokes admin by address, only for a confirmed one', async () => {
     const ctx = setup({ approvalRequired: true })

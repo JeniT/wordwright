@@ -29,6 +29,7 @@ const login = useMutation({
 const OAUTH_ERRORS: Record<string, string> = {
   oauth_failed: "We couldn't sign you in with that provider. Please try again.",
   email_not_verified: 'That provider has not verified your email address.',
+  too_many_signups: 'A lot of people have signed up in the last hour. Please try again later.',
 }
 const oauthError =
   typeof route.query.error === 'string' ? (OAUTH_ERRORS[route.query.error] ?? null) : null

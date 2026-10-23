@@ -37,6 +37,7 @@ export interface TestOptions {
   /** The private alpha (#328): new accounts wait for approval. Off by default, so other tests are not locked out. */
   approvalRequired?: boolean
   adminEmails?: string[]
+  signupsPerHour?: number
 }
 
 /** A tiny cookie-keeping HTTP client over `app.request`, standing in for a browser. */
@@ -163,6 +164,7 @@ export function setup(options: TestOptions = {}) {
     unconfirmedAccountTtlDays: options.unconfirmedAccountTtlDays,
     approvalRequired: options.approvalRequired,
     adminEmails: options.adminEmails,
+    signupsPerHour: options.signupsPerHour,
     providers: { search: [] },
     feeds,
     llmFactory,
