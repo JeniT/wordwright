@@ -319,8 +319,7 @@ tutorial-only>` is for what a page is for, which has no icon: it shows nothing w
 - **Kinds of page.** A route opts in with `meta: { tutorial: true }` and a `name`; the name is its kind. A test
   (`tutorial-routes.test.ts`) requires each opted-in route to have a test that renders it with `tutorialMode: true`.
   The content-crit issue for a page adds `meta.tutorial` with its text.
-- **The switch.** The menu's account area has two compact rows: the person's name with **Sign out** and the settings
-  button, then the **Tutorial** switch (the small size, since the row is crowded) with the **Help** link. Its tooltip
+- **The switch.** The menu's account area has three compact rows: the person's name with the settings gear, **Sign out**, then the **Tutorial** switch (the small size, since the row is crowded) with the **Help** link. Its tooltip
   (`v-tip`) says what it does. It shows the change at once and saves in the background. If saving fails it goes back
   to the saved setting and becomes `aria-disabled` (not `disabled`, so the keyboard can still reach the reason) until
   the page is reloaded, held in the component and not in storage; its tooltip then says so. There is no alert.

@@ -175,18 +175,18 @@ useModal({
           <SideMenu />
 
           <div class="mt-auto border-t border-line px-5 py-4">
-            <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
-            <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">
-                Sign out
-              </button>
+            <div class="flex items-center justify-between gap-2">
+              <p class="min-w-0 font-semibold break-words">{{ session.user.name }}</p>
               <SettingsButton
                 :to="{ name: 'account' }"
                 label="Account settings"
                 :current="nav.level.value === 'account'"
               />
             </div>
-            <div class="mt-1 flex flex-wrap items-center justify-between gap-x-3">
+            <button type="button" class="btn btn-outline btn-sm mt-2" @click="signOut.mutate()">
+              Sign out
+            </button>
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-x-3">
               <TutorialSwitch />
               <RouterLink :to="{ name: 'help' }" class="link text-sm">Help</RouterLink>
             </div>
