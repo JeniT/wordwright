@@ -34,6 +34,9 @@ export interface TestOptions {
   feeds?: FeedFetcher
 
   identityProviders?: IdentityProvider[]
+  /** The private alpha (#328): new accounts wait for approval. Off by default, so other tests are not locked out. */
+  approvalRequired?: boolean
+  adminEmails?: string[]
 }
 
 /** A tiny cookie-keeping HTTP client over `app.request`, standing in for a browser. */
@@ -158,6 +161,8 @@ export function setup(options: TestOptions = {}) {
     pageFetcher: pageFetcher,
     logger: options.logger,
     unconfirmedAccountTtlDays: options.unconfirmedAccountTtlDays,
+    approvalRequired: options.approvalRequired,
+    adminEmails: options.adminEmails,
     providers: { search: [] },
     feeds,
     llmFactory,

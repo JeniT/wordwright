@@ -80,6 +80,9 @@ const app = createApp({
   publicUrl: config.PUBLIC_URL,
   sessionSecret: config.SESSION_SECRET,
   unconfirmedAccountTtlDays: config.UNCONFIRMED_ACCOUNT_TTL_DAYS,
+  approvalRequired: config.ACCOUNT_APPROVAL === 'required',
+  adminEmails: config.ADMIN_EMAILS,
+  signupsPerHour: config.SIGNUPS_PER_HOUR,
 })
 
 // Housekeeping every 6 hours: forget abandoned signups and expired sessions/links.
@@ -99,6 +102,6 @@ startMaintenance({ run: () => maintenance.run(), intervalMs: 6 * 60 * 60 * 1000 
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   console.log(
-    `API listening on http://localhost:${info.port} (llm: ${config.FAKE_LLM ? 'FAKE' : "users' own keys"}, email: ${config.MAIL_TRANSPORT}, login: local${identityProviders.map((p) => `, ${p.id}`).join('')})`,
+    `API listening on http://localhost:${info.port} (llm: ${config.FAKE_LLM ? 'FAKE' : "users' own keys"}, email: ${config.MAIL_TRANSPORT}, accounts: ${config.ACCOUNT_APPROVAL === 'required' ? 'by approval' : 'open'}, login: local${identityProviders.map((p) => `, ${p.id}`).join('')})`,
   )
 })

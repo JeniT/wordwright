@@ -41,6 +41,8 @@ export const queryKeys = {
   /** The models the provider offers the saved key (the account page). */
   llmModels: () => ['llm-models'] as const,
   reviews: () => ['reviews'] as const,
+  /** Who is waiting and who is in, for an admin (#328). */
+  adminAccounts: () => ['admin-accounts'] as const,
   /** Invitations to join a publication that are waiting for this person. */
   myInvitations: () => ['my-invitations'] as const,
   /** The drafts to keep writing, within a publication or an idea or (neither) across all of them, `limit` of them. */

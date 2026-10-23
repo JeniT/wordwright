@@ -29,11 +29,29 @@ export function reviewerMayReach(method: string, path: string): boolean {
   return p === '/reviews' || p.startsWith('/reviews/')
 }
 
+/**
+ * What an account that is not approved may reach (#328): who it is, signing out, deleting itself and downloading what
+ * it has, confirming its address, and accepting an invitation (an invitation from an approved person is what lets
+ * someone in). Everything else is refused, so a waiting or declined account has no app and no AI calls.
+ */
+export function unapprovedMayReach(method: string, path: string): boolean {
+  const p = path.replace(/^\/api/, '')
+  if (p === '/auth/me' || p === '/auth/logout' || p === '/auth/resend-verification') return true
+  if (p === '/account' && method === 'DELETE') return true
+  // Deleting needs a password, which a Google-only account adds first.
+  if (p === '/account/export' && method === 'GET') return true
+  if (p === '/account/password/setup-email' && method === 'POST') return true
+  return method === 'POST' && (p === '/review-invitations/accept' || p === '/invitations/accept')
+}
+
 export const requireUser =
   (accounts: AccountService): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
     const user = accounts.authenticate(getCookie(c, SESSION_COOKIE))
     if (!user) throw fail(401, 'Not signed in')
+    if (user.approval !== 'approved' && !unapprovedMayReach(c.req.method, c.req.path)) {
+      throw fail(403, 'This account has not been approved yet')
+    }
     if (user.reviewerOnly && !reviewerMayReach(c.req.method, c.req.path)) {
       throw fail(404, 'Not found')
     }
@@ -83,3 +101,12 @@ export const sameOriginOnly =
     }
     await next()
   }
+
+/** Admin pages answer 404 to everyone else, so nothing shows they exist. Needs a confirmed address as well. */
+export const requireAdmin: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const user = c.get('user')
+  if (!user.isAdmin || !user.emailVerified || user.approval !== 'approved') {
+    throw fail(404, 'Not found')
+  }
+  await next()
+}

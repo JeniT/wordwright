@@ -671,6 +671,21 @@ export const MIGRATIONS: Migration[] = [
   `
   ALTER TABLE draft_comments ADD COLUMN edited_at TEXT;
   `,
+  // The private alpha (#328): only accounts the owner approved reach the app. Everyone who already has an account is
+  // approved. An admin is a flag set from the server's settings or a command, never in the app. The audit log keeps
+  // who decided what about whom, as ids only: when either account goes the row stays, with the person unlinked.
+  `
+  ALTER TABLE users ADD COLUMN approval TEXT NOT NULL DEFAULT 'approved'
+    CHECK (approval IN ('waiting', 'approved', 'declined'));
+  ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
+  CREATE TABLE admin_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL CHECK (action IN ('approve', 'decline')),
+    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

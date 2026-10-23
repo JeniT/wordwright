@@ -19,6 +19,7 @@ import { SourceStore } from './sources'
 import { TokenStore } from './tokens'
 import { UserSettingsStore } from './user-settings'
 import { UserStore } from './users'
+import { AdminAuditStore } from './admin-audit'
 
 export interface Store {
   users: UserStore
@@ -40,6 +41,7 @@ export interface Store {
   reviews: ReviewStore
   credentials: CredentialStore
   userSettings: UserSettingsStore
+  adminAudit: AdminAuditStore
   /** Run several writes atomically. */
   transaction<T>(fn: () => T): T
   /** Whether the database answers and is fully migrated (the readiness check). */
@@ -67,6 +69,7 @@ export function createStore(db: DatabaseSync): Store {
     reviews: new ReviewStore(db),
     credentials: new CredentialStore(db),
     userSettings: new UserSettingsStore(db),
+    adminAudit: new AdminAuditStore(db),
     transaction: (fn) => transaction(db, fn),
     ready: () => isReady(db),
   }

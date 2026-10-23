@@ -56,6 +56,10 @@ export const SiteUrlSchema = z
 
 // ---- Accounts -----------------------------------------------------------
 
+/** Whether the owner has let this person in (the private alpha, #328). Only `approved` accounts reach the app. */
+export const ApprovalSchema = z.enum(['waiting', 'approved', 'declined'])
+export type Approval = z.infer<typeof ApprovalSchema>
+
 export const UserSchema = z.object({
   id: z.string(),
   /** Short, unique, lower-case name that prefixes the ids of publications this person creates. */
@@ -74,8 +78,36 @@ export const UserSchema = z.object({
   linkedProviders: z.array(z.string()),
   /** Whether tutorial mode is on (#198). Always false for a reviewer-only account. */
   tutorialMode: z.boolean(),
+  /** Whether the owner has approved the account. Anything but `approved` sees only the status page. */
+  approval: ApprovalSchema,
+  /** Whether the person may open the admin area (#328). Set only from the server's settings, never in the app. */
+  isAdmin: z.boolean(),
 })
 export type User = z.infer<typeof UserSchema>
+
+/** What an admin sees of an account: who they are and where they stand, never anything they wrote (#328). */
+export const AdminAccountSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  createdAt: z.string(),
+  approval: ApprovalSchema,
+  /** Admins are set in the server's settings; the page shows no buttons for them. */
+  isAdmin: z.boolean(),
+})
+export type AdminAccount = z.infer<typeof AdminAccountSchema>
+
+export const AdminAccountsSchema = z.object({
+  /** Those waiting, oldest first. */
+  waiting: z.array(AdminAccountSchema),
+  /** Everyone, newest first (the people already in the waiting list appear here too). */
+  all: z.array(AdminAccountSchema),
+})
+export type AdminAccounts = z.infer<typeof AdminAccountsSchema>
+
+export const AdminDecisionSchema = z.enum(['approve', 'decline'])
+export type AdminDecision = z.infer<typeof AdminDecisionSchema>
 
 export const RegisterInputSchema = z.object({
   name: NameSchema,

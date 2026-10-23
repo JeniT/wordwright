@@ -36,6 +36,11 @@ const pages = [
     about: 'The formatting buttons, their shortcuts, and editing the Markdown itself.',
   },
   {
+    name: 'help-waiting',
+    title: 'Waiting for approval',
+    about: 'Why a new account waits, and what happens when it is approved.',
+  },
+  {
     name: 'help-tutorial-mode',
     title: 'About tutorial mode',
     about: 'The explanations written out on the page while you are getting to know the site.',

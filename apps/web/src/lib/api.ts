@@ -1,5 +1,7 @@
 import {
   AcceptInvitationResultSchema,
+  AdminAccountsSchema,
+  type AdminDecision,
   AuthConfigSchema,
   BrainstormEventSchema,
   CommentSchema,
@@ -179,6 +181,13 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     signOutOtherDevices: () => get(SignedOutOthersSchema, 'DELETE', '/account/sessions'),
     deleteAccount: (password: string, keepName: boolean) =>
       act('DELETE', '/account', { password, keepName }),
+
+    /** The admin area (#328): name, address, date and status of every account, never anything they wrote. */
+    adminAccounts: () => get(AdminAccountsSchema, 'GET', '/admin/accounts'),
+    adminDecide: (id: string, decision: AdminDecision) =>
+      get(AdminAccountsSchema, 'POST', `/admin/accounts/${encodeURIComponent(id)}/decision`, {
+        decision,
+      }),
 
     // bring-your-own LLM key (write-only: the key is never returned)
     getLlmSettings: () => get(LlmSettingsSchema, 'GET', '/llm'),

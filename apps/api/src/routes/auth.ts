@@ -43,6 +43,8 @@ export interface AuthRouteDeps {
   verificationLimiter: RateLimiter
   /** Throttles username availability checks (one shared bucket: the API doesn't see client IPs). */
   handleCheckLimiter: RateLimiter
+  /** Throttles sign-ups (one shared bucket, for the same reason). */
+  registerLimiter: RateLimiter
 }
 
 const STATUS = {
@@ -115,6 +117,7 @@ export function authRoutes(d: AuthRouteDeps) {
       })
 
       .post('/register', validateJson(RegisterInputSchema), async (c) => {
+        throttle(d.registerLimiter, 'register')
         const session = await d.accounts
           .register(c.req.valid('json'), deviceOf(c))
           .catch(toHttpError)

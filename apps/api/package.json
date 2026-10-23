@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc -p tsconfig.json",
     "start": "tsx src/server.ts",
+    "admin": "tsx src/admin-cli.ts",
     "test": "vitest run"
   },
   "dependencies": {

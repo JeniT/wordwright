@@ -703,6 +703,12 @@ bar with the name, the Appearance choice, a **Start writing** button (the way to
 Sign out, over one column. It has no settings gear: a reviewer-only account has no account page. Its pages (`ReviewsView`, `ReviewView`) use the
 same cards, callouts and chips as everywhere else.
 
+An account that is **waiting for approval, or declined** (the private alpha, #328) gets the same bare top bar, without
+Start writing, over `WaitingView` (`/waiting`): a heading, one or two plain sentences, and below a rule the ways out (download,
+delete). It is not a level of the app and has no step. **Accounts** (`/admin`, `AdminView`) is for admins only: a link
+beside Help in the menu foot, the same level-less page of cards (waiting first, then everyone in a paged list), a chip for
+status and `btn-sm` Approve / Decline buttons whose accessible name includes the person's name.
+
 - **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button
   (`aria-expanded`, `aria-controls`) that folds the menu away and shows where you are while closed. Opened, the menu is
   a **drawer** that slides in from the left over the page (it never pushes the content), behind the `scrim` that

@@ -81,17 +81,23 @@ useModal({
   <div
     class="min-h-screen"
     :class="
-      session.user && !session.user.reviewerOnly && !nav.compact.value
+      session.user && session.approved && !session.user.reviewerOnly && !nav.compact.value
         ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]'
         : ''
     "
   >
-    <!-- A reviewer-only account has no menu: just its reviews, its name and a way out. -->
+    <!--
+      A reviewer-only account has no menu: just its reviews, its name and a way out. An account that is not approved
+      yet (#328) has the same bare header, since it has just its status page.
+    -->
     <header
-      v-if="session.user?.reviewerOnly"
+      v-if="session.user && (session.user.reviewerOnly || !session.approved)"
       class="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4"
     >
-      <RouterLink to="/reviews" class="flex items-center gap-3 font-semibold no-underline">
+      <RouterLink
+        :to="session.approved ? '/reviews' : '/waiting'"
+        class="flex items-center gap-3 font-semibold no-underline"
+      >
         <BrandMark :height="36" />
         <span class="text-lg">Wordwright</span>
       </RouterLink>
@@ -99,7 +105,10 @@ useModal({
         <span>{{ session.user.name }}</span>
         <RouterLink :to="{ name: 'help' }" class="link">Help</RouterLink>
         <ThemeChoice />
-        <RouterLink :to="{ name: 'start-writing' }" class="btn btn-outline btn-sm"
+        <RouterLink
+          v-if="session.approved"
+          :to="{ name: 'start-writing' }"
+          class="btn btn-outline btn-sm"
           >Start writing</RouterLink
         >
         <button type="button" class="btn btn-outline btn-sm" @click="signOut.mutate()">
@@ -188,7 +197,12 @@ useModal({
             </button>
             <div class="mt-3 flex flex-wrap items-center justify-between gap-x-3">
               <TutorialSwitch />
-              <RouterLink :to="{ name: 'help' }" class="link text-sm">Help</RouterLink>
+              <span class="flex gap-3">
+                <RouterLink v-if="session.user.isAdmin" :to="{ name: 'admin' }" class="link text-sm"
+                  >Accounts</RouterLink
+                >
+                <RouterLink :to="{ name: 'help' }" class="link text-sm">Help</RouterLink>
+              </span>
             </div>
           </div>
         </div>
@@ -221,7 +235,7 @@ useModal({
           </button>
         </div>
         <template v-else>
-          <NoticeBar v-if="session.user" />
+          <NoticeBar v-if="session.user && session.approved" />
           <RouterView />
         </template>
       </main>

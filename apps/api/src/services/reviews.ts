@@ -227,7 +227,7 @@ export class ReviewService {
     const inv = this.usable(token)
     return this.d.accounts
       .registerReviewer(
-        { name, email: inv.email, password },
+        { name, email: inv.email, password, invitedBy: inv.invitedBy },
         (user) => this.enroll(user, inv),
         deviceLabel,
       )
@@ -353,6 +353,8 @@ export class ReviewService {
     const review = store.reviews.grant(inv.snapshotId, inv.draftId, user.id, inv.invitedBy)
     store.reviews.markAccepted(inv.id, user.id)
     if (!user.emailVerified) store.users.markEmailVerified(user.id)
+    // An invitation from an approved person lets a waiting account in (#328).
+    this.d.accounts.approveByInvitation(user, inv.invitedBy)
     return { reviewId: review.id }
   }
 

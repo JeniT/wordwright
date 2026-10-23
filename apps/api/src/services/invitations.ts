@@ -13,6 +13,7 @@ import type { UserRecord } from '../db/users'
 import { sendInBackground } from '../mail/background'
 import type { Mailer } from '../mail/mailer'
 import { invitationEmail } from '../mail/templates'
+import type { AccountService } from './accounts'
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -33,6 +34,7 @@ export class InvitationError extends Error {
 export interface InvitationServiceDeps {
   store: Store
   mailer: Mailer
+  accounts: AccountService
   publicUrl: string
   /** Caps invitations to any one address, whoever sends them, so many owners can't pile on one person. */
   recipientLimiter: RateLimiter
@@ -145,6 +147,8 @@ export class InvitationService {
       }
       store.invitations.markAccepted(usable.id, user.id)
       if (!user.emailVerified) store.users.markEmailVerified(user.id)
+      // An invitation from an approved person lets a waiting account in (#328).
+      this.d.accounts.approveByInvitation(user, usable.invitedBy)
       // A reviewer invited into a publication becomes a full account: it gets a username now (the app asks once if
       // they would like another) and keeps the reviews it already has.
       if (user.reviewerOnly) {

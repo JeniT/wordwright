@@ -302,6 +302,27 @@ tests inject fakes and nothing hits the network.
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few
   lines of config (`OidcProvider`); others implement `IdentityProvider`.
+- **Private alpha: accounts are approved by the owner** (#328). `ACCOUNT_APPROVAL=required` (the default; `open` approves
+  everyone at once, for development and the e2e tests) makes every new account `waiting`, whether it came from the email
+  form or Google. A `waiting` or `declined` account can reach only: `GET /auth/me`, sign-out, resending the confirmation
+  email, `DELETE /account`, `GET /account/export`, adding a password (which deleting needs when you signed in with
+  Google), and accepting an invitation; `requireUser` answers 403 to everything else, so there is no app and no AI call
+  (`unapprovedMayReach` in `auth/middleware.ts`, the sibling of `reviewerMayReach`). The web app sends such an account to
+  `/waiting` ("we'll email you"); a declined one sees a brief, kind note with no reason. **An invitation from an approved
+  person is approval:** a reviewer made by following a review link starts `approved` if the inviter is, and a `waiting`
+  account that accepts a publication or review invitation from an approved person becomes `approved` (a `declined` one
+  stays declined: the owner has decided). Existing accounts were made `approved` by the migration.
+  **Admin:** `users.is_admin` is set only from `ADMIN_EMAILS` (comma-separated; applied when that confirmed address next
+  uses the app, and the account is approved at the same time) or the command
+  `pnpm --filter @wordwright/api admin grant|revoke <email>`; no route sets it, a changed email address clears it, and
+  every admin check also needs a confirmed address. `/admin` (API: `GET /api/admin/accounts`,
+  `POST /api/admin/accounts/:id/decision`; web: "Accounts" in the menu foot, admins only) answers 404 to everyone else.
+  It lists those waiting, then everyone, with name, email, signup date and status, and never drafts, ideas, keys or notes.
+  Approve and decline email the person (`approvedEmail` with a sign-in link, `declinedEmail` with no reason) and write
+  `admin_audit` (admin, action, person, time: ids only, so the log survives either account going, with the person
+  unlinked). A repeated decision changes nothing and sends nothing; an admin cannot decide about themselves or another
+  admin. Sign-ups are throttled (30 an hour, one shared bucket) and decisions (120 an hour per admin). Not built: an
+  email to the owner when someone is waiting (the issue's optional item); the list is the queue.
 - **Sharing is by invitation.** An owner (with a confirmed address) enters an email; we send a link valid
   for 7 days that works whether or not the person has an account yet. The invitee signs in or signs up with
   _that_ address (a new person is joined as soon as they have; someone already signed in sees a Join button, and the

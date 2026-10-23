@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import type { Approval } from '@wordwright/core'
 import { ApiError, createApi } from './api'
 
 const user = {
@@ -14,6 +15,8 @@ const user = {
   hasPassword: true,
   linkedProviders: [],
   tutorialMode: false,
+  approval: 'approved' as Approval,
+  isAdmin: false,
 }
 
 const server = setupServer()

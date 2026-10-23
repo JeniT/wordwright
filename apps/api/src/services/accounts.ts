@@ -1,4 +1,4 @@
-import type { RegisterInput, SignedInDevice, User } from '@wordwright/core'
+import type { Approval, RegisterInput, SignedInDevice, User } from '@wordwright/core'
 import type { IdentityClaims } from '../auth/identity'
 import { UNKNOWN_DEVICE } from '../auth/device'
 import type { PasswordHasher } from '../auth/password'
@@ -58,6 +58,13 @@ export interface AccountServiceDeps {
   unconfirmedTtlDays?: number
   /** Where delivery failures are reported. */
   logger?: Pick<Console, 'error'>
+  /**
+   * The private alpha (#328): whether a new account waits for the owner's approval. False makes every account
+   * approved from the start (development, tests, and a site that is open to anyone).
+   */
+  approvalRequired?: boolean
+  /** Addresses that become admins once confirmed (`ADMIN_EMAILS`). Lower case. */
+  adminEmails?: string[]
 }
 
 export interface Session {
@@ -75,6 +82,30 @@ export class AccountService {
     this.now = d.now ?? (() => new Date())
   }
 
+  /**
+   * Where a new account starts: waiting, unless approval is off or it is made by accepting an invitation from an approved
+   * person. That rule lives here so email, Google and invited sign-ups cannot disagree.
+   */
+  startingApproval(invitedBy?: string | null): Approval {
+    if (!this.d.approvalRequired) return 'approved'
+    return this.invitedByApproved(invitedBy) ? 'approved' : 'waiting'
+  }
+
+  /**
+   * Accepting an invitation from an approved person lets a waiting account in (#328); a declined one stays declined,
+   * since the owner has already decided. Call inside the transaction that accepts.
+   */
+  approveByInvitation(user: UserRecord, invitedBy: string | null) {
+    if (user.approval === 'waiting' && this.invitedByApproved(invitedBy)) {
+      this.d.store.users.setApproval(user.id, 'approved')
+    }
+  }
+
+  private invitedByApproved(invitedBy?: string | null): boolean {
+    const inviter = invitedBy ? this.d.store.users.findById(invitedBy) : undefined
+    return inviter?.approval === 'approved'
+  }
+
   async register(input: RegisterInput, deviceLabel?: string): Promise<Session> {
     const { store } = this.d
     if (store.users.findByEmail(input.email)) throw emailInUse()
@@ -87,6 +118,7 @@ export class AccountService {
           email: input.email,
           emailVerified: false,
           handle: input.handle,
+          approval: this.startingApproval(),
         })
         store.users.setPasswordHash(created.id, hash)
         return created
@@ -107,7 +139,7 @@ export class AccountService {
    * account never exists without the review it was made for.
    */
   async registerReviewer(
-    input: { name: string; email: string; password: string },
+    input: { name: string; email: string; password: string; invitedBy: string | null },
     enroll: (user: UserRecord) => void,
     deviceLabel?: string,
   ): Promise<Session> {
@@ -121,6 +153,7 @@ export class AccountService {
           email: input.email,
           emailVerified: true,
           reviewerOnly: true,
+          approval: this.startingApproval(input.invitedBy),
         })
         store.users.setPasswordHash(created.id, hash)
         enroll(created)
@@ -151,7 +184,22 @@ export class AccountService {
   authenticate(sessionToken: string | undefined): UserRecord | undefined {
     if (!sessionToken) return undefined
     const userId = this.d.store.tokens.findSessionUser(hashToken(sessionToken), this.now())
-    return userId ? this.d.store.users.findById(userId) : undefined
+    const user = userId ? this.d.store.users.findById(userId) : undefined
+    return user && this.promoteAdmin(user)
+  }
+
+  /**
+   * An account whose confirmed address is in `ADMIN_EMAILS` becomes an admin, and is approved (an admin has to be able
+   * to sign in). Done when they next use the app, so adding an address to the settings needs no extra step. Nothing
+   * ever takes admin away here: the command and a change of address do that.
+   */
+  private promoteAdmin(user: UserRecord): UserRecord {
+    const listed = this.d.adminEmails?.includes(user.email.toLowerCase())
+    if (user.isAdmin || !user.emailVerified || !listed) return user
+    const { users } = this.d.store
+    users.setAdmin(user.id, true)
+    users.setApproval(user.id, 'approved')
+    return users.findById(user.id)!
   }
 
   // ---- where the person is signed in ----------------------------------------
@@ -442,6 +490,7 @@ export class AccountService {
         name: claims.name,
         email: claims.email,
         emailVerified: true,
+        approval: this.startingApproval(),
       })
       store.users.linkIdentity(created.id, provider, claims.subject)
       return created

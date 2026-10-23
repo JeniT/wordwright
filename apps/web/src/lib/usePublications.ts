@@ -10,8 +10,11 @@ export function usePublications() {
   return useQuery({
     queryKey: ['publications'],
     queryFn: () => api.listPublications(),
-    // A reviewer-only account has no publications, and the server answers 404 to asking.
-    enabled: computed(() => !!session.user && !session.user.reviewerOnly),
+    // A reviewer-only account has no publications, and the server answers 404 to asking; an account that is not
+    // approved has no app at all, and the server answers 403.
+    enabled: computed(
+      () => !!session.user && !session.user.reviewerOnly && session.user.approval === 'approved',
+    ),
   })
 }
 

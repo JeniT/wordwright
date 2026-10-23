@@ -52,8 +52,20 @@ The Wordwright product's own symbol: a flame whose tip is a split pen nib. It na
 _Avoid_: Logo, favicon (the browser-tab copy is still just "the mark"), Wordwright icon
 
 **Owner**:
-A person who administers a publication (invites and removes people, makes other members owners, reassigns drafts). A publication can have several owners but never none.
+A person who administers a publication (invites and removes people, makes other members owners, reassigns drafts). A publication can have several owners but never none. Not the same as the site's admin.
 _Avoid_: Admin
+
+**Approved**:
+An account the site's owner has let in. Only an approved account reaches the app; an invitation from an approved person also lets someone in. Every account that existed when approval began is approved.
+_Avoid_: Verified (that is about the email address), activated, whitelisted
+
+**Waiting**:
+An account that has signed up and is waiting for approval. It sees one page saying we will email when it is approved, and can sign out, download what it has or delete itself. A **declined** account is one the owner has chosen not to let in; it sees a brief, kind note with no reason.
+_Avoid_: Pending, unapproved, banned, rejected (in what people see)
+
+**Admin**:
+The person (or few) who approves accounts during the private alpha, from the Accounts page. Set only in the server's settings or by a command, never in the app. Sees each account's name, email, signup date and status, and nothing a person has written. Not the same as an owner of a publication.
+_Avoid_: Moderator, superuser
 
 **Member**:
 A person who works in a publication. An owner is also a member._Avoid_: Collaborator, user, publication editor

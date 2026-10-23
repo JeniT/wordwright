@@ -7,6 +7,7 @@ import { nextTick, type Component } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest'
 import { createAppRouter, routes } from './router'
+import type { Approval } from '@wordwright/core'
 import type { RouteRecordRaw } from 'vue-router'
 
 export const testUser = {
@@ -20,6 +21,8 @@ export const testUser = {
   hasPassword: true,
   linkedProviders: [] as string[],
   tutorialMode: false,
+  approval: 'approved' as Approval,
+  isAdmin: false,
 }
 
 /**

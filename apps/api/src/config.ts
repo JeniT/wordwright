@@ -45,6 +45,23 @@ const ConfigSchema = z.object({
     .int()
     .min(0)
     .default(DEFAULT_UNCONFIRMED_TTL_DAYS),
+  /**
+   * The private alpha (#328). `required` (default): a new account waits for the owner's approval and reaches nothing
+   * until then. `open`: every account is approved at once (development and the e2e tests).
+   */
+  ACCOUNT_APPROVAL: z.enum(['required', 'open']).default('required'),
+  /** Comma-separated addresses that become admins once confirmed. Admin is never set in the app itself. */
+  ADMIN_EMAILS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  /** Sign-ups allowed an hour across the whole site (the API doesn't see client IPs). */
+  SIGNUPS_PER_HOUR: z.coerce.number().int().min(1).default(30),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
 })

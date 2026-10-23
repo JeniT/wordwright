@@ -318,3 +318,33 @@ ${undoLink}`,
 <p style="font-size:14px">If the button doesn’t work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(undoLink)}</span></p>`),
   }
 }
+
+/** The owner has let the person in (#328). */
+export function approvedEmail(input: { name: string; signInLink: string }): Content {
+  const { name, signInLink } = input
+  return {
+    subject: 'You’re in',
+    text: `Hi ${name},
+
+Good news: your Wordwright account has been approved. You can sign in here:
+
+${signInLink}`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>Good news: your Wordwright account has been approved.</p>
+<p><a href="${escapeHtml(signInLink)}" style="display:inline-block;background:#2f5d62;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Sign in</a></p>
+<p style="font-size:14px">If the button doesn’t work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(signInLink)}</span></p>`),
+  }
+}
+
+/** Brief and kind, and gives no reason (#328). */
+export function declinedEmail(input: { name: string }): Content {
+  const { name } = input
+  return {
+    subject: 'About your Wordwright account',
+    text: `Hi ${name},
+
+Thank you for your interest in Wordwright. We’re not able to give you access at the moment, and wish you well with your writing.`,
+    html: layout(`<p>Hi ${escapeHtml(name)},</p>
+<p>Thank you for your interest in Wordwright. We’re not able to give you access at the moment, and wish you well with your writing.</p>`),
+  }
+}

@@ -16,6 +16,8 @@ import { createSecretBox } from './auth/secret-box'
 import type { Store } from './db/store'
 import type { Mailer } from './mail/mailer'
 import { accountRoutes } from './routes/account'
+import { adminRoutes } from './routes/admin'
+import { AdminService } from './services/admin'
 import { authRoutes } from './routes/auth'
 import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
@@ -63,6 +65,12 @@ export interface AppDeps {
   logger?: Pick<Console, 'error'>
   /** Days an unused, unconfirmed account is kept; mentioned in the signup email. 0 = kept forever. */
   unconfirmedAccountTtlDays?: number
+  /** The private alpha (#328): new accounts wait for approval. Off (the default here) makes them approved at once. */
+  approvalRequired?: boolean
+  /** Addresses that become admins once confirmed (`ADMIN_EMAILS`). */
+  adminEmails?: string[]
+  /** Sign-ups allowed an hour, in one shared bucket (default 30). The e2e servers raise it: one run signs up many. */
+  signupsPerHour?: number
 }
 
 /** Builds the app from injected dependencies, so tests can supply fakes. */
@@ -83,6 +91,8 @@ export function createApp(deps: AppDeps) {
     now: deps.now,
     logger: deps.logger,
     unconfirmedTtlDays: deps.unconfirmedAccountTtlDays ?? DEFAULT_UNCONFIRMED_TTL_DAYS,
+    approvalRequired: deps.approvalRequired,
+    adminEmails: deps.adminEmails?.map((e) => e.trim().toLowerCase()).filter(Boolean),
   })
 
   const emailChanges = new EmailChangeService({
@@ -132,6 +142,8 @@ export function createApp(deps: AppDeps) {
       resetLimiter: attempts(),
       handleCheckLimiter: limiter(120, MINUTE),
       verificationLimiter: limiter(3, HOUR),
+      // One shared bucket (the API doesn't see client IPs): each sign-up sends an email and makes a row.
+      registerLimiter: limiter(deps.signupsPerHour ?? 30, HOUR),
     }),
   )
   const exportService = new ExportService(store, deps.now)
@@ -150,10 +162,19 @@ export function createApp(deps: AppDeps) {
   )
   const signedIn = (routes: Hono<AppEnv>) =>
     new Hono<AppEnv>().use(requireUser(accounts)).route('/', routes)
+  // Decisions email the person, so each admin gets a generous but finite number an hour.
+  const admin = new AdminService({
+    store,
+    mailer: deps.mailer,
+    publicUrl,
+    logger: deps.logger,
+  })
+  api.route('/admin', signedIn(adminRoutes(admin, limiter(120, HOUR))))
   api.route('/llm', signedIn(llmRoutes(llmKeys, attempts(), limiter(30, MINUTE))))
   const invitations = new InvitationService({
     store,
     mailer: deps.mailer,
+    accounts,
     publicUrl,
     // 5 a day to any one address, whoever sends them.
     recipientLimiter: limiter(5, DAY),

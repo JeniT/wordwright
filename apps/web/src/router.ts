@@ -24,8 +24,13 @@ declare module 'vue-router' {
     tutorial?: boolean
     /** Info notices are held back here, so nothing interrupts writing (the editor). */
     quiet?: boolean
+    /** Pages for admins only (#328); anyone else is sent home. */
+    admin?: boolean
   }
 }
+
+/** Pages an account that is not approved may open: its status, and what the server lets it do (#328). */
+const UNAPPROVED_PAGES = new Set(['waiting', 'account-download', 'account-delete'])
 
 /** Pages a reviewer-only account may open (the others are open to everyone, or for guests). */
 const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing'])
@@ -96,6 +101,18 @@ export const routes: RouteRecordRaw[] = [
     name: 'review-invite',
     component: () => import('./views/ReviewInviteView.vue'),
     meta: { open: true },
+  },
+  {
+    // Where an account that is waiting for approval, or was declined, lands (#328).
+    path: '/waiting',
+    name: 'waiting',
+    component: () => import('./views/WaitingView.vue'),
+  },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('./views/AdminView.vue'),
+    meta: { admin: true },
   },
   // ——— Reviews: the drafts someone was asked to read and comment on. The only pages a reviewer-only account has ———
   { path: '/reviews', name: 'reviews', component: () => import('./views/ReviewsView.vue') },
@@ -373,6 +390,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/help/waiting-for-approval',
+    name: 'help-waiting',
+    component: () => import('./views/HelpWaitingView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/help/:rest(.*)',
     name: 'help-not-found',
     component: () => import('./views/HelpNotFoundView.vue'),
@@ -410,6 +433,13 @@ export function createAppRouter(history = createWebHistory()) {
     if (session.error) return // can't tell who's signed in; App shows the problem
     if (to.meta.open) return
     const signedIn = !!session.user
+    // Until the owner approves an account it has one page (the server refuses the rest); approved ones have no use for it.
+    if (session.user && !session.approved) {
+      if (!to.meta.guest && !UNAPPROVED_PAGES.has(String(to.name))) return { name: 'waiting' }
+    } else if (to.name === 'waiting') {
+      return { name: 'home' }
+    }
+    if (to.meta.admin && !session.user?.isAdmin) return { name: 'home' }
     // A reviewer-only account has just its reviews (the server answers 404 to the rest, so don't ask for it).
     if (session.user?.reviewerOnly && !REVIEWER_PAGES.has(String(to.name))) {
       return { name: 'reviews' }

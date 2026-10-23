@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import { firstAvailable, suggestHandle, type User } from '@wordwright/core'
+import { firstAvailable, suggestHandle, type Approval, type User } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface UserRecord {
@@ -13,6 +13,10 @@ export interface UserRecord {
   name: string
   email: string
   emailVerified: boolean
+  /** Only `approved` accounts reach the app (#328). */
+  approval: Approval
+  /** Set from `ADMIN_EMAILS` or the admin command; always checked together with a confirmed address. */
+  isAdmin: boolean
 }
 
 /** No sign of use: no drafts or ideas, no saved API key, and no one else in any of their publications. */
@@ -41,7 +45,10 @@ export class UserStore {
     handle?: string
     /** No username and no publication: the account can only review (#157). */
     reviewerOnly?: boolean
+    /** Whether the owner has let them in. Defaults to waiting: the caller says when it is not. */
+    approval?: Approval
   }): UserRecord {
+    const approval = input.approval ?? 'waiting'
     const id = randomUUID()
     const reviewerOnly = input.reviewerOnly === true
     const handle = reviewerOnly
@@ -50,8 +57,8 @@ export class UserStore {
         firstAvailable(suggestHandle(input.name, input.email), (h) => this.handleTaken(h)))
     this.db
       .prepare(
-        `INSERT INTO users (id, handle, handle_chosen, reviewer_only, name, email, email_verified, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (id, handle, handle_chosen, reviewer_only, name, email, email_verified, created_at, approval)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -62,6 +69,7 @@ export class UserStore {
         input.email,
         input.emailVerified ? 1 : 0,
         nowIso(),
+        approval,
       )
     // Tutorial mode is on for every new full account (#198); a reviewer-only one gets it when it becomes one.
     if (!reviewerOnly) this.turnTutorialOn(id)
@@ -73,6 +81,8 @@ export class UserStore {
       name: input.name,
       email: input.email,
       emailVerified: input.emailVerified,
+      approval,
+      isAdmin: false,
     }
   }
 
@@ -201,9 +211,53 @@ export class UserStore {
     this.db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(id)
   }
 
-  /** Switches the address. Only call once the new inbox has been proven, hence verified. */
+  /**
+   * Switches the address. Only call once the new inbox has been proven, hence verified. Admin goes with the address
+   * it was given for, so a new one has to earn it again (`ADMIN_EMAILS`, or the command).
+   */
   setVerifiedEmail(id: string, email: string) {
-    this.db.prepare('UPDATE users SET email = ?, email_verified = 1 WHERE id = ?').run(email, id)
+    this.db
+      .prepare('UPDATE users SET email = ?, email_verified = 1, is_admin = 0 WHERE id = ?')
+      .run(email, id)
+  }
+
+  setApproval(id: string, approval: Approval) {
+    this.db.prepare('UPDATE users SET approval = ? WHERE id = ?').run(approval, id)
+  }
+
+  /** Called only from the server's settings or the admin command (#328); there is no route that reaches it. */
+  setAdmin(id: string, isAdmin: boolean) {
+    this.db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, id)
+  }
+
+  /**
+   * What an admin may see of accounts: who they are and where they stand, nothing they wrote. Reviewer-only
+   * accounts are included, since they are people too.
+   */
+  listForAdmin(): {
+    id: string
+    name: string
+    email: string
+    emailVerified: boolean
+    createdAt: string
+    approval: Approval
+    isAdmin: boolean
+  }[] {
+    return (
+      this.db
+        .prepare(
+          'SELECT id, name, email, email_verified, created_at, approval, is_admin FROM users ORDER BY created_at DESC, rowid DESC',
+        )
+        .all() as Record<string, unknown>[]
+    ).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      email: r.email as string,
+      emailVerified: r.email_verified === 1,
+      createdAt: r.created_at as string,
+      approval: r.approval as Approval,
+      isAdmin: r.is_admin === 1,
+    }))
   }
 
   /**
@@ -242,6 +296,8 @@ export class UserStore {
       hasPassword: this.getPasswordHash(user.id) !== undefined,
       linkedProviders: this.listProviders(user.id),
       tutorialMode: !user.reviewerOnly && this.tutorialModeOn(user.id),
+      approval: user.approval,
+      isAdmin: user.isAdmin && user.emailVerified,
     }
   }
 
@@ -305,6 +361,8 @@ export class UserStore {
       name: r.name as string,
       email: r.email as string,
       emailVerified: r.email_verified === 1,
+      approval: r.approval as Approval,
+      isAdmin: r.is_admin === 1,
     }
   }
 }

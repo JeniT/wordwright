@@ -265,8 +265,7 @@ read `.env` again). Or edit by hand: `nano .env`, set both lines (the app refuse
 
 ### Checking it
 
-1. Sign in with Google as a test user who has no account yet. A new account should be created (and, once #328 lands,
-   start as `waiting`).
+1. Sign in with Google as a test user who has no account yet. A new account should be created, and start as `waiting`.
 2. Sign in again as the same person: it should go straight in, to the same account.
 3. Sign in with a Google account that is not on the test list: Google should refuse with "access blocked".
 4. If Google shows `redirect_uri_mismatch`, compare the URI in the error with the one above.
@@ -284,6 +283,20 @@ Production logs must hold no request bodies, AI keys, tokens, reset or invitatio
 
 Two tests keep it so: an unexpected error is logged without its message, and every file that writes to the log is on a
 reviewed list (`apps/api/src/errors.test.ts`), so a new log line forces a look at what it prints.
+
+## Letting people in (the private alpha)
+
+New accounts wait until an admin approves them (`ACCOUNT_APPROVAL=required`, the default). Put your own address in
+`ADMIN_EMAILS` in `.env` before the first deploy, sign up with it, and confirm the email: you are then an admin, with an
+**Accounts** link at the foot of the menu. Admin is never set in the app. To give or take it away later, on the server:
+
+```bash
+docker compose exec api ./node_modules/.bin/tsx src/admin-cli.ts grant someone@example.com
+docker compose exec api ./node_modules/.bin/tsx src/admin-cli.ts revoke someone@example.com
+```
+
+Approving and declining email the person, so email has to be working first (see above). Everyone who had an account
+before approval began is already approved.
 
 ## Looking at it
 

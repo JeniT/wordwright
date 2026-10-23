@@ -1,6 +1,6 @@
 import type { User } from '@wordwright/core'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ApiError, api } from '../lib/api'
 
 /** Who is signed in. The cookie is the source of truth; this just mirrors `/auth/me`. */
@@ -34,5 +34,8 @@ export const useSessionStore = defineStore('session', () => {
     error.value = null
   }
 
-  return { user, loaded, error, load, set }
+  /** Signed in and let in. A waiting or declined account has only its status page (#328). */
+  const approved = computed(() => user.value?.approval === 'approved')
+
+  return { user, loaded, error, approved, load, set }
 })
