@@ -66,7 +66,7 @@ cp apps/api/.env.example apps/api/.env   # optional; defaults use the fake LLM
 pnpm dev                                  # web on :5173, API on :8787
 ```
 
-The API reads real environment variables; load `.env` with e.g. `node --env-file=.env` or your shell.
+The API reads real environment variables. `pnpm dev` loads `.env` from the repository root and from `apps/api` (the second wins; a variable already set in your shell beats both), and says so on start-up if one of them is missing, which is fine. Restart `pnpm dev` after editing it. Anything else (`pnpm --filter @wordwright/api start`) reads only the real environment: load a file with `node --env-file=.env` or your shell.
 To use Claude: `LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... pnpm dev`.
 
 ## Troubleshooting
