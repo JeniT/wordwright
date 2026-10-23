@@ -71,6 +71,7 @@ describe('logging', () => {
     // for that: errors are described by `describeError` or by name, and mail failures print an error code, never the
     // message. A new logging call in another file fails this test so that someone looks at it first.
     const reviewed = [
+      'admin-cli.ts', // a command run by hand: prints fixed sentences and the address the operator typed
       'app.ts',
       'server.ts',
       'mail/background.ts',
