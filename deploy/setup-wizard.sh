@@ -388,18 +388,30 @@ pause "Press Enter."
 # ── 8 ─────────────────────────────────────────────────────────────────────
 stage "Email: Scaleway's SMTP details"
 say "Scaleway sends the app's email (confirmations, resets, invitations). Its SMTP address contains a password."
+say "First, can the server reach Scaleway's mail server? (UpCloud blocks outgoing mail ports on trial accounts, and its"
+say "firewall can block them too; this took an afternoon to find the first time.)"
+if ssh_app "timeout 8 bash -c '</dev/tcp/smtp.tem.scaleway.com/465'" 2>/dev/null; then
+  say "✓ the server can reach smtp.tem.scaleway.com on port 465"
+else
+  warn "The server cannot reach smtp.tem.scaleway.com on port 465, so no email would be sent."
+  say "In UpCloud: trial accounts cannot edit the firewall until a payment is made. Then check the server's Firewall tab:"
+  say "outgoing connections must be allowed (see 'The firewall' in docs/deploy.md)."
+  confirm "Carry on anyway (you can fix this and run the wizard again later)?" || exit 1
+fi
 open_url "https://console.scaleway.com/transactional-email/domains"
 step "Open your domain, then find the SMTP settings or credentials (a section called 'SMTP' or 'API keys and SMTP')."
 step "If there is no SMTP credential yet, create one (an API key is used as the SMTP password)."
 note "Scaleway's console may change; the host is likely smtp.tem.scaleway.com and the port 465 or 587. Use what the console shows."
 ask SCW_SMTP_HOST "SMTP host:"
 ask SCW_SMTP_PORT "SMTP port (465 is the simple one; use it if offered):"
-ask SCW_SMTP_USER "SMTP username:"
+note "The username is your Scaleway PROJECT ID (Domain overview), not an email address or an API access key."
+ask SCW_SMTP_USER "SMTP username (the Project ID):"
 [[ "$SCW_SMTP_PORT" =~ ^[0-9]{2,5}$ ]] || { warn "'$SCW_SMTP_PORT' is not a port number"; exit 1; }
 write_env SCW_SMTP_HOST "$SCW_SMTP_HOST"
 write_env SCW_SMTP_PORT "$SCW_SMTP_PORT"
 write_env SCW_SMTP_USER "$SCW_SMTP_USER"
-ask_secret SCW_SMTP_PASSWORD "SMTP password (hidden; Enter to keep what the server has):"
+note "The password is the SECRET key of an API key that has Transactional Email permissions in that same project."
+ask_secret SCW_SMTP_PASSWORD "SMTP password (the secret key; hidden; Enter to keep what the server has):"
 if [[ -n "$SCW_SMTP_PASSWORD" ]]; then
   enc() { node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$1"; }
   scheme="smtps"; suffix=""
@@ -425,6 +437,13 @@ for _ in $(seq 1 12); do
   sleep 5
 done
 [[ -n "${body:-}" ]] || { warn "https://$SITE/health did not answer. On the server: docker compose logs --tail 100 (in ~/$REMOTE_DIR)"; exit 1; }
+if ssh_app "cd $REMOTE_DIR && docker compose logs --tail 200 api 2>&1 | grep -q 'SMTP connection verified'"; then
+  say "✓ the app reached Scaleway and its SMTP login was accepted"
+else
+  warn "The app did not report a working SMTP connection. See 'If email does not send' in docs/deploy.md; to look:"
+  say "  ssh $APP_USER@$SERVER_IP 'cd $REMOTE_DIR && docker compose logs --tail 50 api | grep -i email'"
+  SKIPPED+=("Email: the app could not verify its SMTP connection (docs/deploy.md: 'If email does not send')")
+fi
 open_url "https://$SITE"
 pause "Do you see the Wordwright sign-in page? Press Enter."
 

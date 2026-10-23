@@ -112,6 +112,66 @@ app"). So going back to an older build means going back to a database from befor
 Anything written since that backup is lost, so the sooner you decide the better. If the old build only needs a
 configuration fix, change `.env` and run `docker compose up -d` instead; nothing about the data changes.
 
+## The firewall, and outgoing mail
+
+Two firewalls apply on UpCloud: the one in the control panel (outside the machine) and `ufw` on it (set up by
+`server-setup.sh`, the same ports). Both must allow what the app needs.
+
+**In UpCloud's control panel** (server → Firewall):
+
+| Direction | Allow                                                                                                        |
+| --------- | ------------------------------------------------------------------------------------------------------------ |
+| Incoming  | TCP 22 (SSH), TCP 80 (Caddy needs it to get and renew the certificate), TCP 443, UDP 443 (HTTP/3), and ICMP. |
+| Outgoing  | Everything. Leave it open.                                                                                   |
+
+Why outgoing stays open: the server must reach GitHub's registry (image pulls), Docker and Ubuntu (updates), the
+certificate authority, each writer's AI provider (the app calls it with their own key), and any website a writer adds as
+a source or feed, all on 80 and 443, plus DNS and time sync. Restricting it to a short list would protect little, because
+ordinary HTTPS to anywhere has to stay open, and would risk failures that are hard to trace. The app guards its own
+fetches against internal addresses (#318). The firewall rules are per family: if you add an AAAA (IPv6) record for the
+site, add matching IPv6 rules too.
+
+What caught us out the first time:
+
+- **A trial account cannot edit the firewall.** Until a payment is made, the rules are fixed and blocking, and the
+  panel does not say why changing them fails.
+- **Once the limits are lifted, the firewall resets** to "block all incoming, allow all outgoing except SMTP port 25",
+  so the incoming rules above have to be added again.
+- **Port 25 is blocked on new accounts** and UpCloud only opens it on request. The app doesn't use it: it sends through
+  Scaleway on **port 465** (SMTP over TLS), which the default rules allow once the account is out of trial.
+
+### If email does not send
+
+```bash
+cd ~/wordwright
+docker compose logs --tail 80 api | grep -i email
+```
+
+The app checks its SMTP connection when it starts, and logs each failed send (the user ID and an error code, never the
+link). What the code means:
+
+| In the log                 | Meaning, and what to do                                                                                                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SMTP connection verified` | The login works. If mail still doesn't arrive, look at Scaleway's sending log for blocked or bounced messages.                                                                                                                              |
+| `ETIMEDOUT`, `during CONN` | The server can't reach Scaleway at all: a network or firewall problem, not credentials. Test with `nc -vz -w 5 smtp.tem.scaleway.com 465`. If it times out, check the firewall above (outgoing must be allowed).                            |
+| `EAUTH`                    | Connected, but the login was refused. The username must be the Scaleway **Project ID** (not an email address or an API access key), and the password the **secret key** of an API key with Transactional Email permissions in that project. |
+| `ESOCKET`, or a TLS error  | A port that doesn't match the encryption. Scaleway: 465 and 2465 are SSL, 587 is STARTTLS. The app's URL is `smtps://…:465`.                                                                                                                |
+
+To change the settings, run `deploy/setup-wizard.sh` again (decline the image build and the token; it keeps the secrets
+the server already has), or edit `SMTP_URL` in `~/wordwright/.env` and run `docker compose up -d`. A plain `docker
+compose restart` does not read `.env` again. Percent-encode anything unusual in the username or password.
+
+To test the credentials without the app, type the secret key at curl's prompt so it stays out of your shell history:
+`curl -v --url 'smtps://smtp.tem.scaleway.com:465' --user '<project id>'`. A line starting `235` is success, `535` a
+refusal.
+
+### Checking deliverability
+
+After any change to the sender or the DNS, sign up with a Gmail (or other) address and read the message's headers
+(Gmail: ⋮ → Show original). Look for `dkim=pass` for `wordwright.io`, `spf=pass` and `dmarc=pass`. The first
+real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, with DMARC at `p=none`; tightening that to
+`quarantine` once a couple of weeks of reports have come in clean is a later step (#322).
+
 ## Looking at it
 
 ```bash
