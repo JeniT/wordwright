@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import { firstAvailable, suggestHandle, type Approval, type User } from '@wordwright/core'
+import {
+  firstAvailable,
+  suggestHandle,
+  type AdminAccount,
+  type Approval,
+  type User,
+} from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface UserRecord {
@@ -234,15 +240,7 @@ export class UserStore {
    * What an admin may see of accounts: who they are and where they stand, nothing they wrote. Reviewer-only
    * accounts are included, since they are people too.
    */
-  listForAdmin(): {
-    id: string
-    name: string
-    email: string
-    emailVerified: boolean
-    createdAt: string
-    approval: Approval
-    isAdmin: boolean
-  }[] {
+  listForAdmin(): AdminAccount[] {
     return (
       this.db
         .prepare(

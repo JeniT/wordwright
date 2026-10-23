@@ -34,14 +34,23 @@ export function reviewerMayReach(method: string, path: string): boolean {
  * it has, confirming its address, and accepting an invitation (an invitation from an approved person is what lets
  * someone in). Everything else is refused, so a waiting or declined account has no app and no AI calls.
  */
-export function unapprovedMayReach(method: string, path: string): boolean {
+export function unapprovedMayReach(
+  method: string,
+  path: string,
+  approval: 'waiting' | 'declined' = 'waiting',
+): boolean {
   const p = path.replace(/^\/api/, '')
   if (p === '/auth/me' || p === '/auth/logout' || p === '/auth/resend-verification') return true
   if (p === '/account' && method === 'DELETE') return true
   // Deleting needs a password, which a Google-only account adds first.
   if (p === '/account/export' && method === 'GET') return true
   if (p === '/account/password/setup-email' && method === 'POST') return true
-  return method === 'POST' && (p === '/review-invitations/accept' || p === '/invitations/accept')
+  // A declined account is not let in by an invitation (the owner has decided), so it must not join anything either.
+  return (
+    approval === 'waiting' &&
+    method === 'POST' &&
+    (p === '/review-invitations/accept' || p === '/invitations/accept')
+  )
 }
 
 export const requireUser =
@@ -49,7 +58,10 @@ export const requireUser =
   async (c, next) => {
     const user = accounts.authenticate(getCookie(c, SESSION_COOKIE))
     if (!user) throw fail(401, 'Not signed in')
-    if (user.approval !== 'approved' && !unapprovedMayReach(c.req.method, c.req.path)) {
+    if (
+      user.approval !== 'approved' &&
+      !unapprovedMayReach(c.req.method, c.req.path, user.approval)
+    ) {
       throw fail(403, 'This account has not been approved yet')
     }
     if (user.reviewerOnly && !reviewerMayReach(c.req.method, c.req.path)) {

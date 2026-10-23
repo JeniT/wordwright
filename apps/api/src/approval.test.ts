@@ -116,8 +116,12 @@ describe('who starts approved', () => {
     const { client, user } = await newcomer('bea@example.com')
     await decide(user.id, 'decline')
     await admin.post(`/api/publications/${publication}/invitations`, { email: 'bea@example.com' })
-    await client.post('/api/invitations/accept', { token: lastInvitationToken(ctx.mailer) })
+    const res = await client.post('/api/invitations/accept', {
+      token: lastInvitationToken(ctx.mailer),
+    })
+    expect(res.status).toBe(403)
     expect((await (await client.get('/api/auth/me')).json()).approval).toBe('declined')
+    expect(ctx.store.publications.listIdsForUser(user.id)).toEqual([])
   })
 })
 
