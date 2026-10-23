@@ -110,6 +110,9 @@ project, then writes the settings to `~/wordwright/offsite.env` on the server (m
 - **Encrypted first.** rclone's "crypt" encrypts each file, and its name, on the server with a password and a salt
   that the wizard makes for you and shows once. **Put them in your password manager** next to `KEY_ENCRYPTION_SECRET`:
   without them the off-site backups cannot be opened by anyone, you included. Scaleway holds only scrambled files.
+- **Storage class: Standard Multi-AZ** (leave the size boxes at 0: they are only a cost estimate). Not Glacier, which is
+  archive storage: slow and costly to get a backup back from, with minimum storage periods that our 30-day expiry would
+  not meet.
 - **Why a separate project and key.** The key on the server can only reach the backups bucket, nothing else you have
   at Scaleway. It can delete in that bucket, which is why the bucket has versioning: a deletion can be undone.
 - **Retention.** The bucket's rule expires backups after 30 days (and old versions after 7), so a deleted account's
