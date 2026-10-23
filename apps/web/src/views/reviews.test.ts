@@ -355,7 +355,7 @@ describe('asking someone to review a draft', () => {
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
   }
-  function page(role: 'owner' | 'member', editorId = 'u1') {
+  function page(role: 'owner' | 'member', editorId = 'u1', opts: { empty?: boolean } = {}) {
     const calls: string[] = []
     const names: Record<string, string | null> = {}
     server.use(
@@ -412,62 +412,68 @@ describe('asking someone to review a draft', () => {
         }),
       ),
       http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
-        HttpResponse.json({
-          reviewers: [
-            {
-              id: 'v1',
-              snapshotId: 's1',
-              name: 'Rae',
-              email: 'rae@example.com',
-              state: 'open',
-              sentAt: '2026-02-01T09:30:00Z',
-              commentCount: 2,
-            },
-            {
-              id: 'v2',
-              snapshotId: 's1',
-              name: 'Sam',
-              email: 'sam@example.com',
-              state: 'ended',
-              sentAt: '2026-02-01T09:30:00Z',
-              commentCount: 1,
-            },
-            {
-              id: 'v3',
-              snapshotId: 's2',
-              name: 'Tom',
-              email: 'tom@example.com',
-              state: 'open',
-              sentAt: '2026-03-01T10:00:00Z',
-              commentCount: 0,
-            },
-          ],
-          pending: [{ id: 'i9', snapshotId: 's1', email: 'later@example.com', expiresAt: 'x' }],
-          snapshots: [
-            {
-              id: 's1',
-              sentAt: '2026-02-01T09:30:00Z',
-              name: names['s1'] ?? null,
-              open: 1,
-              ended: 1,
-              closed: 0,
-              pending: 1,
-              comments: 3,
-              unresolved: 3,
-            },
-            {
-              id: 's2',
-              sentAt: '2026-03-01T10:00:00Z',
-              name: names['s2'] ?? null,
-              open: 1,
-              ended: 0,
-              closed: 0,
-              pending: 0,
-              comments: 0,
-              unresolved: 0,
-            },
-          ],
-        }),
+        HttpResponse.json(
+          opts.empty
+            ? { reviewers: [], pending: [], snapshots: [] }
+            : {
+                reviewers: [
+                  {
+                    id: 'v1',
+                    snapshotId: 's1',
+                    name: 'Rae',
+                    email: 'rae@example.com',
+                    state: 'open',
+                    sentAt: '2026-02-01T09:30:00Z',
+                    commentCount: 2,
+                  },
+                  {
+                    id: 'v2',
+                    snapshotId: 's1',
+                    name: 'Sam',
+                    email: 'sam@example.com',
+                    state: 'ended',
+                    sentAt: '2026-02-01T09:30:00Z',
+                    commentCount: 1,
+                  },
+                  {
+                    id: 'v3',
+                    snapshotId: 's2',
+                    name: 'Tom',
+                    email: 'tom@example.com',
+                    state: 'open',
+                    sentAt: '2026-03-01T10:00:00Z',
+                    commentCount: 0,
+                  },
+                ],
+                pending: [
+                  { id: 'i9', snapshotId: 's1', email: 'later@example.com', expiresAt: 'x' },
+                ],
+                snapshots: [
+                  {
+                    id: 's1',
+                    sentAt: '2026-02-01T09:30:00Z',
+                    name: names['s1'] ?? null,
+                    open: 1,
+                    ended: 1,
+                    closed: 0,
+                    pending: 1,
+                    comments: 3,
+                    unresolved: 3,
+                  },
+                  {
+                    id: 's2',
+                    sentAt: '2026-03-01T10:00:00Z',
+                    name: names['s2'] ?? null,
+                    open: 1,
+                    ended: 0,
+                    closed: 0,
+                    pending: 0,
+                    comments: 0,
+                    unresolved: 0,
+                  },
+                ],
+              },
+        ),
       ),
       http.patch('*/api/publications/p1/drafts/d1/snapshots/:id', async ({ params, request }) => {
         const { name } = (await request.json()) as { name: string }
@@ -499,10 +505,17 @@ describe('asking someone to review a draft', () => {
     return calls
   }
 
-  it('sends a snapshot from a dialog, which closes and brings the Reviews tab forward', async () => {
+  /** Send for review is at the top of the Reviews tab, not among the draft's actions. */
+  const openSend = async () => {
+    await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
+    await fireEvent.click(await screen.findByRole('button', { name: /^Send for review/ }))
+  }
+
+  it('sends a snapshot from a dialog in the Reviews tab, which closes and leaves the tab showing', async () => {
     const calls = page('member')
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Send for review' }))
+    expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull() // not until the tab is open
+    await openSend()
     const dialog = screen.getByRole('dialog', { name: 'Send for review' })
     expect(screen.getByTestId('snapshot-notice')).toHaveTextContent(
       'Reviewers will read and comment on a snapshot of this draft as it is now.',
@@ -718,7 +731,7 @@ describe('asking someone to review a draft', () => {
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.update(await screen.findByLabelText('Title'), 'Just typed')
-    await fireEvent.click(await screen.findByRole('button', { name: /^Send for review/ }))
+    await openSend()
     const dialog = screen.getByRole('dialog', { name: 'Send for review' })
     await fireEvent.update(within(dialog).getByLabelText('Email addresses'), 'new@example.com')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Send for review' }))
@@ -735,7 +748,7 @@ describe('asking someone to review a draft', () => {
     )
     await renderAt('/p/p1/drafts/d1')
     await fireEvent.update(await screen.findByLabelText('Title'), 'Just typed')
-    await fireEvent.click(await screen.findByRole('button', { name: /^Send for review/ }))
+    await openSend()
     const dialog = screen.getByRole('dialog', { name: 'Send for review' })
     await fireEvent.update(within(dialog).getByLabelText('Email addresses'), 'new@example.com')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Send for review' }))
@@ -753,6 +766,43 @@ describe('asking someone to review a draft', () => {
     expect(await screen.findByRole('button', { name: 'Close review: Rae' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /^Send for review/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^Reviews/ })).toBeNull()
+  })
+
+  it('shows the tab with an empty state and the Send button before anything is sent', async () => {
+    page('owner', 'u1', { empty: true })
+    await renderAt('/p/p1/drafts/d1')
+    const tab = await screen.findByRole('tab', { name: /^Reviews/ })
+    await fireEvent.click(tab)
+    const panel = screen.getByRole('tabpanel', { name: /^Reviews/ })
+    expect(await within(panel).findByTestId('no-reviews')).toHaveTextContent(
+      'snapshot of this draft',
+    )
+    expect(within(panel).getByRole('button', { name: 'Send for review' })).toBeTruthy()
+  })
+
+  it('shows an owner who is not the editor the empty tab, without the Send button', async () => {
+    page('owner', 'u2', { empty: true })
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
+    const panel = screen.getByRole('tabpanel', { name: /^Reviews/ })
+    expect(await within(panel).findByTestId('no-reviews')).toHaveTextContent(
+      'Only the draft’s editor',
+    )
+    expect(within(panel).queryByRole('button', { name: /^Send for review/ })).toBeNull()
+  })
+
+  it('says so, with a way to try again, when the reviews cannot be loaded', async () => {
+    page('member')
+    server.use(
+      http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
+        HttpResponse.json({ error: 'no' }, { status: 500 }),
+      ),
+    )
+    await renderAt('/p/p1/drafts/d1')
+    await fireEvent.click(await screen.findByRole('tab', { name: /^Reviews/ }))
+    const panel = screen.getByRole('tabpanel', { name: /^Reviews/ })
+    expect(await within(panel).findByRole('alert')).toHaveTextContent('who is reviewing')
+    expect(within(panel).getByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 
   it('is for the editor and owners only', async () => {

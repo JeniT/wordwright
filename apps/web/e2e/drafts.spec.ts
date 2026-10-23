@@ -1173,6 +1173,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
 
   // Ada sends it for review; the dialog says reviewers read a snapshot.
   const reviewerEmail = `rae-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await page.getByRole('tab', { name: /^Reviews/ }).click() // Send for review is at the top of this tab
   await page.getByRole('button', { name: /^Send for review/ }).click()
   await expect(page.getByTestId('snapshot-notice')).toContainText('snapshot')
   await page.getByLabel('Email addresses').fill(reviewerEmail)
@@ -1240,6 +1241,7 @@ test('the editor sends a snapshot for review; the reviewer comments and ends; th
 
   // A second reviewer is closed out by the editor before they finish.
   const secondEmail = `sam-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await page.getByRole('tab', { name: /^Reviews/ }).click() // Send for review is at the top of this tab
   await page.getByRole('button', { name: /^Send for review/ }).click()
   await page.getByLabel('Email addresses').fill(secondEmail)
   await page.getByRole('dialog').getByRole('button', { name: 'Send for review' }).click()
@@ -1336,6 +1338,7 @@ test('the publication’s landing page says what is waiting: an offer, a wait, a
   // Bob, now the editor, sends it for review; the reviewer finishes with a comment.
   const reviewerEmail = `rae-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
   await bob.goto(draftUrl)
+  await bob.getByRole('tab', { name: /^Reviews/ }).click()
   await bob.getByRole('button', { name: /^Send for review/ }).click()
   await bob.getByLabel('Email addresses').fill(reviewerEmail)
   await bob.getByRole('dialog').getByRole('button', { name: 'Send for review' }).click()

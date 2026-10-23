@@ -10,7 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AiButton from '../components/AiButton.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftNotes from '../components/DraftNotes.vue'
-import { useHandover, useReviewers } from '../lib/draft-people'
+import { useHandover } from '../lib/draft-people'
 import DraftActions from '../components/DraftActions.vue'
 import ReviewsPanel from '../components/ReviewsPanel.vue'
 import HandoverNotices from '../components/HandoverNotices.vue'
@@ -402,20 +402,13 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
 
 // Beside the draft on a wide screen the side area (notes, reading list, comments) is always there; on a phone it
 // slides in over the page.
-// Reviews is there once the editor or an owner has sent the draft for review (or has an invitation waiting).
+// Reviews is there for whoever can load reviews (the editor and the owners), even before any are sent: it is where
+// the editor sends one.
 const { isOwner } = useHandover(
   () => props.publicationId,
   () => props.id,
 )
-const reviewers = useReviewers(
-  () => props.publicationId,
-  () => props.id,
-  () => canEdit.value || isOwner.value,
-)
-const hasReviews = computed(() => {
-  const r = reviewers.data.value
-  return !!r && (r.reviewers.length > 0 || r.pending.length > 0 || r.snapshots.length > 0)
-})
+const hasReviews = computed(() => canEdit.value || isOwner.value)
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
   { id: 'reading', label: 'Reading list' },
@@ -432,11 +425,6 @@ async function openNotes() {
   notesOpen.value = true
   await nextTick()
   closeButton.value?.focus()
-}
-/** A snapshot was just sent: show who is reviewing, even on a phone where the side area is a drawer. */
-async function showReviews() {
-  sideTab.value = 'reviews'
-  if (!sideIsBeside()) await openNotes()
 }
 async function closeNotes() {
   notesOpen.value = false
@@ -635,12 +623,7 @@ async function requestCritique() {
               ← All drafts
             </RouterLink>
           </p>
-          <DraftActions
-            :publication-id="publicationId"
-            :draft-id="id"
-            :prepare="saveFirst"
-            @sent="showReviews"
-          />
+          <DraftActions :publication-id="publicationId" :draft-id="id" :prepare="saveFirst" />
         </div>
         <p v-if="draft.data.value && !canEdit" class="callout mb-4 text-sm" data-testid="read-only">
           <PersonChip :name="draft.data.value.editorName" />
@@ -871,7 +854,7 @@ async function requestCritique() {
             />
           </template>
           <template v-if="hasReviews" #reviews>
-            <ReviewsPanel :publication-id="publicationId" :draft-id="id" />
+            <ReviewsPanel :publication-id="publicationId" :draft-id="id" :prepare="saveFirst" />
           </template>
           <template #comments>
             <p v-if="markdownMode && canEdit" class="text-sm text-ink-soft">

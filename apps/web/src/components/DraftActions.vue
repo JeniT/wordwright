@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useHandover, useHandoverActions } from '../lib/draft-people'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HandoverHistoryDialog from './HandoverHistoryDialog.vue'
 import OfferDraftDialog from './OfferDraftDialog.vue'
 import ReassignDraftDialog from './ReassignDraftDialog.vue'
-import SendForReviewDialog from './SendForReviewDialog.vue'
 
 /**
- * The things a person can start on a draft besides writing it: handing it over, asking for it, reassigning it, sending
- * it for review and reading the handover history. Each opens a dialog, so the writer stays on the draft. What the
+ * The things a person can start on a draft besides writing it: handing it over, asking for it, reassigning it and
+ * reading the handover history (sending for review is in the Reviews tab). Each opens a dialog, so the writer stays on the draft. What the
  * handover is waiting for is `HandoverNotices`, not here. Which buttons show depends on who the person is.
  */
 const props = defineProps<{
@@ -17,10 +16,6 @@ const props = defineProps<{
   draftId: string
   /** Saves the editor's unsaved words first; rejects (with why) if it can't. */
   prepare?: () => Promise<unknown>
-}>()
-const emit = defineEmits<{
-  /** A snapshot was sent, so the page can bring the Reviews tab forward. */
-  sent: []
 }>()
 const { handover, isEditor, isOwner, others, offeredToMe, myAsk } = useHandover(
   () => props.publicationId,
@@ -31,15 +26,23 @@ const actions = useHandoverActions(
   () => props.draftId,
 )
 
-type Dialog = 'offer' | 'ask' | 'reassign' | 'review' | 'history'
+type Dialog = 'offer' | 'ask' | 'reassign' | 'history'
 const open = ref<Dialog | null>(null)
 const close = () => (open.value = null)
+/** With no buttons to show (a member who has already asked, no history) the row is left out, not left empty. */
+const anyButton = computed(
+  () =>
+    (isEditor.value && !handover.data.value?.offer) ||
+    (!isEditor.value && !myAsk.value && !offeredToMe.value) ||
+    (isOwner.value && !isEditor.value && others.value.length > 0) ||
+    !!handover.data.value?.history.length,
+)
 const asked = () => actions.ask.mutate(undefined, { onSettled: close })
 </script>
 
 <template>
-  <div v-if="handover.data.value" role="group" aria-label="Handover and review">
-    <div class="flex flex-wrap items-center gap-2">
+  <div v-if="handover.data.value" role="group" aria-label="Handover">
+    <div v-if="anyButton" class="flex flex-wrap items-center gap-2">
       <button
         v-if="isEditor && !handover.data.value.offer"
         type="button"
@@ -63,9 +66,6 @@ const asked = () => actions.ask.mutate(undefined, { onSettled: close })
         @click="open = 'reassign'"
       >
         Reassign draft
-      </button>
-      <button v-if="isEditor" type="button" class="btn btn-outline btn-sm" @click="open = 'review'">
-        Send for review
       </button>
       <button
         v-if="handover.data.value.history.length"
@@ -93,14 +93,6 @@ const asked = () => actions.ask.mutate(undefined, { onSettled: close })
       :draft-id="draftId"
       :prepare="prepare"
       @close="close"
-    />
-    <SendForReviewDialog
-      :open="open === 'review'"
-      :publication-id="publicationId"
-      :draft-id="draftId"
-      :prepare="prepare"
-      @close="close"
-      @sent="emit('sent')"
     />
     <HandoverHistoryDialog
       :open="open === 'history'"

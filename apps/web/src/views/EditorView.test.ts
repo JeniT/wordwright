@@ -1427,16 +1427,26 @@ describe('the notes beside the draft', () => {
 })
 
 describe('the tabs beside the draft', () => {
-  it('has Notes, Reading list and Comments, one in the tab order, with Notes first', async () => {
+  it('has Notes, Reading list, Comments and (for the editor) Reviews, one in the tab order, with Notes first', async () => {
     mockDrafting()
     await renderAt('/p/p1/drafts/d1')
     const tabs = await screen.findAllByRole('tab')
-    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Notes', 'Reading list', 'Comments'])
-    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false'])
-    expect(tabs.map((t) => t.getAttribute('tabindex'))).toEqual(['0', '-1', '-1'])
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual([
+      'Notes',
+      'Reading list',
+      'Comments',
+      'Reviews',
+    ])
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual([
+      'true',
+      'false',
+      'false',
+      'false',
+    ])
+    expect(tabs.map((t) => t.getAttribute('tabindex'))).toEqual(['0', '-1', '-1', '-1'])
     const panel = screen.getByRole('tabpanel', { name: 'Notes' })
     expect(panel).not.toHaveAttribute('hidden')
-    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(3)
+    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(4)
   })
 
   it('moves with the arrow keys, Home and End, showing the panel of the tab reached', async () => {
@@ -1450,12 +1460,12 @@ describe('the tabs beside the draft', () => {
     expect(reading).toHaveFocus()
     expect(screen.getByRole('tabpanel', { name: 'Reading list' })).toBeVisible()
     await fireEvent.keyDown(reading, { key: 'End' })
-    expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveFocus()
-    await fireEvent.keyDown(screen.getByRole('tab', { name: /^Comments/ }), { key: 'ArrowRight' })
+    expect(screen.getByRole('tab', { name: 'Reviews' })).toHaveFocus()
+    await fireEvent.keyDown(screen.getByRole('tab', { name: 'Reviews' }), { key: 'ArrowRight' })
     expect(screen.getByRole('tab', { name: 'Notes' })).toHaveFocus() // wraps round
     await fireEvent.keyDown(screen.getByRole('tab', { name: 'Notes' }), { key: 'ArrowLeft' })
-    expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveFocus()
-    await fireEvent.keyDown(screen.getByRole('tab', { name: /^Comments/ }), { key: 'Home' })
+    expect(screen.getByRole('tab', { name: 'Reviews' })).toHaveFocus()
+    await fireEvent.keyDown(screen.getByRole('tab', { name: 'Reviews' }), { key: 'Home' })
     expect(screen.getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true')
   })
 

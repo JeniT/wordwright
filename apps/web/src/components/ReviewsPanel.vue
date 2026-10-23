@@ -5,7 +5,7 @@ import { MAX_REVIEW_NAME, type ReviewState } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { useInlineEdit } from '../lib/inline-edit'
 import { queryKeys } from '../lib/queries'
-import { useReviewers } from '../lib/draft-people'
+import { useHandover, useReviewers } from '../lib/draft-people'
 import { vTip } from '../lib/tip'
 import { reviewDateTime, reviewSummary, reviewTitle } from '../lib/review-request'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -14,13 +14,25 @@ import PageNav from './PageNav.vue'
 import QueryState from './QueryState.vue'
 import RowList from './RowList.vue'
 import SaveStatus from './SaveStatus.vue'
+import SendForReviewDialog from './SendForReviewDialog.vue'
 
 /**
  * Who is reviewing the draft and how far they have got: the Reviews tab beside the draft, for the editor and the
  * publication's owners. One review request at a time (CONTEXT.md: a snapshot sent for review, with its reviewers),
- * the latest first, with Previous review and Next review to go back. Sending is `SendForReviewDialog`.
+ * the latest first, with Previous review and Next review to go back. Sending (`SendForReviewDialog`) starts here, at the
+ * top, for the editor only: an owner who is not the editor can read and close reviews but not send.
  */
-const props = defineProps<{ publicationId: string; draftId: string }>()
+const props = defineProps<{
+  publicationId: string
+  draftId: string
+  /** Saves the editor's unsaved words first; rejects (with why) if it can't. */
+  prepare?: () => Promise<unknown>
+}>()
+const { isEditor } = useHandover(
+  () => props.publicationId,
+  () => props.draftId,
+)
+const sending = ref(false)
 const queryClient = useQueryClient()
 const list = useReviewers(
   () => props.publicationId,
@@ -162,8 +174,20 @@ const stateLabel: Record<ReviewState, string> = {
   <section aria-labelledby="reviews-heading" class="text-sm">
     <!-- The tab beside the draft already says "Reviews"; the heading is for screen readers moving by headings. -->
     <h2 id="reviews-heading" class="sr-only">Reviews</h2>
+    <p v-if="isEditor" class="mb-3">
+      <button type="button" class="btn btn-outline btn-sm" @click="sending = true">
+        Send for review
+      </button>
+    </p>
     <p v-if="problem" role="alert" class="mb-3 text-danger">{{ problem }}</p>
     <QueryState :query="list" what="who is reviewing">
+      <p v-if="!current" class="text-ink-soft" data-testid="no-reviews">
+        {{
+          isEditor
+            ? 'Nobody is reviewing yet. Sending for review shares a snapshot of this draft, so reviewers read and comment on it as it is now, not on later edits.'
+            : 'Nobody is reviewing yet. Only the draft’s editor can send it for review.'
+        }}
+      </p>
       <template v-if="current">
         <PageNav
           v-if="requests.length > 1"
@@ -283,6 +307,13 @@ const stateLabel: Record<ReviewState, string> = {
       </template>
     </QueryState>
 
+    <SendForReviewDialog
+      :open="sending"
+      :publication-id="publicationId"
+      :draft-id="draftId"
+      :prepare="prepare"
+      @close="sending = false"
+    />
     <ConfirmDialog
       :open="!!closing"
       :title="closeTitle"
