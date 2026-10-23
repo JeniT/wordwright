@@ -70,8 +70,10 @@
   --color-scrim: rgb(0 0 0 / 0.5); /* behind a dialog */
 }
 
-/* Sizing knobs (prototype). */
+/* Sizing knobs (prototype): change these three to resize every button and the draft text. */
 :root {
+  --ctl-h: 2.25rem; /* button height (was 2.75rem) */
+  --ctl-h-sm: 2rem; /* small and icon buttons (was 2.25rem) */
   --draft-size: 1rem; /* draft text (was 1.125rem) */
   --pane-size: 0.9375rem; /* main text of notes, reading items and comments beside the draft (was 1rem) */
 }
@@ -172,11 +174,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 2.75rem;
-  padding: 0.5rem 1.1rem;
+  min-height: var(--ctl-h);
+  padding: 0.3rem 0.9rem;
   border: 1px solid transparent;
   border-radius: var(--radius-ctl);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -193,9 +195,9 @@
   cursor: progress;
 }
 @utility btn-sm {
-  min-height: 2.25rem;
-  padding: 0.25rem 0.8rem;
-  font-size: 0.875rem;
+  min-height: var(--ctl-h-sm);
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8125rem;
 }
 @utility btn-primary {
   background: var(--color-accent);
@@ -287,8 +289,8 @@
 }
 /* A square button holding only an icon (add `btn-sm` and `btn-ghost`). Its name comes from an aria-label. */
 @utility btn-icon {
-  width: 2.25rem;
-  min-width: 2.25rem;
+  width: var(--ctl-h-sm);
+  min-width: var(--ctl-h-sm);
   padding: 0;
 }
 /* A hold-to-confirm icon button that has been tapped shows its verb ("Delete?"), so it grows to fit. */
