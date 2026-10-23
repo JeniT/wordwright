@@ -205,11 +205,28 @@ APP_USER="wordwright"
 SITE="app.wordwright.io"
 REMOTE_DIR="wordwright" # under the app user's home
 
-ssh_root() { ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "root@$SERVER_IP" "$@"; }
-ssh_app() { ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$APP_USER@$SERVER_IP" "$@"; }
-ssh_root_tty() { ssh -t -i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "root@$SERVER_IP" "$@"; }
-ssh_app_tty() { ssh -t -i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$APP_USER@$SERVER_IP" "$@"; }
-scp_app() { scp -i "$SSH_KEY" -o IdentitiesOnly=yes "$@"; }
+# One ssh connection per account is kept open for ten minutes (a private socket folder), so a passphrase is asked
+# once, not on every command. The server's host key is checked against ~/.ssh/known_hosts, where stage 1 puts it
+# after you have compared its fingerprint (StrictHostKeyChecking=yes: no trust-on-first-use).
+CTL_DIR=$(mktemp -d /tmp/wwXXXXXX)
+_close_connections() {
+  local s
+  for s in "$CTL_DIR"/*; do [[ -S "$s" ]] && ssh -o "ControlPath=$s" -O exit wordwright-setup >/dev/null 2>&1; done
+  rm -rf "$CTL_DIR"
+  return 0
+}
+trap _close_connections EXIT
+_sshopts() {
+  SSHO=(-i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ControlMaster=auto -o ControlPersist=10m
+    -o "ControlPath=${1:-$CTL_DIR/%C}")
+}
+ssh_root() { _sshopts; ssh "${SSHO[@]}" "root@$SERVER_IP" "$@"; }
+ssh_app() { _sshopts; ssh "${SSHO[@]}" "$APP_USER@$SERVER_IP" "$@"; }
+ssh_root_tty() { _sshopts; ssh -t "${SSHO[@]}" "root@$SERVER_IP" "$@"; }
+ssh_app_tty() { _sshopts; ssh -t "${SSHO[@]}" "$APP_USER@$SERVER_IP" "$@"; }
+# A brand-new login, not the open connection: proves that a fresh login still works.
+ssh_app_fresh() { _sshopts none; ssh "${SSHO[@]}" "$APP_USER@$SERVER_IP" "$@"; }
+scp_app() { _sshopts; scp "${SSHO[@]}" "$@"; }
 
 # Reads KEY=value lines on stdin and sets each in the server's .env (replacing an earlier line for the same key).
 # The values travel over ssh and are not shown or stored here.
@@ -233,29 +250,44 @@ banner "Wordwright: set up the production server"
 # ── 1 ─────────────────────────────────────────────────────────────────────
 stage "Your computer, the server and the domain"
 say "The wizard needs a few tools here, your SSH key, and the server's address."
-for tool in ssh scp rsync curl node gh; do
+for tool in ssh scp ssh-keyscan ssh-keygen rsync curl node gh git openssl; do
   if command -v "$tool" >/dev/null 2>&1; then say "✓ $tool"; else warn "$tool is missing: install it, then run the wizard again"; exit 1; fi
 done
 gh auth status >/dev/null 2>&1 || { warn "gh is not signed in: run 'gh auth login' first"; exit 1; }
 printf '\n'
 ask SERVER_IP "Server's public IPv4 address:"
+[[ "$SERVER_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || { warn "'$SERVER_IP' is not an IPv4 address like 203.0.113.7"; exit 1; }
 ask SSH_KEY "Path to your SSH private key (the one whose public half you gave UpCloud):"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 [[ -f "$SSH_KEY" ]] || { warn "no key at $SSH_KEY"; exit 1; }
 write_env SERVER_IP "$SERVER_IP"
 write_env SSH_KEY "$SSH_KEY"
+if ! ssh-keygen -F "$SERVER_IP" >/dev/null 2>&1; then
+  scanned=$(ssh-keyscan -t ed25519 "$SERVER_IP" 2>/dev/null || true)
+  [[ -n "$scanned" ]] || { warn "couldn't reach $SERVER_IP on port 22. Is the server running?"; exit 1; }
+  say "This computer has not met the server before. Check that you are talking to the real one:"
+  say "$(printf '%s\n' "$scanned" | ssh-keygen -lf -)"
+  step "In UpCloud's web console for the server, log in and run:  ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub"
+  confirm "Is the fingerprint the same?" || exit 1
+  mkdir -p ~/.ssh && printf '%s\n' "$scanned" >> ~/.ssh/known_hosts
+fi
 found=$( (dig +short A "$SITE" 2>/dev/null || host "$SITE" 2>/dev/null) | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
 if [[ "$found" == "$SERVER_IP" ]]; then say "✓ $SITE points at $SERVER_IP"
 else warn "$SITE points at '${found:-nothing yet}', not $SERVER_IP. Fix the A record in Gandi (a new one can take a few minutes)."; confirm "Carry on anyway?" || exit 1; fi
+# The deploy files are copied from here but the images are built from main on GitHub, so the two must agree.
+git -C "$DEPLOY_DIR" fetch origin main >/dev/null 2>&1 || warn "couldn't fetch origin/main; comparing with what this computer last saw"
 if [[ -n "$(git -C "$DEPLOY_DIR" status --porcelain -- . 2>/dev/null)" ]]; then
-  warn "deploy/ has uncommitted changes here; the server would get them."; confirm "Carry on anyway?" || exit 1
+  warn "deploy/ has uncommitted changes; the server would get them. Commit or discard them, then run the wizard again."; exit 1
+fi
+if [[ "$(git -C "$DEPLOY_DIR" rev-parse HEAD)" != "$(git -C "$DEPLOY_DIR" rev-parse origin/main 2>/dev/null || echo none)" ]]; then
+  warn "This checkout is not at origin/main, but GitHub builds the images from main. Land your changes and check out main, then run the wizard again."; exit 1
 fi
 
 # ── 2 ─────────────────────────────────────────────────────────────────────
 stage "Base setup on the server"
 say "This copies deploy/server-setup.sh to the server and runs it as root. It adds an account '$APP_USER'"
 say "for the app, installs Docker, switches the firewall on (SSH, 80, 443) and turns on automatic security updates."
-note "You may be asked for your key's passphrase, and to trust the server's fingerprint the first time."
+note "You may be asked for your key's passphrase (once; the connection is kept open for a few minutes)."
 confirm "Run the base setup now?" || exit 1
 scp_app "$DEPLOY_DIR/server-setup.sh" "root@$SERVER_IP:/root/server-setup.sh"
 ssh_root_tty "APP_USER=$APP_USER bash /root/server-setup.sh base"
@@ -271,7 +303,8 @@ confirm "Switch off root login and passwords?" || exit 1
 ssh_app "sudo APP_USER=$APP_USER bash -s harden" < "$DEPLOY_DIR/server-setup.sh"
 setting=$(ssh_app "sudo sshd -T | grep -E '^(permitrootlogin|passwordauthentication) '")
 say "$setting"
-ssh_app true && say "✓ still works as $APP_USER"
+ssh_app_fresh true || { warn "a fresh login as $APP_USER failed. Use UpCloud's web console to undo it: delete /etc/ssh/sshd_config.d/00-wordwright.conf, then 'systemctl reload ssh'."; exit 1; }
+say "✓ a fresh login still works as $APP_USER"
 note "Optional: UpCloud's own firewall (server → Firewall in the control panel) can also allow only 22, 80 and 443."
 pause "Press Enter."
 
@@ -287,17 +320,21 @@ pause "Press Enter."
 # ── 5 ─────────────────────────────────────────────────────────────────────
 stage "Build the images on GitHub"
 say "GitHub builds the two images and stores them privately in its container registry. It takes a few minutes."
-if [[ "$(git -C "$DEPLOY_DIR" rev-parse HEAD)" != "$(git -C "$DEPLOY_DIR" rev-parse origin/main 2>/dev/null || echo none)" ]]; then
-  warn "This checkout is not at origin/main. The workflow builds main on GitHub, not what is on this computer."
-fi
 IMAGE_TAG=$(_existing IMAGE_TAG || true)
 if [[ -n "$IMAGE_TAG" ]] && ! confirm "Images for $IMAGE_TAG were built on an earlier run. Build new ones from main?"; then
   say "Keeping $IMAGE_TAG."
 else
   confirm "Run the 'Images' workflow on main now?" || exit 1
+  latest_run() { gh run list --workflow image.yml --event workflow_dispatch --branch main --limit 1 --json databaseId -q '.[0].databaseId // 0'; }
+  before=$(latest_run)
   gh workflow run image.yml --ref main
-  sleep 8
-  run_id=$(gh run list --workflow image.yml --limit 1 --json databaseId -q '.[0].databaseId')
+  run_id=$before
+  for _ in $(seq 1 30); do # GitHub takes a few seconds to list the new run; never pick up the previous one
+    run_id=$(latest_run)
+    [[ "$run_id" != "$before" ]] && break
+    sleep 2
+  done
+  [[ "$run_id" != "$before" ]] || { warn "GitHub did not start a new run. Look at the Actions tab, then run the wizard again."; exit 1; }
   say "Watching run $run_id (Ctrl-C stops watching, not the build):"
   gh run watch "$run_id" --exit-status
   IMAGE_TAG=$(gh run view "$run_id" --json headSha -q .headSha)
@@ -315,10 +352,13 @@ else
   step "Name it 'wordwright-server', set an expiry you will remember (a year), and keep only read:packages ticked."
   step "Click Generate token, then copy it (it starts ghp_)."
   ask GITHUB_USER "Your GitHub username:"
+  [[ "$GITHUB_USER" =~ ^[A-Za-z0-9-]+$ ]] || { warn "'$GITHUB_USER' is not a GitHub username"; exit 1; }
   write_env GITHUB_USER "$GITHUB_USER"
   ask_secret GHCR_TOKEN "Paste the token (hidden):"
   printf '%s' "$GHCR_TOKEN" | ssh_app "docker login ghcr.io -u '$GITHUB_USER' --password-stdin"
   unset GHCR_TOKEN
+  warn "This token can read every package your account can see, and the server keeps it. Revoke it if the server is ever compromised."
+  SKIPPED+=("The GitHub token for the server expires on the date you chose: make a new one then (re-run the wizard to Log in again), or deploys will stop pulling")
 fi
 say "Trying to pull the API image:"
 ssh_app "docker pull ghcr.io/jenit/wordwright-api:$IMAGE_TAG >/dev/null && echo '✓ pulled'"
@@ -337,6 +377,8 @@ else
   say "Without it, a restored backup holds AI keys nobody can read, and every writer must enter theirs again:"
   printf '\n    %s%s%s\n\n' "$BOLD" "$KEY_ENCRYPTION_SECRET" "$RESET"
   until confirm "Saved in your password manager?"; do say "Please save it first; it is not stored anywhere else."; done
+  # Take the secret off the screen, and out of the terminal's scrollback.
+  [[ -t 1 ]] && printf '\033[2J\033[3J\033[H'
   printf 'SESSION_SECRET=%s\nKEY_ENCRYPTION_SECRET=%s\n' "$SESSION_SECRET" "$KEY_ENCRYPTION_SECRET" | remote_env_set
   unset SESSION_SECRET KEY_ENCRYPTION_SECRET
   say "✓ sent to the server"
@@ -353,6 +395,7 @@ note "Scaleway's console may change; the host is likely smtp.tem.scaleway.com an
 ask SCW_SMTP_HOST "SMTP host:"
 ask SCW_SMTP_PORT "SMTP port (465 is the simple one; use it if offered):"
 ask SCW_SMTP_USER "SMTP username:"
+[[ "$SCW_SMTP_PORT" =~ ^[0-9]{2,5}$ ]] || { warn "'$SCW_SMTP_PORT' is not a port number"; exit 1; }
 write_env SCW_SMTP_HOST "$SCW_SMTP_HOST"
 write_env SCW_SMTP_PORT "$SCW_SMTP_PORT"
 write_env SCW_SMTP_USER "$SCW_SMTP_USER"
@@ -378,7 +421,7 @@ ssh_app_tty "cd $REMOTE_DIR && ./deploy.sh"
 sleep 5
 say "Asking the public address (the certificate can take a minute the first time):"
 for _ in $(seq 1 12); do
-  if body=$(curl -fsS "https://$SITE/health" 2>/dev/null); then say "✓ $body"; break; fi
+  if body=$(curl -fsS --max-time 10 "https://$SITE/health" 2>/dev/null); then say "✓ $body"; break; fi
   sleep 5
 done
 [[ -n "${body:-}" ]] || { warn "https://$SITE/health did not answer. On the server: docker compose logs --tail 100 (in ~/$REMOTE_DIR)"; exit 1; }
@@ -407,9 +450,12 @@ ask LOCAL_BACKUP_DIR "Where on this computer should copies go?"
 LOCAL_BACKUP_DIR="${LOCAL_BACKUP_DIR/#\~/$HOME}"
 write_env LOCAL_BACKUP_DIR "$LOCAL_BACKUP_DIR"
 mkdir -p "$LOCAL_BACKUP_DIR"
-rsync -a -e "ssh -i $SSH_KEY -o IdentitiesOnly=yes" "$APP_USER@$SERVER_IP:backups/" "$LOCAL_BACKUP_DIR/"
+chmod 700 "$LOCAL_BACKUP_DIR"
+warn "These copies hold every writer's data, including their encrypted AI keys. Keep the folder on an encrypted disk (FileVault), and delete old copies, which the server does after 14 days."
+rsync -a -e "ssh -i \"$SSH_KEY\" -o IdentitiesOnly=yes -o ControlPath=$CTL_DIR/%C" "$APP_USER@$SERVER_IP:backups/" "$LOCAL_BACKUP_DIR/"
 ls -l "$LOCAL_BACKUP_DIR"
-SKIPPED+=("Fetch backups regularly: rsync -a -e 'ssh -i $SSH_KEY' $APP_USER@$SERVER_IP:backups/ $LOCAL_BACKUP_DIR/   (until a proper off-site copy is set up, issue #17)")
+printf -v fetch_cmd 'rsync -a -e "ssh -i %q" %s@%s:backups/ %q/' "$SSH_KEY" "$APP_USER" "$SERVER_IP" "$LOCAL_BACKUP_DIR"
+SKIPPED+=("Fetch backups regularly: $fetch_cmd   (until a proper off-site copy is set up, issue #17)")
 SKIPPED+=("Google sign-in is off until it is set up (issue #350)")
 
 finish

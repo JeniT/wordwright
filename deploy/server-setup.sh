@@ -10,6 +10,7 @@
 set -euo pipefail
 
 APP_USER="${APP_USER:-wordwright}"
+[[ "$APP_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || { echo "APP_USER must be a plain lower-case user name." >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || { echo "Run this as root (sudo)." >&2; exit 1; }
 
 base() {
@@ -22,11 +23,20 @@ base() {
     adduser --disabled-password --gecos "" "$APP_USER"
   fi
   install -d -m 700 -o "$APP_USER" -g "$APP_USER" "/home/$APP_USER/.ssh"
-  install -m 600 -o "$APP_USER" -g "$APP_USER" /root/.ssh/authorized_keys "/home/$APP_USER/.ssh/authorized_keys"
-  # No password to type (there is none), so sudo is passwordless for this one key-only account.
-  echo "$APP_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/90-$APP_USER"
-  chmod 440 "/etc/sudoers.d/90-$APP_USER"
-  visudo -cf "/etc/sudoers.d/90-$APP_USER" >/dev/null
+  # Only the first time: a rerun must not undo keys you have since added to or removed from the app user. Every key
+  # in root's file gets this account (and sudo, below), so keep root's file to your own keys.
+  if [ ! -s "/home/$APP_USER/.ssh/authorized_keys" ]; then
+    install -m 600 -o "$APP_USER" -g "$APP_USER" /root/.ssh/authorized_keys "/home/$APP_USER/.ssh/authorized_keys"
+    echo "Copied these keys from root to $APP_USER (remove any that are not yours):"
+    ssh-keygen -lf "/home/$APP_USER/.ssh/authorized_keys"
+  fi
+  # No password to type (there is none), so sudo is passwordless for this one key-only account. The file is checked
+  # before it is put in place: a broken file in sudoers.d would stop sudo working for everyone.
+  sudoers_tmp=$(mktemp)
+  echo "$APP_USER ALL=(ALL) NOPASSWD:ALL" > "$sudoers_tmp"
+  visudo -cf "$sudoers_tmp" >/dev/null
+  install -m 440 -o root -g root "$sudoers_tmp" "/etc/sudoers.d/90-$APP_USER"
+  rm -f "$sudoers_tmp"
 
   # Docker from Docker's own repository (Ubuntu's packages lag behind).
   if ! command -v docker >/dev/null 2>&1; then
@@ -39,8 +49,11 @@ base() {
     apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
   usermod -aG docker "$APP_USER"
+  # Docker's own docker-ce packages are not part of the security updates below: update them yourself now and then
+  # (sudo apt-get update && sudo apt-get upgrade).
 
   # Firewall: SSH, and the web on 80 and 443 (443/udp is HTTP/3). SSH is allowed before it is switched on.
+  # Note that ports published by Docker (compose.yaml "ports:") bypass ufw: publish only 80 and 443.
   ufw default deny incoming
   ufw default allow outgoing
   ufw allow 22/tcp
