@@ -70,6 +70,12 @@
   --color-scrim: rgb(0 0 0 / 0.5); /* behind a dialog */
 }
 
+/* Sizing knobs (prototype). */
+:root {
+  --draft-size: 1rem; /* draft text (was 1.125rem) */
+  --pane-size: 0.9375rem; /* main text of notes, reading items and comments beside the draft (was 1rem) */
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
