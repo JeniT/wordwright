@@ -313,7 +313,7 @@ tests inject fakes and nothing hits the network.
   account that accepts a publication or review invitation from an approved person becomes `approved` (a `declined` one
   stays declined: the owner has decided). Existing accounts were made `approved` by the migration.
   **Admin:** `users.is_admin` is set only from `ADMIN_EMAILS` (comma-separated; applied when that confirmed address next
-  uses the app, and the account is approved at the same time) or the command
+  uses the app, and the account is approved at the same time; a first sign-up with such an address is approved at once through Google, or as soon as the confirmation link is opened (even signed out) for the email form, and neither is held up by the sign-up allowance. An unconfirmed account with that address stays waiting, so knowing the owner's address is not a way in) or the command
   `pnpm --filter @wordwright/api admin grant|revoke <email>`; no route sets it, a changed email address clears it, and
   every admin check also needs a confirmed address. `/admin` (API: `GET /api/admin/accounts`,
   `POST /api/admin/accounts/:id/decision`; web: "Accounts" in the menu foot, admins only) answers 404 to everyone else.

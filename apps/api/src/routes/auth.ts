@@ -118,7 +118,9 @@ export function authRoutes(d: AuthRouteDeps) {
       })
 
       .post('/register', validateJson(RegisterInputSchema), async (c) => {
-        throttle(d.registerLimiter, 'register')
+        // The owner (an address in ADMIN_EMAILS) is never turned away by the allowance, which a busy hour could use up.
+        if (!d.accounts.isAdminEmail(c.req.valid('json').email))
+          throttle(d.registerLimiter, 'register')
         const session = await d.accounts
           .register(c.req.valid('json'), deviceOf(c))
           .catch(toHttpError)

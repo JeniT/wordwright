@@ -92,9 +92,16 @@ export class AccountService {
    * Where a new account starts: waiting, unless approval is off or it is made by accepting an invitation from an approved
    * person. That rule lives here so email, Google and invited sign-ups cannot disagree.
    */
-  startingApproval(invitedBy?: string | null): Approval {
+  startingApproval(options: { invitedBy?: string | null; verifiedEmail?: string } = {}): Approval {
     if (!this.d.approvalRequired) return 'approved'
-    return this.invitedByApproved(invitedBy) ? 'approved' : 'waiting'
+    // An address in `ADMIN_EMAILS` that the provider has already confirmed is the owner's: nobody else could approve it.
+    if (options.verifiedEmail && this.isAdminEmail(options.verifiedEmail)) return 'approved'
+    return this.invitedByApproved(options.invitedBy) ? 'approved' : 'waiting'
+  }
+
+  /** Whether the address is one of `ADMIN_EMAILS`. Used to let the owner in without anyone to approve them. */
+  isAdminEmail(email: string): boolean {
+    return !!this.d.adminEmails?.includes(email.trim().toLowerCase())
   }
 
   /**
@@ -159,7 +166,10 @@ export class AccountService {
           email: input.email,
           emailVerified: true,
           reviewerOnly: true,
-          approval: this.startingApproval(input.invitedBy),
+          approval: this.startingApproval({
+            invitedBy: input.invitedBy,
+            verifiedEmail: input.email,
+          }),
         })
         store.users.setPasswordHash(created.id, hash)
         enroll(created)
@@ -200,8 +210,7 @@ export class AccountService {
    * ever takes admin away here: the command and a change of address do that.
    */
   private promoteAdmin(user: UserRecord): UserRecord {
-    const listed = this.d.adminEmails?.includes(user.email.toLowerCase())
-    if (user.isAdmin || !user.emailVerified || !listed) return user
+    if (user.isAdmin || !user.emailVerified || !this.isAdminEmail(user.email)) return user
     const { users } = this.d.store
     users.setAdmin(user.id, true)
     users.setApproval(user.id, 'approved')
@@ -343,6 +352,8 @@ export class AccountService {
       store.users.markEmailVerified(user.id)
       store.tokens.markVerificationUsed(tokenHash)
     })
+    // Confirming the owner's address is what lets them in (they may open the link on a phone, signed out).
+    this.promoteAdmin(store.users.findById(user.id)!)
   }
 
   // ---- password recovery -------------------------------------------------
@@ -492,7 +503,7 @@ export class AccountService {
         store.users.linkIdentity(byEmail.id, provider, claims.subject)
         return byEmail
       }
-      if (this.d.signupAllowed && !this.d.signupAllowed()) {
+      if (this.d.signupAllowed && !this.isAdminEmail(claims.email) && !this.d.signupAllowed()) {
         throw new AccountError(
           'too_many_signups',
           'A lot of people have signed up in the last hour. Try again later.',
@@ -502,7 +513,7 @@ export class AccountService {
         name: claims.name,
         email: claims.email,
         emailVerified: true,
-        approval: this.startingApproval(),
+        approval: this.startingApproval({ verifiedEmail: claims.email }),
       })
       store.users.linkIdentity(created.id, provider, claims.subject)
       return created

@@ -378,6 +378,60 @@ describe('signing up with Google', () => {
   })
 })
 
+describe('the owner signing up for the first time', () => {
+  it('is approved at once through Google, which has confirmed the address, and is an admin', async () => {
+    const idp = new FakeIdentityProvider(
+      { subject: 'owner', email: 'Owner@Example.com', emailVerified: true, name: 'Olive' },
+      'google',
+      'Google',
+    )
+    const ctx = setup({
+      approvalRequired: true,
+      adminEmails: ['owner@example.com'],
+      identityProviders: [idp],
+      signupsPerHour: 1,
+    })
+    await signUp(ctx.client(), 'p@example.com', 'Pat') // the whole allowance for the hour
+    const client = ctx.client()
+    const start = await client.get('/api/auth/oauth/google/start')
+    const state = new URL(start.headers.get('location')!).searchParams.get('state')!
+    const res = await client.get(`/api/auth/oauth/google/callback?code=good-code&state=${state}`)
+    expect(res.headers.get('location')).not.toContain('error=')
+    expect(ctx.store.users.findByEmail('Owner@Example.com')?.approval).toBe('approved')
+    expect(await (await client.get('/api/auth/me')).json()).toMatchObject({
+      approval: 'approved',
+      isAdmin: true,
+    })
+    expect((await client.get('/api/admin/accounts')).status).toBe(200)
+  })
+
+  it('is let in by the link in the confirmation email, even signed out, and is not held up by the allowance', async () => {
+    const ctx = setup({
+      approvalRequired: true,
+      adminEmails: ['owner@example.com'],
+      signupsPerHour: 1,
+    })
+    await signUp(ctx.client(), 'p@example.com', 'Pat') // the whole allowance for the hour
+    const phone = ctx.client()
+    await signUp(phone, 'owner@example.com', 'Olive') // not refused, but not approved before the address is confirmed
+    const record = () => ctx.store.users.findByEmail('owner@example.com')!
+    expect(record()).toMatchObject({ approval: 'waiting', isAdmin: false })
+
+    const link = ctx.mailer.outbox.filter((m) => m.to === 'owner@example.com').at(-1)!
+    const token = link.text.match(/verify-email\?token=([\w-]+)/)![1]
+    expect((await ctx.client().post('/api/auth/verify-email', { token })).status).toBe(200)
+    expect(record()).toMatchObject({ approval: 'approved', isAdmin: true })
+    expect((await phone.get('/api/admin/accounts')).status).toBe(200)
+  })
+
+  it('does not approve someone else who signs up with the owner’s address before confirming it', async () => {
+    const ctx = setup({ approvalRequired: true, adminEmails: ['owner@example.com'] })
+    const squatter = ctx.client()
+    await signUp(squatter, 'owner@example.com', 'Not Olive')
+    expect((await squatter.get('/api/publications')).status).toBe(403)
+  })
+})
+
 describe('the admin command and settings', () => {
   it('grants and revokes admin by address, only for a confirmed one', async () => {
     const ctx = setup({ approvalRequired: true })
