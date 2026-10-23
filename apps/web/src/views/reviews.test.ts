@@ -204,7 +204,7 @@ describe('reading one review', () => {
     ).toBeTruthy()
   })
 
-  it('says so when they have not commented yet, and when the comments cannot be loaded', async () => {
+  it('says so in the panel when they have not commented yet', async () => {
     open({ ...summary(), draft: { title: 'Meanders', body: 'x' }, comments: [] })
     await renderAt('/reviews/r1')
     expect(
