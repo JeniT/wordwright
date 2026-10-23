@@ -1,38 +1,38 @@
 <script lang="ts">
-import pencilSimple from '@phosphor-icons/core/assets/regular/pencil-simple.svg?raw'
-import trash from '@phosphor-icons/core/assets/regular/trash.svg?raw'
-import caretUp from '@phosphor-icons/core/assets/regular/caret-up.svg?raw'
-import caretDown from '@phosphor-icons/core/assets/regular/caret-down.svg?raw'
-import tag from '@phosphor-icons/core/assets/regular/tag.svg?raw'
-import check from '@phosphor-icons/core/assets/regular/check.svg?raw'
-import x from '@phosphor-icons/core/assets/regular/x.svg?raw'
-import arrowCounterClockwise from '@phosphor-icons/core/assets/regular/arrow-counter-clockwise.svg?raw'
-import funnel from '@phosphor-icons/core/assets/regular/funnel.svg?raw'
-import info from '@phosphor-icons/core/assets/regular/info.svg?raw'
-import warning from '@phosphor-icons/core/assets/regular/warning.svg?raw'
-import circleNotch from '@phosphor-icons/core/assets/regular/circle-notch.svg?raw'
-import gear from '@phosphor-icons/core/assets/regular/gear.svg?raw'
-import signOut from '@phosphor-icons/core/assets/regular/sign-out.svg?raw'
-import arrowSquareOut from '@phosphor-icons/core/assets/regular/arrow-square-out.svg?raw'
-import paragraph from '@phosphor-icons/core/assets/regular/paragraph.svg?raw'
-import textHTwo from '@phosphor-icons/core/assets/regular/text-h-two.svg?raw'
-import textHThree from '@phosphor-icons/core/assets/regular/text-h-three.svg?raw'
-import textB from '@phosphor-icons/core/assets/regular/text-b.svg?raw'
-import textItalic from '@phosphor-icons/core/assets/regular/text-italic.svg?raw'
-import code from '@phosphor-icons/core/assets/regular/code.svg?raw'
-import quotes from '@phosphor-icons/core/assets/regular/quotes.svg?raw'
-import listBullets from '@phosphor-icons/core/assets/regular/list-bullets.svg?raw'
-import listNumbers from '@phosphor-icons/core/assets/regular/list-numbers.svg?raw'
-import codeBlock from '@phosphor-icons/core/assets/regular/code-block.svg?raw'
-import link from '@phosphor-icons/core/assets/regular/link.svg?raw'
-import linkBreak from '@phosphor-icons/core/assets/regular/link-break.svg?raw'
-import markdownLogo from '@phosphor-icons/core/assets/regular/markdown-logo.svg?raw'
-import dotsThree from '@phosphor-icons/core/assets/regular/dots-three.svg?raw'
-import arrowLineRight from '@phosphor-icons/core/assets/regular/arrow-line-right.svg?raw'
-import arrowLineDown from '@phosphor-icons/core/assets/regular/arrow-line-down.svg?raw'
-import chatCircle from '@phosphor-icons/core/assets/regular/chat-circle.svg?raw'
+import pencilSimple from '@phosphor-icons/core/assets/bold/pencil-simple-bold.svg?raw'
+import trash from '@phosphor-icons/core/assets/bold/trash-bold.svg?raw'
+import caretUp from '@phosphor-icons/core/assets/bold/caret-up-bold.svg?raw'
+import caretDown from '@phosphor-icons/core/assets/bold/caret-down-bold.svg?raw'
+import tag from '@phosphor-icons/core/assets/bold/tag-bold.svg?raw'
+import check from '@phosphor-icons/core/assets/bold/check-bold.svg?raw'
+import x from '@phosphor-icons/core/assets/bold/x-bold.svg?raw'
+import arrowCounterClockwise from '@phosphor-icons/core/assets/bold/arrow-counter-clockwise-bold.svg?raw'
+import funnel from '@phosphor-icons/core/assets/bold/funnel-bold.svg?raw'
+import info from '@phosphor-icons/core/assets/bold/info-bold.svg?raw'
+import warning from '@phosphor-icons/core/assets/bold/warning-bold.svg?raw'
+import circleNotch from '@phosphor-icons/core/assets/bold/circle-notch-bold.svg?raw'
+import gear from '@phosphor-icons/core/assets/bold/gear-bold.svg?raw'
+import signOut from '@phosphor-icons/core/assets/bold/sign-out-bold.svg?raw'
+import arrowSquareOut from '@phosphor-icons/core/assets/bold/arrow-square-out-bold.svg?raw'
+import paragraph from '@phosphor-icons/core/assets/bold/paragraph-bold.svg?raw'
+import textHTwo from '@phosphor-icons/core/assets/bold/text-h-two-bold.svg?raw'
+import textHThree from '@phosphor-icons/core/assets/bold/text-h-three-bold.svg?raw'
+import textB from '@phosphor-icons/core/assets/bold/text-b-bold.svg?raw'
+import textItalic from '@phosphor-icons/core/assets/bold/text-italic-bold.svg?raw'
+import code from '@phosphor-icons/core/assets/bold/code-bold.svg?raw'
+import quotes from '@phosphor-icons/core/assets/bold/quotes-bold.svg?raw'
+import listBullets from '@phosphor-icons/core/assets/bold/list-bullets-bold.svg?raw'
+import listNumbers from '@phosphor-icons/core/assets/bold/list-numbers-bold.svg?raw'
+import codeBlock from '@phosphor-icons/core/assets/bold/code-block-bold.svg?raw'
+import link from '@phosphor-icons/core/assets/bold/link-bold.svg?raw'
+import linkBreak from '@phosphor-icons/core/assets/bold/link-break-bold.svg?raw'
+import markdownLogo from '@phosphor-icons/core/assets/bold/markdown-logo-bold.svg?raw'
+import dotsThree from '@phosphor-icons/core/assets/bold/dots-three-bold.svg?raw'
+import arrowLineRight from '@phosphor-icons/core/assets/bold/arrow-line-right-bold.svg?raw'
+import arrowLineDown from '@phosphor-icons/core/assets/bold/arrow-line-down-bold.svg?raw'
+import chat from '@phosphor-icons/core/assets/bold/chat-bold.svg?raw'
 
-// Phosphor Icons (MIT), regular weight, as raw SVG text. Only the files imported here are bundled. We keep the inside of
+// Phosphor Icons (MIT), bold weight, as raw SVG text. Only the files imported here are bundled. We keep the inside of
 // each file and draw it in our own <svg>, so size and colour (currentColor) stay under our control.
 const inner = (svg: string) => svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')
 
@@ -68,7 +68,7 @@ const PHOSPHOR = {
   more: dotsThree,
   move: arrowLineRight,
   insert: arrowLineDown,
-  comment: chatCircle,
+  comment: chat,
 }
 
 export type IconName = keyof typeof PHOSPHOR | 'ai'
@@ -97,7 +97,7 @@ defineProps<{ name: IconName; size?: number }>()
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    stroke-width="1.75"
+    stroke-width="2.25"
     stroke-linecap="round"
     stroke-linejoin="round"
   >
