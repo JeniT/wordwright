@@ -64,4 +64,3 @@ Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue li
 - Keys go into the app's own field. A key typed into a chat with an agent is leaked.
 - Prompts live in `prompts/` as Markdown; a change there changes the product's behaviour, so say so in the commit
   and ask the owner to review it.
-- Run `pnpm test:e2e` once at the end, and single files while you work ([testing.md](docs/agents/testing.md)).

@@ -1,6 +1,6 @@
 # Wordwright
 
-A web app that supports a writer's journey from idea to published writing, with AI that helps them judge their own words and never writes them. This file is the glossary; rationale lives in `docs/adr/` and `docs/adr/`.
+A web app that supports a writer's journey from idea to published writing, with AI that helps them judge their own words and never writes them. This file is the glossary; rationale lives in `docs/adr/`.
 
 ## Language
 
@@ -11,7 +11,7 @@ A place where the writer publishes: a Substack, a blog, a magazine, a newsletter
 _Avoid_: Profile, venue, workspace, account
 
 **Idea**:
-The writer's one-sentence statement of what they want to write about. Its name is the core idea, in their own words; it holds the idea's own notes, articles, brainstorming and drafts, and belongs to a publication.
+The writer's one-sentence statement of what they want to write about. Its name is the core idea, in their own words; it holds the idea's own notes, articles, Refine conversations and drafts, and belongs to a publication.
 _Avoid_: Topic, title (that is a draft's), subject
 
 **Description**:

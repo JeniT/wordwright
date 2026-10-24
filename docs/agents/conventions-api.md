@@ -7,13 +7,12 @@ Read this when you add or change code in `apps/api`, `packages/core` or `prompts
   `packages/core`: Zod schemas, provider ports + adapters + fakes, contract test suites, shared by web and api.
   `prompts/`: the instructions given to the AI, as plain Markdown (`@wordwright/prompts`); edit prompts there, never
   inline in code, and see `prompts/README.md`.
-- **Add code in the existing style.** Look at a neighbouring file first. Comments explain _why_, not _what_.
 - **Schemas first.** New API shapes go in `packages/core/src/domain.ts` and are used by both sides.
 - **Database:** append a new entry to `MIGRATIONS` in `apps/api/src/db/database.ts`; applied entries stay as they are.
   Deleting a user must still remove everything that belongs only to them (use `ON DELETE CASCADE`, and extend the
   account-deletion tests).
 - **API errors:** services and routes throw `fail(status, message)` (or `notFound()`) from `apps/api/src/errors.ts`;
-  `app.ts` turns it into `{ error }`. Services never import Hono. Read path parameters with `param(c, 'id')`
+  `app.ts` turns it into `{ error }`. Only routes know Hono; services take plain arguments. Read path parameters with `param(c, 'id')`
   (`routes/params.ts`), not `c.req.param('id')!`.
 - **External services:** application code depends on **ports** in `packages/core`, never on a vendor SDK. A new
   service means: implement the interface → run the shared contract suite against it (`@wordwright/core/testing`) →

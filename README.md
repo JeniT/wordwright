@@ -3,9 +3,10 @@
 A web app to support the writer's journey: idea generation, research, argument and outline refinement,
 critique that preserves your voice, and supplementary material (titles, openings, social posts).
 
-Currently implemented: accounts and login (email + password, optional Google), password recovery,
-account deletion, multiple publications per user with sharing, drafts (Markdown-backed rich text editor)
-and an LLM-powered critique. The rest is built on the same provider architecture.
+Currently implemented: accounts and sign-in (email and password, optional Google); publications with sharing, human
+review and handover of drafts; ideas with notes, articles gathered from feeds and an AI research step; Refine, a
+conversation with your own AI; Markdown-backed drafts with autosave, AI critique, comments and Rephrase; and export.
+Social posts are not built yet (#164).
 
 > **Contributing or picking this up in a new session?** Start with [AGENTS.md](AGENTS.md), then
 > the [GitHub issues](https://github.com/JeniT/wordwright/issues). Design rationale is in [docs/adr/](docs/adr/README.md).
@@ -14,13 +15,13 @@ and an LLM-powered critique. The rest is built on the same provider architecture
 
 ## Stack
 
-| Concern         | Choice                                                                                               |
-| --------------- | ---------------------------------------------------------------------------------------------------- |
-| Monorepo        | pnpm workspaces, TypeScript (strict)                                                                 |
-| `apps/web`      | Vue 3, Vite, Pinia, Vue Router, TanStack Query, Tiptap, Tailwind CSS v4                              |
-| `apps/api`      | Hono on Node, Zod validation, SQLite (`node:sqlite`)                                                 |
-| `packages/core` | Domain schemas (Zod) and provider interfaces + adapters, shared by web and api                       |
-| Tests           | Vitest, Testing Library, MSW, Playwright (+ axe), Promptfoo (`evals/`, see `docs/responsible-ai.md`) |
+| Concern         | Choice                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| Monorepo        | pnpm workspaces, TypeScript (strict)                                                        |
+| `apps/web`      | Vue 3, Vite, Pinia, Vue Router, TanStack Query, Tiptap, Tailwind CSS v4                     |
+| `apps/api`      | Hono on Node, Zod validation, SQLite (`node:sqlite`)                                        |
+| `packages/core` | Domain schemas (Zod) and provider interfaces + adapters, shared by web and api              |
+| Tests           | Vitest, Testing Library, MSW, Playwright (+ axe), Promptfoo (`evals/`, see `docs/evals.md`) |
 
 ## Design
 
@@ -83,6 +84,10 @@ Application code depends on **ports** in `packages/core/src/providers`, never on
   key can use (it spends no tokens, so it also checks the key). Adapters: `AnthropicProvider`,
   `FakeLLMProvider` (scriptable). The contract suite can also be run against the real service:
   `ANTHROPIC_API_KEY=... pnpm --filter @wordwright/core test`.
+- `ResearchProvider` — finds pages for the Research step (`AnthropicResearchProvider`, `FakeResearchProvider`).
+- `FeedFetcher` and `PageInfoFetcher` — read a feed, or a page's title and authors, from an address a person typed
+  (SSRF-guarded; fakes for tests).
+- `Mailer` (`apps/api/src/mail`) — email: `console`, `file` or `smtp`.
 - `SearchProvider` — for news, web and scholarly sources (Crossref, OpenAlex, ...). Only a fake exists so far.
 
 **Prompts** (the instructions given to the AI) are not in code: they are Markdown files in [`prompts/`](prompts/README.md).
@@ -107,4 +112,3 @@ tests inject fakes and nothing hits the network.
   (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
 - **UI components:** Tailwind plus our own component classes ([docs/design/](docs/design/README.md)); add headless primitives
   (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
-- **Not yet built:** idea scanning, outlining, streaming critique, social posts (#164).

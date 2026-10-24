@@ -80,5 +80,4 @@ or `text-stone-600` does nothing, so off-palette colour can't creep in unnoticed
   path when you rename. The `docs/design-concepts/` folder shows teal and purple variants built the same way.
 - **Change the look** (corners, fonts, weights): edit `theme.css`. Components pick it up everywhere.
 - **Change the shell or the menu's shape:** `App.vue` (the frame) and `components/SideMenu.vue` / `lib/nav.ts` (what it lists).
-- **Don't** fix a screen by adding colours or one-off classes to it. If a screen needs something the system lacks, the
-  system is what changes.
+- When a screen needs something the system lacks, change the system; colours and one-off classes stay out of the screen.

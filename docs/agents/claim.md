@@ -6,7 +6,7 @@ Read this when you are about to start work on an issue, or are deciding what to 
 `backlog` (needs a decision or prerequisite), `decision` (the owner's to make), `in-progress` (claimed) or
 `inbox` (a raw report waiting for triage: see [triage.md](triage.md)).
 Pick from `gh issue list --label ready`; closed issues are Done. `TODO.md` is only a frozen history.
-Never implement an `inbox` issue directly.
+Implement an `inbox` issue only after it has been triaged.
 
 ## Every change goes through a worktree
 
@@ -43,7 +43,7 @@ Claiming is creating the task's branch on GitHub, which is atomic: only one agen
   `MIGRATIONS` array. Keep changes to those files small and additive. If two branches add a migration, the
   second to merge renumbers theirs (appends after the other) and reruns the tests.
 - **Outside your task:** file an issue (`gh issue create`, label `ready` or `backlog` and a `--milestone`, your best
-  guess; the owner can move it), or just `inbox` if it needs talking through. Keep your task to its scope.
+  guess; the owner can move it), or just `inbox` if it needs talking through.
 - **The owner's call:** a service to choose, a product trade-off, anything costing money. File an issue labelled
   `decision` and work on something else.
 - **Stash:** commit a WIP commit; the stash stack is shared across worktrees.
