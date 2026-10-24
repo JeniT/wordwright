@@ -98,8 +98,8 @@ read beside another window (reading a source, taking notes) adds `compact: true`
 **Menu** button at every width so two windows fit side by side. The drafting page keeps the menu on a laptop and finds
 its idea from the draft (`ideaFromDraft: true`).
 
-Adding a step (rare): add it to the step list in `lib/nav.ts`, give its route the meta, and update the table above
-and in README. Renumbering is automatic.
+Adding a step (rare): add it to the step list in `lib/nav.ts`, give its route the meta, and update the table above.
+Renumbering is automatic.
 
 **Publishing is not a step.** It is done to one draft, so it sits at the bottom of the Draft page (`DraftPublish`): **Copy**
 (rich text, with plain text beside it, so it keeps its headings and links when pasted into an editor or an email) and

@@ -35,7 +35,10 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | Triaging an `inbox` issue, or filing one                                | [docs/agents/triage.md](docs/agents/triage.md)                         |
 | Running a content crit                                                  | [docs/agents/content-crit.md](docs/agents/content-crit.md)             |
 | Asking why something is the way it is                                   | [docs/adr/](docs/adr/README.md)                                        |
-| Setting up, or learning accounts, BYOK and architecture                 | [README.md](README.md)                                                 |
+| Setting up; learning the architecture                                   | [README.md](README.md)                                                 |
+| Changing sign-in, accounts, publications, sharing, ideas or drafts      | [docs/accounts.md](docs/accounts.md)                                   |
+| Changing key handling or adding an LLM provider                         | [docs/byok.md](docs/byok.md)                                           |
+| Changing brainstorm, Research, Critique or Rephrase                     | [docs/ai-features.md](docs/ai-features.md)                             |
 | Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md)                                       |
 
 Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue list --label ready`.
