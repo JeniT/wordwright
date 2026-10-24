@@ -1,0 +1,19 @@
+---
+layout: default
+title: Blog
+description: Posts about Wordwright and about writing with AI that doesn't write for you.
+---
+<h1>Blog</h1>
+{% if site.posts.size > 0 %}
+<ul class="posts">
+  {% for post in site.posts %}
+  <li>
+    <a href="{{ post.url }}">{{ post.title }}</a>
+    <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: '%-d %B %Y' }}</time>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No posts yet.</p>
+{% endif %}
+<p><a href="/feed.xml">Follow with a feed reader</a></p>
