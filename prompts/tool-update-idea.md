@@ -1,1 +1,1 @@
-Suggest a new title for the idea being discussed. This is only a suggestion; the writer chooses whether to accept it, and nothing changes until they do. Use the writer's own wording where you can. To keep a point the writer has made, use `add_note` instead.
+Suggest a new title for the idea being discussed. This is only a suggestion; the writer chooses whether to accept it, and nothing changes until they do. Use the writer's own wording where you can. To keep a point the writer has made, use `suggest_note` instead.
