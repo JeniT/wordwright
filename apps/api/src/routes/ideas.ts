@@ -144,10 +144,12 @@ export function ideaRoutes(
       // Starts a draft that develops this idea. Open the draft itself at `/drafts/:id`.
       .post('/:id/drafts', validateJson(DraftInputSchema), (c) => {
         const idea = find(c)
+        const input = c.req.valid('json')
         const draft = drafts.create(
           idea.publicationId,
           c.get('user').id,
-          c.req.valid('json'),
+          // Starts as the idea's name, once: renaming the idea later does not rename the draft.
+          { ...input, title: input.title || idea.name },
           idea.id,
         )
         ideas.touch(idea.id)

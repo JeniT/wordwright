@@ -9,6 +9,7 @@ import CommentsPanel from '../components/CommentsPanel.vue'
 import type { CommentMarkPoint } from '../lib/comment-marks'
 import ModalDialog from '../components/ModalDialog.vue'
 import QueryState from '../components/QueryState.vue'
+import TitleField from '../components/TitleField.vue'
 import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
 import { api, errorMessage } from '../lib/api'
@@ -136,11 +137,11 @@ const end = useMutation({
           <h1 class="sr-only">{{ review.data.value.draft.title || 'Untitled draft' }}</h1>
           <label class="sr-only" for="review-title">Title</label>
           <!-- A read-only field, so the title can be selected and commented on like the paragraphs. -->
-          <input
+          <TitleField
             id="review-title"
-            :value="review.data.value.draft.title"
+            :model-value="review.data.value.draft.title"
             readonly
-            class="mb-1 w-full min-w-0 bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-ink-soft"
+            class="mb-1"
             placeholder="Untitled draft"
           />
           <p class="meta mb-4">

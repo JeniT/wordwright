@@ -423,7 +423,7 @@ describe('an idea’s landing page', () => {
       const state = fakeIdea({ idea: idea([], []) })
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
       await fireEvent.click(await screen.findByRole('button', { name: 'New draft' }))
-      await waitFor(() => expect(state.drafts).toEqual([{ title: 'Untitled' }]))
+      await waitFor(() => expect(state.drafts).toEqual([{}]))
       await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack/drafts/d9'))
     })
 

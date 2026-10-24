@@ -1153,7 +1153,7 @@ describe('idea page', () => {
       'href',
       '/p/ada-substack/ideas/i1/drafts',
     )
-    expect(sent).toEqual({ title: 'Untitled' })
+    expect(sent).toEqual({})
   })
 
   describe('notes', () => {

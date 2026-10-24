@@ -353,6 +353,18 @@ describe('ideas', () => {
       expect((await (await ada.get(ideas())).json())[0].draftCount).toBe(2)
     })
 
+    it("start with the idea's name as their title, set once", async () => {
+      const idea = await (await ada.post(ideas(), { name: 'Why rivers meander' })).json()
+      const draft = await (await ada.post(`${ideas()}/${idea.id}/drafts`, {})).json()
+      expect(draft.title).toBe('Why rivers meander')
+      await ada.patch(`${ideas()}/${idea.id}`, { name: 'Renamed' })
+      const full = await (await ada.get(`${ideas()}/${idea.id}`)).json()
+      expect(full.drafts[0].title).toBe('Why rivers meander')
+      // A title that is sent is kept.
+      const own = await (await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Mine' })).json()
+      expect(own.title).toBe('Mine')
+    })
+
     it('count as drafts only until they are marked published, though the idea still lists them', async () => {
       const idea = await (await ada.post(ideas(), { name: 'A series on rivers' })).json()
       const first = await (

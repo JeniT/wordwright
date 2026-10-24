@@ -386,7 +386,14 @@ const wordCountText = computed(() => {
   return chosen ? `${chosen} of ${words(total)}` : words(total)
 })
 
+/** Puts the caret at the start of the words, for Return in the title. */
+function focusStart() {
+  if (sourceMode.value) source.value?.focus()
+  else editor.value?.commands.focus('start')
+}
+
 defineExpose({
+  focusStart,
   commentTarget,
   insertMarkdown,
   insertInlineMarkdown,

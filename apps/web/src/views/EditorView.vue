@@ -55,6 +55,7 @@ import type { CommentMarkPoint } from '../lib/comment-marks'
 import { linkMarkdown, noteMarkdown } from '../lib/note-insert'
 import type { TextSelection } from '../lib/text-selection'
 import QueryState from '../components/QueryState.vue'
+import TitleField from '../components/TitleField.vue'
 
 const props = defineProps<{ publicationId: string; id: string }>()
 const queryClient = useQueryClient()
@@ -648,12 +649,13 @@ async function requestCritique() {
           class="flex flex-wrap items-center gap-x-3 gap-y-2"
           :class="canEdit && titleProblem ? 'mb-2' : 'mb-6'"
         >
-          <input
+          <TitleField
             id="title"
             v-model="title"
             :readonly="!canEdit"
-            class="min-w-0 flex-1 basis-64 bg-transparent font-display text-3xl font-semibold outline-none placeholder:text-ink-soft"
+            class="flex-1 basis-64"
             placeholder="Title"
+            @enter="editor?.focusStart()"
           />
           <button
             v-if="canEdit"

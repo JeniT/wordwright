@@ -1732,6 +1732,20 @@ describe('a draft has one editor (#154)', () => {
   })
 })
 
+describe('the draft title', () => {
+  it('is a wrapping field, and Return moves to the body without adding a line break', async () => {
+    mockEditor(() => HttpResponse.json({}))
+    await renderAt('/p/p1/drafts/d1')
+    const title = await screen.findByLabelText('Title')
+    expect(title.tagName).toBe('TEXTAREA')
+    await fireEvent.update(title, 'A very long title that runs onto a second line on a phone')
+    title.focus()
+    await fireEvent.keyDown(title, { key: 'Enter' })
+    await waitFor(() => expect(document.querySelector('.ProseMirror')).toHaveFocus())
+    expect(title).toHaveValue('A very long title that runs onto a second line on a phone')
+  })
+})
+
 describe('drafts save themselves', () => {
   /** A server that keeps drafts; `failing` makes saves fail like a lost connection. */
   function serve() {

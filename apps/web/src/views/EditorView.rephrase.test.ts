@@ -394,7 +394,7 @@ describe('EditorView: Rephrase', () => {
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-      expect(screen.getByLabelText('Title', { selector: 'input' })).toHaveValue(
+      expect(screen.getByLabelText('Title', { selector: 'textarea' })).toHaveValue(
         'Rivers bend; outer banks erode.',
       )
       await waitFor(() => expect(recorded).toHaveLength(1))
@@ -414,7 +414,7 @@ describe('EditorView: Rephrase', () => {
       ;(await titleButton()).focus()
       await fireEvent.click(await titleButton())
       await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
-      expect(screen.getByLabelText('Title', { selector: 'input' })).toHaveValue('T')
+      expect(screen.getByLabelText('Title', { selector: 'textarea' })).toHaveValue('T')
       expect(saved).toEqual([])
       expect(recorded).toEqual([])
       await waitFor(() => expect(titleButton()).resolves.toHaveFocus())

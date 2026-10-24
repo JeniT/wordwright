@@ -2354,3 +2354,11 @@ Once a draft is marked published, the Publish section shows just the green "Publ
   field rather than a heading so it can be selected and focused; a heading stays for screen readers. A press in the read-only
   copy, which takes no focus, is what says the words rather than the title were chosen.
 - **End review in two places** while open (under the draft, under the comments), because either may be where the reader finishes.
+
+## Draft title wraps; a new draft starts with its idea's name (#366)
+
+- **The title is an auto-growing `<textarea>` (`TitleField`)**, so a long title wraps instead of scrolling out of sight,
+  in the editor and in the reviewer's read-only copy. It never holds a line break: Return moves the caret to the start
+  of the body, and a pasted break becomes a space. It stays a field (not a heading) so a reviewer can select and comment on it.
+- **A new draft's title is the idea's name, set once on the server** (`POST .../ideas/:id/drafts` when no title is sent).
+  It is a real, editable title, not kept in step if the idea is renamed, and not AI text. The client no longer sends "Untitled".

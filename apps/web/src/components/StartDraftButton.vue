@@ -4,13 +4,13 @@ import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
 
-/** Adds an untitled draft to an idea and opens it, for the Draft page and the idea's landing page. */
+/** Adds a draft, titled with the idea's name, to an idea and opens it, for the Draft page and the idea's landing page. */
 const props = defineProps<{ publicationId: string; ideaId: string }>()
 const router = useRouter()
 const queryClient = useQueryClient()
 
 const addDraft = useMutation({
-  mutationFn: () => api.createIdeaDraft(props.publicationId, props.ideaId, { title: 'Untitled' }),
+  mutationFn: () => api.createIdeaDraft(props.publicationId, props.ideaId, {}),
   onSuccess: async (draft) => {
     await Promise.all([invalidateRoots(queryClient, 'idea'), invalidateRoots(queryClient, 'ideas')])
     await router.push({

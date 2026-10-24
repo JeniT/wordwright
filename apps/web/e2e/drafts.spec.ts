@@ -108,6 +108,30 @@ test('redirects signed-out visitors to sign in', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
 })
 
+test('a new draft is titled with its idea, and a long title wraps on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 })
+  await registerUser(page)
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  const title = page.getByLabel('Title', { exact: true })
+  await expect(title).toHaveValue('Why rivers meander')
+
+  const long = 'Why rivers meander across flat plains instead of running straight to the sea'
+  await title.fill(long)
+  const box = await title.boundingBox()
+  expect(box!.height, 'the long title wraps onto several lines').toBeGreaterThan(60)
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    'no sideways scrolling',
+  ).toBe(true)
+
+  await title.press('Enter')
+  await expect(page.getByRole('textbox', { name: 'Draft body' })).toBeFocused()
+  await expect(title).toHaveValue(long) // Return added no line break
+})
+
 test('a draft saves itself while you write, and the words are there after a reload', async ({
   page,
 }) => {
