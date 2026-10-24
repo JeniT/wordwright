@@ -34,7 +34,8 @@ const onlyJoined = computed(
 const needsSetup = computed(() => loaded.value && (!hasPublication.value || !hasKey.value))
 // Drafts other people have asked this person to read and comment on (a member of a publication may be asked to).
 const reviews = useQuery({ queryKey: queryKeys.reviews(), queryFn: () => api.listReviews() })
-const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state === 'open'))
+const toReview = computed(() => reviews.data.value ?? [])
+const endedLabel = { ended: 'You ended this review', closed: 'Closed by the editor' } as const
 </script>
 
 <template>
@@ -106,7 +107,8 @@ const toReview = computed(() => (reviews.data.value ?? []).filter((r) => r.state
         }}</RouterLink>
         <span class="meta">
           · {{ r.publicationName
-          }}<template v-if="r.inviterName"> · asked by {{ r.inviterName }}</template></span
+          }}<template v-if="r.inviterName"> · asked by {{ r.inviterName }}</template
+          ><template v-if="r.state !== 'open'"> · {{ endedLabel[r.state] }}</template></span
         >
       </li>
     </ul>

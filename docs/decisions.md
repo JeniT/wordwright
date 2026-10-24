@@ -1466,6 +1466,9 @@ ADR 0002 is the decision; these are the details.
   may reach is `requireUser` (`reviewerMayReach`): who it is, sign-out, `/reviews/*`, accepting an invitation and
   deleting itself; everything else is 404, as for a stranger. A test walks every route the app registers as a reviewer.
   The web app mirrors it (the router sends such an account to its reviews, and the publication list is never requested).
+- **"Start writing" is for reviewer-only accounts only** (#361). A member of a publication asked to review reads the draft
+  with the full side menu, finds their reviews under "Drafts to review" on Home (open, ended and closed), and goes back
+  there; `/reviews` sends a full account to Home.
 - **A review is of a snapshot** (#158, ADR 0001): when the editor sends the draft, its title and body are frozen in
   `draft_snapshots` and every person asked reviews that copy (`draft_reviews`: open, ended, closed; one per snapshot and
   reviewer). The editor keeps writing; sending again makes a new snapshot, and more from the same person is a new

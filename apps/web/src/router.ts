@@ -32,6 +32,19 @@ declare module 'vue-router' {
 /** Pages an account that is not approved may open: its status, and what the server lets it do (#328). */
 const UNAPPROVED_PAGES = new Set(['waiting', 'account-download', 'account-delete'])
 
+/** Resolves with the selector once an element matches it, or null after about two seconds. */
+function whenInPage(selector: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    let tries = 0
+    const look = () => {
+      if (document.querySelector(selector)) resolve(selector)
+      else if (++tries > 20) resolve(null)
+      else setTimeout(look, 100)
+    }
+    look()
+  })
+}
+
 /** Pages a reviewer-only account may open (the others are open to everyone, or for guests). */
 const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing'])
 
@@ -417,7 +430,8 @@ export function createAppRouter(history = createWebHistory()) {
     // an address with a #section goes to the section.
     scrollBehavior(to, from, saved) {
       if (saved) return saved
-      if (to.hash) return { el: to.hash }
+      // The target may be on a section that appears once its data arrives (Home's reviews), so wait for it briefly.
+      if (to.hash) return whenInPage(to.hash).then((el) => (el ? { el } : false))
       if (to.path !== from.path) return { top: 0 }
     },
   })
@@ -443,6 +457,10 @@ export function createAppRouter(history = createWebHistory()) {
     // A reviewer-only account has just its reviews (the server answers 404 to the rest, so don't ask for it).
     if (session.user?.reviewerOnly && !REVIEWER_PAGES.has(String(to.name))) {
       return { name: 'reviews' }
+    }
+    // A full account reads its reviews on Home, where they are listed; /reviews is the reviewer-only landing.
+    if (to.name === 'reviews' && session.user && !session.user.reviewerOnly) {
+      return { name: 'home', hash: '#to-review-heading' }
     }
     // Reset links work whether or not you happen to be signed in.
     if (to.meta.guest && signedIn && to.name !== 'reset-password') return { name: 'home' }

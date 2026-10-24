@@ -62,6 +62,49 @@ describe('a reviewer’s landing page', () => {
     )
   })
 
+  it('offers Start writing and says they see only these drafts, to a reviewer-only account', async () => {
+    server.use(
+      signedInAs(reviewer),
+      http.get('*/api/reviews', () => HttpResponse.json([summary()])),
+    )
+    await renderAt('/reviews')
+    expect(await screen.findByText(/You can see only the drafts listed here/)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Want to write your own?' })).toBeTruthy()
+  })
+
+  it('sends a full account to the reviews on Home instead', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/reviews', () => HttpResponse.json([summary()])),
+    )
+    const { router } = await renderAt('/reviews')
+    await waitFor(() => expect(router.currentRoute.value.name).toBe('home'))
+    expect(router.currentRoute.value.hash).toBe('#to-review-heading')
+    expect(await screen.findByRole('heading', { name: 'Drafts to review' })).toBeTruthy()
+    expect(screen.queryByText('Start writing')).toBeNull()
+    expect(screen.queryByText(/only the drafts listed here/)).toBeNull()
+  })
+
+  it('lists on Home every review, including ones ended or closed', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/reviews', () =>
+        HttpResponse.json([
+          summary(),
+          summary({ id: 'r2', draftTitle: 'Tides', state: 'ended' }),
+          summary({ id: 'r3', draftTitle: 'Silt', state: 'closed' }),
+        ]),
+      ),
+    )
+    await renderAt('/')
+    const section = (await screen.findByRole('heading', { name: 'Drafts to review' })).closest(
+      'section',
+    )!
+    expect(within(section).getAllByRole('link')).toHaveLength(3)
+    expect(within(section).getByText(/You ended this review/)).toBeTruthy()
+    expect(within(section).getByText(/Closed by the editor/)).toBeTruthy()
+  })
+
   it('says so when there is nothing to review, and when the list cannot be loaded', async () => {
     let fail = true
     server.use(
@@ -89,6 +132,26 @@ describe('a reviewer’s landing page', () => {
   })
 })
 
+describe('reading one review as a full account', () => {
+  it('has the side menu and a way back to Home’s reviews', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/reviews/r1', () =>
+        HttpResponse.json({
+          ...summary(),
+          draft: { title: 'Meanders', body: 'Rivers bend.' },
+          comments: [],
+        }),
+      ),
+    )
+    await renderAt('/reviews/r1')
+    const back = await screen.findByRole('link', { name: '← Back to Home' })
+    expect(back).toHaveAttribute('href', '/#to-review-heading')
+    expect(screen.queryByRole('link', { name: '← All your reviews' })).toBeNull()
+    expect(screen.getByRole('navigation', { name: /menu|main/i })).toBeTruthy()
+  })
+})
+
 describe('reading one review', () => {
   const open = (detail: object) =>
     server.use(
@@ -111,6 +174,10 @@ describe('reading one review', () => {
     )
     await renderAt('/reviews/r1')
     expect(await screen.findByRole('heading', { name: 'Meanders' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: '← All your reviews' })).toHaveAttribute(
+      'href',
+      '/reviews',
+    )
     await waitFor(() =>
       expect(document.querySelector('.ProseMirror')).toHaveAttribute('contenteditable', 'false'),
     )
@@ -905,6 +972,6 @@ describe('a member asked to review', () => {
       'href',
       '/reviews/r1',
     )
-    expect(within(section).queryByText('Old')).toBeNull() // only the open ones
+    expect(within(section).getByRole('link', { name: 'Old' })).toBeTruthy() // ended ones stay listed
   })
 })

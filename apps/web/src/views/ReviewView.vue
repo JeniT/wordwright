@@ -13,6 +13,7 @@ import RichEditor from '../components/RichEditor.vue'
 import TabPanels from '../components/TabPanels.vue'
 import { api, errorMessage } from '../lib/api'
 import { queryKeys, useReviewComments } from '../lib/queries'
+import { useSessionStore } from '../stores/session'
 
 /**
  * One review: the copy of the draft that was sent (a snapshot, not the editor's latest words) and the comments this
@@ -20,6 +21,7 @@ import { queryKeys, useReviewComments } from '../lib/queries'
  * they can add comments or end it; an ended or closed review is read-only but still shows both.
  */
 const props = defineProps<{ id: string }>()
+const session = useSessionStore()
 const queryClient = useQueryClient()
 const review = useQuery({
   queryKey: computed(() => queryKeys.review(props.id)),
@@ -118,7 +120,12 @@ const end = useMutation({
 <template>
   <div>
     <p class="mb-4 text-sm">
-      <RouterLink :to="{ name: 'reviews' }" class="underline">← All your reviews</RouterLink>
+      <RouterLink v-if="session.user?.reviewerOnly" :to="{ name: 'reviews' }" class="underline"
+        >← All your reviews</RouterLink
+      >
+      <RouterLink v-else :to="{ name: 'home', hash: '#to-review-heading' }" class="underline"
+        >← Back to Home</RouterLink
+      >
     </p>
     <QueryState :query="review" what="this draft">
       <div

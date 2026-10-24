@@ -825,8 +825,12 @@ test('invites someone who has no account yet: they register from the email and j
 })
 
 /** Invites a new person from `page` and has them register and join in their own browser; returns their page. */
-async function joinFrom(page: Page, browser: Browser, name: string) {
-  const email = `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+async function joinFrom(
+  page: Page,
+  browser: Browser,
+  name: string,
+  email = `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+) {
   const link = await invite(page, email)
   const them = await (await browser.newContext()).newPage()
   await them.goto(link)
@@ -1156,6 +1160,64 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await page.getByRole('button', { name: /Handover history/ }).click()
   await expect(page.getByText(/Ada offered the draft to Bob: accepted/)).toBeVisible()
   await expect(page.getByText(/Ada offered the draft to Bob: declined/)).toBeVisible()
+  expect(bobProblems, "Bob's browser problems").toEqual([])
+})
+
+test('a member asked to review reads the draft with the full menu, and goes back to Home’s reviews', async ({
+  page,
+  browser,
+}) => {
+  const adaEmail = await registerUser(page, 'Ada')
+  await confirmEmail(page, adaEmail)
+  const bobEmail = `bob-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  const bob = await joinFrom(page, browser, 'Bob', bobEmail)
+  const bobProblems = watchForProblems(bob)
+
+  await page.goto('/')
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Meanders')
+  await page.getByRole('textbox', { name: 'Draft body' }).click()
+  await page.keyboard.type('Rivers rarely flow straight.')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: /^Reviews/ }).click()
+  await page.getByRole('button', { name: /^Send for review/ }).click()
+  await page.getByRole('dialog').getByRole('checkbox', { name: /Bob/ }).check()
+  await page.getByRole('dialog').getByRole('button', { name: 'Send for review' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  // Bob, a member, finds it on Home and opens it: no "Start writing", and the side menu stays.
+  await bob.goto('/')
+  await bob
+    .getByRole('region', { name: 'Drafts to review' })
+    .getByRole('link', { name: 'Meanders' })
+    .click()
+  await expect(bob.getByText('Rivers rarely flow straight.', { exact: true })).toBeVisible()
+  await expect(bob.getByRole('link', { name: 'Start writing' })).toHaveCount(0)
+  await expect(bob.getByRole('navigation').first()).toBeVisible()
+  await bob.getByRole('button', { name: 'Add comment' }).click()
+  const dialog = bob.getByRole('dialog', { name: 'Add comment' })
+  await dialog.getByLabel('Your comment').fill('Which rivers?')
+  await dialog.getByRole('button', { name: 'Add comment' }).click()
+  await expect(
+    bob.getByRole('tabpanel', { name: 'Comments' }).getByText('Which rivers?'),
+  ).toBeVisible()
+  expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
+
+  // Back goes to Home, at the reviews; /reviews does the same.
+  await bob.getByRole('link', { name: '← Back to Home' }).click()
+  await expect(bob).toHaveURL(/\/#to-review-heading$/)
+  await expect(bob.getByRole('heading', { name: 'Drafts to review' })).toBeInViewport()
+  await bob.goto('/reviews')
+  await expect(bob).toHaveURL(/\/#to-review-heading$/)
+  await expect(
+    bob
+      .getByRole('heading', { name: 'Drafts to review' })
+      .locator('..')
+      .getByRole('link', { name: 'Meanders' }),
+  ).toBeVisible()
   expect(bobProblems, "Bob's browser problems").toEqual([])
 })
 

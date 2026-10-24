@@ -25,7 +25,10 @@ const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { date
   <div>
     <h1 class="mb-1 font-display text-3xl font-semibold">Drafts to review</h1>
     <p class="mb-6 text-ink-soft">
-      You were asked to read these and say what you think. You can see only the drafts listed here.
+      You were asked to read these and say what you think.
+      <template v-if="session.user?.reviewerOnly">
+        You can see only the drafts listed here.</template
+      >
     </p>
     <QueryState :query="reviews" what="your reviews">
       <p v-if="!reviews.data.value?.length" class="text-ink-soft">
@@ -52,7 +55,11 @@ const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { date
       </ul>
     </QueryState>
 
-    <section v-if="session.user" class="mt-10 border-t border-line pt-6" aria-labelledby="write">
+    <section
+      v-if="session.user?.reviewerOnly"
+      class="mt-10 border-t border-line pt-6"
+      aria-labelledby="write"
+    >
       <h2 id="write" class="mb-1 font-display text-xl font-semibold">Want to write your own?</h2>
       <p class="mb-3 text-sm text-ink-soft">
         You can turn this into a full account, with your own publications and ideas. Your reviews
