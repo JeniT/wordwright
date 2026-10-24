@@ -1364,7 +1364,7 @@ describe('idea page', () => {
         box.compareDocumentPosition(within(region()).getAllByRole('list')[0]!) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy()
-      const next = within(screen.getByRole('navigation', { name: 'Next step' }))
+      const next = within(screen.getByRole('navigation', { name: 'Previous and next' }))
       expect(next.getByRole('link', { name: /Next: 04 Refine/ })).toBeInTheDocument()
       expect(screen.queryByText(/Happy with the notes/)).toBeNull()
     })

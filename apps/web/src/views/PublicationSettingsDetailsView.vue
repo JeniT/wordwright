@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import { ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import PublicationDetailsSection from '../components/PublicationDetailsSection.vue'
@@ -40,6 +41,7 @@ watch(
         :publication="current"
         @renamed="renamedTo = $event"
       />
+      <NextStep />
     </div>
   </PublicationGate>
 </template>

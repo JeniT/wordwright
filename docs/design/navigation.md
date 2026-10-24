@@ -47,8 +47,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    In the menu a long name is cut after two lines, and the website is always the words "Website" with the new-tab icon, never the address.
 3. **See where you are in two places**: the current step is marked in the menu (`aria-current`, a filled badge and an
    edge) and in the page title, with the publication or idea name above it (`StepHeading`).
-4. **A suggestion, not a push.** A step ends with `NextStep` ("Next: 04 Refine →"), an outline button, never the
-   primary one. A step where the next move is a choice (Ideas), or the last (Draft), has none.
+4. **A suggestion, not a push.** Every page in a sequence ends with `NextStep`: "← Previous: 02 Read" on the left and "Next: 04 Refine →" on the right, outline buttons, never the primary one, at every width (a phone's menu is hard to reach). The first page has only Next, the last only Previous. The sequences are a level's numbered steps (a publication's and an idea's) and each group of settings pages in menu order (account, publication; an idea's settings is one page, so none). A member's publication settings skip the owner-only pages. A step where the next move is a choice (Ideas) has none.
    **Steps are named with verbs** (Scan, Read, Note, Refine, Draft), because the page is something you do. The rule covers numbered steps only: settings pages and a publication's Ideas list name things.
 5. **Visiting spends nothing.** A step that calls the AI waits for a button (Refine's **Refine with your AI**,
    the Research page's Research button); arriving by the menu must never cost the writer money.
@@ -62,7 +61,7 @@ The principles (they are the point of the pattern; keep them when you add a page
    Display page. **Account settings are six short pages, not one long one** (`/account/details`, `/ai`, `/display`,
    `/security`, `/download`, `/delete`; `/account` redirects to the first), under an `account` level whose menu is
    plain links with no numbers, because settings are not a sequence. Each page is titled with `StepHeading` ("Account
-   settings" is the small link above the title) and has no `NextStep`. A new setting goes on the page it belongs to; add a
+   settings" is the small link above the title) and ends with `NextStep` (Previous and Next, in menu order). A new setting goes on the page it belongs to; add a
    page only if none fits (`ACCOUNT_PAGES` in `lib/nav.ts`, plus a route with `meta: { level: 'account', step }`).
    **A publication's settings work the same way**, under a `publication-settings` level: **Details** (name, website,
    picture), **Description**, **Feeds**, **Sharing**, **Download** and **Delete publication** (`/p/:id/settings/details`, `/description`,
@@ -98,7 +97,7 @@ a page never shows two. Long names truncate one by one, the last crumb getting r
 **How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea' | 'account', step: '<key>' }` in `router.ts`
 (`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
 (the research tool, reading one source) use their step's key, so it stays current. The title is
-`<StepHeading>Name</StepHeading>`; end the page with `<NextStep :to label>why this is next</NextStep>`. A page that is
+`<StepHeading>Name</StepHeading>`; end the page with a bare `<NextStep />`, which finds the previous and next page from the route (`neighbours` in `useNav`); pass `to` and `label` only for a single link elsewhere. A page that is
 read beside another window (reading a source, taking notes) adds `compact: true`, which folds the menu behind the
 **Menu** tab at every width so two windows fit side by side. The drafting page keeps the menu on a laptop and finds
 its idea from the draft (`ideaFromDraft: true`).
@@ -117,4 +116,4 @@ takes it out of Keep writing, whatever else is true of it. On the idea's **Draft
 published draft **keeps its place**, since the order is the reading order for a linked set. Its row is washed `ok-wash`, with the
 same chip, and "View post" is its own link beside the row link (a link can't be inside one). There is no animation: the achievement
 is the colour, and the row staying as a record. The text-on-wash pairs are in `palette.test.ts`. The old
-`/ideas/:id/publish` address redirects to the idea's drafts, and the drafts list is the last step, with no next step.
+`/ideas/:id/publish` address redirects to the idea's drafts, and the drafts list is the last step, with only Previous.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -89,5 +90,6 @@ const deleteAccount = useMutation({
         <p>This can't be undone.</p>
       </ConfirmDialog>
     </DangerZone>
+    <NextStep />
   </div>
 </template>

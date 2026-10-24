@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import HeadingRow from '../components/HeadingRow.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import PublicationInvitations from '../components/PublicationInvitations.vue'
@@ -42,6 +43,7 @@ const session = useSessionStore()
           />
         </section>
       </div>
+      <NextStep />
     </div>
   </PublicationGate>
 </template>

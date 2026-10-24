@@ -22,6 +22,6 @@ defineProps<{ publicationId: string; id: string }>()
       :article-list="idea.articles"
       quiet-heading
     />
-    <NextStep :to="{ name: 'brainstorm', params: { publicationId, id } }" label="Next: 04 Refine" />
+    <NextStep />
   </IdeaGate>
 </template>

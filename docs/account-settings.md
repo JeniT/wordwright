@@ -13,7 +13,7 @@ reasons. The words themselves are in the pages and their tests; the style rules 
 `/account` is six short pages. The side menu has an **account** level that lists them, with the way up "← All publications".
 They are plain links, **no 01/02 badges** (settings are not a sequence), the current page is marked with `aria-current`, and
 the gear in the menu foot is current across the whole group. Each page is titled with `StepHeading` (an `h1` with "Account
-settings" as the small link above it) and has no `NextStep`. Reviewer-only accounts have no account pages.
+settings" as the small link above it) and ends with `NextStep` (Previous and Next, in menu order). Reviewer-only accounts have no account pages.
 
 | Order | Menu label and `h1`   | URL                 | Sections (h2)                            |
 | ----- | --------------------- | ------------------- | ---------------------------------------- |

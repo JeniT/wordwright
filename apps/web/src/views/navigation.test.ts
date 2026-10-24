@@ -313,18 +313,20 @@ describe('step pages', () => {
       http.get('*/api/publications/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
     )
     await renderAt('/p/ada-substack/ideas/i1/research')
-    const next = within(await screen.findByRole('navigation', { name: 'Next step' }))
+    const next = within(await screen.findByRole('navigation', { name: 'Previous and next' }))
     expect(next.getByRole('link', { name: /Next: 02 Read/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/ideas/i1/read',
     )
   })
 
-  it('end the publication’s Note without a next step: ideas start from the landing page', async () => {
+  it('end the publication’s Note with only a way back: ideas start from the landing page', async () => {
     mockApp()
     await renderAt('/p/ada-substack/notes')
     await screen.findByRole('heading', { level: 1, name: 'Note' })
-    expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
+    const pager = within(screen.getByRole('navigation', { name: 'Previous and next' }))
+    expect(pager.getByRole('link', { name: /Previous: 02 Read/ })).toBeInTheDocument()
+    expect(pager.queryByRole('link', { name: /Next/ })).toBeNull()
   })
 })
 

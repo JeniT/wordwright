@@ -106,7 +106,7 @@ describe('the research page', () => {
     )
     expect(await screen.findByText('No research yet.')).toBeInTheDocument()
     // The page ends with the button alone, no sentence beside it.
-    expect(screen.getByRole('navigation', { name: 'Next step' })).toHaveTextContent(
+    expect(screen.getByRole('navigation', { name: 'Previous and next' })).toHaveTextContent(
       /^Next: 02 Read\s*→$/,
     )
     expect(screen.queryByText(/the text of your drafts never is/)).toBeNull() // the form says what is sent

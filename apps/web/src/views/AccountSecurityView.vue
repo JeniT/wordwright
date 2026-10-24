@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import { computed } from 'vue'
 import PasswordSection from '../components/PasswordSection.vue'
 import DevicesSection from '../components/DevicesSection.vue'
@@ -26,5 +27,6 @@ const method = computed(() => {
       <DevicesSection />
       <InvitationBlocksSection />
     </div>
+    <NextStep />
   </div>
 </template>

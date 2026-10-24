@@ -28,7 +28,7 @@ calls the API, and it validates responses with the shared schemas. `src/theme/` 
   _select_; a state of an item or the view is a **switch** (`SwitchField`); actions are buttons; removing is a
   `HoldButton`; long lists page with `usePaging` + `PageNav`.
 - **Navigation:** a new page declares `meta: { level, step }` on its route, titles itself with `StepHeading`, and
-  ends with `NextStep` where a next step makes sense. Numbered steps are always links, never locked; a step that
+  ends with a bare `<NextStep />` (Previous and Next from the route, for steps and settings groups). Numbered steps are always links, never locked; a step that
   calls the AI waits for a button (visiting spends nothing); pages read beside another window set `compact: true`.
   The drafting notes own the `complementary` landmark, so a new page uses no second `aside`. Full rules in
   [design](../design/navigation.md#navigation-the-menu-follows-you). Help pages sit outside the levels

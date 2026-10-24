@@ -25,7 +25,7 @@ const noViolations = async (page: Page, what: string) =>
   expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
 
 const next = (page: Page, label: RegExp) =>
-  page.getByRole('navigation', { name: 'Next step' }).getByRole('link', { name: label })
+  page.getByRole('navigation', { name: 'Previous and next' }).getByRole('link', { name: label })
 
 test('leads through a publication and an idea step by step, without ever locking one', async ({
   page,
@@ -353,4 +353,37 @@ test('on a page read beside another window the menu is a drawer at laptop width 
   await noViolations(page, 'drawer open on a compact page')
   await drawer.getByRole('link', { name: 'Note', exact: true }).click()
   await expect(drawer).toBeHidden()
+})
+
+const pager = (page: Page) => page.getByRole('navigation', { name: 'Previous and next' })
+
+test('previous and next links walk a stepped sequence and a settings sequence, forward and back', async ({
+  page,
+}) => {
+  await signUpWithIdea(page) // an idea's Note step
+
+  // Idea steps: Note sits between Read and Refine.
+  await expect(pager(page).getByRole('link', { name: /Previous: 02 Read/ })).toBeVisible()
+  await pager(page)
+    .getByRole('link', { name: /Next: 04 Refine/ })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Refine' })).toBeVisible()
+  await pager(page)
+    .getByRole('link', { name: /Previous: 03 Note/ })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
+  await noViolations(page, 'Note step with previous and next')
+
+  // Account settings: first page has only Next; the next page has both.
+  await page.goto('/account/details')
+  await expect(pager(page).getByRole('link', { name: /Previous/ })).toHaveCount(0)
+  await pager(page)
+    .getByRole('link', { name: /Next: Your AI/ })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Your AI' })).toBeVisible()
+  await pager(page)
+    .getByRole('link', { name: /Previous: Your details/ })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Your details' })).toBeVisible()
+  await noViolations(page, 'Account settings with previous and next')
 })

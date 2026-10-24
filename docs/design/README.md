@@ -57,7 +57,7 @@ The running app (these are screenshots of the real thing, not mock-ups):
 | `apps/web/src/assets/fonts/`                            | Self-hosted IBM Plex Sans (OFL). No third-party font requests.                                                                                                                                    |
 | `apps/web/src/App.vue`                                  | The shell: side menu (a sticky top bar with edge tabs on phones), skip link, landmarks.                                                                                                           |
 | `apps/web/src/lib/nav.ts`, `components/SideMenu.vue`    | What the side menu lists for where you are (see [navigation.md](navigation.md)).                                                                                                                  |
-| `components/StepHeading.vue`, `components/NextStep.vue` | A numbered step's title, and its \"Next: …\" suggestion.                                                                                                                                          |
+| `components/StepHeading.vue`, `components/NextStep.vue` | A numbered step's title, and its \"← Previous: … / Next: … →\" links.                                                                                                                             |
 
 Tailwind's default colour palette is **switched off** (`--color-*: initial` in `theme.css`). A class like `bg-red-50`
 or `text-stone-600` does nothing, so off-palette colour can't creep in unnoticed. Only the roles in [colour-type-shape.md](colour-type-shape.md#colour-roles) exist.

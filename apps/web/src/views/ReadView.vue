@@ -17,9 +17,6 @@ defineProps<{ publicationId: string }>()
       them to an idea’s articles.
     </Explain>
     <ArticleList :publication-id="publicationId" :idea-id="null" />
-    <NextStep
-      :to="{ name: 'publication-notes', params: { publicationId } }"
-      label="Next: 03 Note"
-    />
+    <NextStep />
   </PublicationGate>
 </template>

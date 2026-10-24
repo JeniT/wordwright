@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import PublicationDescriptionSection from '../components/PublicationDescriptionSection.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import StepHeading from '../components/StepHeading.vue'
@@ -12,6 +13,7 @@ defineProps<{ publicationId: string }>()
     <div class="max-w-xl">
       <StepHeading>Description</StepHeading>
       <PublicationDescriptionSection :key="publication.id" :publication="publication" />
+      <NextStep />
     </div>
   </PublicationGate>
 </template>

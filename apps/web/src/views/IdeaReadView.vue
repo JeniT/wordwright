@@ -12,6 +12,6 @@ defineProps<{ publicationId: string; id: string }>()
   <IdeaGate :id="id" :publication-id="publicationId">
     <StepHeading>Read</StepHeading>
     <ArticleList :publication-id="publicationId" :idea-id="id" />
-    <NextStep :to="{ name: 'idea-notes', params: { publicationId, id } }" label="Next: 03 Note" />
+    <NextStep />
   </IdeaGate>
 </template>

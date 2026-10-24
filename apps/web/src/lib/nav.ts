@@ -245,8 +245,22 @@ export function useNav() {
     return level.value === 'idea' || level.value === 'publication' ? publicationCrumb : []
   })
 
+  /** The page before and after this one in its sequence (the steps, or a group of settings pages), if any. */
+  const neighbours = computed(() => {
+    const list: { key: string; text: string; to: RouteLocationRaw }[] =
+      level.value === 'account'
+        ? accountPages.value.map((p) => ({ key: p.key, text: p.label, to: p.to }))
+        : level.value === 'publication-settings'
+          ? settingsPages.value.map((p) => ({ key: p.key, text: p.label, to: p.to }))
+          : steps.value.map((s) => ({ key: s.key, text: `${s.number} ${s.label}`, to: s.to }))
+    const at = list.findIndex((p) => p.key === stepKey.value)
+    if (at < 0) return { previous: undefined, next: undefined }
+    return { previous: list[at - 1], next: list[at + 1] }
+  })
+
   return {
     level,
+    neighbours,
     publicationId,
     ideaId,
     publication,

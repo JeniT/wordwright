@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import Explain from '../components/Explain.vue'
 import IdeaNotes from '../components/IdeaNotes.vue'
 import PublicationGate from '../components/PublicationGate.vue'
@@ -25,5 +26,6 @@ const reading = useArticleList(() => ({ publicationId: props.publicationId, idea
       :article-list="reading.articles.value ?? []"
       quiet-heading
     />
+    <NextStep />
   </PublicationGate>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import DraftRow from '../components/DraftRow.vue'
 import Explain from '../components/Explain.vue'
@@ -70,5 +71,6 @@ async function saveDraftOrder(ids: string[]) {
         {{ errorMessage(moveDrafts.error.value) }}
       </p>
     </section>
+    <NextStep />
   </IdeaGate>
 </template>

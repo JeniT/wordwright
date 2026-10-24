@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref, watchEffect } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -75,6 +76,7 @@ const deletePublication = useMutation({
         “{{ current.name }}” and all its drafts will be deleted for everyone who shares it. This
         can't be undone.
       </ConfirmDialog>
+      <NextStep />
     </div>
   </PublicationGate>
 </template>

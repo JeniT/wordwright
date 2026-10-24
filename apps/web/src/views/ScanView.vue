@@ -28,6 +28,6 @@ const sources = useSources(() => props.publicationId)
     </div>
     <Explain tutorial-only class="-mt-3 mb-6">{{ RECENT_POSTS_ABOUT }}</Explain>
     <RecentPosts :publication-id="publicationId" />
-    <NextStep :to="{ name: 'read', params: { publicationId } }" label="Next: 02 Read" />
+    <NextStep />
   </PublicationGate>
 </template>

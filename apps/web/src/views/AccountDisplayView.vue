@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NextStep from '../components/NextStep.vue'
 import AppearanceSection from '../components/AppearanceSection.vue'
 import StepHeading from '../components/StepHeading.vue'
 </script>
@@ -9,5 +10,6 @@ import StepHeading from '../components/StepHeading.vue'
     <div class="space-y-10">
       <AppearanceSection />
     </div>
+    <NextStep />
   </div>
 </template>
