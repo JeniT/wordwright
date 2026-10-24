@@ -147,11 +147,10 @@ test('several areas can be researched around one idea, and the research is kept'
   await expect(page.getByRole('article', { name: 'Second area' })).toBeVisible()
 })
 
-test('without an AI key, says where to add one', async ({ page }) => {
+test('without an AI key, the button waits and a link says where to add one', async ({ page }) => {
   await setUp(page, { withKey: false })
   await openResearchTool(page)
   await page.getByLabel('What areas do you want to research?').fill('Anything')
-  await page.getByRole('button', { name: 'Research', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
-  await expect(page.getByRole('alert').getByRole('link', { name: 'Add your AI key' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Research', exact: true })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'Add your AI key' })).toBeVisible()
 })

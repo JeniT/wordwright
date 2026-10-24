@@ -320,14 +320,11 @@ test('titles a conversation, which can be renamed with the edit icon', async ({ 
   await expect(page.getByRole('heading', { level: 2, name: 'Rivers and readers' })).toBeVisible()
 })
 
-test('without an AI key, says where to add one and keeps the way open to try again', async ({
-  page,
-}) => {
+test('without an AI key, the button waits and a link says where to add one', async ({ page }) => {
   await setUp(page, { withKey: false })
-  await startBrainstorming(page)
-  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
-  await expect(page.getByRole('alert').getByRole('link', { name: 'Add your AI key' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Refine with your AI' })).toBeVisible()
+  await goTo(page, 'Refine')
+  await expect(page.getByRole('button', { name: 'Refine with your AI' })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'Add your AI key' })).toBeVisible()
   await noViolations(page, 'brainstorm page asking for a key')
 })
 
@@ -353,15 +350,10 @@ test('the idea’s page starts the conversation, and carries a reply into it', a
   await expect(page).not.toHaveURL(/lazy/)
 })
 
-test('without an AI key, a reply from the idea’s page lands where the key is asked for', async ({
-  page,
-}) => {
+test('without an AI key, the idea’s page waits too and says where to add one', async ({ page }) => {
   await setUp(page, { withKey: false })
   await page.getByRole('banner').getByRole('link', { name: 'Why rivers meander' }).click()
-  await page
-    .getByRole('region', { name: 'Refine' })
-    .getByRole('button', { name: 'Refine with your AI' })
-    .click()
-  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
-  await expect(page.getByRole('alert').getByRole('link', { name: 'Add your AI key' })).toBeVisible()
+  const refine = page.getByRole('region', { name: 'Refine' })
+  await expect(refine.getByRole('button', { name: 'Refine with your AI' })).toBeDisabled()
+  await expect(refine.getByRole('link', { name: 'Add your AI key' })).toBeVisible()
 })

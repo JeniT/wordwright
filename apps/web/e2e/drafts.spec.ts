@@ -268,10 +268,9 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
-  // No key yet: we're pointed at account settings rather than silently failing.
-  await page.getByRole('button', { name: 'Critique' }).click()
-  await expect(page.getByRole('alert')).toContainText('Your AI needs your key first.')
-  await page.getByRole('alert').getByRole('link', { name: 'Add your AI key' }).click()
+  // No key yet: the button waits, and we're pointed at account settings.
+  await expect(page.getByRole('button', { name: 'Critique' })).toBeDisabled()
+  await page.getByRole('link', { name: 'Add your AI key' }).click()
 
   await page.getByLabel('Anthropic API key').fill('sk-ant-e2e-test-key-1234')
   await page.getByRole('button', { name: 'Save key' }).first().click()

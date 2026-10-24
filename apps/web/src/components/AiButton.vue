@@ -12,8 +12,10 @@ import Icon from './Icon.vue'
  * button's own `btn` classes, an AI icon beside the label, and a spinner in the icon's place while it works. The
  * label never changes, so the button keeps its width. The icon is explained in words as a tooltip and as the
  * button's description; while busy the button is disabled, `aria-busy`, and `busyText` is read out. Under reduced
- * motion the mark stays still. With no key saved yet, a link to where one is added sits beside it (the button still
- * works; the server's own error says the same if it is pressed). Buttons that make no AI call never use this. See docs/design/components.md.
+ * motion the mark stays still. Once the settings say there is no key, the button is disabled, with the reason as its
+ * tooltip and description, and a link to where a key is added sits beside it. Until the settings load (or if they
+ * cannot be read) it stays enabled, and a key the provider later rejects is reported by the server's own error.
+ * Buttons that make no AI call never use this. See docs/design/components.md.
  */
 defineOptions({ inheritAttrs: false })
 const props = withDefaults(
@@ -22,27 +24,30 @@ const props = withDefaults(
 )
 const attrs = useAttrs()
 const hintId = useId()
+const noKeyId = useId()
 const llm = useQuery({ queryKey: queryKeys.llm(), queryFn: () => api.getLlmSettings() })
 const hint = computed(() => aiHint(llm.data.value?.provider))
 // Only once the settings have loaded and say there is no key, so it never flashes for someone who has one.
 const noKey = computed(() => llm.data.value?.hasKey === false)
-const describedBy = computed(() => [attrs['aria-describedby'], hintId].filter(Boolean).join(' '))
+const describedBy = computed(() =>
+  [attrs['aria-describedby'], noKey.value ? noKeyId : undefined, hintId].filter(Boolean).join(' '),
+)
 </script>
 
 <template>
   <button
     type="button"
     v-bind="attrs"
-    :disabled="props.disabled || props.busy"
+    :disabled="props.disabled || props.busy || noKey"
     :aria-busy="props.busy"
     :aria-describedby="describedBy"
-    :title="hint"
+    :title="noKey ? 'Add your AI key to use this' : hint"
   >
     <Icon v-if="props.busy" name="working" class="motion-safe:animate-spin" />
     <Icon v-else name="ai" />
     <slot />
   </button>
-  <span v-if="noKey" class="meta">
+  <span v-if="noKey" :id="noKeyId" class="meta">
     <RouterLink :to="{ name: 'account-ai' }" class="link">Add your AI key</RouterLink> to use this
   </span>
   <span :id="hintId" class="sr-only">{{ hint }}</span>

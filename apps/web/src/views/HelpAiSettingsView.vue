@@ -11,7 +11,9 @@ import Icon from '../components/Icon.vue'
       A button with this mark
       <Icon name="ai" :size="16" class="inline align-text-bottom" />
       sends your text to your AI and uses your key, so it costs tokens. While it works, the mark
-      turns into a spinner. Buttons without the mark never send anything. Before you start, read the
+      turns into a spinner. Until you have saved a key, these buttons are greyed out, with a link
+      beside them to add one. Buttons without the mark never send anything. Before you start, read
+      the
       <RouterLink to="/help/privacy" class="link">privacy advice</RouterLink>.
     </p>
     <h2 class="mb-1 font-display text-xl font-semibold">Why critiques are limited</h2>

@@ -1,5 +1,6 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { render, screen } from '@testing-library/vue'
+import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { llmSettings, server, useMockServer } from '../test-utils'
@@ -67,12 +68,39 @@ describe('AiButton', () => {
     expect(button()).toHaveAttribute('type', 'button')
   })
 
-  it('with no key saved, points to where one is added and still works', async () => {
+  it('with no key saved, is disabled with the reason, and points to where a key is added', async () => {
     server.use(llmSettings(false))
     show()
     const link = await screen.findByRole('link', { name: 'Add your AI key' })
     expect(link).toHaveAttribute('href', '/account/ai')
+    expect(button()).toBeDisabled()
+    expect(button()).toHaveAttribute('aria-busy', 'false')
+    expect(button()).toHaveAccessibleDescription(
+      'Add your AI key to use this Uses your Anthropic key, so it costs tokens',
+    )
+    expect(button()).toHaveAttribute('title', 'Add your AI key to use this')
+  })
+
+  it('once a key is saved, is enabled again', async () => {
+    server.use(llmSettings(true))
+    show()
+    await screen.findByText('Uses your Anthropic key, so it costs tokens')
     expect(button()).toBeEnabled()
+    expect(button()).toHaveAttribute('title', 'Uses your Anthropic key, so it costs tokens')
+  })
+
+  it('while the settings load, is not disabled and shows no link (no flash)', () => {
+    show()
+    expect(button()).toBeEnabled()
+    expect(screen.queryByRole('link', { name: 'Add your AI key' })).toBeNull()
+  })
+
+  it('if the settings cannot be read, stays enabled: the server says what is wrong when it is pressed', async () => {
+    server.use(http.get('*/api/llm', () => HttpResponse.json({ error: 'nope' }, { status: 500 })))
+    show()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(button()).toBeEnabled()
+    expect(screen.queryByRole('link', { name: 'Add your AI key' })).toBeNull()
   })
 
   it('with a key, or before the settings load, shows no such link', async () => {

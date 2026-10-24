@@ -44,6 +44,10 @@ before it is pressed and while it works (`docs/responsible-ai.md`: the writer is
   same wait). Under reduced motion the spinner stays still: the busy button and its words are the signal.
 - **Meaning:** the icon is never alone. The words "Uses your Anthropic key, so it costs tokens" are the button's
   tooltip and its accessible description, and the help page "Your AI settings" (`/help/ai-settings`, linked from the info icon on Your AI) explains the mark once.
+- **No key:** once the saved settings say there is no AI key, the button is disabled, its tooltip and description say
+  "Add your AI key to use this", and the link **Add your AI key** (to `/account/ai`) sits beside it. While the settings
+  load, or if they cannot be read, the button stays enabled (no flash of disabled); a key the provider later rejects
+  is still reported by the server's message in `AiProblemAlert`. This reverses #290's choice to leave the button live (#365).
 - **Which buttons:** the ones whose press makes an LLM request (Critique, Brainstorm's Start/Send/Try again, Research,
   Research) and the ones that hand straight over to one (the Send and Start on an idea's landing page,
   which open the conversation where the reply is written). Not the buttons around them: Add note, Accept or
