@@ -132,6 +132,32 @@ test('a new draft is titled with its idea, and a long title wraps on a phone', a
   await expect(title).toHaveValue(long) // Return added no line break
 })
 
+test('on a phone the formatting toolbar is pinned to the bottom of the screen, clear of the text (#380)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 700 })
+  await registerUser(page)
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await body.click()
+  await page.keyboard.type(Array.from({ length: 40 }, (_, i) => `Line ${i + 1}.`).join('\n\n'))
+
+  const toolbar = page.getByRole('toolbar', { name: 'Formatting' })
+  const box = (await toolbar.boundingBox())!
+  expect(box.y + box.height, 'the toolbar sits at the bottom of the screen').toBeGreaterThan(660)
+  await expect(page.getByTestId('word-count'), 'the word count stays at the top').toBeInViewport()
+  expect((await page.getByTestId('word-count').boundingBox())!.y).toBeLessThan(120)
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  const last = (await body.locator('p').last().boundingBox())!
+  expect(last.y + last.height, 'the last line scrolls clear of the toolbar').toBeLessThanOrEqual(
+    (await toolbar.boundingBox())!.y,
+  )
+})
+
 test('a draft saves itself while you write, and the words are there after a reload', async ({
   page,
 }) => {
