@@ -1,4 +1,4 @@
-# Related-work links: fetched titles, and why fetching user-supplied addresses is locked down
+# Article links: fetched titles, and why fetching user-supplied addresses is locked down
 
 Links are added by address alone; the server fetches the page and keeps its `<title>` (or `og:title`) as the link's
 title, shown instead of the address. A title that is wrong or missing can be edited, and clearing it fetches again.

@@ -111,14 +111,11 @@ separate Scaleway project, a private bucket with versioning and an expiry rule, 
 project, then writes the settings to `~/wordwright/offsite.env` on the server (mode 600). After that, **every
 `backup.sh` run, so every night, also uploads the new backup** with `deploy/offsite.sh`.
 
-- **Encrypted first.** rclone's "crypt" encrypts each file, and its name, on the server with a password and a salt
-  that the wizard makes for you and shows once. **Put them in your password manager** next to `KEY_ENCRYPTION_SECRET`:
-  without them the off-site backups cannot be opened by anyone, you included. Scaleway holds only scrambled files.
+- **Encrypted first.** The wizard makes an encryption password and a salt and shows them once. **Put them in your password
+  manager** next to `KEY_ENCRYPTION_SECRET`: without them the off-site backups cannot be opened by anyone, you included.
 - **Storage class: Standard Multi-AZ** (leave the size boxes at 0: they are only a cost estimate). Not Glacier, which is
   archive storage: slow and costly to get a backup back from, with minimum storage periods that our 30-day expiry would
   not meet.
-- **Why a separate project and key.** The key on the server can only reach the backups bucket, nothing else you have
-  at Scaleway. It can delete in that bucket, which is why the bucket has versioning: a deletion can be undone.
 - **The lifecycle rule** (set on a separate page after the bucket is created), for all objects: expire the current version
   after **30** days; non-current versions **7** days after they become non-current, with "non-current versions to
   retain" at **0** (a higher number keeps deleted backups for ever, since each backup name has at most one old version);
@@ -128,8 +125,8 @@ project, then writes the settings to `~/wordwright/offsite.env` on the server (m
 - **A failed upload** leaves the local backup in place but makes the nightly run fail (`systemctl status
 wordwright-backup.service`, `journalctl -u wordwright-backup.service`). A 403 means the key or its policy, a 404 the
   bucket name or region. A mistyped bucket name is an error, never a new bucket (the wizard turns bucket creation off).
-- **rclone** runs from a pinned container image (`RCLONE_IMAGE` in `deploy/offsite.sh`), so nothing is installed on the
-  server and the version only changes when someone changes that line.
+
+The reasons for these choices (why Scaleway, why encrypt first, why the key may delete but the bucket is versioned, why rclone is pinned) are in [the decision](adr/go-live-and-operations/off-site-backups-scaleway-object-storage-encrypted-before-upload.md).
 
 On the server, in `~/wordwright`:
 
