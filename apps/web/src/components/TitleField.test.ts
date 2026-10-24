@@ -5,7 +5,7 @@ import TitleField from './TitleField.vue'
 describe('TitleField', () => {
   const long = 'A very long title that will need several lines to be read on a narrow phone screen'
 
-  it('shows a long title in a wrapping, one-row-to-start field', () => {
+  it('is a textarea, so a long title can wrap, and shows the whole title', () => {
     render(TitleField, { props: { id: 't', modelValue: long } })
     const field = screen.getByRole('textbox') as HTMLTextAreaElement
     expect(field.tagName).toBe('TEXTAREA')

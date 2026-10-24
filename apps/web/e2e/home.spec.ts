@@ -83,10 +83,12 @@ test('adds an idea, a note and something to read from Home, then continues a dra
     'What pruning teaches',
   )
   await page.goto(ideaUrl)
-  await expect(page.getByRole('region', { name: 'Keep writing' })).toContainText('Untitled')
+  await expect(page.getByRole('region', { name: 'Keep writing' })).toContainText(
+    'What pruning teaches',
+  )
 
   await page.goto('/')
-  await keepWriting.getByRole('link', { name: /Untitled/ }).click()
+  await keepWriting.getByRole('link', { name: /What pruning teaches/ }).click()
   await expect(page).toHaveURL(/\/drafts\//)
 })
 

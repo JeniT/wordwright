@@ -8,6 +8,7 @@ import { nextTick, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue
 const props = defineProps<{ id: string; readonly?: boolean; placeholder?: string }>()
 const model = defineModel<string>({ default: '' })
 const emit = defineEmits<{ enter: [] }>()
+let observer: ResizeObserver | undefined
 const field = useTemplateRef<HTMLTextAreaElement>('field')
 
 function grow() {
@@ -25,15 +26,19 @@ function onInput(event: Event) {
 function onEnter(event: KeyboardEvent) {
   if (event.isComposing) return
   event.preventDefault()
+  if (props.readonly) return
   emit('enter')
 }
 watch(model, () => nextTick(grow))
 onMounted(() => {
   grow()
-  window.addEventListener('resize', grow) // a narrower window wraps more lines
+  // A narrower window wraps more lines, and a field mounted in a hidden tab measures 0 until it is shown.
+  if (typeof ResizeObserver !== 'undefined' && field.value) {
+    observer = new ResizeObserver(grow)
+    observer.observe(field.value)
+  }
 })
-onBeforeUnmount(() => window.removeEventListener('resize', grow))
-defineExpose({ focus: () => field.value?.focus() })
+onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>

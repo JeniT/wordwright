@@ -185,7 +185,7 @@ test('leads through a publication and an idea step by step, without ever locking
   await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
   await page.goBack()
   await expect(
-    page.getByRole('list', { name: 'Drafts' }).getByRole('link', { name: /Untitled/ }),
+    page.getByRole('list', { name: 'Drafts' }).getByRole('link', { name: /What pruning teaches/ }),
   ).toBeVisible()
 })
 
