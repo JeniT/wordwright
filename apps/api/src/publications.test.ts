@@ -829,11 +829,13 @@ describe('publication site icon', () => {
   it('keeps its articles, notes and log of moves when it is renamed', async () => {
     const created = await (await ada.post('/api/publications', { name: 'Garden' })).json()
     const api = `/api/publications/${created.id}`
-    const item = (await (await ada.post(`${api}/reading`, { url: 'https://a.example/' })).json())[0]
-    await ada.post(`${api}/notes`, { text: 'A note', readingItemId: item.id })
+    const item = (
+      await (await ada.post(`${api}/articles`, { url: 'https://a.example/' })).json()
+    )[0]
+    await ada.post(`${api}/notes`, { text: 'A note', articleId: item.id })
     const idea = await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()
     const other = await (await ada.post('/api/publications', { name: 'Other' })).json()
-    await ada.post(`${api}/move/reading`, {
+    await ada.post(`${api}/move/articles`, {
       ids: [item.id],
       to: { ideaId: null, publicationId: other.id },
     })
@@ -852,10 +854,10 @@ describe('publication site icon', () => {
     expect(ctx.store.moves.list(other.id)).toHaveLength(2)
     // And an item on its list still belongs to it.
     const second = (
-      await (await ada.post(`${after}/reading`, { url: 'https://b.example/' })).json()
+      await (await ada.post(`${after}/articles`, { url: 'https://b.example/' })).json()
     )[0]
     expect(second.url).toBe('https://b.example/')
-    await ada.post(`${after}/move/reading`, { ids: [second.id], to: { ideaId: idea.id } })
+    await ada.post(`${after}/move/articles`, { ids: [second.id], to: { ideaId: idea.id } })
     expect(ctx.store.moves.list(renamed)).toHaveLength(3)
   })
 

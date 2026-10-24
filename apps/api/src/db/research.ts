@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { ReadingCheck, ResearchItem, ResearchRun } from '@wordwright/core'
+import type { ArticleCheck, ResearchItem, ResearchRun } from '@wordwright/core'
 import { nowIso } from './database'
 
 export interface NewResearchItem {
   url: string
   title: string
   why: string
-  check: ReadingCheck
+  check: ArticleCheck
   fetchedTitle: string | null
   fetchedAuthors: string[]
 }
@@ -82,34 +82,36 @@ export class ResearchStore {
     )
   }
 
-  /** Marks a page added, remembering the reading-list item that adding it made. */
-  markAdded(researchId: string, itemId: string, linkId: string): boolean {
+  /** Marks a page added, remembering the article that adding it made. */
+  markAdded(researchId: string, itemId: string, articleId: string): boolean {
     return (
       this.db
         .prepare(
-          `UPDATE idea_research_items SET status = 'added', link_id = ?
+          `UPDATE idea_research_items SET status = 'added', article_id = ?
            WHERE research_id = ? AND id = ? AND status = 'suggested'`,
         )
-        .run(linkId, researchId, itemId).changes > 0
+        .run(articleId, researchId, itemId).changes > 0
     )
   }
 
   /**
-   * Puts a decided page back to waiting for a decision. Returns the reading-list item it had made, if it still
+   * Puts a decided page back to waiting for a decision. Returns the article it had made, if it still
    * exists, for the caller to remove; undefined when the page wasn't decided.
    */
-  reopen(researchId: string, itemId: string): { linkId: string | null } | undefined {
+  reopen(researchId: string, itemId: string): { articleId: string | null } | undefined {
     const row = this.db
       .prepare(
-        `SELECT link_id FROM idea_research_items
+        `SELECT article_id FROM idea_research_items
          WHERE research_id = ? AND id = ? AND status <> 'suggested'`,
       )
-      .get(researchId, itemId) as { link_id: string | null } | undefined
+      .get(researchId, itemId) as { article_id: string | null } | undefined
     if (!row) return undefined
     this.db
-      .prepare(`UPDATE idea_research_items SET status = 'suggested', link_id = NULL WHERE id = ?`)
+      .prepare(
+        `UPDATE idea_research_items SET status = 'suggested', article_id = NULL WHERE id = ?`,
+      )
       .run(itemId)
-    return { linkId: row.link_id }
+    return { articleId: row.article_id }
   }
 
   delete(ideaId: string, id: string): boolean {
@@ -128,7 +130,7 @@ export class ResearchStore {
         url: i.url as string,
         title: i.title as string,
         why: i.why as string,
-        check: i.check_status as ReadingCheck,
+        check: i.check_status as ArticleCheck,
         fetchedTitle: (i.fetched_title as string | null) ?? null,
         fetchedAuthors: JSON.parse(i.fetched_authors as string) as string[],
         status: i.status as ResearchItem['status'],

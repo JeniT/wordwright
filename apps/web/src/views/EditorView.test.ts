@@ -3,7 +3,7 @@ import type { Editor } from '@tiptap/vue-3'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blockHash } from '@wordwright/core'
-import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
+import { NOTE_DRAG_TYPE, ARTICLE_DRAG_TYPE } from '../lib/note-drag'
 import { expectNoLoneInfoIcons } from '../testing/info-icons'
 import {
   chooseTag,
@@ -64,7 +64,7 @@ function mockEditor(
         publicationId: 'p1',
         name: 'An idea',
         notes: '',
-        links: [],
+        articles: [],
         drafts: [],
         pendingSuggestions: 0,
         createdAt: '2026-01-01T00:00:00Z',
@@ -649,7 +649,7 @@ const note = (
   extra: Partial<{
     origin: string
     authorName: string | null
-    readingItemId: string | null
+    articleId: string | null
     quote: boolean
     addedAt: string | null
   }> = {},
@@ -659,7 +659,7 @@ const note = (
   origin: 'entered',
   authorId: 'u1',
   authorName: 'Ada',
-  readingItemId: null,
+  articleId: null,
   tags: [] as string[],
   quote: false,
   addedAt: null,
@@ -685,18 +685,18 @@ function mockDrafting(
   start: {
     notes?: ReturnType<typeof note>[]
     insertions?: ReturnType<typeof insertion>[]
-    /** When the reading-list item (l1, "A paper") was marked read; null while it isn't. */
+    /** When the article (l1, "A paper") was marked read; null while it isn't. */
     readAt?: string | null
     authors?: string[]
     /** Replaces the articles (by default just l1, "A paper"). */
-    links?: { id: string; title: string; tags: string[] }[]
+    articles?: { id: string; title: string; tags: string[] }[]
   } = {},
 ) {
   const state = {
     notes: start.notes ?? [
       note('n1', 'Erosion loops.'),
       note('n2', 'Deposition inside the bend.', { origin: 'brainstorm' }),
-      note('n3', 'A useful quote.', { origin: 'reading', readingItemId: 'l1', authorName: 'Bob' }),
+      note('n3', 'A useful quote.', { origin: 'reading', articleId: 'l1', authorName: 'Bob' }),
       note('n4', 'Already used.', { addedAt: '2026-01-02T00:00:00Z' }),
     ],
     insertions: start.insertions ?? [],
@@ -715,8 +715,8 @@ function mockDrafting(
     publicationId: 'p1',
     name: 'An idea',
     notes: '',
-    links: start.links
-      ? start.links.map((l) => ({
+    articles: start.articles
+      ? start.articles.map((l) => ({
           ...l,
           url: `https://example.org/${l.id}`,
           authors: [],
@@ -752,7 +752,7 @@ function mockDrafting(
       }),
     ),
     http.get('*/api/publications/p1/ideas/i1', () => HttpResponse.json(ideaNow())),
-    http.put('*/api/publications/p1/ideas/i1/links/l1/read', async ({ request }) => {
+    http.put('*/api/publications/p1/ideas/i1/articles/l1/read', async ({ request }) => {
       const body = (await request.json()) as { read: boolean }
       if (state.markFails) return HttpResponse.json({ error: 'boom' }, { status: 500 })
       state.markedRead.push(body)
@@ -874,7 +874,7 @@ describe('the notes beside the draft', () => {
       await waitFor(() => expect(within(drawer()).queryByText('Erosion loops.')).toBeNull()) // gone from the list
     })
 
-    it('adds a link to the reading-list item a note came from', async () => {
+    it('adds a link to the article a note came from', async () => {
       const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
       await fireEvent.click(
@@ -895,7 +895,7 @@ describe('the notes beside the draft', () => {
         notes: [
           note('n1', 'Meanders grow.\nBends move.', {
             origin: 'reading',
-            readingItemId: 'l1',
+            articleId: 'l1',
             quote: true,
           }),
         ],
@@ -1006,12 +1006,12 @@ describe('the notes beside the draft', () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await showTab('Articles')
-      const drag = carrying(READING_DRAG_TYPE, '')
+      const drag = carrying(ARTICLE_DRAG_TYPE, '')
       const rail = (await screen.findByText('Not marked as read'))
         .closest('li')!
         .querySelector('[data-testid="rail"]')!
       await fireEvent.dragStart(rail, drag)
-      expect(drag.dataTransfer.setData).toHaveBeenCalledWith(READING_DRAG_TYPE, 'l1')
+      expect(drag.dataTransfer.setData).toHaveBeenCalledWith(ARTICLE_DRAG_TYPE, 'l1')
       expect(drag.dataTransfer.effectAllowed).toBe('copy')
     })
 
@@ -1022,7 +1022,7 @@ describe('the notes beside the draft', () => {
       })
       await renderAt('/p/p1/drafts/d1')
       await screen.findByText('Erosion loops.')
-      await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'l1'))
+      await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'l1'))
 
       await waitFor(() => expect(api.saved).toHaveLength(1))
       expect(api.saved[0]!.body).toContain(
@@ -1035,7 +1035,7 @@ describe('the notes beside the draft', () => {
       const api = mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await screen.findByText('Erosion loops.')
-      await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'l1'))
+      await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'l1'))
       expect(
         await screen.findByRole('dialog', { name: 'You haven’t marked this as read' }),
       ).toBeInTheDocument()
@@ -1046,7 +1046,7 @@ describe('the notes beside the draft', () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await screen.findByText('Erosion loops.')
-      await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'gone'))
+      await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'gone'))
       expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that article")
     })
 
@@ -1145,7 +1145,7 @@ describe('the notes beside the draft', () => {
             publicationId: 'p1',
             name: 'An idea',
             notes: '',
-            links: [],
+            articles: [],
             drafts: [],
             pendingSuggestions: 0,
             createdAt: '2026-01-01T00:00:00Z',
@@ -1247,7 +1247,7 @@ describe('the notes beside the draft', () => {
         await fireEvent.click(within(await dialog()).getByRole('button', { name: 'Read it now' }))
 
         await waitFor(() =>
-          expect(open).toHaveBeenCalledWith('/p/p1/ideas/i1/reading/l1', '_blank', 'noopener'),
+          expect(open).toHaveBeenCalledWith('/p/p1/ideas/i1/articles/l1', '_blank', 'noopener'),
         )
         expect(await screen.findByText(/Opened “A paper” in a new tab/)).toBeInTheDocument()
         expect(api.markedRead).toEqual([])
@@ -1320,7 +1320,7 @@ describe('the notes beside the draft', () => {
 
     it('are shown in the articles, which can be narrowed to those with all the chosen tags', async () => {
       mockDrafting({
-        links: [
+        articles: [
           { id: 'l1', title: 'A paper', tags: ['background', 'part 2'] },
           { id: 'l2', title: 'Other', tags: ['background'] },
           { id: 'l3', title: 'Bare', tags: [] },
@@ -1344,7 +1344,7 @@ describe('the notes beside the draft', () => {
 
     it('says so when no article has all the chosen tags', async () => {
       mockDrafting({
-        links: [
+        articles: [
           { id: 'l1', title: 'A paper', tags: ['a'] },
           { id: 'l2', title: 'Other', tags: ['b'] },
         ],

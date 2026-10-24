@@ -1,6 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 
-/** Anything that carries tags: a note, a reading-list item. */
+/** Anything that carries tags: a note, an article. */
 type Tagged = { tags: readonly string[] }
 
 /** "intro, Part 2 , " → ["intro", "Part 2"]: tidied, empty ones dropped, repeats (ignoring case) dropped. */

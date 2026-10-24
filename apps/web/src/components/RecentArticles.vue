@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
-import { readingRoute, useReadingList } from '../lib/reading'
+import { articleRoute, useArticleList } from '../lib/articles'
 import LandingSection from './LandingSection.vue'
 import QueryState from './QueryState.vue'
 import RowList from './RowList.vue'
@@ -22,9 +22,9 @@ const props = defineProps<{
 }>()
 const SHOWN = 5
 
-const list = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
+const list = useArticleList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 // Read items are out of the way on the full list by default, and so they are here.
-const unread = computed(() => (list.links.value ?? []).filter((l) => !l.readAt))
+const unread = computed(() => (list.articles.value ?? []).filter((l) => !l.readAt))
 const top = computed(() => unread.value.slice(0, SHOWN))
 const host = (url: string) => {
   try {
@@ -49,7 +49,7 @@ const host = (url: string) => {
     <QueryState :query="list" what="the articles">
       <p v-if="!top.length" class="text-ink-soft">
         {{
-          list.links.value?.length
+          list.articles.value?.length
             ? 'You have read everything on the list.'
             : 'Nothing in the articles yet.'
         }}
@@ -57,7 +57,7 @@ const host = (url: string) => {
       <RowList v-else :items="top" label="To read" bare>
         <template #default="{ item: link }">
           <RouterLink
-            :to="readingRoute({ publicationId, ideaId }, link.id)"
+            :to="articleRoute({ publicationId, ideaId }, link.id)"
             class="block px-4 py-3 no-underline hover:bg-sunken"
           >
             <span class="block font-medium break-words">{{ link.title || link.url }}</span>

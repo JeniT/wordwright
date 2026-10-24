@@ -39,7 +39,7 @@ test('reads and takes notes before there is an idea: a publication’s articles 
   await page.getByRole('button', { name: 'Add article' }).click()
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
-  ).toHaveAttribute('href', /\/reading\//)
+  ).toHaveAttribute('href', /\/articles\//)
   await expect(
     page.getByRole('link', { name: /^example\.org Fake title for example\.org/ }),
   ).toHaveAttribute('href', 'https://example.org/meanders')

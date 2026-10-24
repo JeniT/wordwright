@@ -14,7 +14,7 @@ type Preview = {
   ideas: number
   drafts: number
   notes: number
-  links: number
+  articles: number
   losingAccess: string[]
   problem: string | null
 }
@@ -55,7 +55,7 @@ describe('moving ideas to another publication (#194)', () => {
     draft = made.id
     idea = (await (await ada.get(`${api(source)}/ideas`)).json())[0].id
     await ada.post(`${api(source)}/ideas/${idea}/notes`, { text: 'A note' })
-    await ada.post(`${api(source)}/ideas/${idea}/links`, { url: 'https://a.example/' })
+    await ada.post(`${api(source)}/ideas/${idea}/articles`, { url: 'https://a.example/' })
   })
 
   describe('what moves', () => {
@@ -70,7 +70,7 @@ describe('moving ideas to another publication (#194)', () => {
       expect((await ideasIn(ada, dest)).map((i) => i.id)).toEqual([idea])
       const moved = await (await ada.get(`${api(dest)}/ideas/${idea}`)).json()
       expect(moved).toMatchObject({ publicationId: dest, drafts: [{ id: draft }] })
-      expect(moved.links).toHaveLength(1)
+      expect(moved.articles).toHaveLength(1)
       expect(await (await ada.get(`${api(dest)}/ideas/${idea}/notes`)).json()).toHaveLength(1)
       expect((await ada.get(`${api(dest)}/drafts/${draft}`)).status).toBe(200)
       // Comments keep their names and the critique keeps its look (the limit is not reset).
@@ -93,7 +93,7 @@ describe('moving ideas to another publication (#194)', () => {
 
     it('stops an article coming from a feed it no longer belongs to', async () => {
       const feed = ctx.store.sources.add(source, 'https://news.example/feed')
-      const item = ctx.store.reading.add(
+      const item = ctx.store.articles.add(
         source,
         idea,
         { url: 'https://b.example/', title: 'B', sourceId: feed.id },
@@ -101,7 +101,7 @@ describe('moving ideas to another publication (#194)', () => {
       )
       await move(ada, [idea])
       const row = ctx.db
-        .prepare('SELECT publication_id, source_id FROM idea_links WHERE id = ?')
+        .prepare('SELECT publication_id, source_id FROM articles WHERE id = ?')
         .get(item.id)
       expect(row).toEqual({ publication_id: dest, source_id: null })
     })
@@ -244,7 +244,7 @@ describe('moving ideas to another publication (#194)', () => {
         ideas: 1,
         drafts: 1,
         notes: 1,
-        links: 1,
+        articles: 1,
         losingAccess: ['Bob'],
         problem: null,
       })

@@ -52,7 +52,7 @@ describe('migrations', () => {
   it('leaves icons stored before their shape was recorded unchecked, to be backfilled (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -12))
+    migrate(db, 'test', MIGRATIONS.slice(0, -14))
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -67,7 +67,7 @@ describe('migrations', () => {
   it('clears icon shapes worked out by the first rule, so the backfill looks again (#226)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -12))
+    migrate(db, 'test', MIGRATIONS.slice(0, -14))
     db.exec(`INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 't')`)
     db.exec(
       `INSERT INTO publication_site_icons (publication_id, content_type, data, updated_at, square) VALUES ('p', 'image/png', x'00', 't', 0)`,
@@ -79,7 +79,7 @@ describe('migrations', () => {
   it('deletes stored brainstorming prompts, which nobody can use any more (#205)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -14)) // before the prompts migration (the last but thirteen)
+    migrate(db, 'test', MIGRATIONS.slice(0, -16)) // before the prompts migration (the last but fifteen)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -91,7 +91,7 @@ describe('migrations', () => {
   it('give a session from before devices were listed an id and a last-used time (#165)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -17)) // before the sessions migration (the last but sixteen)
+    migrate(db, 'test', MIGRATIONS.slice(0, -19)) // before the sessions migration (the last but eighteen)
     db.exec(
       `INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')`,
     )
@@ -193,17 +193,17 @@ describe('migrations', () => {
       INSERT INTO publication_members VALUES ('p', 'u1', 'owner', 'x');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 'x', 'x');
       INSERT INTO drafts (id, publication_id, idea_id, title, body, created_at, updated_at) VALUES ('d', 'p', 'i', 't', 'b', 'x', 'x');
-      INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', NULL, 'https://x.example', 'x', 'x');
+      INSERT INTO articles (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', NULL, 'https://x.example', 'x', 'x');
       INSERT INTO publication_aliases VALUES ('u1-old', 'p');
       INSERT INTO publications (id, name, created_at) VALUES ('q', 'Q', 'x');
-      INSERT INTO moves (id, batch_id, publication_id, moved_at, kind, item_id, to_publication_id) VALUES ('m', 'b', 'q', 'x', 'reading', 'l', 'p');
+      INSERT INTO moves (id, batch_id, publication_id, moved_at, kind, item_id, to_publication_id) VALUES ('m', 'b', 'q', 'x', 'article', 'l', 'p');
     `)
     db.exec("DELETE FROM publications WHERE id = 'p'")
     for (const table of [
       'publication_members',
       'ideas',
       'drafts',
-      'idea_links',
+      'articles',
       'publication_aliases',
       'moves', // the log of a move out of another publication goes with the one it went into
     ]) {
@@ -276,7 +276,7 @@ describe('migrations', () => {
   it("turns each idea's existing thread into its first conversation, and leaves empty ideas without one (#289)", () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -11)) // the schema as it was: one thread per idea
+    migrate(db, 'test', MIGRATIONS.slice(0, -13)) // the schema as it was: one thread per idea
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i1', 'p', 'One', 't', 't');
@@ -305,7 +305,7 @@ describe('migrations', () => {
   it('leaves existing conversations without a title, which only the AI or a person can then give (#294)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -10)) // conversations, but no titles yet
+    migrate(db, 'test', MIGRATIONS.slice(0, -12)) // conversations, but no titles yet
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
@@ -325,7 +325,7 @@ describe('migrations', () => {
   it('leaves earlier suggestions without an author and unedited, and lets a leaving member go (#306)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -7))
+    migrate(db, 'test', MIGRATIONS.slice(0, -9))
     db.exec(`
       INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't');
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
@@ -350,7 +350,7 @@ describe('migrations', () => {
   it('keeps existing suggestions when the table is rebuilt to allow suggested notes (#295)', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -9)) // suggestions that can only be titles, ideas and pages
+    migrate(db, 'test', MIGRATIONS.slice(0, -11)) // suggestions that can only be titles, ideas and pages
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
@@ -430,7 +430,7 @@ describe('the private alpha migration (#328)', () => {
   it('approves the accounts that already exist, makes none an admin, and refuses an unknown state', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
-    migrate(db, 'test', MIGRATIONS.slice(0, -1))
+    migrate(db, 'test', MIGRATIONS.slice(0, -3))
     db.exec(
       "INSERT INTO users (id, name, email, created_at) VALUES ('u', 'Ada', 'a@example.com', 't')",
     )
@@ -439,5 +439,38 @@ describe('the private alpha migration (#328)', () => {
       { approval: 'approved', is_admin: 0 },
     ])
     expect(() => db.exec("UPDATE users SET approval = 'maybe'")).toThrow()
+  })
+})
+
+describe('the Article rename migration (#368)', () => {
+  it('keeps every article, its tags, the notes taken from it and the moves, under the new names', () => {
+    const db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, 'test', MIGRATIONS.slice(0, -2)) // the schema as it was: links and reading items
+    db.exec(`
+      INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'x');
+      INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 'x', 'x');
+      INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', 'i', 'https://x.example', 'X', 'x');
+      INSERT INTO idea_link_tags (link_id, tag) VALUES ('l', 'history');
+      INSERT INTO idea_notes (id, publication_id, idea_id, text, origin, position, created_at, updated_at, reading_item_id)
+        VALUES ('n', 'p', 'i', 'a note', 'reading', 0, 'x', 'x', 'l');
+      INSERT INTO moves (id, batch_id, publication_id, moved_at, kind, item_id) VALUES ('m1', 'b', 'p', 'x', 'reading', 'l');
+      INSERT INTO moves (id, batch_id, publication_id, moved_at, kind, item_id) VALUES ('m2', 'b', 'p', 'x', 'note', 'n');
+    `)
+    migrate(db, 'test')
+    expect(db.prepare('SELECT id, title FROM articles').all()).toEqual([{ id: 'l', title: 'X' }])
+    expect(db.prepare('SELECT article_id, tag FROM article_tags').all()).toEqual([
+      { article_id: 'l', tag: 'history' },
+    ])
+    expect(db.prepare('SELECT article_id FROM idea_notes').all()).toEqual([{ article_id: 'l' }])
+    expect(db.prepare('SELECT id, kind FROM moves ORDER BY id').all()).toEqual([
+      { id: 'm1', kind: 'article' },
+      { id: 'm2', kind: 'note' },
+    ])
+    // The references follow the rename: removing the article clears the note's pointer and its tags.
+    db.exec("DELETE FROM articles WHERE id = 'l'")
+    expect(db.prepare('SELECT article_id FROM idea_notes').all()).toEqual([{ article_id: null }])
+    expect(db.prepare('SELECT count(*) AS n FROM article_tags').get()).toEqual({ n: 0 })
+    expect(tableNames(db).filter((t) => t.includes('link'))).toEqual([])
   })
 })

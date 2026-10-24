@@ -28,7 +28,7 @@ function home(attention: object, calls: string[] = []) {
     http.get('*/api/publications/p1/ideas', () => HttpResponse.json([])),
     http.get('*/api/publications/p1/notes', () => HttpResponse.json([])),
     http.get('*/api/publications/p1/sources', () => HttpResponse.json([])),
-    http.get('*/api/publications/p1/reading', () => HttpResponse.json([])),
+    http.get('*/api/publications/p1/articles', () => HttpResponse.json([])),
     http.post('*/api/publications/p1/drafts/d1/handover/offer/accept', () => {
       calls.push('accept')
       return HttpResponse.json({})

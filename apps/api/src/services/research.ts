@@ -3,7 +3,7 @@ import {
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
-  MAX_IDEA_LINKS,
+  MAX_IDEA_ARTICLES,
   MAX_RESEARCH_RESULTS,
   type Idea,
   type PageInfoFetcher,
@@ -14,7 +14,7 @@ import {
 import { RESEARCH_PROMPT } from '@wordwright/prompts'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
-import { ReadingChecker } from './reading-suggestions'
+import { ArticleChecker } from './article-suggestions'
 import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
 import { fail } from '../errors'
 import { escape, notesText, snapshotNotes, type SnapshotNote } from './idea-notes'
@@ -46,7 +46,7 @@ export function formatResearchBrief(
     '</idea>',
     ...[publicationDescriptionBlock(publicationDescription)].filter((block) => block !== null),
     '<already_on_the_reading_list>',
-    ...(idea.links.length ? idea.links.map((l) => `- ${escape(l.url)}`) : ['(nothing yet)']),
+    ...(idea.articles.length ? idea.articles.map((l) => `- ${escape(l.url)}`) : ['(nothing yet)']),
     '</already_on_the_reading_list>',
   ].join('\n')
 }
@@ -72,10 +72,10 @@ export interface ResearchDeps {
  * adds it. Design: docs/adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md.
  */
 export class ResearchService {
-  private readonly checker: ReadingChecker
+  private readonly checker: ArticleChecker
 
   constructor(private readonly d: ResearchDeps) {
-    this.checker = new ReadingChecker(d.pages)
+    this.checker = new ArticleChecker(d.pages)
   }
 
   list(idea: Idea): ResearchRun[] {
@@ -153,11 +153,11 @@ export class ResearchService {
         return item
       })
       const current = store.ideas.get(idea.publicationId, idea.id) ?? idea
-      const listed = new Set(current.links.map((l) => linkKey(l.url)))
-      if (current.links.length + chosen.length > MAX_IDEA_LINKS) {
+      const listed = new Set(current.articles.map((l) => linkKey(l.url)))
+      if (current.articles.length + chosen.length > MAX_IDEA_ARTICLES) {
         throw fail(
           409,
-          `An idea can have up to ${MAX_IDEA_LINKS} links. Remove some you no longer need to make room.`,
+          `An idea can have up to ${MAX_IDEA_ARTICLES} articles. Remove some you no longer need to make room.`,
         )
       }
       for (const item of chosen) {
@@ -218,7 +218,7 @@ export class ResearchService {
       for (const id of itemIds) {
         if (!run.items.some((i) => i.id === id)) continue
         const reopened = store.research.reopen(run.id, id)
-        if (reopened?.linkId) store.ideas.removeLink(idea.id, reopened.linkId)
+        if (reopened?.articleId) store.ideas.removeLink(idea.id, reopened.articleId)
       }
     })
     return this.find(idea, runId)

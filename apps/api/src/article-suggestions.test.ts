@@ -5,7 +5,7 @@ import {
   type BrainstormEvent,
 } from '@wordwright/core'
 import { addressesWrittenBy } from './services/brainstorm'
-import { ReadingChecker } from './services/reading-suggestions'
+import { ArticleChecker } from './services/article-suggestions'
 import { register, saveKey, setup, type TestClient } from './test-helpers'
 
 /**
@@ -86,8 +86,8 @@ async function world() {
   }
   const thread = async () => (await (await ada.get(base)).json()) as Thread
   const proposals = async () => (await thread()).messages.flatMap((m) => m.proposals)
-  const readingList = async () =>
-    (await (await ada.get(`${ideas}/${idea.id}`)).json()).links as {
+  const articleList = async () =>
+    (await (await ada.get(`${ideas}/${idea.id}`)).json()).articles as {
       url: string
       title: string
       origin: string
@@ -95,12 +95,12 @@ async function world() {
     }[]
   const decide = (id: string, action: 'accept' | 'dismiss') =>
     ada.post(`${base}/proposals/${id}/${action}`, {})
-  return { ctx, ada, idea, ideas, base, say, thread, proposals, readingList, decide }
+  return { ctx, ada, idea, ideas, base, say, thread, proposals, articleList, decide }
 }
 
 describe('the coach suggesting a page', () => {
   it('becomes a pending suggestion with the AI’s title beside the page’s real one, and changes nothing yet', async () => {
-    const { ctx, ada, say, proposals, readingList } = await world()
+    const { ctx, ada, say, proposals, articleList } = await world()
     ctx.setChat(() => ({ text: 'Try this.', toolCalls: [suggest(OK)] }))
     const { events } = await say(ada)
     expect(events.map((e) => e.type)).toEqual(['message', 'text', 'text', 'proposal', 'done'])
@@ -115,7 +115,7 @@ describe('the coach suggesting a page', () => {
         },
       },
     ])
-    expect(await readingList()).toHaveLength(1) // only the paper that was already there
+    expect(await articleList()).toHaveLength(1) // only the paper that was already there
     expect(ctx.pageFetcher.calls).toEqual([OK])
   })
 
@@ -179,14 +179,14 @@ describe('the coach suggesting a page', () => {
   })
 
   it('goes in the articles as "suggested in brainstorming" under the page’s real title when accepted', async () => {
-    const { ctx, ada, say, proposals, readingList, decide } = await world()
+    const { ctx, ada, say, proposals, articleList, decide } = await world()
     ctx.setChat(() => ({ toolCalls: [suggest(OK)] }))
     await say(ada)
     const [p] = await proposals()
     const res = await decide(p!.id, 'accept')
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ status: 'accepted' })
-    expect(await readingList()).toMatchObject([
+    expect(await articleList()).toMatchObject([
       { url: 'https://example.org/paper', origin: 'entered', why: null },
       {
         url: OK,
@@ -197,29 +197,29 @@ describe('the coach suggesting a page', () => {
     ])
   })
 
-  it('carries who the page says wrote it onto the reading-list item when accepted', async () => {
+  it('carries who the page says wrote it onto the article when accepted', async () => {
     const { ctx, ada, say, proposals, decide, ideas, idea } = await world()
     ctx.setChat(() => ({ toolCalls: [suggest('https://example.org/authored-piece')] }))
     await say(ada)
     const [p] = await proposals()
     expect(p!.reading!.fetchedAuthors).toEqual(['Ada Author', 'Bo Writer'])
     await decide(p!.id, 'accept')
-    const added = (await (await ada.get(`${ideas}/${idea.id}`)).json()).links.at(-1)
+    const added = (await (await ada.get(`${ideas}/${idea.id}`)).json()).articles.at(-1)
     expect(added).toMatchObject({ authors: ['Ada Author', 'Bo Writer'], origin: 'brainstorm' })
   })
 
   it('keeps the AI’s title when the page has none, and the item is unread', async () => {
-    const { ctx, ada, say, proposals, readingList, decide, ideas, idea } = await world()
+    const { ctx, ada, say, proposals, articleList, decide, ideas, idea } = await world()
     ctx.setChat(() => ({ toolCalls: [suggest(UNTITLED, { title: 'A report' })] }))
     await say(ada)
     await decide((await proposals())[0]!.id, 'accept')
-    expect(await readingList()).toMatchObject([{}, { url: UNTITLED, title: 'A report' }])
-    const added = (await (await ada.get(`${ideas}/${idea.id}`)).json()).links[1]
+    expect(await articleList()).toMatchObject([{}, { url: UNTITLED, title: 'A report' }])
+    const added = (await (await ada.get(`${ideas}/${idea.id}`)).json()).articles[1]
     expect(added.readAt).toBeNull()
   })
 
   it('cannot be accepted when the address does not exist or is not public, only dismissed', async () => {
-    const { ctx, ada, say, proposals, readingList, decide } = await world()
+    const { ctx, ada, say, proposals, articleList, decide } = await world()
     ctx.setChat(() => ({ toolCalls: [suggest(MISSING), suggest(PRIVATE)] }))
     await say(ada)
     for (const p of await proposals()) {
@@ -227,7 +227,7 @@ describe('the coach suggesting a page', () => {
       expect(res.status).toBe(409)
       expect((await res.json()).error).toMatch(/can't be added/)
     }
-    expect(await readingList()).toHaveLength(1)
+    expect(await articleList()).toHaveLength(1)
     expect((await proposals()).every((p) => p.status === 'pending')).toBe(true)
     expect((await decide((await proposals())[0]!.id, 'dismiss')).status).toBe(200)
   })
@@ -237,28 +237,28 @@ describe('the coach suggesting a page', () => {
     ctx.setChat(() => ({ toolCalls: [suggest(OK), suggest('https://example.org/other')] }))
     await say(ada)
     const [first, second] = await proposals()
-    await ada.post(`${ideas}/${idea.id}/links`, { url: OK })
+    await ada.post(`${ideas}/${idea.id}/articles`, { url: OK })
     const duplicate = await decide(first!.id, 'accept')
     expect(duplicate.status).toBe(409)
     expect((await duplicate.json()).error).toMatch(/already in this idea/)
 
     for (let i = 0; i < 50; i++) {
       ctx.store.ideas.addLink(idea.id, { url: `https://filler.example.org/${i}`, title: '' })
-      if ((await (await ada.get(`${ideas}/${idea.id}`)).json()).links.length >= 50) break
+      if ((await (await ada.get(`${ideas}/${idea.id}`)).json()).articles.length >= 50) break
     }
     const full = await decide(second!.id, 'accept')
     expect(full.status).toBe(409)
-    expect((await full.json()).error).toMatch(/up to 50 links/)
+    expect((await full.json()).error).toMatch(/up to 50 articles/)
   })
 
   it('does nothing to the list when dismissed, and says so to the AI', async () => {
-    const { ctx, ada, say, proposals, readingList, decide } = await world()
+    const { ctx, ada, say, proposals, articleList, decide } = await world()
     ctx.setChat((_request, call) =>
       call === 1 ? { text: 'Try this.', toolCalls: [suggest(OK)] } : { text: 'ok' },
     )
     await say(ada)
     await decide((await proposals())[0]!.id, 'dismiss')
-    expect(await readingList()).toHaveLength(1)
+    expect(await articleList()).toHaveLength(1)
     await say(ada, 'No thanks')
     const answer = ctx.chats[1]!.request.messages.flatMap((m) =>
       typeof m.content === 'string' ? [] : m.content,
@@ -319,7 +319,7 @@ describe('the address checks', () => {
     publicationId: 'p',
     name: 'An idea',
     notes: '',
-    links: [
+    articles: [
       {
         id: 'l',
         url: 'https://listed.example.org/a',
@@ -339,7 +339,7 @@ describe('the address checks', () => {
 
   it('keep at most the number asked for, in order, and look only at those', async () => {
     const pages = new FakePageInfoFetcher()
-    const checker = new ReadingChecker(pages)
+    const checker = new ArticleChecker(pages)
     const checked = await checker.check(
       idea,
       [
@@ -358,7 +358,7 @@ describe('the address checks', () => {
   })
 
   it('shorten a title or reason that is too long rather than lose the suggestion', async () => {
-    const checker = new ReadingChecker(new FakePageInfoFetcher())
+    const checker = new ArticleChecker(new FakePageInfoFetcher())
     const [checked] = await checker.check(
       idea,
       [{ ref: 'r', url: 'https://a.example.org/1', title: 'T'.repeat(500), why: 'W'.repeat(900) }],
@@ -371,7 +371,7 @@ describe('the address checks', () => {
   it('pass the abort signal on, so leaving the page stops the lookups', async () => {
     const controller = new AbortController()
     controller.abort()
-    const [checked] = await new ReadingChecker(new FakePageInfoFetcher()).check(
+    const [checked] = await new ArticleChecker(new FakePageInfoFetcher()).check(
       idea,
       [candidate('https://a.example.org/1')],
       3,

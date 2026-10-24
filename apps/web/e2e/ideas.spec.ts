@@ -86,7 +86,7 @@ test('keeps a list of articles for the idea: adds, ticks off, edits and checks l
   await address.fill('example.org/meanders')
   await add.click()
   const paper = page.getByRole('link', { name: 'Fake title for example.org', exact: true })
-  await expect(paper).toHaveAttribute('href', /\/reading\//) // the title opens the item's page for notes
+  await expect(paper).toHaveAttribute('href', /\/articles\//) // the title opens the item's page for notes
   await expect(
     page.getByRole('link', { name: /^example\.org Fake title for example\.org/ }),
   ).toHaveAttribute('href', 'https://example.org/meanders') // the host opens the article
@@ -429,9 +429,7 @@ test('reads an article and takes notes from it, on a phone too', async ({ page }
   await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
 })
 
-test('tags reading-list items, one or several at once, and filters the list by a tag', async ({
-  page,
-}) => {
+test('tags articles, one or several at once, and filters the list by a tag', async ({ page }) => {
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
   await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
@@ -753,7 +751,7 @@ test('a link to something in the articles goes in only once it has been read', a
     page.context().waitForEvent('page'),
     dialog.getByRole('button', { name: 'Read it now' }).click(),
   ])
-  await expect(reading).toHaveURL(/\/ideas\/[^/]+\/reading\//)
+  await expect(reading).toHaveURL(/\/ideas\/[^/]+\/articles\//)
   await reading.close()
   await expect(body.locator('a')).toHaveCount(0)
   await expect(body).toContainText('Rivers never run straight, as')
@@ -956,7 +954,7 @@ test('moves an idea with its draft to another publication, and opens it there', 
   await page.getByRole('button', { name: 'Move Why rivers meander' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'Elsewhere' })
   await expect(
-    page.getByText('1 idea, 1 draft, 1 note, 0 links will move to “Elsewhere”.'),
+    page.getByText('1 idea, 1 draft, 1 note, 0 articles will move to “Elsewhere”.'),
   ).toBeVisible()
   await noViolations(page, 'confirming a move of an idea')
   await page.getByRole('button', { name: 'Move idea' }).click()

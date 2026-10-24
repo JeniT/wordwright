@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { IdeaLink, IdeaNote } from '@wordwright/core'
+import type { Article, IdeaNote } from '@wordwright/core'
 import { linkMarkdown, noteMarkdown } from './note-insert'
 
 const note = (extra: Partial<IdeaNote> = {}): IdeaNote => ({
@@ -9,14 +9,14 @@ const note = (extra: Partial<IdeaNote> = {}): IdeaNote => ({
   authorId: 'u1',
   authorName: 'Ada',
   tags: [],
-  readingItemId: 'l1',
+  articleId: 'l1',
   quote: false,
   addedAt: null,
   createdAt: 't',
   updatedAt: 't',
   ...extra,
 })
-const item = (extra: Partial<IdeaLink> = {}): IdeaLink => ({
+const item = (extra: Partial<Article> = {}): Article => ({
   id: 'l1',
   url: 'https://example.org/paper',
   title: 'A paper',
@@ -29,7 +29,7 @@ const item = (extra: Partial<IdeaLink> = {}): IdeaLink => ({
 
 describe('the Markdown a note becomes in a draft', () => {
   it('is just the words for a note with no source', () => {
-    expect(noteMarkdown(note({ readingItemId: null }), [])).toBe('Meanders grow.')
+    expect(noteMarkdown(note({ articleId: null }), [])).toBe('Meanders grow.')
   })
 
   it('has a link to the source after the words of a note from reading', () => {
@@ -58,7 +58,7 @@ describe('the Markdown a note becomes in a draft', () => {
   })
 
   it('is still a blockquote, without a source line, when the source has been removed', () => {
-    expect(noteMarkdown(note({ quote: true, readingItemId: null }), [])).toBe('> Meanders grow.')
+    expect(noteMarkdown(note({ quote: true, articleId: null }), [])).toBe('> Meanders grow.')
   })
 
   it('names the source by its address when it has no title, and keeps brackets from breaking the link', () => {

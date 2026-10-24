@@ -1,5 +1,5 @@
 import type { RouteLocationRaw } from 'vue-router'
-import type { IdeaLink, IdeaNote, NoteOrigin } from '@wordwright/core'
+import type { Article, IdeaNote, NoteOrigin } from '@wordwright/core'
 
 /** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
 export function nameList(names: readonly string[]): string {
@@ -40,11 +40,11 @@ export function refineRoute(publicationId: string, ideaId: string | null | undef
  */
 export function noteOrigin(
   note: IdeaNote,
-  readingList: readonly IdeaLink[],
+  articleList: readonly Article[],
   viewerId: string | null,
   refineTo: RouteLocationRaw | null = null,
 ) {
-  const item = readingList.find((l) => l.id === note.readingItemId)
+  const item = articleList.find((l) => l.id === note.articleId)
   const source = note.origin === 'reading' && item ? item : null
   return {
     phrase: originPhrase(note.origin, source),

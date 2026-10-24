@@ -126,7 +126,7 @@ describe('Home: Quick add (#192)', () => {
             publicationId: 'ada-blog',
             name: 'On endings',
             notes: '',
-            links: [],
+            articles: [],
             drafts: [],
             pendingSuggestions: 0,
             createdAt: '2026-10-16T00:00:00Z',
@@ -141,7 +141,7 @@ describe('Home: Quick add (#192)', () => {
           publicationId: 'ada-blog',
           name: 'On endings',
           notes: '',
-          links: [],
+          articles: [],
           drafts: [],
           pendingSuggestions: 0,
           createdAt: '2026-10-16T00:00:00Z',
@@ -177,7 +177,7 @@ describe('Home: Quick add (#192)', () => {
             authorId: null,
             authorName: null,
             tags: [],
-            readingItemId: null,
+            articleId: null,
             quote: false,
             addedAt: null,
             createdAt: '2026-10-16T00:00:00Z',
@@ -211,7 +211,7 @@ describe('Home: Quick add (#192)', () => {
       publications(blog),
       llmSettings(true),
       ideasFor('ada-blog', ['x']),
-      http.post('*/api/publications/ada-blog/reading', async ({ request }) => {
+      http.post('*/api/publications/ada-blog/articles', async ({ request }) => {
         sent.push(await request.json())
         return HttpResponse.json([])
       }),
@@ -231,11 +231,11 @@ describe('Home: Quick add (#192)', () => {
       publications(blog, letters),
       llmSettings(true),
       ideasFor('ada-letters', ['x']),
-      http.get('*/api/publications/ada-letters/reading', () => {
+      http.get('*/api/publications/ada-letters/articles', () => {
         listed = true
         return HttpResponse.json([])
       }),
-      http.post('*/api/publications/ada-letters/reading', () =>
+      http.post('*/api/publications/ada-letters/articles', () =>
         HttpResponse.json(
           [
             {
@@ -268,7 +268,7 @@ describe('Home: Quick add (#192)', () => {
     )!
     expect(within(status).getByRole('link', { name: 'Open “A good post”' })).toHaveAttribute(
       'href',
-      '/p/ada-letters/reading/l9',
+      '/p/ada-letters/articles/l9',
     )
     expect(box).toHaveValue('')
   })
@@ -293,7 +293,7 @@ describe('Home: Quick add (#192)', () => {
 
   it.each([
     ['New idea', 'Idea name', 'Create idea', 'ideas', 'Words'],
-    ['Add article', 'Web address', 'Add article', 'reading', 'https://a.example'],
+    ['Add article', 'Web address', 'Add article', 'articles', 'https://a.example'],
   ])(
     'says what went wrong when %s fails, and keeps what was typed',
     async (open, label, submit, path, text) => {
@@ -330,7 +330,7 @@ describe('Home: Quick add (#192)', () => {
           hasMore: false,
         })
       }),
-      http.post('*/api/publications/:id/reading', ({ params }) => {
+      http.post('*/api/publications/:id/articles', ({ params }) => {
         posted.push(String(params.id))
         return HttpResponse.json([])
       }),

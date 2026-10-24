@@ -8,11 +8,11 @@ import {
   DraftInputSchema,
   DraftOrderSchema,
   IdeaInputSchema,
-  IdeaLinkInputSchema,
+  ArticleInputSchema,
   IdeaUpdateSchema,
   markdownToNotes,
   NoteTagsInputSchema,
-  ReadingItemReadSchema,
+  ArticleReadSchema,
   ResearchInputSchema,
   ResearchItemIdsSchema,
   SendMessageInputSchema,
@@ -20,7 +20,7 @@ import {
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
 import type { BrainstormService, Turn } from '../services/brainstorm'
-import type { IdeaLinkService } from '../services/idea-links'
+import type { ArticleService } from '../services/articles'
 import type { ResearchService } from '../services/research'
 import { NoteEditService } from '../services/note-edits'
 import { noteRoutes } from './notes'
@@ -34,7 +34,7 @@ type Ctx = Context<AppEnv>
 /** Mounted under `/publications/:publicationId`, after membership has been checked. */
 export function ideaRoutes(
   store: Store,
-  links: IdeaLinkService,
+  articleService: ArticleService,
   brainstorm: BrainstormService,
   research: ResearchService,
 ) {
@@ -78,9 +78,9 @@ export function ideaRoutes(
         return c.body(null, 204)
       })
 
-      .post('/:id/links', validateJson(IdeaLinkInputSchema), async (c) => {
+      .post('/:id/articles', validateJson(ArticleInputSchema), async (c) => {
         const idea = find(c)
-        await links.add(
+        await articleService.add(
           { publicationId: idea.publicationId, ideaId: idea.id },
           c.get('user').id,
           c.req.valid('json'),
@@ -88,43 +88,48 @@ export function ideaRoutes(
         )
         return c.json(find(c), 201)
       })
-      .patch('/:id/links/:linkId', validateJson(IdeaLinkInputSchema), async (c) => {
+      .patch('/:id/articles/:articleId', validateJson(ArticleInputSchema), async (c) => {
         const idea = find(c)
-        await links.update(
+        await articleService.update(
           { publicationId: idea.publicationId, ideaId: idea.id },
-          param(c, 'linkId'),
+          param(c, 'articleId'),
           c.get('user').id,
           c.req.valid('json'),
           c.req.raw.signal,
         )
         return c.json(find(c))
       })
-      .put('/:id/links/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
+      .put('/:id/articles/:articleId/read', validateJson(ArticleReadSchema), (c) => {
         const idea = find(c)
-        if (!ideas.setLinkRead(idea.id, param(c, 'linkId'), c.req.valid('json').read)) {
+        if (!ideas.setArticleRead(idea.id, param(c, 'articleId'), c.req.valid('json').read)) {
           throw notFound()
         }
         return c.json(find(c))
       })
       // Tags added to or taken from several items at once (all or nothing).
-      .post('/:id/links/tags', validateJson(BulkTagInputSchema), (c) => {
+      .post('/:id/articles/tags', validateJson(BulkTagInputSchema), (c) => {
         const idea = find(c)
         const { ids, add, remove } = c.req.valid('json')
-        links.tagMany({ publicationId: idea.publicationId, ideaId: idea.id }, ids, add, remove)
+        articleService.tagMany(
+          { publicationId: idea.publicationId, ideaId: idea.id },
+          ids,
+          add,
+          remove,
+        )
         return c.json(find(c))
       })
       // The item's tags, replaced as a whole (like a note's).
-      .put('/:id/links/:linkId/tags', validateJson(NoteTagsInputSchema), (c) => {
+      .put('/:id/articles/:articleId/tags', validateJson(NoteTagsInputSchema), (c) => {
         const idea = find(c)
         const tags = c.req.valid('json').tags
-        if (!store.transaction(() => ideas.setLinkTags(idea.id, param(c, 'linkId'), tags))) {
+        if (!store.transaction(() => ideas.setArticleTags(idea.id, param(c, 'articleId'), tags))) {
           throw notFound()
         }
         return c.json(find(c))
       })
-      .delete('/:id/links/:linkId', (c) => {
+      .delete('/:id/articles/:articleId', (c) => {
         const idea = find(c)
-        if (!ideas.removeLink(idea.id, param(c, 'linkId'))) throw notFound()
+        if (!ideas.removeLink(idea.id, param(c, 'articleId'))) throw notFound()
         return c.body(null, 204)
       })
 

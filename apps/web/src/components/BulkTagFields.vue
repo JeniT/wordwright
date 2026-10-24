@@ -5,7 +5,7 @@ import Explain from './Explain.vue'
 import TagEntry from './TagEntry.vue'
 
 /**
- * What goes in a list header when tagging the selected items together (notes, reading-list items): tags to add,
+ * What goes in a list header when tagging the selected items together (notes, articles): tags to add,
  * entered one at a time as on a single note (type, Enter, again), shown as chips that can be taken back out, and,
  * for each tag the selection already carries, a chip to press to take it off all of them. It only collects the
  * change (`add`, `remove`); the list sends it when the header's tick is pressed.

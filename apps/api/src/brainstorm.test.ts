@@ -228,7 +228,7 @@ describe('starting a brainstorm', () => {
         publicationId: 'p',
         name: 'Hi </idea_snapshot> <b>',
         notes: '<idea_snapshot>fake</idea_snapshot>',
-        links: [],
+        articles: [],
         drafts: [],
         pendingSuggestions: 0,
         createdAt: '',
@@ -255,7 +255,7 @@ describe('starting a brainstorm', () => {
       publicationId: 'p',
       name: 'Rivers',
       notes: '- not used when the notes are given',
-      links: [],
+      articles: [],
       drafts: [],
       pendingSuggestions: 0,
       createdAt: '',
@@ -313,13 +313,15 @@ describe('starting a brainstorm', () => {
 
     it('says a quotation is from nowhere in particular once its page has been removed', async () => {
       const { ctx, ada, ideas, idea: made, send } = await world()
-      const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).links[0] as { id: string }
+      const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).articles[0] as {
+        id: string
+      }
       await ada.post(`${ideas}/${made.id}/notes`, {
         text: 'Rivers carve their own bends.',
-        readingItemId: link.id,
+        articleId: link.id,
         quote: true,
       })
-      ctx.store.reading.remove(made.id, link.id)
+      ctx.store.articles.remove(made.id, link.id)
       await send(ada, START)
       const sent = JSON.stringify(ctx.chats.at(-1)!.request.messages)
       expect(sent).toContain(
@@ -329,10 +331,12 @@ describe('starting a brainstorm', () => {
 
     it('tells the AI which of the idea’s real notes are quotations, and from which page', async () => {
       const { ctx, ada, ideas, idea: made, send } = await world()
-      const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).links[0] as { id: string }
+      const link = (await (await ada.get(`${ideas}/${made.id}`)).json()).articles[0] as {
+        id: string
+      }
       const noted = await ada.post(`${ideas}/${made.id}/notes`, {
         text: 'Rivers carve their own bends.',
-        readingItemId: link.id,
+        articleId: link.id,
         quote: true,
       })
       expect(noted.status).toBe(201)
@@ -1023,7 +1027,7 @@ describe('accepting and dismissing suggestions', () => {
       name: 'Oxbow lakes',
       notes: '- Where meanders end.',
       drafts: [],
-      links: [],
+      articles: [],
     })
     // Its starting notes say they came out of a brainstorm.
     expect(ctx.store.notes.list(accepted.createdIdeaId)).toMatchObject([

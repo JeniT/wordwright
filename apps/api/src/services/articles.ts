@@ -1,8 +1,8 @@
 import {
   linkKey,
-  MAX_IDEA_LINKS,
-  type IdeaLink,
-  type IdeaLinkInput,
+  MAX_IDEA_ARTICLES,
+  type Article,
+  type ArticleInput,
   type PageInfoFetcher,
 } from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
@@ -17,7 +17,7 @@ import { changeTags, sameTagList } from './tag-change'
  * said the address is a real, public site. A page that merely can't be read (blocked, slow, no
  * title) is fine: the link is kept and shows its address.
  */
-export class IdeaLinkService {
+export class ArticleService {
   constructor(
     private readonly deps: { store: Store; pages: PageInfoFetcher; limiter: RateLimiter },
   ) {}
@@ -26,12 +26,12 @@ export class IdeaLinkService {
    * Adds and removes tags on the chosen items in one go, all or nothing (an item that would end with too many tags
    * refuses the whole change). Answers with the whole articles.
    */
-  tagMany(scope: ListScope, ids: string[], add: string[], remove: string[]): IdeaLink[] {
+  tagMany(scope: ListScope, ids: string[], add: string[], remove: string[]): Article[] {
     const { store } = this.deps
     const owner = ownerOf(scope)
     return store.transaction(() => {
       const wanted = new Set(ids)
-      const chosen = store.reading.list(owner).filter((l) => wanted.has(l.id))
+      const chosen = store.articles.list(owner).filter((l) => wanted.has(l.id))
       if (chosen.length !== wanted.size) throw fail(404, 'Not found')
       const changes = chosen.flatMap((link) => {
         const next = changeTags(link.tags, add, remove, {
@@ -40,9 +40,9 @@ export class IdeaLinkService {
         })
         return sameTagList(next, link.tags) ? [] : [{ id: link.id, tags: next }]
       })
-      for (const change of changes) store.reading.setTags(owner, change.id, change.tags)
+      for (const change of changes) store.articles.setTags(owner, change.id, change.tags)
       if (changes.length) touch(store, scope)
-      return store.reading.list(owner)
+      return store.articles.list(owner)
     })
   }
 
@@ -50,9 +50,9 @@ export class IdeaLinkService {
   async add(
     scope: ListScope,
     userId: string,
-    input: IdeaLinkInput,
+    input: ArticleInput,
     signal?: AbortSignal,
-  ): Promise<IdeaLink[]> {
+  ): Promise<Article[]> {
     const { store } = this.deps
     this.checkRoom(scope, this.current(scope))
     this.checkNotDuplicate(scope, this.current(scope), input.url)
@@ -65,7 +65,7 @@ export class IdeaLinkService {
     const fresh = this.current(scope)
     this.checkRoom(scope, fresh)
     this.checkNotDuplicate(scope, fresh, input.url)
-    store.reading.add(scope.publicationId, scope.ideaId, { url: input.url, title, authors })
+    store.articles.add(scope.publicationId, scope.ideaId, { url: input.url, title, authors })
     touch(store, scope)
     return this.current(scope)
   }
@@ -78,16 +78,16 @@ export class IdeaLinkService {
    */
   async update(
     scope: ListScope,
-    linkId: string,
+    articleId: string,
     userId: string,
-    input: IdeaLinkInput,
+    input: ArticleInput,
     signal?: AbortSignal,
-  ): Promise<IdeaLink[]> {
+  ): Promise<Article[]> {
     const { store } = this.deps
     const links = this.current(scope)
-    const existing = links.find((l) => l.id === linkId)
+    const existing = links.find((l) => l.id === articleId)
     if (!existing) throw fail(404, 'Not found')
-    this.checkNotDuplicate(scope, links, input.url, linkId)
+    this.checkNotDuplicate(scope, links, input.url, articleId)
 
     const addressChanged = input.url !== existing.url
     const titleChanged = input.title !== existing.title
@@ -104,30 +104,30 @@ export class IdeaLinkService {
     }
 
     const fresh = this.current(scope)
-    if (!fresh.some((l) => l.id === linkId)) throw fail(404, 'Not found')
-    this.checkNotDuplicate(scope, fresh, input.url, linkId)
-    store.reading.update(ownerOf(scope), linkId, { url: input.url, title, authors })
+    if (!fresh.some((l) => l.id === articleId)) throw fail(404, 'Not found')
+    this.checkNotDuplicate(scope, fresh, input.url, articleId)
+    store.articles.update(ownerOf(scope), articleId, { url: input.url, title, authors })
     touch(store, scope)
     return this.current(scope)
   }
 
-  private current(scope: ListScope): IdeaLink[] {
-    return this.deps.store.reading.list(ownerOf(scope))
+  private current(scope: ListScope): Article[] {
+    return this.deps.store.articles.list(ownerOf(scope))
   }
 
-  private checkRoom(scope: ListScope, links: IdeaLink[]) {
+  private checkRoom(scope: ListScope, articles: Article[]) {
     // The publication's own list has no maximum: what isn't kept drops off after a month instead.
-    if (scope.ideaId && links.length >= MAX_IDEA_LINKS) {
+    if (scope.ideaId && articles.length >= MAX_IDEA_ARTICLES) {
       throw fail(
         409,
-        `${subjectOf(scope)} can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,
+        `${subjectOf(scope)} can have up to ${MAX_IDEA_ARTICLES} articles. Remove one you no longer need to make room.`,
       )
     }
   }
 
-  private checkNotDuplicate(scope: ListScope, links: IdeaLink[], url: string, ignoring?: string) {
+  private checkNotDuplicate(scope: ListScope, articles: Article[], url: string, ignoring?: string) {
     const key = linkKey(url)
-    if (links.some((l) => l.id !== ignoring && linkKey(l.url) === key)) {
+    if (articles.some((l) => l.id !== ignoring && linkKey(l.url) === key)) {
       throw fail(409, `That link is already in ${hereOf(scope)}.`)
     }
   }

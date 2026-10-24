@@ -31,12 +31,12 @@ export class IdeaMoveService {
     const { store } = this
     const plan = this.plan(publicationId, userId, ids, toPublicationId)
     const totals = plan.ideaIds.map((id) => store.ideas.contents(id))
-    const sum = (key: 'drafts' | 'notes' | 'links') => totals.reduce((n, t) => n + t[key], 0)
+    const sum = (key: 'drafts' | 'notes' | 'articles') => totals.reduce((n, t) => n + t[key], 0)
     return {
       ideas: plan.ideaIds.length,
       drafts: plan.drafts.length,
       notes: sum('notes'),
-      links: sum('links'),
+      articles: sum('articles'),
       losingAccess: store.publications
         .members(publicationId)
         .filter((m) => !plan.staying.has(m.userId))

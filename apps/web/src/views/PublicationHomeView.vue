@@ -9,7 +9,7 @@ import PublicationIdeas from '../components/PublicationIdeas.vue'
 import PublicationImage from '../components/PublicationImage.vue'
 import RecentNotes from '../components/RecentNotes.vue'
 import RecentPostsSummary from '../components/RecentPostsSummary.vue'
-import RecentReading from '../components/RecentReading.vue'
+import RecentArticles from '../components/RecentArticles.vue'
 import SettingsButton from '../components/SettingsButton.vue'
 import { displayHost } from '../lib/usePublications'
 import KeepWriting from '../components/KeepWriting.vue'
@@ -86,7 +86,7 @@ defineProps<{ publicationId: string }>()
         :to="{ name: 'scan', params: { publicationId } }"
       />
 
-      <RecentReading
+      <RecentArticles
         nested
         explain="Second, read the articles or news stories in this idea’s articles and take notes on them. These can also be moved to a new or existing idea’s articles."
         :publication-id="publicationId"

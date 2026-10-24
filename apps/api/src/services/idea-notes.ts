@@ -15,11 +15,11 @@ export interface SnapshotNote {
 
 /** The idea's notes one by one, each with the title of the article it was taken from (if that is still there). */
 export function snapshotNotes(store: Store, idea: Idea): SnapshotNote[] {
-  const { notes, reading } = store
+  const { notes, articles } = store
   return notes.list(idea.id).map((n) => ({
     text: n.text,
     quote: n.quote,
-    source: (n.readingItemId && reading.get(idea.id, n.readingItemId)?.title) || null,
+    source: (n.articleId && articles.get(idea.id, n.articleId)?.title) || null,
   }))
 }
 

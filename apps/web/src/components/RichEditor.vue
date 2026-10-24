@@ -17,7 +17,7 @@ import {
   type CommentMarkStorage,
 } from '../lib/comment-marks'
 import { COMMENT_QUOTE_MAX_LENGTH, countWords } from '@wordwright/core'
-import { NOTE_DRAG_TYPE, READING_DRAG_TYPE } from '../lib/note-drag'
+import { NOTE_DRAG_TYPE, ARTICLE_DRAG_TYPE } from '../lib/note-drag'
 import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
 
@@ -52,7 +52,7 @@ const emit = defineEmits<{
   /** A note from the side bar was dropped on the text, at this position in it (unknown when it can't be worked out). */
   noteDrop: [noteId: string, position: number | undefined]
   /** An article from the side bar was dropped on the text: its link goes in at this position (as for a note). */
-  readingDrop: [itemId: string, position: number | undefined]
+  articleDrop: [itemId: string, position: number | undefined]
 }>()
 
 /** The selection changed: the count of words and the page (through `selectionChange`) both hear. */
@@ -62,22 +62,22 @@ function emitSelection(selection: TextSelection | null) {
 }
 
 /** What a drag from the side bar carries, if it is one of ours: which kind, and the id. */
-function dragged(event: DragEvent): { type: 'note' | 'reading'; id: string } | null {
+function dragged(event: DragEvent): { type: 'note' | 'article'; id: string } | null {
   const types = event.dataTransfer?.types
   if (!types) return null
   for (const [type, kind] of [
     [NOTE_DRAG_TYPE, 'note'],
-    [READING_DRAG_TYPE, 'reading'],
+    [ARTICLE_DRAG_TYPE, 'article'],
   ] as const) {
     if (types.includes(type)) return { type: kind, id: event.dataTransfer!.getData(type) }
   }
   return null
 }
 const isOurs = (event: DragEvent) =>
-  !!event.dataTransfer?.types.some((t) => t === NOTE_DRAG_TYPE || t === READING_DRAG_TYPE)
-function hand(drag: { type: 'note' | 'reading'; id: string }, position: number | undefined) {
+  !!event.dataTransfer?.types.some((t) => t === NOTE_DRAG_TYPE || t === ARTICLE_DRAG_TYPE)
+function hand(drag: { type: 'note' | 'article'; id: string }, position: number | undefined) {
   if (drag.type === 'note') emit('noteDrop', drag.id, position)
-  else emit('readingDrop', drag.id, position)
+  else emit('articleDrop', drag.id, position)
 }
 
 /** Whether the writer has put the cursor in the text yet; until then insertions go at the end. */

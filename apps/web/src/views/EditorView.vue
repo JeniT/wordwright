@@ -15,7 +15,7 @@ import DraftActions from '../components/DraftActions.vue'
 import ReviewsPanel from '../components/ReviewsPanel.vue'
 import HandoverNotices from '../components/HandoverNotices.vue'
 import DraftPublish from '../components/DraftPublish.vue'
-import DraftReadingList from '../components/DraftReadingList.vue'
+import DraftArticleList from '../components/DraftArticleList.vue'
 import RephraseDialog from '../components/RephraseDialog.vue'
 import NewTabLink from '../components/NewTabLink.vue'
 import RichEditor from '../components/RichEditor.vue'
@@ -32,7 +32,7 @@ import {
   excerptOf,
   splitBlocks,
   wordingProblem,
-  type IdeaLink,
+  type Article,
   type IdeaNote,
 } from '@wordwright/core'
 import { ApiError, api, errorMessage } from '../lib/api'
@@ -179,9 +179,9 @@ const markdownMode = useMarkdownMode()
 
 // ---- citing something in the articles: only once it has been read
 type UnreadChoice = 'read-now' | 'mark' | 'cancel'
-const unreadAsk = ref<{ item: IdeaLink; settle: (choice: UnreadChoice) => void } | null>(null)
+const unreadAsk = ref<{ item: Article; settle: (choice: UnreadChoice) => void } | null>(null)
 const citeNotice = ref('')
-const askAboutUnread = (item: IdeaLink) =>
+const askAboutUnread = (item: Article) =>
   new Promise<UnreadChoice>((resolve) => {
     unreadAsk.value = {
       item,
@@ -193,22 +193,22 @@ const askAboutUnread = (item: IdeaLink) =>
   })
 
 /**
- * Whether a link to this reading-list item may go into the draft. A read item may. An unread one asks the writer:
+ * Whether a link to this article may go into the draft. A read item may. An unread one asks the writer:
  * read it now (it opens in a new tab, so nothing in this draft is lost, and nothing is inserted), mark it as read
  * (they may have read it somewhere else), or cancel. The writer's say-so is all there is to go on, as with the tick.
  */
-async function mayCite(item: IdeaLink): Promise<boolean> {
+async function mayCite(item: Article): Promise<boolean> {
   citeNotice.value = ''
   if (item.readAt) return true
   const choice = await askAboutUnread(item)
   if (choice === 'cancel') return false
   if (choice === 'read-now') {
     const { href } = router.resolve({
-      name: 'reading',
+      name: 'article',
       params: {
         publicationId: props.publicationId,
         id: draft.data.value!.ideaId!,
-        linkId: item.id,
+        articleId: item.id,
       },
     })
     window.open(href, '_blank', 'noopener')
@@ -216,7 +216,7 @@ async function mayCite(item: IdeaLink): Promise<boolean> {
     return false
   }
   try {
-    const updated = await api.setReadingItemRead(
+    const updated = await api.setArticleRead(
       props.publicationId,
       draft.data.value!.ideaId!,
       item.id,
@@ -230,8 +230,8 @@ async function mayCite(item: IdeaLink): Promise<boolean> {
   return true
 }
 
-/** Puts a link to a reading-list item in the line being written, if it may be cited, and saves the draft. */
-async function insertLink(item: IdeaLink, at?: number) {
+/** Puts a link to an article in the line being written, if it may be cited, and saves the draft. */
+async function insertLink(item: Article, at?: number) {
   if (!(await mayCite(item))) return
   if (!editor.value?.insertInlineMarkdown(linkMarkdown(item), at)) {
     throw new Error("The draft isn't ready yet. Try again in a moment.")
@@ -245,11 +245,11 @@ async function insertLink(item: IdeaLink, at?: number) {
 
 /**
  * Puts a note's words (and its source link) into the draft, saves the draft, and only then marks the note as added,
- * so a note never disappears from the list unless its words are safely in the draft. A note taken from a reading-list
+ * so a note never disappears from the list unless its words are safely in the draft. A note taken from an article
  * item doesn't ask whether it was read: taking the note, on the item's page, was the reading.
  */
 async function insertNote(note: IdeaNote, at?: number) {
-  const markdown = noteMarkdown(note, idea.data.value?.links ?? [])
+  const markdown = noteMarkdown(note, idea.data.value?.articles ?? [])
   if (!editor.value?.insertMarkdown(markdown, at)) {
     throw new Error("The draft isn't ready yet. Try again in a moment.")
   }
@@ -296,9 +296,9 @@ async function onNoteDrop(noteId: string, position: number | undefined) {
   }
 }
 
-async function onReadingDrop(itemId: string, position: number | undefined) {
+async function onArticleDrop(itemId: string, position: number | undefined) {
   if (dropping) return
-  const item = idea.data.value?.links.find((l) => l.id === itemId)
+  const item = idea.data.value?.articles.find((l) => l.id === itemId)
   dropNotice.value = ''
   dropProblem.value = ''
   if (!item) {
@@ -412,7 +412,7 @@ const { isOwner } = useHandover(
 const canSeeReviews = computed(() => canEdit.value || isOwner.value)
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
-  { id: 'reading', label: 'Articles' },
+  { id: 'articles', label: 'Articles' },
   { id: 'comments', label: 'Comments' },
   ...(canSeeReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
 ])
@@ -691,7 +691,7 @@ async function requestCritique() {
           @rephrase="pressRephrase"
           @selection-change="selection = $event"
           @note-drop="onNoteDrop"
-          @reading-drop="onReadingDrop"
+          @article-drop="onArticleDrop"
           @point-pick="pickPoint"
           @located="paragraphs = $event"
         >
@@ -837,16 +837,16 @@ async function requestCritique() {
             <DraftNotes
               :publication-id="publicationId"
               :idea-id="draft.data.value.ideaId"
-              :reading-list="idea.data.value?.links ?? []"
+              :article-list="idea.data.value?.articles ?? []"
               :insert="insertNote"
               :can-add="canEdit"
             />
           </template>
-          <template #reading>
-            <DraftReadingList
+          <template #articles>
+            <DraftArticleList
               :publication-id="publicationId"
               :idea-id="draft.data.value.ideaId"
-              :reading-list="idea.data.value?.links ?? []"
+              :article-list="idea.data.value?.articles ?? []"
               :insert-link="insertLink"
               :can-add="canEdit"
             />

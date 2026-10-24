@@ -590,7 +590,7 @@ describe('deciding about the recent posts', () => {
         HttpResponse.json(
           {
             error:
-              'A publication can have up to 50 links. Remove some you no longer need to make room.',
+              'A publication can have up to 50 articles. Remove some you no longer need to make room.',
           },
           { status: 409 },
         ),
@@ -602,7 +602,7 @@ describe('deciding about the recent posts', () => {
       await within(recent).findByRole('button', { name: 'Add article: First post' }),
     )
     const alert = await within(recent).findByRole('alert')
-    expect(alert).toHaveTextContent('A publication can have up to 50 links')
+    expect(alert).toHaveTextContent('A publication can have up to 50 articles')
     expect(within(recent).getByRole('button', { name: 'Add article: First post' })).toBeEnabled()
     await fireEvent.click(within(alert).getByRole('button', { name: 'Dismiss' }))
     expect(within(recent).queryByRole('alert')).not.toBeInTheDocument()

@@ -123,8 +123,8 @@ export function useNav() {
   const atIdea = () => level.value === 'idea' && !!ideaId.value
   const feeds = useSources(() => publicationId.value, atPublication)
   const reading = useQuery({
-    queryKey: ['reading', () => publicationId.value],
-    queryFn: () => api.listPublicationReading(publicationId.value),
+    queryKey: ['articles', () => publicationId.value],
+    queryFn: () => api.listPublicationArticles(publicationId.value),
     enabled: atPublication,
   })
   const publicationNotes = useIdeaNotes(
@@ -163,7 +163,7 @@ export function useNav() {
         return plural(waiting.length, 'suggestion', 'suggestions')
       }
       if (step.key === 'read')
-        return `${idea.data.value.links.filter((l) => !l.readAt).length} to read`
+        return `${idea.data.value.articles.filter((l) => !l.readAt).length} to read`
       if (step.key === 'notes' && ideaNotes.data.value)
         return plural(ideaNotes.data.value.length, 'note', 'notes')
       if (step.key === 'refine')

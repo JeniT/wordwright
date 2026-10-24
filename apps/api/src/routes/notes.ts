@@ -29,7 +29,7 @@ export function noteRoutes(
   resolve: (c: Context<AppEnv>) => ListScope,
   options: { drafts: boolean },
 ) {
-  const { notes, reading } = store
+  const { notes, articles } = store
   const router = new Hono<AppEnv>()
     .get('/', (c) => c.json(notes.list(ownerOf(resolve(c)))))
     .post('/', validateJson(IdeaNoteInputSchema), (c) => {
@@ -42,11 +42,11 @@ export function noteRoutes(
             `${subjectOf(scope)} can have up to ${MAX_IDEA_NOTES} notes. Merge or delete some to make room.`,
           )
         }
-        const { text, readingItemId, quote, first } = c.req.valid('json')
-        if (quote && !readingItemId) {
-          throw fail(400, 'A quotation needs the reading-list item it comes from.')
+        const { text, articleId, quote, first } = c.req.valid('json')
+        if (quote && !articleId) {
+          throw fail(400, 'A quotation needs the article it comes from.')
         }
-        if (readingItemId && !reading.get(owner, readingItemId)) {
+        if (articleId && !articles.get(owner, articleId)) {
           throw fail(
             400,
             scope.ideaId
@@ -60,13 +60,13 @@ export function noteRoutes(
           scope.ideaId,
           c.get('user').id,
           text,
-          readingItemId ? 'reading' : 'entered',
-          readingItemId ?? null,
+          articleId ? 'reading' : 'entered',
+          articleId ?? null,
           !!quote,
           !!first,
         )
         // Taking a note from an item means it has been read (the first read date is kept if it already was).
-        if (readingItemId) reading.setRead(owner, readingItemId, true)
+        if (articleId) articles.setRead(owner, articleId, true)
         touch(store, scope)
         return note
       })

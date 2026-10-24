@@ -3,13 +3,13 @@ import Explain from '../components/Explain.vue'
 import IdeaNotes from '../components/IdeaNotes.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import StepHeading from '../components/StepHeading.vue'
-import { useReadingList } from '../lib/reading'
+import { useArticleList } from '../lib/articles'
 
 /** Step 03 of a publication: its own notes, made while reading or jotted down, before they belong to an idea. */
 const props = defineProps<{ publicationId: string }>()
 
 // Each note says which item of the articles it was taken from.
-const reading = useReadingList(() => ({ publicationId: props.publicationId, ideaId: null }))
+const reading = useArticleList(() => ({ publicationId: props.publicationId, ideaId: null }))
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const reading = useReadingList(() => ({ publicationId: props.publicationId, idea
     <IdeaNotes
       :publication-id="publicationId"
       :idea-id="null"
-      :reading-list="reading.links.value ?? []"
+      :article-list="reading.articles.value ?? []"
       quiet-heading
     />
   </PublicationGate>

@@ -135,7 +135,7 @@ export function draftRoutes(
           )
         }
         const idea = ideas.get(draft.publicationId, draft.ideaId!)
-        const item = idea?.links.find((l) => l.id === note.readingItemId)
+        const item = idea?.articles.find((l) => l.id === note.articleId)
         const inserted = store.transaction(() => {
           const id = drafts.addInsertion(draft.id, {
             noteId: note.id,

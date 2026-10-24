@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { RouteLocationRaw } from 'vue-router'
-import { useReadingList } from '../lib/reading'
+import { useArticleList } from '../lib/articles'
 import { refineRoute } from '../lib/note-label'
 import { useIdeaNotes } from '../lib/queries'
 import LandingSection from './LandingSection.vue'
@@ -29,7 +29,7 @@ const { notes } = useIdeaNotes(
   () => props.publicationId,
   () => props.ideaId,
 )
-const reading = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
+const reading = useArticleList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 // "Recent" is when a note was made; the notes page's own order is the writer's.
 const recent = computed(() =>
   [...(notes.data.value ?? [])]
@@ -56,7 +56,7 @@ const recent = computed(() =>
           <div class="flex px-4 py-3">
             <NoteCard
               :note="note"
-              :reading-list="reading.links.value ?? []"
+              :article-list="reading.articles.value ?? []"
               :refine-to="refineRoute(publicationId, ideaId)"
             />
           </div>

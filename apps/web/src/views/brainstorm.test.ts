@@ -11,7 +11,7 @@ const idea = {
   publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.\nSecond line.',
-  links: [
+  articles: [
     {
       id: 'l1',
       url: 'https://example.org/paper',
@@ -1021,7 +1021,7 @@ const reading = (
     },
     ...overrides,
   })
-const readingList = () => screen.findByRole('region', { name: 'Suggested reading' })
+const articleList = () => screen.findByRole('region', { name: 'Suggested reading' })
 
 describe('suggested reading', () => {
   it('is laid out as the Research page lists its findings: title as a link, website, authors, reason', async () => {
@@ -1032,7 +1032,7 @@ describe('suggested reading', () => {
       }),
     ])
     await renderAt(page)
-    const list = within(await readingList())
+    const list = within(await articleList())
     const title = list.getByRole('link', { name: /^River Physics: a primer/ })
     expect(title).toHaveAttribute('href', 'https://example.org/river-physics')
     expect(title).toHaveAttribute('target', '_blank')
@@ -1090,7 +1090,7 @@ describe('suggested reading', () => {
       }),
     ])
     await renderAt(page)
-    const list = within(await readingList())
+    const list = within(await articleList())
     expect(list.getByText('We couldn’t confirm the title of this page.')).toBeInTheDocument()
     expect(list.getByRole('button', { name: /^Add article:/ })).toBeEnabled() // allowed, with the warning
   })
@@ -1104,7 +1104,7 @@ describe('suggested reading', () => {
       aiMessage('Try this.', { proposals: [reading({}, { check, fetchedTitle: null })] }),
     ])
     await renderAt(page)
-    const list = within(await readingList())
+    const list = within(await articleList())
     expect(list.getByText(message)).toBeInTheDocument()
     expect(list.getByRole('button', { name: /^Add article:/ })).toBeDisabled()
     expect(list.getByRole('button', { name: /^Ignore:/ })).toBeEnabled()

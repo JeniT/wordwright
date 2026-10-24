@@ -84,7 +84,7 @@ export type QueryRoot =
   | 'ideas'
   | 'my-invitations'
   | 'notes'
-  | 'reading'
+  | 'articles'
   | 'recent-posts'
   | 'research'
   | 'sources'

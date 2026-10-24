@@ -20,7 +20,7 @@ const idea = {
   publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: '',
-  links: [
+  articles: [
     {
       id: 'l1',
       url: 'https://example.org/paper',
@@ -37,15 +37,15 @@ const idea = {
 }
 const ideaUrl = '*/api/publications/ada-substack/ideas/i1'
 const notesUrl = `${ideaUrl}/notes`
-const readingPath = (linkId: string) => `/p/ada-substack/ideas/i1/reading/${linkId}`
+const articlePath = (articleId: string) => `/p/ada-substack/ideas/i1/articles/${articleId}`
 
-const note = (id: string, text: string, readingItemId: string | null, origin = 'reading') => ({
+const note = (id: string, text: string, articleId: string | null, origin = 'reading') => ({
   id,
   text,
   origin,
   authorId: 'u1',
   authorName: 'Ada',
-  readingItemId,
+  articleId,
   tags: [] as string[],
   quote: false,
   addedAt: null,
@@ -53,7 +53,7 @@ const note = (id: string, text: string, readingItemId: string | null, origin = '
   updatedAt: '2026-01-01T00:00:00Z',
 })
 
-const open = (linkId = 'l1', extra: Parameters<typeof server.use> = []) => {
+const open = (articleId = 'l1', extra: Parameters<typeof server.use> = []) => {
   // Handlers listed first win, so a test's own come before the usual ones.
   server.use(
     ...extra,
@@ -62,7 +62,7 @@ const open = (linkId = 'l1', extra: Parameters<typeof server.use> = []) => {
     http.get(ideaUrl, () => HttpResponse.json(idea)),
     http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
   )
-  return renderAt(readingPath(linkId))
+  return renderAt(articlePath(articleId))
 }
 
 describe('reading page', () => {
@@ -107,10 +107,10 @@ describe('reading page', () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
-      http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(idea.links)),
+      http.get('*/api/publications/ada-substack/articles', () => HttpResponse.json(idea.articles)),
       http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
     )
-    await renderAt('/p/ada-substack/reading/l1')
+    await renderAt('/p/ada-substack/articles/l1')
     await fireEvent.click(await screen.findByRole('tab', { name: 'New idea' }))
     const field = screen.getByLabelText('Idea name')
     expect(field.closest('div.flex')).toBe(
@@ -158,12 +158,12 @@ describe('reading page', () => {
 
   it('takes away “Added …” under the reading form once the next address is started', async () => {
     await open('l1', [
-      http.post(`${ideaUrl}/links`, () =>
+      http.post(`${ideaUrl}/articles`, () =>
         HttpResponse.json(
           {
             ...idea,
-            links: [
-              ...idea.links,
+            articles: [
+              ...idea.articles,
               {
                 id: 'l3',
                 url: 'https://example.org/new',
@@ -189,7 +189,7 @@ describe('reading page', () => {
     const { router } = await open()
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'example.org/new')
-    await router.push(readingPath('l2'))
+    await router.push(articlePath('l2'))
     await screen.findByRole('heading', { level: 1, name: 'https://example.org/other' })
     expect(screen.getByRole('tab', { name: 'Add a note' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByLabelText('Web address')).toHaveValue('')
@@ -227,11 +227,13 @@ describe('reading page', () => {
         ...handlers,
         signedInAs({ ...testUser, tutorialMode: true }),
         http.get('*/api/publications', () => HttpResponse.json([publication])),
-        http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(idea.links)),
+        http.get('*/api/publications/ada-substack/articles', () =>
+          HttpResponse.json(idea.articles),
+        ),
         http.get('*/api/publications/ada-substack/notes', () => HttpResponse.json([])),
       )
-      const { router } = await renderAt('/p/ada-substack/reading/l1')
-      expect(router.currentRoute.value.name).toBe('publication-reading-item')
+      const { router } = await renderAt('/p/ada-substack/articles/l1')
+      expect(router.currentRoute.value.name).toBe('publication-article')
       await screen.findByRole('heading', { level: 1, name: 'A paper' })
       expect(screen.getByText(/in a split view/)).toBeInTheDocument()
       const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
@@ -272,9 +274,9 @@ describe('reading page', () => {
           { id: 'i2', name: 'Lakes', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
         ]),
       ),
-      http.post('*/api/publications/ada-substack/move/reading', async ({ request }) => {
+      http.post('*/api/publications/ada-substack/move/articles', async ({ request }) => {
         moved.push(await request.json())
-        return HttpResponse.json({ batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 })
+        return HttpResponse.json({ batchId: 'b', articles: 1, merged: 0, copied: 0, notes: 0 })
       }),
     )
     await renderAt('/p/ada-substack/ideas/i1/read')
@@ -319,7 +321,7 @@ describe('reading page', () => {
       ),
       http.post('*/api/publications/ada-substack/move/notes', async ({ request }) => {
         moved.push(await request.json())
-        return HttpResponse.json({ batchId: 'b', readingItems: 0, merged: 0, copied: 0, notes: 1 })
+        return HttpResponse.json({ batchId: 'b', articles: 0, merged: 0, copied: 0, notes: 1 })
       }),
     )
     await renderAt('/p/ada-substack/ideas/i1/notes')
@@ -354,10 +356,10 @@ describe('reading page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/read')
     const first = await screen.findByRole('link', { name: 'A paper' })
-    expect(first).toHaveAttribute('href', readingPath('l1'))
+    expect(first).toHaveAttribute('href', articlePath('l1'))
     expect(screen.getByRole('link', { name: 'https://example.org/other' })).toHaveAttribute(
       'href',
-      readingPath('l2'),
+      articlePath('l2'),
     )
   })
 
@@ -421,7 +423,10 @@ describe('reading page', () => {
         http.get(ideaUrl, () =>
           HttpResponse.json({
             ...idea,
-            links: [{ ...idea.links[0]!, authors: ['Ada Author', 'Bo Writer'] }, idea.links[1]!],
+            articles: [
+              { ...idea.articles[0]!, authors: ['Ada Author', 'Bo Writer'] },
+              idea.articles[1]!,
+            ],
           }),
         ),
         http.get(notesUrl, () =>
@@ -475,9 +480,7 @@ describe('reading page', () => {
       const button = screen.getByRole('button', { name: 'Add note' })
       await fireEvent.update(box, '  “Meanders grow.”  ')
       await fireEvent.click(button)
-      await waitFor(() =>
-        expect(sent).toEqual([{ text: '  “Meanders grow.”  ', readingItemId: 'l1' }]),
-      )
+      await waitFor(() => expect(sent).toEqual([{ text: '  “Meanders grow.”  ', articleId: 'l1' }]))
       const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(within(list).getByText('“Meanders grow.”')).toBeInTheDocument()
       expectOrigin(list, 'From A paper', 'Ada')
@@ -515,8 +518,8 @@ describe('reading page', () => {
       await fireEvent.click(again)
       await waitFor(() => expect(list.querySelectorAll('li')).toHaveLength(2))
       expect(sent).toEqual([
-        { text: 'Meanders grow.', readingItemId: 'l1', quote: true },
-        { text: 'So bends move.', readingItemId: 'l1' },
+        { text: 'Meanders grow.', articleId: 'l1', quote: true },
+        { text: 'So bends move.', articleId: 'l1' },
       ])
       expect(list.querySelectorAll('blockquote')).toHaveLength(1)
     })
@@ -584,7 +587,7 @@ describe('reading page', () => {
         await fireEvent.update(box, 'Pasted words.')
         await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
         await waitFor(() =>
-          expect(sent).toEqual([{ text: 'Pasted words.', readingItemId: 'l1', quote: true }]),
+          expect(sent).toEqual([{ text: 'Pasted words.', articleId: 'l1', quote: true }]),
         )
         await waitFor(() => expect(quoteBox()).not.toBeChecked())
         expect(screen.queryByText(/Ticked because you pasted/)).toBeNull()
@@ -595,16 +598,19 @@ describe('reading page', () => {
       let readAt: string | null = null
       await open('l1', [
         http.get(ideaUrl, () =>
-          HttpResponse.json({ ...idea, links: [{ ...idea.links[0]!, readAt }, idea.links[1]!] }),
+          HttpResponse.json({
+            ...idea,
+            articles: [{ ...idea.articles[0]!, readAt }, idea.articles[1]!],
+          }),
         ),
         http.post(notesUrl, async ({ request }) => {
           const body = (await request.json()) as { text: string }
           readAt = '2026-01-03T00:00:00Z' // as the server now does when a note is taken from an item
           return HttpResponse.json(note('n1', body.text, 'l1'), { status: 201 })
         }),
-        http.put(`${ideaUrl}/links/l1/read`, () => {
+        http.put(`${ideaUrl}/articles/l1/read`, () => {
           readAt = null
-          return HttpResponse.json({ ...idea, links: idea.links })
+          return HttpResponse.json({ ...idea, articles: idea.articles })
         }),
       ])
       const read = await screen.findByRole('switch', { name: 'Read' })
@@ -633,9 +639,9 @@ describe('reading page', () => {
   describe('the title and authors', () => {
     const detailed = (title: string, authors: string[] = []) => ({
       ...idea,
-      links: [{ ...idea.links[0]!, title, authors }, idea.links[1]!],
+      articles: [{ ...idea.articles[0]!, title, authors }, idea.articles[1]!],
     })
-    const patchUrl = `${ideaUrl}/links/l1`
+    const patchUrl = `${ideaUrl}/articles/l1`
     const edit = async () =>
       fireEvent.click(await screen.findByRole('button', { name: 'Edit title and authors' }))
 
@@ -725,8 +731,8 @@ describe('reading page', () => {
   describe('adding another page to the articles', () => {
     const added = (title: string) => ({
       ...idea,
-      links: [
-        ...idea.links,
+      articles: [
+        ...idea.articles,
         { id: 'l3', url: 'https://example.org/new', title, readAt: null, origin: 'entered' },
       ],
     })
@@ -734,7 +740,7 @@ describe('reading page', () => {
     it('sends just the address, clears the box, and offers to read the new page next', async () => {
       const sent: unknown[] = []
       await open('l1', [
-        http.post(`${ideaUrl}/links`, async ({ request }) => {
+        http.post(`${ideaUrl}/articles`, async ({ request }) => {
           sent.push(await request.json())
           return HttpResponse.json(added('Fetched title'), { status: 201 })
         }),
@@ -752,7 +758,7 @@ describe('reading page', () => {
       expect(box).toHaveValue('')
       expect(within(status).getByRole('link', { name: 'Open “Fetched title”' })).toHaveAttribute(
         'href',
-        readingPath('l3'),
+        articlePath('l3'),
       )
       // Still on the page being read, with its notes box untouched.
       expect(screen.getByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
@@ -760,7 +766,7 @@ describe('reading page', () => {
 
     it('calls a page with no title by its address', async () => {
       await open('l1', [
-        http.post(`${ideaUrl}/links`, () => HttpResponse.json(added(''), { status: 201 })),
+        http.post(`${ideaUrl}/articles`, () => HttpResponse.json(added(''), { status: 201 })),
       ])
       await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
@@ -770,7 +776,7 @@ describe('reading page', () => {
 
     it('keeps what was typed, and says what is wrong, when it could not be added', async () => {
       await open('l1', [
-        http.post(`${ideaUrl}/links`, () =>
+        http.post(`${ideaUrl}/articles`, () =>
           HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
         ),
       ])
@@ -787,14 +793,14 @@ describe('reading page', () => {
     it('saves read, then unread', async () => {
       const sent: unknown[] = []
       await open('l1', [
-        http.put(`${ideaUrl}/links/l1/read`, async ({ request }) => {
+        http.put(`${ideaUrl}/articles/l1/read`, async ({ request }) => {
           const body = (await request.json()) as { read: boolean }
           sent.push(body)
           return HttpResponse.json({
             ...idea,
-            links: [
-              { ...idea.links[0]!, readAt: body.read ? '2026-01-03T00:00:00Z' : null },
-              idea.links[1]!,
+            articles: [
+              { ...idea.articles[0]!, readAt: body.read ? '2026-01-03T00:00:00Z' : null },
+              idea.articles[1]!,
             ],
           })
         }),
@@ -813,7 +819,7 @@ describe('reading page', () => {
         http.get(ideaUrl, () =>
           HttpResponse.json({
             ...idea,
-            links: [{ ...idea.links[0]!, readAt: '2026-01-03T00:00:00Z' }, idea.links[1]!],
+            articles: [{ ...idea.articles[0]!, readAt: '2026-01-03T00:00:00Z' }, idea.articles[1]!],
           }),
         ),
       ])
@@ -822,7 +828,7 @@ describe('reading page', () => {
 
     it('says so when it could not be saved, and leaves it as it was', async () => {
       await open('l1', [
-        http.put(`${ideaUrl}/links/l1/read`, () =>
+        http.put(`${ideaUrl}/articles/l1/read`, () =>
           HttpResponse.json({ error: 'boom' }, { status: 500 }),
         ),
       ])

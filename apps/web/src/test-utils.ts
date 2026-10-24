@@ -68,7 +68,7 @@ export const server = setupServer(
   // No feeds yet, and so no recent posts.
   http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json([])),
   // An empty articles (the publication's, which the Read page shows).
-  http.get('*/api/publications/:publicationId/reading', () => HttpResponse.json([])),
+  http.get('*/api/publications/:publicationId/articles', () => HttpResponse.json([])),
   // No notes yet, on the publication or on any idea.
   http.get('*/api/publications/:publicationId/notes', () => HttpResponse.json([])),
   http.get('*/api/publications/:publicationId/ideas/:ideaId/notes', () => HttpResponse.json([])),

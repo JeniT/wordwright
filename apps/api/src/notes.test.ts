@@ -120,38 +120,38 @@ describe('idea notes', () => {
 
   describe('taken from the articles', () => {
     const itemOn = async () => {
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-      return (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id as string
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+      return (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0].id as string
     }
 
     it('is a note from reading, remembering which item', async () => {
       const item = await itemOn()
-      const res = await ada.post(notes(), { text: 'A useful quote.', readingItemId: item })
+      const res = await ada.post(notes(), { text: 'A useful quote.', articleId: item })
       expect(res.status).toBe(201)
       expect(await res.json()).toMatchObject({
         text: 'A useful quote.',
         origin: 'reading',
-        readingItemId: item,
+        articleId: item,
         authorName: 'Ada',
       })
-      expect(await add('Typed by hand')).toMatchObject({ origin: 'entered', readingItemId: null })
+      expect(await add('Typed by hand')).toMatchObject({ origin: 'entered', articleId: null })
     })
 
     it('marks the item it came from as read, keeping the first date, and leaves other items alone', async () => {
       const item = await itemOn()
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/other' })
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/other' })
       const readAt = async (id: string) =>
-        (await (await ada.get(`${ideas()}/${idea}`)).json()).links.find(
+        (await (await ada.get(`${ideas()}/${idea}`)).json()).articles.find(
           (l: { id: string }) => l.id === id,
         ).readAt
       expect(await readAt(item)).toBeNull()
-      await ada.post(notes(), { text: 'First thought.', readingItemId: item })
+      await ada.post(notes(), { text: 'First thought.', articleId: item })
       const first = await readAt(item)
       expect(first).toEqual(expect.any(String))
       ctx.clock.now = new Date(ctx.clock.now.getTime() + 60_000)
-      await ada.post(notes(), { text: 'Second thought.', readingItemId: item })
+      await ada.post(notes(), { text: 'Second thought.', articleId: item })
       expect(await readAt(item)).toBe(first)
-      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).links
+      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles
       expect(links.map((l: { readAt: string | null }) => l.readAt !== null)).toEqual([false, true]) // the other is still unread, and first
     })
 
@@ -159,16 +159,16 @@ describe('idea notes', () => {
       const item = await itemOn()
       await add('Typed by hand')
       await ada.post(notes(), { text: 'Unsourced quote.', quote: true })
-      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).links
+      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles
       expect(links[0].readAt).toBeNull()
       expect(item).toBe(links[0].id)
     })
 
     it('must come from an item on this idea', async () => {
       const other = (await (await ada.post(ideas(), { name: 'Other' })).json()).id
-      await ada.post(`${ideas()}/${other}/links`, { url: 'https://example.org/else' })
-      const elsewhere = (await (await ada.get(`${ideas()}/${other}`)).json()).links[0].id
-      const res = await ada.post(notes(), { text: 'x', readingItemId: elsewhere })
+      await ada.post(`${ideas()}/${other}/articles`, { url: 'https://example.org/else' })
+      const elsewhere = (await (await ada.get(`${ideas()}/${other}`)).json()).articles[0].id
+      const res = await ada.post(notes(), { text: 'x', articleId: elsewhere })
       expect(res.status).toBe(400)
       expect((await res.json()).error).toContain("isn't in this idea's articles")
       expect(await list()).toEqual([])
@@ -176,54 +176,52 @@ describe('idea notes', () => {
 
     it('keeps its origin if the item is removed, and loses only the link to it', async () => {
       const item = await itemOn()
-      await ada.post(notes(), { text: 'Quote.', readingItemId: item })
-      await ada.delete(`${ideas()}/${idea}/links/${item}`)
-      expect(await list()).toMatchObject([
-        { text: 'Quote.', origin: 'reading', readingItemId: null },
-      ])
+      await ada.post(notes(), { text: 'Quote.', articleId: item })
+      await ada.delete(`${ideas()}/${idea}/articles/${item}`)
+      expect(await list()).toMatchObject([{ text: 'Quote.', origin: 'reading', articleId: null }])
     })
 
     it('stays attached when the note is edited', async () => {
       const item = await itemOn()
-      const note = await (await ada.post(notes(), { text: 'Quote.', readingItemId: item })).json()
+      const note = await (await ada.post(notes(), { text: 'Quote.', articleId: item })).json()
       const edited = await (
         await ada.patch(`${notes()}/${note.id}`, {
           text: 'Better quote.',
-          readingItemId: 'ignored',
+          articleId: 'ignored',
         })
       ).json()
       expect(edited).toMatchObject({
         text: 'Better quote.',
         origin: 'reading',
-        readingItemId: item,
+        articleId: item,
       })
     })
   })
 
   describe('direct quotations', () => {
     const itemOn = async () => {
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-      return (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id as string
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+      return (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0].id as string
     }
     const quote = async (text = 'Meanders grow.') => {
       const item = await itemOn()
-      const res = await ada.post(notes(), { text, readingItemId: item, quote: true })
+      const res = await ada.post(notes(), { text, articleId: item, quote: true })
       return { item, res, note: (await res.json()) as Note }
     }
 
     it('are notes from reading that say they are quotations; other notes are not', async () => {
       const { item, res, note } = await quote()
       expect(res.status).toBe(201)
-      expect(note).toMatchObject({ quote: true, origin: 'reading', readingItemId: item })
-      const plain = await (await ada.post(notes(), { text: 'Mine.', readingItemId: item })).json()
+      expect(note).toMatchObject({ quote: true, origin: 'reading', articleId: item })
+      const plain = await (await ada.post(notes(), { text: 'Mine.', articleId: item })).json()
       expect(plain.quote).toBe(false)
       expect((await add('Typed by hand')).quote).toBe(false)
     })
 
-    it('need the reading-list item they come from', async () => {
+    it('need the article they come from', async () => {
       const res = await ada.post(notes(), { text: 'Unsourced.', quote: true })
       expect(res.status).toBe(400)
-      expect((await res.json()).error).toContain('needs the reading-list item')
+      expect((await res.json()).error).toContain('needs the article')
       expect(await list()).toEqual([])
     })
 
@@ -389,9 +387,11 @@ describe('idea notes', () => {
 
     it('can tag a quotation (its words are not changed), and says 404 for notes that are not here', async () => {
       const item = (
-        await (await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/p' })).json()
-      ).links[0]
-      const quote = await addNote('Exactly so.', { readingItemId: item.id, quote: true })
+        await (
+          await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/p' })
+        ).json()
+      ).articles[0]
+      const quote = await addNote('Exactly so.', { articleId: item.id, quote: true })
       expect((await bulk({ ids: [quote.id], add: ['cited'] })).status).toBe(200)
       expect((await list())[0]).toMatchObject({ text: 'Exactly so.', quote: true, tags: ['cited'] })
       expect((await bulk({ ids: [quote.id, 'nope'], add: ['x'] })).status).toBe(404)
@@ -439,11 +439,11 @@ describe('idea notes', () => {
     })
 
     it('keeps the origin (and reading source) they share, and takes every tag once', async () => {
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0].id
       const [a, b] = [
-        await addNote('From the paper.', { readingItemId: item }),
-        await addNote('Also the paper.', { readingItemId: item }),
+        await addNote('From the paper.', { articleId: item }),
+        await addNote('Also the paper.', { articleId: item }),
       ]
       await ada.put(`${notes()}/${a.id}/tags`, { tags: ['intro', 'Part 1'] })
       await ada.put(`${notes()}/${b.id}/tags`, { tags: ['part 1', 'later'] })
@@ -451,7 +451,7 @@ describe('idea notes', () => {
       expect(merged).toMatchObject({
         text: 'From the paper.\n\nAlso the paper.',
         origin: 'reading',
-        readingItemId: item,
+        articleId: item,
         tags: ['intro', 'Part 1', 'later'],
         addedAt: null,
       })
@@ -473,9 +473,9 @@ describe('idea notes', () => {
     })
 
     it('refuses notes from different places, different sources, quotations and notes already in a draft', async () => {
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/a' })
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/b' })
-      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).links
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/a' })
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/b' })
+      const links = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles
       const typed = await add('Typed.')
       const brainstormed = ctx.store.notes.append(
         publication,
@@ -484,15 +484,15 @@ describe('idea notes', () => {
         'From the chat.',
         'brainstorm',
       )
-      const fromA = await addNote('From A.', { readingItemId: links[0].id })
-      const fromB = await addNote('From B.', { readingItemId: links[1].id })
-      const quote = await addNote('Exact words.', { readingItemId: links[0].id, quote: true })
+      const fromA = await addNote('From A.', { articleId: links[0].id })
+      const fromB = await addNote('From B.', { articleId: links[1].id })
+      const quote = await addNote('Exact words.', { articleId: links[0].id, quote: true })
       const used = await add('In a draft.')
       ctx.store.notes.setAdded(idea, used.id, true)
 
       const cases: [string[], RegExp][] = [
         [[typed.id, brainstormed.id], /different places/],
-        [[fromA.id, fromB.id], /different reading-list items/],
+        [[fromA.id, fromB.id], /different articles/],
         [[fromA.id, quote.id], /Quotations can't be merged/],
         [[typed.id, used.id], /already in a draft/],
       ]
@@ -557,16 +557,14 @@ describe('idea notes', () => {
     })
 
     it('keeps where a note came from on both halves', async () => {
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id
-      const note = await addNote('First part. Second part.', { readingItemId: item })
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0].id
+      const note = await addNote('First part. Second part.', { articleId: item })
       const all = await (await split(note.id, 'First part.', 'Second part.')).json()
-      expect(all.map((n: Note & { readingItemId: string }) => [n.origin, n.readingItemId])).toEqual(
-        [
-          ['reading', item],
-          ['reading', item],
-        ],
-      )
+      expect(all.map((n: Note & { articleId: string }) => [n.origin, n.articleId])).toEqual([
+        ['reading', item],
+        ['reading', item],
+      ])
     })
 
     it('needs words on each side, refuses quotations and notes in a draft, and respects the limit', async () => {
@@ -579,9 +577,9 @@ describe('idea notes', () => {
         expect(res.status).toBe(400)
         expect((await res.json()).error).toContain('Put the cursor inside the note')
       }
-      await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id
-      const quote = await addNote('Exact words here.', { readingItemId: item, quote: true })
+      await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+      const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0].id
+      const quote = await addNote('Exact words here.', { articleId: item, quote: true })
       const refusedQuote = await split(quote.id, 'Exact', 'words here.')
       expect(refusedQuote.status).toBe(409)
       expect((await refusedQuote.json()).error).toContain("can't be split")

@@ -30,7 +30,7 @@ export function useDecidePosts(publicationId: () => string) {
             : `“${post.title}” is back in recent posts.`
     },
     // Whatever happened, someone else may have decided first: show how things are now.
-    onSettled: () => invalidateRoots(queryClient, 'recent-posts', 'reading', 'ideas'),
+    onSettled: () => invalidateRoots(queryClient, 'recent-posts', 'articles', 'ideas'),
   })
   return { decide, notice, busy: computed(() => decide.isPending.value) }
 }

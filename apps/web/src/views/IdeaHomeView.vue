@@ -6,7 +6,7 @@ import LandingSection from '../components/LandingSection.vue'
 import KeepWriting from '../components/KeepWriting.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import RecentNotes from '../components/RecentNotes.vue'
-import RecentReading from '../components/RecentReading.vue'
+import RecentArticles from '../components/RecentArticles.vue'
 import RecentRefine from '../components/RecentRefine.vue'
 import ResearchForm from '../components/ResearchForm.vue'
 import SettingsButton from '../components/SettingsButton.vue'
@@ -84,7 +84,7 @@ const showResearch = () =>
       />
     </LandingSection>
 
-    <RecentReading
+    <RecentArticles
       :publication-id="publicationId"
       :idea-id="id"
       explain="Read the articles on this idea’s list and take notes on them. Items can be tagged and moved to another idea."

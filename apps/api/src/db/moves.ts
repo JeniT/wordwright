@@ -5,7 +5,7 @@ import { nowIso } from './database'
 export interface MoveRecord {
   id: string
   batchId: string
-  kind: 'reading' | 'note'
+  kind: 'article' | 'note'
   itemId: string
   /** The idea it came from; null for the publication itself (the one the move was made in). */
   fromIdeaId: string | null
@@ -58,7 +58,7 @@ export class MoveStore {
       .map((r) => ({
         id: r.id as string,
         batchId: r.batch_id as string,
-        kind: r.kind as 'reading' | 'note',
+        kind: r.kind as 'article' | 'note',
         itemId: r.item_id as string,
         fromIdeaId: r.from_idea_id as string | null,
         toIdeaId: r.to_idea_id as string | null,

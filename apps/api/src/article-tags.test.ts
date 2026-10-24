@@ -19,11 +19,11 @@ async function start() {
 describe('tags on the publication’s articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   let item: Link
-  const tag = (id: string, tags: unknown) => s.ada.put(`${s.api}/reading/${id}/tags`, { tags })
-  const list = async (): Promise<Link[]> => (await s.ada.get(`${s.api}/reading`)).json()
+  const tag = (id: string, tags: unknown) => s.ada.put(`${s.api}/articles/${id}/tags`, { tags })
+  const list = async (): Promise<Link[]> => (await s.ada.get(`${s.api}/articles`)).json()
   beforeEach(async () => {
     s = await start()
-    item = (await (await s.ada.post(`${s.api}/reading`, { url: 'https://a.example/p' })).json())[0]
+    item = (await (await s.ada.post(`${s.api}/articles`, { url: 'https://a.example/p' })).json())[0]
   })
 
   it('starts with none, sets them as a whole, and answers with the list', async () => {
@@ -54,46 +54,46 @@ describe('tags on the publication’s articles', () => {
     expect((await tag('nope', ['a'])).status).toBe(404)
     const onIdea = (
       await (
-        await s.ada.post(`${s.api}/ideas/${s.idea}/links`, { url: 'https://b.example/p' })
+        await s.ada.post(`${s.api}/ideas/${s.idea}/articles`, { url: 'https://b.example/p' })
       ).json()
-    ).links[0] as Link
+    ).articles[0] as Link
     expect((await tag(onIdea.id, ['a'])).status).toBe(404) // an idea's item, through the publication's list
     const eve = s.ctx.client()
     await register(eve, 'eve@example.com', 'Eve')
-    expect((await eve.put(`${s.api}/reading/${item.id}/tags`, { tags: ['x'] })).status).toBe(404)
+    expect((await eve.put(`${s.api}/articles/${item.id}/tags`, { tags: ['x'] })).status).toBe(404)
   })
 })
 
 describe('tags on an idea’s articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   let item: Link
-  const url = (id: string) => `${s.api}/ideas/${s.idea}/links/${id}/tags`
+  const url = (id: string) => `${s.api}/ideas/${s.idea}/articles/${id}/tags`
   const idea = async () => (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()
   beforeEach(async () => {
     s = await start()
     item = (
       await (
-        await s.ada.post(`${s.api}/ideas/${s.idea}/links`, { url: 'https://a.example/p' })
+        await s.ada.post(`${s.api}/ideas/${s.idea}/articles`, { url: 'https://a.example/p' })
       ).json()
-    ).links[0]
+    ).articles[0]
   })
 
   it('shows them on the idea, in the order given, and counts as a change to the idea', async () => {
     s.ctx.store.ideas.touch(s.idea, 'long ago')
     const res = await s.ada.put(url(item.id), { tags: ['Second', 'first'] })
     expect(res.status).toBe(200)
-    expect((await res.json()).links[0].tags).toEqual(['Second', 'first'])
-    expect((await idea()).links[0].tags).toEqual(['Second', 'first'])
+    expect((await res.json()).articles[0].tags).toEqual(['Second', 'first'])
+    expect((await idea()).articles[0].tags).toEqual(['Second', 'first'])
     expect((await idea()).updatedAt).not.toBe('long ago')
     expect((await s.ada.put(url(item.id), { tags: [] })).status).toBe(200)
-    expect((await idea()).links[0].tags).toEqual([])
+    expect((await idea()).articles[0].tags).toEqual([])
   })
 
   it('refuses a missing item and an item of another idea, and bad tags', async () => {
     expect((await s.ada.put(url('nope'), { tags: ['a'] })).status).toBe(404)
     const other = (await (await s.ada.post(`${s.api}/ideas`, { name: 'Other' })).json()).id
     expect(
-      (await s.ada.put(`${s.api}/ideas/${other}/links/${item.id}/tags`, { tags: ['a'] })).status,
+      (await s.ada.put(`${s.api}/ideas/${other}/articles/${item.id}/tags`, { tags: ['a'] })).status,
     ).toBe(404)
     expect((await s.ada.put(url(item.id), { tags: [''] })).status).toBe(400)
   })
@@ -103,7 +103,7 @@ describe('tagging several articles at once', () => {
   let s: Awaited<ReturnType<typeof start>>
   const add = async (path: string, url: string): Promise<Link> => {
     const res = await (await s.ada.post(path, { url, title: url.replace('https://', '') })).json()
-    return (Array.isArray(res) ? res : res.links).find((l: Link) => l.url === url)
+    return (Array.isArray(res) ? res : res.articles).find((l: Link) => l.url === url)
   }
   beforeEach(async () => {
     s = await start()
@@ -112,13 +112,13 @@ describe('tagging several articles at once', () => {
   for (const kind of ['publication', 'idea'] as const) {
     describe(`on the ${kind}'s list`, () => {
       const base = () =>
-        kind === 'publication' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}/links`
+        kind === 'publication' ? `${s.api}/articles` : `${s.api}/ideas/${s.idea}/articles`
       const bulk = (body: object) => s.ada.post(`${base()}/tags`, body)
       const tagsOf = async (): Promise<string[][]> => {
         const res = await (
-          await s.ada.get(kind === 'publication' ? `${s.api}/reading` : `${s.api}/ideas/${s.idea}`)
+          await s.ada.get(kind === 'publication' ? `${s.api}/articles` : `${s.api}/ideas/${s.idea}`)
         ).json()
-        return (Array.isArray(res) ? res : res.links).map((l: Link) => l.tags)
+        return (Array.isArray(res) ? res : res.articles).map((l: Link) => l.tags)
       }
 
       it('adds tags to every chosen item, keeping what they have and ignoring repeats', async () => {
@@ -181,7 +181,7 @@ describe('tagging several articles at once', () => {
         expect((await eve.post(`${base()}/tags`, { ids: [a.id], add: ['x'] })).status).toBe(404)
         // The other list's item is not this list's.
         const elsewhere = await add(
-          kind === 'publication' ? `${s.api}/ideas/${s.idea}/links` : `${s.api}/reading`,
+          kind === 'publication' ? `${s.api}/ideas/${s.idea}/articles` : `${s.api}/articles`,
           'https://z.example/p',
         )
         expect((await bulk({ ids: [elsewhere.id], add: ['x'] })).status).toBe(404)
@@ -190,7 +190,7 @@ describe('tagging several articles at once', () => {
   }
 
   it('counts as a change to the idea', async () => {
-    const base = `${s.api}/ideas/${s.idea}/links`
+    const base = `${s.api}/ideas/${s.idea}/articles`
     const a = await add(base, 'https://a.example/p')
     s.ctx.store.ideas.touch(s.idea, 'long ago')
     await s.ada.post(`${base}/tags`, { ids: [a.id], add: ['y'] })
@@ -201,22 +201,22 @@ describe('tagging several articles at once', () => {
 describe('tags when articles move', () => {
   let s: Awaited<ReturnType<typeof start>>
   const move = (ids: string[], ideaId: string | null) =>
-    s.ada.post(`${s.api}/move/reading`, { ids, to: { ideaId } })
+    s.ada.post(`${s.api}/move/articles`, { ids, to: { ideaId } })
   beforeEach(async () => {
     s = await start()
   })
 
   it('go with an item to an idea and back', async () => {
     const item = (
-      await (await s.ada.post(`${s.api}/reading`, { url: 'https://a.example/p' })).json()
+      await (await s.ada.post(`${s.api}/articles`, { url: 'https://a.example/p' })).json()
     )[0] as Link
-    await s.ada.put(`${s.api}/reading/${item.id}/tags`, { tags: ['one', 'two'] })
+    await s.ada.put(`${s.api}/articles/${item.id}/tags`, { tags: ['one', 'two'] })
     await move([item.id], s.idea)
     expect(
-      ((await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).links as Link[])[0]!.tags,
+      ((await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).articles as Link[])[0]!.tags,
     ).toEqual(['one', 'two'])
     await move([item.id], null)
-    expect(((await (await s.ada.get(`${s.api}/reading`)).json()) as Link[])[0]!.tags).toEqual([
+    expect(((await (await s.ada.get(`${s.api}/articles`)).json()) as Link[])[0]!.tags).toEqual([
       'one',
       'two',
     ])
@@ -225,16 +225,18 @@ describe('tags when articles move', () => {
   it('are added to those of the item already there when two become one', async () => {
     const there = (
       await (
-        await s.ada.post(`${s.api}/ideas/${s.idea}/links`, { url: 'https://a.example/p' })
+        await s.ada.post(`${s.api}/ideas/${s.idea}/articles`, { url: 'https://a.example/p' })
       ).json()
-    ).links[0] as Link
-    await s.ada.put(`${s.api}/ideas/${s.idea}/links/${there.id}/tags`, { tags: ['One', 'shared'] })
+    ).articles[0] as Link
+    await s.ada.put(`${s.api}/ideas/${s.idea}/articles/${there.id}/tags`, {
+      tags: ['One', 'shared'],
+    })
     const mine = (
-      await (await s.ada.post(`${s.api}/reading`, { url: 'https://a.example/p#frag' })).json()
+      await (await s.ada.post(`${s.api}/articles`, { url: 'https://a.example/p#frag' })).json()
     )[0] as Link
-    await s.ada.put(`${s.api}/reading/${mine.id}/tags`, { tags: ['ONE', 'extra'] })
+    await s.ada.put(`${s.api}/articles/${mine.id}/tags`, { tags: ['ONE', 'extra'] })
     await move([mine.id], s.idea)
-    const links = (await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).links as Link[]
+    const links = (await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).articles as Link[]
     expect(links.map((l) => l.id)).toEqual([there.id])
     expect(links[0]!.tags).toEqual(['One', 'shared', 'extra']) // "ONE" was already there
   })
@@ -243,39 +245,42 @@ describe('tags when articles move', () => {
     const full = Array.from({ length: 9 }, (_, i) => `t${i}`)
     const there = (
       await (
-        await s.ada.post(`${s.api}/ideas/${s.idea}/links`, { url: 'https://a.example/p' })
+        await s.ada.post(`${s.api}/ideas/${s.idea}/articles`, { url: 'https://a.example/p' })
       ).json()
-    ).links[0] as Link
-    await s.ada.put(`${s.api}/ideas/${s.idea}/links/${there.id}/tags`, { tags: full })
+    ).articles[0] as Link
+    await s.ada.put(`${s.api}/ideas/${s.idea}/articles/${there.id}/tags`, { tags: full })
     const mine = (
-      await (await s.ada.post(`${s.api}/reading`, { url: 'https://a.example/p#frag' })).json()
+      await (await s.ada.post(`${s.api}/articles`, { url: 'https://a.example/p#frag' })).json()
     )[0] as Link
-    await s.ada.put(`${s.api}/reading/${mine.id}/tags`, { tags: ['a', 'b'] })
+    await s.ada.put(`${s.api}/articles/${mine.id}/tags`, { tags: ['a', 'b'] })
     expect((await move([mine.id], s.idea)).status).toBe(200)
-    const tags = ((await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).links as Link[])[0]!
-      .tags
+    const tags = (
+      (await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).articles as Link[]
+    )[0]!.tags
     expect(tags).toEqual([...full, 'a'])
   })
 
   it('are not copied with the source item that a moved note takes along', async () => {
     const item = (
-      await (await s.ada.post(`${s.api}/reading`, { url: 'https://a.example/p' })).json()
+      await (await s.ada.post(`${s.api}/articles`, { url: 'https://a.example/p' })).json()
     )[0] as Link
-    await s.ada.put(`${s.api}/reading/${item.id}/tags`, { tags: ['publication only'] })
+    await s.ada.put(`${s.api}/articles/${item.id}/tags`, { tags: ['publication only'] })
     const note = await (
-      await s.ada.post(`${s.api}/notes`, { text: 'About it', readingItemId: item.id })
+      await s.ada.post(`${s.api}/notes`, { text: 'About it', articleId: item.id })
     ).json()
     await s.ada.post(`${s.api}/move/notes`, { ids: [note.id], to: { ideaId: s.idea } })
-    const copy = ((await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).links as Link[])[0]!
+    const copy = (
+      (await (await s.ada.get(`${s.api}/ideas/${s.idea}`)).json()).articles as Link[]
+    )[0]!
     expect(copy.url).toBe('https://a.example/p')
     expect(copy.tags).toEqual([])
-    expect(((await (await s.ada.get(`${s.api}/reading`)).json()) as Link[])[0]!.tags).toEqual([
+    expect(((await (await s.ada.get(`${s.api}/articles`)).json()) as Link[])[0]!.tags).toEqual([
       'publication only',
     ])
   })
 })
 
-describe('the reading-item tags table', () => {
+describe('the article tags table', () => {
   it('goes with its item, whatever removes it, and treats a tag as one whatever its case', () => {
     const db = new DatabaseSync(':memory:')
     db.exec('PRAGMA foreign_keys = ON')
@@ -283,20 +288,20 @@ describe('the reading-item tags table', () => {
     db.exec(`
       INSERT INTO publications (id, name, created_at) VALUES ('p', 'P', 'now');
       INSERT INTO ideas (id, publication_id, name, created_at, updated_at) VALUES ('i', 'p', 'I', 't', 't');
-      INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', 'i', 'https://x.example', 'X', 't');
-      INSERT INTO idea_link_tags (link_id, tag) VALUES ('l', 'Intro');
+      INSERT INTO articles (id, publication_id, idea_id, url, title, created_at) VALUES ('l', 'p', 'i', 'https://x.example', 'X', 't');
+      INSERT INTO article_tags (article_id, tag) VALUES ('l', 'Intro');
     `)
     expect(() =>
-      db.exec("INSERT INTO idea_link_tags (link_id, tag) VALUES ('l', 'intro')"),
+      db.exec("INSERT INTO article_tags (article_id, tag) VALUES ('l', 'intro')"),
     ).toThrow()
     // Deleting the idea (which deletes its items) leaves no tags behind, and neither does deleting the publication.
     db.exec("DELETE FROM ideas WHERE id = 'i'")
-    expect(db.prepare('SELECT count(*) AS n FROM idea_link_tags').get()).toEqual({ n: 0 })
+    expect(db.prepare('SELECT count(*) AS n FROM article_tags').get()).toEqual({ n: 0 })
     db.exec(`
-      INSERT INTO idea_links (id, publication_id, idea_id, url, title, created_at) VALUES ('m', 'p', NULL, 'https://y.example', 'Y', 't');
-      INSERT INTO idea_link_tags (link_id, tag) VALUES ('m', 'Own');
+      INSERT INTO articles (id, publication_id, idea_id, url, title, created_at) VALUES ('m', 'p', NULL, 'https://y.example', 'Y', 't');
+      INSERT INTO article_tags (article_id, tag) VALUES ('m', 'Own');
       DELETE FROM publications WHERE id = 'p';
     `)
-    expect(db.prepare('SELECT count(*) AS n FROM idea_link_tags').get()).toEqual({ n: 0 })
+    expect(db.prepare('SELECT count(*) AS n FROM article_tags').get()).toEqual({ n: 0 })
   })
 })

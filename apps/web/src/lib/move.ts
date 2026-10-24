@@ -11,7 +11,7 @@ export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 
 /** "Moved 2 items and 5 notes to “Rivers”." */
 export function moveSummary(result: MoveResult, destination: string): string {
   const parts = []
-  if (result.readingItems) parts.push(plural(result.readingItems, 'item', 'items'))
+  if (result.articles) parts.push(plural(result.articles, 'item', 'items'))
   if (result.notes) parts.push(plural(result.notes, 'note', 'notes'))
   const what = parts.length ? parts.join(' and ') : 'nothing'
   const joined = result.merged
@@ -44,7 +44,7 @@ export function useMove(publicationId: () => string) {
   /** What the last move did, and whether it can be undone (not when items were joined: that can't be unpicked). */
   const outcome = ref<{ text: string; undo: (() => void) | null } | null>(null)
 
-  const refresh = () => invalidateRoots(queryClient, 'idea', 'ideas', 'reading', 'notes')
+  const refresh = () => invalidateRoots(queryClient, 'idea', 'ideas', 'articles', 'notes')
 
   /**
    * Undo asks the publication the things went to (`via`, when that was another) to send them back to where they were.
@@ -55,7 +55,7 @@ export function useMove(publicationId: () => string) {
 
   const undoMove = useMutation({
     mutationFn: ({ ids, ideaId, via }: { ids: string[]; ideaId: string | null; via?: string }) =>
-      api.moveReadingItems(via ?? publicationId(), ids, back(via, ideaId)),
+      api.moveArticles(via ?? publicationId(), ids, back(via, ideaId)),
     onSuccess: () => {
       outcome.value = { text: 'Moved back.', undo: null }
     },
@@ -63,8 +63,8 @@ export function useMove(publicationId: () => string) {
   })
 
   /** `from` is where the items are now (an idea, or null for the publication's list); `to` names where they go. */
-  const moveReading = useMutation({
-    mutationFn: (v: MoveRequest) => api.moveReadingItems(publicationId(), v.ids, targetOf(v)),
+  const moveArticles = useMutation({
+    mutationFn: (v: MoveRequest) => api.moveArticles(publicationId(), v.ids, targetOf(v)),
     onSuccess: (result, v) => {
       outcome.value = {
         text: moveSummary(result, v.toName),
@@ -115,7 +115,7 @@ export function useMove(publicationId: () => string) {
 
   return {
     outcome,
-    moveReading,
+    moveArticles,
     undoMove,
     moveNotes,
     undoNotes,
@@ -256,18 +256,18 @@ export function useIdeaMovePreview(
   })
 }
 
-/** "1 idea, 2 drafts, 5 notes, 3 links": what a move of ideas takes with it. */
+/** "1 idea, 2 drafts, 5 notes, 3 articles": what a move of ideas takes with it. */
 export function ideaMoveContents(p: {
   ideas: number
   drafts: number
   notes: number
-  links: number
+  articles: number
 }): string {
   return [
     plural(p.ideas, 'idea', 'ideas'),
     plural(p.drafts, 'draft', 'drafts'),
     plural(p.notes, 'note', 'notes'),
-    plural(p.links, 'link', 'links'),
+    plural(p.articles, 'article', 'articles'),
   ].join(', ')
 }
 
@@ -283,7 +283,7 @@ export function useMoveIdeas(publicationId: () => string) {
         'ideas',
         'draft',
         'notes',
-        'reading',
+        'articles',
         'attention',
         'active-drafts',
       ),

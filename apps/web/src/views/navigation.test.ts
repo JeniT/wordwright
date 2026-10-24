@@ -25,7 +25,7 @@ const idea = {
   publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: '',
-  links: [
+  articles: [
     { id: 'l1', url: 'https://example.org/a', title: 'A', readAt: null, origin: 'entered' },
     { id: 'l2', url: 'https://example.org/b', title: 'B', readAt: null, origin: 'entered' },
   ],
@@ -367,7 +367,7 @@ describe('the menu folds away on pages read beside another window', () => {
     server.use(
       http.get('*/api/publications/ada-substack/ideas/i1/notes', () => HttpResponse.json([])),
     )
-    await renderAt('/p/ada-substack/ideas/i1/reading/l1')
+    await renderAt('/p/ada-substack/ideas/i1/articles/l1')
     const button = await screen.findByRole('button', { name: 'Menu' })
     expect(button).not.toHaveClass('md:hidden')
     expect(button).toHaveAttribute('aria-expanded', 'false')

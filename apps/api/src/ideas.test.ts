@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { MAX_IDEA_LINKS } from '@wordwright/core'
+import { MAX_IDEA_ARTICLES } from '@wordwright/core'
 import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 describe('ideas', () => {
@@ -33,7 +33,7 @@ describe('ideas', () => {
       publicationId: publication,
       name: 'Why rivers meander', // trimmed
       notes: '- Erosion loops.',
-      links: [],
+      articles: [],
       drafts: [],
     })
     expect(await (await ada.get(`${ideas()}/${idea.id}`)).json()).toEqual(idea)
@@ -61,8 +61,8 @@ describe('ideas', () => {
 
   describe('the articles (links to things to read)', () => {
     let idea: { id: string }
-    const links = () => `${ideas()}/${idea.id}/links`
-    const read = async () => (await (await ada.get(`${ideas()}/${idea.id}`)).json()).links
+    const links = () => `${ideas()}/${idea.id}/articles`
+    const read = async () => (await (await ada.get(`${ideas()}/${idea.id}`)).json()).articles
     const add = (url: string, title?: string) => ada.post(links(), title ? { url, title } : { url })
 
     beforeEach(async () => {
@@ -72,7 +72,7 @@ describe('ideas', () => {
     it('adds a link, assuming https, and shows the title found at the address', async () => {
       const res = await add('example.org/meanders')
       expect(res.status).toBe(201)
-      expect((await res.json()).links).toEqual([
+      expect((await res.json()).articles).toEqual([
         {
           id: expect.any(String),
           url: 'https://example.org/meanders',
@@ -92,11 +92,11 @@ describe('ideas', () => {
     it('keeps a link whose page has no title, with an empty title (the address is shown instead)', async () => {
       const res = await add('https://example.org/untitled')
       expect(res.status).toBe(201)
-      expect((await res.json()).links[0].title).toBe('')
+      expect((await res.json()).articles[0].title).toBe('')
     })
 
     it('uses a title the person supplied rather than the fetched one', async () => {
-      const link = (await (await add('https://example.org/a', '  My title ')).json()).links[0]
+      const link = (await (await add('https://example.org/a', '  My title ')).json()).articles[0]
       expect(link.title).toBe('My title')
     })
 
@@ -111,11 +111,11 @@ describe('ideas', () => {
         expect(marked.status).toBe(200)
         const idea = await marked.json()
         // Read items go last, so the one just read is now second.
-        expect(idea.links[1]).toMatchObject({ id: first.id, readAt: expect.any(String) })
-        expect(idea.links[0]).toMatchObject({ id: second.id, readAt: null }) // only that one
+        expect(idea.articles[1]).toMatchObject({ id: first.id, readAt: expect.any(String) })
+        expect(idea.articles[0]).toMatchObject({ id: second.id, readAt: null }) // only that one
 
         const unmarked = await (await ada.put(readUrl, { read: false })).json()
-        expect(unmarked.links[0]).toMatchObject({ id: first.id, readAt: null }) // and back in its place
+        expect(unmarked.articles[0]).toMatchObject({ id: first.id, readAt: null }) // and back in its place
       })
 
       it('lists unread items first and read ones last, each group in the order added', async () => {
@@ -136,10 +136,10 @@ describe('ideas', () => {
         await add('https://example.org/a')
         const [item] = await read()
         const first = (await (await ada.put(`${links()}/${item.id}/read`, { read: true })).json())
-          .links[0].readAt
+          .articles[0].readAt
         ctx.store.ideas.touch(idea.id, 'long ago')
         const again = await (await ada.put(`${links()}/${item.id}/read`, { read: true })).json()
-        expect(again.links[0].readAt).toBe(first)
+        expect(again.articles[0].readAt).toBe(first)
         expect(again.updatedAt).not.toBe('long ago')
       })
 
@@ -226,7 +226,9 @@ describe('ideas', () => {
         await add('https://example.org/a')
         expect((await add('https://example.org/b')).status).toBe(201)
         const other = await (await ada.post(ideas(), { name: 'Tides' })).json()
-        const res = await ada.post(`${ideas()}/${other.id}/links`, { url: 'https://example.org/a' })
+        const res = await ada.post(`${ideas()}/${other.id}/articles`, {
+          url: 'https://example.org/a',
+        })
         expect(res.status).toBe(201)
       })
     })
@@ -245,19 +247,19 @@ describe('ideas', () => {
         ctx.pageFetcher.calls.length = 0
         const res = await edit({ url: link.url, title: 'A better title' })
         expect(res.status).toBe(200)
-        expect((await res.json()).links[0]).toEqual({ ...link, title: 'A better title' })
+        expect((await res.json()).articles[0]).toEqual({ ...link, title: 'A better title' })
         expect(ctx.pageFetcher.calls).toEqual([])
       })
 
       it('fetches the title again when it is cleared', async () => {
         await edit({ url: link.url, title: 'Mine' })
         const res = await edit({ url: link.url, title: '' })
-        expect((await res.json()).links[0].title).toBe('Fake title for example.org')
+        expect((await res.json()).articles[0].title).toBe('Fake title for example.org')
       })
 
       it('looks up the new address, and its title, when the address changes', async () => {
         const res = await edit({ url: 'https://example.com/c', title: link.title })
-        expect((await res.json()).links[0]).toEqual({
+        expect((await res.json()).articles[0]).toEqual({
           id: link.id,
           url: 'https://example.com/c',
           title: 'Fake title for example.com',
@@ -275,13 +277,13 @@ describe('ideas', () => {
         await ada.put(`${links()}/${link.id}/read`, { read: true })
         const saved = (
           await (await edit({ url: 'https://example.com/c', title: 'New' })).json()
-        ).links.find((l: { id: string }) => l.id === link.id)
+        ).articles.find((l: { id: string }) => l.id === link.id)
         expect(saved.readAt).toEqual(expect.any(String))
       })
 
       it('keeps a title the person typed when they change the address too', async () => {
         const res = await edit({ url: 'https://example.com/c', title: 'Chosen' })
-        expect((await res.json()).links[0].title).toBe('Chosen')
+        expect((await res.json()).articles[0].title).toBe('Chosen')
       })
 
       it('holds the same checks as adding: syntax, existence and duplicates', async () => {
@@ -304,7 +306,7 @@ describe('ideas', () => {
 
       it('does not reach another idea’s link', async () => {
         const other = await (await ada.post(ideas(), { name: 'Tides' })).json()
-        const res = await ada.patch(`${ideas()}/${other.id}/links/${link.id}`, {
+        const res = await ada.patch(`${ideas()}/${other.id}/articles/${link.id}`, {
           url: 'https://example.org/q',
           title: '',
         })
@@ -313,12 +315,12 @@ describe('ideas', () => {
     })
 
     it('caps how many an idea can hold', async () => {
-      for (let i = 0; i < MAX_IDEA_LINKS; i++) {
+      for (let i = 0; i < MAX_IDEA_ARTICLES; i++) {
         ctx.store.ideas.addLink(idea.id, { url: `https://example.org/${i}`, title: '' })
       }
       const res = await add('https://example.org/more')
       expect(res.status).toBe(409)
-      expect((await res.json()).error).toContain(`up to ${MAX_IDEA_LINKS} links`)
+      expect((await res.json()).error).toContain(`up to ${MAX_IDEA_ARTICLES} articles`)
     })
 
     it('slows down someone looking up a great many pages', async () => {
@@ -326,7 +328,7 @@ describe('ideas', () => {
       for (let i = 0; i < 31; i++) {
         const res = await ada.post(links(), { url: `https://example.org/page-${i}` })
         if (res.status === 429) refused++
-        else expect(res.status).toBe(i < MAX_IDEA_LINKS ? 201 : 409)
+        else expect(res.status).toBe(i < MAX_IDEA_ARTICLES ? 201 : 409)
       }
       expect(refused).toBe(1)
     })
@@ -494,7 +496,7 @@ describe('ideas', () => {
   it('deleting an idea deletes its links and drafts, and nothing else', async () => {
     const idea = await (await ada.post(ideas(), { name: 'Doomed' })).json()
     const other = await (await ada.post(ideas(), { name: 'Safe' })).json()
-    await ada.post(`${ideas()}/${idea.id}/links`, { url: 'https://example.org' })
+    await ada.post(`${ideas()}/${idea.id}/articles`, { url: 'https://example.org' })
     const draft = await (await ada.post(`${ideas()}/${idea.id}/drafts`, { title: 'Gone' })).json()
     const kept = await (await ada.post(`${ideas()}/${other.id}/drafts`, { title: 'Kept' })).json()
 
@@ -502,7 +504,7 @@ describe('ideas', () => {
     expect((await ada.get(`${ideas()}/${idea.id}`)).status).toBe(404)
     expect((await ada.get(`/api/publications/${publication}/drafts/${draft.id}`)).status).toBe(404)
     expect((await ada.get(`/api/publications/${publication}/drafts/${kept.id}`)).status).toBe(200)
-    expect(ctx.store.ideas.countLinks(idea.id)).toBe(0)
+    expect(ctx.store.ideas.countArticles(idea.id)).toBe(0)
   })
 
   describe('access', () => {
@@ -524,7 +526,7 @@ describe('ideas', () => {
       expect((await ada.get(via)).status).toBe(404)
       expect((await ada.patch(via, { name: 'x' })).status).toBe(404)
       expect((await ada.post(`${via}/drafts`, {})).status).toBe(404)
-      expect((await ada.post(`${via}/links`, { url: 'https://example.org' })).status).toBe(404)
+      expect((await ada.post(`${via}/articles`, { url: 'https://example.org' })).status).toBe(404)
     })
 
     it('lets people a publication is shared with work on its ideas', async () => {

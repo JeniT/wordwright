@@ -10,7 +10,7 @@ import { HandoverStore } from './handovers'
 import { IdeaStore } from './ideas'
 import { MoveStore } from './moves'
 import { NoteStore } from './notes'
-import { ReadingStore } from './reading'
+import { ArticleStore } from './articles'
 import { InvitationStore } from './invitations'
 import { PublicationStore } from './publications'
 import { ResearchStore } from './research'
@@ -31,7 +31,7 @@ export interface Store {
   comments: CommentStore
   ideas: IdeaStore
   notes: NoteStore
-  reading: ReadingStore
+  articles: ArticleStore
   moves: MoveStore
   feedDecisions: FeedDecisionStore
   conversations: ConversationStore
@@ -59,7 +59,7 @@ export function createStore(db: DatabaseSync): Store {
     comments: new CommentStore(db),
     ideas: new IdeaStore(db),
     notes: new NoteStore(db),
-    reading: new ReadingStore(db),
+    articles: new ArticleStore(db),
     moves: new MoveStore(db),
     feedDecisions: new FeedDecisionStore(db),
     conversations: new ConversationStore(db),

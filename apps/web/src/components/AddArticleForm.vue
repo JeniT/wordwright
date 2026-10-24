@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
-import { readingBackRoute, readingRoute, useReadingActions, useReadingList } from '../lib/reading'
+import { articleBackRoute, articleRoute, useArticleActions, useArticleList } from '../lib/articles'
 import FieldWithAction from './FieldWithAction.vue'
 import TextField from './TextField.vue'
 
@@ -19,8 +19,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ added: [] }>()
 const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
-const { add, listOf } = useReadingActions(owner)
-const list = useReadingList(owner)
+const { add, listOf } = useArticleActions(owner)
+const list = useArticleList(owner)
 
 const linkUrl = ref('')
 // `id` is null when the new item couldn't be told apart (the list hadn't loaded), so the link goes to the list.
@@ -32,7 +32,7 @@ function typing() {
 }
 // On failure what was typed stays in the field, with the reason shown under it.
 function submit() {
-  const before = list.links.value && new Set(list.links.value.map((l) => l.id))
+  const before = list.articles.value && new Set(list.articles.value.map((l) => l.id))
   const typed = linkUrl.value
   const place = props.place
   justAdded.value = null
@@ -74,13 +74,13 @@ function submit() {
           Added “{{ justAdded.label }}”{{
             justAdded.place ? ` to ${justAdded.place}’s articles` : ''
           }}.
-          <RouterLink :to="readingRoute(owner(), justAdded.id)" class="underline">
+          <RouterLink :to="articleRoute(owner(), justAdded.id)" class="underline">
             Open “{{ justAdded.label }}”
           </RouterLink>
         </template>
         <template v-else>
           Added{{ justAdded.place ? ` to ${justAdded.place}’s articles` : '' }}.
-          <RouterLink :to="readingBackRoute(owner())" class="underline">
+          <RouterLink :to="articleBackRoute(owner())" class="underline">
             Open the articles
           </RouterLink>
         </template>

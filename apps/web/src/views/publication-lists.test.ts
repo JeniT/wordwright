@@ -48,13 +48,13 @@ const link = (id: string, title: string, extra: Partial<Link> = {}): Link => ({
   addedAt: '2026-01-02T00:00:00Z',
   ...extra,
 })
-const note = (id: string, text: string, readingItemId: string | null = null, extra = {}) => ({
+const note = (id: string, text: string, articleId: string | null = null, extra = {}) => ({
   id,
   text,
-  origin: readingItemId ? 'reading' : 'entered',
+  origin: articleId ? 'reading' : 'entered',
   authorId: 'u1',
   authorName: 'Ada',
-  readingItemId,
+  articleId,
   tags: [] as string[],
   quote: false,
   addedAt: null,
@@ -64,9 +64,9 @@ const note = (id: string, text: string, readingItemId: string | null = null, ext
 })
 
 /** A small fake of the publication's own articles and notes, remembering what it was sent. */
-function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof note>[] } = {}) {
+function fakePublication(initial: { articles?: Link[]; notes?: ReturnType<typeof note>[] } = {}) {
   const state = {
-    links: [...(initial.links ?? [])],
+    articles: [...(initial.articles ?? [])],
     notes: [...(initial.notes ?? [])],
     added: [] as string[],
     sentNotes: [] as unknown[],
@@ -77,39 +77,39 @@ function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof no
     signedInAs(testUser),
     http.get('*/api/publications', () => HttpResponse.json([publication])),
     http.get(`${base}/ideas`, () => HttpResponse.json([])),
-    http.get(`${base}/reading`, () => HttpResponse.json(state.links)),
-    http.post(`${base}/reading`, async ({ request }) => {
+    http.get(`${base}/articles`, () => HttpResponse.json(state.articles)),
+    http.post(`${base}/articles`, async ({ request }) => {
       const { url } = (await request.json()) as { url: string }
       state.added.push(url)
-      state.links.push(link(`n${state.links.length + 1}`, `Title of ${url}`, { url }))
-      return HttpResponse.json(state.links, { status: 201 })
+      state.articles.push(link(`n${state.articles.length + 1}`, `Title of ${url}`, { url }))
+      return HttpResponse.json(state.articles, { status: 201 })
     }),
-    http.put(`${base}/reading/:linkId/read`, async ({ params, request }) => {
+    http.put(`${base}/articles/:articleId/read`, async ({ params, request }) => {
       const { read } = (await request.json()) as { read: boolean }
-      state.links = state.links.map((l) =>
-        l.id === params.linkId ? { ...l, readAt: read ? '2026-02-02T00:00:00Z' : null } : l,
+      state.articles = state.articles.map((l) =>
+        l.id === params.articleId ? { ...l, readAt: read ? '2026-02-02T00:00:00Z' : null } : l,
       )
-      return HttpResponse.json(state.links)
+      return HttpResponse.json(state.articles)
     }),
-    http.put(`${base}/reading/:linkId/kept`, async ({ params, request }) => {
+    http.put(`${base}/articles/:articleId/kept`, async ({ params, request }) => {
       const { kept } = (await request.json()) as { kept: boolean }
-      state.links = state.links.map((l) => (l.id === params.linkId ? { ...l, kept } : l))
-      return HttpResponse.json(state.links)
+      state.articles = state.articles.map((l) => (l.id === params.articleId ? { ...l, kept } : l))
+      return HttpResponse.json(state.articles)
     }),
-    http.delete(`${base}/reading/:linkId`, ({ params }) => {
-      state.links = state.links.filter((l) => l.id !== params.linkId)
+    http.delete(`${base}/articles/:articleId`, ({ params }) => {
+      state.articles = state.articles.filter((l) => l.id !== params.articleId)
       return new HttpResponse(null, { status: 204 })
     }),
     http.get(`${base}/notes`, () => HttpResponse.json(state.notes)),
     http.post(`${base}/notes`, async ({ request }) => {
       const body = (await request.json()) as {
         text: string
-        readingItemId?: string
+        articleId?: string
         quote?: boolean
         first?: boolean
       }
       state.sentNotes.push(body)
-      const made = note(`m${state.notes.length + 1}`, body.text, body.readingItemId ?? null, {
+      const made = note(`m${state.notes.length + 1}`, body.text, body.articleId ?? null, {
         quote: !!body.quote,
       })
       if (body.first) state.notes.unshift(made)
@@ -152,7 +152,7 @@ describe('the publication’s articles', () => {
   beforeEach(() => fakePublication())
 
   it('is the Read page, and the old addresses lead there', async () => {
-    const { router } = await renderAt('/p/ada-substack/reading')
+    const { router } = await renderAt('/p/ada-substack/articles')
     expect(await screen.findByRole('heading', { level: 1, name: 'Read' })).toBeInTheDocument()
     expect(router.currentRoute.value.path).toBe('/p/ada-substack/read')
     await router.push('/p/ada-substack/inspiration#reading-list')
@@ -173,7 +173,7 @@ describe('the publication’s articles', () => {
   })
 
   it('says it is empty, and where to add or find something', async () => {
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     expect(await screen.findByText(/Nothing to read yet\. Add a web address above/)).toBeVisible()
     expect(within(screen.getByRole('main')).getByRole('link', { name: 'Scan' })).toHaveAttribute(
       'href',
@@ -186,7 +186,7 @@ describe('the publication’s articles', () => {
   })
 
   it('puts the box for a new item above the list', async () => {
-    fakePublication({ links: [link('l1', 'A paper')] })
+    fakePublication({ articles: [link('l1', 'A paper')] })
     await renderAt('/p/ada-substack/read')
     const box = await screen.findByLabelText('Web address')
     const title = await screen.findByRole('link', { name: 'A paper' })
@@ -200,15 +200,15 @@ describe('the publication’s articles', () => {
 
   it('shows loading, and says what went wrong loading, and tries again', async () => {
     let fail = true
-    const state = fakePublication({ links: [link('l1', 'A paper')] })
+    const state = fakePublication({ articles: [link('l1', 'A paper')] })
     server.use(
-      http.get('*/api/publications/ada-substack/reading', () =>
+      http.get('*/api/publications/ada-substack/articles', () =>
         fail
           ? HttpResponse.json({ error: 'nope' }, { status: 500 })
-          : HttpResponse.json(state.links),
+          : HttpResponse.json(state.articles),
       ),
     )
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load the articles")
     fail = false
     await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
@@ -216,11 +216,11 @@ describe('the publication’s articles', () => {
   })
 
   it('lists the items; a title opens the item’s own reading page, the host opens the article', async () => {
-    fakePublication({ links: [link('l1', 'A paper', { authors: ['Bo'] }), link('l2', '')] })
-    await renderAt('/p/ada-substack/reading')
+    fakePublication({ articles: [link('l1', 'A paper', { authors: ['Bo'] }), link('l2', '')] })
+    await renderAt('/p/ada-substack/articles')
     expect(await screen.findByRole('link', { name: 'A paper' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/reading/l1',
+      '/p/ada-substack/articles/l1',
     )
     expect(screen.queryByRole('link', { name: 'Take notes' })).not.toBeInTheDocument()
     const item = screen.getByRole('link', { name: 'A paper' }).closest('li')!
@@ -231,7 +231,7 @@ describe('the publication’s articles', () => {
 
   it('adds an item by its address, clearing the field, and keeps what was typed when it fails', async () => {
     const state = fakePublication()
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
     await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     expect(await screen.findByText('Title of https://example.org/new')).toBeInTheDocument()
@@ -241,12 +241,12 @@ describe('the publication’s articles', () => {
     ).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: /^Open “Title of/ })).toHaveAttribute(
       'href',
-      expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/),
+      expect.stringMatching(/^\/p\/ada-substack\/articles\/n\d$/),
     )
     await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
 
     server.use(
-      http.post('*/api/publications/ada-substack/reading', () =>
+      http.post('*/api/publications/ada-substack/articles', () =>
         HttpResponse.json(
           { error: 'That link is already in this publication’s articles.' },
           { status: 409 },
@@ -260,21 +260,21 @@ describe('the publication’s articles', () => {
   })
 
   it('marks an item read and unread, and removes it', async () => {
-    const state = fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
+    const state = fakePublication({ articles: [link('l1', 'A paper'), link('l2', 'Another')] })
     await renderAt('/p/ada-substack/read')
     const box = await screen.findByRole('switch', { name: 'Read: A paper' })
     await fireEvent.click(box)
-    await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+    await waitFor(() => expect(state.articles[0]!.readAt).toBeTruthy())
     await fireEvent.click(await screen.findByRole('switch', { name: 'Read: A paper' }))
-    await waitFor(() => expect(state.links[0]!.readAt).toBeNull())
+    await waitFor(() => expect(state.articles[0]!.readAt).toBeNull())
 
     // Removing is held (a screen reader's activation asks twice), and says nothing is lost silently.
     const remove = screen.getByRole('button', { name: 'Remove Another' })
     await fireEvent.click(remove)
-    expect(state.links).toHaveLength(2)
+    expect(state.articles).toHaveLength(2)
     await fireEvent.click(remove)
     await waitFor(() => expect(screen.queryByText('Another')).not.toBeInTheDocument())
-    expect(state.links.map((l) => l.id)).toEqual(['l1'])
+    expect(state.articles.map((l) => l.id)).toEqual(['l1'])
   })
 
   describe('read items', () => {
@@ -286,8 +286,8 @@ describe('the publication’s articles', () => {
     ]
 
     it('are hidden by default, with how many, and shown with the tick', async () => {
-      fakePublication({ links: items() })
-      await renderAt('/p/ada-substack/reading')
+      fakePublication({ articles: items() })
+      await renderAt('/p/ada-substack/articles')
       expect(await screen.findByText('Still to read')).toBeInTheDocument()
       expect(screen.queryByText('Already read')).not.toBeInTheDocument()
 
@@ -302,38 +302,38 @@ describe('the publication’s articles', () => {
     })
 
     it('say so, rather than "nothing yet", when everything has been read', async () => {
-      fakePublication({ links: [link('l2', 'Already read', { readAt: read })] })
-      await renderAt('/p/ada-substack/reading')
+      fakePublication({ articles: [link('l2', 'Already read', { readAt: read })] })
+      await renderAt('/p/ada-substack/articles')
       expect(await screen.findByText('Everything on the list has been read.')).toBeInTheDocument()
       expect(screen.queryByText(/Nothing to read yet/)).not.toBeInTheDocument()
     })
 
     it('offer no tick when none has been read, and a truly empty list says so', async () => {
-      fakePublication({ links: [link('l1', 'Still to read')] })
-      await renderAt('/p/ada-substack/reading')
+      fakePublication({ articles: [link('l1', 'Still to read')] })
+      await renderAt('/p/ada-substack/articles')
       await screen.findByText('Still to read')
       expect(screen.queryByRole('switch', { name: /Show read items/ })).not.toBeInTheDocument()
     })
 
     it('stay in view when ticked during this visit, so they can be unticked', async () => {
-      const state = fakePublication({ links: items() })
-      await renderAt('/p/ada-substack/reading')
+      const state = fakePublication({ articles: items() })
+      await renderAt('/p/ada-substack/articles')
       await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
-      await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+      await waitFor(() => expect(state.articles[0]!.readAt).toBeTruthy())
       // It was just ticked, so it is still there, ticked, and the others are still hidden.
       expect(screen.getByRole('switch', { name: 'Read: Still to read' })).toBeChecked()
       expect(screen.queryByText('Already read')).not.toBeInTheDocument()
       // Unticking it makes it an ordinary unread item again.
       await fireEvent.click(screen.getByRole('switch', { name: 'Read: Still to read' }))
-      await waitFor(() => expect(state.links[0]!.readAt).toBeNull())
+      await waitFor(() => expect(state.articles[0]!.readAt).toBeNull())
       expect(screen.getByRole('switch', { name: 'Read: Still to read' })).not.toBeChecked()
     })
 
     it('go out of view once the tick is changed, if they were read this visit', async () => {
-      const state = fakePublication({ links: items() })
-      await renderAt('/p/ada-substack/reading')
+      const state = fakePublication({ articles: items() })
+      await renderAt('/p/ada-substack/articles')
       await fireEvent.click(await screen.findByRole('switch', { name: 'Read: Still to read' }))
-      await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+      await waitFor(() => expect(state.articles[0]!.readAt).toBeTruthy())
       await openFilters()
       const show = await screen.findByRole('switch', { name: 'Show read items (3)' })
       await fireEvent.click(show) // show them all
@@ -343,7 +343,7 @@ describe('the publication’s articles', () => {
   })
 
   it('has no intro on the page; the purpose is written out only in tutorial mode', async () => {
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText(/Nothing to read yet/)
     expect(screen.queryByText(/Read here and take notes as you go/)).not.toBeInTheDocument()
     expect(screen.queryByText(/go after a month/)).not.toBeInTheDocument()
@@ -351,9 +351,9 @@ describe('the publication’s articles', () => {
 
   it('has a Keep tick on each item, saved when it is changed', async () => {
     const state = fakePublication({
-      links: [link('l1', 'A paper'), link('l2', 'Another', { kept: true })],
+      articles: [link('l1', 'A paper'), link('l2', 'Another', { kept: true })],
     })
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     const first = await screen.findByRole('switch', { name: 'Keep: A paper' })
     expect(first).not.toBeChecked()
     expect(screen.getByRole('switch', { name: 'Keep: Another' })).toBeChecked()
@@ -362,19 +362,19 @@ describe('the publication’s articles', () => {
     expect(screen.getByText('Kept forever')).toBeInTheDocument()
 
     await fireEvent.click(first)
-    await waitFor(() => expect(state.links[0]!.kept).toBe(true))
+    await waitFor(() => expect(state.articles[0]!.kept).toBe(true))
     await fireEvent.click(await screen.findByRole('switch', { name: 'Keep: Another' }))
-    await waitFor(() => expect(state.links[1]!.kept).toBe(false))
+    await waitFor(() => expect(state.articles[1]!.kept).toBe(false))
   })
 
   it('puts the tick back and says so when keeping could not be saved', async () => {
-    fakePublication({ links: [link('l1', 'A paper')] })
+    fakePublication({ articles: [link('l1', 'A paper')] })
     server.use(
-      http.put('*/api/publications/ada-substack/reading/l1/kept', () =>
+      http.put('*/api/publications/ada-substack/articles/l1/kept', () =>
         HttpResponse.json({ error: 'nope' }, { status: 500 }),
       ),
     )
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     const box = await screen.findByRole('switch', { name: 'Keep: A paper' })
     await fireEvent.click(box)
     expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t save that')
@@ -382,7 +382,7 @@ describe('the publication’s articles', () => {
   })
 
   it('puts the title and the icon buttons on one row, and the host and the switches on the next', async () => {
-    fakePublication({ links: [link('l1', 'A paper')] })
+    fakePublication({ articles: [link('l1', 'A paper')] })
     await renderAt('/p/ada-substack/read')
     const title = await screen.findByRole('link', { name: 'A paper' })
     const firstRow = title.parentElement!
@@ -396,7 +396,7 @@ describe('the publication’s articles', () => {
   })
 
   it('has icon-only buttons in the list header with no border', async () => {
-    fakePublication({ links: [link('l1', 'A paper', { tags: ['rivers'] })] })
+    fakePublication({ articles: [link('l1', 'A paper', { tags: ['rivers'] })] })
     await renderAt('/p/ada-substack/read')
     expect(await screen.findByRole('button', { name: 'Filter' })).toHaveClass('btn-ghost')
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select A paper' }))
@@ -405,7 +405,9 @@ describe('the publication’s articles', () => {
   })
 
   it('keeps the tag icon with the other icon buttons, whether or not the item has tags', async () => {
-    fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another', { tags: ['rivers'] })] })
+    fakePublication({
+      articles: [link('l1', 'A paper'), link('l2', 'Another', { tags: ['rivers'] })],
+    })
     await renderAt('/p/ada-substack/read')
     for (const name of ['A paper', 'Another']) {
       const tag = await screen.findByRole('button', { name: `Add tags to ${name}` })
@@ -426,7 +428,7 @@ describe('the publication’s articles', () => {
 
   it('highlights the AI’s reason and says what the highlight is, with no badge for where an item came from', async () => {
     fakePublication({
-      links: [
+      articles: [
         link('l1', 'From research', { origin: 'research', why: 'It argues the opposite' }),
         link('l2', 'From a feed', { origin: 'feed' }),
       ],
@@ -448,11 +450,11 @@ describe('moving articles', () => {
     { id: 'i2', name: 'Lakes', draftCount: 1, updatedAt: '2026-01-01T00:00:00Z' },
   ]
   /** The fake of the publication's lists plus the ideas and the move endpoint, remembering what it was sent. */
-  function fake(links: Link[] = [link('l1', 'A paper'), link('l2', 'Another')]) {
-    const state = fakePublication({ links })
+  function fake(articles: Link[] = [link('l1', 'A paper'), link('l2', 'Another')]) {
+    const state = fakePublication({ articles })
     const moves: { ids: string[]; to: { ideaId: string | null } }[] = []
     const created: string[] = []
-    let result = { batchId: 'b', readingItems: 2, merged: 0, copied: 0, notes: 5 }
+    let result = { batchId: 'b', articles: 2, merged: 0, copied: 0, notes: 5 }
     server.use(
       http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
       http.post('*/api/publications/ada-substack/ideas', async ({ request }) => {
@@ -464,7 +466,7 @@ describe('moving articles', () => {
             publicationId: 'ada-substack',
             name: body.name,
             notes: '',
-            links: [],
+            articles: [],
             drafts: [],
             pendingSuggestions: 0,
             createdAt: '2026-01-01T00:00:00Z',
@@ -473,10 +475,10 @@ describe('moving articles', () => {
           { status: 201 },
         )
       }),
-      http.post('*/api/publications/ada-substack/move/reading', async ({ request }) => {
+      http.post('*/api/publications/ada-substack/move/articles', async ({ request }) => {
         const body = (await request.json()) as (typeof moves)[number]
         moves.push(body)
-        state.links = state.links.filter((l) => !body.ids.includes(l.id))
+        state.articles = state.articles.filter((l) => !body.ids.includes(l.id))
         return HttpResponse.json(result)
       }),
     )
@@ -488,7 +490,7 @@ describe('moving articles', () => {
     }
   }
   const open = async () => {
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     await screen.findByRole('checkbox', { name: 'Select A paper' })
   }
   const tick = (title: string) =>
@@ -573,7 +575,7 @@ describe('moving articles', () => {
 
   it('says when items were joined to ones already there, and offers no Undo for that', async () => {
     const f = fake()
-    f.setResult({ readingItems: 1, merged: 1, notes: 0 })
+    f.setResult({ articles: 1, merged: 1, notes: 0 })
     await open()
     await tick('A paper')
     await chooseDestination('i1')
@@ -605,10 +607,11 @@ describe('moving articles', () => {
   it('says why it could not move, and keeps the choice', async () => {
     fake()
     server.use(
-      http.post('*/api/publications/ada-substack/move/reading', () =>
+      http.post('*/api/publications/ada-substack/move/articles', () =>
         HttpResponse.json(
           {
-            error: 'An idea can have up to 50 links. Remove some you no longer need to make room.',
+            error:
+              'An idea can have up to 50 articles. Remove some you no longer need to make room.',
           },
           { status: 409 },
         ),
@@ -620,7 +623,7 @@ describe('moving articles', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     expect(
       await within(screen.getByRole('region', { name: 'Articles' })).findByRole('alert'),
-    ).toHaveTextContent('An idea can have up to 50 links')
+    ).toHaveTextContent('An idea can have up to 50 articles')
     expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
     expect(screen.getByLabelText(/^Move( .*)? to$/)).toHaveValue('i1')
   })
@@ -652,7 +655,7 @@ describe('moving articles', () => {
 
   it('has no toolbar for an empty list', async () => {
     fake([])
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText(/Nothing to read yet/)
     expect(screen.queryByRole('button', { name: 'Move to…' })).not.toBeInTheDocument()
   })
@@ -663,27 +666,27 @@ describe('moving to another publication', () => {
   const poemIdeas = [
     { id: 'p1', name: 'Sonnets', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
   ]
-  const result = { batchId: 'b', readingItems: 1, merged: 0, copied: 0, notes: 0 }
+  const result = { batchId: 'b', articles: 1, merged: 0, copied: 0, notes: 0 }
   /** Two publications, the ideas of each, and both publications' move endpoints, remembering what they were sent. */
   function fake(publications = [publication, poems]) {
-    const state = fakePublication({ links: [link('l1', 'A paper'), link('l2', 'Another')] })
+    const state = fakePublication({ articles: [link('l1', 'A paper'), link('l2', 'Another')] })
     const moves: { via: string; body: unknown }[] = []
     server.use(
       http.get('*/api/publications', () => HttpResponse.json(publications)),
       http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
       http.get('*/api/publications/ada-poems/ideas', () => HttpResponse.json(poemIdeas)),
-      http.post('*/api/publications/:id/move/reading', async ({ params, request }) => {
+      http.post('*/api/publications/:id/move/articles', async ({ params, request }) => {
         const body = (await request.json()) as { ids: string[] }
         moves.push({ via: params.id as string, body })
         if (params.id === 'ada-substack')
-          state.links = state.links.filter((l) => !body.ids.includes(l.id))
+          state.articles = state.articles.filter((l) => !body.ids.includes(l.id))
         return HttpResponse.json(result)
       }),
     )
     return { moves }
   }
   const start = async () => {
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select A paper' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Move to…' }))
   }
@@ -775,7 +778,7 @@ describe('moving to another publication', () => {
             publicationId: 'ada-poems',
             name: 'Odes',
             notes: '',
-            links: [],
+            articles: [],
             drafts: [],
             pendingSuggestions: 0,
             createdAt: '2026-01-01T00:00:00Z',
@@ -810,8 +813,10 @@ describe('selecting, bulk actions and pages in the articles', () => {
   const selectAll = () => screen.getByRole('checkbox', { name: 'Select all items on this page' })
 
   it('pages the list five at a time, with where you are, and keeps the filter ahead of the paging', async () => {
-    fakePublication({ links: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })] })
-    await renderAt('/p/ada-substack/reading')
+    fakePublication({
+      articles: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })],
+    })
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText('Link 1')
     expect(titles()).toEqual(['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5'])
     expect(screen.getAllByText('Items 1–5 of 7').length).toBeGreaterThan(0)
@@ -825,15 +830,15 @@ describe('selecting, bulk actions and pages in the articles', () => {
   })
 
   it('shows no page controls for a list that fits on one page', async () => {
-    fakePublication({ links: seven().slice(0, 3) })
-    await renderAt('/p/ada-substack/reading')
+    fakePublication({ articles: seven().slice(0, 3) })
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText('Link 1')
     expect(screen.queryByRole('button', { name: /^Next/ })).not.toBeInTheDocument()
   })
 
   it('selects the page with the box at the top, which shows a partial selection as such', async () => {
-    fakePublication({ links: seven() })
-    await renderAt('/p/ada-substack/reading')
+    fakePublication({ articles: seven() })
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText('Link 1')
     expect(screen.getByText('0 selected')).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 2' }))
@@ -846,8 +851,8 @@ describe('selecting, bulk actions and pages in the articles', () => {
   })
 
   it('offers the rest of the pages once the whole page is selected, and clears the selection on a new page', async () => {
-    fakePublication({ links: seven() })
-    await renderAt('/p/ada-substack/reading')
+    fakePublication({ articles: seven() })
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText('Link 1')
     await fireEvent.click(selectAll())
     await fireEvent.click(screen.getByRole('button', { name: 'Select all 7' }))
@@ -858,8 +863,8 @@ describe('selecting, bulk actions and pages in the articles', () => {
   })
 
   it('removes the selected links only after the dialog is confirmed, and nothing until something is selected', async () => {
-    const state = fakePublication({ links: seven().slice(0, 3) })
-    await renderAt('/p/ada-substack/reading')
+    const state = fakePublication({ articles: seven().slice(0, 3) })
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText('Link 1')
     expect(screen.queryByRole('button', { name: /^Remove \d+$/ })).toBeNull() // hidden until something is selected
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 1' }))
@@ -867,24 +872,24 @@ describe('selecting, bulk actions and pages in the articles', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
     const dialog = screen.getByRole('dialog', { name: 'Remove 2 items?' })
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
-    expect(state.links).toHaveLength(3)
+    expect(state.articles).toHaveLength(3)
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
     await fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove 2 items' }),
     )
-    await waitFor(() => expect(state.links.map((l) => l.id)).toEqual(['l2']))
+    await waitFor(() => expect(state.articles.map((l) => l.id)).toEqual(['l2']))
     await waitFor(() => expect(screen.queryByText('Link 1')).not.toBeInTheDocument())
     expect(screen.getByText('0 selected')).toBeInTheDocument()
   })
 
   it('says so when some of the selected links could not be removed, and keeps those selected', async () => {
-    fakePublication({ links: seven().slice(0, 2) })
+    fakePublication({ articles: seven().slice(0, 2) })
     server.use(
-      http.delete('*/api/publications/ada-substack/reading/l2', () =>
+      http.delete('*/api/publications/ada-substack/articles/l2', () =>
         HttpResponse.json({ error: 'x' }, { status: 500 }),
       ),
     )
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     await screen.findByText('Link 1')
     await fireEvent.click(selectAll())
     await fireEvent.click(screen.getByRole('button', { name: 'Remove 2' }))
@@ -898,11 +903,11 @@ describe('selecting, bulk actions and pages in the articles', () => {
 
   it('puts a link’s facts under it, plain: the host, and no chip for an item from a feed', async () => {
     fakePublication({
-      links: [
+      articles: [
         link('l1', 'A paper', { url: 'https://www.example.org/a/long/path', origin: 'feed' }),
       ],
     })
-    await renderAt('/p/ada-substack/reading')
+    await renderAt('/p/ada-substack/articles')
     const item = (await screen.findByRole('link', { name: 'A paper' })).closest('li')!
     expect(within(item).getByText('example.org')).toBeInTheDocument()
     expect(within(item).queryByText(/long\/path/)).not.toBeInTheDocument() // one link for the article, not two
@@ -912,8 +917,8 @@ describe('selecting, bulk actions and pages in the articles', () => {
 })
 
 describe('reading an item of the publication’s own list', () => {
-  const open = (state = fakePublication({ links: [link('l1', 'A paper')] })) => {
-    return { state, shown: renderAt('/p/ada-substack/reading/l1') }
+  const open = (state = fakePublication({ articles: [link('l1', 'A paper')] })) => {
+    return { state, shown: renderAt('/p/ada-substack/articles/l1') }
   }
 
   it('shows the item, and goes back to the articles', async () => {
@@ -931,7 +936,7 @@ describe('reading an item of the publication’s own list', () => {
 
   it('says so when the item is not on the list', async () => {
     fakePublication()
-    await renderAt('/p/ada-substack/reading/nope')
+    await renderAt('/p/ada-substack/articles/nope')
     expect(await screen.findByRole('alert')).toHaveTextContent('couldn’t open that')
     expect(screen.getByRole('link', { name: 'Back to the articles' })).toBeInTheDocument()
   })
@@ -941,7 +946,7 @@ describe('reading an item of the publication’s own list', () => {
     await fireEvent.update(await screen.findByRole('textbox', { name: 'Note' }), 'My thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText('My thought')).toBeInTheDocument()
-    expect(state.sentNotes).toEqual([{ text: 'My thought', readingItemId: 'l1' }])
+    expect(state.sentNotes).toEqual([{ text: 'My thought', articleId: 'l1' }])
 
     await fireEvent.update(screen.getByRole('textbox', { name: 'Note' }), 'Exact words')
     await fireEvent.click(screen.getByRole('checkbox', { name: /quotation/ }))
@@ -950,7 +955,7 @@ describe('reading an item of the publication’s own list', () => {
     await waitFor(() => expect(again).toBeEnabled())
     await fireEvent.click(again)
     await waitFor(() => expect(state.sentNotes).toHaveLength(2))
-    expect(state.sentNotes[1]).toEqual({ text: 'Exact words', readingItemId: 'l1', quote: true })
+    expect(state.sentNotes[1]).toEqual({ text: 'Exact words', articleId: 'l1', quote: true })
     const list = await within(await screen.findByRole('main')).findByRole('list')
     // The notes are read again after the add, so the newest turns up first a moment later.
     await waitFor(() =>
@@ -965,19 +970,22 @@ describe('reading an item of the publication’s own list', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     const read = await screen.findByRole('link', { name: /^Open “/ })
     expect(state.added).toEqual(['https://example.org/more'])
-    expect(read).toHaveAttribute('href', expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/))
+    expect(read).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^\/p\/ada-substack\/articles\/n\d$/),
+    )
   })
 
   it('marks it read, and edits its title and authors', async () => {
     const { state } = open()
     await fireEvent.click(await screen.findByRole('switch', { name: 'Read' }))
-    await waitFor(() => expect(state.links[0]!.readAt).toBeTruthy())
+    await waitFor(() => expect(state.articles[0]!.readAt).toBeTruthy())
 
     server.use(
-      http.patch('*/api/publications/ada-substack/reading/l1', async ({ request }) => {
+      http.patch('*/api/publications/ada-substack/articles/l1', async ({ request }) => {
         const body = (await request.json()) as { title: string; authors: string[] }
-        state.links[0] = { ...state.links[0]!, title: body.title, authors: body.authors }
-        return HttpResponse.json(state.links)
+        state.articles[0] = { ...state.articles[0]!, title: body.title, authors: body.authors }
+        return HttpResponse.json(state.articles)
       }),
     )
     await fireEvent.click(screen.getByRole('button', { name: 'Edit title and authors' }))
@@ -1005,11 +1013,11 @@ describe('moving notes', () => {
     ],
   ) {
     const state = fakePublication({
-      links: [link('l1', 'A paper'), link('l2', 'Another')],
+      articles: [link('l1', 'A paper'), link('l2', 'Another')],
       notes: initial,
     })
     const moves: { ids: string[]; to: { ideaId: string | null } }[] = []
-    let result = { batchId: 'b', readingItems: 0, merged: 0, copied: 1, notes: 2 }
+    let result = { batchId: 'b', articles: 0, merged: 0, copied: 1, notes: 2 }
     server.use(
       http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json(ideaRows)),
       http.post('*/api/publications/ada-substack/ideas', async ({ request }) => {
@@ -1020,7 +1028,7 @@ describe('moving notes', () => {
             publicationId: 'ada-substack',
             name: body.name,
             notes: '',
-            links: [],
+            articles: [],
             drafts: [],
             pendingSuggestions: 0,
             createdAt: '2026-01-01T00:00:00Z',
@@ -1338,7 +1346,7 @@ describe('the publication’s notes', () => {
   })
 
   it('puts the origin line and name in the column under the row’s buttons', async () => {
-    fakePublication({ links: [link('l1', 'A paper')], notes: [note('n1', 'From it', 'l1')] })
+    fakePublication({ articles: [link('l1', 'A paper')], notes: [note('n1', 'From it', 'l1')] })
     await renderAt('/p/ada-substack/notes')
     const edit = await screen.findByRole('button', { name: /^Edit note “From it/ })
     const column = edit.parentElement!.parentElement!
@@ -1347,7 +1355,7 @@ describe('the publication’s notes', () => {
 
   it('sets a quotation apart with a quote mark, not a left border', async () => {
     fakePublication({
-      links: [link('l1', 'A paper')],
+      articles: [link('l1', 'A paper')],
       notes: [note('n1', 'Exact words', 'l1', { quote: true })],
     })
     await renderAt('/p/ada-substack/notes')
@@ -1359,7 +1367,7 @@ describe('the publication’s notes', () => {
 
   it('lists them with the article each came from', async () => {
     fakePublication({
-      links: [link('l1', 'A paper')],
+      articles: [link('l1', 'A paper')],
       notes: [note('n1', 'Typed thought'), note('n2', 'From the paper', 'l1')],
     })
     await renderAt('/p/ada-substack/notes')
@@ -1441,7 +1449,7 @@ describe('the publication’s Note page: tutorial mode', () => {
 
 describe('the Read page: tutorial mode (#262)', () => {
   const setup = async (user: typeof testUser) => {
-    fakePublication({ links: [link('l1', 'A paper')] })
+    fakePublication({ articles: [link('l1', 'A paper')] })
     server.use(signedInAs(user))
     // The route 'read' is this kind of page (see tutorial-routes.test.ts).
     await renderAt('/p/ada-substack/read')

@@ -26,7 +26,7 @@ import {
   type ReviewerRegisterInput,
   type SendForReviewInput,
   HandleAvailabilitySchema,
-  IdeaLinkSchema,
+  ArticleSchema,
   IdeaNoteSchema,
   IdeaSchema,
   IdeaSummarySchema,
@@ -318,54 +318,69 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      * Answers with the whole idea, so the list of links is up to date. The server looks up the page's
      * title unless one is given, and refuses addresses that can't be a real website.
      */
-    addIdeaLink: (publicationId: string, id: string, input: { url: string; title?: string }) =>
-      get(IdeaSchema, 'POST', `${ideas(publicationId)}/${id}/links`, input),
+    addIdeaArticle: (publicationId: string, id: string, input: { url: string; title?: string }) =>
+      get(IdeaSchema, 'POST', `${ideas(publicationId)}/${id}/articles`, input),
     /** An empty title asks the server to look the page's title up again. */
-    updateIdeaLink: (
+    updateIdeaArticle: (
       publicationId: string,
       id: string,
-      linkId: string,
+      articleId: string,
       input: { url: string; title: string; authors?: string[] },
-    ) => get(IdeaSchema, 'PATCH', `${ideas(publicationId)}/${id}/links/${linkId}`, input),
-    removeIdeaLink: (publicationId: string, id: string, linkId: string) =>
-      act('DELETE', `${ideas(publicationId)}/${id}/links/${linkId}`),
+    ) => get(IdeaSchema, 'PATCH', `${ideas(publicationId)}/${id}/articles/${articleId}`, input),
+    removeIdeaArticle: (publicationId: string, id: string, articleId: string) =>
+      act('DELETE', `${ideas(publicationId)}/${id}/articles/${articleId}`),
     // the publication's own articles (items gathered before there is an idea); each answers with the list
-    listPublicationReading: (publicationId: string) =>
-      get(IdeaLinkSchema.array(), 'GET', `/publications/${publicationId}/reading`),
-    addPublicationLink: (publicationId: string, input: { url: string; title?: string }) =>
-      get(IdeaLinkSchema.array(), 'POST', `/publications/${publicationId}/reading`, input),
-    updatePublicationLink: (
+    listPublicationArticles: (publicationId: string) =>
+      get(ArticleSchema.array(), 'GET', `/publications/${publicationId}/articles`),
+    addPublicationArticle: (publicationId: string, input: { url: string; title?: string }) =>
+      get(ArticleSchema.array(), 'POST', `/publications/${publicationId}/articles`, input),
+    updatePublicationArticle: (
       publicationId: string,
-      linkId: string,
+      articleId: string,
       input: { url: string; title: string; authors?: string[] },
     ) =>
       get(
-        IdeaLinkSchema.array(),
+        ArticleSchema.array(),
         'PATCH',
-        `/publications/${publicationId}/reading/${linkId}`,
+        `/publications/${publicationId}/articles/${articleId}`,
         input,
       ),
-    setPublicationLinkRead: (publicationId: string, linkId: string, read: boolean) =>
-      get(IdeaLinkSchema.array(), 'PUT', `/publications/${publicationId}/reading/${linkId}/read`, {
-        read,
-      }),
+    setPublicationArticleRead: (publicationId: string, articleId: string, read: boolean) =>
+      get(
+        ArticleSchema.array(),
+        'PUT',
+        `/publications/${publicationId}/articles/${articleId}/read`,
+        {
+          read,
+        },
+      ),
     /** Gives an item of the publication's own list exactly these tags. Answers with the whole list. */
-    setPublicationLinkTags: (publicationId: string, linkId: string, tags: string[]) =>
-      get(IdeaLinkSchema.array(), 'PUT', `/publications/${publicationId}/reading/${linkId}/tags`, {
-        tags,
-      }),
+    setPublicationArticleTags: (publicationId: string, articleId: string, tags: string[]) =>
+      get(
+        ArticleSchema.array(),
+        'PUT',
+        `/publications/${publicationId}/articles/${articleId}/tags`,
+        {
+          tags,
+        },
+      ),
     /** Adds and removes tags on several items of the publication's own list at once. Answers with the whole list. */
-    tagPublicationLinks: (
+    tagPublicationArticles: (
       publicationId: string,
       change: { ids: string[]; add: string[]; remove: string[] },
-    ) => get(IdeaLinkSchema.array(), 'POST', `/publications/${publicationId}/reading/tags`, change),
+    ) => get(ArticleSchema.array(), 'POST', `/publications/${publicationId}/articles/tags`, change),
     /** Asks for an item of the publication's own list to be kept (the others drop off after a month). */
-    setPublicationLinkKept: (publicationId: string, linkId: string, kept: boolean) =>
-      get(IdeaLinkSchema.array(), 'PUT', `/publications/${publicationId}/reading/${linkId}/kept`, {
-        kept,
-      }),
-    removePublicationLink: (publicationId: string, linkId: string) =>
-      act('DELETE', `/publications/${publicationId}/reading/${linkId}`),
+    setPublicationArticleKept: (publicationId: string, articleId: string, kept: boolean) =>
+      get(
+        ArticleSchema.array(),
+        'PUT',
+        `/publications/${publicationId}/articles/${articleId}/kept`,
+        {
+          kept,
+        },
+      ),
+    removePublicationArticle: (publicationId: string, articleId: string) =>
+      act('DELETE', `/publications/${publicationId}/articles/${articleId}`),
     createIdeaDraft: (publicationId: string, id: string, input: Partial<DraftInput> = {}) =>
       get(DraftSchema, 'POST', `${ideas(publicationId)}/${id}/drafts`, input),
     /** Joins notes into the first of them. Answers with all the idea's notes. */
@@ -392,18 +407,18 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       id: string | null,
       change: { ids: string[]; add: string[]; remove: string[] },
     ) => get(IdeaNoteSchema.array(), 'POST', `${notesPath(publicationId, id)}/tags`, change),
-    /** Adds and removes tags on several reading-list items at once. Answers with the whole idea. */
-    tagIdeaLinks: (
+    /** Adds and removes tags on several articles at once. Answers with the whole idea. */
+    tagIdeaArticles: (
       publicationId: string,
       id: string,
       change: { ids: string[]; add: string[]; remove: string[] },
-    ) => get(IdeaSchema, 'POST', `${ideas(publicationId)}/${id}/links/tags`, change),
-    /** Gives a reading-list item exactly these tags. Answers with the whole idea. */
-    setReadingItemTags: (publicationId: string, id: string, linkId: string, tags: string[]) =>
-      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/links/${linkId}/tags`, { tags }),
-    /** Marks a reading-list item read (or unread again). Answers with the whole idea. */
-    setReadingItemRead: (publicationId: string, id: string, linkId: string, read: boolean) =>
-      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/links/${linkId}/read`, { read }),
+    ) => get(IdeaSchema, 'POST', `${ideas(publicationId)}/${id}/articles/tags`, change),
+    /** Gives an article exactly these tags. Answers with the whole idea. */
+    setArticleTags: (publicationId: string, id: string, articleId: string, tags: string[]) =>
+      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/articles/${articleId}/tags`, { tags }),
+    /** Marks an article read (or unread again). Answers with the whole idea. */
+    setArticleRead: (publicationId: string, id: string, articleId: string, read: boolean) =>
+      get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/articles/${articleId}/read`, { read }),
     /** `ids` is every draft of the idea, in the new order. Answers with the idea as saved. */
     reorderIdeaDrafts: (publicationId: string, id: string, ids: string[]) =>
       get(IdeaSchema, 'PUT', `${ideas(publicationId)}/${id}/drafts/order`, { ids }),
@@ -429,14 +444,14 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     listIdeaNotes: (publicationId: string, id: string | null) =>
       get(IdeaNoteSchema.array(), 'GET', notesPath(publicationId, id)),
     /**
-     * With `readingItemId` the note is taken from that item of the articles (its origin is then `reading`);
+     * With `articleId` the note is taken from that item of the articles (its origin is then `reading`);
      * with `quote` too, it is a direct quotation, kept word for word.
      */
     addIdeaNote: (
       publicationId: string,
       id: string | null,
       text: string,
-      source: { readingItemId?: string; quote?: boolean; first?: boolean } = {},
+      source: { articleId?: string; quote?: boolean; first?: boolean } = {},
     ) => get(IdeaNoteSchema, 'POST', notesPath(publicationId, id), { text, ...source }),
     updateIdeaNote: (publicationId: string, id: string | null, noteId: string, text: string) =>
       get(IdeaNoteSchema, 'PATCH', `${notesPath(publicationId, id)}/${noteId}`, { text }),
@@ -465,8 +480,8 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      * publication the person belongs to (`publicationId`), with the notes taken from them. All or nothing. Answers
      * with what moved.
      */
-    moveReadingItems: (publicationId: string, ids: string[], to: MoveTarget) =>
-      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/reading`, { ids, to }),
+    moveArticles: (publicationId: string, ids: string[], to: MoveTarget) =>
+      get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/articles`, { ids, to }),
     /** What moving these ideas to another publication would do, and what would stop it, without doing it. */
     previewMoveIdeas: (publicationId: string, ids: string[], toPublicationId: string) =>
       get(MoveIdeasPreviewSchema, 'POST', `/publications/${publicationId}/move/ideas/preview`, {

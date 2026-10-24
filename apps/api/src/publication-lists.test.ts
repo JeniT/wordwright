@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FakeFeedFetcher, MAX_IDEA_LINKS, MAX_IDEA_NOTES } from '@wordwright/core'
+import { FakeFeedFetcher, MAX_IDEA_ARTICLES, MAX_IDEA_NOTES } from '@wordwright/core'
 import { register, setup, sharePublication, verifyAccounts } from './test-helpers'
 
 type Link = {
@@ -14,7 +14,7 @@ type Link = {
 type Note = {
   id: string
   text: string
-  readingItemId: string | null
+  articleId: string | null
   tags: string[]
   addedAt: string | null
 }
@@ -35,15 +35,15 @@ async function start(feeds?: FakeFeedFetcher) {
     api,
     newIdea,
     // the publication's own lists
-    reading: () => `${api}/reading`,
+    articles: () => `${api}/articles`,
     notes: () => `${api}/notes`,
     // an idea's lists
-    ideaLinks: (idea: string) => `${api}/ideas/${idea}/links`,
+    ideaArticles: (idea: string) => `${api}/ideas/${idea}/articles`,
     ideaNotes: (idea: string) => `${api}/ideas/${idea}/notes`,
-    links: async (idea?: string): Promise<Link[]> =>
+    articleList: async (idea?: string): Promise<Link[]> =>
       idea
-        ? (await (await ada.get(`${api}/ideas/${idea}`)).json()).links
-        : (await ada.get(`${api}/reading`)).json(),
+        ? (await (await ada.get(`${api}/ideas/${idea}`)).json()).articles
+        : (await ada.get(`${api}/articles`)).json(),
     noteList: async (idea?: string): Promise<Note[]> =>
       (await ada.get(idea ? `${api}/ideas/${idea}/notes` : `${api}/notes`)).json(),
   }
@@ -57,8 +57,8 @@ describe('the publication’s own articles', () => {
 
   it('starts empty, adds items (looking the title up), and keeps them apart from every idea’s', async () => {
     const idea = await s.newIdea()
-    expect(await s.links()).toEqual([])
-    const added = await s.ada.post(s.reading(), { url: 'https://a.example/post' })
+    expect(await s.articleList()).toEqual([])
+    const added = await s.ada.post(s.articles(), { url: 'https://a.example/post' })
     expect(added.status).toBe(201)
     expect(await added.json()).toEqual([
       expect.objectContaining({
@@ -68,44 +68,47 @@ describe('the publication’s own articles', () => {
         readAt: null,
       }),
     ])
-    await s.ada.post(s.ideaLinks(idea), { url: 'https://b.example/post' })
-    expect((await s.links()).map((l) => l.url)).toEqual(['https://a.example/post'])
-    expect((await s.links(idea)).map((l) => l.url)).toEqual(['https://b.example/post'])
+    await s.ada.post(s.ideaArticles(idea), { url: 'https://b.example/post' })
+    expect((await s.articleList()).map((l) => l.url)).toEqual(['https://a.example/post'])
+    expect((await s.articleList(idea)).map((l) => l.url)).toEqual(['https://b.example/post'])
   })
 
   it('allows the same address on the publication list and on an idea’s, but not twice in one', async () => {
     const idea = await s.newIdea()
-    await s.ada.post(s.reading(), { url: 'https://a.example/post' })
-    const again = await s.ada.post(s.reading(), { url: 'a.example/post#top' })
+    await s.ada.post(s.articles(), { url: 'https://a.example/post' })
+    const again = await s.ada.post(s.articles(), { url: 'a.example/post#top' })
     expect(again.status).toBe(409)
     expect((await again.json()).error).toContain('already in this publication')
-    expect((await s.ada.post(s.ideaLinks(idea), { url: 'https://a.example/post' })).status).toBe(
+    expect((await s.ada.post(s.ideaArticles(idea), { url: 'https://a.example/post' })).status).toBe(
       201,
     )
   })
 
   it('has no maximum on the publication’s own list, though an idea’s keeps its limit', async () => {
     const idea = await s.newIdea()
-    for (let i = 0; i < MAX_IDEA_LINKS; i++) {
-      s.ctx.store.reading.add(s.publication, null, { url: `https://s${i}.example/`, title: 't' })
-      s.ctx.store.reading.add(s.publication, idea, { url: `https://i${i}.example/`, title: 't' })
+    for (let i = 0; i < MAX_IDEA_ARTICLES; i++) {
+      s.ctx.store.articles.add(s.publication, null, { url: `https://s${i}.example/`, title: 't' })
+      s.ctx.store.articles.add(s.publication, idea, { url: `https://i${i}.example/`, title: 't' })
     }
-    expect((await s.ada.post(s.reading(), { url: 'https://one-more.example/' })).status).toBe(201)
-    expect(await s.links()).toHaveLength(MAX_IDEA_LINKS + 1)
-    const full = await s.ada.post(s.ideaLinks(idea), { url: 'https://one-more.example/' })
+    expect((await s.ada.post(s.articles(), { url: 'https://one-more.example/' })).status).toBe(201)
+    expect(await s.articleList()).toHaveLength(MAX_IDEA_ARTICLES + 1)
+    const full = await s.ada.post(s.ideaArticles(idea), { url: 'https://one-more.example/' })
     expect(full.status).toBe(409)
-    expect((await full.json()).error).toContain(`An idea can have up to ${MAX_IDEA_LINKS} links`)
+    expect((await full.json()).error).toContain(
+      `An idea can have up to ${MAX_IDEA_ARTICLES} articles`,
+    )
   })
 
   it('marks an item read and unread, edits it, and removes it', async () => {
-    const [item] = await (await s.ada.post(s.reading(), { url: 'https://a.example/post' })).json()
-    const read = await s.ada.put(`${s.reading()}/${item.id}/read`, { read: true })
+    const [item] = await (await s.ada.post(s.articles(), { url: 'https://a.example/post' })).json()
+    const read = await s.ada.put(`${s.articles()}/${item.id}/read`, { read: true })
     expect((await read.json())[0].readAt).toBeTruthy()
     expect(
-      (await (await s.ada.put(`${s.reading()}/${item.id}/read`, { read: false })).json())[0].readAt,
+      (await (await s.ada.put(`${s.articles()}/${item.id}/read`, { read: false })).json())[0]
+        .readAt,
     ).toBeNull()
 
-    const edited = await s.ada.patch(`${s.reading()}/${item.id}`, {
+    const edited = await s.ada.patch(`${s.articles()}/${item.id}`, {
       url: 'https://a.example/post',
       title: 'My name for it',
       authors: ['Ada Lovelace'],
@@ -114,32 +117,32 @@ describe('the publication’s own articles', () => {
       title: 'My name for it',
       authors: ['Ada Lovelace'],
     })
-    expect((await s.ada.delete(`${s.reading()}/${item.id}`)).status).toBe(204)
-    expect(await s.links()).toEqual([])
-    expect((await s.ada.delete(`${s.reading()}/${item.id}`)).status).toBe(404)
+    expect((await s.ada.delete(`${s.articles()}/${item.id}`)).status).toBe(204)
+    expect(await s.articleList()).toEqual([])
+    expect((await s.ada.delete(`${s.articles()}/${item.id}`)).status).toBe(404)
   })
 
   it('cannot touch an idea’s item through the publication list, or the other way round', async () => {
     const idea = await s.newIdea()
     const withIdea = await (
-      await s.ada.post(s.ideaLinks(idea), { url: 'https://b.example/post' })
+      await s.ada.post(s.ideaArticles(idea), { url: 'https://b.example/post' })
     ).json()
-    const ideaItem = withIdea.links[0].id as string
-    expect((await s.ada.delete(`${s.reading()}/${ideaItem}`)).status).toBe(404)
-    expect((await s.ada.put(`${s.reading()}/${ideaItem}/read`, { read: true })).status).toBe(404)
-    const [mine] = await (await s.ada.post(s.reading(), { url: 'https://a.example/post' })).json()
-    expect((await s.ada.delete(`${s.ideaLinks(idea)}/${mine.id}`)).status).toBe(404)
+    const ideaItem = withIdea.articles[0].id as string
+    expect((await s.ada.delete(`${s.articles()}/${ideaItem}`)).status).toBe(404)
+    expect((await s.ada.put(`${s.articles()}/${ideaItem}/read`, { read: true })).status).toBe(404)
+    const [mine] = await (await s.ada.post(s.articles(), { url: 'https://a.example/post' })).json()
+    expect((await s.ada.delete(`${s.ideaArticles(idea)}/${mine.id}`)).status).toBe(404)
   })
 
   it('is for members only', async () => {
     const bob = s.ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     verifyAccounts(s.ctx, 'ada@example.com')
-    expect((await bob.get(s.reading())).status).toBe(404)
-    expect((await bob.post(s.reading(), { url: 'https://a.example/' })).status).toBe(404)
+    expect((await bob.get(s.articles())).status).toBe(404)
+    expect((await bob.post(s.articles(), { url: 'https://a.example/' })).status).toBe(404)
     await sharePublication(s.ctx, s.ada, s.publication, bob, 'bob@example.com')
-    expect((await bob.post(s.reading(), { url: 'https://a.example/' })).status).toBe(201)
-    expect(await s.links()).toHaveLength(1)
+    expect((await bob.post(s.articles(), { url: 'https://a.example/' })).status).toBe(201)
+    expect(await s.articleList()).toHaveLength(1)
   })
 })
 
@@ -187,11 +190,11 @@ describe('the publication’s own notes', () => {
   })
 
   it('takes notes from an item of the publication’s articles, which then counts as read', async () => {
-    const [item] = await (await s.ada.post(s.reading(), { url: 'https://a.example/post' })).json()
-    const note = await add('Said this', { readingItemId: item.id })
-    expect(note).toMatchObject({ readingItemId: item.id })
-    expect((await s.links())[0]!.readAt).toBeTruthy()
-    const quote = await add('“Exact words”', { readingItemId: item.id, quote: true })
+    const [item] = await (await s.ada.post(s.articles(), { url: 'https://a.example/post' })).json()
+    const note = await add('Said this', { articleId: item.id })
+    expect(note).toMatchObject({ articleId: item.id })
+    expect((await s.articleList())[0]!.readAt).toBeTruthy()
+    const quote = await add('“Exact words”', { articleId: item.id, quote: true })
     expect(quote).toMatchObject({ quote: true, origin: 'reading' })
     expect((await s.ada.patch(`${s.notes()}/${quote.id}`, { text: 'changed' })).status).toBe(409)
   })
@@ -199,9 +202,9 @@ describe('the publication’s own notes', () => {
   it('refuses a source that is not on the publication’s list (including one on an idea’s), and a quote with none', async () => {
     const idea = await s.newIdea()
     const withItem = await (
-      await s.ada.post(s.ideaLinks(idea), { url: 'https://b.example/post' })
+      await s.ada.post(s.ideaArticles(idea), { url: 'https://b.example/post' })
     ).json()
-    const res = await s.ada.post(s.notes(), { text: 'x', readingItemId: withItem.links[0].id })
+    const res = await s.ada.post(s.notes(), { text: 'x', articleId: withItem.articles[0].id })
     expect(res.status).toBe(400)
     expect((await res.json()).error).toContain("isn't in this publication's articles")
     expect((await s.ada.post(s.notes(), { text: 'x', quote: true })).status).toBe(400)
@@ -241,9 +244,9 @@ describe('the publication’s own notes', () => {
 describe('moving articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   const move = (ids: string[], ideaId: string | null) =>
-    s.ada.post(`${s.api}/move/reading`, { ids, to: { ideaId } })
+    s.ada.post(`${s.api}/move/articles`, { ids, to: { ideaId } })
   const item = async (url: string, extra: object = {}): Promise<Link> =>
-    (await s.ada.post(s.reading(), { url, title: url.replace('https://', ''), ...extra }))
+    (await s.ada.post(s.articles(), { url, title: url.replace('https://', ''), ...extra }))
       .json()
       .then((l: Link[]) => l.find((x) => x.url === url)!)
   beforeEach(async () => {
@@ -253,29 +256,25 @@ describe('moving articles', () => {
   it('moves an item from the publication to an idea with its notes, read date, authors, why and origin', async () => {
     const idea = await s.newIdea()
     const a = await item('https://a.example/post', { authors: ['Ada'] })
-    await s.ada.put(`${s.reading()}/${a.id}/read`, { read: true })
-    s.ctx.store.reading.add(
+    await s.ada.put(`${s.articles()}/${a.id}/read`, { read: true })
+    s.ctx.store.articles.add(
       s.publication,
       null,
       { url: 'https://r.example/', title: 'R', why: 'Because', authors: ['Bo'] },
       'research',
     )
-    const note = await (
-      await s.ada.post(s.notes(), { text: 'About A', readingItemId: a.id })
-    ).json()
+    const note = await (await s.ada.post(s.notes(), { text: 'About A', articleId: a.id })).json()
     const other = await (await s.ada.post(s.notes(), { text: 'Unrelated' })).json()
-    const before = (await s.links()).find((l) => l.id === a.id)!
+    const before = (await s.articleList()).find((l) => l.id === a.id)!
 
     const res = await move([a.id], idea)
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ readingItems: 1, merged: 0, notes: 1 })
+    expect(await res.json()).toMatchObject({ articles: 1, merged: 0, notes: 1 })
 
-    expect((await s.links()).map((l) => l.url)).toEqual(['https://r.example/'])
-    const moved = (await s.links(idea))[0]!
+    expect((await s.articleList()).map((l) => l.url)).toEqual(['https://r.example/'])
+    const moved = (await s.articleList(idea))[0]!
     expect(moved).toMatchObject({ id: a.id, url: a.url, authors: ['Ada'], readAt: before.readAt })
-    expect((await s.noteList(idea)).map((n) => [n.text, n.readingItemId])).toEqual([
-      ['About A', a.id],
-    ])
+    expect((await s.noteList(idea)).map((n) => [n.text, n.articleId])).toEqual([['About A', a.id]])
     expect((await s.noteList()).map((n) => n.id)).toEqual([other.id])
     expect(note.id).toBeTruthy()
   })
@@ -284,19 +283,19 @@ describe('moving articles', () => {
     const one = await s.newIdea('One')
     const two = await s.newIdea('Two')
     const withItem = await (
-      await s.ada.post(s.ideaLinks(one), { url: 'https://a.example/post' })
+      await s.ada.post(s.ideaArticles(one), { url: 'https://a.example/post' })
     ).json()
-    const id = withItem.links[0].id as string
-    await s.ada.post(s.ideaNotes(one), { text: 'Taken', readingItemId: id })
+    const id = withItem.articles[0].id as string
+    await s.ada.post(s.ideaNotes(one), { text: 'Taken', articleId: id })
 
     expect((await move([id], null)).status).toBe(200)
-    expect(await s.links(one)).toEqual([])
-    expect((await s.links()).map((l) => l.id)).toEqual([id])
+    expect(await s.articleList(one)).toEqual([])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([id])
     expect((await s.noteList()).map((n) => n.text)).toEqual(['Taken'])
     expect(await s.noteList(one)).toEqual([])
 
     expect((await move([id], two)).status).toBe(200)
-    expect((await s.links(two)).map((l) => l.id)).toEqual([id])
+    expect((await s.articleList(two)).map((l) => l.id)).toEqual([id])
     expect((await s.noteList(two)).map((n) => n.text)).toEqual(['Taken'])
   })
 
@@ -304,26 +303,24 @@ describe('moving articles', () => {
     const idea = await s.newIdea()
     const there = (
       await (
-        await s.ada.post(s.ideaLinks(idea), {
+        await s.ada.post(s.ideaArticles(idea), {
           url: 'https://a.example/post',
           title: 'Already here',
         })
       ).json()
-    ).links[0]
+    ).articles[0]
     const mine = await item('https://a.example/post#frag')
-    await s.ada.put(`${s.reading()}/${mine.id}/read`, { read: true })
-    await s.ada.post(s.notes(), { text: 'Mine', readingItemId: mine.id })
+    await s.ada.put(`${s.articles()}/${mine.id}/read`, { read: true })
+    await s.ada.post(s.notes(), { text: 'Mine', articleId: mine.id })
 
     const res = await (await move([mine.id], idea)).json()
-    expect(res).toMatchObject({ readingItems: 1, merged: 1, notes: 1 })
-    const list = await s.links(idea)
+    expect(res).toMatchObject({ articles: 1, merged: 1, notes: 1 })
+    const list = await s.articleList(idea)
     expect(list.map((l) => l.id)).toEqual([there.id]) // the one already there stays
     expect(list[0]!.title).toBe('Already here')
     expect(list[0]!.readAt).toBeTruthy() // and counts as read, since the moved one was
-    expect((await s.noteList(idea)).map((n) => [n.text, n.readingItemId])).toEqual([
-      ['Mine', there.id],
-    ])
-    expect(await s.links()).toEqual([])
+    expect((await s.noteList(idea)).map((n) => [n.text, n.articleId])).toEqual([['Mine', there.id]])
+    expect(await s.articleList()).toEqual([])
   })
 
   it('moves several together, joining two with the same address into one', async () => {
@@ -332,8 +329,8 @@ describe('moving articles', () => {
     const a2 = item('https://a.example/post2')
     await a2
     const res = await move([a.id, (await a2).id], idea)
-    expect((await res.json()).readingItems).toBe(2)
-    expect((await s.links(idea)).map((l) => l.url)).toEqual([
+    expect((await res.json()).articles).toBe(2)
+    expect((await s.articleList(idea)).map((l) => l.url)).toEqual([
       'https://a.example/post',
       'https://a.example/post2',
     ])
@@ -346,21 +343,23 @@ describe('moving articles', () => {
     const bobPublication = (await (await bob.get('/api/publications')).json())[0].id
     const bobItem = (
       await (
-        await bob.post(`/api/publications/${bobPublication}/reading`, { url: 'https://x.example/' })
+        await bob.post(`/api/publications/${bobPublication}/articles`, {
+          url: 'https://x.example/',
+        })
       ).json()
     )[0]
     const mine = await item('https://a.example/post')
 
     expect((await move([mine.id, bobItem.id], idea)).status).toBe(404)
-    expect(await s.links(idea)).toEqual([])
-    expect((await s.links()).map((l) => l.id)).toEqual([mine.id])
+    expect(await s.articleList(idea)).toEqual([])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([mine.id])
     // An idea of someone else's publication is not a destination.
     const bobIdea = (
       await (await bob.post(`/api/publications/${bobPublication}/ideas`, { name: 'Theirs' })).json()
     ).id
     expect((await move([mine.id], bobIdea)).status).toBe(404)
     expect(
-      (await bob.post(`${s.api}/move/reading`, { ids: [mine.id], to: { ideaId: null } })).status,
+      (await bob.post(`${s.api}/move/articles`, { ids: [mine.id], to: { ideaId: null } })).status,
     ).toBe(404)
   })
 
@@ -374,15 +373,15 @@ describe('moving articles', () => {
 
   it('refuses, changing nothing, when the destination would have too many items or notes', async () => {
     const idea = await s.newIdea()
-    for (let i = 0; i < MAX_IDEA_LINKS; i++) {
-      s.ctx.store.reading.add(s.publication, idea, { url: `https://f${i}.example/`, title: 't' })
+    for (let i = 0; i < MAX_IDEA_ARTICLES; i++) {
+      s.ctx.store.articles.add(s.publication, idea, { url: `https://f${i}.example/`, title: 't' })
     }
     const a = await item('https://a.example/post')
-    await s.ada.post(s.notes(), { text: 'n', readingItemId: a.id })
+    await s.ada.post(s.notes(), { text: 'n', articleId: a.id })
     const full = await move([a.id], idea)
     expect(full.status).toBe(409)
     expect((await full.json()).error).toContain('up to')
-    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([a.id])
     expect(await s.noteList(idea)).toEqual([])
 
     const roomy = await s.newIdea('Notes full')
@@ -391,15 +390,15 @@ describe('moving articles', () => {
     const tooMany = await move([a.id], roomy)
     expect(tooMany.status).toBe(409)
     expect((await tooMany.json()).error).toContain('notes')
-    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([a.id])
   })
 
   it('happens in full or not at all: a failure part-way changes nothing', async () => {
     const idea = await s.newIdea()
     const a = await item('https://a.example/post')
     const b = await item('https://b.example/post')
-    await s.ada.post(s.notes(), { text: 'n', readingItemId: a.id })
-    const before = { links: await s.links(), notes: await s.noteList() }
+    await s.ada.post(s.notes(), { text: 'n', articleId: a.id })
+    const before = { articles: await s.articleList(), notes: await s.noteList() }
     let calls = 0
     s.ctx.store.moves.record = () => {
       if (++calls === 3) throw new Error('disk full')
@@ -408,22 +407,22 @@ describe('moving articles', () => {
     const res = await move([a.id, b.id], idea)
     quiet.mockRestore()
     expect(res.status).toBe(500)
-    expect(await s.links()).toEqual(before.links)
+    expect(await s.articleList()).toEqual(before.articles)
     expect(await s.noteList()).toEqual(before.notes)
-    expect(await s.links(idea)).toEqual([])
+    expect(await s.articleList(idea)).toEqual([])
     expect(await s.noteList(idea)).toEqual([])
   })
 
   it('records every move: who, what, from where to where', async () => {
     const idea = await s.newIdea()
     const a = await item('https://a.example/post')
-    const note = await (await s.ada.post(s.notes(), { text: 'x', readingItemId: a.id })).json()
+    const note = await (await s.ada.post(s.notes(), { text: 'x', articleId: a.id })).json()
     const { batchId } = await (await move([a.id], idea)).json()
     const log = s.ctx.store.moves.list(s.publication)
     expect(log.map((m) => [m.kind, m.itemId, m.fromIdeaId, m.toIdeaId, m.batchId]).sort()).toEqual(
       [
         ['note', note.id, null, idea, batchId],
-        ['reading', a.id, null, idea, batchId],
+        ['article', a.id, null, idea, batchId],
       ].sort(),
     )
   })
@@ -433,11 +432,11 @@ describe('moving articles', () => {
     const to = await s.newIdea('To')
     const bystander = await s.newIdea('Bystander')
     const withItem = await (
-      await s.ada.post(s.ideaLinks(from), { url: 'https://a.example/post' })
+      await s.ada.post(s.ideaArticles(from), { url: 'https://a.example/post' })
     ).json()
     const old = '2000-01-01T00:00:00.000Z'
     for (const id of [from, to, bystander]) s.ctx.store.ideas.touch(id, old)
-    await move([withItem.links[0].id], to)
+    await move([withItem.articles[0].id], to)
     const updated = async (id: string) =>
       (await (await s.ada.get(`${s.api}/ideas/${id}`)).json()).updatedAt as string
     expect(await updated(from)).not.toBe(old)
@@ -459,10 +458,10 @@ describe('moving notes', () => {
   it('moves chosen notes to an idea, in their order, with tags, quote mark and author', async () => {
     const idea = await s.newIdea()
     const [src] = await (
-      await s.ada.post(s.reading(), { url: 'https://a.example/post', title: 'A post' })
+      await s.ada.post(s.articles(), { url: 'https://a.example/post', title: 'A post' })
     ).json()
     const a = await note('A')
-    const q = await note('“Quote”', { readingItemId: src.id, quote: true })
+    const q = await note('“Quote”', { articleId: src.id, quote: true })
     const c = await note('C')
     await note('Stays')
     await s.ada.put(`${s.notes()}/${a.id}/tags`, { tags: ['intro'] })
@@ -478,52 +477,52 @@ describe('moving notes', () => {
 
   it('copies the source into the idea’s articles (read state, authors and why kept) and leaves the original', async () => {
     const idea = await s.newIdea()
-    s.ctx.store.reading.add(
+    s.ctx.store.articles.add(
       s.publication,
       null,
       { url: 'https://a.example/post', title: 'A post', authors: ['Ada'], why: 'Because' },
       'research',
     )
-    const [src] = await s.links()
-    const n = await note('From A', { readingItemId: src!.id })
-    await note('Also from A', { readingItemId: src!.id })
+    const [src] = await s.articleList()
+    const n = await note('From A', { articleId: src!.id })
+    await note('Also from A', { articleId: src!.id })
 
     await move([n.id], idea)
-    const copy = (await s.links(idea))[0]!
+    const copy = (await s.articleList(idea))[0]!
     expect(copy.id).not.toBe(src!.id)
     expect(copy).toMatchObject({ url: 'https://a.example/post', title: 'A post', authors: ['Ada'] })
     expect(copy.readAt).toBeTruthy() // taking a note from it marked the original read
-    expect((await s.noteList(idea))[0]!.readingItemId).toBe(copy.id)
+    expect((await s.noteList(idea))[0]!.articleId).toBe(copy.id)
     // The original is still on the publication's list, and the note left behind still points at it.
-    expect((await s.links()).map((l) => l.id)).toEqual([src!.id])
-    expect((await s.noteList())[0]!.readingItemId).toBe(src!.id)
+    expect((await s.articleList()).map((l) => l.id)).toEqual([src!.id])
+    expect((await s.noteList())[0]!.articleId).toBe(src!.id)
   })
 
   it('uses the item the idea already has for that address, and copies a source only once', async () => {
     const idea = await s.newIdea()
     const there = (
       await (
-        await s.ada.post(s.ideaLinks(idea), { url: 'https://a.example/post', title: 'There' })
+        await s.ada.post(s.ideaArticles(idea), { url: 'https://a.example/post', title: 'There' })
       ).json()
-    ).links[0]
-    await s.ada.post(s.reading(), { url: 'https://a.example/post#x' })
+    ).articles[0]
+    await s.ada.post(s.articles(), { url: 'https://a.example/post#x' })
     const both: Link[] = await (
-      await s.ada.post(s.reading(), { url: 'https://b.example/post' })
+      await s.ada.post(s.articles(), { url: 'https://b.example/post' })
     ).json()
     const src = both.find((l) => l.url.startsWith('https://a.example'))!
     const other = both.find((l) => l.url.startsWith('https://b.example'))!
-    const n1 = await note('1', { readingItemId: src.id })
-    const n2 = await note('2', { readingItemId: src.id })
-    const n3 = await note('3', { readingItemId: other.id })
-    const n4 = await note('4', { readingItemId: other.id })
+    const n1 = await note('1', { articleId: src.id })
+    const n2 = await note('2', { articleId: src.id })
+    const n3 = await note('3', { articleId: other.id })
+    const n4 = await note('4', { articleId: other.id })
 
     const res = await (await move([n1.id, n2.id, n3.id, n4.id], idea)).json()
     expect(res.copied).toBe(1)
-    const links = await s.links(idea)
+    const links = await s.articleList(idea)
     expect(links).toHaveLength(2)
     expect(links.find((l) => l.url.startsWith('https://b'))).toBeTruthy()
     const moved = await s.noteList(idea)
-    expect(moved.filter((n) => n.readingItemId === there.id)).toHaveLength(2)
+    expect(moved.filter((n) => n.articleId === there.id)).toHaveLength(2)
   })
 
   it('moves notes between ideas and back to the publication, putting them at the end', async () => {
@@ -578,10 +577,10 @@ describe('moving notes', () => {
     expect((await s.noteList()).map((n) => n.id)).toEqual([mine.id])
 
     const tight = await s.newIdea('Tight')
-    for (let i = 0; i < MAX_IDEA_LINKS; i++)
-      s.ctx.store.reading.add(s.publication, tight, { url: `https://f${i}.example/`, title: 't' })
-    const [src] = await (await s.ada.post(s.reading(), { url: 'https://new.example/' })).json()
-    const withSrc = await note('From a new source', { readingItemId: src.id })
+    for (let i = 0; i < MAX_IDEA_ARTICLES; i++)
+      s.ctx.store.articles.add(s.publication, tight, { url: `https://f${i}.example/`, title: 't' })
+    const [src] = await (await s.ada.post(s.articles(), { url: 'https://new.example/' })).json()
+    const withSrc = await note('From a new source', { articleId: src.id })
     expect((await move([withSrc.id], tight)).status).toBe(409)
     expect((await s.noteList()).map((n) => n.id)).toContain(withSrc.id)
   })
@@ -623,13 +622,13 @@ describe('moving between publications', () => {
   let s: Awaited<ReturnType<typeof start>>
   let other: string // a second publication of Ada's
   let otherApi: string
-  const post = (kind: 'reading' | 'notes', ids: string[], to: object, via = s.api) =>
+  const post = (kind: 'articles' | 'notes', ids: string[], to: object, via = s.api) =>
     s.ada.post(`${via}/move/${kind}`, { ids, to })
   const item = async (url: string, extra: object = {}): Promise<Link> =>
-    (await s.ada.post(s.reading(), { url, title: url.replace('https://', ''), ...extra }))
+    (await s.ada.post(s.articles(), { url, title: url.replace('https://', ''), ...extra }))
       .json()
       .then((l: Link[]) => l.find((x) => x.url === url)!)
-  const otherLinks = async (): Promise<Link[]> => (await s.ada.get(`${otherApi}/reading`)).json()
+  const otherLinks = async (): Promise<Link[]> => (await s.ada.get(`${otherApi}/articles`)).json()
   const otherNotes = async (): Promise<Note[]> => (await s.ada.get(`${otherApi}/notes`)).json()
   beforeEach(async () => {
     s = await start()
@@ -640,30 +639,30 @@ describe('moving between publications', () => {
   it('moves an item with its notes to the other publication’s list, or to one of its ideas', async () => {
     const a = await item('https://a.example/post', { authors: ['Ada'] })
     const note = await (
-      await s.ada.post(s.notes(), { text: 'About A', readingItemId: a.id, tags: [] })
+      await s.ada.post(s.notes(), { text: 'About A', articleId: a.id, tags: [] })
     ).json()
-    const res = await post('reading', [a.id], { ideaId: null, publicationId: other })
+    const res = await post('articles', [a.id], { ideaId: null, publicationId: other })
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ readingItems: 1, merged: 0, notes: 1 })
-    expect(await s.links()).toEqual([])
+    expect(await res.json()).toMatchObject({ articles: 1, merged: 0, notes: 1 })
+    expect(await s.articleList()).toEqual([])
     expect(await s.noteList()).toEqual([])
     expect((await otherLinks()).map((l) => [l.id, l.authors])).toEqual([[a.id, ['Ada']]])
-    expect((await otherNotes()).map((n) => [n.id, n.readingItemId])).toEqual([[note.id, a.id]])
+    expect((await otherNotes()).map((n) => [n.id, n.articleId])).toEqual([[note.id, a.id]])
 
     const idea = (await (await s.ada.post(`${otherApi}/ideas`, { name: 'Elsewhere' })).json()).id
     const b = await item('https://b.example/post')
-    await post('reading', [b.id], { ideaId: idea, publicationId: other })
+    await post('articles', [b.id], { ideaId: idea, publicationId: other })
     expect(
-      (await (await s.ada.get(`${otherApi}/ideas/${idea}`)).json()).links.map((l: Link) => l.id),
+      (await (await s.ada.get(`${otherApi}/ideas/${idea}`)).json()).articles.map((l: Link) => l.id),
     ).toEqual([b.id])
   })
 
   it('moves notes, copying their source and joining the same address already there', async () => {
     const a = await item('https://a.example/post')
     const b = await item('https://b.example/post')
-    s.ctx.store.reading.add(other, null, { url: 'https://b.example/post', title: 'B' })
-    const na = await (await s.ada.post(s.notes(), { text: 'A', readingItemId: a.id })).json()
-    const nb = await (await s.ada.post(s.notes(), { text: 'B', readingItemId: b.id })).json()
+    s.ctx.store.articles.add(other, null, { url: 'https://b.example/post', title: 'B' })
+    const na = await (await s.ada.post(s.notes(), { text: 'A', articleId: a.id })).json()
+    const nb = await (await s.ada.post(s.notes(), { text: 'B', articleId: b.id })).json()
     const res = await post('notes', [na.id, nb.id], { ideaId: null, publicationId: other })
     expect(await res.json()).toMatchObject({ notes: 2, copied: 1 })
     const links = await otherLinks()
@@ -672,27 +671,27 @@ describe('moving between publications', () => {
       'https://b.example/post',
     ])
     const there = new Map(links.map((l) => [l.url, l.id]))
-    expect((await otherNotes()).map((n) => [n.text, n.readingItemId])).toEqual([
+    expect((await otherNotes()).map((n) => [n.text, n.articleId])).toEqual([
       ['A', there.get('https://a.example/post')],
       ['B', there.get('https://b.example/post')],
     ])
     // The sources stay where the notes came from.
-    expect((await s.links()).map((l) => l.id).sort()).toEqual([a.id, b.id].sort())
+    expect((await s.articleList()).map((l) => l.id).sort()).toEqual([a.id, b.id].sort())
     expect(await s.noteList()).toEqual([])
   })
 
   it('joins an item with the one of the same address already in the other publication', async () => {
     const a = await item('https://a.example/post')
-    const there = s.ctx.store.reading.add(other, null, {
+    const there = s.ctx.store.articles.add(other, null, {
       url: 'https://a.example/post',
       title: 'A',
     })
-    const note = await (await s.ada.post(s.notes(), { text: 'A', readingItemId: a.id })).json()
-    const res = await post('reading', [a.id], { ideaId: null, publicationId: other })
-    expect(await res.json()).toMatchObject({ readingItems: 1, merged: 1, notes: 1 })
+    const note = await (await s.ada.post(s.notes(), { text: 'A', articleId: a.id })).json()
+    const res = await post('articles', [a.id], { ideaId: null, publicationId: other })
+    expect(await res.json()).toMatchObject({ articles: 1, merged: 1, notes: 1 })
     expect((await otherLinks()).map((l) => l.id)).toEqual([there.id])
-    expect((await otherNotes()).map((n) => [n.id, n.readingItemId])).toEqual([[note.id, there.id]])
-    expect(await s.links()).toEqual([])
+    expect((await otherNotes()).map((n) => [n.id, n.articleId])).toEqual([[note.id, there.id]])
+    expect(await s.articleList()).toEqual([])
   })
 
   it('applies the destination’s limits', async () => {
@@ -708,16 +707,16 @@ describe('moving between publications', () => {
 
   it('can be undone from the other side, by a member of both', async () => {
     const a = await item('https://a.example/post')
-    const note = await (await s.ada.post(s.notes(), { text: 'N', readingItemId: a.id })).json()
-    await post('reading', [a.id], { ideaId: null, publicationId: other })
+    const note = await (await s.ada.post(s.notes(), { text: 'N', articleId: a.id })).json()
+    await post('articles', [a.id], { ideaId: null, publicationId: other })
     const back = await post(
-      'reading',
+      'articles',
       [a.id],
       { ideaId: null, publicationId: s.publication },
       otherApi,
     )
     expect(back.status).toBe(200)
-    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([a.id])
     expect((await s.noteList()).map((n) => n.id)).toEqual([note.id])
     expect(await otherLinks()).toEqual([])
   })
@@ -729,14 +728,14 @@ describe('moving between publications', () => {
     const a = await item('https://a.example/post')
     const n = await (await s.ada.post(s.notes(), { text: 'N' })).json()
     for (const publicationId of [bobs, 'no-such-publication']) {
-      const r = await post('reading', [a.id], { ideaId: null, publicationId })
+      const r = await post('articles', [a.id], { ideaId: null, publicationId })
       expect(r.status).toBe(404)
       expect((await post('notes', [n.id], { ideaId: null, publicationId })).status).toBe(404)
       expect(await r.json()).toEqual({ error: 'Not found' })
     }
-    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([a.id])
     expect((await s.noteList()).map((x) => x.id)).toEqual([n.id])
-    expect(await (await bob.get(`/api/publications/${bobs}/reading`)).json()).toEqual([])
+    expect(await (await bob.get(`/api/publications/${bobs}/articles`)).json()).toEqual([])
   })
 
   it('refuses someone who belongs only to the source, and an idea that is in neither publication', async () => {
@@ -746,31 +745,33 @@ describe('moving between publications', () => {
     await sharePublication(s.ctx, s.ada, s.publication, bob, 'bob@example.com')
     const a = await item('https://a.example/post')
     // Bob can move within the shared publication but not into Ada's other one.
-    const r = await bob.post(`${s.api}/move/reading`, {
+    const r = await bob.post(`${s.api}/move/articles`, {
       ids: [a.id],
       to: { ideaId: null, publicationId: other },
     })
     expect(r.status).toBe(404)
-    expect((await s.links()).map((l) => l.id)).toEqual([a.id])
+    expect((await s.articleList()).map((l) => l.id)).toEqual([a.id])
     // An idea of the source publication is not a destination in the other one.
     const idea = await s.newIdea()
-    expect((await post('reading', [a.id], { ideaId: idea, publicationId: other })).status).toBe(404)
+    expect((await post('articles', [a.id], { ideaId: idea, publicationId: other })).status).toBe(
+      404,
+    )
   })
 
   it('records both sides in the log', async () => {
     const a = await item('https://a.example/post')
     const { batchId } = await (
-      await post('reading', [a.id], { ideaId: null, publicationId: other })
+      await post('articles', [a.id], { ideaId: null, publicationId: other })
     ).json()
     for (const publication of [s.publication, other]) {
       expect(s.ctx.store.moves.list(publication)).toEqual([
-        expect.objectContaining({ kind: 'reading', itemId: a.id, toPublicationId: other, batchId }),
+        expect.objectContaining({ kind: 'article', itemId: a.id, toPublicationId: other, batchId }),
       ])
     }
     // A move within the publication records no destination publication.
     const b = await item('https://b.example/post')
     const idea = await s.newIdea()
-    await post('reading', [b.id], { ideaId: idea })
+    await post('articles', [b.id], { ideaId: idea })
     expect(s.ctx.store.moves.list(s.publication)[0]).toMatchObject({
       itemId: b.id,
       toPublicationId: null,
@@ -779,7 +780,7 @@ describe('moving between publications', () => {
 
   it('goes from the log of both publications when either is deleted', async () => {
     const a = await item('https://a.example/post')
-    await post('reading', [a.id], { ideaId: null, publicationId: other })
+    await post('articles', [a.id], { ideaId: null, publicationId: other })
     expect(s.ctx.store.moves.list(s.publication)).toHaveLength(1)
     await s.ada.delete(otherApi)
     expect(s.ctx.store.moves.list(s.publication)).toEqual([])
@@ -793,7 +794,7 @@ describe('items dropping off the publication’s articles after a month', () => 
   /** Items are dated by the real clock when they are made, so the clock is set to when each should be made. */
   const at = (days: number) => vi.setSystemTime(start0 + days * DAY)
   const add = async (url: string, extra: object = {}): Promise<Link> =>
-    (await (await s.ada.post(s.reading(), { url, title: url, ...extra })).json()).find(
+    (await (await s.ada.post(s.articles(), { url, title: url, ...extra })).json()).find(
       (l: Link) => l.url === url,
     )
   beforeEach(async () => {
@@ -802,11 +803,11 @@ describe('items dropping off the publication’s articles after a month', () => 
     s = await start()
   })
   afterEach(() => vi.useRealTimers())
-  const urls = async () => (await s.links()).map((l) => l.url)
+  const urls = async () => (await s.articleList()).map((l) => l.url)
   /** What a feed brings is not kept; a link typed in by hand is, so these switch Keep off to be able to drop. */
   const addUnkept = async (url: string) => {
     const item = await add(url)
-    await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: false })
+    await s.ada.put(`${s.articles()}/${item.id}/kept`, { kept: false })
     return item
   }
 
@@ -832,62 +833,62 @@ describe('items dropping off the publication’s articles after a month', () => 
 
   it('keeps an item that was marked to be kept, and drops it again once that is undone', async () => {
     const item = await addUnkept('https://kept.example/')
-    const kept = await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: true })
+    const kept = await s.ada.put(`${s.articles()}/${item.id}/kept`, { kept: true })
     expect(kept.status).toBe(200)
     expect((await kept.json())[0].kept).toBe(true)
     at(90)
     expect(await urls()).toEqual(['https://kept.example/'])
-    await s.ada.put(`${s.reading()}/${item.id}/kept`, { kept: false })
+    await s.ada.put(`${s.articles()}/${item.id}/kept`, { kept: false })
     expect(await urls()).toEqual([])
   })
 
   it('never drops an item that notes were taken from, kept or not', async () => {
     const item = await addUnkept('https://noted.example/')
     await addUnkept('https://plain.example/')
-    await s.ada.post(s.notes(), { text: 'Taken from it', readingItemId: item.id })
+    await s.ada.post(s.notes(), { text: 'Taken from it', articleId: item.id })
     at(60)
     expect(await urls()).toEqual(['https://noted.example/'])
-    expect((await s.noteList())[0]!.readingItemId).toBe(item.id)
+    expect((await s.noteList())[0]!.articleId).toBe(item.id)
   })
 
   it('does not touch an idea’s articles or notes', async () => {
     const idea = await s.newIdea()
-    await s.ada.post(s.ideaLinks(idea), { url: 'https://idea.example/' })
+    await s.ada.post(s.ideaArticles(idea), { url: 'https://idea.example/' })
     await s.ada.post(s.ideaNotes(idea), { text: 'An idea note' })
     at(400)
-    expect((await s.links(idea)).map((l) => l.url)).toEqual(['https://idea.example/'])
+    expect((await s.articleList(idea)).map((l) => l.url)).toEqual(['https://idea.example/'])
     expect(await s.noteList(idea)).toHaveLength(1)
   })
 
   it('starts the month again when an item is moved onto the publication’s list, unkept', async () => {
     const idea = await s.newIdea()
     const withItem = await (
-      await s.ada.post(s.ideaLinks(idea), { url: 'https://moved.example/' })
+      await s.ada.post(s.ideaArticles(idea), { url: 'https://moved.example/' })
     ).json()
-    const id = withItem.links[0].id as string
+    const id = withItem.articles[0].id as string
     at(100) // long enough that anything made at the start would be gone
-    await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: null } })
+    await s.ada.post(`${s.api}/move/articles`, { ids: [id], to: { ideaId: null } })
     at(120)
     expect(await urls()).toEqual(['https://moved.example/']) // 20 days on the publication's list
-    await s.ada.put(`${s.reading()}/${id}/kept`, { kept: true })
-    await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: idea } })
-    await s.ada.post(`${s.api}/move/reading`, { ids: [id], to: { ideaId: null } })
-    expect((await s.links())[0]!.kept).toBe(false) // keeping doesn't survive a round trip
+    await s.ada.put(`${s.articles()}/${id}/kept`, { kept: true })
+    await s.ada.post(`${s.api}/move/articles`, { ids: [id], to: { ideaId: idea } })
+    await s.ada.post(`${s.api}/move/articles`, { ids: [id], to: { ideaId: null } })
+    expect((await s.articleList())[0]!.kept).toBe(false) // keeping doesn't survive a round trip
   })
 
   it('refuses to keep an item of an idea, or one that is not there, and is for members only', async () => {
     const idea = await s.newIdea()
     const withItem = await (
-      await s.ada.post(s.ideaLinks(idea), { url: 'https://idea.example/' })
+      await s.ada.post(s.ideaArticles(idea), { url: 'https://idea.example/' })
     ).json()
     expect(
-      (await s.ada.put(`${s.reading()}/${withItem.links[0].id}/kept`, { kept: true })).status,
+      (await s.ada.put(`${s.articles()}/${withItem.articles[0].id}/kept`, { kept: true })).status,
     ).toBe(404)
-    expect((await s.ada.put(`${s.reading()}/nope/kept`, { kept: true })).status).toBe(404)
+    expect((await s.ada.put(`${s.articles()}/nope/kept`, { kept: true })).status).toBe(404)
     const bob = s.ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     const item = await add('https://a.example/')
-    expect((await bob.put(`${s.reading()}/${item.id}/kept`, { kept: true })).status).toBe(404)
+    expect((await bob.put(`${s.articles()}/${item.id}/kept`, { kept: true })).status).toBe(404)
   })
 
   it('offers a post from a feed again when its item has been dropped', async () => {

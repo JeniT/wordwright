@@ -686,6 +686,48 @@ export const MIGRATIONS: Migration[] = [
     created_at TEXT NOT NULL
   );
   `,
+  // "Reading item" became "Article" (#368). Renames only, so every row survives: the tables and columns that said
+  // link or reading item, and the indexes (which SQLite cannot rename). References to them follow the rename.
+  `
+  ALTER TABLE idea_links RENAME TO articles;
+  ALTER TABLE idea_link_tags RENAME TO article_tags;
+  ALTER TABLE article_tags RENAME COLUMN link_id TO article_id;
+  ALTER TABLE idea_notes RENAME COLUMN reading_item_id TO article_id;
+  ALTER TABLE idea_research_items RENAME COLUMN link_id TO article_id;
+  DROP INDEX idea_links_idea;
+  DROP INDEX idea_links_publication;
+  CREATE INDEX articles_idea ON articles(idea_id);
+  CREATE INDEX articles_publication ON articles(publication_id);
+  `,
+  // The log of moves names what was moved: an article, no longer a reading item. The `kind` check names the kinds,
+  // so the table is rebuilt to allow the new one.
+  {
+    foreignKeysOff: true,
+    run: (db) => {
+      db.exec(`
+        CREATE TABLE moves_new (
+          id TEXT PRIMARY KEY,
+          batch_id TEXT NOT NULL,
+          publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
+          moved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+          moved_at TEXT NOT NULL,
+          kind TEXT NOT NULL CHECK (kind IN ('article', 'note')),
+          item_id TEXT NOT NULL,
+          from_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+          to_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,
+          merged INTEGER NOT NULL DEFAULT 0,
+          to_publication_id TEXT REFERENCES publications(id) ON DELETE CASCADE
+        );
+        INSERT INTO moves_new SELECT id, batch_id, publication_id, moved_by, moved_at,
+          CASE kind WHEN 'reading' THEN 'article' ELSE kind END, item_id, from_idea_id, to_idea_id, merged,
+          to_publication_id FROM moves;
+        DROP TABLE moves;
+        ALTER TABLE moves_new RENAME TO moves;
+        CREATE INDEX moves_publication ON moves(publication_id, moved_at);
+        CREATE INDEX moves_to_publication ON moves(to_publication_id) WHERE to_publication_id IS NOT NULL;
+      `)
+    },
+  },
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

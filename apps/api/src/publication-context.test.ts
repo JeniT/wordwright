@@ -54,7 +54,7 @@ const idea: Idea = {
   publicationId: 'p',
   name: 'Why rivers meander',
   notes: 'Erosion loops.',
-  links: [],
+  articles: [],
   drafts: [],
   pendingSuggestions: 0,
   createdAt: '',

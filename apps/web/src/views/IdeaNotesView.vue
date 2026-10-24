@@ -19,7 +19,7 @@ defineProps<{ publicationId: string; id: string }>()
     <IdeaNotes
       :publication-id="publicationId"
       :idea-id="id"
-      :reading-list="idea.links"
+      :article-list="idea.articles"
       quiet-heading
     />
     <NextStep :to="{ name: 'brainstorm', params: { publicationId, id } }" label="Next: 04 Refine" />

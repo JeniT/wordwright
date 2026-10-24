@@ -14,7 +14,7 @@ const toNote = (r: Row): IdeaNote => ({
   authorId: r.created_by as string | null,
   authorName: r.author_name as string | null,
   tags: [],
-  readingItemId: r.reading_item_id as string | null,
+  articleId: r.article_id as string | null,
   quote: r.is_quote === 1,
   addedAt: r.added_at as string | null,
   createdAt: r.created_at as string,
@@ -73,12 +73,12 @@ export class NoteStore {
   }
 
   /** The notes taken from an article, in their order. */
-  byReadingItem(publicationId: string, readingItemId: string): string[] {
+  byArticle(publicationId: string, articleId: string): string[] {
     return this.db
       .prepare(
-        'SELECT id FROM idea_notes WHERE publication_id = ? AND reading_item_id = ? ORDER BY position, rowid',
+        'SELECT id FROM idea_notes WHERE publication_id = ? AND article_id = ? ORDER BY position, rowid',
       )
-      .all(publicationId, readingItemId)
+      .all(publicationId, articleId)
       .map((r) => r.id as string)
   }
 
@@ -94,7 +94,7 @@ export class NoteStore {
 
   /**
    * Hands a note of `publicationId` to an idea of `toPublicationId`, or to that publication (`null`), at the end of
-   * that list, pointing at `readingItemId` there (or at no item). Clears "added", since it hasn't been put into any of
+   * that list, pointing at `articleId` there (or at no item). Clears "added", since it hasn't been put into any of
    * the new owner's drafts.
    */
   moveTo(
@@ -102,16 +102,16 @@ export class NoteStore {
     id: string,
     toPublicationId: string,
     ideaId: string | null,
-    readingItemId: string | null,
+    articleId: string | null,
   ) {
     const w = owned(ideaId ?? { publicationId: toPublicationId })
     this.db
       .prepare(
-        `UPDATE idea_notes SET publication_id = ?, idea_id = ?, reading_item_id = ?, added_at = NULL, updated_at = ?,
+        `UPDATE idea_notes SET publication_id = ?, idea_id = ?, article_id = ?, added_at = NULL, updated_at = ?,
            position = (SELECT coalesce(max(position) + 1, 0) FROM idea_notes WHERE ${w.sql})
          WHERE publication_id = ? AND id = ?`,
       )
-      .run(toPublicationId, ideaId, readingItemId, nowIso(), ...w.args, publicationId, id)
+      .run(toPublicationId, ideaId, articleId, nowIso(), ...w.args, publicationId, id)
   }
 
   /** Adds a note after the others, or (`first`) before them. */
@@ -121,7 +121,7 @@ export class NoteStore {
     authorId: string | null,
     text: string,
     origin: NoteOrigin = 'entered',
-    readingItemId: string | null = null,
+    articleId: string | null = null,
     quote = false,
     first = false,
   ): IdeaNote {
@@ -130,7 +130,7 @@ export class NoteStore {
     const w = owned(ideaId ?? { publicationId })
     this.db
       .prepare(
-        `INSERT INTO idea_notes (id, publication_id, idea_id, created_by, text, origin, reading_item_id, is_quote, position, created_at, updated_at)
+        `INSERT INTO idea_notes (id, publication_id, idea_id, created_by, text, origin, article_id, is_quote, position, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT ${first ? 'coalesce(min(position) - 1, 0)' : 'coalesce(max(position) + 1, 0)'} FROM idea_notes WHERE ${w.sql}), ?, ?)`,
       )
       .run(
@@ -140,7 +140,7 @@ export class NoteStore {
         authorId,
         text,
         origin,
-        readingItemId,
+        articleId,
         quote ? 1 : 0,
         ...w.args,
         now,
@@ -251,7 +251,7 @@ export class NoteStore {
       note.authorId,
       after,
       note.origin,
-      note.readingItemId,
+      note.articleId,
     )
     this.setTags(owner, second.id, note.tags)
     this.updateText(owner, id, before)

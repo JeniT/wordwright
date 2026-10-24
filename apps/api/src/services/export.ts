@@ -1,4 +1,4 @@
-import { firstAvailable, slugify, type Draft, type IdeaLink, type IdeaNote } from '@wordwright/core'
+import { firstAvailable, slugify, type Draft, type Article, type IdeaNote } from '@wordwright/core'
 import type { Store } from '../db/store'
 import { zip, type ZipFile } from '../export/zip'
 
@@ -25,7 +25,7 @@ const noteLine = (n: IdeaNote) =>
   `- ${n.quote ? 'Quote: ' : ''}${indent(n.text)} (${oneLine(n.authorName ?? 'a former member')}, ${longDate(n.createdAt)})${tagsOf(n.tags)}`
 
 /** Articles record when they were added but not by whom, so that is all the credit there is to give. */
-const readingLine = (l: IdeaLink) => {
+const articleLine = (l: Article) => {
   const address = l.url.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29')
   const parts = [`[${linkText(l.title || l.url)}](${address})`]
   if (l.authors.length) parts.push(`by ${l.authors.map(oneLine).join(', ')}`)
@@ -98,7 +98,7 @@ export class ExportService {
         '- As an owner of a publication, this includes every draft in it, including drafts other members edit.',
       member &&
         '- As a member of a publication, this includes the drafts you edit or started. Drafts other members edit or started are not included: they are theirs to export.',
-      '- Notes and reading-list items from everyone in a publication are included. Notes name who wrote them; reading-list items show only when they were added, because that is all we record.',
+      '- Notes and articles from everyone in a publication are included. Notes name who wrote them; articles show only when they were added, because that is all we record.',
     ].filter(Boolean)
     return `# Your writing from Wordwright
 
@@ -172,7 +172,7 @@ ${rules.join('\n')}
           `# ${oneLine(idea.name)}\n\n[← ${linkText(publication.name)}](../${publicationId}.md)\n`,
           section('Drafts', draftLines),
           section('Notes', store.notes.list(idea.id).map(noteLine)),
-          section('Articles', idea.links.map(readingLine)),
+          section('Articles', idea.articles.map(articleLine)),
         ]
           .filter(Boolean)
           .join('\n'),
@@ -192,7 +192,7 @@ ${rules.join('\n')}
         section('Notes not yet in an idea', store.notes.list({ publicationId }).map(noteLine)),
         section(
           'Articles not yet in an idea',
-          store.reading.list({ publicationId }).map(readingLine),
+          store.articles.list({ publicationId }).map(articleLine),
         ),
       ]
         .filter(Boolean)

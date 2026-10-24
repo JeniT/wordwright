@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { FakeFeedFetcher, MAX_IDEA_LINKS } from '@wordwright/core'
+import { FakeFeedFetcher, MAX_IDEA_ARTICLES } from '@wordwright/core'
 import { register, setup, sharePublication, verifyAccounts, type TestClient } from './test-helpers'
 
 type Post = { id: string; sourceId: string; title: string; url: string; status: string }
@@ -52,7 +52,7 @@ describe('deciding about posts from the feeds', () => {
   const statuses = async () => Object.fromEntries((await recent()).map((p) => [p.id, p.status]))
   const decide = (what: 'add' | 'ignore' | 'reconsider', posts: object[], c = ada) =>
     c.post(`${api}/sources/recent/${what}`, { posts })
-  const publicationList = async (): Promise<Link[]> => (await ada.get(`${api}/reading`)).json()
+  const publicationList = async (): Promise<Link[]> => (await ada.get(`${api}/articles`)).json()
 
   beforeEach(two)
 
@@ -106,7 +106,7 @@ describe('deciding about posts from the feeds', () => {
     })
 
     it('counts a post put on a list by hand as decided then, and puts it at the end too', async () => {
-      await ada.post(`${api}/reading`, { url: 'https://x.example/a1', title: 'By hand' })
+      await ada.post(`${api}/articles`, { url: 'https://x.example/a1', title: 'By hand' })
       expect(await order()).toEqual(['a2', 'b1', 'a1'])
     })
 
@@ -130,7 +130,7 @@ describe('deciding about posts from the feeds', () => {
   })
 
   it('adds several together, or none: one that is already listed refuses the lot', async () => {
-    await ada.post(`${api}/reading`, { url: 'https://x.example/a2', title: 'By hand' })
+    await ada.post(`${api}/articles`, { url: 'https://x.example/a2', title: 'By hand' })
     const res = await decide('add', [ref(A, 'a1'), ref(A, 'a2')])
     expect(res.status).toBe(409)
     expect((await res.json()).error).toContain('already on a list of articles')
@@ -144,9 +144,9 @@ describe('deciding about posts from the feeds', () => {
   })
 
   it('counts a post put on a list of articles by hand, or on an idea’s, as added', async () => {
-    await ada.post(`${api}/reading`, { url: 'https://x.example/a1', title: 'By hand' })
+    await ada.post(`${api}/articles`, { url: 'https://x.example/a1', title: 'By hand' })
     const idea = (await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()).id
-    await ada.post(`${api}/ideas/${idea}/links`, { url: 'https://x.example/b1' })
+    await ada.post(`${api}/ideas/${idea}/articles`, { url: 'https://x.example/b1' })
     expect(await statuses()).toEqual({ a1: 'added', a2: 'new', b1: 'added' })
     expect((await decide('add', [ref(A, 'a1')])).status).toBe(409)
   })
@@ -186,19 +186,19 @@ describe('deciding about posts from the feeds', () => {
   it('takes an add back: the item comes off the publication’s list, and its notes stay without a source', async () => {
     await decide('add', [ref(A, 'a1')])
     const [item] = await publicationList()
-    await ada.post(`${api}/notes`, { text: 'A thought', readingItemId: item!.id })
+    await ada.post(`${api}/notes`, { text: 'A thought', articleId: item!.id })
     const res = await decide('reconsider', [ref(A, 'a1')])
     expect((await res.json()).results[0].status).toBe('new')
     expect(await publicationList()).toEqual([])
     const notes = await (await ada.get(`${api}/notes`)).json()
-    expect(notes).toEqual([expect.objectContaining({ text: 'A thought', readingItemId: null })])
+    expect(notes).toEqual([expect.objectContaining({ text: 'A thought', articleId: null })])
   })
 
   it('cannot take back an add that has been moved to an idea: it has to come off there', async () => {
     await decide('add', [ref(A, 'a1')])
     const [item] = await publicationList()
     const idea = (await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()).id
-    await ada.post(`${api}/move/reading`, { ids: [item!.id], to: { ideaId: idea } })
+    await ada.post(`${api}/move/articles`, { ids: [item!.id], to: { ideaId: idea } })
     const res = await decide('reconsider', [ref(A, 'a1')])
     expect(res.status).toBe(409)
     expect((await res.json()).error).toContain("idea's articles")
@@ -209,7 +209,7 @@ describe('deciding about posts from the feeds', () => {
     await decide('ignore', [ref(A, 'a1')])
     await decide('add', [ref(A, 'a1')])
     const [item] = await publicationList()
-    await ada.delete(`${api}/reading/${item!.id}`)
+    await ada.delete(`${api}/articles/${item!.id}`)
     expect((await statuses()).a1).toBe('new') // not "ignored": it was added, after all
   })
 
@@ -231,12 +231,12 @@ describe('deciding about posts from the feeds', () => {
   })
 
   it('has no limit on the publication’s own articles', async () => {
-    for (let i = 0; i < MAX_IDEA_LINKS + 10; i++) {
-      ctx.store.reading.add(publication, null, { url: `https://fill${i}.example/`, title: 't' })
+    for (let i = 0; i < MAX_IDEA_ARTICLES + 10; i++) {
+      ctx.store.articles.add(publication, null, { url: `https://fill${i}.example/`, title: 't' })
     }
     const res = await decide('add', [ref(A, 'a1')])
     expect(res.status).toBe(200)
-    expect(await publicationList()).toHaveLength(MAX_IDEA_LINKS + 11)
+    expect(await publicationList()).toHaveLength(MAX_IDEA_ARTICLES + 11)
   })
 
   it('says what is wrong with a post that is not there, and what is not the publication’s', async () => {

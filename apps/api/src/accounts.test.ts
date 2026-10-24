@@ -411,7 +411,7 @@ describe('account deletion', () => {
     const idea = await (
       await c.post(`/api/publications/${second.id}/ideas`, { name: 'An idea' })
     ).json()
-    await c.post(`/api/publications/${second.id}/ideas/${idea.id}/links`, {
+    await c.post(`/api/publications/${second.id}/ideas/${idea.id}/articles`, {
       url: 'https://example.org',
     })
     await c.post(`/api/publications/${second.id}/ideas/${idea.id}/notes`, { text: 'A note' })
@@ -431,10 +431,10 @@ describe('account deletion', () => {
     store.publications.setSiteIcon(second.id, { contentType: 'image/png', data: PNG_BYTES })
     expect(store.publications.getSiteIcon(second.id)).toBeDefined()
     // The publication's own articles and notes, and the log of a move, go with it too.
-    const own = store.reading.add(second.id, null, { url: 'https://own.example/', title: 'Own' })
+    const own = store.articles.add(second.id, null, { url: 'https://own.example/', title: 'Own' })
     store.notes.append(second.id, null, null, 'A publication-level note', 'reading', own.id)
     store.moves.record(second.id, user.id, 'batch', {
-      kind: 'reading',
+      kind: 'article',
       itemId: own.id,
       fromIdeaId: idea.id,
       toIdeaId: null,
@@ -450,7 +450,7 @@ describe('account deletion', () => {
       merged: false,
     })
     store.feedDecisions.ignore(second.id, 'https://x.example/post', user.id)
-    expect(store.reading.list({ publicationId: second.id })).toHaveLength(1)
+    expect(store.articles.list({ publicationId: second.id })).toHaveLength(1)
     const feed = store.sources.add(second.id, 'https://news.example/feed')
     store.sources.saveFetch(feed.id, {
       items: [],
@@ -469,7 +469,7 @@ describe('account deletion', () => {
     expect(store.publications.getImage(second.id)).toBeUndefined()
     expect(store.publications.getSiteIcon(second.id)).toBeUndefined()
     expect(store.sources.getFetch(feed.id)).toBeUndefined()
-    expect(store.reading.list({ publicationId: second.id })).toEqual([])
+    expect(store.articles.list({ publicationId: second.id })).toEqual([])
     expect(store.notes.list({ publicationId: second.id })).toEqual([])
     expect(store.moves.list(second.id)).toEqual([])
     expect(store.feedDecisions.ignored(second.id).size).toBe(0)
@@ -480,7 +480,7 @@ describe('account deletion', () => {
     expect(store.drafts.list(publicationId)).toEqual([])
     expect(store.drafts.list(second.id)).toEqual([])
     expect(store.ideas.list(second.id)).toEqual([])
-    expect(store.ideas.countLinks(idea.id)).toBe(0)
+    expect(store.ideas.countArticles(idea.id)).toBe(0)
     expect(store.notes.list(idea.id)).toEqual([])
     expect(store.drafts.get(second.id, ideaDraft.id)).toBeUndefined()
     expect(store.drafts.insertions(ideaDraft.id)).toEqual([])

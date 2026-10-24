@@ -7,7 +7,7 @@ import {
   llmTool,
   NameConversationToolInputSchema,
   MAX_CONVERSATIONS_PER_IDEA,
-  MAX_IDEA_LINKS,
+  MAX_IDEA_ARTICLES,
   MAX_IDEA_NOTES,
   MAX_NOTES_PER_REPLY,
   MAX_PROPOSALS_PER_REPLY,
@@ -49,7 +49,7 @@ import type {
   RecordedNoteRecord,
 } from '../db/conversations'
 import type { Store } from '../db/store'
-import { ReadingChecker, type CheckedReading } from './reading-suggestions'
+import { ArticleChecker, type CheckedArticle } from './article-suggestions'
 import { usablePublicationDescription, publicationDescriptionBlock } from './publication-context'
 import { escape, notesText, snapshotNotes, type SnapshotNote } from './idea-notes'
 import { fail, notFound } from '../errors'
@@ -237,7 +237,7 @@ export function formatSnapshot(input: {
     notesText(input.notes) ?? (idea.notes.trim() ? escape(idea.notes) : '(none yet)'),
     '',
     'Related links the writer has saved:',
-    ...list(idea.links.map((l) => `- ${l.title ? `${escape(l.title)}: ` : ''}${escape(l.url)}`)),
+    ...list(idea.articles.map((l) => `- ${l.title ? `${escape(l.title)}: ` : ''}${escape(l.url)}`)),
     '',
     `Publication: ${escape(publication.name)}${publication.siteUrl ? ` (${escape(publication.siteUrl)})` : ''}`,
     'The writer’s own description of the publication (what it is, who reads it, what kinds of writing go there):',
@@ -259,12 +259,12 @@ export class BrainstormService {
   private readonly replying = new Map<string, { name: string; since: number }>()
   private readonly now: () => number
   private readonly replyTimeoutMs: number
-  private readonly checker: ReadingChecker
+  private readonly checker: ArticleChecker
 
   constructor(private readonly d: BrainstormDeps) {
     this.now = d.now ?? Date.now
     this.replyTimeoutMs = d.replyTimeoutMs ?? REPLY_TIMEOUT_MS
-    this.checker = new ReadingChecker(d.pages)
+    this.checker = new ArticleChecker(d.pages)
   }
 
   // ---- reading --------------------------------------------------------
@@ -541,7 +541,7 @@ export class BrainstormService {
     text: string,
     calls: { id: string; name: string; input: unknown }[],
     done: Extract<LLMChatEvent, { type: 'done' }>,
-    readings: Map<string, CheckedReading>,
+    readings: Map<string, CheckedArticle>,
   ): MessageRecord {
     const { conversations } = this.d.store
     const content: LLMContentBlock[] = [
@@ -644,7 +644,7 @@ export class BrainstormService {
     conversationId: string,
     calls: { id: string; name: string; input: unknown }[],
     signal: AbortSignal,
-  ): Promise<Map<string, CheckedReading>> {
+  ): Promise<Map<string, CheckedArticle>> {
     // The coach cannot search, so it may only pass on an address a person wrote in this conversation.
     const given = addressesWrittenBy(this.d.store.conversations.messages(conversationId))
     const candidates = calls
@@ -667,7 +667,7 @@ export class BrainstormService {
   private toProposal(
     call: { id: string; name: string; input: unknown },
     idea: Idea,
-    readings: Map<string, CheckedReading>,
+    readings: Map<string, CheckedArticle>,
   ): Pick<ProposalRecord, 'toolCallId' | 'tool' | 'input' | 'base' | 'reading'> | undefined {
     if (call.name === 'suggest_reading') {
       const r = readings.get(call.id)
@@ -848,13 +848,13 @@ export class BrainstormService {
       )
     }
     const current = store.ideas.get(idea.publicationId, idea.id) ?? idea
-    if (current.links.some((l) => linkKey(l.url) === linkKey(url))) {
+    if (current.articles.some((l) => linkKey(l.url) === linkKey(url))) {
       throw fail(409, 'That link is already in this idea. Dismiss this suggestion.')
     }
-    if (current.links.length >= MAX_IDEA_LINKS) {
+    if (current.articles.length >= MAX_IDEA_ARTICLES) {
       throw fail(
         409,
-        `An idea can have up to ${MAX_IDEA_LINKS} links. Remove one you no longer need to make room.`,
+        `An idea can have up to ${MAX_IDEA_ARTICLES} articles. Remove one you no longer need to make room.`,
       )
     }
     store.ideas.addLink(

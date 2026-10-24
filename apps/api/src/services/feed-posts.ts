@@ -24,7 +24,7 @@ export function postStates(
 ): (url: string) => { status: PostStatus; decidedAt: string | null } {
   const ignored = store.feedDecisions.ignored(publicationId)
   const listed = new Map<string, string>() // the latest time an item with this address was put on a list
-  for (const { url, createdAt } of store.reading.addresses(publicationId)) {
+  for (const { url, createdAt } of store.articles.addresses(publicationId)) {
     const key = linkKey(url)
     if (!listed.has(key) || createdAt > listed.get(key)!) listed.set(key, createdAt)
   }
@@ -49,7 +49,7 @@ export class FeedPostService {
    * on a list of articles refuses the lot, with the reason. The publication's list has no maximum.
    */
   add(publicationId: string, userId: string, refs: PostRefs['posts']): PostDecision {
-    const { reading, feedDecisions } = this.store
+    const { articles, feedDecisions } = this.store
     return this.store.transaction(() => {
       const posts = this.find(publicationId, refs)
       const status = postStatuses(this.store, publicationId)
@@ -62,7 +62,7 @@ export class FeedPostService {
         seen.add(key)
       }
       for (const { item, sourceId } of posts) {
-        reading.add(
+        articles.add(
           publicationId,
           null,
           { url: item.url, title: item.title, authors: item.authors, sourceId },
@@ -100,14 +100,14 @@ export class FeedPostService {
    * one of the ideas' lists, not the publication's own, has to be taken off there.
    */
   reconsider(publicationId: string, refs: PostRefs['posts']): PostDecision {
-    const { reading, feedDecisions } = this.store
+    const { articles, feedDecisions } = this.store
     return this.store.transaction(() => {
       const posts = this.find(publicationId, refs)
       for (const { item } of posts) {
         const key = linkKey(item.url)
         feedDecisions.unignore(publicationId, key)
-        for (const link of reading.list({ publicationId })) {
-          if (linkKey(link.url) === key) reading.remove({ publicationId }, link.id)
+        for (const link of articles.list({ publicationId })) {
+          if (linkKey(link.url) === key) articles.remove({ publicationId }, link.id)
         }
         if (postStatuses(this.store, publicationId)(item.url) === 'added') {
           throw fail(

@@ -4,26 +4,26 @@ import { markdownToNotes, notesToMarkdown } from '@wordwright/core'
 import type {
   Idea,
   IdeaInput,
-  IdeaLink,
+  Article,
   IdeaSummary,
   IdeaUpdate,
   NoteOrigin,
-  ReadingOrigin,
+  ArticleOrigin,
 } from '@wordwright/core'
 import { nowIso } from './database'
 import { NoteStore } from './notes'
-import { ReadingStore, type LinkWrite } from './reading'
+import { ArticleStore, type ArticleWrite } from './articles'
 
-export type { LinkWrite }
+export type { ArticleWrite }
 
 /** Ideas are always accessed through their publication; callers check membership first. */
 export class IdeaStore {
   private readonly notes: NoteStore
-  private readonly reading: ReadingStore
+  private readonly articles: ArticleStore
 
   constructor(private readonly db: DatabaseSync) {
     this.notes = new NoteStore(db)
-    this.reading = new ReadingStore(db)
+    this.articles = new ArticleStore(db)
   }
 
   list(publicationId: string): IdeaSummary[] {
@@ -47,7 +47,7 @@ export class IdeaStore {
       .prepare('SELECT * FROM ideas WHERE publication_id = ? AND id = ?')
       .get(publicationId, id)
     if (!row) return undefined
-    const links = this.reading.list(id)
+    const articles = this.articles.list(id)
     const drafts = this.db
       .prepare(
         `SELECT d.id, d.title, d.updated_at, d.editor_id, u.name AS editor_name, d.published_at, d.published_url
@@ -77,7 +77,7 @@ export class IdeaStore {
       name: row.name as string,
       // Transitional: see `Idea.notes`. It is assembled from the notes table; ideas has no such column.
       notes: notesToMarkdown(this.notes.list(id).map((n) => n.text)),
-      links,
+      articles,
       drafts,
       pendingSuggestions: pending,
       createdAt: row.created_at as string,
@@ -130,14 +130,14 @@ export class IdeaStore {
   }
 
   /** What an idea holds, for saying what moving it takes with it. */
-  contents(id: string): { drafts: number; notes: number; links: number } {
+  contents(id: string): { drafts: number; notes: number; articles: number } {
     const n = (table: string) =>
       (
         this.db.prepare(`SELECT count(*) AS n FROM ${table} WHERE idea_id = ?`).get(id) as {
           n: number
         }
       ).n
-    return { drafts: n('drafts'), notes: n('idea_notes'), links: n('idea_links') }
+    return { drafts: n('drafts'), notes: n('idea_notes'), articles: n('articles') }
   }
 
   /**
@@ -156,52 +156,52 @@ export class IdeaStore {
         .run(toPublicationId, id)
     }
     this.db
-      .prepare('UPDATE idea_links SET publication_id = ?, source_id = NULL WHERE idea_id = ?')
+      .prepare('UPDATE articles SET publication_id = ?, source_id = NULL WHERE idea_id = ?')
       .run(toPublicationId, id)
   }
 
-  countLinks(ideaId: string): number {
-    return this.reading.count(ideaId)
+  countArticles(ideaId: string): number {
+    return this.articles.count(ideaId)
   }
 
   /** Adds an item to the articles; `origin` says what put it there (the writer, unless a feature did). */
   addLink(
     ideaId: string,
-    input: Omit<LinkWrite, 'authors'> & { authors?: string[]; why?: string },
-    origin: ReadingOrigin = 'entered',
-  ): IdeaLink {
+    input: Omit<ArticleWrite, 'authors'> & { authors?: string[]; why?: string },
+    origin: ArticleOrigin = 'entered',
+  ): Article {
     const publicationId = (
       this.db.prepare('SELECT publication_id FROM ideas WHERE id = ?').get(ideaId) as {
         publication_id: string
       }
     ).publication_id
-    const link = this.reading.add(publicationId, ideaId, input, origin)
+    const link = this.articles.add(publicationId, ideaId, input, origin)
     this.touch(ideaId)
     return link
   }
 
   /** Marks an item read (when the writer says so) or unread again. Marking read again keeps the first date. */
-  setLinkRead(ideaId: string, linkId: string, read: boolean): boolean {
-    const changed = this.reading.setRead(ideaId, linkId, read)
+  setArticleRead(ideaId: string, articleId: string, read: boolean): boolean {
+    const changed = this.articles.setRead(ideaId, articleId, read)
     if (changed) this.touch(ideaId)
     return changed
   }
 
   /** Gives an item exactly these tags. */
-  setLinkTags(ideaId: string, linkId: string, tags: string[]): boolean {
-    const saved = this.reading.setTags(ideaId, linkId, tags)
+  setArticleTags(ideaId: string, articleId: string, tags: string[]): boolean {
+    const saved = this.articles.setTags(ideaId, articleId, tags)
     if (saved) this.touch(ideaId)
     return !!saved
   }
 
-  updateLink(ideaId: string, linkId: string, input: LinkWrite): boolean {
-    const changed = this.reading.update(ideaId, linkId, input)
+  updateLink(ideaId: string, articleId: string, input: ArticleWrite): boolean {
+    const changed = this.articles.update(ideaId, articleId, input)
     if (changed) this.touch(ideaId)
     return changed
   }
 
-  removeLink(ideaId: string, linkId: string): boolean {
-    const removed = this.reading.remove(ideaId, linkId)
+  removeLink(ideaId: string, articleId: string): boolean {
+    const removed = this.articles.remove(ideaId, articleId)
     if (removed) this.touch(ideaId)
     return removed
   }

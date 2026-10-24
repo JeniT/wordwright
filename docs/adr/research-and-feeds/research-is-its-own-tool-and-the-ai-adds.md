@@ -36,7 +36,7 @@ a first version built research into the brainstorm conversation was set aside.
   model's memory can never come back; the contract suite tests that for every adapter, with `FakeResearchProvider` for
   tests, development and e2e. No route imports a vendor SDK. Web search must be switched on for the writer's Anthropic
   account; if it isn't, the error says so.
-- **Every address is checked on the server** (`ReadingChecker`): a plausible http(s) address (the rule for a typed
+- **Every address is checked on the server** (`ArticleChecker`): a plausible http(s) address (the rule for a typed
   link), not already on the list (however `http`/`www.`/`#fragment`/trailing slash differ), not a repeat; then the
   SSRF-safe page fetcher that titles typed links looks at it. The page shows its real title beside the search's, any
   author the page names, and flags `no-title` (allowed, with a warning, listed under the search's title),

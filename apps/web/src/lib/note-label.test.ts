@@ -34,7 +34,7 @@ describe('what a note is, without saying who took it', () => {
 
 describe('the origin of a note', () => {
   const note = (over = {}) =>
-    ({ origin: 'reading', readingItemId: 'l1', quote: false, ...over }) as never
+    ({ origin: 'reading', articleId: 'l1', quote: false, ...over }) as never
   const list = [{ id: 'l1', ...source }] as never
 
   it('gives the page to link to, whether or not the note is a quotation', () => {
@@ -44,7 +44,7 @@ describe('the origin of a note', () => {
 
   it('has no page to link to once its item is gone, or for a note that is not from reading', () => {
     expect(noteOrigin(note(), [], 'u1')).toMatchObject({ phrase: 'From reading', source: null })
-    expect(noteOrigin(note({ origin: 'entered', readingItemId: null }), list, 'u1')).toMatchObject({
+    expect(noteOrigin(note({ origin: 'entered', articleId: null }), list, 'u1')).toMatchObject({
       phrase: 'Added',
       source: null,
       conversation: null,
@@ -62,7 +62,7 @@ describe('a list of names', () => {
 })
 
 describe('whose AI a note from a conversation was with', () => {
-  const chat = { origin: 'brainstorm', readingItemId: null, quote: false, authorId: 'u1' } as never
+  const chat = { origin: 'brainstorm', articleId: null, quote: false, authorId: 'u1' } as never
 
   it('is yours when you are the note’s author', () => {
     expect(noteOrigin(chat, [], 'u1').conversation).toBe('conversation with your AI')

@@ -35,7 +35,7 @@ export const PUBLICATION_REFERENCES: [table: string, column: string][] = [
   ['drafts', 'publication_id'],
   ['ideas', 'publication_id'],
   ['idea_notes', 'publication_id'],
-  ['idea_links', 'publication_id'],
+  ['articles', 'publication_id'],
   ['invitations', 'publication_id'],
   ['publication_sources', 'publication_id'],
   ['feed_post_ignores', 'publication_id'],

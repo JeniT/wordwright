@@ -63,8 +63,8 @@ export class NoteEditService {
           "Notes that came from different places (typed by hand, brainstorming or reading) can't be merged, because a merged note can only say where it came from once.",
         )
       }
-      if (chosen.some((n) => n.readingItemId !== first.readingItemId)) {
-        throw fail(409, "Notes taken from different reading-list items can't be merged.")
+      if (chosen.some((n) => n.articleId !== first.articleId)) {
+        throw fail(409, "Notes taken from different articles can't be merged.")
       }
 
       const text = chosen.map((n) => n.text.trim()).join('\n\n')

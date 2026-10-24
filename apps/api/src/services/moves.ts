@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import {
   linkKey,
-  MAX_IDEA_LINKS,
+  MAX_IDEA_ARTICLES,
   MAX_IDEA_NOTES,
   MAX_NOTE_TAGS,
   type MoveResult,
@@ -29,8 +29,8 @@ export class MoveService {
   constructor(private readonly store: Store) {}
 
   /** `to.ideaId` null moves them to the destination publication's own articles. */
-  moveReading(publicationId: string, userId: string, ids: string[], to: MoveTarget): MoveResult {
-    const { reading, notes, ideas, moves } = this.store
+  moveArticles(publicationId: string, userId: string, ids: string[], to: MoveTarget): MoveResult {
+    const { articles, notes, ideas, moves } = this.store
     return this.store.transaction(() => {
       const toIdeaId = to.ideaId
       const toPub = this.checkDestination(publicationId, userId, to)
@@ -38,7 +38,7 @@ export class MoveService {
       const batchId = randomUUID()
       const toOwner = ownerFor(toPub, toIdeaId)
       const wanted = [...new Set(ids)].map((id) => {
-        const found = reading.locate(publicationId, id)
+        const found = articles.locate(publicationId, id)
         if (!found) throw fail(404, 'Not found')
         return { id, ...found }
       })
@@ -48,7 +48,7 @@ export class MoveService {
       // Plan first. Who is at the destination already, by address: the item that stays when a moved one has the
       // same address (an item already there, else the first moved with that address); the rest are carried over.
       const dest = new Map<string, string>(
-        reading.list(toOwner).map((l) => [linkKey(l.url), l.id] as const),
+        articles.list(toOwner).map((l) => [linkKey(l.url), l.id] as const),
       )
       const plan = going.map((w) => {
         const key = linkKey(w.link.url)
@@ -61,17 +61,17 @@ export class MoveService {
         (n, p) =>
           n +
           notes
-            .byReadingItem(publicationId, p.id)
+            .byArticle(publicationId, p.id)
             .filter((id) => notes.get(ownerFor(publicationId, p.ideaId), id)).length,
         0,
       )
       if (
         toIdeaId &&
-        reading.count(toOwner) + plan.filter((p) => !p.merges).length > MAX_IDEA_LINKS
+        articles.count(toOwner) + plan.filter((p) => !p.merges).length > MAX_IDEA_ARTICLES
       ) {
         throw fail(
           409,
-          `${subject(toIdeaId)} can have up to ${MAX_IDEA_LINKS} links. Remove some you no longer need to make room.`,
+          `${subject(toIdeaId)} can have up to ${MAX_IDEA_ARTICLES} articles. Remove some you no longer need to make room.`,
         )
       }
       if (notes.count(toOwner) + carried > MAX_IDEA_NOTES) {
@@ -88,7 +88,7 @@ export class MoveService {
         const fromOwner = ownerFor(publicationId, p.ideaId)
         if (p.ideaId) touched.add(p.ideaId)
         // The notes taken from the item go with it, and now point at whichever item stays.
-        for (const noteId of notes.byReadingItem(publicationId, p.id)) {
+        for (const noteId of notes.byArticle(publicationId, p.id)) {
           if (!notes.get(fromOwner, noteId)) continue
           notes.moveTo(publicationId, noteId, toPub, toIdeaId, p.target)
           moves.record(publicationId, userId, batchId, {
@@ -103,23 +103,23 @@ export class MoveService {
         }
         if (p.merges) {
           // It joins the item already there, which counts as read if this one was.
-          if (p.link.readAt && !reading.get(toOwner, p.target)?.readAt) {
-            reading.setRead(toOwner, p.target, true)
+          if (p.link.readAt && !articles.get(toOwner, p.target)?.readAt) {
+            articles.setRead(toOwner, p.target, true)
           }
           // Its tags join the ones already there (each once, ignoring case; the most an item can hold).
-          const have = reading.get(toOwner, p.target)?.tags ?? []
+          const have = articles.get(toOwner, p.target)?.tags ?? []
           const seen = new Set(have.map((t) => t.toLowerCase()))
           const joined = [...have, ...p.link.tags.filter((t) => !seen.has(t.toLowerCase()))]
           if (joined.length > have.length) {
-            reading.setTags(toOwner, p.target, joined.slice(0, MAX_NOTE_TAGS))
+            articles.setTags(toOwner, p.target, joined.slice(0, MAX_NOTE_TAGS))
           }
-          reading.remove(fromOwner, p.id)
+          articles.remove(fromOwner, p.id)
           merged++
         } else {
-          reading.setOwner(publicationId, p.id, toPub, toIdeaId)
+          articles.setOwner(publicationId, p.id, toPub, toIdeaId)
         }
         moves.record(publicationId, userId, batchId, {
-          kind: 'reading',
+          kind: 'article',
           itemId: p.id,
           fromIdeaId: p.ideaId,
           toIdeaId,
@@ -128,13 +128,13 @@ export class MoveService {
         })
       }
       for (const id of touched) ideas.touch(id)
-      return { batchId, readingItems: going.length, merged, copied: 0, notes: noteCount }
+      return { batchId, articles: going.length, merged, copied: 0, notes: noteCount }
     })
   }
 
   /** `to.ideaId` null moves them to the destination publication's own notes. */
   moveNotes(publicationId: string, userId: string, ids: string[], to: MoveTarget): MoveResult {
-    const { reading, notes, ideas, moves } = this.store
+    const { articles, notes, ideas, moves } = this.store
     return this.store.transaction(() => {
       const toIdeaId = to.ideaId
       const toPub = this.checkDestination(publicationId, userId, to)
@@ -146,12 +146,12 @@ export class MoveService {
       if (where.size !== unique.length) throw fail(404, 'Not found')
 
       // In the order they are arranged where they are, one place after another.
-      const going: { id: string; from: string | null; readingItemId: string | null }[] = []
+      const going: { id: string; from: string | null; articleId: string | null }[] = []
       const places = [...new Set(unique.map((id) => where.get(id)!))]
       for (const from of places.filter((p) => crossing || p !== toIdeaId)) {
         const picked = new Set(unique.filter((id) => where.get(id) === from))
         for (const n of notes.list(ownerFor(publicationId, from))) {
-          if (picked.has(n.id)) going.push({ id: n.id, from, readingItemId: n.readingItemId })
+          if (picked.has(n.id)) going.push({ id: n.id, from, articleId: n.articleId })
         }
       }
       if (!going.length) throw fail(400, 'Those notes are already there.')
@@ -164,35 +164,35 @@ export class MoveService {
 
       // Each source the notes were taken from needs a place at the destination: the item with that address if
       // it has one, else a copy.
-      const there = new Map(reading.list(toOwner).map((l) => [linkKey(l.url), l.id]))
+      const there = new Map(articles.list(toOwner).map((l) => [linkKey(l.url), l.id]))
       const itemAt = new Map<string, string>() // "from|item id" -> item id at the destination
       let copies = 0
       const needed = new Set(
-        going.filter((g) => g.readingItemId).map((g) => `${g.from}|${g.readingItemId}`),
+        going.filter((g) => g.articleId).map((g) => `${g.from}|${g.articleId}`),
       )
       const missing = [...needed].filter((k) => {
         const [from, itemId] = k.split('|') as [string, string]
-        const item = reading.get(ownerFor(publicationId, from === 'null' ? null : from), itemId)
+        const item = articles.get(ownerFor(publicationId, from === 'null' ? null : from), itemId)
         return item && !there.has(linkKey(item.url))
       })
-      if (toIdeaId && reading.count(toOwner) + missing.length > MAX_IDEA_LINKS) {
+      if (toIdeaId && articles.count(toOwner) + missing.length > MAX_IDEA_ARTICLES) {
         throw fail(
           409,
-          `${subject(toIdeaId)} can have up to ${MAX_IDEA_LINKS} links, and the notes' sources would pass that. Remove some you no longer need to make room.`,
+          `${subject(toIdeaId)} can have up to ${MAX_IDEA_ARTICLES} articles, and the notes' sources would pass that. Remove some you no longer need to make room.`,
         )
       }
       for (const k of needed) {
         const [from, itemId] = k.split('|') as [string, string]
-        const item = reading.get(ownerFor(publicationId, from === 'null' ? null : from), itemId)
+        const item = articles.get(ownerFor(publicationId, from === 'null' ? null : from), itemId)
         if (!item) continue
         const key = linkKey(item.url)
         let target = there.get(key)
         if (!target) {
-          target = reading.add(toPub, toIdeaId, item, item.origin).id
+          target = articles.add(toPub, toIdeaId, item, item.origin).id
           there.set(key, target)
           copies++
-        } else if (item.readAt && !reading.get(toOwner, target)?.readAt) {
-          reading.setRead(toOwner, target, true)
+        } else if (item.readAt && !articles.get(toOwner, target)?.readAt) {
+          articles.setRead(toOwner, target, true)
         }
         itemAt.set(k, target)
       }
@@ -200,7 +200,7 @@ export class MoveService {
       const touched = new Set<string>(toIdeaId ? [toIdeaId] : [])
       for (const g of going) {
         if (g.from) touched.add(g.from)
-        const target = g.readingItemId ? (itemAt.get(`${g.from}|${g.readingItemId}`) ?? null) : null
+        const target = g.articleId ? (itemAt.get(`${g.from}|${g.articleId}`) ?? null) : null
         notes.moveTo(publicationId, g.id, toPub, toIdeaId, target)
         moves.record(publicationId, userId, batchId, {
           kind: 'note',
@@ -212,7 +212,7 @@ export class MoveService {
         })
       }
       for (const id of touched) ideas.touch(id)
-      return { batchId, readingItems: 0, merged: 0, copied: copies, notes: going.length }
+      return { batchId, articles: 0, merged: 0, copied: copies, notes: going.length }
     })
   }
 

@@ -21,7 +21,7 @@ const note = (n: number, text = `Note ${n}`) => ({
   origin: 'entered',
   authorId: 'u1',
   authorName: 'Ada',
-  readingItemId: null,
+  articleId: null,
   tags: [] as string[],
   quote: false,
   addedAt: null,
@@ -443,14 +443,14 @@ const link = (id: string, title: string, extra = {}) => ({
 
 describe('a publication’s landing page: read', () => {
   function fakeReading(initial: ReturnType<typeof link>[]) {
-    const state = { links: [...initial], added: [] as string[] }
+    const state = { articles: [...initial], added: [] as string[] }
     server.use(
-      http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(state.links)),
-      http.post('*/api/publications/ada-substack/reading', async ({ request }) => {
+      http.get('*/api/publications/ada-substack/articles', () => HttpResponse.json(state.articles)),
+      http.post('*/api/publications/ada-substack/articles', async ({ request }) => {
         const { url } = (await request.json()) as { url: string }
         state.added.push(url)
-        state.links.push(link(`n${state.links.length + 1}`, `Title of ${url}`, { url }))
-        return HttpResponse.json(state.links, { status: 201 })
+        state.articles.push(link(`n${state.articles.length + 1}`, `Title of ${url}`, { url }))
+        return HttpResponse.json(state.articles, { status: 201 })
       }),
     )
     return state
@@ -479,7 +479,7 @@ describe('a publication’s landing page: read', () => {
       'Item 5',
     ])
     expect(within(items[0]!).getByText('example.org')).toBeInTheDocument()
-    expect(items[0]).toHaveAttribute('href', '/p/ada-substack/reading/l1')
+    expect(items[0]).toHaveAttribute('href', '/p/ada-substack/articles/l1')
     expect(screen.getByRole('link', { name: /See the articles/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/read',
@@ -489,7 +489,7 @@ describe('a publication’s landing page: read', () => {
   it('says when the list can’t be loaded', async () => {
     fakeHome()
     server.use(
-      http.get('*/api/publications/ada-substack/reading', () =>
+      http.get('*/api/publications/ada-substack/articles', () =>
         HttpResponse.json({ error: 'Nope' }, { status: 500 }),
       ),
     )
@@ -533,7 +533,7 @@ describe('a publication’s landing page: the top, and the menu', () => {
       http.get('*/api/publications/ada-substack/sources', () =>
         HttpResponse.json([source('s1', 'A feed')]),
       ),
-      http.get('*/api/publications/ada-substack/reading', () =>
+      http.get('*/api/publications/ada-substack/articles', () =>
         HttpResponse.json([
           {
             id: 'r1',
@@ -600,8 +600,8 @@ describe('a publication’s landing page: Quick add', () => {
     fakeHome()
     const added: string[] = []
     server.use(
-      http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json([])),
-      http.post('*/api/publications/ada-substack/reading', async ({ request }) => {
+      http.get('*/api/publications/ada-substack/articles', () => HttpResponse.json([])),
+      http.post('*/api/publications/ada-substack/articles', async ({ request }) => {
         const { url } = (await request.json()) as { url: string }
         if (url === 'https://bad.example')
           return HttpResponse.json(

@@ -1,17 +1,17 @@
 import { Hono } from 'hono'
 import {
   BulkTagInputSchema,
-  IdeaLinkInputSchema,
+  ArticleInputSchema,
   MoveIdeasInputSchema,
   MoveNotesInputSchema,
-  MoveReadingInputSchema,
+  MoveArticlesInputSchema,
   NoteTagsInputSchema,
-  ReadingItemKeptSchema,
-  ReadingItemReadSchema,
+  ArticleKeptSchema,
+  ArticleReadSchema,
 } from '@wordwright/core'
 import type { AppEnv } from '../auth/middleware'
 import type { Store } from '../db/store'
-import type { IdeaLinkService } from '../services/idea-links'
+import type { ArticleService } from '../services/articles'
 import type { IdeaMoveService } from '../services/idea-moves'
 import type { MoveService } from '../services/moves'
 import { validateJson } from '../validate'
@@ -20,19 +20,19 @@ import { param } from './params'
 
 /**
  * The publication's own articles: items gathered before there is an idea (see `Owner`). Mirrors an idea's
- * `/links` routes, but answers with the list. Mounted under `/publications/:publicationId`, after membership is checked.
+ * `/articles` routes, but answers with the list. Mounted under `/publications/:publicationId`, after membership is checked.
  */
-export function publicationReadingRoutes(store: Store, links: IdeaLinkService) {
-  const { reading } = store
+export function publicationArticleRoutes(store: Store, articleService: ArticleService) {
+  const { articles } = store
   const scope = (publicationId: string) => ({ publicationId, ideaId: null })
   const owner = (publicationId: string) => ({ publicationId })
 
   return (
     new Hono<AppEnv>()
-      .get('/', (c) => c.json(reading.list(owner(param(c, 'publicationId')))))
-      .post('/', validateJson(IdeaLinkInputSchema), async (c) =>
+      .get('/', (c) => c.json(articles.list(owner(param(c, 'publicationId')))))
+      .post('/', validateJson(ArticleInputSchema), async (c) =>
         c.json(
-          await links.add(
+          await articleService.add(
             scope(param(c, 'publicationId')),
             c.get('user').id,
             c.req.valid('json'),
@@ -41,49 +41,51 @@ export function publicationReadingRoutes(store: Store, links: IdeaLinkService) {
           201,
         ),
       )
-      .patch('/:linkId', validateJson(IdeaLinkInputSchema), async (c) =>
+      .patch('/:articleId', validateJson(ArticleInputSchema), async (c) =>
         c.json(
-          await links.update(
+          await articleService.update(
             scope(param(c, 'publicationId')),
-            param(c, 'linkId'),
+            param(c, 'articleId'),
             c.get('user').id,
             c.req.valid('json'),
             c.req.raw.signal,
           ),
         ),
       )
-      .put('/:linkId/read', validateJson(ReadingItemReadSchema), (c) => {
+      .put('/:articleId/read', validateJson(ArticleReadSchema), (c) => {
         const publicationId = param(c, 'publicationId')
-        if (!reading.setRead(owner(publicationId), param(c, 'linkId'), c.req.valid('json').read)) {
+        if (
+          !articles.setRead(owner(publicationId), param(c, 'articleId'), c.req.valid('json').read)
+        ) {
           throw notFound()
         }
-        return c.json(reading.list(owner(publicationId)))
+        return c.json(articles.list(owner(publicationId)))
       })
       // Asks for an item to be kept: the others drop off the list a month after they were put on it.
-      .put('/:linkId/kept', validateJson(ReadingItemKeptSchema), (c) => {
+      .put('/:articleId/kept', validateJson(ArticleKeptSchema), (c) => {
         const publicationId = param(c, 'publicationId')
-        if (!reading.setKept(publicationId, param(c, 'linkId'), c.req.valid('json').kept)) {
+        if (!articles.setKept(publicationId, param(c, 'articleId'), c.req.valid('json').kept)) {
           throw notFound()
         }
-        return c.json(reading.list(owner(publicationId)))
+        return c.json(articles.list(owner(publicationId)))
       })
       // Tags added to or taken from several items at once (all or nothing). Answers with the whole list.
       .post('/tags', validateJson(BulkTagInputSchema), (c) => {
         const { ids, add, remove } = c.req.valid('json')
-        return c.json(links.tagMany(scope(param(c, 'publicationId')), ids, add, remove))
+        return c.json(articleService.tagMany(scope(param(c, 'publicationId')), ids, add, remove))
       })
       // The item's tags, replaced as a whole (like a note's).
-      .put('/:linkId/tags', validateJson(NoteTagsInputSchema), (c) => {
+      .put('/:articleId/tags', validateJson(NoteTagsInputSchema), (c) => {
         const publicationId = param(c, 'publicationId')
         const tags = c.req.valid('json').tags
         const saved = store.transaction(() =>
-          reading.setTags(owner(publicationId), param(c, 'linkId'), tags),
+          articles.setTags(owner(publicationId), param(c, 'articleId'), tags),
         )
         if (!saved) throw notFound()
-        return c.json(reading.list(owner(publicationId)))
+        return c.json(articles.list(owner(publicationId)))
       })
-      .delete('/:linkId', (c) => {
-        if (!reading.remove(owner(param(c, 'publicationId')), param(c, 'linkId'))) {
+      .delete('/:articleId', (c) => {
+        if (!articles.remove(owner(param(c, 'publicationId')), param(c, 'articleId'))) {
           throw notFound()
         }
         return c.body(null, 204)
@@ -95,9 +97,9 @@ export function publicationReadingRoutes(store: Store, links: IdeaLinkService) {
 export function moveRoutes(moves: MoveService, ideaMoves: IdeaMoveService) {
   return (
     new Hono<AppEnv>()
-      .post('/reading', validateJson(MoveReadingInputSchema), (c) => {
+      .post('/articles', validateJson(MoveArticlesInputSchema), (c) => {
         const { ids, to } = c.req.valid('json')
-        return c.json(moves.moveReading(param(c, 'publicationId'), c.get('user').id, ids, to))
+        return c.json(moves.moveArticles(param(c, 'publicationId'), c.get('user').id, ids, to))
       })
       .post('/notes', validateJson(MoveNotesInputSchema), (c) => {
         const { ids, to } = c.req.valid('json')

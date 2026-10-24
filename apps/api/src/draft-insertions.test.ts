@@ -51,9 +51,9 @@ describe('words pulled into a draft from notes', () => {
   })
 
   it('lets a quotation in only as a blockquote', async () => {
-    await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-    const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0]
-    const quote = await addNote('Meanders grow.', { readingItemId: item.id, quote: true })
+    await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+    const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0]
+    const quote = await addNote('Meanders grow.', { articleId: item.id, quote: true })
 
     const bare = await ada.post(insertions(), { noteId: quote.id, text: 'Meanders grow.' })
     expect(bare.status).toBe(400)
@@ -73,9 +73,9 @@ describe('words pulled into a draft from notes', () => {
   })
 
   it('takes the origin and source from the note, whatever the request says', async () => {
-    await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
-    const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0]
-    const fromReading = await addNote('A quote.', { readingItemId: item.id })
+    await ada.post(`${ideas()}/${idea}/articles`, { url: 'https://example.org/paper' })
+    const item = (await (await ada.get(`${ideas()}/${idea}`)).json()).articles[0]
+    const fromReading = await addNote('A quote.', { articleId: item.id })
     const made = ctx.store.notes.append(publication, idea, null, 'From the chat.', 'brainstorm')
 
     const quoted = await (

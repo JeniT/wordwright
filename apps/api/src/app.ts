@@ -26,7 +26,7 @@ import { AccountService } from './services/accounts'
 import { BrainstormService } from './services/brainstorm'
 import { FeedItemService } from './services/feed-items'
 import { ResearchService } from './services/research'
-import { IdeaLinkService } from './services/idea-links'
+import { ArticleService } from './services/articles'
 import { HandoverService } from './services/handover'
 import { ReviewService } from './services/reviews'
 import { activeDraftRoutes } from './routes/active-drafts'
@@ -195,7 +195,7 @@ export function createApp(deps: AppDeps) {
   // 20 invitations a day per person: each one emails a stranger from our server.
   const inviteLimiter = limiter(20, DAY)
   // Each lookup contacts someone else's website from our server, so cap them per person.
-  const ideaLinks = new IdeaLinkService({
+  const articleService = new ArticleService({
     store,
     pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
     limiter: limiter(30, MINUTE),
@@ -243,7 +243,7 @@ export function createApp(deps: AppDeps) {
           // Reads are mostly answered from the kept copy; this caps the ones that go out.
           limiter(120, HOUR),
         ),
-        ideaLinks,
+        articleService,
         brainstorm,
         research,
       }),

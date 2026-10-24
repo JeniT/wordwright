@@ -2,7 +2,7 @@
 import { useMutation } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { IdeaLink, IdeaNote } from '@wordwright/core'
+import type { Article, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
@@ -33,7 +33,7 @@ const props = defineProps<{
   publicationId: string
   ideaId: string | null
   /** The articles they were taken from (the idea's, or the publication's), to name each note's source. */
-  readingList: readonly IdeaLink[]
+  articleList: readonly Article[]
   /** The page's own title already names the notes: keep this heading for screen readers only. */
   quietHeading?: boolean
 }>()
@@ -223,13 +223,13 @@ function stopMovingOne() {
 const moveSubjects = computed(() => (movingOne.value ? [movingOne.value] : chosen.value))
 /** The pages the notes were taken from, and the other notes taken from those pages. */
 const sourceIds = computed(() => [
-  ...new Set(moveSubjects.value.filter((n) => n.readingItemId).map((n) => n.readingItemId!)),
+  ...new Set(moveSubjects.value.filter((n) => n.articleId).map((n) => n.articleId!)),
 ])
 const othersFromSources = computed(() =>
   (notes.data.value ?? []).filter(
     (n) =>
-      n.readingItemId &&
-      sourceIds.value.includes(n.readingItemId) &&
+      n.articleId &&
+      sourceIds.value.includes(n.articleId) &&
       !moveSubjects.value.some((s) => s.id === n.id),
   ),
 )
@@ -595,7 +595,7 @@ const label = (note: IdeaNote) => {
                 </button>
               </div>
             </form>
-            <NoteCard v-else :note="note" :reading-list="readingList" hide-origin>
+            <NoteCard v-else :note="note" :article-list="articleList" hide-origin>
               <template #tags>
                 <TagEditor
                   :label="label(note)"
@@ -651,7 +651,7 @@ const label = (note: IdeaNote) => {
               </div>
               <p v-if="editingId !== note.id" class="meta sm:text-right">
                 <NoteOrigin
-                  v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
+                  v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
                   :author-name="note.authorName"
                   class="sm:items-end"
                 />

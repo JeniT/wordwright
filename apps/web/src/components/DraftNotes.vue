@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { IdeaLink, IdeaNote } from '@wordwright/core'
+import type { Article, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
@@ -21,7 +21,7 @@ const session = useSessionStore()
 const props = defineProps<{
   publicationId: string
   ideaId: string
-  readingList: readonly IdeaLink[]
+  articleList: readonly Article[]
   /** Puts the note in the draft and saves it; rejects (with a message) if that didn't work. */
   insert: (note: IdeaNote) => Promise<void>
   /** The person may add notes to the draft (only the draft's editor may). */
@@ -93,7 +93,7 @@ const label = (note: IdeaNote) => {
           <NoteTags :tags="note.tags" />
           <p class="mt-1 text-xs text-ink-soft">
             <NoteOrigin
-              v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
+              v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
               :author-name="note.authorName"
             />
           </p>
@@ -118,7 +118,7 @@ const label = (note: IdeaNote) => {
             <NoteTags :tags="note.tags" />
             <p class="mt-1 text-xs text-ink-soft">
               <NoteOrigin
-                v-bind="noteOrigin(note, readingList, session.user?.id ?? null, refineTo)"
+                v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
                 :author-name="note.authorName"
               />
             </p>

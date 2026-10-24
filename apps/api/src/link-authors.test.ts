@@ -8,14 +8,14 @@ const AUTHORED = 'https://example.org/authored'
 const PLAIN = 'https://example.org/plain'
 const DETECTED = ['Ada Author', 'Bo Writer']
 
-describe('who wrote a reading-list item', () => {
+describe('who wrote an article', () => {
   let ctx: ReturnType<typeof setup>
   let ada: TestClient
   let publication: string
   let idea: string
-  const links = () => `/api/publications/${publication}/ideas/${idea}/links`
+  const links = () => `/api/publications/${publication}/ideas/${idea}/articles`
   const read = async () =>
-    (await (await ada.get(`/api/publications/${publication}/ideas/${idea}`)).json()).links as {
+    (await (await ada.get(`/api/publications/${publication}/ideas/${idea}`)).json()).articles as {
       id: string
       url: string
       title: string
@@ -136,7 +136,7 @@ describe('who wrote a reading-list item', () => {
       const note = await (
         await ada.post(`/api/publications/${publication}/ideas/${idea}/notes`, {
           text: 'A quote.',
-          readingItemId: item.id,
+          articleId: item.id,
           quote: true,
         })
       ).json()

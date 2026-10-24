@@ -13,15 +13,15 @@ Read this when you change sign-in, registration, passwords, publications and the
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were
   added) for a linked set of posts. Anyone a publication is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. API:
-  `/api/publications/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
-  **Keep writing** (#310), under Quick add on Home, a publication's landing page and an idea's: `GET /api/drafts/active` answers the drafts the signed-in person edits, in publications they still belong to, that are active (saved in the last 30 days, or with a review in progress, or with comments they haven't resolved), those with unresolved comments first and then newest first. `publicationId` and `ideaId` narrow it; `limit` (3 by default, at most 60) says how many, and `hasMore` tells "Show more" whether to appear. Each draft carries its idea and publication names and, if it was ever sent for review, `review` totals over all its requests (`asked`, `ended`, `unresolved`); not available to reviewer-only accounts. **Quick add** on Home uses the existing create-idea, publication notes and publication reading endpoints.
+  `/api/publications/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/articles`, `/:idea/drafts`.
+  **Keep writing** (#310), under Quick add on Home, a publication's landing page and an idea's: `GET /api/drafts/active` answers the drafts the signed-in person edits, in publications they still belong to, that are active (saved in the last 30 days, or with a review in progress, or with comments they haven't resolved), those with unresolved comments first and then newest first. `publicationId` and `ideaId` narrow it; `limit` (3 by default, at most 60) says how many, and `hasMore` tells "Show more" whether to appear. Each draft carries its idea and publication names and, if it was ever sent for review, `review` totals over all its requests (`asked`, `ended`, `unresolved`); not available to reviewer-only accounts. **Quick add** on Home uses the existing create-idea, publication notes and publication article endpoints.
   **Articles (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
-  and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
+  and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/articles/:article/read`, `{read}`); each
   item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
-  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add article** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
+  taken from an item (`POST /:idea/notes` with `articleId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own page (`/p/:publication/ideas/:idea/articles/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add article** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/articles/:article` with `authors`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see [how it avoids reaching private networks](adr/research-and-feeds/related-work-links-fetched-titles-and-why-fetching-user-supplied-addresses.md).
   **Moving articles:** on any articles, **Move items** lets you tick items and choose **Move to** the publication's
   articles, another idea, or (from the publication's list) a new idea named in your own words. The items go with the
@@ -51,15 +51,15 @@ Read this when you change sign-in, registration, passwords, publications and the
   **Dragging notes and articles into a draft:** the drafting side bar's notes and articles can be dragged by their rail onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor). An article goes in as a link with its authors (“Title by A and B”).
   **The publication's own articles and notes** have their own places: the list of articles is the publication's
-  **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each article opens its own page at
-  `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, article page, notes with
+  **Read** step (`/p/<id>/read`; the old `/p/<id>/inspiration` and `/p/<id>/inspiration#reading-list` lead there; each article opens its own page at
+  `/p/<id>/articles/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, article page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
-  publication as a whole, to be gathered before there is an idea. `GET/POST /api/publications/:id/reading`, `PATCH|DELETE
-…/reading/:item`, `PUT …/reading/:item/read` mirror an idea's links (answering with the list), and
+  publication as a whole, to be gathered before there is an idea. `GET/POST /api/publications/:id/articles`, `PATCH|DELETE
+…/articles/:item`, `PUT …/articles/:item/read` mirror an idea's articles (answering with the list), and
   `/api/publications/:id/notes` (with `/order`, `/merge`, `/:note/split`, `/:note/tags`) mirrors an idea's notes, without
-  "added to a draft". **Moving:** `POST /api/publications/:id/move/reading` and `…/move/notes`, each `{ids, to: {ideaId}}`
-  (`ideaId: null` is the publication itself), answer `{batchId, readingItems, merged, copied, notes}`; all or nothing.
+  "added to a draft". **Moving:** `POST /api/publications/:id/move/articles` and `…/move/notes`, each `{ids, to: {ideaId}}`
+  (`ideaId: null` is the publication itself), answer `{batchId, articles, merged, copied, notes}`; all or nothing.
   **Merging and splitting notes:** `POST /api/publications/:id/ideas/:idea/notes/merge` (`{ids}`) joins notes of the same
   origin into the first; `POST …/notes/:note/split` (`{before, after}`) cuts one in two. Both answer with all the notes.
   **Tags on notes:** `PUT /api/publications/:id/ideas/:idea/notes/:note/tags` (`{tags}`) replaces a note's flat tags; the notes
@@ -153,7 +153,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   the top, in date order. A post is "on a list of articles" if it
   is on any of the publication's lists, however it got there. The list of articles is on the same page, below the posts. **The publication's own list of articles has no maximum** (an idea's keeps 50), but an item
   that isn't ticked **Keep** is dropped, silently, a month after it was put on that list (`PUT
-/api/publications/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
+/api/publications/:id/articles/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
   item onto the publication starts its month again.
   The posts are the latest as each feed lists them (title,
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3

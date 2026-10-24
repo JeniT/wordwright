@@ -11,7 +11,7 @@ const idea = {
   publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.',
-  links: [],
+  articles: [],
   drafts: [],
   pendingSuggestions: 0,
   createdAt: '2026-01-01T00:00:00Z',

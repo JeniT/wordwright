@@ -14,7 +14,7 @@ function sources(dir: string): string[] {
 describe('the word for a thing to read', () => {
   it('is Article everywhere in the web app: no “reading list” or “reading item”', () => {
     const offenders = sources(join(__dirname, '..')).filter((f) =>
-      /reading\s+(list|item)/i.test(readFileSync(f, 'utf8')),
+      /\breading\s+(list|item)/i.test(readFileSync(f, 'utf8')),
     )
     expect(offenders).toEqual([])
   })

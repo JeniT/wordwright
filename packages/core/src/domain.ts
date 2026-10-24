@@ -625,7 +625,7 @@ export type HandoverState = z.infer<typeof HandoverStateSchema>
 export const IDEA_NAME_MAX = 200
 export const IDEA_NOTES_MAX = 20_000
 /** Bounds how much one idea can hold. */
-export const MAX_IDEA_LINKS = 50
+export const MAX_IDEA_ARTICLES = 50
 
 export const IdeaNameSchema = z
   .string()
@@ -643,14 +643,14 @@ export const IdeaNotesSchema = z
   )
 
 /** Who or what put an item on a list of articles: the writer, the AI (brainstorm, research), or a post from the publication's feeds. */
-export const ReadingOriginSchema = z.enum([
+export const ArticleOriginSchema = z.enum([
   'entered',
   'brainstorm',
   'research',
   'idea_generation',
   'feed',
 ])
-export type ReadingOrigin = z.infer<typeof ReadingOriginSchema>
+export type ArticleOrigin = z.infer<typeof ArticleOriginSchema>
 
 /** Who wrote a piece: names as the page or the writer gave them. */
 export const MAX_AUTHORS = 10
@@ -670,7 +670,7 @@ export const AuthorNamesSchema = z
   .max(MAX_AUTHORS, `A piece can have up to ${MAX_AUTHORS} authors`)
 
 /** An item on an idea's articles (the stored shape is still called a link). */
-export const IdeaLinkSchema = z.object({
+export const ArticleSchema = z.object({
   id: z.string(),
   url: z.string(),
   /** What the person called it; empty when they just pasted the address. */
@@ -679,7 +679,7 @@ export const IdeaLinkSchema = z.object({
   authors: z.array(z.string()).default([]),
   /** When the writer marked it read (they may have read it offline); null while unread. */
   readAt: z.string().nullable(),
-  origin: ReadingOriginSchema,
+  origin: ArticleOriginSchema,
   /**
    * Why the AI suggested it, when an AI did: the AI's own claim, kept with the item for the writer to judge and
    * never the writer's words. Null for items the writer added.
@@ -687,7 +687,7 @@ export const IdeaLinkSchema = z.object({
   why: z.string().nullish(),
   /**
    * Only on the publication's own articles: the writer asked for it to be kept. Items that aren't are dropped a
-   * month after they were put there (`PUBLICATION_READING_DAYS`). Always false on an idea's list, which isn't swept.
+   * month after they were put there (`PUBLICATION_ARTICLE_DAYS`). Always false on an idea's list, which isn't swept.
    */
   kept: z.boolean().optional(),
   /** Flat labels the writer has put on it, in the order given: the same rules as a note's (`NoteTagsInputSchema`). */
@@ -695,16 +695,16 @@ export const IdeaLinkSchema = z.object({
   /** When it was put on this list (not when it was written): the month before an unkept item drops runs from here. */
   addedAt: z.string().optional(),
 })
-export type IdeaLink = z.infer<typeof IdeaLinkSchema>
+export type Article = z.infer<typeof ArticleSchema>
 
 /** How long an item stays on the publication's own articles unless it is kept. */
-export const PUBLICATION_READING_DAYS = 30
+export const PUBLICATION_ARTICLE_DAYS = 30
 
 /**
  * `title` may be left empty: the server then looks the page's title up. When editing, an empty
  * title means "fetch it again".
  */
-export const IdeaLinkInputSchema = z.object({
+export const ArticleInputSchema = z.object({
   url: WebAddressSchema,
   title: z.string().trim().max(200, 'Use 200 characters or fewer for the title').default(''),
   /**
@@ -713,7 +713,7 @@ export const IdeaLinkInputSchema = z.object({
    */
   authors: AuthorNamesSchema.optional(),
 })
-export type IdeaLinkInput = z.infer<typeof IdeaLinkInputSchema>
+export type ArticleInput = z.infer<typeof ArticleInputSchema>
 
 /** Bounds how much one idea can hold. */
 export const MAX_IDEA_NOTES = 200
@@ -742,8 +742,8 @@ export const IdeaNoteSchema = z.object({
   authorName: z.string().nullable(),
   /** Labels the writer has put on it (a draft, a section, a theme), in the order they gave them. Flat, not nested. */
   tags: z.array(z.string()),
-  /** The reading-list item it was taken from, if any (null once that item is removed). */
-  readingItemId: z.string().nullable(),
+  /** The article it was taken from, if any (null once that item is removed). */
+  articleId: z.string().nullable(),
   /** The writer's copy of someone else's exact words. Its text is never edited, and goes into a draft as a blockquote. */
   quote: z.boolean(),
   /** When it was pulled into a draft; null while it hasn't been. */
@@ -757,8 +757,8 @@ export type IdeaNote = z.infer<typeof IdeaNoteSchema>
 export const IdeaNoteInputSchema = z.object({
   text: NoteTextSchema,
   /** A note taken while reading this item of the idea's articles: it then has origin `reading`. */
-  readingItemId: z.string().optional(),
-  /** The text is a direct quotation from that item, kept word for word. It needs `readingItemId`. */
+  articleId: z.string().optional(),
+  /** The text is a direct quotation from that item, kept word for word. It needs `articleId`. */
   quote: z.boolean().optional(),
   /** Put the note at the top of the list, not the end (the Note page's own form; everything else goes last). */
   first: z.boolean().optional(),
@@ -775,11 +775,11 @@ export const MoveTargetSchema = z.object({
 })
 export type MoveTarget = z.infer<typeof MoveTargetSchema>
 
-export const MoveReadingInputSchema = z.object({
-  ids: z.array(z.string()).min(1, 'Choose at least one item').max(MAX_IDEA_LINKS),
+export const MoveArticlesInputSchema = z.object({
+  ids: z.array(z.string()).min(1, 'Choose at least one item').max(MAX_IDEA_ARTICLES),
   to: MoveTargetSchema,
 })
-export type MoveReadingInput = z.infer<typeof MoveReadingInputSchema>
+export type MoveArticlesInput = z.infer<typeof MoveArticlesInputSchema>
 
 export const MoveNotesInputSchema = z.object({
   ids: z.array(z.string()).min(1, 'Choose at least one note').max(MAX_IDEA_NOTES),
@@ -792,7 +792,7 @@ export const MoveResultSchema = z.object({
   /** Groups everything this one move did; kept in the log of moves. */
   batchId: z.string(),
   /** Articles that were moved (they left where they were). */
-  readingItems: z.number(),
+  articles: z.number(),
   /** Of those, how many joined an item with the same address that was already there. */
   merged: z.number(),
   /** Articles copied to where notes went, so that a note keeps the source it was taken from. */
@@ -818,7 +818,7 @@ export const MoveIdeasPreviewSchema = z.object({
   ideas: z.number(),
   drafts: z.number(),
   notes: z.number(),
-  links: z.number(),
+  articles: z.number(),
   /** Members of the publication they leave who don't belong to the one they go to, so can no longer see them. */
   losingAccess: z.array(z.string()),
   problem: z.string().nullable(),
@@ -901,10 +901,10 @@ export const IdeaNoteEditSchema = z.object({ text: NoteTextSchema })
 export const NoteAddedSchema = z.object({ added: z.boolean() })
 export type NoteAdded = z.infer<typeof NoteAddedSchema>
 
-/** Marks a reading-list item read, or unread again. */
-export const ReadingItemReadSchema = z.object({ read: z.boolean() })
-export const ReadingItemKeptSchema = z.object({ kept: z.boolean() })
-export type ReadingItemRead = z.infer<typeof ReadingItemReadSchema>
+/** Marks an article read, or unread again. */
+export const ArticleReadSchema = z.object({ read: z.boolean() })
+export const ArticleKeptSchema = z.object({ kept: z.boolean() })
+export type ArticleRead = z.infer<typeof ArticleReadSchema>
 export type IdeaNoteInput = z.infer<typeof IdeaNoteInputSchema>
 
 /** Every note id of the idea, in the new order. Must name exactly the notes it has. */
@@ -958,7 +958,7 @@ export const DraftInsertionSchema = z.object({
   noteAuthorName: z.string().nullable(),
   insertedByName: z.string().nullable(),
   insertedAt: z.string(),
-  /** The reading-list item the note was taken from, as it was then. */
+  /** The article the note was taken from, as it was then. */
   source: z
     .object({ title: z.string(), url: z.string(), authors: z.array(z.string()).default([]) })
     .nullable(),
@@ -1003,7 +1003,7 @@ export const IdeaSchema = z.object({
    * writing text that reads the same changes nothing. Use the `/notes` routes for the real thing.
    */
   notes: z.string(),
-  links: z.array(IdeaLinkSchema),
+  articles: z.array(ArticleSchema),
   /** In the order the person has set (new drafts go last): for a linked set of posts, the reading order. */
   drafts: z.array(IdeaDraftSchema),
   /** Suggestions from Refine that nobody has accepted or ignored yet, across all the idea's conversations (#346). */
@@ -1117,12 +1117,12 @@ export type ProposalStatus = z.infer<typeof ProposalStatusSchema>
  * (the page exists or couldn't be read, but no title came back), `not-found` (no website by that name) or
  * `not-public` (it points at a private network, which is never contacted). The last two can't be accepted.
  */
-export const ReadingCheckSchema = z.enum(['found', 'no-title', 'not-found', 'not-public'])
-export type ReadingCheck = z.infer<typeof ReadingCheckSchema>
+export const ArticleCheckSchema = z.enum(['found', 'no-title', 'not-found', 'not-public'])
+export type ArticleCheck = z.infer<typeof ArticleCheckSchema>
 
-/** What goes with a suggested reading-list item: what the server found when it looked at the address. */
+/** What goes with a suggested article: what the server found when it looked at the address. */
 export const ReadingSuggestionSchema = z.object({
-  check: ReadingCheckSchema,
+  check: ArticleCheckSchema,
   /** The title the page really has, when it has one. Shown beside the suggested title. */
   fetchedTitle: z.string().nullable(),
   /** Who the page says wrote it, when it says. */
@@ -1284,7 +1284,7 @@ export const ResearchItemSchema = z.object({
   /** The title the search gave it. */
   title: z.string(),
   why: z.string(),
-  check: ReadingCheckSchema,
+  check: ArticleCheckSchema,
   /** The title the page really has, when the server could read one. */
   fetchedTitle: z.string().nullable(),
   fetchedAuthors: z.array(z.string()),

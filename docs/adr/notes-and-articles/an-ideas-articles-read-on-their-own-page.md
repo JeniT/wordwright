@@ -2,7 +2,7 @@
 
 What the idea page called "Related work" is the idea's **Articles**, and the publication's RSS feeds are **Article
 sources**: separate tables and routes (an idea's articles are links someone chose; the publication's sources are feeds). The
-code keeps its old names (`idea_links`, `IdeaLink`, `readingItemId`): renaming them is churn for no gain.
+code now uses the same words (`articles`, `Article`, `articleId`; renamed in #368).
 
 **Read is the writer's say-so.** Each article has `read_at` (null until marked), set by a plain checkbox, because the app
 can't know that a page was read, and people read things offline. Marking read twice keeps the first date; unticking clears it.

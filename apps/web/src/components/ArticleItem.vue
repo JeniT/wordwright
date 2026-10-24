@@ -2,9 +2,9 @@
 import NewTabLink from './NewTabLink.vue'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
-import { PUBLICATION_READING_DAYS, type IdeaLink } from '@wordwright/core'
+import { PUBLICATION_ARTICLE_DAYS, type Article } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
-import { readingRoute, useReadingActions } from '../lib/reading'
+import { articleRoute, useArticleActions } from '../lib/articles'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import TagButton from './TagButton.vue'
@@ -18,7 +18,7 @@ import { vTip } from '../lib/tip'
 const props = defineProps<{
   publicationId: string
   ideaId: string | null
-  link: IdeaLink
+  link: Article
   /** Chosen for a bulk action in the list's toolbar. */
   selected?: boolean
   /** Tags used elsewhere on the list, offered when editing. */
@@ -26,14 +26,14 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ remove: []; select: [on: boolean]; move: [] }>()
 const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
-const { setRead, setKept, setTags, update: save } = useReadingActions(owner)
+const { setRead, setKept, setTags, update: save } = useArticleActions(owner)
 const tagging = ref(false)
 const tagButton = useTemplateRef<InstanceType<typeof TagButton>>('tagButton')
 function stopTagging() {
   tagging.value = false
   void nextTick(() => tagButton.value?.focus())
 }
-const saveTags = (tags: string[]) => setTags.mutateAsync({ linkId: props.link.id, tags })
+const saveTags = (tags: string[]) => setTags.mutateAsync({ articleId: props.link.id, tags })
 
 /** What the link is called: its title, or failing that the address itself. */
 const label = () => props.link.title || props.link.url
@@ -63,11 +63,11 @@ function startEditing() {
 // saving fails it goes back to what is saved.
 const readSwitch = useTemplateRef<InstanceType<typeof SwitchField>>('readSwitch')
 function toggleRead(read: boolean) {
-  setRead.mutate({ linkId: props.link.id, read }, { onError: () => readSwitch.value?.revert() })
+  setRead.mutate({ articleId: props.link.id, read }, { onError: () => readSwitch.value?.revert() })
 }
 const keepSwitch = useTemplateRef<InstanceType<typeof SwitchField>>('keepSwitch')
 function toggleKept(kept: boolean) {
-  setKept.mutate({ linkId: props.link.id, kept }, { onError: () => keepSwitch.value?.revert() })
+  setKept.mutate({ articleId: props.link.id, kept }, { onError: () => keepSwitch.value?.revert() })
 }
 
 /** The address without the clutter: the link above it is the one thing to press. */
@@ -81,7 +81,7 @@ const host = () => {
 /** When an unkept item will drop off the publication's list: a month after it was added. */
 const dropsOn = () => {
   if (!props.link.addedAt) return null
-  const day = new Date(Date.parse(props.link.addedAt) + PUBLICATION_READING_DAYS * 86_400_000)
+  const day = new Date(Date.parse(props.link.addedAt) + PUBLICATION_ARTICLE_DAYS * 86_400_000)
   return day.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 /** What removing does to the writer's way back, said where they press and hold. */
@@ -93,7 +93,7 @@ const removeHint = () =>
       : 'Press and hold, or tap twice, to remove. You can find it again where it came from.'
 function saveLink() {
   save.mutate(
-    { linkId: props.link.id, url: url.value, title: title.value },
+    { articleId: props.link.id, url: url.value, title: title.value },
     { onSuccess: stopEditing },
   )
 }
@@ -153,8 +153,8 @@ function saveLink() {
       <div class="min-w-0 flex-1 px-4 py-3">
         <div class="flex items-start justify-between gap-3">
           <RouterLink
-            :id="`reading-item-${link.id}`"
-            :to="readingRoute(owner(), link.id)"
+            :id="`article-${link.id}`"
+            :to="articleRoute(owner(), link.id)"
             class="line-clamp-2 min-w-0 flex-1 break-words underline"
             >{{ label() }}</RouterLink
           >

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue'
-import type { IdeaLink } from '@wordwright/core'
+import type { Article } from '@wordwright/core'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
 import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import { usePaging } from '../lib/paging'
-import { useReadingList } from '../lib/reading'
-import AddLinkForm from './AddLinkForm.vue'
+import { useArticleList } from '../lib/articles'
+import AddArticleForm from './AddArticleForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
-import IdeaLinkItem from './IdeaLinkItem.vue'
+import ArticleItem from './ArticleItem.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveFields from './MoveFields.vue'
 import PageNav from './PageNav.vue'
@@ -26,7 +26,7 @@ const props = defineProps<{
   publicationId: string
   ideaId: string | null
 }>()
-const list = useReadingList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
+const list = useArticleList(() => ({ publicationId: props.publicationId, ideaId: props.ideaId }))
 
 // Read items are out of the way by default. One marked read during this visit stays in view (so it doesn't vanish
 // under the finger, and can be switched back), until the list is shown again or the switch below is changed.
@@ -34,7 +34,7 @@ const showRead = ref(false)
 const justRead = ref(new Set<string>())
 let known: Map<string, boolean> | null = null
 watch(
-  () => list.links.value,
+  () => list.articles.value,
   (links) => {
     if (!links) return
     if (known) {
@@ -45,7 +45,7 @@ watch(
   { immediate: true },
 )
 // Only the items with every chosen tag. A tag nothing carries any more can't be what is shown.
-const usedTags = computed(() => tagsUsedOn(list.links.value ?? []))
+const usedTags = computed(() => tagsUsedOn(list.articles.value ?? []))
 const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
 watch([showRead, tagFilter], () => {
   justRead.value = new Set()
@@ -57,14 +57,14 @@ function showAdded() {
   tagFilter.value = []
   paging.first()
 }
-const readCount = computed(() => (list.links.value ?? []).filter((l) => l.readAt).length)
+const readCount = computed(() => (list.articles.value ?? []).filter((l) => l.readAt).length)
 /** What is filtering the list, for the funnel to say while the filters are folded away. */
 const filterSummary = computed(() => {
   const parts = [...tagFilter.value, showRead.value ? 'including read' : null].filter(Boolean)
   return parts.length ? parts.join(' · ') : undefined
 })
 const shown = computed(() =>
-  (list.links.value ?? []).filter(
+  (list.articles.value ?? []).filter(
     (l) => (!l.readAt || showRead.value || justRead.value.has(l.id)) && matchesTags(l),
   ),
 )
@@ -145,18 +145,18 @@ const dest = useMoveDestination(
 )
 const moving = ref(false)
 /** An item whose own Move button was pressed: its dialog is open, and it alone moves (whatever is selected). */
-const movingOne = ref<IdeaLink | null>(null)
+const movingOne = ref<Article | null>(null)
 function toggleMoving() {
   tagging.value = false
   moving.value = !moving.value
   dest.reset()
-  mover.moveReading.reset()
+  mover.moveArticles.reset()
 }
-function startMovingOne(link: IdeaLink) {
+function startMovingOne(link: Article) {
   tagging.value = false
   moving.value = false
   dest.reset()
-  mover.moveReading.reset()
+  mover.moveArticles.reset()
   movingOne.value = link
 }
 function stopMovingOne() {
@@ -167,7 +167,7 @@ async function move() {
   const ids = movingOne.value ? [movingOne.value.id] : chosen.value
   const target = await dest.resolve()
   if (!target) return
-  mover.moveReading.mutate(
+  mover.moveArticles.mutate(
     {
       ids,
       from: props.ideaId,
@@ -189,7 +189,7 @@ const canMove = computed(
   () =>
     (!!movingOne.value || chosen.value.length > 0) &&
     dest.chosen &&
-    !mover.moveReading.isPending.value &&
+    !mover.moveArticles.isPending.value &&
     !dest.makeIdea.isPending,
 )
 
@@ -201,7 +201,7 @@ const confirmLabel = computed(() =>
     ? list.tagMany.isPending.value
       ? 'Tagging…'
       : `Tag ${chosen.value.length} ${chosen.value.length === 1 ? 'item' : 'items'}`
-    : mover.moveReading.isPending.value || dest.makeIdea.isPending
+    : mover.moveArticles.isPending.value || dest.makeIdea.isPending
       ? 'Moving…'
       : `Move ${plural(chosen.value.length)}`,
 )
@@ -235,7 +235,7 @@ function removeChosen() {
   <section aria-labelledby="links-heading" class="mb-10">
     <QueryState :query="list" what="the articles" loading="Loading the articles…">
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
-      <AddLinkForm
+      <AddArticleForm
         class="mb-6"
         :publication-id="publicationId"
         :idea-id="ideaId"
@@ -274,7 +274,7 @@ function removeChosen() {
         {{ errorMessage(mover.undoMove.error.value) }}
       </p>
 
-      <p v-if="!list.links.value?.length" class="mb-4 text-ink-soft">
+      <p v-if="!list.articles.value?.length" class="mb-4 text-ink-soft">
         <template v-if="ideaId">Nothing to read yet. Add a web address above.</template>
         <template v-else>
           Nothing to read yet. Add a web address above, or find something in
@@ -359,18 +359,18 @@ function removeChosen() {
                 noun="item"
               />
               <p
-                v-if="tagging ? list.tagMany.isError.value : mover.moveReading.isError.value"
+                v-if="tagging ? list.tagMany.isError.value : mover.moveArticles.isError.value"
                 role="alert"
                 class="mt-1 text-sm text-danger"
               >
                 {{
-                  errorMessage(tagging ? list.tagMany.error.value : mover.moveReading.error.value)
+                  errorMessage(tagging ? list.tagMany.error.value : mover.moveArticles.error.value)
                 }}
               </p>
             </template>
           </ListToolbar>
           <ul v-if="paging.pageItems.value.length" class="divide-y divide-line">
-            <IdeaLinkItem
+            <ArticleItem
               v-for="link in paging.pageItems.value"
               :key="link.id"
               :publication-id="publicationId"
@@ -411,11 +411,11 @@ function removeChosen() {
       :open="!!movingOne"
       :title="movingOne ? `Move ${movingOne.title || movingOne.url}` : ''"
       :confirm-label="
-        mover.moveReading.isPending.value || dest.makeIdea.isPending ? 'Moving…' : 'Move item'
+        mover.moveArticles.isPending.value || dest.makeIdea.isPending ? 'Moving…' : 'Move item'
       "
       confirm-tone="primary"
       :can-confirm="canMove"
-      :busy="mover.moveReading.isPending.value || dest.makeIdea.isPending"
+      :busy="mover.moveArticles.isPending.value || dest.makeIdea.isPending"
       busy-label="Moving…"
       @confirm="move"
       @cancel="stopMovingOne"
@@ -426,8 +426,8 @@ function removeChosen() {
         publication-label="The publication’s articles"
         :allow-new="!ideaId"
       />
-      <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-danger">
-        {{ errorMessage(mover.moveReading.error.value) }}
+      <p v-if="mover.moveArticles.isError.value" role="alert" class="mt-2 text-danger">
+        {{ errorMessage(mover.moveArticles.error.value) }}
       </p>
     </ConfirmDialog>
     <ConfirmDialog

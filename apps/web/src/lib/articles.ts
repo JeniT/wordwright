@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { Idea, IdeaLink } from '@wordwright/core'
+import type { Idea, Article } from '@wordwright/core'
 import { computed } from 'vue'
 import { api } from './api'
 import { invalidateRoots, queryKeys, useIdea } from './queries'
@@ -14,13 +14,16 @@ export interface Owner {
 }
 
 /** The route of an item's reading page. */
-export const readingRoute = (owner: Owner, linkId: string) =>
+export const articleRoute = (owner: Owner, articleId: string) =>
   owner.ideaId
-    ? { name: 'reading', params: { publicationId: owner.publicationId, id: owner.ideaId, linkId } }
-    : { name: 'publication-reading-item', params: { publicationId: owner.publicationId, linkId } }
+    ? {
+        name: 'article',
+        params: { publicationId: owner.publicationId, id: owner.ideaId, articleId },
+      }
+    : { name: 'publication-article', params: { publicationId: owner.publicationId, articleId } }
 
 /** Where "back" goes from a reading page. */
-export const readingBackRoute = (owner: Owner) =>
+export const articleBackRoute = (owner: Owner) =>
   owner.ideaId
     ? { name: 'idea-read', params: { publicationId: owner.publicationId, id: owner.ideaId } }
     : { name: 'read', params: { publicationId: owner.publicationId } }
@@ -29,50 +32,50 @@ export const readingBackRoute = (owner: Owner) =>
  * Changes to a list of articles: add, mark read, edit, remove. Each keeps what the server answered, so every screen
  * showing the list is up to date.
  */
-export function useReadingActions(owner: () => Owner) {
+export function useArticleActions(owner: () => Owner) {
   const queryClient = useQueryClient()
   /** Keeps what the server answered, and anything else that shows the list or when the idea changed. */
-  function keep(saved: Idea | IdeaLink[]) {
+  function keep(saved: Idea | Article[]) {
     const { publicationId, ideaId } = owner()
-    if (Array.isArray(saved)) queryClient.setQueryData(['reading', publicationId], saved)
+    if (Array.isArray(saved)) queryClient.setQueryData(['articles', publicationId], saved)
     else queryClient.setQueryData(queryKeys.idea(publicationId, ideaId ?? undefined), saved)
     // The ideas' lists show when each last changed; nothing here waits for them.
     void invalidateRoots(queryClient, 'ideas')
   }
-  const listOf = (saved: Idea | IdeaLink[]) => (Array.isArray(saved) ? saved : saved.links)
+  const listOf = (saved: Idea | Article[]) => (Array.isArray(saved) ? saved : saved.articles)
 
   /** Adds an item (its title is looked up); answers with the whole list afterwards. */
   const add = useMutation({
     mutationFn: async (url: string) => {
       const { publicationId, ideaId } = owner()
       return ideaId
-        ? api.addIdeaLink(publicationId, ideaId, { url })
-        : api.addPublicationLink(publicationId, { url })
+        ? api.addIdeaArticle(publicationId, ideaId, { url })
+        : api.addPublicationArticle(publicationId, { url })
     },
     onSuccess: keep,
   })
   const setRead = useMutation({
-    mutationFn: ({ linkId, read }: { linkId: string; read: boolean }) => {
+    mutationFn: ({ articleId, read }: { articleId: string; read: boolean }) => {
       const { publicationId, ideaId } = owner()
       return ideaId
-        ? api.setReadingItemRead(publicationId, ideaId, linkId, read)
-        : api.setPublicationLinkRead(publicationId, linkId, read)
+        ? api.setArticleRead(publicationId, ideaId, articleId, read)
+        : api.setPublicationArticleRead(publicationId, articleId, read)
     },
     onSuccess: keep,
   })
   /** Keeps an item of the publication's own list, or stops keeping it. */
   const setKept = useMutation({
-    mutationFn: ({ linkId, kept }: { linkId: string; kept: boolean }) =>
-      api.setPublicationLinkKept(owner().publicationId, linkId, kept),
+    mutationFn: ({ articleId, kept }: { articleId: string; kept: boolean }) =>
+      api.setPublicationArticleKept(owner().publicationId, articleId, kept),
     onSuccess: keep,
   })
   /** Gives an item exactly these tags. */
   const setTags = useMutation({
-    mutationFn: ({ linkId, tags }: { linkId: string; tags: string[] }) => {
+    mutationFn: ({ articleId, tags }: { articleId: string; tags: string[] }) => {
       const { publicationId, ideaId } = owner()
       return ideaId
-        ? api.setReadingItemTags(publicationId, ideaId, linkId, tags)
-        : api.setPublicationLinkTags(publicationId, linkId, tags)
+        ? api.setArticleTags(publicationId, ideaId, articleId, tags)
+        : api.setPublicationArticleTags(publicationId, articleId, tags)
     },
     onSuccess: keep,
   })
@@ -81,53 +84,53 @@ export function useReadingActions(owner: () => Owner) {
     mutationFn: (change: { ids: string[]; add: string[]; remove: string[] }) => {
       const { publicationId, ideaId } = owner()
       return ideaId
-        ? api.tagIdeaLinks(publicationId, ideaId, change)
-        : api.tagPublicationLinks(publicationId, change)
+        ? api.tagIdeaArticles(publicationId, ideaId, change)
+        : api.tagPublicationArticles(publicationId, change)
     },
     onSuccess: keep,
   })
   const update = useMutation({
     mutationFn: ({
-      linkId,
+      articleId,
       ...input
     }: {
-      linkId: string
+      articleId: string
       url: string
       title: string
       authors?: string[]
     }) => {
       const { publicationId, ideaId } = owner()
       return ideaId
-        ? api.updateIdeaLink(publicationId, ideaId, linkId, input)
-        : api.updatePublicationLink(publicationId, linkId, input)
+        ? api.updateIdeaArticle(publicationId, ideaId, articleId, input)
+        : api.updatePublicationArticle(publicationId, articleId, input)
     },
     onSuccess: keep,
   })
   const remove = useMutation({
-    mutationFn: (linkId: string) => {
+    mutationFn: (articleId: string) => {
       const { publicationId, ideaId } = owner()
       return ideaId
-        ? api.removeIdeaLink(publicationId, ideaId, linkId)
-        : api.removePublicationLink(publicationId, linkId)
+        ? api.removeIdeaArticle(publicationId, ideaId, articleId)
+        : api.removePublicationArticle(publicationId, articleId)
     },
-    onSuccess: () => invalidateRoots(queryClient, 'idea', 'reading'),
+    onSuccess: () => invalidateRoots(queryClient, 'idea', 'articles'),
   })
 
   /** Removes several at once (a bulk Remove). Each is tried even if an earlier one failed; the list is read again after. */
   const removeMany = useMutation({
-    mutationFn: async (linkIds: string[]) => {
+    mutationFn: async (articleIds: string[]) => {
       const { publicationId, ideaId } = owner()
       const results = await Promise.allSettled(
-        linkIds.map((linkId) =>
+        articleIds.map((articleId) =>
           ideaId
-            ? api.removeIdeaLink(publicationId, ideaId, linkId)
-            : api.removePublicationLink(publicationId, linkId),
+            ? api.removeIdeaArticle(publicationId, ideaId, articleId)
+            : api.removePublicationArticle(publicationId, articleId),
         ),
       )
       if (results.some((r) => r.status === 'rejected'))
-        throw new Error('Some links could not be removed.')
+        throw new Error('Some articles could not be removed.')
     },
-    onSettled: () => invalidateRoots(queryClient, 'idea', 'reading'),
+    onSettled: () => invalidateRoots(queryClient, 'idea', 'articles'),
   })
 
   return { add, setRead, setKept, setTags, tagMany, update, remove, removeMany, listOf }
@@ -137,28 +140,28 @@ export function useReadingActions(owner: () => Owner) {
  * The articles of an idea or of the publication, as one list of items. For an idea this is the idea's own query
  * (which the idea page shares), so a change made here shows there at once.
  */
-export function useReadingList(owner: () => Owner) {
+export function useArticleList(owner: () => Owner) {
   const forIdea = computed(() => !!owner().ideaId)
   const idea = useIdea(
     () => owner().publicationId,
     () => owner().ideaId ?? undefined,
   )
   const own = useQuery({
-    queryKey: ['reading', () => owner().publicationId],
-    queryFn: () => api.listPublicationReading(owner().publicationId),
+    queryKey: ['articles', () => owner().publicationId],
+    queryFn: () => api.listPublicationArticles(owner().publicationId),
     enabled: computed(() => !forIdea.value),
   })
   const query = computed(() => (forIdea.value ? idea : own))
-  const links = computed<IdeaLink[] | undefined>(() =>
-    forIdea.value ? idea.data.value?.links : own.data.value,
+  const articles = computed<Article[] | undefined>(() =>
+    forIdea.value ? idea.data.value?.articles : own.data.value,
   )
   return {
-    links,
+    articles,
     /** The idea itself (an idea's list only): its name, for a way back. */
     idea: computed(() => idea.data.value),
     isPending: computed(() => query.value.isPending.value),
     isError: computed(() => query.value.isError.value),
     refetch: () => query.value.refetch(),
-    ...useReadingActions(owner),
+    ...useArticleActions(owner),
   }
 }

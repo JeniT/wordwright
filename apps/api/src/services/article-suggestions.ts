@@ -3,11 +3,11 @@ import {
   SuggestReadingToolInputSchema,
   type Idea,
   type PageInfoFetcher,
-  type ReadingCheck,
+  type ArticleCheck,
 } from '@wordwright/core'
 
-/** A suggested reading-list item once its address has been looked at. */
-export interface CheckedReading {
+/** A suggested article once its address has been looked at. */
+export interface CheckedArticle {
   /** What the caller called the candidate it came from (for example the id of the tool call). */
   ref: string
   /** The address, tidied (a scheme added if it had none). */
@@ -16,7 +16,7 @@ export interface CheckedReading {
   title: string
   /** The AI's reason. Its claim, unverified. */
   why: string
-  check: ReadingCheck
+  check: ArticleCheck
   /** The title the page really has, if the server could read one. */
   fetchedTitle: string | null
   /** Who the page says wrote it. */
@@ -38,7 +38,7 @@ export interface ReadingCandidate {
  * writer is shown whether it resolves and what the page is really called, and failures are flagged before
  * they can be accepted. Nothing here adds anything to an idea.
  */
-export class ReadingChecker {
+export class ArticleChecker {
   constructor(private readonly pages: PageInfoFetcher) {}
 
   /** At most `max` suggestions survive, in the order given. */
@@ -47,8 +47,8 @@ export class ReadingChecker {
     candidates: ReadingCandidate[],
     max: number,
     signal?: AbortSignal,
-  ): Promise<CheckedReading[]> {
-    const seen = new Set(idea.links.map((l) => linkKey(l.url)))
+  ): Promise<CheckedArticle[]> {
+    const seen = new Set(idea.articles.map((l) => linkKey(l.url)))
     const usable: { ref: string; url: string; title: string; why: string }[] = []
     for (const candidate of candidates) {
       if (usable.length >= max) break
@@ -65,9 +65,9 @@ export class ReadingChecker {
   private async look(
     suggested: { ref: string; url: string; title: string; why: string },
     signal?: AbortSignal,
-  ): Promise<CheckedReading> {
+  ): Promise<CheckedArticle> {
     const info = await this.pages.fetchInfo(suggested.url, signal)
-    const check: ReadingCheck = info.problem ?? (info.title ? 'found' : 'no-title')
+    const check: ArticleCheck = info.problem ?? (info.title ? 'found' : 'no-title')
     return {
       ...suggested,
       check,

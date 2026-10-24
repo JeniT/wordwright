@@ -5,7 +5,7 @@ import type {
   LLMStopReason,
   ProposalStatus,
   ProposalTool,
-  ReadingCheck,
+  ArticleCheck,
   RecordedNote,
 } from '@wordwright/core'
 import { nowIso } from './database'
@@ -59,7 +59,7 @@ export interface ProposalRecord {
   base: { name: string; notes?: string } | null
   /** `suggest_reading` only: where it came from and what looking at the address found. */
   reading: {
-    check: ReadingCheck
+    check: ArticleCheck
     fetchedTitle: string | null
     fetchedAuthors: string[]
   } | null
@@ -391,7 +391,7 @@ function toProposal(row: Record<string, unknown>): ProposalRecord {
     base: row.base ? JSON.parse(row.base as string) : null,
     reading: row.check_status
       ? {
-          check: row.check_status as ReadingCheck,
+          check: row.check_status as ArticleCheck,
           fetchedTitle: (row.fetched_title as string | null) ?? null,
           fetchedAuthors: JSON.parse((row.fetched_authors as string | null) ?? '[]') as string[],
         }

@@ -20,7 +20,7 @@ import { draftRoutes } from './drafts'
 import { imageResponse } from './image-response'
 import { ideaRoutes } from './ideas'
 import { sourceRoutes } from './sources'
-import { moveRoutes, publicationReadingRoutes } from './reading'
+import { moveRoutes, publicationArticleRoutes } from './articles'
 import { noteRoutes } from './notes'
 import { NoteEditService } from '../services/note-edits'
 import { IdeaMoveService } from '../services/idea-moves'
@@ -29,7 +29,7 @@ import { FeedPostService } from '../services/feed-posts'
 import type { BrainstormService } from '../services/brainstorm'
 import type { ResearchService } from '../services/research'
 import type { FeedItemService } from '../services/feed-items'
-import type { IdeaLinkService } from '../services/idea-links'
+import type { ArticleService } from '../services/articles'
 import { handDraftsToOwner } from '../services/draft-editor'
 import { publicationInvitationRoutes } from './invitations'
 import type { RateLimiter } from '../auth/rate-limit'
@@ -60,7 +60,7 @@ export interface PublicationRouteDeps {
   /** Per person: each new source makes the server fetch pages. */
   feedLimiter: RateLimiter
   feedItems: FeedItemService
-  ideaLinks: IdeaLinkService
+  articleService: ArticleService
   brainstorm: BrainstormService
   research: ResearchService
 }
@@ -77,7 +77,7 @@ export function publicationRoutes({
   feeds,
   feedLimiter,
   feedItems,
-  ideaLinks,
+  articleService,
   brainstorm,
   research,
 }: PublicationRouteDeps) {
@@ -273,7 +273,7 @@ export function publicationRoutes({
         '/:publicationId/ideas',
         new Hono<AppEnv>()
           .use(member)
-          .route('/', ideaRoutes(store, ideaLinks, brainstorm, research)),
+          .route('/', ideaRoutes(store, articleService, brainstorm, research)),
       )
       .route(
         '/:publicationId/sources',
@@ -281,8 +281,8 @@ export function publicationRoutes({
       )
       // The publication's own articles and notes, gathered before there is an idea.
       .route(
-        '/:publicationId/reading',
-        new Hono<AppEnv>().use(member).route('/', publicationReadingRoutes(store, ideaLinks)),
+        '/:publicationId/articles',
+        new Hono<AppEnv>().use(member).route('/', publicationArticleRoutes(store, articleService)),
       )
       .route(
         '/:publicationId/notes',

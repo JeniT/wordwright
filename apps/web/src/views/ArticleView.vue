@@ -13,7 +13,7 @@ import { errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
 import { nameList, noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
-import { readingBackRoute, useReadingList } from '../lib/reading'
+import { articleBackRoute, useArticleList } from '../lib/articles'
 import { displayHost, usePublication } from '../lib/usePublications'
 import { vTip } from '../lib/tip'
 import QueryState from '../components/QueryState.vue'
@@ -21,14 +21,14 @@ import RowList from '../components/RowList.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
 /** Reading one item of an idea's articles, or (no `id`) of the publication's own, and taking notes from it. */
-const props = defineProps<{ publicationId: string; id?: string; linkId: string }>()
+const props = defineProps<{ publicationId: string; id?: string; articleId: string }>()
 const session = useSessionStore()
 const refineTo = computed(() => refineRoute(props.publicationId, props.id))
 const owner = computed(() => ({ publicationId: props.publicationId, ideaId: props.id ?? null }))
 
-const list = useReadingList(() => owner.value)
-const item = computed(() => list.links.value?.find((l) => l.id === props.linkId))
-const backTo = computed(() => readingBackRoute(owner.value))
+const list = useArticleList(() => owner.value)
+const item = computed(() => list.articles.value?.find((l) => l.id === props.articleId))
+const backTo = computed(() => articleBackRoute(owner.value))
 const backLabel = '← Back to the articles'
 
 const { publication } = usePublication(() => props.publicationId)
@@ -43,7 +43,7 @@ const { notes } = useIdeaNotes(
  */
 const itemNotes = computed(() =>
   (notes.data.value ?? [])
-    .filter((n) => n.readingItemId === props.linkId)
+    .filter((n) => n.articleId === props.articleId)
     .reverse()
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 )
@@ -89,7 +89,7 @@ const saveTitle = list.update
 function submitTitle() {
   saveTitle.mutate(
     {
-      linkId: props.linkId,
+      articleId: props.articleId,
       url: item.value!.url,
       title: title.value,
       // Names are separated by commas. Blank authors with a blank title look both up again; with a title, they clear.
@@ -107,7 +107,7 @@ const setRead = list.setRead
 const readSwitch = useTemplateRef<InstanceType<typeof SwitchField>>('readSwitch')
 function toggleRead(read: boolean) {
   setRead.mutate(
-    { linkId: props.linkId, read },
+    { articleId: props.articleId, read },
     // The switch has already flipped under the person's finger; put it back to what is saved.
     { onError: () => readSwitch.value?.revert() },
   )
@@ -216,12 +216,12 @@ function toggleRead(read: boolean) {
       <!-- Keyed by item: going on to another one starts again on Add a note, with nothing half-typed carried over. -->
       <QuickAdd
         v-if="publication"
-        :key="linkId"
+        :key="articleId"
         class="mb-8"
         in-place
         :publications="[publication]"
         :idea-id="id"
-        :reading-item-id="linkId"
+        :article-id="articleId"
         @note-added="markNewNote"
       />
 
@@ -246,7 +246,12 @@ function toggleRead(read: boolean) {
                 <p class="meta max-w-full sm:max-w-[16rem] sm:text-right">
                   <NoteOrigin
                     v-bind="
-                      noteOrigin(note, list.links.value ?? [], session.user?.id ?? null, refineTo)
+                      noteOrigin(
+                        note,
+                        list.articles.value ?? [],
+                        session.user?.id ?? null,
+                        refineTo,
+                      )
                     "
                     :author-name="note.authorName"
                     class="sm:items-end"

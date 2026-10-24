@@ -33,7 +33,7 @@ const idea = {
   publicationId: 'ada-substack',
   name: 'Why rivers meander',
   notes: 'Erosion loops.',
-  links: [
+  articles: [
     {
       id: 'l1',
       url: 'https://example.org/paper',
@@ -116,7 +116,7 @@ describe('moving ideas to another publication', () => {
     ideas: 1,
     drafts: 2,
     notes: 5,
-    links: 3,
+    articles: 3,
     losingAccess: ['Bob', 'Cy'],
     problem: null as string | null,
   }
@@ -174,7 +174,7 @@ describe('moving ideas to another publication', () => {
     await fireEvent.update(select, 'ada-poems')
     const says = await waitFor(() => {
       const el = document.querySelector('[data-move-says]')!
-      expect(el).toHaveTextContent('1 idea, 2 drafts, 5 notes, 3 links will move to “Poems”.')
+      expect(el).toHaveTextContent('1 idea, 2 drafts, 5 notes, 3 articles will move to “Poems”.')
       return el
     })
     expect(says).toHaveTextContent(
@@ -290,7 +290,7 @@ describe('idea page', () => {
     // The title opens the item's page for notes; the host name beneath it opens the article itself.
     expect(await screen.findByRole('link', { name: 'A paper' })).toHaveAttribute(
       'href',
-      '/p/ada-substack/ideas/i1/reading/l1',
+      '/p/ada-substack/ideas/i1/articles/l1',
     )
     const article = screen.getByRole('link', { name: /example\.org.*A paper/ })
     expect(article).toHaveAttribute('href', 'https://example.org/paper')
@@ -519,8 +519,8 @@ describe('idea page', () => {
       http.get(ideaUrl, () =>
         HttpResponse.json({
           ...idea,
-          links: [
-            ...idea.links,
+          articles: [
+            ...idea.articles,
             {
               id: 'l2',
               url: 'https://example.org/untitled',
@@ -538,7 +538,7 @@ describe('idea page', () => {
     expect(titled.closest('li')).toHaveTextContent('example.org')
     expect(screen.getAllByRole('link', { name: 'A paper' })).toHaveLength(1) // the host's name adds the title
     const untitled = screen.getByRole('link', { name: 'https://example.org/untitled' })
-    expect(untitled).toHaveAttribute('href', '/p/ada-substack/ideas/i1/reading/l2')
+    expect(untitled).toHaveAttribute('href', '/p/ada-substack/ideas/i1/articles/l2')
     expect(untitled.textContent).toContain('https://example.org/untitled')
   })
 
@@ -557,7 +557,7 @@ describe('idea page', () => {
         http.get(ideaUrl, () =>
           HttpResponse.json({
             ...idea,
-            links: [
+            articles: [
               {
                 id: 'l1',
                 url: 'https://example.org/a',
@@ -610,12 +610,12 @@ describe('idea page', () => {
       const sent: unknown[] = []
       let current = idea
       await open([
-        http.put(`${ideaUrl}/links/l1/read`, async ({ request }) => {
+        http.put(`${ideaUrl}/articles/l1/read`, async ({ request }) => {
           const body = (await request.json()) as { read: boolean }
           sent.push(body)
           current = {
             ...idea,
-            links: [{ ...idea.links[0]!, readAt: body.read ? '2026-01-03T00:00:00Z' : null }],
+            articles: [{ ...idea.articles[0]!, readAt: body.read ? '2026-01-03T00:00:00Z' : null }],
           }
           return HttpResponse.json(current)
         }),
@@ -636,7 +636,7 @@ describe('idea page', () => {
 
     it('says so when it could not be saved, and leaves the item as it was', async () => {
       await open([
-        http.put(`${ideaUrl}/links/l1/read`, () =>
+        http.put(`${ideaUrl}/articles/l1/read`, () =>
           HttpResponse.json({ error: 'boom' }, { status: 500 }),
         ),
       ])
@@ -651,8 +651,8 @@ describe('idea page', () => {
       let sent: unknown
       const added = {
         ...idea,
-        links: [
-          ...idea.links,
+        articles: [
+          ...idea.articles,
           {
             id: 'l2',
             url: 'https://example.org/new',
@@ -663,7 +663,7 @@ describe('idea page', () => {
         ],
       }
       await open([
-        http.post(`${ideaUrl}/links`, async ({ request }) => {
+        http.post(`${ideaUrl}/articles`, async ({ request }) => {
           sent = await request.json()
           return HttpResponse.json(added, { status: 201 })
         }),
@@ -685,7 +685,7 @@ describe('idea page', () => {
       'shows why (%i) under the field, in red, and keeps what was typed',
       async (status, message) => {
         await open([
-          http.post(`${ideaUrl}/links`, () => HttpResponse.json({ error: message }, { status })),
+          http.post(`${ideaUrl}/articles`, () => HttpResponse.json({ error: message }, { status })),
         ])
         const field = await screen.findByLabelText('Web address')
         await fireEvent.update(field, 'example.org/paper')
@@ -701,7 +701,7 @@ describe('idea page', () => {
 
     it('clears the error once the person starts correcting the address', async () => {
       await open([
-        http.post(`${ideaUrl}/links`, () =>
+        http.post(`${ideaUrl}/articles`, () =>
           HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
         ),
       ])
@@ -718,8 +718,8 @@ describe('idea page', () => {
   describe('tags on links', () => {
     const tagged = {
       ...idea,
-      links: [
-        { ...idea.links[0]!, tags: ['background', 'part 2'] },
+      articles: [
+        { ...idea.articles[0]!, tags: ['background', 'part 2'] },
         {
           id: 'l2',
           url: 'https://example.org/other',
@@ -813,12 +813,12 @@ describe('idea page', () => {
     it('adds and removes a link’s tags under it, one at a time, saving each', async () => {
       const sent: string[][] = []
       await openTagged([
-        http.put(`${ideaUrl}/links/l1/tags`, async ({ request }) => {
+        http.put(`${ideaUrl}/articles/l1/tags`, async ({ request }) => {
           const tags = ((await request.json()) as { tags: string[] }).tags
           sent.push(tags)
           return HttpResponse.json({
             ...tagged,
-            links: [{ ...tagged.links[0]!, tags }, ...tagged.links.slice(1)],
+            articles: [{ ...tagged.articles[0]!, tags }, ...tagged.articles.slice(1)],
           })
         }),
       ])
@@ -848,7 +848,7 @@ describe('idea page', () => {
 
     it('says why a tag could not be saved, and takes it off again', async () => {
       await openTagged([
-        http.put(`${ideaUrl}/links/l1/tags`, () =>
+        http.put(`${ideaUrl}/articles/l1/tags`, () =>
           HttpResponse.json({ error: 'Use 10 tags or fewer on a note' }, { status: 400 }),
         ),
       ])
@@ -866,8 +866,8 @@ describe('idea page', () => {
   describe('tagging several links at once', () => {
     const two = {
       ...idea,
-      links: [
-        { ...idea.links[0]!, tags: ['background'] },
+      articles: [
+        { ...idea.articles[0]!, tags: ['background'] },
         {
           id: 'l2',
           url: 'https://example.org/other',
@@ -911,7 +911,7 @@ describe('idea page', () => {
     it('adds and removes tags on all the selected links in one request, and shows them', async () => {
       const sent: unknown[] = []
       await openWith(two, [
-        http.post(`${ideaUrl}/links/tags`, async ({ request }) => {
+        http.post(`${ideaUrl}/articles/tags`, async ({ request }) => {
           const change = (await request.json()) as {
             ids: string[]
             add: string[]
@@ -920,7 +920,7 @@ describe('idea page', () => {
           sent.push(change)
           return HttpResponse.json({
             ...two,
-            links: two.links.map((l) =>
+            articles: two.articles.map((l) =>
               change.ids.includes(l.id)
                 ? {
                     ...l,
@@ -953,7 +953,7 @@ describe('idea page', () => {
 
     it("shows the server's reason, and keeps the panel and the words", async () => {
       await openWith(two, [
-        http.post(`${ideaUrl}/links/tags`, () =>
+        http.post(`${ideaUrl}/articles/tags`, () =>
           HttpResponse.json({ error: 'A link can have up to 10 tags' }, { status: 409 }),
         ),
       ])
@@ -973,10 +973,10 @@ describe('idea page', () => {
         signedInAs(testUser),
         listPublications,
         http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
-        http.get('*/api/publications/ada-substack/reading', () => HttpResponse.json(two.links)),
-        http.post('*/api/publications/ada-substack/reading/tags', async ({ request }) => {
+        http.get('*/api/publications/ada-substack/articles', () => HttpResponse.json(two.articles)),
+        http.post('*/api/publications/ada-substack/articles/tags', async ({ request }) => {
           sent.push(await request.json())
-          return HttpResponse.json(two.links)
+          return HttpResponse.json(two.articles)
         }),
       )
       await renderAt('/p/ada-substack/read')
@@ -1015,11 +1015,11 @@ describe('idea page', () => {
     it('saves a new address and title, and updates the list', async () => {
       let sent: unknown
       await open([
-        http.patch(`${ideaUrl}/links/l1`, async ({ request }) => {
+        http.patch(`${ideaUrl}/articles/l1`, async ({ request }) => {
           sent = await request.json()
           return HttpResponse.json({
             ...idea,
-            links: [
+            articles: [
               {
                 id: 'l1',
                 url: 'https://example.org/better',
@@ -1038,7 +1038,7 @@ describe('idea page', () => {
 
       expect(await screen.findByRole('link', { name: 'Better title' })).toHaveAttribute(
         'href',
-        '/p/ada-substack/ideas/i1/reading/l1',
+        '/p/ada-substack/ideas/i1/articles/l1',
       )
       expect(screen.getByRole('link', { name: /example\.org.*Better title/ })).toHaveAttribute(
         'href',
@@ -1053,7 +1053,7 @@ describe('idea page', () => {
 
     it('shows a refusal under the address field and stays open for another try', async () => {
       await open([
-        http.patch(`${ideaUrl}/links/l1`, () =>
+        http.patch(`${ideaUrl}/articles/l1`, () =>
           HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
         ),
       ])
@@ -1068,7 +1068,7 @@ describe('idea page', () => {
     it('cancels without saving, with the Escape key too', async () => {
       let saved = false
       await open([
-        http.patch(`${ideaUrl}/links/l1`, () => {
+        http.patch(`${ideaUrl}/articles/l1`, () => {
           saved = true
           return HttpResponse.json(idea)
         }),
@@ -1079,7 +1079,7 @@ describe('idea page', () => {
       expect(screen.queryByLabelText('Web address of this item')).toBeNull()
       expect(screen.getByRole('link', { name: 'A paper' })).toHaveAttribute(
         'href',
-        '/p/ada-substack/ideas/i1/reading/l1',
+        '/p/ada-substack/ideas/i1/articles/l1',
       )
 
       await fireEvent.click(screen.getByRole('button', { name: 'Edit A paper' }))
@@ -1092,7 +1092,7 @@ describe('idea page', () => {
   it('removes a link', async () => {
     let removed = false
     await open([
-      http.delete(`${ideaUrl}/links/l1`, () => {
+      http.delete(`${ideaUrl}/articles/l1`, () => {
         removed = true
         return new HttpResponse(null, { status: 204 })
       }),
@@ -1168,7 +1168,7 @@ describe('idea page', () => {
       origin,
       authorId: authorName ? 'u1' : null,
       authorName,
-      readingItemId: null as string | null,
+      articleId: null as string | null,
       tags: [] as string[],
       quote: false,
       addedAt: null,
@@ -1305,7 +1305,7 @@ describe('idea page', () => {
     it('offers no Edit for a direct quotation, and sets it apart; it can still be deleted', async () => {
       fakeNotes([
         note('n1', 'Erosion loops.'),
-        { ...note('n2', 'Exact words.', 'reading'), readingItemId: 'l1', quote: true },
+        { ...note('n2', 'Exact words.', 'reading'), articleId: 'l1', quote: true },
       ])
       await open()
       await screen.findByText('Erosion loops.')
@@ -1319,10 +1319,10 @@ describe('idea page', () => {
       expect(within(region()).getByRole('button', { name: /^Delete note “Exact/ })).toBeVisible()
     })
 
-    it('names the reading-list item a note was taken from, or just says reading if it is gone', async () => {
+    it('names the article a note was taken from, or just says reading if it is gone', async () => {
       fakeNotes([
-        { ...note('n1', 'A quote.', 'reading'), readingItemId: 'l1' },
-        { ...note('n2', 'From something removed.', 'reading'), readingItemId: null },
+        { ...note('n1', 'A quote.', 'reading'), articleId: 'l1' },
+        { ...note('n2', 'From something removed.', 'reading'), articleId: null },
       ])
       await open()
       await screen.findByText('A quote.')
@@ -2287,7 +2287,7 @@ describe('idea page', () => {
     server.use(
       signedInAs(testUser),
       listPublications,
-      http.get(ideaUrl, () => HttpResponse.json({ ...idea, links: [], drafts: [] })),
+      http.get(ideaUrl, () => HttpResponse.json({ ...idea, articles: [], drafts: [] })),
     )
     await renderAt('/p/ada-substack/ideas/i1/read')
     expect(await screen.findByText(/Nothing to read yet/)).toBeInTheDocument()

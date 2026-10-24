@@ -522,7 +522,7 @@ describe('asking someone to review a draft', () => {
           publicationId: 'p1',
           name: 'I',
           notes: '',
-          links: [],
+          articles: [],
           drafts: [],
           pendingSuggestions: 0,
           createdAt: 'x',
@@ -703,7 +703,7 @@ describe('asking someone to review a draft', () => {
       expect(within(tab).getByTestId('review-summary')).toHaveTextContent(
         '1 of 3 reviews complete · 3 comments',
       )
-      expect(within(tab).getByText(/Reading · 2 comments/)).toBeTruthy()
+      expect(within(tab).getByText(/\bReading · 2 comments/)).toBeTruthy()
       expect(within(tab).getByText(/Finished · 1 comment/)).toBeTruthy()
       expect(within(tab).getByText('later@example.com · waiting for a reply')).toBeTruthy()
       expect(within(tab).queryByText(/Tom/)).toBeNull()

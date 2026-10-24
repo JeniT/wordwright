@@ -50,7 +50,7 @@ describe('exporting writing as Markdown', () => {
     const idea = `${base()}/ideas/${ideaId}`
     await ada.post(`${idea}/notes`, { text: 'Erosion is faster on the outside bend.' })
     await bob.post(`${idea}/notes`, { text: 'Ask a hydrologist.\nThen check the sources.' })
-    await ada.post(`${idea}/links`, {
+    await ada.post(`${idea}/articles`, {
       url: 'https://example.org/meanders',
       title: 'How meanders form',
     })

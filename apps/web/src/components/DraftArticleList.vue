@@ -2,9 +2,9 @@
 import { computed } from 'vue'
 import { useMutation } from '@tanstack/vue-query'
 import { RouterLink } from 'vue-router'
-import type { IdeaLink } from '@wordwright/core'
+import type { Article } from '@wordwright/core'
 import { errorMessage } from '../lib/api'
-import { READING_DRAG_TYPE } from '../lib/note-drag'
+import { ARTICLE_DRAG_TYPE } from '../lib/note-drag'
 import { nameList } from '../lib/note-label'
 import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import DraftCard from './DraftCard.vue'
@@ -14,26 +14,26 @@ import TagFilter from './TagFilter.vue'
 const props = defineProps<{
   publicationId: string
   ideaId: string
-  readingList: readonly IdeaLink[]
+  articleList: readonly Article[]
   /** Puts a link to the item in the draft (asking first if it isn't marked read); rejects with a message if it fails. */
-  insertLink: (item: IdeaLink) => Promise<void>
+  insertLink: (item: Article) => Promise<void>
   /** The person may put links in the draft (only the draft's editor may). */
   canAdd: boolean
 }>()
 
-const inserting = useMutation({ mutationFn: (item: IdeaLink) => props.insertLink(item) })
-const label = (item: IdeaLink) => item.title || item.url
+const inserting = useMutation({ mutationFn: (item: Article) => props.insertLink(item) })
+const label = (item: Article) => item.title || item.url
 
-const usedTags = computed(() => tagsUsedOn(props.readingList))
+const usedTags = computed(() => tagsUsedOn(props.articleList))
 const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
-const shown = computed(() => props.readingList.filter((item) => matchesTags(item)))
+const shown = computed(() => props.articleList.filter((item) => matchesTags(item)))
 </script>
 
 <template>
   <section aria-labelledby="draft-reading-heading">
     <!-- The tab beside the draft already says "Articles"; the heading is for screen readers moving by headings. -->
     <h2 id="draft-reading-heading" class="sr-only">Articles</h2>
-    <p v-if="!readingList.length" class="text-ink-soft">
+    <p v-if="!articleList.length" class="text-ink-soft">
       Nothing in the articles yet.
       <RouterLink
         :to="{ name: 'idea-read', params: { publicationId, id: ideaId } }"
@@ -43,7 +43,7 @@ const shown = computed(() => props.readingList.filter((item) => matchesTags(item
       </RouterLink>
     </p>
     <TagFilter v-model="tagFilter" :tags="usedTags" />
-    <p v-if="readingList.length && !shown.length" class="text-ink-soft">
+    <p v-if="articleList.length && !shown.length" class="text-ink-soft">
       No items have all these tags.
     </p>
     <ul v-else-if="shown.length" aria-label="Articles to add" class="space-y-2">
@@ -51,7 +51,7 @@ const shown = computed(() => props.readingList.filter((item) => matchesTags(item
         v-for="item in shown"
         :key="item.id"
         :can-add="canAdd"
-        :drag="{ type: READING_DRAG_TYPE, id: item.id }"
+        :drag="{ type: ARTICLE_DRAG_TYPE, id: item.id }"
         :label="`“${label(item)}”`"
         :busy="inserting.isPending.value && inserting.variables.value?.id === item.id"
         @add="inserting.mutate(item)"

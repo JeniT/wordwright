@@ -79,7 +79,7 @@ describe('what the brainstorm AI is shown', () => {
       publicationId: 'p',
       name: 'Idea',
       notes: '',
-      links: [],
+      articles: [],
       // A draft carrying text it should not have, as a mistake in a future change might.
       drafts: [
         {
