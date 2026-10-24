@@ -904,11 +904,12 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   const paragraphs = body.locator('p')
   await expect(paragraphs).toHaveCount(2)
 
-  // Dropped on the start of the last paragraph, the note goes between the two.
+  // Dropped on the start of the last paragraph, the note goes between the two. x is 1px in: the drop lands on the
+  // nearest character boundary, so a few pixels in is already past the first letter.
   const note = side
     .getByText('Deposition on the inside.', { exact: true })
     .locator('xpath=ancestor::li[1]')
-  await note.getByTestId('rail').dragTo(paragraphs.nth(1), { targetPosition: { x: 4, y: 4 } })
+  await note.getByTestId('rail').dragTo(paragraphs.nth(1), { targetPosition: { x: 1, y: 4 } })
   await expect(paragraphs).toHaveText([
     'First paragraph.',
     'Deposition on the inside.',
