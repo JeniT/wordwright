@@ -279,7 +279,7 @@ export function publicationRoutes({
         '/:publicationId/sources',
         sourceRoutes(store, feeds, feedLimiter, member, feedItems, feedPosts),
       )
-      // The publication's own reading list and notes, gathered before there is an idea.
+      // The publication's own articles and notes, gathered before there is an idea.
       .route(
         '/:publicationId/reading',
         new Hono<AppEnv>().use(member).route('/', publicationReadingRoutes(store, ideaLinks)),

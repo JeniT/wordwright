@@ -5,7 +5,7 @@ import { api } from './api'
 import { invalidateRoots, queryKeys, useIdea } from './queries'
 
 /**
- * Whose reading list or notes a page is working on: an idea's, or (`ideaId` null) the publication's own, gathered
+ * Whose articles or notes a page is working on: an idea's, or (`ideaId` null) the publication's own, gathered
  * before there is an idea. The same screens serve both; only where they read and write differs.
  */
 export interface Owner {
@@ -26,7 +26,7 @@ export const readingBackRoute = (owner: Owner) =>
     : { name: 'read', params: { publicationId: owner.publicationId } }
 
 /**
- * Changes to a reading list: add, mark read, edit, remove. Each keeps what the server answered, so every screen
+ * Changes to a list of articles: add, mark read, edit, remove. Each keeps what the server answered, so every screen
  * showing the list is up to date.
  */
 export function useReadingActions(owner: () => Owner) {
@@ -134,7 +134,7 @@ export function useReadingActions(owner: () => Owner) {
 }
 
 /**
- * The reading list of an idea or of the publication, as one list of items. For an idea this is the idea's own query
+ * The articles of an idea or of the publication, as one list of items. For an idea this is the idea's own query
  * (which the idea page shares), so a change made here shows there at once.
  */
 export function useReadingList(owner: () => Owner) {

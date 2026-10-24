@@ -9,11 +9,11 @@ export interface SnapshotNote {
   text: string
   /** Someone else's exact words, kept word for word. */
   quote: boolean
-  /** The title of the reading item it was taken from, if that is still on the list. */
+  /** The title of the article it was taken from, if that is still on the list. */
   source: string | null
 }
 
-/** The idea's notes one by one, each with the title of the reading item it was taken from (if that is still there). */
+/** The idea's notes one by one, each with the title of the article it was taken from (if that is still there). */
 export function snapshotNotes(store: Store, idea: Idea): SnapshotNote[] {
   const { notes, reading } = store
   return notes.list(idea.id).map((n) => ({

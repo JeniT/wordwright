@@ -89,15 +89,15 @@ Rules:
 
 IBM Plex Sans in four files (400, 400 italic, 500, 600). Sizes, set once:
 
-| Use                                               | Class / rule                             | Notes                                                                                  |
-| ------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
-| Page title                                        | `h1`                                     | 28–38px, 600, balanced                                                                 |
-| Section heading                                   | `h2`                                     | 20px, 600                                                                              |
-| Subsection / card heading                         | `h3`                                     | 17px, 600                                                                              |
-| Body, labels, buttons                             | default (16px) / `text-sm` for secondary | Never below 14px for anything read (except `btn-sm`, 13px), 12px only for tabular tags |
-| Secondary line (dates, hosts, counts)             | `meta`                                   | 14px, `ink-soft`, tabular figures                                                      |
-| The editor and the AI's replies                   | `.prose-editor`, `.markdown`             | 16px (`--draft-size`), line-height 1.7, same family                                    |
-| Notes, reading items, comments (beside the draft) | `#draft-notes`                           | 15px (`--pane-size`); their secondary lines keep `text-xs` and `text-sm`               |
+| Use                                          | Class / rule                             | Notes                                                                                  |
+| -------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| Page title                                   | `h1`                                     | 28–38px, 600, balanced                                                                 |
+| Section heading                              | `h2`                                     | 20px, 600                                                                              |
+| Subsection / card heading                    | `h3`                                     | 17px, 600                                                                              |
+| Body, labels, buttons                        | default (16px) / `text-sm` for secondary | Never below 14px for anything read (except `btn-sm`, 13px), 12px only for tabular tags |
+| Secondary line (dates, hosts, counts)        | `meta`                                   | 14px, `ink-soft`, tabular figures                                                      |
+| The editor and the AI's replies              | `.prose-editor`, `.markdown`             | 16px (`--draft-size`), line-height 1.7, same family                                    |
+| Notes, articles, comments (beside the draft) | `#draft-notes`                           | 15px (`--pane-size`); their secondary lines keep `text-xs` and `text-sm`               |
 
 Figures are tabular by default so counts and dates align. Don't add other typefaces. Headings use `font-display`
 (currently the same family), so a different display face is one line in `theme.css`.
@@ -144,7 +144,7 @@ Use these instead of long utility strings. If you find yourself repeating a reci
 | `chip` + `chip-accent` / `chip-ai` / `chip-ok` / `chip-quiet`     | Small labels. `chip-ai` is the highlighter: AI-suggested only. `chip-quiet` is a flat fact (where an item came from)                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `callout` + `callout-danger` / `callout-ok`                       | A notice with words in it. Use `role="alert"` for errors, `role="status"` for confirmations                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `link`                                                            | A link inside UI chrome. In running text, plain anchors are underlined by default styles                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `tab` (+ `TabPanels`)                                             | Tabs for areas that share one place (beside the draft: Notes, Reading list, Comments; a tab carries no count, so the bar never wraps), and for a short row of ways to do one job, each with its own small form (Home's Quick add). A tab list may be the top of a `panel` and stand in for its title. Selected is bold with a heavy underline and `aria-selected`; arrow keys move; panels stay mounted. The tab names its panel, so a heading inside repeats nothing visibly: it is `sr-only`                                         |
+| `tab` (+ `TabPanels`)                                             | Tabs for areas that share one place (beside the draft: Notes, Articles, Comments; a tab carries no count, so the bar never wraps), and for a short row of ways to do one job, each with its own small form (Home's Quick add). A tab list may be the top of a `panel` and stand in for its title. Selected is bold with a heavy underline and `aria-selected`; arrow keys move; panels stay mounted. The tab names its panel, so a heading inside repeats nothing visibly: it is `sr-only`                                             |
 | `meta`, `h1`, `h2`, `h3`                                          | Type, above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `source-mark`, `source-letter` (+ `tint-N`, `mark-sm`..`mark-xl`) | The plate for other sites' pictures. Use through `PublicationImage` rather than by hand                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
@@ -378,20 +378,19 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
 
 ## Actions and lists
 
-Which control for which job, so every list (reading lists, notes, feeds, drafts) looks and behaves alike. The reading
-list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLinkItem.vue`, `IdeaNotes.vue`,
+Which control for which job, so every list (lists of articles, notes, feeds, drafts) looks and behaves alike. The articles and the notes are the reference implementations: `ReadingList.vue`, `IdeaLinkItem.vue`, `IdeaNotes.vue`,
 `ListToolbar.vue`. Drafts and feeds use the same rail and icon buttons.
 
 **Checkbox, switch, button or link**
 
-| It...                                             | Use                                 | Examples                                         |
-| ------------------------------------------------- | ----------------------------------- | ------------------------------------------------ |
-| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this item, Select all                     |
-| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                                       |
-| sets a view option for the list                   | **switch** or a select, on the left | Show read items                                  |
-| does something or opens something                 | **button**                          | Edit, Tag, Remove, Move to…, Add to reading list |
-| goes somewhere                                    | **link** (underlined)               | The title                                        |
-| changes which of a few views or forms is showing  | **tab** (`TabPanels`)               | Notes / Reading list / Comments; Quick add       |
+| It...                                             | Use                                 | Examples                                 |
+| ------------------------------------------------- | ----------------------------------- | ---------------------------------------- |
+| selects an item for a bulk action                 | **checkbox**, in the left rail      | Select this item, Select all             |
+| sets a state of an item that stays, saved at once | **switch** (`SwitchField`)          | Read, Keep                               |
+| sets a view option for the list                   | **switch** or a select, on the left | Show read items                          |
+| does something or opens something                 | **button**                          | Edit, Tag, Remove, Move to…, Add article |
+| goes somewhere                                    | **link** (underlined)               | The title                                |
+| changes which of a few views or forms is showing  | **tab** (`TabPanels`)               | Notes / Articles / Comments; Quick add   |
 
 - **Tabs show, buttons act, segmented controls set.** If clicking does nothing but change what is displayed (nothing is
   saved or sent), it is a tab, not a button. If it chooses a value for a setting (System / Light / Dark), it is a
@@ -416,7 +415,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
   universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove A paper") and
   a tooltip (`v-tip`, below); a 32px target.
 - **A single-use action on a page** may be icon-only too, when the icon is as universal and the action is quiet: the pencil
-  beside a reading item's title (Edit title and authors). The same rules apply: an `aria-label` that says what it does,
+  beside an article's title (Edit title and authors). The same rules apply: an `aria-label` that says what it does,
   a tooltip, and a 32px target.
 - **Tooltip on an icon-only button: `v-tip`, not `title`** (`lib/tip.ts`; on a `HoldButton`, its `tip` prop). The browser's `title`
   shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
@@ -430,7 +429,7 @@ list and the notes are the reference implementations: `ReadingList.vue`, `IdeaLi
 | Level          | Style                                            | For                                                           |
 | -------------- | ------------------------------------------------ | ------------------------------------------------------------- |
 | Primary        | `btn-primary`, one per screen area               | The page's main action (not in a list)                        |
-| Section action | `btn-outline` (accent)                           | The thing the list is for: Add to reading list                |
+| Section action | `btn-outline` (accent)                           | The thing the list is for: Add article                        |
 | Row's verb     | `btn-neutral btn-sm`                             | Only where a row has one main verb a title link can't carry   |
 | Row utilities  | `btn-ghost btn-sm btn-icon`                      | Edit; Remove (turns raspberry on hover or focus, not at rest) |
 | Bulk actions   | `btn-neutral btn-sm`; Remove `btn-danger btn-sm` | Tag…, Move to…, Remove N (opens a dialog)                     |
@@ -444,7 +443,7 @@ comment, a Refine message, a draft's editor. It is always the name (your own too
 when the account has gone and the name wasn't kept. A name inside a sentence ("asked by Ada", a callout, a handover
 notice) is plain text, bold where it already is; a chip never sits inside running text.
 
-**A rail that only drags.** A card that is a source to take from, such as a note or reading item beside the draft
+**A rail that only drags.** A card that is a source to take from, such as a note or article beside the draft
 (`DraftCard`), has the same rail and grip but no arrows and no click behaviour: dragging it onto the draft is the
 only thing the rail does. Its grip shows from `lg` up (a phone cannot drag), and the icon button **Insert at cursor** at
 the top of the rail (always shown) is the route for keyboards, touch and screen readers. The grip is centred vertically in the rail, but never nearer than 3.75rem to the top, so it never meets the button above it (a rail is at least 5rem tall from `lg` up, which is why a short card still has room for both).
@@ -467,8 +466,8 @@ lines; the actions stay top-right and wrap below on a phone. Notes are the excep
 **A note's row (`NoteCard`, `NoteText`).** Notes are shown in full, so a row can be tall: the list is `align-top`, which
 puts the buttons at the top of the row, not centred. Where a note came from (“From” and the page's title as a link that opens in a new tab,
 “From” and “conversation with your AI” (or “their AI”) as a link to the idea's Refine page, “Added”, then, on the line below, the name of the person who took it) is `meta` text in a column at the right, under
-the row's buttons on the Note pages and alone on rows with no buttons (Recent notes, a reading item's notes); on a phone
-it wraps under the note. It does not say the page's authors (the reading item's page does) or whether the note is a
+the row's buttons on the Note pages and alone on rows with no buttons (Recent notes, an article's notes); on a phone
+it wraps under the note. It does not say the page's authors (the article's page does) or whether the note is a
 quotation (its mark does). Tags stay under the note's text. A **quotation** is set apart by a `quote-mark`, a large
 opening curly quote hanging before its first line. It is bare, with no box, so it is never mistaken for a control beside
 the select box (hidden from screen readers: the text is in a `blockquote`). It is never a left border. The Note page's
@@ -477,7 +476,7 @@ notes that arrive any other way go last.
 
 **Posts from the feeds (`RecentPostRow`).** The Scan page's Recent posts and the Scan panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**
-("Add to reading list: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗
+("Add article: {title}") and a **cross** ("Ignore: {title}"), each with a tooltip (`v-tip`); a decided post shows ✓ or ✗
 and a single **undo** button ("Reconsider: {title}"). A decision made in either place updates both (they share query keys),
 and is announced in a polite live region. The list has no bulk actions, so it has no select rail or `ListToolbar`; the
 Scan page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.
@@ -488,7 +487,7 @@ emptied and focused, for the next (a comma also separates tags). While it is ope
 small **tick** closes it. The tags already used on the list are offered as the person types. This is on every note,
 **quotations included**: tagging changes none of their words. Tags are never entered in an edit form.
 
-**Bulk tagging (`BulkTagFields`), on notes and on reading lists.** **Tag…** opens its form in the header (above). It uses
+**Bulk tagging (`BulkTagFields`), on notes and on lists of articles.** **Tag…** opens its form in the header (above). It uses
 the same entry as a single note (type, Enter, again; the tags typed so far are chips that can be taken back out) and,
 for each tag the selection already carries, a chip to press to take it off all of them (its title says "On 2 of the 3
 selected"). The tick says what it will do ("Tag 3 notes"), the result is announced, and the selection is kept. The
@@ -499,13 +498,13 @@ checkboxes), a **filter button** with the funnel icon; on the **right**, once so
 selected items with a "3 selected" count. Until then the actions are not shown. The filters are folded away: the funnel
 (`aria-expanded`, only offered when there is something to filter by) opens a row of them under the header (the
 **Filter by tag** text box (a tag icon on its left; it suggests the tags on the list that are not chosen yet, and Return adds one and keeps the focus), whose chosen tags stay beside it as removable chips named "Stop filtering by {tag}" and
-narrow the list to what has all of them, and, on a reading list, the Show read items switch), which a close button folds again. While it is folded and a filter is
+narrow the list to what has all of them, and, on a list of articles, the Show read items switch), which a close button folds again. While it is folded and a filter is
 on, the funnel is marked and a small chip says what is filtering, so a filtered list never looks like the whole list.
 **An action that needs input takes over the header**: Tag… and Move to… hide the other actions, and the rest of the
 header holds their form, ending in a **tick** (confirm; named "Tag 3 notes", "Move 2 items") and a **cross** (cancel)
 as icon buttons, to leave room. The wordy explanation goes behind an **info icon** (`InfoTip`: shown on hover, focus or
 tap, and read as the icon's description) at the end of the form, or in very small text below it when there is one line.
-**A list of one item has no header** (and no tick): each note, reading item and idea has its own **Move** icon (borderless, with Edit and Remove) that opens a dialog with the same form and moves that item alone. A list that can be filtered keeps its header for one row. $1 If the selection empties, the
+**A list of one item has no header** (and no tick): each note, article and idea has its own **Move** icon (borderless, with Edit and Remove) that opens a dialog with the same form and moves that item alone. A list that can be filtered keeps its header for one row. $1 If the selection empties, the
 form closes. Text on the actions that open the form, icons for the tick and the cross. Select all means the items
 showing, after the filter, on this page; when there are more pages, "Select all N" offers the rest of the filtered
 list. Selection clears when the filter or the page changes, so what an action touches is always what is on screen.
@@ -599,16 +598,16 @@ menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#nav
 | Level                | You are choosing…                            | The menu lists                                                                                                                                                             | Settings (a gear button)                                                                |
 | -------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Home                 | which **publication** to work on             | Publications                                                                                                                                                               | Beside your name in the menu foot                                                       |
-| Publication          | what to gather                               | **01 Scan** (recent posts), **02 Read** (the reading list), **03 Note**                                                                                                    | Beside the publication's name, in the menu and on its landing page                      |
+| Publication          | what to gather                               | **01 Scan** (recent posts), **02 Read** (the articles), **03 Note**                                                                                                        | Beside the publication's name, in the menu and on its landing page                      |
 | Account              | which **setting** to change                  | **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account** (plain links, no numbers; way up "← All publications") | The gear in the menu foot, current across the whole group                               |
 | Publication settings | which **setting** of a publication to change | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only; plain links, no numbers; way up "← {publication}")  | The gear beside the menu's "Publication settings" label, current across the whole group |
-| Idea                 | how to develop it                            | **01 Research** (the AI research tool), **02 Read** (the idea's own reading list), **03 Note**, **04 Refine** (brainstorm), **05 Draft**                                   | Beside the idea's name, in the menu and on its landing page                             |
+| Idea                 | how to develop it                            | **01 Research** (the AI research tool), **02 Read** (the idea's own articles), **03 Note**, **04 Refine** (brainstorm), **05 Draft**                                       | Beside the idea's name, in the menu and on its landing page                             |
 
 **Home with a publication.** Top to bottom; a section with nothing to show isn't drawn and leaves no gap: **Drafts to review**,
-**Quick add**, **Keep writing**, then the publications. (Quick add and Keep writing sit together at the top of a publication's and an idea's landing page too, Quick add first; Quick add there is the same panel, with the place fixed and so no picker; on an idea's it has no New idea tab. **A reading item's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add to reading list says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is three tabs (**New idea**, **Add a note**, **Add to reading list**) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
+**Quick add**, **Keep writing**, then the publications. (Quick add and Keep writing sit together at the top of a publication's and an idea's landing page too, Quick add first; Quick add there is the same panel, with the place fixed and so no picker; on an idea's it has no New idea tab. **An article's page** uses it too, for taking notes from that item: Add a note comes first, with the quotation tick; Add article says which item it added and links to it; New idea comes last, on a publication's item only.) _Quick add_ is "Add:" then three tabs (**Idea**, **Note**, **Article**; a screen reader hears New idea, Add a note, Add article) with no visible title (the section and the tab list are still named "Quick add" for a screen reader), each showing one small form. **New idea**
 is showing on arrival, every time, so there is always a form and no Cancel. A publication picker
 sits inside the form that is showing, above its field, and only when there is more than one; it starts at the publication last worked in (saved in `localStorage` when a
-publication page opens or one is chosen here), else the one with the first draft to keep writing, else the first. A note or reading item goes to the publication's own list, never
+publication page opens or one is chosen here), else the one with the first draft to keep writing, else the first. A note or article goes to the publication's own list, never
 into an idea, and the form says where it went and stays open for the next. _Keep writing_ lists the drafts the person edits that are active
 (`GET /api/drafts/active`): saved in the last 30 days, or with a review in progress, or with comments they haven't resolved,
 those with unresolved comments first. It starts with three; **Show more** adds three below them and moves focus to the first new
@@ -667,8 +666,8 @@ The principles (they are the point of the pattern; keep them when you add a page
    **Show more…** / **Show less** button that appears only when text is hidden; an invitation to add one when empty); each section is a `LandingSection`: the step's number
    (from the same list as the menu) and title, with a light rule above to set it apart, and its "See all" and quick
    actions on the right of the heading. An idea's page is titled with the idea's name (the publication above it, as a way
-   up), has Quick add (Add a note, Add to reading list: no New idea, and they go to the idea) and summarises Research (the box to ask the AI, which waits for
-   its button, and a link to the research so far), Read (the unread reading list, as on a publication's page), Notes (shown by the same `NoteCard` as the Note step), Refine (the AI's latest message and a box to
+   up), has Quick add (Add a note, Add article: no New idea, and they go to the idea) and summarises Research (the box to ask the AI, which waits for
+   its button, and a link to the research so far), Read (the unread articles, as on a publication's page), Notes (shown by the same `NoteCard` as the Note step), Refine (the AI's latest message and a box to
    reply, or **Refine with your AI** with a line on what is sent) and Draft (its drafts, and **New draft**).
 9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above
    a step's title, are links to it (current on the landing page itself, where the title is not a link).

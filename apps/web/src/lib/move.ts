@@ -36,7 +36,7 @@ const targetOf = (v: MoveRequest): MoveTarget =>
   v.toPublicationId ? { ideaId: v.to, publicationId: v.toPublicationId } : { ideaId: v.to }
 
 /**
- * Moving reading items (and, later, notes) between the publication's own lists and its ideas, saying what happened
+ * Moving articles (and, later, notes) between the publication's own lists and its ideas, saying what happened
  * and, where it can, offering to put it back. Everything that shows a list is refreshed afterwards.
  */
 export function useMove(publicationId: () => string) {
@@ -102,8 +102,8 @@ export function useMove(publicationId: () => string) {
     onSuccess: (result, v) => {
       const note = result.copied
         ? result.copied === 1
-          ? ` The page copied to ${v.toName} stays on its reading list.`
-          : ` The ${result.copied} pages copied to ${v.toName} stay on its reading list.`
+          ? ` The page copied to ${v.toName} stays in its articles.`
+          : ` The ${result.copied} pages copied to ${v.toName} stay in its articles.`
         : ''
       outcome.value = {
         text: moveSummary(result, v.toName),
@@ -131,7 +131,7 @@ export const OTHER_PUBLICATION = '__other'
  * Where to move to: the publication's own list (when moving from an idea), one of the other ideas, a new idea named
  * in the writer's own words, or, for someone with more than one publication, somewhere in another of theirs (a
  * publication first, then its own list, one of its ideas or a new idea). `publicationName` is how the publication's
- * own list is called in the message ("the publication's reading list", "the publication's notes"). Returned reactive,
+ * own list is called in the message ("the publication's articles", "the publication's notes"). Returned reactive,
  * so it can be handed to `MoveTo` and read in templates without `.value`.
  */
 export function useMoveDestination(
@@ -161,7 +161,7 @@ export function useMoveDestination(
   )
   /** The choice within the destination publication, wherever that is. */
   const choice = computed(() => (crossing.value ? otherDestination.value : destination.value))
-  /** The other publication's own list, worded like the current one's ("“Poems”’s reading list"). */
+  /** The other publication's own list, worded like the current one's ("“Poems”’s articles"). */
   const otherListLabel = computed(() =>
     publicationName.replace(/^the publication’s/i, `“${otherPublication.value?.name ?? ''}”’s`),
   )

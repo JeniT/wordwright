@@ -27,7 +27,7 @@ describe('what a note is, without saying who took it', () => {
     expect(originPhrase('reading', source)).toBe('From')
   })
 
-  it('still says reading when the page has been removed from the reading list', () => {
+  it('still says reading when the page has been removed from the articles', () => {
     expect(originPhrase('reading', null)).toBe('From reading')
   })
 })

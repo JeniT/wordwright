@@ -37,14 +37,14 @@ test('adds an idea, a note and something to read from Home, then continues a dra
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Added to Garden notes’s notes.')).toBeVisible()
 
-  await page.getByRole('tab', { name: 'Add to reading list' }).click()
+  await page.getByRole('tab', { name: 'Add article' }).click()
   await page.getByLabel('Web address').fill('https://example.com/pruning')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await expect(
-    page.getByText('Added “Fake title for example.com” to Garden notes’s reading list.'),
+    page.getByText('Added “Fake title for example.com” to Garden notes’s articles.'),
   ).toBeVisible()
 
-  // The confirmation links to the new item, which is on the publication's own reading list.
+  // The confirmation links to the new item, which is on the publication's own articles.
   await page.getByRole('link', { name: 'Open “Fake title for example.com”' }).click()
   await expect(
     page.getByRole('heading', { level: 1, name: 'Fake title for example.com' }),
@@ -150,4 +150,20 @@ test('role chips on shared publications are accessible in light, dark and on a p
   await noViolations(page, 'dark')
   await page.setViewportSize({ width: 390, height: 800 })
   await noViolations(page, 'phone')
+})
+
+test('Quick add reads “Add: Idea · Note · Article” on one line on a phone', async ({ page }) => {
+  await signUpWithPublication(page)
+  await page.setViewportSize({ width: 390, height: 800 })
+  const quick = page.getByRole('region', { name: 'Quick add' })
+  await expect(quick.getByText('Add:')).toBeVisible()
+  const boxes = await Promise.all(
+    [
+      quick.getByText('Add:'),
+      ...['New idea', 'Add a note', 'Add article'].map((name) => quick.getByRole('tab', { name })),
+    ].map((l) => l.boundingBox()),
+  )
+  const tops = boxes.map((b) => Math.round(b!.y + b!.height / 2))
+  expect(new Set(tops).size, 'the label and all three tabs share a line').toBe(1)
+  expect(boxes[3]!.x + boxes[3]!.width).toBeLessThanOrEqual(390)
 })

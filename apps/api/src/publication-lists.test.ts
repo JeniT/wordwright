@@ -49,7 +49,7 @@ async function start(feeds?: FakeFeedFetcher) {
   }
 }
 
-describe('the publication’s own reading list', () => {
+describe('the publication’s own articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   beforeEach(async () => {
     s = await start()
@@ -186,7 +186,7 @@ describe('the publication’s own notes', () => {
     expect((await s.noteList()).map((n) => n.text)).toEqual(['C', 'A', 'B'])
   })
 
-  it('takes notes from an item of the publication’s reading list, which then counts as read', async () => {
+  it('takes notes from an item of the publication’s articles, which then counts as read', async () => {
     const [item] = await (await s.ada.post(s.reading(), { url: 'https://a.example/post' })).json()
     const note = await add('Said this', { readingItemId: item.id })
     expect(note).toMatchObject({ readingItemId: item.id })
@@ -203,7 +203,7 @@ describe('the publication’s own notes', () => {
     ).json()
     const res = await s.ada.post(s.notes(), { text: 'x', readingItemId: withItem.links[0].id })
     expect(res.status).toBe(400)
-    expect((await res.json()).error).toContain("isn't on this publication's reading list")
+    expect((await res.json()).error).toContain("isn't in this publication's articles")
     expect((await s.ada.post(s.notes(), { text: 'x', quote: true })).status).toBe(400)
   })
 
@@ -238,7 +238,7 @@ describe('the publication’s own notes', () => {
   })
 })
 
-describe('moving reading items', () => {
+describe('moving articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   const move = (ids: string[], ideaId: string | null) =>
     s.ada.post(`${s.api}/move/reading`, { ids, to: { ideaId } })
@@ -476,7 +476,7 @@ describe('moving notes', () => {
     expect((await s.noteList()).map((n) => n.text)).toEqual(['Stays'])
   })
 
-  it('copies the source into the idea’s reading list (read state, authors and why kept) and leaves the original', async () => {
+  it('copies the source into the idea’s articles (read state, authors and why kept) and leaves the original', async () => {
     const idea = await s.newIdea()
     s.ctx.store.reading.add(
       s.publication,
@@ -786,7 +786,7 @@ describe('moving between publications', () => {
   })
 })
 
-describe('items dropping off the publication’s reading list after a month', () => {
+describe('items dropping off the publication’s articles after a month', () => {
   let s: Awaited<ReturnType<typeof start>>
   const DAY = 86_400_000
   const start0 = new Date('2026-05-01T12:00:00Z').getTime()
@@ -850,7 +850,7 @@ describe('items dropping off the publication’s reading list after a month', ()
     expect((await s.noteList())[0]!.readingItemId).toBe(item.id)
   })
 
-  it('does not touch an idea’s reading list or notes', async () => {
+  it('does not touch an idea’s articles or notes', async () => {
     const idea = await s.newIdea()
     await s.ada.post(s.ideaLinks(idea), { url: 'https://idea.example/' })
     await s.ada.post(s.ideaNotes(idea), { text: 'An idea note' })

@@ -75,7 +75,7 @@
   --ctl-h: 2.25rem; /* button height (was 2.75rem) */
   --ctl-h-sm: 2rem; /* small and icon buttons (was 2.25rem) */
   --draft-size: 1rem; /* draft text (was 1.125rem) */
-  --pane-size: 0.9375rem; /* main text of notes, reading items and comments beside the draft (was 1rem) */
+  --pane-size: 0.9375rem; /* main text of notes, articles and comments beside the draft (was 1rem) */
 }
 
 @layer base {

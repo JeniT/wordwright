@@ -33,7 +33,7 @@ async function openResearchTool(page: Page) {
 const noViolations = async (page: Page, what: string) =>
   expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
 
-test('researches areas, reviews what was found, and adds pages to the reading list', async ({
+test('researches areas, reviews what was found, and adds pages to the articles', async ({
   page,
 }) => {
   await setUp(page)
@@ -59,7 +59,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   await expect(run).toContainText('We couldn’t confirm the title of this page')
   await expect(run).toContainText('We couldn’t find a website at this address')
   await expect(
-    run.getByRole('button', { name: 'Add to reading list: A report that has moved' }),
+    run.getByRole('button', { name: 'Add article: A report that has moved' }),
   ).toBeDisabled()
   await noViolations(page, 'research page with a run to review')
   const menu = page.getByRole('navigation', { name: 'Idea' })
@@ -67,7 +67,7 @@ test('researches areas, reviews what was found, and adds pages to the reading li
     menu.getByRole('link', { name: /Research/ }).getByText('3 suggestions'),
   ).toBeVisible() // the menu counts what is still to decide
 
-  // Nothing is on the reading list until pages are added.
+  // Nothing is in the articles until pages are added.
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
@@ -76,11 +76,11 @@ test('researches areas, reviews what was found, and adds pages to the reading li
 
   // One click each: added pages get a green tick, ignored ones a red cross, and both drop to the end of the list.
   await run
-    .getByRole('button', { name: 'Add to reading list: Fake title for research.example.org' })
+    .getByRole('button', { name: 'Add article: Fake title for research.example.org' })
     .click()
-  await expect(run.getByRole('img', { name: 'In the reading list' })).toHaveCount(1)
-  await run.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }).click()
-  await expect(run.getByRole('img', { name: 'In the reading list' })).toHaveCount(2)
+  await expect(run.getByRole('img', { name: 'In the articles' })).toHaveCount(1)
+  await run.getByRole('button', { name: 'Add article: Notes on channel migration' }).click()
+  await expect(run.getByRole('img', { name: 'In the articles' })).toHaveCount(2)
   await run.getByRole('button', { name: 'Ignore: A report that has moved' }).click()
   await expect(run.getByRole('img', { name: 'Ignored' })).toHaveCount(1)
   await expect(run.getByText('Highlighted text is your AI’s reason')).toHaveCount(0) // all decided
@@ -89,14 +89,14 @@ test('researches areas, reviews what was found, and adds pages to the reading li
   ).toBeVisible()
   await noViolations(page, 'research page with decided pages')
 
-  // The reading list has them, marked, with the AI's reason kept.
+  // The articles has them, marked, with the AI's reason kept.
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for research.example.org', exact: true }),
   ).toBeVisible()
   await expect(page.getByText('Found by research')).toHaveCount(0)
   await expect(page.getByText('Highlighted text is your AI’s reason')).toBeVisible()
-  await noViolations(page, 'reading list with researched items')
+  await noViolations(page, 'articles with researched items')
 })
 
 test('several areas can be researched around one idea, and the research is kept', async ({
@@ -121,10 +121,8 @@ test('several areas can be researched around one idea, and the research is kept'
   const first = page.getByRole('article', { name: 'First area' })
   await first.getByRole('button', { name: 'Ignore: Fake title for research.example.org' }).click()
   await expect(first.getByRole('img', { name: 'Ignored' })).toBeVisible()
-  await first
-    .getByRole('button', { name: 'Add to reading list: Notes on channel migration' })
-    .click()
-  await expect(first.getByRole('img', { name: 'In the reading list' })).toBeVisible()
+  await first.getByRole('button', { name: 'Add article: Notes on channel migration' }).click()
+  await expect(first.getByRole('img', { name: 'In the articles' })).toBeVisible()
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Notes on channel migration', exact: true }),
@@ -132,10 +130,10 @@ test('several areas can be researched around one idea, and the research is kept'
   await goTo(page, 'Research')
   await earlier().click()
   await first
-    .getByRole('button', { name: 'Take off the reading list: Notes on channel migration' })
+    .getByRole('button', { name: 'Take off the articles: Notes on channel migration' })
     .click()
   await expect(
-    first.getByRole('button', { name: 'Add to reading list: Notes on channel migration' }),
+    first.getByRole('button', { name: 'Add article: Notes on channel migration' }),
   ).toBeVisible() // back to be decided
   await goTo(page, 'Read')
   await expect(

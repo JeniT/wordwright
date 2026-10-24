@@ -91,7 +91,7 @@ describe('moving ideas to another publication (#194)', () => {
       expect((await ideasIn(ada, dest)).map((i) => i.id).sort()).toEqual([idea, other].sort())
     })
 
-    it('stops a reading item coming from a feed it no longer belongs to', async () => {
+    it('stops an article coming from a feed it no longer belongs to', async () => {
       const feed = ctx.store.sources.add(source, 'https://news.example/feed')
       const item = ctx.store.reading.add(
         source,

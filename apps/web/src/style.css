@@ -200,7 +200,7 @@
   text-decoration: underline;
 }
 
-/* Prototype: main text of notes, reading items and comments beside the draft. The smaller secondary lines use rem
+/* Prototype: main text of notes, articles and comments beside the draft. The smaller secondary lines use rem
    utilities (text-xs, text-sm), so they keep their own sizes. */
 #draft-notes {
   font-size: var(--pane-size);

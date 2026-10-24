@@ -430,7 +430,7 @@ describe('account deletion', () => {
     expect(store.publications.getImage(second.id)).toBeDefined()
     store.publications.setSiteIcon(second.id, { contentType: 'image/png', data: PNG_BYTES })
     expect(store.publications.getSiteIcon(second.id)).toBeDefined()
-    // The publication's own reading list and notes, and the log of a move, go with it too.
+    // The publication's own articles and notes, and the log of a move, go with it too.
     const own = store.reading.add(second.id, null, { url: 'https://own.example/', title: 'Own' })
     store.notes.append(second.id, null, null, 'A publication-level note', 'reading', own.id)
     store.moves.record(second.id, user.id, 'batch', {

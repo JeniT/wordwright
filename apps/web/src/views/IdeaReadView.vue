@@ -4,7 +4,7 @@ import NextStep from '../components/NextStep.vue'
 import ReadingList from '../components/ReadingList.vue'
 import StepHeading from '../components/StepHeading.vue'
 
-/** Step 02 of an idea: its own reading list, to read from and take notes while reading (the publication's is separate). */
+/** Step 02 of an idea: its own articles, to read from and take notes while reading (the publication's is separate). */
 defineProps<{ publicationId: string; id: string }>()
 </script>
 

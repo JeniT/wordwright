@@ -11,7 +11,7 @@ A place where the writer publishes: a Substack, a blog, a magazine, a newsletter
 _Avoid_: Profile, venue, workspace, account
 
 **Idea**:
-The writer's one-sentence statement of what they want to write about. Its name is the core idea, in their own words; it holds the idea's own notes, reading items, brainstorming and drafts, and belongs to a publication.
+The writer's one-sentence statement of what they want to write about. Its name is the core idea, in their own words; it holds the idea's own notes, articles, brainstorming and drafts, and belongs to a publication.
 _Avoid_: Topic, title (that is a draft's), subject
 
 **Description**:
@@ -19,25 +19,25 @@ The writer's own account of a publication: what it is, who reads it and what kin
 _Avoid_: Bio, about, brief
 
 **Feed**:
-An RSS or Atom link that a publication looks through for recent posts, which the writer can add to the reading list. Any member can add or remove them, in the publication's settings; they are listed alphabetically, with no order of priority.
+An RSS or Atom link that a publication looks through for recent posts, which the writer can add to its list of articles. Any member can add or remove them, in the publication's settings; they are listed alphabetically, with no order of priority.
 _Avoid_: Source (in what people see), subscription
 
-**Reading list**:
-The publication's own list of reading items, from which notes are taken. Posts from its feeds are added to it; ideas have their own.
+**Articles**:
+The publication's own list of articles, from which notes are taken. Posts from its feeds are added to it; ideas have their own.
 _Avoid_: Library, bookmarks
 
 **Note**:
-A piece of the writer's thinking kept for later: their own words, or words from a reading item. It belongs to an idea, or to the publication before there is one, and can be tagged, moved and put into a draft.
+A piece of the writer's thinking kept for later: their own words, or words from an article. It belongs to an idea, or to the publication before there is one, and can be tagged, moved and put into a draft.
 A note that began as a suggestion in a Refine conversation is described as “From conversation with your AI” to the person it is credited to (whose message prompted it, or who last edited it) and “… their AI” to anyone else.
 _Avoid_: Snippet, highlight
 
 **Quotation**:
-A note marked as someone else's exact words. It is kept word for word, so it cannot be edited, and goes into a draft as a quotation with a link to its reading item. Pasting into an empty note ticks it, and says so.
+A note marked as someone else's exact words. It is kept word for word, so it cannot be edited, and goes into a draft as a quotation with a link to its article. Pasting into an empty note ticks it, and says so.
 _Avoid_: Direct quote, quote (in what people see)
 
-**Reading item**:
-One post or article on a reading list, shown by its title, with whether it has been read and its tags. Its title opens its own page, where notes are taken from it; the host name beneath the title opens the article itself. On the publication's list it is also _kept_ (stays on the list for ever) or not (it goes a month after it was added); items the writer adds are kept from the start. Notes taken from it mark it read. The action of putting one on the list is called “Add to reading list” wherever it appears.
-_Avoid_: Link, source, bookmark, Add item, Add something to read (in what people see)
+**Article**:
+One post, video, podcast or other piece to read, watch or listen to, on a list of articles, shown by its title, with whether it has been read and its tags. Its title opens its own page, where notes are taken from it; the host name beneath the title opens it. On the publication's list it is also _kept_ (stays on the list for ever) or not (it goes a month after it was added); items the writer adds are kept from the start. Notes taken from it mark it read. The action of putting one on the list is called “Add article” wherever it appears. (Whatever its form, it is an article; “reading” was dropped because not everything is read.)
+_Avoid_: Reading item, reading list item, link, bookmark, Add item, Add something to read, source (that is the website it came from) (in what people see)
 
 **Publication picture**:
 The image an owner chooses for a publication. Always shown in preference to the site icon.
@@ -147,7 +147,7 @@ A reviewer or non-editor member sees only the draft and their own comments, neve
 ### Home
 
 **Quick add**:
-The tabbed small forms for adding a new idea, a note or something to read without first opening the place it goes. On a writer's landing page they add to the chosen publication's own list, never inside an idea; on a publication's landing page, to that publication; on an idea's, a note or reading item to that idea (there is no New idea tab). On a reading item's own page they take a note from that item (first tab), add another reading item, or (on a publication's item only) start an idea.
+The tabbed small forms for adding a new idea, a note or something to read without first opening the place it goes. On a writer's landing page they add to the chosen publication's own list, never inside an idea; on a publication's landing page, to that publication; on an idea's, a note or article to that idea (there is no New idea tab). On an article's own page they take a note from that article (first tab), add another article, or (on a publication's article only) start an idea.
 _Avoid_: Capture, inbox (that word is the issue tracker's)
 
 **Keep writing**:
@@ -159,8 +159,8 @@ A draft its editor has marked as published, optionally with a link to the publis
 _Avoid_: Done, archived
 
 **Move**:
-Taking notes, reading items or whole ideas from where they are to another place: another idea, a publication's own list, or (rarely) another publication the person belongs to. An idea moves with all its drafts, notes and links, and the people who could see it only through its old publication stop seeing it.
-_Avoid_: Transfer, copy (a moved note's source reading item is copied, but the note itself is moved)
+Taking notes, articles or whole ideas from where they are to another place: another idea, a publication's own list, or (rarely) another publication the person belongs to. An idea moves with all its drafts, notes and links, and the people who could see it only through its old publication stop seeing it.
+_Avoid_: Transfer, copy (a moved note's source article is copied, but the note itself is moved)
 
 ### Rephrasing
 
@@ -182,7 +182,7 @@ _Avoid_: Suggestion (that implies replacement text pushed at the writer), propos
 ### Steps
 
 **Scan**:
-The first step of a publication (01): the recent posts from its feeds, listed for the writer to look over and to add to the reading list or ignore. Nothing is searched; the name is what you do with the list.
+The first step of a publication (01): the recent posts from its feeds, listed for the writer to look over and to add to its list of articles or ignore. Nothing is searched; the name is what you do with the list.
 _Avoid_: Search (what the step was called until #307), Feeds (the settings page where the feeds are chosen), Inspiration
 
 **Note**:
@@ -196,7 +196,7 @@ The fourth step of an idea (04): a conversation in which your AI asks questions 
 _Avoid_: Brainstorm, coach, chat (in what people see)
 
 **Conversation**:
-One run of Refine on an idea, with your AI speaking first. An idea holds up to five, shown one at a time (newest first, paged like research), each titled (your AI names it on its first reply, marked as your AI’s until someone renames it; the date it began and who began it stand in until there is one). Everyone in the publication sees them all, any member can delete one, and each has only its own messages and suggestions. Your AI is sent the idea again with a message whenever its title, notes or reading list have changed since the last one in that conversation.
+One run of Refine on an idea, with your AI speaking first. An idea holds up to five, shown one at a time (newest first, paged like research), each titled (your AI names it on its first reply, marked as your AI’s until someone renames it; the date it began and who began it stand in until there is one). Everyone in the publication sees them all, any member can delete one, and each has only its own messages and suggestions. Your AI is sent the idea again with a message whenever its title, notes or articles have changed since the last one in that conversation.
 _Avoid_: Thread, session, chat (in what people see)
 
 **Suggestion**:

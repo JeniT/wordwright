@@ -123,7 +123,7 @@ export class ReadingStore {
     return row && { link: this.withTags([toLink(row)])[0]!, ideaId: row.idea_id as string | null }
   }
 
-  /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
+  /** Adds an item to the articles; `origin` says what put it there (the writer, unless a feature did). */
   add(
     publicationId: string,
     ideaId: string | null,

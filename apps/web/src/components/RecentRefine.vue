@@ -86,8 +86,8 @@ const start = () => router.push({ ...refineRoute.value, query: { start: '1' } })
       <div v-if="empty" class="flex flex-wrap items-center gap-x-4 gap-y-2">
         <AiButton class="btn btn-primary" @click="start">Refine with your AI</AiButton>
         <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
-          This will send this publication’s description and this idea’s title and notes and reading
-          list to your AI. It will not send your drafts.
+          This will send this publication’s description and this idea’s title and notes and articles
+          to your AI. It will not send your drafts.
         </p>
       </div>
       <QueryState

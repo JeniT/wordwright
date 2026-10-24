@@ -5,7 +5,7 @@ import PublicationGate from '../components/PublicationGate.vue'
 import ReadingList from '../components/ReadingList.vue'
 import StepHeading from '../components/StepHeading.vue'
 
-/** Step 02 of a publication: the reading list, to read from and take notes while reading. */
+/** Step 02 of a publication: the articles, to read from and take notes while reading. */
 defineProps<{ publicationId: string }>()
 </script>
 
@@ -13,8 +13,8 @@ defineProps<{ publicationId: string }>()
   <PublicationGate :publication-id="publicationId">
     <StepHeading>Read</StepHeading>
     <Explain tutorial-only class="mb-6">
-      This is your reading list. Click through to take notes on these articles. You can also tag
-      reading list items and move them to an idea’s reading list.
+      These are your articles. Click through to take notes on them. You can also tag them and move
+      them to an idea’s articles.
     </Explain>
     <ReadingList :publication-id="publicationId" :idea-id="null" />
     <NextStep

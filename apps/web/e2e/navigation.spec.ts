@@ -131,11 +131,11 @@ test('leads through a publication and an idea step by step, without ever locking
 
   // A note can be jotted down there, and shows at once, and on the Note step too.
   await page.getByRole('tab', { name: 'Add a note' }).click()
-  await page.getByLabel('Note', { exact: true }).fill('Prune in late winter.')
+  await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Prune in late winter.')
   await page.getByRole('button', { name: 'Add note' }).click()
   const recent = page.getByRole('list', { name: 'Recent notes' })
   await expect(recent.getByText('Prune in late winter.')).toBeVisible()
-  await expect(page.getByLabel('Note', { exact: true })).toHaveValue('')
+  await expect(page.getByRole('textbox', { name: 'Note', exact: true })).toHaveValue('')
   await page
     .getByRole('region', { name: 'Note' })
     .getByRole('link', { name: /See all notes/ })
@@ -164,10 +164,10 @@ test('leads through a publication and an idea step by step, without ever locking
       .getByRole('region', { name: 'Refine' })
       .getByRole('button', { name: 'Refine with your AI' }),
   ).toBeVisible()
-  // The reading list is its own step, summarised on the landing page; the research box is always there.
-  await page.getByRole('link', { name: 'See the reading list' }).click()
+  // The list of articles is its own step, summarised on the landing page; the research box is always there.
+  await page.getByRole('link', { name: 'See the articles' }).click()
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await expect(page.getByRole('link', { name: /^Fake title for / })).toBeVisible()
   await page.getByRole('banner').getByRole('link', { name: 'What pruning teaches' }).click()
   await expect(page.getByRole('list', { name: 'To read' })).toBeVisible()
@@ -176,7 +176,7 @@ test('leads through a publication and an idea step by step, without ever locking
 
   // A note can be jotted down there, then a draft started and opened.
   await page.getByRole('tab', { name: 'Add a note' }).click()
-  await page.getByLabel('Note', { exact: true }).fill('Cut above a bud.')
+  await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Cut above a bud.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(
     page.getByRole('list', { name: 'Recent notes' }).getByText('Cut above a bud.'),
@@ -296,7 +296,7 @@ test('the menu folds away at every width while reading a source, so two windows 
   await signUpWithIdea(page)
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()
   const menuButton = page.getByRole('button', { name: 'Menu', exact: true })
   await expect(menuButton).toBeVisible() // on a laptop, where it is otherwise hidden
@@ -341,7 +341,7 @@ test('on a page read beside another window the menu is a drawer at laptop width 
   await signUpWithIdea(page)
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()
   const menuButton = page.getByRole('button', { name: 'Menu', exact: true })
   await menuButton.click()

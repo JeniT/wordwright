@@ -20,12 +20,12 @@ const download = useMutation({
     <div class="mb-3 flex items-start gap-2">
       <p class="text-sm text-ink-soft">
         <template v-if="publication"
-          >This publication as a zip of Markdown files: its ideas, notes, reading lists and drafts.
-          Comments, reviews and brainstorming aren't included.</template
+          >This publication as a zip of Markdown files: its ideas, notes, lists of articles and
+          drafts. Comments, reviews and brainstorming aren't included.</template
         >
         <template v-else
-          >A zip of Markdown files: your ideas, notes, reading lists and drafts. Comments, reviews,
-          brainstorming and keys aren't included.</template
+          >A zip of Markdown files: your ideas, notes, lists of articles and drafts. Comments,
+          reviews, brainstorming and keys aren't included.</template
         >
       </p>
       <InfoTip label="About what you get"

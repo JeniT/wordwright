@@ -9,7 +9,7 @@ import { ReadingChecker } from './services/reading-suggestions'
 import { register, saveKey, setup, type TestClient } from './test-helpers'
 
 /**
- * The coach suggesting a page for the reading list (#38). It can only pass on an address a person wrote in the
+ * The coach suggesting a page for the articles (#38). It can only pass on an address a person wrote in the
  * conversation; the address is then checked, shown with what was found, and added only when a person accepts it.
  * (Research, which searches the web, is tested in research.test.ts.)
  */
@@ -178,7 +178,7 @@ describe('the coach suggesting a page', () => {
     expect(ctx.pageFetcher.calls).toEqual(kept)
   })
 
-  it('goes on the reading list as "suggested in brainstorming" under the page’s real title when accepted', async () => {
+  it('goes in the articles as "suggested in brainstorming" under the page’s real title when accepted', async () => {
     const { ctx, ada, say, proposals, readingList, decide } = await world()
     ctx.setChat(() => ({ toolCalls: [suggest(OK)] }))
     await say(ada)
@@ -284,7 +284,7 @@ describe('which addresses the coach may pass on', () => {
       call === 1 ? { text: 'Go on.' } : { toolCalls: [suggest(OK)] },
     )
     await say(ada, 'See www.example.org/river-physics/, which I liked.')
-    await say(ada, 'Could you suggest that for my reading list?')
+    await say(ada, 'Could you suggest that for my articles?')
     expect((await proposals()).map((p) => p.input.url)).toEqual([OK])
   })
 

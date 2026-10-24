@@ -366,8 +366,8 @@ const busyNote = computed(() =>
           one to start another.
         </p>
         <p v-else class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
-          This will send this publication’s description and this idea’s title and notes and reading
-          list to your AI. It will not send your drafts.
+          This will send this publication’s description and this idea’s title and notes and articles
+          to your AI. It will not send your drafts.
         </p>
       </div>
 
@@ -461,7 +461,7 @@ const busyNote = computed(() =>
           </AiButton>
           <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
             This will send this publication’s description and this idea’s title and notes and
-            reading list to your AI. It will not send your drafts.
+            articles to your AI. It will not send your drafts.
           </p>
         </div>
         <AiProblemAlert
@@ -595,8 +595,8 @@ const busyNote = computed(() =>
                 Stop
               </button>
               <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
-                This will re-send up-to-date information about the idea’s title, notes and reading
-                list to your AI. It will not send your drafts.
+                This will re-send up-to-date information about the idea’s title, notes and articles
+                to your AI. It will not send your drafts.
               </p>
             </div>
           </form>

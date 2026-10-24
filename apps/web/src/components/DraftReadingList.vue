@@ -31,10 +31,10 @@ const shown = computed(() => props.readingList.filter((item) => matchesTags(item
 
 <template>
   <section aria-labelledby="draft-reading-heading">
-    <!-- The tab beside the draft already says "Reading list"; the heading is for screen readers moving by headings. -->
-    <h2 id="draft-reading-heading" class="sr-only">Reading list</h2>
+    <!-- The tab beside the draft already says "Articles"; the heading is for screen readers moving by headings. -->
+    <h2 id="draft-reading-heading" class="sr-only">Articles</h2>
     <p v-if="!readingList.length" class="text-ink-soft">
-      Nothing on the reading list yet.
+      Nothing in the articles yet.
       <RouterLink
         :to="{ name: 'idea-read', params: { publicationId, id: ideaId } }"
         class="underline"
@@ -46,7 +46,7 @@ const shown = computed(() => props.readingList.filter((item) => matchesTags(item
     <p v-if="readingList.length && !shown.length" class="text-ink-soft">
       No items have all these tags.
     </p>
-    <ul v-else-if="shown.length" aria-label="Reading items to add" class="space-y-2">
+    <ul v-else-if="shown.length" aria-label="Articles to add" class="space-y-2">
       <DraftCard
         v-for="item in shown"
         :key="item.id"

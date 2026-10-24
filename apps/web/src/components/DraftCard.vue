@@ -4,7 +4,7 @@ import { vTip } from '../lib/tip'
 import Icon from './Icon.vue'
 
 /**
- * One note or reading item in the drafting side bar. The same card for both, so they look and behave alike: a left
+ * One note or article in the drafting side bar. The same card for both, so they look and behave alike: a left
  * rail whose top is the icon button that inserts it at the cursor and whose grip you drag onto the draft (the grip is
  * wide screens only; a phone cannot drag, and the draft is behind the drawer), then whatever the item shows. The rail
  * is the shared `list-rail`, but drag only: this is a source to take from, not a list to put in order. Someone who may not change the draft sees neither

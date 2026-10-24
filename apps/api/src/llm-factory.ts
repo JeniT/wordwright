@@ -28,7 +28,7 @@ export const realResearchFactory: ResearchFactory = ({ provider, apiKey, model }
 /**
  * The pretend coach of development and e2e runs. It opens with a question, and makes each kind of
  * thing when the person asks for it in so many words ("suggest a title", "note that ...",
- * "suggest a new idea", a pasted address "for my reading list"), so every part of the brainstorm page can be tried without a real AI.
+ * "suggest a new idea", a pasted address "for my articles"), so every part of the brainstorm page can be tried without a real AI.
  */
 export const fakeBrainstormReply: FakeChatResponder = (request) => {
   const last = request.messages.at(-1)
@@ -46,9 +46,9 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
     }
   }
   const address = said.match(/https?:\/\/[^\s]+/)
-  if (address && /reading list/i.test(said)) {
+  if (address && /articles/i.test(said)) {
     return {
-      text: 'I have not read it, but here it is for your reading list.',
+      text: 'I have not read it, but here it is for your articles.',
       toolCalls: [
         {
           name: 'suggest_reading',

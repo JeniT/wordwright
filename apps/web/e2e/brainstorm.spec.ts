@@ -201,7 +201,7 @@ test('your AI passes on an address the writer gave: it is checked, shown beside 
   await startBrainstorming(page)
   await expect(page.getByText(/What is the one claim this piece makes/)).toBeVisible()
 
-  await say(page, 'Please add https://example.org/river-physics to my reading list')
+  await say(page, 'Please add https://example.org/river-physics to my articles')
   const card = page.getByRole('region', { name: 'Suggested reading' })
   await expect(card.getByRole('link', { name: /Fake title for example.org/ })).toBeVisible()
   await expect(card).toContainText('example.org')
@@ -210,15 +210,15 @@ test('your AI passes on an address the writer gave: it is checked, shown beside 
   await expect(page.getByText('Highlighted text is what your AI suggested.')).toBeVisible()
   await noViolations(page, 'brainstorm page with a reading suggestion')
 
-  // Nothing is on the reading list until it is accepted.
+  // Nothing is in the articles until it is accepted.
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toHaveCount(0)
 
   await goTo(page, 'Refine')
-  await page.getByRole('button', { name: /^Add to reading list:/ }).click()
-  await expect(page.getByText(/in the reading list/)).toBeVisible()
+  await page.getByRole('button', { name: /^Add article:/ }).click()
+  await expect(page.getByText(/in the articles/)).toBeVisible()
   await goTo(page, 'Read')
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),

@@ -96,7 +96,7 @@ describe('exporting writing as Markdown', () => {
     expect(readme).not.toMatch(/As an owner/)
   })
 
-  it('lists notes and reading items with credits, in the publication, idea and loose lists', async () => {
+  it('lists notes and articles with credits, in the publication, idea and loose lists', async () => {
     const { files } = await download(bob, `${base()}/export`)
     const idea = only(files, /ideas\/why-rivers-meander\.md$/)
     expect(idea).toMatch(/- Erosion is faster on the outside bend\. \(Ada, \d+ \w+ \d{4}\)/)

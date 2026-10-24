@@ -304,7 +304,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   const mark = page.getByRole('button', { name: 'Comment 1', exact: true })
   await expect(mark).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
-  for (const tab of ['Notes', 'Reading list', 'Comments']) {
+  for (const tab of ['Notes', 'Articles', 'Comments']) {
     await side.getByRole('tab', { name: new RegExp(`^${tab}`) }).click()
     expect((await new AxeBuilder({ page }).analyze()).violations, tab).toEqual([])
   }

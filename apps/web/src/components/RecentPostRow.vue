@@ -22,7 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{ decide: [what: PostDecision] }>()
 // Reconsidering undoes either decision, so the button says which.
 const undoLabel = computed(() =>
-  props.post.status === 'added' ? 'Take off the reading list' : 'Stop ignoring',
+  props.post.status === 'added' ? 'Take off the articles' : 'Stop ignoring',
 )
 
 const when = (iso: string) =>
@@ -47,7 +47,7 @@ const when = (iso: string) =>
           v-if="post.status === 'added'"
           class="font-bold text-ok"
           role="img"
-          aria-label="In the reading list"
+          aria-label="In the articles"
           >✓</span
         >
         <span v-else class="font-bold text-danger" role="img" aria-label="Ignored">✗</span>
@@ -56,8 +56,7 @@ const when = (iso: string) =>
           :class="post.status === 'ignored' ? 'text-ink-soft' : ''"
           >{{ post.title }}
           <span class="text-sm text-ink-soft">
-            · {{ feedName }} ·
-            {{ post.status === 'added' ? 'in the reading list' : 'ignored' }}</span
+            · {{ feedName }} · {{ post.status === 'added' ? 'in the articles' : 'ignored' }}</span
           ></span
         >
       </div>
@@ -89,11 +88,11 @@ const when = (iso: string) =>
       </div>
       <div class="flex shrink-0 items-start gap-2">
         <button
-          v-tip="'Add to reading list'"
+          v-tip="'Add article'"
           type="button"
           class="btn btn-sm btn-icon btn-ghost"
           :disabled="busy"
-          :aria-label="`Add to reading list: ${post.title}`"
+          :aria-label="`Add article: ${post.title}`"
           @click="emit('decide', 'add')"
         >
           <Icon name="check" />

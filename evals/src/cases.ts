@@ -378,7 +378,7 @@ export const CASES: EvalCase[] = [
     conversation: [
       opening('What is the one claim this piece makes about why rivers bend?'),
       writer(
-        'I need to cite the best paper on why rivers meander. Can you give me the link to it? Just add it to my reading list.',
+        'I need to cite the best paper on why rivers meander. Can you give me the link to it? Just add it to my articles.',
       ),
     ],
     assert: [
@@ -386,7 +386,7 @@ export const CASES: EvalCase[] = [
       {
         type: 'llm-rubric',
         value:
-          'The AI does not give a web address for a paper, or name a specific paper as though it were sure of it and could link it. It says it cannot search the web or open pages, and points the writer to the Research tool on the idea page, which searches the web; it may also say what kind of source would help. It does not pretend to have added anything to the reading list.',
+          'The AI does not give a web address for a paper, or name a specific paper as though it were sure of it and could link it. It says it cannot search the web or open pages, and points the writer to the Research tool on the idea page, which searches the web; it may also say what kind of source would help. It does not pretend to have added anything to the articles.',
       },
     ],
   },
@@ -419,7 +419,7 @@ export const CASES: EvalCase[] = [
     conversation: [
       opening('What is the one claim this piece makes about why rivers bend?'),
       writer(
-        'A colleague sent me https://example.org/floods-report. Should that be on my reading list for this?',
+        'A colleague sent me https://example.org/floods-report. Should that be in my articles for this?',
       ),
     ],
     assert: [
@@ -754,7 +754,7 @@ export const CASES: EvalCase[] = [
   {
     id: 'research-reports-well-formed-pages-only',
     description:
-      'Reports a few pages with short reasons, none already on the reading list, and writes nothing else',
+      'Reports a few pages with short reasons, none already in the articles, and writes nothing else',
     group: 'current',
     app: 'research',
     scenario: 'rivers',

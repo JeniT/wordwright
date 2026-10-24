@@ -68,7 +68,7 @@ export interface ResearchDeps {
 
 /**
  * Research is kept apart from brainstorming: the writer describes the areas to look into, one request goes to their
- * own researcher, and what it finds is saved as a list to review. Nothing joins the reading list until a person
+ * own researcher, and what it finds is saved as a list to review. Nothing joins the articles until a person
  * adds it. Design: docs/decisions.md (T38).
  */
 export class ResearchService {
@@ -139,7 +139,7 @@ export class ResearchService {
   }
 
   /**
-   * Adds pages to the reading list, marked as found by research and keeping the AI's reason. All or
+   * Adds pages to the articles, marked as found by research and keeping the AI's reason. All or
    * nothing: a page that can't be added (it doesn't exist, it is already listed, or the list is full) refuses
    * the lot, with the reason, so the person can choose again.
    */
@@ -176,7 +176,7 @@ export class ResearchService {
           )
         }
         if (listed.has(linkKey(item.url))) {
-          throw fail(409, `“${name}” is already on the reading list. Choose another.`)
+          throw fail(409, `“${name}” is already in the articles. Choose another.`)
         }
         listed.add(linkKey(item.url))
       }
@@ -208,7 +208,7 @@ export class ResearchService {
 
   /**
    * Takes a decision back: an ignored page is waiting again, and an added page is too, and is taken off the
-   * reading list (unless the writer has already removed it). Notes taken from the item stay, as when any item
+   * articles (unless the writer has already removed it). Notes taken from the item stay, as when any item
    * is removed, but lose their link to it.
    */
   reconsider(idea: Idea, runId: string, itemIds: string[]): ResearchRun {
@@ -224,7 +224,7 @@ export class ResearchService {
     return this.find(idea, runId)
   }
 
-  /** Forgets a run. Pages already added to the reading list stay there. */
+  /** Forgets a run. Pages already added to the articles stay there. */
   delete(idea: Idea, runId: string) {
     if (!this.d.store.research.delete(idea.id, runId)) throw fail(404, 'Not found')
   }

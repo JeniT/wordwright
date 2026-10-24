@@ -66,7 +66,7 @@ const showResearch = () =>
       level="idea"
       step="research"
       title="Research"
-      explain="Describe the areas you want to look into and your AI will suggest some pages worth reading. You can choose whether to add them to your reading list."
+      explain="Describe the areas you want to look into and your AI will suggest some pages worth reading. You can choose whether to add them to your articles."
     >
       <template #actions>
         <RouterLink
@@ -87,7 +87,7 @@ const showResearch = () =>
     <RecentReading
       :publication-id="publicationId"
       :idea-id="id"
-      explain="Read the articles on this idea’s reading list and take notes on them. Items can be tagged and moved to another idea."
+      explain="Read the articles on this idea’s list and take notes on them. Items can be tagged and moved to another idea."
       :to="{ name: 'idea-read', params: { publicationId, id } }"
     />
 

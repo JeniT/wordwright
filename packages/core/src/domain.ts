@@ -371,7 +371,7 @@ export const RECENT_DAYS_MAX = 365
 export const MAX_RECENT_POSTS = 100
 
 /**
- * What has become of a post: `added` to a reading list (here, or by hand: it is on one), `ignored` by someone in
+ * What has become of a post: `added` to a list of articles (here, or by hand: it is on one), `ignored` by someone in
  * the publication, or still `new`. A decision is shared by everyone in the publication and is about the post's address, so
  * the same post carried by two feeds is one decision.
  */
@@ -401,7 +401,7 @@ export const RecentPostsSchema = z.object({
 })
 export type RecentPosts = z.infer<typeof RecentPostsSchema>
 
-/** Posts, named by their feed and their id in it, to add to the reading list, ignore or reconsider. */
+/** Posts, named by their feed and their id in it, to add article, ignore or reconsider. */
 export const MAX_POSTS_PER_DECISION = 20
 export const PostRefsSchema = z.object({
   posts: z
@@ -642,7 +642,7 @@ export const IdeaNotesSchema = z
     `Use ${IDEA_NOTES_MAX.toLocaleString('en')} characters or fewer in the notes`,
   )
 
-/** Who or what put an item on a reading list: the writer, the AI (brainstorm, research), or a post from the publication's feeds. */
+/** Who or what put an item on a list of articles: the writer, the AI (brainstorm, research), or a post from the publication's feeds. */
 export const ReadingOriginSchema = z.enum([
   'entered',
   'brainstorm',
@@ -669,7 +669,7 @@ export const AuthorNamesSchema = z
   )
   .max(MAX_AUTHORS, `A piece can have up to ${MAX_AUTHORS} authors`)
 
-/** An item on an idea's reading list (the stored shape is still called a link). */
+/** An item on an idea's articles (the stored shape is still called a link). */
 export const IdeaLinkSchema = z.object({
   id: z.string(),
   url: z.string(),
@@ -686,7 +686,7 @@ export const IdeaLinkSchema = z.object({
    */
   why: z.string().nullish(),
   /**
-   * Only on the publication's own reading list: the writer asked for it to be kept. Items that aren't are dropped a
+   * Only on the publication's own articles: the writer asked for it to be kept. Items that aren't are dropped a
    * month after they were put there (`PUBLICATION_READING_DAYS`). Always false on an idea's list, which isn't swept.
    */
   kept: z.boolean().optional(),
@@ -697,7 +697,7 @@ export const IdeaLinkSchema = z.object({
 })
 export type IdeaLink = z.infer<typeof IdeaLinkSchema>
 
-/** How long an item stays on the publication's own reading list unless it is kept. */
+/** How long an item stays on the publication's own articles unless it is kept. */
 export const PUBLICATION_READING_DAYS = 30
 
 /**
@@ -756,7 +756,7 @@ export type IdeaNote = z.infer<typeof IdeaNoteSchema>
 /** Notes made through the API are the person's own; other origins are set by the server. */
 export const IdeaNoteInputSchema = z.object({
   text: NoteTextSchema,
-  /** A note taken while reading this item of the idea's reading list: it then has origin `reading`. */
+  /** A note taken while reading this item of the idea's articles: it then has origin `reading`. */
   readingItemId: z.string().optional(),
   /** The text is a direct quotation from that item, kept word for word. It needs `readingItemId`. */
   quote: z.boolean().optional(),
@@ -765,7 +765,7 @@ export const IdeaNoteInputSchema = z.object({
 })
 
 /**
- * Where to move reading items or notes: to an idea, or (`null`) to the publication itself, where they are kept before
+ * Where to move articles or notes: to an idea, or (`null`) to the publication itself, where they are kept before
  * there is an idea. The publication is the one the request is made to, unless `publicationId` names another that the
  * person belongs to.
  */
@@ -791,11 +791,11 @@ export type MoveNotesInput = z.infer<typeof MoveNotesInputSchema>
 export const MoveResultSchema = z.object({
   /** Groups everything this one move did; kept in the log of moves. */
   batchId: z.string(),
-  /** Reading items that were moved (they left where they were). */
+  /** Articles that were moved (they left where they were). */
   readingItems: z.number(),
   /** Of those, how many joined an item with the same address that was already there. */
   merged: z.number(),
-  /** Reading items copied to where notes went, so that a note keeps the source it was taken from. */
+  /** Articles copied to where notes went, so that a note keeps the source it was taken from. */
   copied: z.number(),
   notes: z.number(),
 })
@@ -858,7 +858,7 @@ export const NoteTagsInputSchema = z.object({
 export type NoteTagsInput = z.infer<typeof NoteTagsInputSchema>
 
 /**
- * A bulk change of tags on several notes (or reading items) at once: add some, take some away. Tags are tidied and
+ * A bulk change of tags on several notes (or articles) at once: add some, take some away. Tags are tidied and
  * compared ignoring case, as on one note. At least one of `add` and `remove` must name something.
  */
 const TagListSchema = z.array(NoteTagSchema).transform((tags) => {
@@ -1082,7 +1082,7 @@ export const CreateIdeaToolInputSchema = z.object({
   ),
 })
 
-/** What the AI sends when it suggests a page for the idea's reading list. Untrusted: always validate. */
+/** What the AI sends when it suggests a page for the idea's articles. Untrusted: always validate. */
 export const SuggestReadingToolInputSchema = z.object({
   url: WebAddressSchema.describe('The web address of the page'),
   title: z
@@ -1260,7 +1260,7 @@ export type BrainstormEvent = z.infer<typeof BrainstormEventSchema>
 
 // ---- Research: a search for reading, kept apart from brainstorming ---------------------------------------
 // The writer describes the areas to look into; the app writes the rest of the prompt. Each run is saved with what it
-// found, as a list to review: the writer ticks the pages to add to the reading list. See docs/decisions.md (T38).
+// found, as a list to review: the writer ticks the pages to add article. See docs/decisions.md (T38).
 
 /** The most pages one run brings back. */
 export const MAX_RESEARCH_RESULTS = 8
@@ -1305,7 +1305,7 @@ export const ResearchRunSchema = z.object({
 export type ResearchRun = z.infer<typeof ResearchRunSchema>
 export const ResearchRunsSchema = z.array(ResearchRunSchema)
 
-/** The pages of one run to add to the reading list, or to set aside. */
+/** The pages of one run to add article, or to set aside. */
 export const ResearchItemIdsSchema = z.object({
   itemIds: z.array(z.string()).min(1, 'Tick at least one page').max(MAX_RESEARCH_RESULTS),
 })

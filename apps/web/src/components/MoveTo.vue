@@ -4,7 +4,7 @@ import { errorMessage } from '../lib/api'
 import { NEW_IDEA, OTHER_PUBLICATION, type useMoveDestination } from '../lib/move'
 
 /**
- * The picker for where to move reading items or notes: the publication's own list (when moving from an idea), the other
+ * The picker for where to move articles or notes: the publication's own list (when moving from an idea), the other
  * ideas, or a new idea named in the writer's own words. Someone with more than one publication can also choose "Another
  * publication…", which asks which, then where in it. `dest` comes from `useMoveDestination`.
  */
@@ -12,7 +12,7 @@ const props = defineProps<{
   dest: ReturnType<typeof useMoveDestination>
   /** The inside of an idea moves to the publication; the publication's own list has nowhere "up" to go. */
   fromIdea: boolean
-  /** "The publication’s reading list" or "The publication’s notes". */
+  /** "The publication’s articles" or "The publication’s notes". */
   publicationLabel: string
   /** Whether a new idea can be made to move into. */
   allowNew: boolean

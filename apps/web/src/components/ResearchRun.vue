@@ -15,7 +15,7 @@ const queryClient = useQueryClient()
 const headingId = useId()
 const notice = ref('') // said out loud to screen readers after each decision
 
-// Whatever happens, the run and the reading list may have changed (someone else may have decided first).
+// Whatever happens, the run and the articles may have changed (someone else may have decided first).
 const refresh = () => invalidateRoots(queryClient, 'research', 'idea', 'ideas')
 const add = useMutation({
   mutationFn: (id: string) =>
@@ -39,7 +39,7 @@ function decide(item: ResearchItem, what: PostDecision) {
     onSuccess: () => {
       notice.value =
         what === 'add'
-          ? `Added “${title}” to the reading list.`
+          ? `Added “${title}” to the articles.`
           : what === 'ignore'
             ? `Ignored “${title}”.`
             : `“${title}” is back in the list.`
@@ -88,7 +88,7 @@ const waiting = computed(() => props.run.items.some((i) => i.status === 'suggest
         {{ run.areas }}
       </h3>
       <HoldButton
-        tip="Press and hold, or tap twice, to delete this research. Pages you added to the reading list stay there."
+        tip="Press and hold, or tap twice, to delete this research. Pages you added to the articles stay there."
         verb="Delete"
         class="btn btn-sm btn-icon btn-ghost btn-ghost-danger shrink-0"
         :aria-label="`Delete this research: ${run.areas}`"

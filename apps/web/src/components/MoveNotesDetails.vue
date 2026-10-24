@@ -14,7 +14,7 @@ const bringAll = defineModel<boolean>('bringAll', { required: true })
 <template>
   <p v-if="sourceCount" class="meta mt-1" data-move-says>
     {{ sourceCount === 1 ? 'The page' : `The ${sourceCount} pages` }}
-    they were taken from will be copied to its reading list.
+    they were taken from will be copied to its articles.
   </p>
   <div v-if="othersCount" class="mt-1">
     <SwitchField

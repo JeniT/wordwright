@@ -177,7 +177,7 @@ onBeforeRouteLeave(async () => {
 const editor = useTemplateRef<InstanceType<typeof RichEditor>>('editor')
 const markdownMode = useMarkdownMode()
 
-// ---- citing something on the reading list: only once it has been read
+// ---- citing something in the articles: only once it has been read
 type UnreadChoice = 'read-now' | 'mark' | 'cancel'
 const unreadAsk = ref<{ item: IdeaLink; settle: (choice: UnreadChoice) => void } | null>(null)
 const citeNotice = ref('')
@@ -265,7 +265,7 @@ async function insertNote(note: IdeaNote, at?: number) {
   }
 }
 
-// A note or reading item dragged from the side bar and dropped on the text goes in exactly as the button would put
+// A note or article dragged from the side bar and dropped on the text goes in exactly as the button would put
 // it, at the drop point.
 const dropNotice = ref('')
 const dropProblem = ref('')
@@ -302,7 +302,7 @@ async function onReadingDrop(itemId: string, position: number | undefined) {
   dropNotice.value = ''
   dropProblem.value = ''
   if (!item) {
-    dropProblem.value = "We couldn't find that reading item. Reload the page and try again."
+    dropProblem.value = "We couldn't find that article. Reload the page and try again."
     return
   }
   dropping = true
@@ -401,7 +401,7 @@ async function useRephrased(result: { text: string; offered: string | null; aim:
   }
 }
 
-// Beside the draft on a wide screen the side area (notes, reading list, comments) is always there; on a phone it
+// Beside the draft on a wide screen the side area (notes, articles, comments) is always there; on a phone it
 // slides in over the page.
 // Reviews is there for whoever can load reviews (the editor and the owners), even before any are sent: it is where
 // the editor sends one.
@@ -412,7 +412,7 @@ const { isOwner } = useHandover(
 const canSeeReviews = computed(() => canEdit.value || isOwner.value)
 const sideTabs = computed(() => [
   { id: 'notes', label: 'Notes' },
-  { id: 'reading', label: 'Reading list' },
+  { id: 'reading', label: 'Articles' },
   { id: 'comments', label: 'Comments' },
   ...(canSeeReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
 ])
@@ -820,7 +820,7 @@ async function requestCritique() {
         :class="notesOpen ? '' : 'max-lg:invisible max-lg:translate-x-full'"
         @keydown.esc="notesOpen && closeNotes()"
       >
-        <h2 id="draft-side-heading" class="sr-only">Notes, reading list, comments and reviews</h2>
+        <h2 id="draft-side-heading" class="sr-only">Notes, articles, comments and reviews</h2>
         <button
           ref="closeButton"
           type="button"
@@ -915,8 +915,8 @@ async function requestCritique() {
         @alternate="unreadAsk?.settle('read-now')"
         @cancel="unreadAsk?.settle('cancel')"
       >
-        “{{ unreadAsk?.item.title || unreadAsk?.item.url }}” is on your reading list but isn’t
-        marked as read. Read it before you link to it, or mark it as read if you already have.
+        “{{ unreadAsk?.item.title || unreadAsk?.item.url }}” is in your articles but isn’t marked as
+        read. Read it before you link to it, or mark it as read if you already have.
       </ConfirmDialog>
     </div>
   </QueryState>

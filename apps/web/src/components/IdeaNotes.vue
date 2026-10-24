@@ -32,7 +32,7 @@ const session = useSessionStore()
 const props = defineProps<{
   publicationId: string
   ideaId: string | null
-  /** The reading list they were taken from (the idea's, or the publication's), to name each note's source. */
+  /** The articles they were taken from (the idea's, or the publication's), to name each note's source. */
   readingList: readonly IdeaLink[]
   /** The page's own title already names the notes: keep this heading for screen readers only. */
   quietHeading?: boolean
@@ -443,7 +443,7 @@ const label = (note: IdeaNote) => {
         No notes yet. Add one above<template v-if="!ideaId"
           >, or take notes from an item in
           <RouterLink :to="{ name: 'read', params: { publicationId } }" class="link"
-            >your reading list</RouterLink
+            >your articles</RouterLink
           ></template
         >.
       </p>

@@ -51,7 +51,7 @@ const emit = defineEmits<{
   rephrase: []
   /** A note from the side bar was dropped on the text, at this position in it (unknown when it can't be worked out). */
   noteDrop: [noteId: string, position: number | undefined]
-  /** A reading item from the side bar was dropped on the text: its link goes in at this position (as for a note). */
+  /** An article from the side bar was dropped on the text: its link goes in at this position (as for a note). */
   readingDrop: [itemId: string, position: number | undefined]
 }>()
 

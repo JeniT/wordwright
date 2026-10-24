@@ -14,7 +14,7 @@ import TextField from './TextField.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 import { vTip } from '../lib/tip'
 
-/** An item of an idea's reading list, or (no `ideaId`) of the publication's own. */
+/** An item of an idea's articles, or (no `ideaId`) of the publication's own. */
 const props = defineProps<{
   publicationId: string
   ideaId: string | null

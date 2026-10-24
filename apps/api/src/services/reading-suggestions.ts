@@ -32,7 +32,7 @@ export interface ReadingCandidate {
 }
 
 /**
- * Turns what an AI suggested for the reading list into suggestions fit to show a person. Everything is
+ * Turns what an AI suggested for the articles into suggestions fit to show a person. Everything is
  * untrusted: an item must have a plausible web address, a reason, and not already be on the list (or repeat
  * another in the same batch). Then each address is looked at by the SSRF-safe page fetcher, so that the
  * writer is shown whether it resolves and what the page is really called, and failures are flagged before

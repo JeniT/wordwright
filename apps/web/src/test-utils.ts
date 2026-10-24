@@ -67,7 +67,7 @@ export const server = setupServer(
   http.get('*/api/drafts/active', () => HttpResponse.json({ drafts: [], hasMore: false })),
   // No feeds yet, and so no recent posts.
   http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json([])),
-  // An empty reading list (the publication's, which the Read page shows).
+  // An empty articles (the publication's, which the Read page shows).
   http.get('*/api/publications/:publicationId/reading', () => HttpResponse.json([])),
   // No notes yet, on the publication or on any idea.
   http.get('*/api/publications/:publicationId/notes', () => HttpResponse.json([])),
@@ -142,7 +142,7 @@ export const llmSettings = (hasKey: boolean) =>
     }),
   )
 
-/** A publication's reading list sources, for pages (like publication settings) that list them. */
+/** A publication's articles sources, for pages (like publication settings) that list them. */
 export const sourcesList = (sources: { id: string; url: string }[] = []) =>
   http.get('*/api/publications/:publicationId/sources', () => HttpResponse.json(sources))
 

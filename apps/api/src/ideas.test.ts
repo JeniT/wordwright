@@ -59,7 +59,7 @@ describe('ideas', () => {
     expect((await ada.patch(`${ideas()}/${idea.id}`, { name: '' })).status).toBe(400)
   })
 
-  describe('the reading list (links to things to read)', () => {
+  describe('the articles (links to things to read)', () => {
     let idea: { id: string }
     const links = () => `${ideas()}/${idea.id}/links`
     const read = async () => (await (await ada.get(`${ideas()}/${idea.id}`)).json()).links

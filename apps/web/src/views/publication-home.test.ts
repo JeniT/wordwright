@@ -301,10 +301,10 @@ describe('a publication’s landing page: search', () => {
     expect(row).toHaveTextContent('Bo Writer')
     expect(row).toHaveTextContent('The start of it')
     // Icon-only, so the names carry the meaning.
-    const add = within(row).getByRole('button', { name: 'Add to reading list: Post 1' })
+    const add = within(row).getByRole('button', { name: 'Add article: Post 1' })
     expect(add).toHaveTextContent('')
     add.focus()
-    expect(document.querySelector('[data-tip]')).toHaveTextContent('Add to reading list')
+    expect(document.querySelector('[data-tip]')).toHaveTextContent('Add article')
     const ignore = within(row).getByRole('button', { name: 'Ignore: Post 1' })
     ignore.focus()
     expect(document.querySelector('[data-tip]')).toHaveTextContent('Ignore')
@@ -352,17 +352,17 @@ describe('a publication’s landing page: search', () => {
       return state
     }
 
-    it('adds a post to the reading list from the landing page, and the next one waiting takes its place', async () => {
+    it('adds a post to the articles from the landing page, and the next one waiting takes its place', async () => {
       const state = fakeDecisions()
       await renderAt('/p/ada-substack')
       const list = await screen.findByRole('list', { name: 'Recent posts from your feeds' })
       await fireEvent.click(
-        await within(list).findByRole('button', { name: 'Add to reading list: Post 1' }),
+        await within(list).findByRole('button', { name: 'Add article: Post 1' }),
       )
       await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
       await waitFor(() => expect(within(list).queryByRole('link', { name: /Post 1/ })).toBeNull())
       expect(within(list).getByRole('link', { name: /Post 2/ })).toBeInTheDocument()
-      expect(screen.getByText('Added “Post 1” to the reading list.')).toBeInTheDocument()
+      expect(screen.getByText('Added “Post 1” to the articles.')).toBeInTheDocument()
     })
 
     it('ignores a post from the landing page', async () => {
@@ -459,7 +459,7 @@ describe('a publication’s landing page: read', () => {
   it('says when the list is empty', async () => {
     fakeHome()
     await renderAt('/p/ada-substack')
-    expect(await screen.findByText('Nothing on the reading list yet.')).toBeInTheDocument()
+    expect(await screen.findByText('Nothing in the articles yet.')).toBeInTheDocument()
   })
 
   it('shows the first five still to read, each leading to its reading page, and links to the list', async () => {
@@ -480,7 +480,7 @@ describe('a publication’s landing page: read', () => {
     ])
     expect(within(items[0]!).getByText('example.org')).toBeInTheDocument()
     expect(items[0]).toHaveAttribute('href', '/p/ada-substack/reading/l1')
-    expect(screen.getByRole('link', { name: /See the reading list/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /See the articles/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/read',
     )
@@ -494,7 +494,7 @@ describe('a publication’s landing page: read', () => {
       ),
     )
     await renderAt('/p/ada-substack')
-    expect(await screen.findByText(/couldn't load the reading list/)).toBeInTheDocument()
+    expect(await screen.findByText(/couldn't load the articles/)).toBeInTheDocument()
   })
 })
 
@@ -573,10 +573,10 @@ describe('a publication’s landing page: Quick add', () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     const quick = within(await screen.findByRole('region', { name: 'Quick add' }))
-    expect(quick.getAllByRole('tab').map((t) => t.textContent?.trim())).toEqual([
+    expect(quick.getAllByRole('tab').map((t) => t.getAttribute('aria-label'))).toEqual([
       'New idea',
       'Add a note',
-      'Add to reading list',
+      'Add article',
     ])
     expect(quick.getByRole('tab', { name: 'New idea' })).toHaveAttribute('aria-selected', 'true')
     expect(quick.queryByLabelText('Add to publication')).toBeNull()
@@ -586,7 +586,7 @@ describe('a publication’s landing page: Quick add', () => {
     const sent = fakeHome([note(1)])
     await renderAt('/p/ada-substack')
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
-    await fireEvent.update(screen.getByLabelText('Note'), 'A new thought')
+    await fireEvent.update(screen.getByRole('textbox', { name: 'Note' }), 'A new thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     await waitFor(() => expect(sent).toEqual(['A new thought']))
     expect(await screen.findByText(/Note added/)).toBeInTheDocument()
@@ -613,15 +613,15 @@ describe('a publication’s landing page: Quick add', () => {
       }),
     )
     await renderAt('/p/ada-substack')
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://bad.example')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     expect(await screen.findByText(/Enter a web address/)).toBeInTheDocument()
     expect(screen.getByLabelText('Web address')).toHaveValue('https://bad.example')
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     await waitFor(() => expect(added).toEqual(['https://example.org/new']))
-    expect(await screen.findByText(/Added to .+’s reading list\./)).toBeInTheDocument()
+    expect(await screen.findByText(/Added to .+’s articles\./)).toBeInTheDocument()
   })
 
   it('the sections below no longer carry forms of their own', async () => {
@@ -696,7 +696,7 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     ).toBeVisible()
     for (const text of [
       /First look for recent articles or news stories for inspiration/,
-      /Second, read the articles or news stories on this reading list/,
+      /Second, read the articles or news stories in this idea’s articles/,
       /Third, review, tag and arrange your notes/,
     ])
       expect(screen.getByText(text)).toBeVisible()

@@ -21,7 +21,7 @@ const props = withDefaults(
 )
 const emit = defineEmits<{ decide: [what: PostDecision] }>()
 
-/** A page that doesn't exist, or isn't public, can't go on the reading list. */
+/** A page that doesn't exist, or isn't public, can't go in the articles. */
 const unusable = computed(
   () => props.item.check === 'not-found' || props.item.check === 'not-public',
 )
@@ -35,7 +35,7 @@ const host = computed(() => {
 })
 // Reconsidering undoes either decision, so the button says which.
 const undoLabel = computed(() =>
-  props.item.status === 'added' ? 'Take off the reading list' : 'Stop ignoring',
+  props.item.status === 'added' ? 'Take off the articles' : 'Stop ignoring',
 )
 </script>
 
@@ -48,7 +48,7 @@ const undoLabel = computed(() =>
           v-if="item.status === 'added'"
           class="font-bold text-ok"
           role="img"
-          aria-label="In the reading list"
+          aria-label="In the articles"
           >✓</span
         >
         <span v-else class="font-bold text-danger" role="img" aria-label="Ignored">✗</span>
@@ -57,7 +57,7 @@ const undoLabel = computed(() =>
           :class="item.status === 'dismissed' ? 'text-ink-soft' : ''"
           >{{ name }}
           <span class="text-sm text-ink-soft">
-            · {{ host }} · {{ item.status === 'added' ? 'in the reading list' : 'ignored' }}</span
+            · {{ host }} · {{ item.status === 'added' ? 'in the articles' : 'ignored' }}</span
           ></span
         >
       </div>
@@ -112,11 +112,11 @@ const undoLabel = computed(() =>
       </div>
       <div class="flex shrink-0 items-start gap-2">
         <button
-          v-tip="'Add to reading list'"
+          v-tip="'Add article'"
           type="button"
           class="btn btn-sm btn-icon btn-ghost"
           :disabled="unusable || busy"
-          :aria-label="`Add to reading list: ${name}`"
+          :aria-label="`Add article: ${name}`"
           @click="emit('decide', 'add')"
         >
           <Icon name="check" />

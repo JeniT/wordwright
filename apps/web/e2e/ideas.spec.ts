@@ -64,14 +64,14 @@ test('captures an idea, and its first note is kept as a note', async ({ page }) 
   await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toBeVisible()
 })
 
-test('keeps a reading list for the idea: adds, ticks off, edits and checks links', async ({
+test('keeps a list of articles for the idea: adds, ticks off, edits and checks links', async ({
   page,
 }) => {
   await startIdea(page)
   await goTo(page, 'Read')
-  // The reading list. Text that isn't a web address is refused, in red under the field, and kept for fixing.
+  // The articles. Text that isn't a web address is refused, in red under the field, and kept for fixing.
   const address = page.getByLabel('Web address', { exact: true })
-  const add = page.getByRole('button', { name: 'Add to reading list' })
+  const add = page.getByRole('button', { name: 'Add article' })
   for (const bad of ['rubbish', 'not a web address']) {
     await address.fill(bad)
     await add.click()
@@ -198,11 +198,11 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
   // Notes: the one typed when the idea was created is a card; more can be added, edited, ordered and removed.
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Note', { exact: true }).fill(text)
+    await notes.getByRole('textbox', { name: 'Note', exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
-  await expect(notes.getByLabel('Note', { exact: true })).toHaveValue('')
+  await expect(notes.getByRole('textbox', { name: 'Note', exact: true })).toHaveValue('')
   await noViolations(page, 'idea page with notes')
 
   // A note added in the form goes to the top, so the last one added is first.
@@ -248,7 +248,7 @@ test('removes links and deletes an idea, which asks first', async ({ page }) => 
   const address = page.getByLabel('Web address', { exact: true })
   for (const link of ['example.org/meanders', 'example.net/other']) {
     await address.fill(link)
-    await page.getByRole('button', { name: 'Add to reading list' }).click()
+    await page.getByRole('button', { name: 'Add article' }).click()
     await expect(
       page.getByRole('link', {
         name: new RegExp(`^Fake title for ${link.split('/')[0]!.replace('.', '\\.')}`),
@@ -277,7 +277,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   await goTo(page, 'Note')
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
-  await notes.getByLabel('Note', { exact: true }).fill('Deposition on the inside.')
+  await notes.getByRole('textbox', { name: 'Note', exact: true }).fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(2)
 
@@ -343,7 +343,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   )
 })
 
-test('reads a reading-list item and takes notes from it, on a phone too', async ({ page }) => {
+test('reads an article and takes notes from it, on a phone too', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 })
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
@@ -352,7 +352,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toBeVisible()
@@ -363,13 +363,13 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   ).toBeVisible()
   await expect(page.getByText(/No notes from this page yet/)).toBeVisible()
 
-  // Another page found on this one goes straight onto the reading list, and can be read next.
-  await page.getByRole('tab', { name: 'Add to reading list' }).click()
+  // Another page found on this one goes straight onto the articles, and can be read next.
+  await page.getByRole('tab', { name: 'Add article' }).click()
   await page.getByLabel('Web address', { exact: true }).fill('rubbish')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await expect(page.getByText('Enter a web address, like https://example.com')).toBeVisible()
   await page.getByLabel('Web address', { exact: true }).fill('example.org/authored')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await expect(page.getByText(/Added “/)).toBeVisible()
   // The authors the page names are found along with its title.
   await page.getByRole('link', { name: /^Open “/ }).click()
@@ -392,7 +392,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await noViolations(page, 'reading page, no notes yet')
 
   // A quote, then the writer's own words: both are kept against the page and say where they came from.
-  const box = page.getByLabel('Note', { exact: true })
+  const box = page.getByRole('textbox', { name: 'Note', exact: true })
   await box.fill('“Meanders grow because the outside of a bend erodes faster.”')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(box).toHaveValue('')
@@ -413,7 +413,7 @@ test('reads a reading-list item and takes notes from it, on a phone too', async 
   await page.reload()
   await expect(page.getByRole('switch', { name: 'Read' })).toBeChecked()
   await expect(page.getByText('So the bend moves downstream.')).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
+  await page.getByRole('link', { name: '← Back to the articles' }).click()
   // (the first item; the second, added from the reading page, is unread; read items are hidden until shown)
   await expect(page.getByRole('switch', { name: 'Read: Meanders, explained' })).toHaveCount(0)
   await showReadItems(page)
@@ -439,7 +439,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await expect(page.getByRole('heading', { level: 1, name: 'Read' })).toBeVisible()
   for (const address of ['example.org/meanders', 'example.net/oxbows']) {
     await page.getByLabel('Web address', { exact: true }).fill(address)
-    await page.getByRole('button', { name: 'Add to reading list' }).click()
+    await page.getByRole('button', { name: 'Add article' }).click()
     await expect(
       page.getByRole('link', { name: new RegExp(`^Fake title for ${address.split('/')[0]}`) }),
     ).toBeVisible()
@@ -479,7 +479,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await page.getByRole('button', { name: 'Stop filtering by background' }).click()
   await page.reload()
   await expect(page.getByRole('list', { name: 'Tags' }).getByText('background')).toBeVisible()
-  await noViolations(page, 'reading list with tags')
+  await noViolations(page, 'articles with tags')
 
   // Several at once: tick both, add a tag to them together, then take the first tag off both.
   await page.getByRole('checkbox', { name: 'Select Fake title for example.org' }).check()
@@ -487,7 +487,7 @@ test('tags reading-list items, one or several at once, and filters the list by a
   await page.getByRole('button', { name: 'Tag…' }).click()
   await page.getByLabel('Add a tag', { exact: true }).fill('shared')
   await page.getByLabel('Add a tag', { exact: true }).press('Enter')
-  await noViolations(page, 'reading list with the tag panel open')
+  await noViolations(page, 'articles with the tag panel open')
   await page.getByRole('button', { name: 'Tag 2 items' }).click()
   await expect(page.getByLabel('Add a tag', { exact: true })).toHaveCount(0)
   await openFilters(page)
@@ -516,7 +516,7 @@ test('with tutorial mode on, a tip is written out on the page instead of behind 
   await goTo(page, 'Note')
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Note', { exact: true }).fill(text)
+    await notes.getByRole('textbox', { name: 'Note', exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -539,7 +539,7 @@ test('tags several notes at once, then takes a tag off them all again', async ({
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Note', { exact: true }).fill(text)
+    await notes.getByRole('textbox', { name: 'Note', exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -610,7 +610,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Note', { exact: true }).fill(text)
+    await notes.getByRole('textbox', { name: 'Note', exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -670,11 +670,11 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()
 
   // Pasting into the empty box ticks "This is a quotation" (and says why); typing does not.
-  const noteBox = page.getByLabel('Note', { exact: true })
+  const noteBox = page.getByRole('textbox', { name: 'Note', exact: true })
   const quoteBox = page.getByRole('checkbox', { name: /This is a quotation/ })
   await noteBox.fill('Typed words')
   await expect(quoteBox).not.toBeChecked()
@@ -694,7 +694,7 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await noViolations(page, 'reading page with a quotation')
 
   // On the idea's notes the quotation can be tagged or deleted, but not edited.
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
+  await page.getByRole('link', { name: '← Back to the articles' }).click()
   await goTo(page, 'Note')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.locator('blockquote')).toBeVisible()
@@ -718,14 +718,12 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await expect(body.locator('p').first()).toHaveText('My opening paragraph.')
 })
 
-test('a link to something on the reading list goes in only once it has been read', async ({
-  page,
-}) => {
+test('a link to something in the articles goes in only once it has been read', async ({ page }) => {
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   const title = /Fake title for example\.org/
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
@@ -736,7 +734,7 @@ test('a link to something on the reading list goes in only once it has been read
   await body.click()
   await body.pressSequentially('Rivers never run straight, as ')
   const side = page.getByRole('complementary')
-  await side.getByRole('tab', { name: 'Reading list' }).click()
+  await side.getByRole('tab', { name: 'Articles' }).click()
   const insert = side.getByRole('button', { name: title })
 
   // Unread: the writer is asked, and cancelling inserts nothing.
@@ -768,7 +766,7 @@ test('a link to something on the reading list goes in only once it has been read
   await expect(body.locator('p')).toHaveCount(1)
   await expect(side.getByText('Not marked as read')).toHaveCount(0)
 
-  // From now on it goes straight in, and the idea's reading list shows it ticked.
+  // From now on it goes straight in, and the idea's articles shows it ticked.
   await insert.click()
   await expect(dialog).toHaveCount(0)
   await expect(body).toContainText(/Fake title for example\.org.*Fake title for example\.org/)
@@ -785,7 +783,7 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
   for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
-    await notes.getByLabel('Note', { exact: true }).fill(text)
+    await notes.getByRole('textbox', { name: 'Note', exact: true }).fill(text)
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
@@ -827,12 +825,14 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/meanders')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await page.getByRole('link', { name: /^Fake title for / }).click()
-  await page.getByLabel('Note', { exact: true }).fill('Meanders grow because banks erode.')
+  await page
+    .getByRole('textbox', { name: 'Note', exact: true })
+    .fill('Meanders grow because banks erode.')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('Meanders grow because banks erode.')).toBeVisible()
-  await page.getByRole('link', { name: '← Back to the reading list' }).click()
+  await page.getByRole('link', { name: '← Back to the articles' }).click()
 
   await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
@@ -855,12 +855,12 @@ test('a note taken from a source goes into the draft with a real link to it, whi
   ).toHaveAttribute('href', 'https://example.org/meanders')
 })
 
-test('a reading item is added to the draft as a link that says who wrote it', async ({ page }) => {
+test('an article is added to the draft as a link that says who wrote it', async ({ page }) => {
   await signUpWithPublication(page)
   await createIdea(page, 'Why rivers meander')
   await goTo(page, 'Read')
   await page.getByLabel('Web address', { exact: true }).fill('example.org/authored')
-  await page.getByRole('button', { name: 'Add to reading list' }).click()
+  await page.getByRole('button', { name: 'Add article' }).click()
   await expect(page.getByText(/Added “/)).toBeVisible()
 
   await startDraft(page)
@@ -868,9 +868,9 @@ test('a reading item is added to the draft as a link that says who wrote it', as
   await body.click()
   await body.pressSequentially('Rivers never run straight, as ')
   const side = page.getByRole('complementary')
-  await side.getByRole('tab', { name: 'Reading list' }).click()
+  await side.getByRole('tab', { name: 'Articles' }).click()
   await expect(side.getByText('by Ada Author and Bo Writer')).toBeVisible()
-  await noViolations(page, 'drafting page, reading list')
+  await noViolations(page, 'drafting page, articles')
 
   await side.getByRole('button', { name: /^Insert at cursor: “.*”$/ }).click()
   await page
@@ -890,7 +890,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   await goTo(page, 'Note')
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   const notes = page.getByRole('region', { name: 'Notes' })
-  await notes.getByLabel('Note', { exact: true }).fill('Deposition on the inside.')
+  await notes.getByRole('textbox', { name: 'Note', exact: true }).fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
   await expect(notes.getByRole('listitem')).toHaveCount(2)
 

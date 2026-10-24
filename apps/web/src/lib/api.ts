@@ -329,7 +329,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     ) => get(IdeaSchema, 'PATCH', `${ideas(publicationId)}/${id}/links/${linkId}`, input),
     removeIdeaLink: (publicationId: string, id: string, linkId: string) =>
       act('DELETE', `${ideas(publicationId)}/${id}/links/${linkId}`),
-    // the publication's own reading list (items gathered before there is an idea); each answers with the list
+    // the publication's own articles (items gathered before there is an idea); each answers with the list
     listPublicationReading: (publicationId: string) =>
       get(IdeaLinkSchema.array(), 'GET', `/publications/${publicationId}/reading`),
     addPublicationLink: (publicationId: string, input: { url: string; title?: string }) =>
@@ -429,7 +429,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     listIdeaNotes: (publicationId: string, id: string | null) =>
       get(IdeaNoteSchema.array(), 'GET', notesPath(publicationId, id)),
     /**
-     * With `readingItemId` the note is taken from that item of the reading list (its origin is then `reading`);
+     * With `readingItemId` the note is taken from that item of the articles (its origin is then `reading`);
      * with `quote` too, it is a direct quotation, kept word for word.
      */
     addIdeaNote: (
@@ -461,7 +461,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
         `/publications/${publicationId}/sources/recent?days=${days}${refresh ? '&refresh=true' : ''}`,
       ),
     /**
-     * Moves reading items between the publication's own list (`ideaId` null) and its ideas, or into another
+     * Moves articles between the publication's own list (`ideaId` null) and its ideas, or into another
      * publication the person belongs to (`publicationId`), with the notes taken from them. All or nothing. Answers
      * with what moved.
      */
@@ -483,7 +483,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     moveNotes: (publicationId: string, ids: string[], to: MoveTarget) =>
       get(MoveResultSchema, 'POST', `/publications/${publicationId}/move/notes`, { ids, to }),
     /**
-     * Puts posts of the combined list on the publication's reading list (`add`), ignores them, or takes either back
+     * Puts posts of the combined list in the publication's articles (`add`), ignores them, or takes either back
      * (`reconsider`). Each post is named by its feed and its id in it. Answers with what each has become.
      */
     decideFeedPosts: (
@@ -621,7 +621,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
      */
     runResearch: (publicationId: string, ideaId: string, areas: string) =>
       get(ResearchRunSchema, 'POST', research(publicationId, ideaId), { areas }),
-    /** Adds the ticked pages of a run to the idea's reading list. */
+    /** Adds the ticked pages of a run to the idea's articles. */
     addResearchItem: (publicationId: string, ideaId: string, runId: string, itemId: string) =>
       get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/add`, {
         itemIds: [itemId],
@@ -630,7 +630,7 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
       get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/dismiss`, {
         itemIds: [itemId],
       }),
-    /** Takes a decision back: an ignored page is waiting again; an added one also leaves the reading list. */
+    /** Takes a decision back: an ignored page is waiting again; an added one also leaves the articles. */
     reconsiderResearchItem: (
       publicationId: string,
       ideaId: string,

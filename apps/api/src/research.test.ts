@@ -23,7 +23,7 @@ import {
 
 /**
  * Research (#38): the writer describes areas to look into, one request goes to their own researcher, and what it
- * finds is saved as a list to review. Nothing joins the reading list until pages are added.
+ * finds is saved as a list to review. Nothing joins the articles until pages are added.
  */
 
 const OK = 'https://example.org/river-physics'
@@ -339,7 +339,7 @@ describe('reviewing a run', () => {
     return { ...w, saved, id: (n: number) => saved.items[n]!.id }
   }
 
-  it('adds only the pages asked for to the reading list, marked as found by research and keeping the AI’s reason', async () => {
+  it('adds only the pages asked for to the articles, marked as found by research and keeping the AI’s reason', async () => {
     const { add, saved, id, readingList, list } = await ran()
     const res = await add(saved.id, [id(0), id(1)])
     expect(res.status).toBe(200)
@@ -389,7 +389,7 @@ describe('reviewing a run', () => {
     await ada.post(`${ideas}/${idea.id}/links`, { url: OK })
     const listed = await add(saved.id, [id(0)])
     expect(listed.status).toBe(409)
-    expect((await listed.json()).error).toMatch(/already on the reading list/)
+    expect((await listed.json()).error).toMatch(/already in the articles/)
 
     await add(saved.id, [id(1)])
     const again = await add(saved.id, [id(1)])
@@ -399,7 +399,7 @@ describe('reviewing a run', () => {
     expect((await add(saved.id, [id(2)])).status).toBe(409)
   })
 
-  it('refuses when the reading list would overflow', async () => {
+  it('refuses when the articles would overflow', async () => {
     const { add, saved, id, ctx, idea } = await ran()
     for (let i = 0; i < MAX_IDEA_LINKS - 1; i++) {
       ctx.store.ideas.addLink(idea.id, { url: `https://filler.example.org/${i}`, title: '' })
@@ -438,7 +438,7 @@ describe('reviewing a run', () => {
   describe('reconsidering', () => {
     const statuses = (r: ResearchRun) => r.items.map((i) => i.status)
 
-    it('takes an added page back off the reading list, and the page is waiting for a decision again', async () => {
+    it('takes an added page back off the articles, and the page is waiting for a decision again', async () => {
       const { add, reconsider, saved, id, readingList } = await ran()
       await add(saved.id, [id(0), id(1)])
       expect(await readingList()).toHaveLength(3)

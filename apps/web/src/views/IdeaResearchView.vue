@@ -66,7 +66,7 @@ const nav = computed(() => ({
       <StepHeading>Research</StepHeading>
       <Explain tutorial-only class="-mt-3 mb-6">
         Describe the areas you want to look into and your AI will suggest pages worth reading,
-        aiming for a range of opinions. Add the ones you want to your reading list.
+        aiming for a range of opinions. Add the ones you want to your articles.
       </Explain>
 
       <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" @done="showNewest" />

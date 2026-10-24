@@ -135,7 +135,7 @@ easy when it does (hosting is D3). The per-user cap on owned publications (25) b
 ## A publication's website icon is a guest, stored apart from the picture (#177)
 
 When a publication has a website and no picture of its own, the website's icon stands in. It is fetched with the same
-`FeedFetcher.fetchIcon` the reading list uses (SSRF-guarded; PNG, JPEG, GIF, WebP or ICO, never SVG, 256 KB), once
+`FeedFetcher.fetchIcon` the articles uses (SSRF-guarded; PNG, JPEG, GIF, WebP or ICO, never SVG, 256 KB), once
 when the publication is created or its website changes, and stored in `publication_site_icons`, apart from the owner's
 upload (1 MB, raster only, no ICO). Browsers get it from our own origin, so the other site never learns who looks.
 It is drawn as any other site's image (`PublicationImage kind="source"`, on a plate, contained), never cropped into the
@@ -483,10 +483,10 @@ a brainstorm reply in flight, which lasts at most the reply timeout. Unlike a us
 address, so there is no list of retired names and no daily cap, only the light per-person throttle other account
 changes share. Names are not unique, as before.
 
-## An idea's links are its reading list, and can be marked read (T31)
+## An idea's links are its articles, and can be marked read (T31)
 
-What the idea page called "Related work" is now the idea's **Reading list**, and the publication's RSS feeds are
-**Reading list sources**: the two are still separate tables and routes (an idea's items are links someone chose; the
+What the idea page called "Related work" is now the idea's **Articles**, and the publication's RSS feeds are
+**Articles sources**: the two are still separate tables and routes (an idea's items are links someone chose; the
 publication's sources are feeds that will later fill a publication-level list, T37). The code keeps its old names (`idea_links`, `IdeaLink`, `PublicationSources`): renaming them is churn for no gain.
 
 - **Read is the writer's say-so.** Each item has `read_at` (null until marked), set by a plain checkbox, because the
@@ -554,7 +554,7 @@ taken from this item, and a box to add another. A note added here is sent with `
   address left alone; a blank title asks the server to look the page up again (see "Who wrote a reading-list item").
 - **Taking a note from an item marks it read, and read items go last** (#80). The server marks the item read when a
   note is added with its `readingItemId` (the first read date is kept), because a note taken from a piece means it was
-  read, and the writer can still untick it. The reading list is ordered by the server, unread first, read last, each in
+  read, and the writer can still untick it. The list of articles is ordered by the server, unread first, read last, each in
   the order added, so every screen that lists it agrees and an item drops to the bottom the moment it is ticked.
 - **Pasting ticks "This is a direct quote"** (#76). Words pasted into an empty note box, or over all of what is in it,
   are almost always someone else's, and a quotation stored as the writer's own words is the mistake this page must
@@ -562,9 +562,9 @@ taken from this item, and a box to add another. A note added here is sent with `
   your own words"). Typing never ticks it, nor does a paste into the middle of the writer's own words, and a writer
   who unticks it is not overruled. It is a default the writer can see and undo, not a rule.
 - **Other pages found while reading** (#56) are added from the same page: a web-address box (the idea page's checks
-  and title lookup, same call) puts the page on the reading list as `entered`, the page stays open, and a link offers
+  and title lookup, same call) puts the page in the articles as `entered`, the page stays open, and a link offers
   to read the new item next. Nothing is read or noted for the writer.
-- **Publication level.** Only an idea has a reading list so far (the publication's feeds are sources, not items), so this page
+- **Publication level.** Only an idea has a list of articles so far (the publication's feeds are sources, not items), so this page
   is for an idea's items. A publication-level list (T37) would reuse the page.
 
 ## Flat tags on notes (T35)
@@ -579,8 +579,8 @@ order given, a tag unique per note ignoring case) and go with the note.
   "intro" are one tag; empty or over-long tags are refused with a message. Editing a note's tags is part of editing
   the note (a comma-separated field, with the tags already used on the idea offered as buttons); only what changed
   is sent.
-- **Filter, not a view.** A "Filter by tag" select narrows the notes list, the reading list and the drafting pane
-  (notes and reading items) to what carries **every** chosen tag (#333; before, one tag at a time, with an "All"
+- **Filter, not a view.** A "Filter by tag" select narrows the notes list, the articles and the drafting pane
+  (notes and articles) to what carries **every** chosen tag (#333; before, one tag at a time, with an "All"
   button that didn't say what was filtering). Each chosen tag stays as a removable chip ("Stop filtering by …"), so
   a filtered list never looks like the whole list. It appears only once something has a tag, and each list keeps its
   own choice. In the drafting pane it offers only tags on what can still be added. If the last item with a chosen tag
@@ -616,14 +616,14 @@ a quotation that has been "improved" is no longer a quotation.
 
 _The **Insert link** button below is now **Add to draft**, as on notes (#331)._
 
-The drafting drawer has a **Reading list** section: each item with whether it is read, and an **Insert link** button
+The drafting drawer has a **Articles** section: each item with whether it is read, and an **Insert link** button
 that puts a link to it in the line being written (inline, not a new paragraph) and saves the draft. If the item
 isn't marked read, the writer is asked first, in a modal dialog with three ways out: **Cancel** (focused, so a stray
 Enter does nothing; inserts nothing), **Read it now** and **Mark as read**.
 
 - **Notes from reading don't ask.** Adding a note taken from an item (its words come with a link to the item) does
   not ask whether the item is read, even if it isn't ticked: the note was taken on the item's own page, which is
-  the reading. Asking would be nagging. Only putting a bare link in from the Reading list asks.
+  the reading. Asking would be nagging. Only putting a bare link in from the Articles asks.
 - **Read it now opens a new tab**, on the item's reading page (T32), and inserts nothing. The writer's draft is
   untouched, so nothing can be lost by leaving; a line in the drawer says where to pick up. Once they have read it
   (and taken notes, which marks it read) they come back and add it again. Navigating away in the same tab was
@@ -713,9 +713,9 @@ each). They are what the page says, found with the title, and the writer can cor
 - Items saved before this have no authors (`'[]'`), and an unreadable stored value reads as none rather than breaking
   the page.
 
-## Research is its own tool, and the AI adds to the reading list only what a person ticks (T38)
+## Research is its own tool, and the AI adds to the articles only what a person ticks (T38)
 
-The research assistant's job is to put things on the reading list, not to write notes (this replaces the
+The research assistant's job is to put things in the articles, not to write notes (this replaces the
 reading-list part of T7). **Assistance-ladder rung:** none of 3–5. It points at pages for the writer to read and
 originates no text they could publish; the closest rungs are 1–2. Evidence is one of the things
 [responsible-ai.md](responsible-ai.md) says to protect, so the writer chooses the areas to look into (they write
@@ -727,16 +727,16 @@ a first version built research into the brainstorm conversation was set aside.
   _the areas to research_, however early the idea is (it may have no notes yet). The app writes the rest of the
   prompt (`prompts/research.md`). There is no dialogue, and any number of requests can be made for one idea, on
   different topics. Each is saved as a **run** (`idea_research`, with its pages in `idea_research_items`), shared with
-  the publication's members, and can be deleted (pages already added stay on the reading list).
+  the publication's members, and can be deleted (pages already added stay in the articles).
 - **A range of perspectives, unlabelled.** The prompt tells the researcher to look for sources that support the
   direction the writer seems to be taking _and_ ones that challenge or complicate it, best effort. It must not say
   which is which: a label could change how the writer reads the source, and they might not take a page seriously that
   they expect to disagree with. The eval `research-includes-other-points-of-view` checks both parts.
 - **Review before anything is added: one click each.** A run is a list; each page has **Add** and **Ignore**, and
-  nothing joins the reading list otherwise. (There are no checkboxes or bulk buttons: the owner preferred deciding
+  nothing joins the articles otherwise. (There are no checkboxes or bulk buttons: the owner preferred deciding
   page by page.) A decided page collapses to its title with a green tick (added) or a red cross (ignored) and a
   **Reconsider** button, which puts it back to undecided and expands it again. Reconsidering an _added_ page also
-  **removes it from the reading list** (the research item remembers the list item it made, `idea_research_items.link_id`;
+  **removes it from the articles** (the research item remembers the list item it made, `idea_research_items.link_id`;
   if the writer already removed it there is nothing more to do). Notes taken from the item stay, as when any item is
   removed, but lose their link to it. A page that can't be added can still be ignored. Adding refuses, with the reason,
   a page that doesn't exist, is already listed, or would overflow the list. Added items are marked `research`
@@ -756,7 +756,7 @@ a first version built research into the brainstorm conversation was set aside.
   SSRF-safe page fetcher that titles typed links looks at it. The page shows its real title beside the search's, any
   author the page names, and flags `no-title` (allowed, with a warning, listed under the search's title),
   `not-found` and `not-public` (can't be added: the checkbox is disabled and the API refuses). The result is stored
-  and not repeated on add (another request to someone's server); the reading list is looked at again then, in case the
+  and not repeated on add (another request to someone's server); the list of articles is looked at again then, in case the
   writer added the page themselves or it filled up.
 - **The coach may add only what the writer gave it.** The coach keeps a fourth tool, `suggest_reading` (a proposal, accepted
   or dismissed like its others), but the server discards any address the writer did not write in that conversation
@@ -767,7 +767,7 @@ a first version built research into the brainstorm conversation was set aside.
   per person remains because each search spends the writer's own money and makes the server look at several sites; a
   failed search stores nothing.
 - **What leaves the system.** To the writer's own provider (which does the searching): the areas, the idea's title and
-  notes, and the addresses already on the reading list (so they aren't repeated). Never a draft's text (tested). The
+  notes, and the addresses already in the articles (so they aren't repeated). Never a draft's text (tested). The
   page says so beside the form.
 - **Migration.** `idea_proposals` was rebuilt to allow the new tool and hold the address check (a CHECK can't be
   widened in place; nothing refers to the table); new tables `idea_research` and `idea_research_items`; `idea_links`
@@ -775,7 +775,7 @@ a first version built research into the brainstorm conversation was set aside.
 - **Prompts changed (for the owner to review):** `prompts/research.md` and `prompts/tool-suggest-reading.md` (new),
   `prompts/brainstorm-rules.md` (fourth tool; only addresses the writer gave; point to Research).
 - **Not done:** re-fetching on add; the friction before citing an unread AI-found page is T34, unchanged; a
-  publication-level reading list (T37); idea generation (T6) can reuse the item list with its own origin.
+  publication-level articles (T37); idea generation (T6) can reuse the item list with its own origin.
 
 ## Links in the draft look like links (#78)
 
@@ -878,16 +878,15 @@ feeds it couldn't read while still using their kept posts, shows a post that two
 higher in the list), and stops at 100 posts, saying how many it left out. The page shows them five at a time, with Previous / Next above and below (the bottom ones return to the top of the list and move keyboard focus to its heading, since the new page starts far above them; only the upper one is announced to screen readers); paging is done in the browser over the one answer (100 small items, already cached on the server), so moving between pages costs no requests, and a new period or a check for new posts returns to the first page. **Posts with no readable date are not
 listed** (guessing when they appeared would put old posts at the top); they are counted and can be seen in the
 feed's own preview. The order is by date only: nothing ranks posts by how interesting they are, which would be the
-AI or the service deciding what the writer should write about (docs/responsible-ai.md). Adding to the reading list
+AI or the service deciding what the writer should write about (docs/responsible-ai.md). Adding to the articles
 (T6c) builds on this list.
 
-**Adding posts to the reading list reuses the research review's decisions** (Add, Ignore, Reconsider; a decided
+**Adding posts to the articles reuses the research review's decisions** (Add, Ignore, Reconsider; a decided
 post stays in the list, collapsed and marked, with a way back), applied to the combined list. The server adds a post
 from its own kept copy of the feed, named by feed and post id, never from what the browser sends, so only what a
-feed really said can be added, and nothing is fetched. A post becomes a publication-level reading item with origin
+feed really said can be added, and nothing is fetched. A post becomes a publication-level article with origin
 `feed` and the feed it came from. What is stored is only what was **ignored** (`feed_post_ignores`, by the post's
-address as links are compared, shared by the whole publication): whether a post was **added** is read from the reading
-lists themselves, so a post added by hand, or since moved to an idea, shows as added, and one whose item is removed by
+address as links are compared, shared by the whole publication): whether a post was **added** is read from the lists of articles themselves, so a post added by hand, or since moved to an idea, shows as added, and one whose item is removed by
 hand is offered again. Reconsidering an add takes the publication-level item off (notes taken from it stay but lose their
 link to it, as when any item is removed); if the post is only on an idea's list, that has to be taken off there. Adding
 several at once is all or nothing, the publication's list has the same limit as an idea's, and a post already on a list
@@ -906,7 +905,7 @@ existed have none (they show their address); refreshing is a follow-up (T19c).
 ## Inspiration is its own page (now Search and Read)
 
 The publication's feeds moved out of Settings onto an **Inspiration** page (`/p/:publicationId/inspiration`, linked from the
-publication page): they are where ideas start, not a setting, and the posts they bring (T6c) and the reading list will
+publication page): they are where ideas start, not a setting, and the posts they bring (T6c) and the articles will
 live nearby. Same component, same API.
 
 A "Find a feed" helper (build a feed address from a service and a topic, from recipes for the Guardian, arXiv,
@@ -916,7 +915,7 @@ in the history (commit 393ca10) if the idea comes back, and `docs/research/idea-
 patterns. Pasting a site's address, which finds the feed it advertises, remains the way to add one.
 
 **Split (#96).** Inspiration mixed two jobs, so it became two steps: **Search** (`/p/:publicationId/search`: the recent
-posts and the feeds) and **Read** (`/p/:publicationId/read`: the publication's reading list, and its reading pages). The old
+posts and the feeds) and **Read** (`/p/:publicationId/read`: the publication's articles, and its reading pages). The old
 `/inspiration` address leads to Search (to Read when it has `#reading-list`), and `/reading` to Read. Notes and Ideas
 moved to 03 and 04.
 
@@ -927,20 +926,20 @@ made, not the writer's own order on the Notes step. The idea level gets the same
 
 **Search and Read panels (#100).** The publication's page also summarises Search (the five newest posts still waiting for a
 decision, newest first, each opening in a new tab, with "See more and set up feeds") and Read (the first five items not
-yet read, each opening its reading page, a box to add a web address, and "See the reading list"). The posts panel
+yet read, each opening its reading page, a box to add a web address, and "See the articles"). The posts panel
 asks for the same lists under the same keys as the Search page, at its default period, so they share what has been
 fetched; opening the page never asks the feeds to check again. It has no Add or Ignore buttons: deciding is on Search.
 The add-a-link form is shared with the Read page (`AddLinkForm`).
 
 **Idea landing page (#99).** `/p/:publicationId/ideas/:id` used to redirect to Notes; it is now the idea's landing page,
-none of the numbered steps. Research: the number of sources with a link to the reading list, and the same research box
+none of the numbered steps. Research: the number of sources with a link to the articles, and the same research box
 as the Research page (`ResearchForm`). Pressing **Research** is what spends, as ever; it stays on the page while
 searching (up to a minute), then opens the results. The box sits beside a plain statement of what is sent to the
 provider. Notes: the shared `RecentNotes` panel. Draft: the idea's drafts in their order (reordering stays on the Draft
 step) and **Start a draft** (`StartDraftButton`, shared with the Draft step). A place is left for Refine (#101).
 
 **Idea landing page, second round (#130, #101, #102).** Creating an idea opens its landing page. Research shows the
-unread reading list (the publication's `RecentReading`, filed under Research) while there is anything unread, and the
+unread articles (the publication's `RecentReading`, filed under Research) while there is anything unread, and the
 research box only when there is not, so the page offers the next likely move. Notes use `NoteCard`, shared with the Notes
 step, so tags and origin show in both. Refine shows the latest AI message (cut at a paragraph after about 600
 characters, with "Read in full") and a reply box. Sending from there is the same path as the Refine page: the text is
@@ -982,26 +981,26 @@ The publication's own website field (`SiteUrlSchema`) applies the same `WebAddre
 cap. It is checked only when saved, so a site stored earlier that wouldn't pass still displays, but must be
 corrected or cleared the next time the publication settings are saved.
 
-## Reading items and notes can belong to a publication; moving them
+## Articles and notes can belong to a publication; moving them
 
-The publication's feeds will fill a reading list that belongs to the publication as a whole (T37), worked through like an
+The publication's feeds will fill a list of articles that belongs to the publication as a whole (T37), worked through like an
 idea's, and notes made there can later be gathered into an idea. So both kinds of thing need an owner that is either
 an idea or the publication.
 
-- **Ownership.** `idea_notes` already had `publication_id` (always) and `idea_id` (null for the publication's own). Reading items
+- **Ownership.** `idea_notes` already had `publication_id` (always) and `idea_id` (null for the publication's own). Articles
   (`idea_links`) now have the same: `publication_id` is always set and `idea_id` is null for the publication's own. This differs
   from "exactly one of the two" in the task text on purpose: always carrying the publication makes "everything in this
   publication" one query, cascades the publication's deletion directly, and matches notes. The code names an owner with the
   one `Owner` type (`db/owner.ts`: an idea id, or `{ publicationId }`), and every store method that used to take an idea id
   takes an `Owner`, so an idea's lists and the publication's are the same code with a different `WHERE`.
 - **A rebuild, with foreign keys off.** SQLite can't make `idea_id` nullable in place. Rebuilding a table other tables
-  refer to (notes and research pages point at reading items) would, with foreign keys on, clear those references when
+  refer to (notes and research pages point at articles) would, with foreign keys on, clear those references when
   the old table is dropped. The migration runner therefore takes `{ foreignKeysOff: true, run }` steps: foreign keys
   are off only for that step, the database is checked with `PRAGMA foreign_key_check` before it commits (a failure
   rolls back), and they are switched back on afterwards. Existing rows keep their ids, so nothing that refers to them
   breaks, and `publication_id` is filled in from the idea they were in.
 - **Same rules, one set of routes.** The publication's notes use the idea notes' routes (`routes/notes.ts`, mounted twice;
-  the publication has no drafts, so no "added" state), and the reading list uses `IdeaLinkService` with a `ListScope`
+  the publication has no drafts, so no "added" state), and the articles uses `IdeaLinkService` with a `ListScope`
   (`{publicationId, ideaId}`). Limits are the same numbers, worded for what is full ("A publication can have up to ..."). A
   publication's order is its own list: reordering it never touches an idea's.
 - **What "move" keeps** (`MoveService`, all in one transaction, refusing anything outside the publication): _A reading item_
@@ -1010,7 +1009,7 @@ an idea or the publication.
   the two become one: the one already there stays, counts as read if the moved one was, and the moved item's notes now
   point at it. _A note_ moves with its text, tags, author, origin and quotation mark, to the end of the destination's
   notes, in the order it was arranged (not the order it was picked). It keeps its source by getting a **copy** of the
-  reading item at the destination (or using the item there with the same address), rather than taking the item away from
+  article at the destination (or using the item there with the same address), rather than taking the item away from
   other notes that came from it; copying is the safe choice since a source can have several notes, and only some may
   be moving. A note that had been put into a draft is no longer "added", because it hasn't been put into any of the
   new owner's drafts. A move that would pass the limits (links or notes) is refused whole, and moving to where
@@ -1022,26 +1021,26 @@ an idea or the publication.
   functions take `ideaId: string | null`. The idea pages behave as before (their tests are unchanged); the publication's are
   `/p/:id/reading`, `/p/:id/reading/:item` and `/p/:id/notes`. Items from a feed (origin `feed`) are labelled "From a
   feed" without the highlighter, which stays for what the AI suggested.
-- **The publication's own reading list has no maximum, and forgets (#84).** It is a stream filled from the feeds, so a
+- **The publication's own list of articles has no maximum, and forgets (#84).** It is a stream filled from the feeds, so a
   fixed limit would only make people clear space by hand. Instead an item **not marked Keep is dropped a month after it
   was put on the publication's list** (`PUBLICATION_READING_DAYS`, in `ReadingStore.dropOld`): quietly, with no notice when it
   happens, since a notice about the thing you didn't choose to keep is more noise. The age is since the item was put on
   _this_ list, so an item moved back from an idea starts afresh and unkept (`setOwner`), and keeping is the writer's
   tick and nothing else. Two guards: an item **notes were taken from is never dropped** (a note with no source is worse
-  than a stale list; the page says so, and it is one clause in `dropOld` to remove), and an idea's reading list and
+  than a stale list; the page says so, and it is one clause in `dropOld` to remove), and an idea's articles and
   notes are never swept (only the publication's own list, `idea_id` null). There is no background job: the sweep runs
   whenever the publication's list is read, counted or checked for what is on it (so the Recent posts list is consistent
   with it), using the real clock, like the time items are stamped with. A dropped item's feed post is offered again,
   as any post not on a list is. The limit of 50 stays for an idea's list, which is part of the work on one idea.
-- **Reading lists hide read items by default (#85).** An item that has been read is finished with, and the list is for
+- **Lists of articles hide read items by default (#85).** An item that has been read is finished with, and the list is for
   what is still to read. The page's `ReadingList` (idea's and publication's alike) shows only unread items, a **Show read
   items (N)** tick when there are any, and "N read items are hidden" (or "Everything on the list has been read" when
   nothing else is left, which is not the same as an empty list). An item ticked read _during this visit_ stays in
   view until the list is shown again or the tick is changed, so it doesn't disappear under the finger and can be
   unticked. The choice isn't saved: each visit starts tidy. This is purely what is shown: read items are still on the
-  list (and, on the publication's, still subject to the month and Keep). The drafting side bar's reading list is a
+  list (and, on the publication's, still subject to the month and Keep). The drafting side bar’s list of articles is a
   different list, for linking while writing, and is unchanged.
-- **Moving reading items on the page (#72).** Each reading list has a **Move items** mode: ticks on the items and one
+- **Moving articles on the page (#72).** Each articles has a **Move items** mode: ticks on the items and one
   picker, **Move to** (the publication's list, another idea, and, from the publication's own list only, **A new idea…**, which
   asks for the core idea in the writer's own words, nothing prefilled). It works with a keyboard and on a phone, and
   needs no drag and drop. A new idea is made first and then moved to; if the move fails the idea stays, empty, like
@@ -1054,10 +1053,10 @@ an idea or the publication.
 - **Gathering notes into an idea (#73).** The step where the writer decides what the idea is: the notes of the
   publication (or of an idea) are ticked, a **new idea is made from them** with its core idea typed by the writer (nothing
   suggested or prefilled; the AI is not involved), or they go to an existing idea or back to the publication. `MoveTo` and
-  `useMoveDestination` are the one picker for reading items and notes (the publication's own list as a choice only from
+  `useMoveDestination` are the one picker for articles and notes (the publication's own list as a choice only from
   inside an idea; a new idea for notes from anywhere, for items only from the publication's list). Before confirming,
   the page says in words how many notes will move and that **the pages they were taken from are copied** to the
-  destination's reading list (or the copy there is used) while the originals stay: copying rather than moving the
+  destination's articles (or the copy there is used) while the originals stay: copying rather than moving the
   source is what lets other notes from the same page stay behind without losing theirs. A tick offers **"also bring
   the other notes taken from those pages"**, off by default, so the choice is the writer's. "Select all the notes
   shown" respects the tag being shown, so a tag works as a way to pick a group. **Undo** moves the same notes back
@@ -1066,8 +1065,8 @@ an idea or the publication.
 - **The log.** Every move writes a row per thing moved to `moves` (who, when, from and to, whether it merged, grouped
   by a batch id), inside the same transaction. Nothing reads it yet; it is what an Undo (T37c) will use, and it goes
   with the publication.
-- **A new origin, `feed`,** is allowed for reading items (with `source_id`, the feed it came from, set to null if
-  the feed is removed) for the "Add to reading list" page (T6c). Nothing creates one yet.
+- **A new origin, `feed`,** is allowed for articles (with `source_id`, the feed it came from, set to null if
+  the feed is removed) for the "Add article" page (T6c). Nothing creates one yet.
 
 ## Brainstorming proposes; it never edits, and it never drafts
 
@@ -1265,7 +1264,7 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
 
 - **Notes** at publication level are gathered and, when a group becomes an idea, they **appear in** the idea (moved, not
   copied). That arrived with T37d (**Move notes** on the publication's Notes step); the menu needed no change for it.
-- **The idea's reading list is separate from the publication's** (as the data already was). The publication's reading list lives
+- **The idea’s list of articles is separate from the publication's** (as the data already was). The publication's articles lives
   in Read (step 02); the idea's in Research (step 01).
 - **Publish** was for getting a finished draft out; see _Publishing moved to the Draft page_ below (#97).
 - **The menu stays on the editor** on a laptop or desktop, but **folds away on the reading and note-taking page**, where
@@ -1307,7 +1306,7 @@ idea's drafts so old links work, and the drafts list is the last step.
 
 ## Checkboxes select, switches set a state, and lists share a rail and a toolbar (#88)
 
-The reading lists had checkboxes meaning three different things (Read, Keep, and choose-to-move), four text buttons
+The lists of articles had checkboxes meaning three different things (Read, Keep, and choose-to-move), four text buttons
 per row and a mode switch ("Move items") that changed what a row looked like. The owner's rules, now in
 [design.md](design.md#actions-and-lists):
 
@@ -1371,7 +1370,7 @@ collaboration on drafts, so comments are our own: the server numbers the draft's
   **requester's own**: in a shared publication, rounds made by anyone count against the draft, and each person is held to
   the limit they chose for themselves. Whether a heavy rewrite should earn more looks is for the owner to decide (#103); until then a writer who starts over adds a new draft.
 - **Comments beside the draft (#106).** After trying critique in use, the owner moved the comments from under the
-  draft to the side area, which is now three tabs: **Notes, Reading list, Comments** (`TabPanels`, WAI-ARIA tabs;
+  draft to the side area, which is now three tabs: **Notes, Articles, Comments** (`TabPanels`, WAI-ARIA tabs;
   still the one `complementary` landmark, and on a phone the same slide-in drawer). A comment about a paragraph is
   itself the button that shows that paragraph in the draft; a mark in the text opens its comment. Asking for a
   critique switches to Comments (and, on a phone, opens the drawer when the answer or the error arrives), so the
@@ -1410,15 +1409,15 @@ nothing jumping when the pointer arrives. They are 28px, solid when disabled, an
 
 **Reorderable rail: a grip, not dots (#114).** The dotted texture behind the checkbox and arrows looked odd, and a texture is not a convention. The rail is now plain, with a six-dot grip (the usual sign of "draggable") under the checkbox. The grip is a bare glyph so it doesn't look like a button; the _whole rail_ tints on hover and has the grab cursor, which says the handle is the rail, not the glyph. The arrows no longer show on hover (that hid the grip just when the pointer arrived): a click or tap on a rail swaps grip for arrows on every row, in the same slot, until the person clicks elsewhere, presses Escape or drags.
 
-**Bulk tagging (#139, under #87).** Tags are set on several notes in one request (`POST …/notes/tags` with `ids`, `add`, `remove`), not a loop of per-note saves, so the change is atomic: if any note would end with more than `MAX_NOTE_TAGS` tags, none is changed and the reply names the note. Tags are compared ignoring case; adds keep a note's existing order and go last; removes win over nothing (a tag asked to be removed and added in one request ends up added). Quotations can be tagged, since tagging does not touch their words. The panel (`BulkTagPanel`) is shared with the reading list, which gets tags and the same action next (#140, #141). A new tag filter clears the selection, as every filter does.
+**Bulk tagging (#139, under #87).** Tags are set on several notes in one request (`POST …/notes/tags` with `ids`, `add`, `remove`), not a loop of per-note saves, so the change is atomic: if any note would end with more than `MAX_NOTE_TAGS` tags, none is changed and the reply names the note. Tags are compared ignoring case; adds keep a note's existing order and go last; removes win over nothing (a tag asked to be removed and added in one request ends up added). Quotations can be tagged, since tagging does not touch their words. The panel (`BulkTagPanel`) is shared with the articles, which gets tags and the same action next (#140, #141). A new tag filter clears the selection, as every filter does.
 
-**Tags on reading-list items (#140, under #87).** Reading items carry flat tags like notes do (same rules: tidied, case-insensitive, at most `MAX_NOTE_TAGS`, kept in the order given), in their own table (`idea_link_tags`, deleted with the item). They are set as a whole (`PUT …/links/:id/tags` on an idea, `…/reading/:id/tags` on the publication), edited in the item's edit form, and the list has the same tag filter as notes (a new filter clears the selection). A moved item keeps its tags. When a moved item joins one already at the destination (same address), its tags are added to that item's, each once ignoring case, up to the limit (extras beyond it are dropped rather than refusing the move). The copy of a source item that a moved _note_ takes along does not get the tags: tags describe how a writer groups things in one place, not the source itself.
+**Tags on reading-list items (#140, under #87).** Articles carry flat tags like notes do (same rules: tidied, case-insensitive, at most `MAX_NOTE_TAGS`, kept in the order given), in their own table (`idea_link_tags`, deleted with the item). They are set as a whole (`PUT …/links/:id/tags` on an idea, `…/reading/:id/tags` on the publication), edited in the item's edit form, and the list has the same tag filter as notes (a new filter clears the selection). A moved item keeps its tags. When a moved item joins one already at the destination (same address), its tags are added to that item's, each once ignoring case, up to the limit (extras beyond it are dropped rather than refusing the move). The copy of a source item that a moved _note_ takes along does not get the tags: tags describe how a writer groups things in one place, not the source itself.
 
-**Bulk tagging reading items (#141, under #87).** Reading lists get the same **Tag…** action as notes, through the shared `BulkTagPanel` and one atomic request (`POST …/reading/tags` on the publication, `…/links/tags` on an idea: `ids`, `add`, `remove`). The add/remove rules and the refusal when an item would pass `MAX_NOTE_TAGS` live in one place (`services/tag-change.ts`) for both notes and items, so they cannot drift apart. With #139, #140 and this, #87 is complete.
+**Bulk tagging articles (#141, under #87).** Lists of articles get the same **Tag…** action as notes, through the shared `BulkTagPanel` and one atomic request (`POST …/reading/tags` on the publication, `…/links/tags` on an idea: `ids`, `add`, `remove`). The add/remove rules and the refusal when an item would pass `MAX_NOTE_TAGS` live in one place (`services/tag-change.ts`) for both notes and items, so they cannot drift apart. With #139, #140 and this, #87 is complete.
 
 **Tags one at a time (#143).** The comma-separated Tags field is gone from the note and link edit forms. Tags are entered under the item, one per Enter (`TagEntry`), saved as soon as each is added, with the whole set sent each time (so the API is unchanged and a failed save puts the tag back off). That also lets quotations be tagged one by one, which the edit form could not offer because quotations cannot be edited. Bulk tagging uses the same entry so single and bulk behave alike. Suggestions are a native `<datalist>` (no extra buttons). A save chain per item keeps rapid Enters in order.
 
-**Filters behind a funnel (#144).** The list header was crowded, so filters (tag buttons, Show read items) fold behind a funnel button and open a row under the header. The funnel is only there when there is something to filter by, and while a filter is on it is marked and a chip names it, so people are never left wondering why items are missing. The open/closed state is not remembered across visits. Select all was already limited to what is showing after the filter (notes and reading lists); tests now say so for both.
+**Filters behind a funnel (#144).** The list header was crowded, so filters (tag buttons, Show read items) fold behind a funnel button and open a row under the header. The funnel is only there when there is something to filter by, and while a filter is on it is marked and a chip names it, so people are never left wondering why items are missing. The open/closed state is not remembered across visits. Select all was already limited to what is showing after the filter (notes and lists of articles); tests now say so for both.
 
 **Bulk actions in the header (#145).** Actions that do something to a selection are hidden until something is selected. An action that needs input takes over the header instead of opening a panel under it (Tag… and Move to…): the rest of the header is its form, ending in a tick and a cross as icon buttons, with the explanation behind an info icon (`InfoTip`) so the form stays on one line where it can. Merge and Delete/Remove N stay one-click (Delete asks in a dialog). The header's form closes if the selection empties. The old `BulkTagPanel` (a panel under the header, with switches) became `BulkTagFields`, with press-to-remove chips; `MoveTo` is now an inline row. Tooltips are CSS (hover or focus within), not a JS popover.
 
@@ -1638,7 +1637,7 @@ assistance ladder. This task is the service; the window is #162, the title entry
 
 A zip of Markdown files, nothing else, so a writer can open their words anywhere (priority 4: no lock-in). Chosen with
 the owner: **no JSON** ("I don't think JSON will be useful generally"), **one file per publication, idea and draft**, with
-the idea and publication files holding bullet lists of notes and the reading list and relative links to what belongs to
+the idea and publication files holding bullet lists of notes and the articles and relative links to what belongs to
 them. Layout: `README.md` at the top (what is in, who gets what, what is left out), then `<publication-id>/` with
 `<publication-id>.md`, `ideas/<slug>.md` and `drafts/<slug>.md`. File names are slugs of titles (letters, digits and
 hyphens, numbered when two collide), so a title can never name a path; the zip writer refuses any other path. The
@@ -1654,7 +1653,7 @@ aim: its name is the writer's own statement of the core idea, so that is its hea
   items record when they were added but not by whom, so they show only the date (adding an author column would be a
   migration for little gain).
 - **Left out.** Comments (human and AI), critiques, snapshots and reviews, brainstorm conversations (anything worth
-  keeping should already be a note), API keys, and every email address. The AI's `why` on a suggested reading item is
+  keeping should already be a note), API keys, and every email address. The AI's `why` on a suggested article is
   left out too: it is the AI's claim, not the writer's words.
 - **Built on request, downloaded at once** (`GET /api/account/export`, all the person's publications, and
   `GET /api/publications/:id/export`, one), with no job queue or emailed link: it is a few seconds of text. Throttled to 5
@@ -1764,18 +1763,18 @@ The current session can't be ended from the list (it would sign the person out o
 "Sign out everywhere else" asks first, because it is a bulk removal, and says how many it ended. Reviewer-only accounts have no account
 page and so no list.
 
-## Moving notes and reading items between publications (#193, part of #175)
+## Moving notes and articles between publications (#193, part of #175)
 
 `POST /api/publications/:id/move/{reading,notes}` takes `to: { ideaId, publicationId? }`. `:id` is where the things are now;
 `publicationId` names another publication to move them into, and leaves it out for a move within one.
 
-- **The access rule.** Any member of both publications may move notes and reading items between them (no role is needed on
+- **The access rule.** Any member of both publications may move notes and articles between them (no role is needed on
   either side, as within one publication). A destination the person doesn't belong to is refused with **404 "Not found"**,
   the same answer as for a publication that doesn't exist, so the move can't be used to find out whether one does. The
   destination idea must be one of that publication's. The member middleware on `:id` still protects the source.
 - **What crosses.** Everything that "move" keeps within a publication (see _What "move" keeps_ above), including the merge of
   items with the same address, the copy of a note's source and the destination's limits, all checked against the
-  destination. The things change `publication_id` as well as `idea_id`, which is why every move updates both. A reading item
+  destination. The things change `publication_id` as well as `idea_id`, which is why every move updates both. An article
   loses its link to a feed (`source_id`) when it leaves the publication that owns the feed; it stays marked as having come
   from a feed. Tags, authors and quotation marks go with them. A note keeps its author, so a name can now appear to members
   of the other publication who weren't in the first; the mover is a member of both, and that is accepted rather than
@@ -1799,8 +1798,7 @@ is in the way. Confirming does the move (`POST …/move/ideas`) and opens the id
 - **Whole, and as one change.** An idea goes with its drafts, notes, links and brainstorm thread, all or nothing. Only
   `ideas`, `drafts`, `idea_notes` and `idea_links` carry `publication_id`; everything else (comments, snapshots, reviews, critique
   rounds, insertions, handovers, research, messages) hangs off an idea or draft id and follows without being touched, so
-  critique limits are not reset and comments keep their authors' names. A single draft can't move without its idea. A reading
-  item stops coming from a feed (`source_id` cleared), because feeds belong to the publication they were added to. Ideas are
+  critique limits are not reset and comments keep their authors' names. A single draft can't move without its idea. An article stops coming from a feed (`source_id` cleared), because feeds belong to the publication they were added to. Ideas are
   listed by last change, so a moved idea counts as just changed and is first in the destination's list. The moves log
   (`moves`) records notes and items, not ideas: the idea's own id is the same before and after.
 - **Who may.** The destination must be a publication the person is a **member** of (anything else is 404 "Not found", as for
@@ -2036,16 +2034,16 @@ The settings list is just the feeds. A feed's posts are on Search, in one list w
 
 - **A list with one row has no toolbar** (`RowList` leaves the `toolbar` slot out), as there is nothing to select all of or act on in bulk, and the tick on
   that row goes too. A list that can be filtered passes `keepToolbar` (notes, when a tag is chosen), or the funnel would vanish with the one match.
-- **Every note, reading item and idea has its own Move icon** (`Icon name="move"`, with the Edit and Remove icons), so a lone row can still be moved. It
+- **Every note, article and idea has its own Move icon** (`Icon name="move"`, with the Edit and Remove icons), so a lone row can still be moved. It
   opens a dialog (`ConfirmDialog`, `canConfirm` keeps its button off until a place is chosen) holding the same form as the toolbar's (`MoveFields`,
-  `MoveNotesDetails`, `MoveIdeasFields`), and moves that row alone, whatever else is ticked. The reading list keeps its toolbar for a single item, as its
+  `MoveNotesDetails`, `MoveIdeasFields`), and moves that row alone, whatever else is ticked. The articles keeps its toolbar for a single item, as its
   funnel also holds the Show read items switch.
 
 ## A note's origin line says "From", and links to the page (#274 follow-up)
 
-A note taken from a reading item says "From" and the item's title, as a link to the page that opens in a new tab; it
+A note taken from an article says "From" and the item's title, as a link to the page that opens in a new tab; it
 no longer says "From reading" or "Quoted from", nor the page's authors, nor puts the title in quotation marks. A
-quotation is shown by its quote mark and the authors are on the reading item's own page, so the line only has to say
+quotation is shown by its quote mark and the authors are on the article's own page, so the line only has to say
 where to go. This replaces the "By means the piece's author" wording above. If the item has been removed from the list
 the line says "From reading", with nothing to link to.
 
@@ -2054,13 +2052,13 @@ the line says "From reading", with nothing to link to.
 The Move form (`MoveFields`) says how many it moves in its label (“Move 4 notes to”; the one-row dialog, whose title
 names the note or item, keeps “Move to”) and nothing else about what moving keeps: no “moved, not copied”, no “keeps its
 tags”, no note about a new idea's name. The result shows in the destination and in the notice that follows (with Undo).
-The only line left is that the pages the notes were taken from are copied to the destination's reading list, since that
+The only line left is that the pages the notes were taken from are copied to the destination's articles, since that
 is a side effect the writer wouldn't guess; it is body text, not small print. The select is no longer wrapped in a second
 flex container, which is what let a long idea name push it past the edge of the dialog.
 
 ## An idea's Research and Read are separate steps (#282)
 
-An idea's first step did two jobs: its reading list and the AI research tool. A publication already separates finding (Search) from reading (**Read**), so an idea now does too: **01 Research** is the AI tool (the box and the research so far, with the box repeated on the landing page as one shared component), **02 Read** is the idea's own reading list, working like the publication's, then **03 Notes**, **04 Refine**, **05 Draft**. The old `/research/find` address redirects to Research; `/research` used to be the reading list and is now the AI page, and `/read` is the list. The menu's count under Read is "N to read", as on a publication. Wording on the landing page follows in #232.
+An idea's first step did two jobs: its articles and the AI research tool. A publication already separates finding (Search) from reading (**Read**), so an idea now does too: **01 Research** is the AI tool (the box and the research so far, with the box repeated on the landing page as one shared component), **02 Read** is the idea's own articles, working like the publication's, then **03 Notes**, **04 Refine**, **05 Draft**. The old `/research/find` address redirects to Research; `/research` used to be the articles and is now the AI page, and `/read` is the list. The menu's count under Read is "N to read", as on a publication. Wording on the landing page follows in #232.
 
 ## The idea landing page's wording (#232)
 
@@ -2068,9 +2066,9 @@ The idea's landing page follows the publication's: a page line and one `explain`
 
 ## The Research page's wording and layout (#202)
 
-The results list is laid out like the Search page's (`ResearchItemRow` beside `RecentPostRow`): the title is the link, the host and authors are one quiet line, the buttons are icons (**Add to reading list**, **Ignore**, and an undo that says **Take off the reading list** or **Stop ignoring**), and decided pages drop to the end of their run. The page shows **one run at a time**, newest first, with **Earlier research** and **Later research** (the owner's choice over paging inside a run: runs are short, and a run is the unit people think in). The AI's reason is highlighted, with one highlighted line under the topic's name and date saying what the highlight means (shown only while a page is waiting), so neither "unchecked" nor a label on each row is needed; a page whose title we couldn't confirm gets an accent-wash note with an icon, like the unusable-address note; the model name and "The search called it" went because neither changes what the writer does. The page's purpose line is tutorial-only (route `idea-research` has `meta.tutorial`); what is sent stays in the shared form's one line. `PageNav` takes optional button labels and a `single` flag for this.
+The results list is laid out like the Search page's (`ResearchItemRow` beside `RecentPostRow`): the title is the link, the host and authors are one quiet line, the buttons are icons (**Add article**, **Ignore**, and an undo that says **Take off the articles** or **Stop ignoring**), and decided pages drop to the end of their run. The page shows **one run at a time**, newest first, with **Earlier research** and **Later research** (the owner's choice over paging inside a run: runs are short, and a run is the unit people think in). The AI's reason is highlighted, with one highlighted line under the topic's name and date saying what the highlight means (shown only while a page is waiting), so neither "unchecked" nor a label on each row is needed; a page whose title we couldn't confirm gets an accent-wash note with an icon, like the unusable-address note; the model name and "The search called it" went because neither changes what the writer does. The page's purpose line is tutorial-only (route `idea-research` has `meta.tutorial`); what is sent stays in the shared form's one line. `PageNav` takes optional button labels and a `single` flag for this.
 
-## The reading list marks the AI's words, not where an item came from (#287)
+## The articles marks the AI's words, not where an item came from (#287)
 
 An item the AI suggested keeps its reason, shown in the highlighter with one highlighted line above the list explaining it (the same line as on the Research page). The "Found by research", "Suggested in brainstorming" and "From idea generation" badges are gone, as the "From a feed" one was, because the highlighted reason already marks what is the AI's. An idea's pages (Research, Read, Refine) end with the **Next:** button alone; the sentence beside it only said what the next page was for.
 
@@ -2086,7 +2084,7 @@ An idea had one Refine thread, and starting again deleted it. It now holds up to
 
 ## The Refine page's wording (#283, #288)
 
-The Refine page uses the idea landing page's names: **Refine with your AI** (the start button), “Your AI” (never “Coach”), **Delete conversation**, and **Add your AI key** for the link to where a key is kept. What a message sends is said beside the button that sends it, in the landing page's words, and again beside **Send** (“This will re-send up-to-date information about the idea’s title, notes and reading list to your AI. It will not send your drafts.”), because an idea changed since the last message goes with the next one. The page's purpose is one tutorial-only sentence (`meta.tutorial` on the `brainstorm` route). There is one way on, **Next: 05 Draft**; the **I have enough** button went. A reply that fails is a raspberry callout with an icon: a missing key links to **Add your AI key**, and a key the provider refused says so and links to “your AI key settings”. A suggested page shows the AI’s reason in the highlighter (as the reading list does) and no longer repeats the title the AI gave it. `prompts/` still call the AI a writing coach; that is the AI’s own instructions, not what people read, and any change to it is the owner’s to review. Aligning the missing-key handling in the other places (#290) is separate.
+The Refine page uses the idea landing page's names: **Refine with your AI** (the start button), “Your AI” (never “Coach”), **Delete conversation**, and **Add your AI key** for the link to where a key is kept. What a message sends is said beside the button that sends it, in the landing page's words, and again beside **Send** (“This will re-send up-to-date information about the idea’s title, notes and articles to your AI. It will not send your drafts.”), because an idea changed since the last message goes with the next one. The page's purpose is one tutorial-only sentence (`meta.tutorial` on the `brainstorm` route). There is one way on, **Next: 05 Draft**; the **I have enough** button went. A reply that fails is a raspberry callout with an icon: a missing key links to **Add your AI key**, and a key the provider refused says so and links to “your AI key settings”. A suggested page shows the AI’s reason in the highlighter (as the articles does) and no longer repeats the title the AI gave it. `prompts/` still call the AI a writing coach; that is the AI’s own instructions, not what people read, and any change to it is the owner’s to review. Aligning the missing-key handling in the other places (#290) is separate.
 
 ## The drafts pages' wording (#203)
 
@@ -2102,7 +2100,7 @@ The page no longer repeats the idea back (the "The idea" panel): its title, note
 
 ## The AI is told which notes are quotations (#293)
 
-A note the writer took as a quotation (`quote`, from a reading item) used to reach the AI as a plain bullet, so it read as the writer's own point. The snapshot builder now takes the notes one by one and marks each quotation with its source and that it is not the writer's words, `[quotation from “Title”, not the writer’s own words] “text”` (no source once the item is removed), and the rules say to treat it as context: not the writer's view, not to be recorded as their point. There is no instruction to ask what they make of it; it is only context. Escaping is unchanged. The research brief got the same marking in #298 (below). **`prompts/brainstorm-rules.md` changed: the owner reviews it.**
+A note the writer took as a quotation (`quote`, from an article) used to reach the AI as a plain bullet, so it read as the writer's own point. The snapshot builder now takes the notes one by one and marks each quotation with its source and that it is not the writer's words, `[quotation from “Title”, not the writer’s own words] “text”` (no source once the item is removed), and the rules say to treat it as context: not the writer's view, not to be recorded as their point. There is no instruction to ask what they make of it; it is only context. Escaping is unchanged. The research brief got the same marking in #298 (below). **`prompts/brainstorm-rules.md` changed: the owner reviews it.**
 
 ## Handover and review on the draft page: notices and dialogs (#296)
 
@@ -2121,7 +2119,7 @@ The draft editor has no Save button. `useAutosave` (`lib/autosave.ts`) saves abo
 
 ## Who is reviewing, in a tab (#301)
 
-The list of reviews (snapshots sent, reviewers and their state, invitations waiting, Close review, Close all reviews) moved from the Send for review dialog to a **Reviews** tab beside Notes, Reading list and Comments, for the editor and owners, shown once any review or invitation exists. It is a list to keep an eye on while writing and reading comments, not part of sending. The dialog is only the send form, and closes on sending, which brings the tab forward (opening the drawer on a phone). So an owner who is not the editor has no Reviews button: the tab is theirs. The dialogs put Cancel beside their main button; the Send for review warning is one sentence, and its older claims (only you see comments, your AI never receives them) are no longer said there.
+The list of reviews (snapshots sent, reviewers and their state, invitations waiting, Close review, Close all reviews) moved from the Send for review dialog to a **Reviews** tab beside Notes, Articles and Comments, for the editor and owners, shown once any review or invitation exists. It is a list to keep an eye on while writing and reading comments, not part of sending. The dialog is only the send form, and closes on sending, which brings the tab forward (opening the drawer on a phone). So an owner who is not the editor has no Reviews button: the tab is theirs. The dialogs put Cancel beside their main button; the Send for review warning is one sentence, and its older claims (only you see comments, your AI never receives them) are no longer said there.
 
 Handover and review were two closed disclosures above the title. They are now two things. **Notices**, under the notice bar, for what a handover is waiting for (an offer to you, a request to the editor: warn, with their buttons) and for what you have set going (your open offer or request: info, each with Withdraw), so nobody thinks Wordwright forgot what they did. **Buttons** in a quiet row beside “← All drafts” that open dialogs: Offer draft, Ask for this draft (a confirm, in case of an accidental press), Reassign draft, Send for review / Reviews, and Handover history (read-only, for every member). The opener hides while the thing it starts is already open, since the notice carries Withdraw. We rejected a “Draft settings” area (a new menu level that takes people off the writing page, and loses typed text unless saved) and left the notice bar's rule that a quiet page holds back info notices, narrowed to the bar's own notices. Saving before a snapshot is sent is #299's (autosave), which will flush first.
 
@@ -2151,7 +2149,7 @@ The second real-model run of the evals (after #304's prompt changes) failed in t
 
 ## Quotations are marked in the research brief too (#298)
 
-The research brief used to send the idea's notes as one text, so a quotation could be read as the writer's own point there as it could in Refine (#293). The marking now lives in one place, `services/idea-notes.ts` (`snapshotNotes` joins each note to the title of its reading item; `notesText` writes the bullets), and both the Refine snapshot and `formatResearchBrief` use it, so they cannot drift apart. What is sent is the same material, labelled; the rung on the assistance ladder is unchanged. `prompts/research.md` gets one sentence: a marked quotation is someone else's words, context only, not the writer's view. **`prompts/research.md` changed: the owner reviews it.** The eval is `research-quotations-are-not-the-writers-views` (the research name for the issue's `quotations-are-not-the-writers-views`, since case ids must be unique and Refine already has that one).
+The research brief used to send the idea's notes as one text, so a quotation could be read as the writer's own point there as it could in Refine (#293). The marking now lives in one place, `services/idea-notes.ts` (`snapshotNotes` joins each note to the title of its article; `notesText` writes the bullets), and both the Refine snapshot and `formatResearchBrief` use it, so they cannot drift apart. What is sent is the same material, labelled; the rung on the assistance ladder is unchanged. `prompts/research.md` gets one sentence: a marked quotation is someone else's words, context only, not the writer's view. **`prompts/research.md` changed: the owner reviews it.** The eval is `research-quotations-are-not-the-writers-views` (the research name for the issue's `quotations-are-not-the-writers-views`, since case ids must be unique and Refine already has that one).
 
 ## A note from a conversation says whose AI it was with, and who it is credited to (#306)
 
@@ -2202,15 +2200,15 @@ On the idea's Draft page a published draft keeps its place. The order is the rea
 - **Members who can't edit commented through the form; they now have a bar.** A member who isn't the editor has no toolbar, and the form is gone, so they get the same sticky **Add comment** bar as reviewers. Their composer opens in the Comments tab; a reviewer's in a dialog, since a reviewer's page has no tabs.
 - **Help page.** The Formatting page's Markdown section said Rephrase works in the box; it now says Comment and Rephrase wait.
 
-## Notes and reading items alike in the drafting pane (#331, part of #330)
+## Notes and articles alike in the drafting pane (#331, part of #330)
 
-The drafting pane's Notes and Reading list tabs now use one card (`DraftCard`), so the two lists look and behave alike. Before, notes had a bare grip glyph and an "Add to draft" text button, and reading items had neither dragging nor the same name for the action ("Insert link").
+The drafting pane's Notes and Articles tabs now use one card (`DraftCard`), so the two lists look and behave alike. Before, notes had a bare grip glyph and an "Add to draft" text button, and articles had neither dragging nor the same name for the action ("Insert link").
 
 - **A drag-only rail.** The card has the shared `list-rail` on the left (grab cursor, tinted on hover), as on other lists, but with no arrows and no click-to-reorder: these are sources to take from, not lists to put in order. It shows from 1024px up, like the grip it replaces; on a phone the button is the way, because HTML drag and drop needs a mouse and the draft is behind the drawer. Someone who may not change the draft sees neither rail nor button.
 - **One icon button, one name.** **Add to draft** is a `btn-icon btn-ghost` button at the top left of the card, with its tooltip, a spinner while it works, and an accessible name that says what is added (“Add note “…” to the draft”, “Add a link to “…” to the draft”).
-- **Reading items drag too.** They travel as their id under `application/x-wordwright-reading-item`, like a note, and the drop handler looks the item up on the idea's list. Unlike a note it goes in as a link in the line at the drop point (`insertInlineMarkdown(markdown, at)`), and it asks first if the item isn't marked read, as the button does.
-- **Who wrote it, in running words.** A link to a reading item is `[Title](address) by A and B` (no “by” when no one is named). The same text ends a note taken from an item (`words ([Title](address) by A and B)`) and a quotation's last line (`> — [Title](address) by A and B`). A separator such as “|” reads as a citation format, which is wrong in narrative text, so the quotation follows the narrative form, not the other way round.
-- **Status lines live outside the tabs.** A failed drop, and “Opened … in a new tab”, used to sit inside the Notes tab, where they could not be seen from the Reading list tab that caused them. They are shown below the tabs now. Who may add is said once above the tabs (“Only {name}, the draft’s editor, can add to the draft.”), not once per tab.
+- **Articles drag too.** They travel as their id under `application/x-wordwright-reading-item`, like a note, and the drop handler looks the item up on the idea's list. Unlike a note it goes in as a link in the line at the drop point (`insertInlineMarkdown(markdown, at)`), and it asks first if the item isn't marked read, as the button does.
+- **Who wrote it, in running words.** A link to an article is `[Title](address) by A and B` (no “by” when no one is named). The same text ends a note taken from an item (`words ([Title](address) by A and B)`) and a quotation's last line (`> — [Title](address) by A and B`). A separator such as “|” reads as a citation format, which is wrong in narrative text, so the quotation follows the narrative form, not the other way round.
+- **Status lines live outside the tabs.** A failed drop, and “Opened … in a new tab”, used to sit inside the Notes tab, where they could not be seen from the Articles tab that caused them. They are shown below the tabs now. Who may add is said once above the tabs (“Only {name}, the draft’s editor, can add to the draft.”), not once per tab.
 
 ## Text changed on a comment (#335, part of #330)
 
@@ -2248,7 +2246,7 @@ Once a draft is marked published, the Publish section shows just the green "Publ
 
 ### Insert at cursor, and a typing tag filter (#343, part of #338)
 
-- **"Add to draft" is now "Insert at cursor"**, the same icon button, moved to the top of the drag rail. The rail is always drawn for someone who may edit (the button must work on a phone); only its grip is wide-screen. The accessible name is “Insert at cursor: ” plus the item's short label (a note's first words, a reading item's title).
+- **"Add to draft" is now "Insert at cursor"**, the same icon button, moved to the top of the drag rail. The rail is always drawn for someone who may edit (the button must work on a phone); only its grip is wide-screen. The accessible name is “Insert at cursor: ” plus the item's short label (a note's first words, an article's title).
 - **The tag filter is a combobox, not a select.** A text box with a tag icon suggests the tags on that list not yet chosen (substring, ignoring case); Return adds the active suggestion or an exactly typed tag and focus stays for the next. A tag nothing carries is refused with a message rather than creating a filter that can show nothing. Escape closes only the suggestions. Chips and "an item needs all of them" are unchanged.
 - **Help page:** no page described either control.
 
@@ -2362,3 +2360,11 @@ Once a draft is marked published, the Publish section shows just the green "Publ
   of the body, and a pasted break becomes a space. It stays a field (not a heading) so a reviewer can select and comment on it.
 - **A new draft's title is the idea's name, set once on the server** (`POST .../ideas/:id/drafts` when no title is sent).
   It is a real, editable title, not kept in step if the idea is renamed, and not AI text. The client no longer sends "Untitled".
+
+- **"Reading item" and "reading list" became Article and Articles (#364, part of #360).** Not everything on the list is
+  read (videos, podcasts), and "item" said too little. The verb is unchanged: step 02 is still **Read**, and "read /
+  unread" stays. Code identifiers, API paths and database columns keep the old names until the follow-up rename. The
+  words in `prompts/` changed with the rest, which is a change to what the AI is told: the owner should review it.
+  Quick add's tabs read **Add:** (a label, not a tab) then **Idea · Note · Article** so they stay on one line at 390px;
+  each tab keeps its longer name (New idea, Add a note, Add article) as its accessible name, and the submit buttons
+  keep theirs. `TabPanels` gained `lead` and a per-tab `name` for this.

@@ -826,7 +826,7 @@ describe('publication site icon', () => {
     expect(after.siteIconUrl).not.toBeNull()
   })
 
-  it('keeps its reading list, notes and log of moves when it is renamed', async () => {
+  it('keeps its articles, notes and log of moves when it is renamed', async () => {
     const created = await (await ada.post('/api/publications', { name: 'Garden' })).json()
     const api = `/api/publications/${created.id}`
     const item = (await (await ada.post(`${api}/reading`, { url: 'https://a.example/' })).json())[0]

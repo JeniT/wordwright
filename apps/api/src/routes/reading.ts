@@ -19,7 +19,7 @@ import { notFound } from '../errors'
 import { param } from './params'
 
 /**
- * The publication's own reading list: items gathered before there is an idea (see `Owner`). Mirrors an idea's
+ * The publication's own articles: items gathered before there is an idea (see `Owner`). Mirrors an idea's
  * `/links` routes, but answers with the list. Mounted under `/publications/:publicationId`, after membership is checked.
  */
 export function publicationReadingRoutes(store: Store, links: IdeaLinkService) {
@@ -91,7 +91,7 @@ export function publicationReadingRoutes(store: Store, links: IdeaLinkService) {
   )
 }
 
-/** Moving reading items and notes between the publication's own lists and its ideas, and ideas to another publication. */
+/** Moving articles and notes between the publication's own lists and its ideas, and ideas to another publication. */
 export function moveRoutes(moves: MoveService, ideaMoves: IdeaMoveService) {
   return (
     new Hono<AppEnv>()

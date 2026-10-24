@@ -98,7 +98,7 @@ export const refreshNotesEverywhere = (queryClient: QueryClient) =>
   invalidateRoots(queryClient, 'notes', 'idea', 'ideas', 'draft-insertions')
 
 /**
- * A change to an idea's notes or reading list also changes the idea's "last changed" time and its text as
+ * A change to an idea's notes or articles also changes the idea's "last changed" time and its text as
  * brainstorming sees it. The publication's own notes belong to no idea, so nothing else shows them.
  */
 export const refreshIdea = (

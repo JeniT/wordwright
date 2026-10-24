@@ -222,7 +222,7 @@ export const MIGRATIONS: Migration[] = [
   );
   -- Posts from a publication's feeds that someone chose to ignore. Keyed by the post's address (as links are
   -- compared), so a post carried by two feeds is one decision. Whether a post was added is not kept here: it is
-  -- added if it is on one of the publication's reading lists, however it got there.
+  -- added if it is on one of the publication's lists of articles, however it got there.
   CREATE TABLE feed_post_ignores (
     publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
     post_key TEXT NOT NULL,
@@ -320,7 +320,7 @@ export const MIGRATIONS: Migration[] = [
     tag TEXT NOT NULL,
     PRIMARY KEY (link_id, tag COLLATE NOCASE)
   );
-  -- What was moved between a publication's reading list and notes and its ideas, by whom and when, one row per
+  -- What was moved between a publication's articles and notes and its ideas, by whom and when, one row per
   -- operation and thing moved. Kept so a move can be shown and undone later; the things themselves may be gone.
   CREATE TABLE moves (
     id TEXT PRIMARY KEY,

@@ -24,7 +24,7 @@ const tagsOf = (tags: string[]) => (tags.length ? ` — tags: ${tags.map(oneLine
 const noteLine = (n: IdeaNote) =>
   `- ${n.quote ? 'Quote: ' : ''}${indent(n.text)} (${oneLine(n.authorName ?? 'a former member')}, ${longDate(n.createdAt)})${tagsOf(n.tags)}`
 
-/** Reading items record when they were added but not by whom, so that is all the credit there is to give. */
+/** Articles record when they were added but not by whom, so that is all the credit there is to give. */
 const readingLine = (l: IdeaLink) => {
   const address = l.url.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29')
   const parts = [`[${linkText(l.title || l.url)}](${address})`]
@@ -52,7 +52,7 @@ function fileNamer() {
 
 /**
  * Builds the zip of a person's own writing, as Markdown only (#167). What goes in depends on their role in each
- * publication: an owner gets every draft, a member the drafts they edit or started; notes and reading items are everyone's
+ * publication: an owner gets every draft, a member the drafts they edit or started; notes and articles are everyone's
  * and are credited. Comments, snapshots and reviews, critiques, brainstorm chats, API keys and email addresses never
  * go in. Callers have checked that the person belongs to each publication.
  */
@@ -108,7 +108,7 @@ Exported on ${longDate(this.now().toISOString())} for ${name}. Everything here i
 
 ${publications.map((p) => `- ${p.name} (you are ${p.role === 'owner' ? 'an owner' : 'a member'})`).join('\n')}
 
-Each publication has a folder with a file about the publication, one file per idea (its notes, reading list and drafts) and one file per draft.
+Each publication has a folder with a file about the publication, one file per idea (its notes, articles and drafts) and one file per draft.
 
 ## Who gets what
 
@@ -172,7 +172,7 @@ ${rules.join('\n')}
           `# ${oneLine(idea.name)}\n\n[← ${linkText(publication.name)}](../${publicationId}.md)\n`,
           section('Drafts', draftLines),
           section('Notes', store.notes.list(idea.id).map(noteLine)),
-          section('Reading list', idea.links.map(readingLine)),
+          section('Articles', idea.links.map(readingLine)),
         ]
           .filter(Boolean)
           .join('\n'),
@@ -191,7 +191,7 @@ ${rules.join('\n')}
         section('Ideas', ideaLines),
         section('Notes not yet in an idea', store.notes.list({ publicationId }).map(noteLine)),
         section(
-          'Reading list not yet in an idea',
+          'Articles not yet in an idea',
           store.reading.list({ publicationId }).map(readingLine),
         ),
       ]

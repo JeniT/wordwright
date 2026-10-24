@@ -419,7 +419,7 @@ test('manages the feeds in the publication settings, which are listed alphabetic
 }) => {
   await registerUser(page, uniqueName('Tess'))
   await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Publication name', { exact: true }).fill('Reading list')
+  await page.getByLabel('Publication name', { exact: true }).fill('Articles')
   await page.getByRole('button', { name: 'Create publication' }).click()
 
   // With no feeds, the landing page and Search both lead to setting them up.

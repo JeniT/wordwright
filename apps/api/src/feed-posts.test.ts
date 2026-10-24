@@ -60,7 +60,7 @@ describe('deciding about posts from the feeds', () => {
     expect(await statuses()).toEqual({ a1: 'new', a2: 'new', b1: 'new' })
   })
 
-  it('adds a post to the publication’s reading list as from a feed, with the title and authors the feed gave', async () => {
+  it('adds a post to the publication’s articles as from a feed, with the title and authors the feed gave', async () => {
     const res = await decide('add', [ref(A, 'a1')])
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
@@ -133,7 +133,7 @@ describe('deciding about posts from the feeds', () => {
     await ada.post(`${api}/reading`, { url: 'https://x.example/a2', title: 'By hand' })
     const res = await decide('add', [ref(A, 'a1'), ref(A, 'a2')])
     expect(res.status).toBe(409)
-    expect((await res.json()).error).toContain('already on a reading list')
+    expect((await res.json()).error).toContain('already on a list of articles')
     expect((await publicationList()).map((l) => l.url)).toEqual(['https://x.example/a2'])
     const ok = await decide('add', [ref(A, 'a1'), ref(B, 'b1')])
     expect((await ok.json()).results.map((r: { status: string }) => r.status)).toEqual([
@@ -143,7 +143,7 @@ describe('deciding about posts from the feeds', () => {
     expect(await publicationList()).toHaveLength(3)
   })
 
-  it('counts a post put on a reading list by hand, or on an idea’s, as added', async () => {
+  it('counts a post put on a list of articles by hand, or on an idea’s, as added', async () => {
     await ada.post(`${api}/reading`, { url: 'https://x.example/a1', title: 'By hand' })
     const idea = (await (await ada.post(`${api}/ideas`, { name: 'Rivers' })).json()).id
     await ada.post(`${api}/ideas/${idea}/links`, { url: 'https://x.example/b1' })
@@ -169,7 +169,7 @@ describe('deciding about posts from the feeds', () => {
     expect((await recent()).find((p) => p.id === 'a2')?.status).toBe('ignored')
   })
 
-  it('will not ignore what is already on a reading list', async () => {
+  it('will not ignore what is already on a list of articles', async () => {
     await decide('add', [ref(A, 'a1')])
     const res = await decide('ignore', [ref(A, 'a1')])
     expect(res.status).toBe(409)
@@ -201,7 +201,7 @@ describe('deciding about posts from the feeds', () => {
     await ada.post(`${api}/move/reading`, { ids: [item!.id], to: { ideaId: idea } })
     const res = await decide('reconsider', [ref(A, 'a1')])
     expect(res.status).toBe(409)
-    expect((await res.json()).error).toContain("idea's reading list")
+    expect((await res.json()).error).toContain("idea's articles")
     expect((await statuses()).a1).toBe('added')
   })
 
@@ -230,7 +230,7 @@ describe('deciding about posts from the feeds', () => {
     expect((await recent())[0]!.status).toBe('added')
   })
 
-  it('has no limit on the publication’s own reading list', async () => {
+  it('has no limit on the publication’s own articles', async () => {
     for (let i = 0; i < MAX_IDEA_LINKS + 10; i++) {
       ctx.store.reading.add(publication, null, { url: `https://fill${i}.example/`, title: 't' })
     }

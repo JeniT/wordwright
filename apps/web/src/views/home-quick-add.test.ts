@@ -46,6 +46,25 @@ const recentDraft = (over: Record<string, unknown> = {}) => ({
 beforeEach(() => localStorage.clear())
 
 describe('Home: Quick add (#192)', () => {
+  it('reads Add: then Idea, Note, Article, keeping the longer names for screen readers', async () => {
+    server.use(
+      signedInAs(testUser),
+      publications(blog),
+      llmSettings(true),
+      ideasFor('ada-blog', []),
+    )
+    await renderAt('/')
+    const region = await screen.findByRole('region', { name: 'Quick add' })
+    expect(within(region).getByText('Add:')).toBeVisible()
+    const tabs = within(region).getAllByRole('tab')
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Idea', 'Note', 'Article'])
+    expect(tabs.map((t) => t.getAttribute('aria-label'))).toEqual([
+      'New idea',
+      'Add a note',
+      'Add article',
+    ])
+  })
+
   it('has no publication picker when there is only one', async () => {
     server.use(
       signedInAs(testUser),
@@ -170,7 +189,7 @@ describe('Home: Quick add (#192)', () => {
     )
     await renderAt('/')
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
-    const field = screen.getByLabelText('Note')
+    const field = screen.getByRole('textbox', { name: 'Note' })
     await fireEvent.update(field, 'A thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText(/Added to Blog’s notes./)).toBeVisible()
@@ -179,13 +198,13 @@ describe('Home: Quick add (#192)', () => {
       '/p/ada-blog/notes',
     )
     expect(sent).toMatchObject([{ text: 'A thought' }])
-    expect(screen.getByLabelText('Note')).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('')
     // It points to notes that are not on this page, so it stays until the next note is started.
-    await fireEvent.update(screen.getByLabelText('Note'), 'Another')
+    await fireEvent.update(screen.getByRole('textbox', { name: 'Note' }), 'Another')
     expect(screen.queryByText(/Added to Blog’s notes./)).not.toBeInTheDocument()
   })
 
-  it('adds something to read to the publication’s reading list', async () => {
+  it('adds something to read to the publication’s articles', async () => {
     const sent: unknown[] = []
     server.use(
       signedInAs(testUser),
@@ -198,10 +217,10 @@ describe('Home: Quick add (#192)', () => {
       }),
     )
     await renderAt('/')
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.com/post')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
-    expect(await screen.findByText(/Added to Blog’s reading list./)).toBeVisible()
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
+    expect(await screen.findByText(/Added to Blog’s articles./)).toBeVisible()
     expect(sent).toMatchObject([{ url: 'https://example.com/post' }])
   })
 
@@ -234,7 +253,7 @@ describe('Home: Quick add (#192)', () => {
       ),
     )
     await renderAt('/')
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     const box = screen.getByLabelText('Web address')
     expect(box).toHaveAccessibleDescription('We will look up its title.')
     // Changing the publication keeps the address, and the form then adds to the new one.
@@ -243,10 +262,10 @@ describe('Home: Quick add (#192)', () => {
     expect(box).toHaveValue('example.com/post')
     // The new page is told apart from the list already there, so that has to have loaded.
     await waitFor(() => expect(listed).toBe(true))
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
-    const status = (
-      await screen.findByText(/Added “A good post” to Letters’s reading list\./)
-    ).closest('p')!
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
+    const status = (await screen.findByText(/Added “A good post” to Letters’s articles\./)).closest(
+      'p',
+    )!
     expect(within(status).getByRole('link', { name: 'Open “A good post”' })).toHaveAttribute(
       'href',
       '/p/ada-letters/reading/l9',
@@ -266,15 +285,15 @@ describe('Home: Quick add (#192)', () => {
     )
     await renderAt('/')
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
-    await fireEvent.update(screen.getByLabelText('Note'), 'Words')
+    await fireEvent.update(screen.getByRole('textbox', { name: 'Note' }), 'Words')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('That note is too long.')
-    expect(screen.getByLabelText('Note')).toHaveValue('Words')
+    expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('Words')
   })
 
   it.each([
     ['New idea', 'Idea name', 'Create idea', 'ideas', 'Words'],
-    ['Add to reading list', 'Web address', 'Add to reading list', 'reading', 'https://a.example'],
+    ['Add article', 'Web address', 'Add article', 'reading', 'https://a.example'],
   ])(
     'says what went wrong when %s fails, and keeps what was typed',
     async (open, label, submit, path, text) => {
@@ -317,12 +336,12 @@ describe('Home: Quick add (#192)', () => {
       }),
     )
     await renderAt('/')
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://a.example')
     await new Promise((r) => setTimeout(r, 300))
     expect(screen.getByLabelText('Add to publication')).toHaveValue('ada-blog')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
-    await screen.findByText(/Added to Blog’s reading list/)
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
+    await screen.findByText(/Added to Blog’s articles/)
     expect(posted).toEqual(['ada-blog'])
   })
 
@@ -355,7 +374,7 @@ describe('Home: Quick add (#192)', () => {
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
     await fireEvent.click(note)
     expect(note).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByLabelText('Note')).toBeVisible()
+    expect(screen.getByRole('textbox', { name: 'Note' })).toBeVisible()
     expect(screen.getByLabelText('Idea name')).not.toBeVisible()
   })
 
@@ -364,6 +383,8 @@ describe('Home: Quick add (#192)', () => {
     await renderAt('/')
     await fireEvent.click(await screen.findByRole('tab', { name: 'Add a note' }))
     const picker = screen.getByLabelText('Add to publication')
-    expect(picker.closest('form')).toBe(screen.getByLabelText('Note').closest('form'))
+    expect(picker.closest('form')).toBe(
+      screen.getByRole('textbox', { name: 'Note' }).closest('form'),
+    )
   })
 })

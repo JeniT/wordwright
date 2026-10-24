@@ -503,7 +503,7 @@ describe('idea page', () => {
     await openAt('/settings')
     const box = await screen.findByRole('region', { name: 'Delete idea' })
     expect(
-      within(box).getByText(/This can’t be undone\. Its notes, reading items and drafts go too\./),
+      within(box).getByText(/This can’t be undone\. Its notes, articles and drafts go too\./),
     ).toBeInTheDocument()
     expect(within(box).getByRole('link', { name: 'Download your writing' })).toHaveAttribute(
       'href',
@@ -542,12 +542,10 @@ describe('idea page', () => {
     expect(untitled.textContent).toContain('https://example.org/untitled')
   })
 
-  describe('the reading list', () => {
-    it('is headed Reading list, and says to tick off what has been read', async () => {
+  describe('the articles', () => {
+    it('is headed Articles, and says to tick off what has been read', async () => {
       await open()
-      const section = (await screen.findByRole('heading', { name: 'Reading list' })).closest(
-        'section',
-      )!
+      const section = (await screen.findByRole('heading', { name: 'Articles' })).closest('section')!
       expect(within(section).getByText(/Mark each one/)).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Related work' })).toBeNull()
     })
@@ -672,7 +670,7 @@ describe('idea page', () => {
       ])
       expect(screen.queryByLabelText(/Title/)).toBeNull() // adding a link doesn't ask for a title
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
 
       await waitFor(() => expect(screen.getByLabelText('Web address')).toHaveValue(''))
       expect(sent).toEqual({ url: 'example.org/new' })
@@ -691,7 +689,7 @@ describe('idea page', () => {
         ])
         const field = await screen.findByLabelText('Web address')
         await fireEvent.update(field, 'example.org/paper')
-        await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+        await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
 
         const hint = await screen.findByText(message)
         expect(hint).toHaveClass('text-danger')
@@ -709,7 +707,7 @@ describe('idea page', () => {
       ])
       const field = await screen.findByLabelText('Web address')
       await fireEvent.update(field, 'example.org/paper')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
       await screen.findByText('That link is already in this idea.')
       await fireEvent.update(field, 'example.org/paper2')
       expect(screen.queryByText('That link is already in this idea.')).toBeNull()
@@ -1353,7 +1351,7 @@ describe('idea page', () => {
       expect(screen.queryByText('A former member')).toBeNull()
     })
 
-    it('says so when there are no notes, with no link to a reading list of its own', async () => {
+    it('says so when there are no notes, with no link to a list of articles of its own', async () => {
       await open()
       expect(await screen.findByText(/^No notes yet\. Add one above\.$/)).toBeInTheDocument()
     })
@@ -1361,7 +1359,7 @@ describe('idea page', () => {
     it('has the add form above the list, and leads on to Refine with just the button', async () => {
       fakeNotes()
       await open()
-      const box = await screen.findByLabelText('Note')
+      const box = await screen.findByRole('textbox', { name: 'Note' })
       expect(
         box.compareDocumentPosition(within(region()).getAllByRole('list')[0]!) &
           Node.DOCUMENT_POSITION_FOLLOWING,
@@ -1425,7 +1423,7 @@ describe('idea page', () => {
       const state = fakeNotes()
       await open()
       await screen.findByText('Erosion loops.')
-      const box = screen.getByLabelText('Note')
+      const box = screen.getByRole('textbox', { name: 'Note' })
       expect(screen.getByRole('button', { name: 'Add note' })).toBeDisabled() // nothing to add yet
       await fireEvent.update(box, 'Oxbow lakes form when a loop is cut off.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
@@ -1449,7 +1447,7 @@ describe('idea page', () => {
         ),
       )
       await open()
-      const box = await screen.findByLabelText('Note')
+      const box = await screen.findByRole('textbox', { name: 'Note' })
       await fireEvent.update(box, 'One too many')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       expect(await screen.findByText('An idea can have up to 200 notes.')).toBeInTheDocument()
@@ -2305,9 +2303,7 @@ describe('idea page', () => {
     ])
     await fireEvent.click(await screen.findByRole('button', { name: 'Delete idea' }))
     const dialog = screen.getByRole('dialog', { name: 'Delete “Why rivers meander”?' })
-    expect(dialog).toHaveTextContent(
-      'This can’t be undone. Its notes, reading items and drafts go too.',
-    )
+    expect(dialog).toHaveTextContent('This can’t be undone. Its notes, articles and drafts go too.')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(deleted).toBe(false)
 

@@ -16,7 +16,7 @@ async function start() {
   return { ctx, ada, publication, api, idea }
 }
 
-describe('tags on the publication’s reading list', () => {
+describe('tags on the publication’s articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   let item: Link
   const tag = (id: string, tags: unknown) => s.ada.put(`${s.api}/reading/${id}/tags`, { tags })
@@ -64,7 +64,7 @@ describe('tags on the publication’s reading list', () => {
   })
 })
 
-describe('tags on an idea’s reading list', () => {
+describe('tags on an idea’s articles', () => {
   let s: Awaited<ReturnType<typeof start>>
   let item: Link
   const url = (id: string) => `${s.api}/ideas/${s.idea}/links/${id}/tags`
@@ -99,7 +99,7 @@ describe('tags on an idea’s reading list', () => {
   })
 })
 
-describe('tagging several reading items at once', () => {
+describe('tagging several articles at once', () => {
   let s: Awaited<ReturnType<typeof start>>
   const add = async (path: string, url: string): Promise<Link> => {
     const res = await (await s.ada.post(path, { url, title: url.replace('https://', '') })).json()
@@ -198,7 +198,7 @@ describe('tagging several reading items at once', () => {
   })
 })
 
-describe('tags when reading items move', () => {
+describe('tags when articles move', () => {
   let s: Awaited<ReturnType<typeof start>>
   const move = (ids: string[], ideaId: string | null) =>
     s.ada.post(`${s.api}/move/reading`, { ids, to: { ideaId } })

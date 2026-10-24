@@ -7,7 +7,7 @@ import FieldWithAction from './FieldWithAction.vue'
 import TextField from './TextField.vue'
 
 /**
- * The box that adds a web address to the reading list of an idea, or (no `ideaId`) of the publication. It sits above
+ * The box that adds a web address to the articles of an idea, or (no `ideaId`) of the publication. It sits above
  * the list, so it stays where it is as items pile up; what was just added is said under it, with a way to open it.
  * It is the only such form: Quick add shows it too, and passes `place` because there the list isn't on screen.
  */
@@ -55,7 +55,7 @@ function submit() {
 
 <template>
   <form @submit.prevent="submit">
-    <FieldWithAction action="Add to reading list" busy-text="Adding…" :busy="add.isPending.value">
+    <FieldWithAction action="Add article" busy-text="Adding…" :busy="add.isPending.value">
       <TextField
         v-model="linkUrl"
         label="Web address"
@@ -72,16 +72,16 @@ function submit() {
       <template v-if="justAdded">
         <template v-if="justAdded.id && justAdded.label">
           Added “{{ justAdded.label }}”{{
-            justAdded.place ? ` to ${justAdded.place}’s reading list` : ''
+            justAdded.place ? ` to ${justAdded.place}’s articles` : ''
           }}.
           <RouterLink :to="readingRoute(owner(), justAdded.id)" class="underline">
             Open “{{ justAdded.label }}”
           </RouterLink>
         </template>
         <template v-else>
-          Added{{ justAdded.place ? ` to ${justAdded.place}’s reading list` : '' }}.
+          Added{{ justAdded.place ? ` to ${justAdded.place}’s articles` : '' }}.
           <RouterLink :to="readingBackRoute(owner())" class="underline">
-            Open the reading list
+            Open the articles
           </RouterLink>
         </template>
       </template>

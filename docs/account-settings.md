@@ -76,7 +76,7 @@ The **Brainstorming prompt** section is removed (see _Decisions_).
 
 ### Download your writing
 
-"A zip of Markdown files: your ideas, notes, reading lists and drafts. Comments, reviews, brainstorming and keys aren't
+"A zip of Markdown files: your ideas, notes, lists of articles and drafts. Comments, reviews, brainstorming and keys aren't
 included." ⓘ "Owners get every draft in a publication. Members get the drafts they edit or started." Button "Download as a
 zip". The per-publication download in publication settings is unchanged.
 

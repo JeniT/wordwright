@@ -11,7 +11,7 @@ export interface ResearchFinding {
 export interface ResearchRequest {
   /** What the researcher is asked to be, and the rules it follows (the app's own prompt). */
   system: string
-  /** What to look for: the idea, the writer's focus and what is already on their reading list. */
+  /** What to look for: the idea, the writer's focus and what is already in their articles. */
   brief: string
   /** The most pages to return. */
   maxResults: number

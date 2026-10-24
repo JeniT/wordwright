@@ -16,7 +16,7 @@ export interface MoveRecord {
   movedAt: string
 }
 
-/** What was moved between a publication's reading list and notes and its ideas. Written inside the move's transaction. */
+/** What was moved between a publication's articles and notes and its ideas. Written inside the move's transaction. */
 export class MoveStore {
   constructor(private readonly db: DatabaseSync) {}
 

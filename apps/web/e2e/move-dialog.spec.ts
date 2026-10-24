@@ -21,7 +21,7 @@ test('the Move dialog keeps its picker inside it, however long an idea’s name 
     'x',
   )
   await page.goto(page.url().replace(/\/ideas\/.*/, '/notes'))
-  await page.getByLabel('Note', { exact: true }).fill('A first note')
+  await page.getByRole('textbox', { name: 'Note', exact: true }).fill('A first note')
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByText('A first note')).toBeVisible()
 

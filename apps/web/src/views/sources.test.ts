@@ -255,7 +255,7 @@ describe('feeds in the settings', () => {
     )
     await renderAt('/p/adalovelace-blog/settings/feeds')
     await screen.findByText('Alpha Notes')
-    expect(screen.queryByText(/You can then add them to your reading list/)).toBeNull()
+    expect(screen.queryByText(/You can then add them to your articles/)).toBeNull()
     expect(screen.queryByText(/RSS feeds to look through/)).toBeNull()
   })
 })
@@ -476,24 +476,24 @@ describe('deciding about the recent posts', () => {
   }
   const section = () => screen.findByRole('region', { name: 'Recent posts' })
 
-  it('puts a post on the reading list with one click, and says so', async () => {
+  it('puts a post in the articles with one click, and says so', async () => {
     fakeSources([A])
     const state = fake()
     await openSearch()
     const recent = await section()
     await fireEvent.click(
-      await within(recent).findByRole('button', { name: 'Add to reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Add article: First post' }),
     )
     await waitFor(() => expect(state.sent).toEqual([{ what: 'add', postId: 'p1' }]))
-    const row = (await within(recent).findByText(/in the reading list/)).closest('li')!
+    const row = (await within(recent).findByText(/in the articles/)).closest('li')!
     expect(row).toHaveTextContent('First post')
-    expect(within(row).getByRole('img', { name: 'In the reading list' })).toBeInTheDocument()
+    expect(within(row).getByRole('img', { name: 'In the articles' })).toBeInTheDocument()
     expect(within(row).queryByRole('button', { name: /^Add/ })).not.toBeInTheDocument()
-    expect(within(recent).getByText('Added “First post” to the reading list.')).toBeInTheDocument()
+    expect(within(recent).getByText('Added “First post” to the articles.')).toBeInTheDocument()
     // The other post still waits for a decision.
     await waitFor(() =>
       expect(
-        within(recent).getByRole('button', { name: 'Add to reading list: Second post' }),
+        within(recent).getByRole('button', { name: 'Add article: Second post' }),
       ).toBeEnabled(),
     )
   })
@@ -513,7 +513,7 @@ describe('deciding about the recent posts', () => {
     await fireEvent.click(within(row).getByRole('button', { name: 'Stop ignoring: Second post' }))
     await waitFor(() => expect(state.sent.at(-1)).toEqual({ what: 'reconsider', postId: 'p2' }))
     expect(
-      await within(recent).findByRole('button', { name: 'Add to reading list: Second post' }),
+      await within(recent).findByRole('button', { name: 'Add article: Second post' }),
     ).toBeInTheDocument()
   })
 
@@ -560,10 +560,10 @@ describe('deciding about the recent posts', () => {
     await openSearch()
     const recent = await section()
     await fireEvent.click(
-      await within(recent).findByRole('button', { name: 'Take off the reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Take off the articles: First post' }),
     )
     expect(
-      await within(recent).findByRole('button', { name: 'Add to reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Add article: First post' }),
     ).toBeInTheDocument()
   })
 
@@ -577,9 +577,7 @@ describe('deciding about the recent posts', () => {
     await openSearch()
     const recent = await section()
     expect(await within(recent).findByText(/Added earlier/)).toBeInTheDocument()
-    expect(
-      within(recent).queryByRole('button', { name: /Add to reading list: Added earlier/ }),
-    ).toBeNull()
+    expect(within(recent).queryByRole('button', { name: /Add article: Added earlier/ })).toBeNull()
     expect(within(recent).queryByRole('button', { name: /Ignore: Ignored earlier/ })).toBeNull()
     expect(within(recent).getByRole('button', { name: 'Ignore: Not yet' })).toBeInTheDocument()
   })
@@ -601,13 +599,11 @@ describe('deciding about the recent posts', () => {
     await openSearch()
     const recent = await section()
     await fireEvent.click(
-      await within(recent).findByRole('button', { name: 'Add to reading list: First post' }),
+      await within(recent).findByRole('button', { name: 'Add article: First post' }),
     )
     const alert = await within(recent).findByRole('alert')
     expect(alert).toHaveTextContent('A publication can have up to 50 links')
-    expect(
-      within(recent).getByRole('button', { name: 'Add to reading list: First post' }),
-    ).toBeEnabled()
+    expect(within(recent).getByRole('button', { name: 'Add article: First post' })).toBeEnabled()
     await fireEvent.click(within(alert).getByRole('button', { name: 'Dismiss' }))
     expect(within(recent).queryByRole('alert')).not.toBeInTheDocument()
   })
@@ -628,7 +624,7 @@ describe('deciding about the recent posts', () => {
     await fireEvent.click(await within(recent).findByRole('button', { name: 'Ignore: First post' }))
     await waitFor(() =>
       expect(
-        within(recent).getByRole('button', { name: 'Add to reading list: Second post' }),
+        within(recent).getByRole('button', { name: 'Add article: Second post' }),
       ).toBeDisabled(),
     )
     release()

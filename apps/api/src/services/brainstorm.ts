@@ -825,7 +825,7 @@ export class BrainstormService {
   }
 
   /**
-   * Puts a suggested page on the idea's reading list, marked with where it came from. The checks made when it
+   * Puts a suggested page in the idea's articles, marked with where it came from. The checks made when it
    * was suggested stand (a page that doesn't exist, or isn't public, can only be dismissed), and the list is
    * looked at again now: it may have filled up, or the writer may have added the page themselves meanwhile.
    * The page's own title is used when it had one; otherwise the AI's, which the writer saw labelled as such.
@@ -990,7 +990,7 @@ export class BrainstormService {
 }
 
 /**
- * The web addresses people wrote in the thread, as `linkKey`s. The coach may suggest a page for the reading list
+ * The web addresses people wrote in the thread, as `linkKey`s. The coach may suggest a page for the articles
  * only if its address is one of these: it has no way to look anything up, so any other address is its memory.
  */
 export function addressesWrittenBy(messages: MessageRecord[]): Set<string> {
@@ -1039,7 +1039,7 @@ function describeDecision(p: ProposalRecord): string {
       return p.tool === 'create_idea'
         ? 'The writer accepted this suggestion, and the new idea was created.'
         : p.tool === 'suggest_reading'
-          ? 'The writer accepted this suggestion, and the page was added to their reading list.'
+          ? 'The writer accepted this suggestion, and the page was added to their articles.'
           : 'The writer accepted this suggestion, and the title was changed.'
     case 'dismissed':
       return 'The writer dismissed this suggestion. Nothing was changed.'

@@ -12,7 +12,7 @@ import { fail } from '../errors'
 import { changeTags, sameTagList } from './tag-change'
 
 /**
- * Adding and editing the items of an idea's reading list, or of the publication's. Looking a page up costs a request to someone
+ * Adding and editing the items of an idea's articles, or of the publication's. Looking a page up costs a request to someone
  * else's server, so it's rate-limited per person, and a link is only saved once the lookup has
  * said the address is a real, public site. A page that merely can't be read (blocked, slow, no
  * title) is fine: the link is kept and shows its address.
@@ -24,7 +24,7 @@ export class IdeaLinkService {
 
   /**
    * Adds and removes tags on the chosen items in one go, all or nothing (an item that would end with too many tags
-   * refuses the whole change). Answers with the whole reading list.
+   * refuses the whole change). Answers with the whole articles.
    */
   tagMany(scope: ListScope, ids: string[], add: string[], remove: string[]): IdeaLink[] {
     const { store } = this.deps
@@ -46,7 +46,7 @@ export class IdeaLinkService {
     })
   }
 
-  /** Adds a link and answers with the whole reading list. */
+  /** Adds a link and answers with the whole articles. */
   async add(
     scope: ListScope,
     userId: string,

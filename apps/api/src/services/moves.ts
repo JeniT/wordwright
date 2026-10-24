@@ -12,23 +12,23 @@ import type { Store } from '../db/store'
 import { fail } from '../errors'
 
 /**
- * Moving reading items and notes between a publication's own lists and its ideas (and between ideas), and to another
+ * Moving articles and notes between a publication's own lists and its ideas (and between ideas), and to another
  * publication the person belongs to. Each move is one transaction: it happens in full or not at all, refuses anything
  * that isn't the person's to move or to move to, and is written to the log of moves. What "move" keeps is written out
  * in docs/decisions.md; in short:
  *
- * - A **reading item** moves with its read date, authors, tags, address, title, why and origin, and the notes taken
+ * - A **article** moves with its read date, authors, tags, address, title, why and origin, and the notes taken
  *   from it go with it. If the destination already has an item with the same address, the two become one: the
  *   one already there stays, takes the moved item's tags too, and the moved item's notes now point at it.
  * - A **note** moves with its text, tags, author, origin and quotation mark, to the end of the destination's
- *   notes. The reading item it was taken from is *copied* to the destination (or the copy already there is used),
+ *   notes. The article it was taken from is *copied* to the destination (or the copy already there is used),
  *   so the note keeps its source without taking it away from other notes that came from it. It is no longer
  *   "added to a draft", since it has not been put into any of the new owner's drafts.
  */
 export class MoveService {
   constructor(private readonly store: Store) {}
 
-  /** `to.ideaId` null moves them to the destination publication's own reading list. */
+  /** `to.ideaId` null moves them to the destination publication's own articles. */
   moveReading(publicationId: string, userId: string, ids: string[], to: MoveTarget): MoveResult {
     const { reading, notes, ideas, moves } = this.store
     return this.store.transaction(() => {

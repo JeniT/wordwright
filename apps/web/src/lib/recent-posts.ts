@@ -6,12 +6,12 @@ import { invalidateRoots } from './queries'
 
 /** What the list is, once, for the icon beside "Recent posts" and for tutorial mode under the page title. */
 export const RECENT_POSTS_ABOUT =
-  'This list contains recent posts from the feeds you’re subscribed to. Either add them to your reading list or ignore them. Ignored posts are moved to the end of the list in case you want to reconsider them.'
+  'This list contains recent posts from the feeds you’re subscribed to. Either add them to your articles or ignore them. Ignored posts are moved to the end of the list in case you want to reconsider them.'
 
 export type PostDecision = 'add' | 'ignore' | 'reconsider'
 
 /**
- * Deciding about a post from the feeds: add it to the reading list, ignore it, or take either back. The Scan page
+ * Deciding about a post from the feeds: add it to the articles, ignore it, or take either back. The Scan page
  * and the publication's landing page both show these rows, so both use this; every list that holds posts is refreshed
  * afterwards, which is how each one hears of a decision made in the other.
  */
@@ -24,7 +24,7 @@ export function useDecidePosts(publicationId: () => string) {
     onSuccess: (_, { what, post }) => {
       notice.value =
         what === 'add'
-          ? `Added “${post.title}” to the reading list.`
+          ? `Added “${post.title}” to the articles.`
           : what === 'ignore'
             ? `Ignored “${post.title}”.`
             : `“${post.title}” is back in recent posts.`

@@ -46,7 +46,7 @@ gentle "Next: …" suggestion. Home → publication → idea:
 | Level                | Menu lists                                                                                                                                                                         | Front door                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Home                 | Quick add, Keep writing, publications; account settings by the gear beside your name (`/`)                                                                                         | `/`                                                                       |
-| Publication          | **01 Scan** (recent posts), **02 Read** (reading list), **03 Note**; a gear beside the name for settings                                                                           | `/p/<id>` → its landing page                                              |
+| Publication          | **01 Scan** (recent posts), **02 Read** (articles), **03 Note**; a gear beside the name for settings                                                                               | `/p/<id>` → its landing page                                              |
 | Idea                 | **01 Research**, **02 Read**, **03 Note**, **04 Refine** (brainstorm), **05 Draft** (each draft ends with Copy and Copy as Markdown); a gear beside the name for settings          | `/p/<id>/ideas/<idea>` → Note                                             |
 | Publication settings | **Details** (owners only), **Description**, **Feeds**, **Sharing**, **Download**, **Delete publication** (owners only) as plain links, no numbers; the way up is "← {publication}" | `/p/<id>/settings` → `/p/<id>/settings/details` (members: `/description`) |
 | Account              | Six settings pages as plain links, no numbers: **Your details**, **Your AI**, **Display**, **Sign-in and security**, **Download your writing**, **Delete account**                 | `/account` → `/account/details`                                           |
@@ -113,7 +113,7 @@ tests inject fakes and nothing hits the network.
   adding members (`owner` or `member`; a publication can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a publication: Home opens with a two-step checklist (01 create a publication, 02 connect an AI key) in either order, which disappears once both are done.
 - **A publication is a place you publish** (a Substack, a blog, a magazine, a newsletter): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
-  `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) then a Quick add panel (new idea, note, something to read), then its newest feed posts, the first items on its reading list, its latest notes and its ideas (see _Navigation_ below for its steps);
+  `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) then a Quick add panel (new idea, note, something to read), then its newest feed posts, the first items in its articles, its latest notes and its ideas (see _Navigation_ below for its steps);
   `/p/<id>/settings` edits it, shares it and deletes it. A publication also has a **description** (stored as Markdown, up to 5000 characters, but written in a small rich-text editor with bold, italic, lists and links, so nobody needs to know Markdown: what the publication is, who reads it, what kinds of writing go there), which anyone who shares the publication can edit (`PUT /api/publications/:id/description`); the name and website stay the owner's. The writer always writes it themselves: it is the **Description** page in the publication's settings (`/p/<id>/settings/description`, also reached from the publication page's "Describe this publication" step; `/p/<id>/describe` redirects there), a box with a link to a help page (`/help/description`) on what a description needs to say to be useful to your AI. Nothing drafts a description with AI any more (#150).
 - **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
@@ -122,26 +122,26 @@ tests inject fakes and nothing hits the network.
   deletes its links and drafts. API:
   `/api/publications/:id/ideas` (list, create), `/:idea` (get, patch, delete), `/:idea/links`, `/:idea/drafts`.
   **Keep writing** (#310), under Quick add on Home, a publication's landing page and an idea's: `GET /api/drafts/active` answers the drafts the signed-in person edits, in publications they still belong to, that are active (saved in the last 30 days, or with a review in progress, or with comments they haven't resolved), those with unresolved comments first and then newest first. `publicationId` and `ideaId` narrow it; `limit` (3 by default, at most 60) says how many, and `hasMore` tells "Show more" whether to appear. Each draft carries its idea and publication names and, if it was ever sent for review, `review` totals over all its requests (`asked`, `ended`, `unresolved`); not available to reviewer-only accounts. **Quick add** on Home uses the existing create-idea, publication notes and publication reading endpoints.
-  **Reading list (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
+  **Articles (the idea's links):** the person types only a web address (scheme optional). Text that isn't a plausible
   address is refused ("rubbish" is, "example.org" is not), as is a site whose name doesn't exist, or the same page
   twice (`http`/`https`, `www.`, a trailing slash or `#fragment` don't make a page different). The server looks the
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
   and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
   item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
-  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own reading page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add to reading list** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
+  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own reading page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add article** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
-  **Moving reading items:** on any reading list, **Move items** lets you tick items and choose **Move to** the publication's
-  reading list, another idea, or (from the publication's list) a new idea named in your own words. The items go with the
+  **Moving articles:** on any articles, **Move items** lets you tick items and choose **Move to** the publication's
+  articles, another idea, or (from the publication's list) a new idea named in your own words. The items go with the
   notes taken from them and keep whether they are read; the page says what moved ("Moved 2 items and 5 notes to
   “Rivers”.") with an **Undo**, except when items were joined to ones already there, which can't be unpicked.
   **Moving notes:** on the publication's Notes, or an idea's, **Move notes** lets you tick notes (quotations too; **Select all the
   notes shown** follows the tag being shown) and choose **Move to** another idea, the publication's own notes (from an
   idea), or **a new idea named in your own words**. Before you confirm, the page says how many notes will move and
-  that the pages they were taken from are copied to the destination's reading list (the originals stay); a tick
+  that the pages they were taken from are copied to the destination's articles (the originals stay); a tick
   offers to bring the other notes taken from those pages too. Notes are moved, not copied, in the order you arranged
   them, with their tags and quotation marks. **Undo** moves them back (to the end of where they were).
   **Between publications:** someone who belongs to more than one publication also gets **Another publication…** in **Move
-  to** (reading items and notes alike): choose the publication, then its own list, one of its ideas or a new idea there.
+  to** (articles and notes alike): choose the publication, then its own list, one of its ideas or a new idea there.
   Any member of both may do it; one who isn't a member of the destination gets "Not found". Everything above carries over
   (items with the same address are joined, a note's source is copied, the limits apply to the destination), and **Undo**
   works while you belong to both (`to: { ideaId, publicationId }` on `POST /api/publications/:id/move/…`).
@@ -150,16 +150,16 @@ tests inject fakes and nothing hits the network.
   An idea moves whole, with its drafts and everything on them; an owner of the publication it is in must do it if it has
   drafts, and each draft's editor must belong to the destination (`POST /api/publications/:id/move/ideas`, with
   `…/ideas/preview` to check first). See `docs/decisions.md`.
-  **Read items are hidden by default** on every reading list (an idea's and the publication's), with a **Show read items**
+  **Read items are hidden by default** on every articles (an idea's and the publication's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.
-  **Linking to the reading list while drafting:** the drawer's Reading list inserts a link to an item; if it isn't marked
+  **Linking to the articles while drafting:** the drawer's Articles inserts a link to an item; if it isn't marked
   read the writer is asked to read it (in a new tab), mark it read, or cancel. Notes taken from an item don't ask.
-  **Dragging notes and reading items into a draft:** the drafting side bar's notes and reading items can be dragged by their rail onto the draft, landing where
-  they are dropped (the _Add to draft_ button does the same at the cursor). A reading item goes in as a link with its authors (“Title by A and B”).
-  **The publication's own reading list and notes** have their own places: the reading list is the publication's
+  **Dragging notes and articles into a draft:** the drafting side bar's notes and articles can be dragged by their rail onto the draft, landing where
+  they are dropped (the _Add to draft_ button does the same at the cursor). An article goes in as a link with its authors (“Title by A and B”).
+  **The publication's own articles and notes** have their own places: the list of articles is the publication's
   **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each item opens its own reading page at
-  `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea's reading list is separate from the publication's. They are the idea's screens with a different owner (reading list, reading page, notes with
+  `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, reading page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
   publication as a whole, to be gathered before there is an idea. `GET/POST /api/publications/:id/reading`, `PATCH|DELETE
@@ -253,12 +253,12 @@ tests inject fakes and nothing hits the network.
   first, each with its feed's logo and name, for the last week, month (the default), 3 months or year: so a blog that
   posts twice a year doesn't clutter it. It shows five posts at a time (Previous / Next above and below the list; the bottom ones scroll back to the top) out of at most 100, counts posts that carry no date (they can't be
   placed in time), names feeds it couldn't read, and has a "Check for new posts" button.
-  Each post has **Add** and **Ignore** (as in the research review): Add puts it on the publication's reading list
+  Each post has **Add** and **Ignore** (as in the research review): Add puts it in the publication's articles
   (marked "From a feed"; `POST …/sources/recent/add`, `…/ignore`, `…/reconsider`, each `{posts: [{sourceId, postId}]}`);
   an ignored post stays in the list, marked, and **Reconsider** takes either back. A post that has been added or
   ignored moves to the **end** of the list (the latest decision last), so the posts still waiting stay together at
-  the top, in date order. A post is "on a reading list" if it
-  is on any of the publication's lists, however it got there. The reading list is on the same page, below the posts. **The publication's own reading list has no maximum** (an idea's keeps 50), but an item
+  the top, in date order. A post is "on a list of articles" if it
+  is on any of the publication's lists, however it got there. The list of articles is on the same page, below the posts. **The publication's own list of articles has no maximum** (an idea's keeps 50), but an item
   that isn't ticked **Keep** is dropped, silently, a month after it was put on that list (`PUT
 /api/publications/:id/reading/:item/kept` `{kept}`); one that notes were taken from is never dropped, and moving an
   item onto the publication starts its month again.
@@ -266,7 +266,7 @@ tests inject fakes and nothing hits the network.
   link, authors, date, and a short plain-text start of the summary; never the article). The server keeps each read for 3
   hours, asks again with `ETag`/`If-Modified-Since` so an unchanged feed costs little, leaves a feed that failed
   alone for 30 minutes, and shows when it last worked and why it stopped. Reads are capped at 120 an hour per person.
-  Nothing yet turns these posts into ideas; that is the "Add to reading list" page (T6c).
+  Nothing yet turns these posts into ideas; that is the "Add article" page (T6c).
   If a pasted website offers several feeds, the person is shown them (posts first, feeds of comments last and
   labelled, at most 10) and ticks which to add; `POST` then answers `200 {choices}` instead of `201`.
   API: `GET/POST /api/publications/:id/sources`, `GET .../sources/:sourceId/icon`, `GET .../sources/recent[?days=30&refresh=true]`, `GET .../sources/:sourceId/items[?refresh=true]` (one feed's posts; the app no longer shows them per feed),
@@ -354,8 +354,8 @@ tests inject fakes and nothing hits the network.
   counts only, never who.
 - **Exporting your writing** (#167): the Download your writing page (all your publications, `GET /api/account/export`) and each publication's
   settings (`GET /api/publications/:id/export`) download a zip of Markdown only: a README, then per publication a file for the
-  publication, one per idea (notes, reading list, links to drafts) and one per draft. Owners get every draft, members
-  the drafts they edit or started; notes and reading items are everyone's, with names. Comments, reviews, brainstorm
+  publication, one per idea (notes, articles, links to drafts) and one per draft. Owners get every draft, members
+  the drafts they edit or started; notes and articles are everyone's, with names. Comments, reviews, brainstorm
   chats, API keys and email addresses are never included. Built on request, throttled to 5 an hour per person; see
   `docs/decisions.md`.
 - **Deleting an account** needs the account's password (`password` in `DELETE /api/account`; a wrong or missing one
@@ -417,27 +417,27 @@ idea are the Markdown file `prompts/brainstorm-default.md`; the app adds its own
 holds up to five conversations per idea (#289), each shared by the publication's members. `GET` lists them (each with its `title`); `POST` starts one; `PATCH` renames one;
 under `/:conversation`, `GET` reads it; `POST /messages` (`{text}`, `{start:true}` or
 `{retry:true}`) streams the AI's reply as server-sent events; `POST /proposals/:id/accept` and `/dismiss` decide the
-AI's suggestions (a new title for the idea, a new idea, or a page for the idea's reading list that the writer gave it: it can never touch drafts); the points the writer makes are suggested as notes (`suggest_note`), which a person adds, edits or ignores (#295); `DELETE` deletes that conversation. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
+AI's suggestions (a new title for the idea, a new idea, or a page for the idea's articles that the writer gave it: it can never touch drafts); the points the writer makes are suggested as notes (`suggest_note`), which a person adds, edits or ignores (#295); `DELETE` deletes that conversation. Each message is sent with its sender's own key, model and prompt. Nothing the AI suggests is applied until a
 person adds or accepts it. The page is `/p/<publication>/ideas/<idea>/refine` (the idea's **Refine** step: visiting it spends nothing; **Refine with your AI** begins; **New conversation** starts another, up to five; **Earlier/Later conversation** page between them): the editor's reply
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
 never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
 "suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
 
-**Research** (the AI adds to the reading list; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
+**Research** (the AI adds to the articles; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
 shows the idea's research one run at a time (newest first; **Earlier research** and **Later research** step through the rest),
 each as a list laid out like the Scan page's. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
-`/reconsider` (`{itemIds}`) add pages to the reading list, ignore them, or take either back (reconsidering an added page removes it from the
-reading list); `DELETE …/research/:run` forgets a run. The search
+`/reconsider` (`{itemIds}`) add pages to the articles, ignore them, or take either back (reconsidering an added page removes it from the
+articles); `DELETE …/research/:run` forgets a run. The search
 looks for several points of view. It works through the `ResearchProvider` port (`@wordwright/core`: `AnthropicResearchProvider`,
 `FakeResearchProvider`, and `researchProviderContract` in `@wordwright/core/testing` for any new one), which may only return addresses that
 appeared in a search result. Web search must be enabled for the Anthropic account whose key is used. The server looks at each address
 with the same SSRF-safe page fetcher as typed links and shows the page's real title, flagging an address that
-doesn't resolve (it can't be added). Nothing joins the reading list until a person adds it; it keeps the AI's reason,
-highlighted as the AI's on the reading list (one highlighted line above the list says what the highlight is; no badge says where an item came from). The brainstorm coach can also suggest a page, but only an address the writer
+doesn't resolve (it can't be added). Nothing joins the articles until a person adds it; it keeps the AI's reason,
+highlighted as the AI's in the articles (one highlighted line above the list says what the highlight is; no badge says where an item came from). The brainstorm coach can also suggest a page, but only an address the writer
 gave it. Searches are throttled to 10 an hour per person, with no other cap. With `FAKE_LLM=true` a search finds three scripted
-pages: one fine, one with no readable title and one that doesn't exist; and the coach turns an address plus "reading list" into a suggestion.
+pages: one fine, one with no readable title and one that doesn't exist; and the coach turns an address plus "articles" into a suggestion.
 
 ## Notes and next steps
 

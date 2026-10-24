@@ -81,14 +81,14 @@ defineProps<{ publicationId: string }>()
       <h2 id="stuck-heading" class="mb-4 font-display text-xl font-semibold">Stuck for ideas?</h2>
       <RecentPostsSummary
         nested
-        explain="First look for recent articles or news stories for inspiration. Here, you can subscribe to feeds that may contain interesting pieces and add them to your reading list."
+        explain="First look for recent articles or news stories for inspiration. Here, you can subscribe to feeds that may contain interesting pieces and add them to your articles."
         :publication-id="publicationId"
         :to="{ name: 'scan', params: { publicationId } }"
       />
 
       <RecentReading
         nested
-        explain="Second, read the articles or news stories on this reading list and take notes on them. These can also be moved to a new or existing idea’s reading list."
+        explain="Second, read the articles or news stories in this idea’s articles and take notes on them. These can also be moved to a new or existing idea’s articles."
         :publication-id="publicationId"
         :idea-id="null"
         :to="{ name: 'read', params: { publicationId } }"

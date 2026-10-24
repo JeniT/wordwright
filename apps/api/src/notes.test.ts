@@ -118,7 +118,7 @@ describe('idea notes', () => {
     expect((await res.json()).error).toContain(`${MAX_IDEA_NOTES} notes`)
   })
 
-  describe('taken from the reading list', () => {
+  describe('taken from the articles', () => {
     const itemOn = async () => {
       await ada.post(`${ideas()}/${idea}/links`, { url: 'https://example.org/paper' })
       return (await (await ada.get(`${ideas()}/${idea}`)).json()).links[0].id as string
@@ -170,7 +170,7 @@ describe('idea notes', () => {
       const elsewhere = (await (await ada.get(`${ideas()}/${other}`)).json()).links[0].id
       const res = await ada.post(notes(), { text: 'x', readingItemId: elsewhere })
       expect(res.status).toBe(400)
-      expect((await res.json()).error).toContain("isn't on this idea's reading list")
+      expect((await res.json()).error).toContain("isn't in this idea's articles")
       expect(await list()).toEqual([])
     })
 

@@ -26,7 +26,7 @@ const flow = useMoveIdeasFlow(
 <template>
   <LandingSection
     title="Ideas"
-    explain="An idea is something you want to write about. You can add notes, keep a reading list and have several drafts under each idea."
+    explain="An idea is something you want to write about. You can add notes, keep a list of articles and have several drafts under each idea."
   >
     <QueryState :query="ideas" what="ideas">
       <p v-if="!ideas.data.value?.length" class="text-ink-soft">No ideas yet.</p>

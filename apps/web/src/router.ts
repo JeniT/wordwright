@@ -284,7 +284,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'idea', step: 'research', tutorial: true },
   },
   {
-    // The AI research used to have a page apart from the reading list; they are now 01 Research and 02 Read.
+    // The AI research used to have a page apart from the articles; they are now 01 Research and 02 Read.
     path: '/p/:publicationId/ideas/:id/research/find',
     redirect: (to) => ({ name: 'idea-research', params: to.params, query: to.query }),
   },

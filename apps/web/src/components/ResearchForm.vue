@@ -65,8 +65,8 @@ function submit() {
         Research
       </AiButton>
       <p class="min-w-0 flex-1 basis-64 text-sm text-ink-soft">
-        This will send this publication’s description and this idea’s title and notes, reading list,
-        and the areas you want to research to your AI. It will not send your drafts.
+        This will send this publication’s description and this idea’s title and notes, articles, and
+        the areas you want to research to your AI. It will not send your drafts.
       </p>
     </div>
     <p v-if="search.isPending.value" class="mt-2 text-sm text-ink-soft">

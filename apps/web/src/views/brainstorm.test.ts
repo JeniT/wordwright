@@ -194,7 +194,7 @@ describe('the brainstorm page', () => {
     // What leaves the system is said beside the button, in one line; the page says nothing else about it.
     expect(
       screen.getByText(
-        /^This will send this publication’s description and this idea’s title and notes and reading list to your AI\. It will not send your drafts\.$/,
+        /^This will send this publication’s description and this idea’s title and notes and articles to your AI\. It will not send your drafts\.$/,
       ),
     ).toBeVisible()
     expect(screen.queryByLabelText('Your message')).toBeNull() // nothing to answer yet
@@ -261,7 +261,7 @@ describe('the brainstorm page', () => {
     await screen.findByText('What is the claim?')
     const send = screen.getByRole('button', { name: 'Send' })
     const note = screen.getByText(
-      /^This will re-send up-to-date information about the idea’s title, notes and reading list to your AI\. It will not send your drafts\.$/,
+      /^This will re-send up-to-date information about the idea’s title, notes and articles to your AI\. It will not send your drafts\.$/,
     )
     expect(note.parentElement).toBe(send.parentElement)
   })
@@ -1040,11 +1040,11 @@ describe('suggested reading', () => {
     expect(list.getByText(/example\.org · A\. Writer, B\. Author/)).toBeInTheDocument()
     expect(list.getByText('It explains how bends grow.')).toHaveClass('bg-mark')
     expect(list.queryByText('The physics of rivers')).toBeNull() // what the AI called it is not shown
-    expect(list.getByRole('button', { name: /^Add to reading list: River Physics/ })).toBeEnabled()
+    expect(list.getByRole('button', { name: /^Add article: River Physics/ })).toBeEnabled()
     expect(list.getByRole('button', { name: /^Ignore: River Physics/ })).toBeEnabled()
   })
 
-  it('adds the page when ticked, and then says it is in the reading list, with no way to take it back here', async () => {
+  it('adds the page when ticked, and then says it is in the articles, with no way to take it back here', async () => {
     const card = reading({ id: 'r1' })
     let accepted: unknown
     const api = mockConversation([kickoff(), aiMessage('Try this.', { proposals: [card] })])
@@ -1056,10 +1056,10 @@ describe('suggested reading', () => {
       }),
     )
     await renderAt(page)
-    await fireEvent.click(await screen.findByRole('button', { name: /^Add to reading list:/ }))
-    expect(await screen.findByText(/in the reading list/)).toBeInTheDocument()
+    await fireEvent.click(await screen.findByRole('button', { name: /^Add article:/ }))
+    expect(await screen.findByText(/in the articles/)).toBeInTheDocument()
     expect(accepted).toEqual({})
-    expect(screen.queryByRole('button', { name: /^Take off the reading list/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Take off the articles/ })).toBeNull()
   })
 
   it('can be ignored, and brought back', async () => {
@@ -1079,7 +1079,7 @@ describe('suggested reading', () => {
     await fireEvent.click(await screen.findByRole('button', { name: /^Ignore:/ }))
     expect(await screen.findByText(/ignored/)).toBeInTheDocument()
     await fireEvent.click(screen.getByRole('button', { name: /^Stop ignoring:/ }))
-    expect(await screen.findByRole('button', { name: /^Add to reading list:/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Add article:/ })).toBeInTheDocument()
   })
 
   it('says a page with no readable title is unconfirmed', async () => {
@@ -1092,7 +1092,7 @@ describe('suggested reading', () => {
     await renderAt(page)
     const list = within(await readingList())
     expect(list.getByText('We couldn’t confirm the title of this page.')).toBeInTheDocument()
-    expect(list.getByRole('button', { name: /^Add to reading list:/ })).toBeEnabled() // allowed, with the warning
+    expect(list.getByRole('button', { name: /^Add article:/ })).toBeEnabled() // allowed, with the warning
   })
 
   it.each([
@@ -1106,7 +1106,7 @@ describe('suggested reading', () => {
     await renderAt(page)
     const list = within(await readingList())
     expect(list.getByText(message)).toBeInTheDocument()
-    expect(list.getByRole('button', { name: /^Add to reading list:/ })).toBeDisabled()
+    expect(list.getByRole('button', { name: /^Add article:/ })).toBeDisabled()
     expect(list.getByRole('button', { name: /^Ignore:/ })).toBeEnabled()
   })
 
@@ -1122,9 +1122,9 @@ describe('suggested reading', () => {
       ),
     )
     await renderAt(page)
-    await fireEvent.click(await screen.findByRole('button', { name: /^Add to reading list:/ }))
+    await fireEvent.click(await screen.findByRole('button', { name: /^Add article:/ }))
     expect(await screen.findByRole('alert')).toHaveTextContent('already in this idea')
-    expect(screen.getByRole('button', { name: /^Add to reading list:/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /^Add article:/ })).toBeEnabled()
   })
 })
 

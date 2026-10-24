@@ -10,7 +10,7 @@ import { useSources } from '../lib/queries'
 
 /**
  * Step 01 of a publication: look for things worth writing about. Recent posts from the feeds, which can be added to
- * the reading list. The feeds themselves are set up in the publication's settings.
+ * the articles. The feeds themselves are set up in the publication's settings.
  */
 const props = defineProps<{ publicationId: string }>()
 const sources = useSources(() => props.publicationId)

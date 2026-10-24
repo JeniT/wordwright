@@ -9,9 +9,11 @@ import { useId } from 'vue'
  */
 const props = defineProps<{
   /** `count` is shown on the tab and said to a screen reader ("Comments, 3"); leave it out for none. */
-  tabs: { id: string; label: string; count?: number }[]
+  tabs: { id: string; label: string; name?: string; count?: number }[]
   /** Names the tab list for a screen reader. */
   label: string
+  /** A word shown before the tabs ("Add:"), so each tab can be one short word. Not a tab. */
+  lead?: string
 }>()
 const selected = defineModel<string>({ required: true })
 const prefix = useId()
@@ -40,24 +42,27 @@ function onKeydown(event: KeyboardEvent) {
 
 <template>
   <div>
-    <div role="tablist" :aria-label="label" class="mb-3 flex flex-wrap border-b border-line">
-      <button
-        v-for="t in tabs"
-        :id="tabId(t.id)"
-        :key="t.id"
-        type="button"
-        role="tab"
-        class="tab"
-        :aria-selected="t.id === selected"
-        :aria-controls="panelId(t.id)"
-        :aria-label="t.count ? `${t.label}, ${t.count}` : undefined"
-        :tabindex="t.id === selected ? 0 : -1"
-        @click="selected = t.id"
-        @keydown="onKeydown"
-      >
-        {{ t.label }}
-        <span v-if="t.count" class="chip chip-quiet" aria-hidden="true">{{ t.count }}</span>
-      </button>
+    <div class="mb-3 flex items-center gap-2 border-b border-line">
+      <span v-if="lead" class="text-sm text-ink-soft">{{ lead }}</span>
+      <div role="tablist" :aria-label="label" class="flex flex-wrap">
+        <button
+          v-for="t in tabs"
+          :id="tabId(t.id)"
+          :key="t.id"
+          type="button"
+          role="tab"
+          class="tab"
+          :aria-selected="t.id === selected"
+          :aria-controls="panelId(t.id)"
+          :aria-label="t.count ? `${t.name ?? t.label}, ${t.count}` : t.name"
+          :tabindex="t.id === selected ? 0 : -1"
+          @click="selected = t.id"
+          @keydown="onKeydown"
+        >
+          {{ t.label }}
+          <span v-if="t.count" class="chip chip-quiet" aria-hidden="true">{{ t.count }}</span>
+        </button>
+      </div>
     </div>
     <div
       v-for="t in tabs"

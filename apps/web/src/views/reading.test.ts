@@ -78,7 +78,7 @@ describe('reading page', () => {
     expect(host.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // The explanation is behind an icon, not a paragraph.
     expect(document.querySelector('.tutorial-note')).toBeNull()
-    expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Back to the articles/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/ideas/i1/read',
     )
@@ -93,11 +93,11 @@ describe('reading page', () => {
     expect(read.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('has the add button beside its field, in the same form as above a reading list', async () => {
+  it('has the add button beside its field, in the same form as above a list of articles', async () => {
     await open()
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     const field = screen.getByLabelText('Web address')
-    const button = screen.getByRole('button', { name: 'Add to reading list' })
+    const button = screen.getByRole('button', { name: 'Add article' })
     // One row: the field and the button share a parent that holds nothing else.
     expect(field.closest('div.flex')).toBe(button.closest('div.flex'))
     expect(field).toHaveAccessibleDescription('We will look up its title.')
@@ -137,7 +137,7 @@ describe('reading page', () => {
           return HttpResponse.json(created, { status: 201 })
         }),
       ])
-      await fireEvent.update(await screen.findByLabelText('Note'), 'A thought.')
+      await fireEvent.update(await screen.findByRole('textbox', { name: 'Note' }), 'A thought.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       return await screen.findByText('Note added.')
     }
@@ -177,9 +177,9 @@ describe('reading page', () => {
         ),
       ),
     ])
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     expect(await screen.findByText(/Added “New one”/)).toBeInTheDocument()
     await fireEvent.update(screen.getByLabelText('Web address'), 'h')
     expect(screen.queryByText(/Added “New one”/)).not.toBeInTheDocument()
@@ -187,7 +187,7 @@ describe('reading page', () => {
 
   it('starts again on Add a note when the writer goes on to another item', async () => {
     const { router } = await open()
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(screen.getByLabelText('Web address'), 'example.org/new')
     await router.push(readingPath('l2'))
     await screen.findByRole('heading', { level: 1, name: 'https://example.org/other' })
@@ -195,11 +195,11 @@ describe('reading page', () => {
     expect(screen.getByLabelText('Web address')).toHaveValue('')
   })
 
-  it('opens on Add a note, then Add to reading list; an idea’s page has no New idea tab', async () => {
+  it('opens on Add a note, then Add article; an idea’s page has no New idea tab', async () => {
     await open()
     await screen.findByRole('heading', { level: 1, name: 'A paper' })
     const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
-    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['Add a note', 'Add to reading list'])
+    expect(tabs.map((t) => t.getAttribute('aria-label'))).toEqual(['Add a note', 'Add article'])
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
   })
 
@@ -221,7 +221,7 @@ describe('reading page', () => {
       ).toBeInTheDocument()
     })
 
-    it('does the same on the publication’s own reading item, which also offers a New idea tab', async () => {
+    it('does the same on the publication’s own article, which also offers a New idea tab', async () => {
       const handlers = tutorial()
       server.use(
         ...handlers,
@@ -235,15 +235,15 @@ describe('reading page', () => {
       await screen.findByRole('heading', { level: 1, name: 'A paper' })
       expect(screen.getByText(/in a split view/)).toBeInTheDocument()
       const tabs = within(screen.getByRole('tablist', { name: 'Quick add' })).getAllByRole('tab')
-      expect(tabs.map((t) => t.textContent?.trim())).toEqual([
+      expect(tabs.map((t) => t.getAttribute('aria-label'))).toEqual([
         'Add a note',
-        'Add to reading list',
+        'Add article',
         'New idea',
       ])
     })
   })
 
-  it('is reached from the idea’s reading list, which has no Keep tick (only the publication’s list drops items)', async () => {
+  it('is reached from the idea’s articles, which has no Keep tick (only the publication’s list drops items)', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
@@ -255,7 +255,7 @@ describe('reading page', () => {
     expect(screen.queryByRole('switch', { name: /^Keep:/ })).not.toBeInTheDocument()
   })
 
-  it('moves items from an idea to the publication’s reading list or another idea, never to itself or a new idea', async () => {
+  it('moves items from an idea to the publication’s articles or another idea, never to itself or a new idea', async () => {
     const moved: unknown[] = []
     server.use(
       signedInAs(testUser),
@@ -285,11 +285,11 @@ describe('reading page', () => {
       within(picker)
         .getAllByRole('option')
         .map((o) => o.textContent?.trim()),
-    ).toEqual(['Choose where…', 'The publication’s reading list', 'Lakes'])
+    ).toEqual(['Choose where…', 'The publication’s articles', 'Lakes'])
     await fireEvent.update(picker, 'publication')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     expect(
-      await screen.findByText(/Moved 1 item to the publication’s reading list\./),
+      await screen.findByText(/Moved 1 item to the publication’s articles\./),
     ).toBeInTheDocument()
     expect(moved).toEqual([{ ids: ['l1'], to: { ideaId: null } }])
   })
@@ -346,7 +346,7 @@ describe('reading page', () => {
     ).toBeInTheDocument()
   })
 
-  it('is reached from the reading list on the idea page', async () => {
+  it('is reached from the articles on the idea page', async () => {
     server.use(
       signedInAs(testUser),
       http.get('*/api/publications', () => HttpResponse.json([publication])),
@@ -385,7 +385,7 @@ describe('reading page', () => {
           HttpResponse.json([note('n1', 'One.', 'l1'), note('n2', 'Two.', 'l1')]),
         ),
       ])
-      const box = await screen.findByLabelText('Note')
+      const box = await screen.findByRole('textbox', { name: 'Note' })
       const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
@@ -411,7 +411,7 @@ describe('reading page', () => {
           .map((li) => li.querySelector('p')?.textContent)
       await screen.findByText('Oldest.')
       expect(texts()).toEqual(['Middle.', 'Oldest.'])
-      await fireEvent.update(screen.getByLabelText('Note'), 'Newest.')
+      await fireEvent.update(screen.getByRole('textbox', { name: 'Note' }), 'Newest.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       await waitFor(() => expect(texts()).toEqual(['Newest.', 'Middle.', 'Oldest.']))
     })
@@ -471,7 +471,7 @@ describe('reading page', () => {
           return HttpResponse.json(created, { status: 201 })
         }),
       ])
-      const box = await screen.findByLabelText('Note')
+      const box = await screen.findByRole('textbox', { name: 'Note' })
       const button = screen.getByRole('button', { name: 'Add note' })
       await fireEvent.update(box, '  “Meanders grow.”  ')
       await fireEvent.click(button)
@@ -497,7 +497,7 @@ describe('reading page', () => {
           return HttpResponse.json(created, { status: 201 })
         }),
       ])
-      const box = await screen.findByLabelText('Note')
+      const box = await screen.findByRole('textbox', { name: 'Note' })
       const isQuote = screen.getByRole('checkbox', { name: /This is a quotation/ })
       expect(isQuote).not.toBeChecked() // a note is the writer's own words unless they say otherwise
       await fireEvent.update(box, 'Meanders grow.')
@@ -528,7 +528,7 @@ describe('reading page', () => {
 
       it('ticks "This is a quotation" when words are pasted into the empty box, and says so', async () => {
         await open()
-        const box = await screen.findByLabelText('Note')
+        const box = await screen.findByRole('textbox', { name: 'Note' })
         expect(quoteBox()).not.toBeChecked()
         await paste(box, 'Meanders grow because banks erode.')
         expect(quoteBox()).toBeChecked()
@@ -537,7 +537,7 @@ describe('reading page', () => {
 
       it('can be unticked, and then stays unticked; the message goes', async () => {
         await open()
-        const box = await screen.findByLabelText('Note')
+        const box = await screen.findByRole('textbox', { name: 'Note' })
         await paste(box, 'Pasted words.')
         await fireEvent.click(quoteBox())
         expect(quoteBox()).not.toBeChecked()
@@ -546,7 +546,7 @@ describe('reading page', () => {
 
       it('also ticks it when everything already in the box is pasted over', async () => {
         await open()
-        const box = (await screen.findByLabelText('Note')) as HTMLTextAreaElement
+        const box = (await screen.findByRole('textbox', { name: 'Note' })) as HTMLTextAreaElement
         await fireEvent.update(box, 'My own first thoughts.')
         box.setSelectionRange(0, box.value.length)
         await paste(box, 'Replacement words.')
@@ -555,7 +555,7 @@ describe('reading page', () => {
 
       it("does not tick it for typing, for a paste into the middle of the writer's words, or for nothing", async () => {
         await open()
-        const box = (await screen.findByLabelText('Note')) as HTMLTextAreaElement
+        const box = (await screen.findByRole('textbox', { name: 'Note' })) as HTMLTextAreaElement
         await fireEvent.update(box, 'Typed by hand.')
         expect(quoteBox()).not.toBeChecked()
         box.setSelectionRange(5, 5)
@@ -579,7 +579,7 @@ describe('reading page', () => {
             return HttpResponse.json(created, { status: 201 })
           }),
         ])
-        const box = await screen.findByLabelText('Note')
+        const box = await screen.findByRole('textbox', { name: 'Note' })
         await paste(box, 'Pasted words.') // the paste event comes first; then the words arrive in the box
         await fireEvent.update(box, 'Pasted words.')
         await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
@@ -609,7 +609,7 @@ describe('reading page', () => {
       ])
       const read = await screen.findByRole('switch', { name: 'Read' })
       expect(read).not.toBeChecked()
-      await fireEvent.update(await screen.findByLabelText('Note'), 'A thought.')
+      await fireEvent.update(await screen.findByRole('textbox', { name: 'Note' }), 'A thought.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       await waitFor(() => expect(screen.getByRole('switch', { name: 'Read' })).toBeChecked())
       await fireEvent.click(screen.getByRole('switch', { name: 'Read' }))
@@ -622,7 +622,7 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'That note is too long.' }, { status: 400 }),
         ),
       ])
-      const box = await screen.findByLabelText('Note')
+      const box = await screen.findByRole('textbox', { name: 'Note' })
       await fireEvent.update(box, 'Some words')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       expect(await screen.findByText('That note is too long.')).toBeInTheDocument()
@@ -722,7 +722,7 @@ describe('reading page', () => {
     })
   })
 
-  describe('adding another page to the reading list', () => {
+  describe('adding another page to the articles', () => {
     const added = (title: string) => ({
       ...idea,
       links: [
@@ -739,13 +739,13 @@ describe('reading page', () => {
           return HttpResponse.json(added('Fetched title'), { status: 201 })
         }),
       ])
-      await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
       const box = await screen.findByLabelText('Web address')
       expect(box).toHaveAccessibleDescription('We will look up its title.')
       await fireEvent.update(box, 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
       const status = (
-        await screen.findByText(/Added “Fetched title” to this idea’s reading list\./)
+        await screen.findByText(/Added “Fetched title” to this idea’s articles\./)
       ).closest('p')!
       expect(status).toHaveAttribute('aria-live', 'polite')
       expect(sent).toEqual([{ url: 'example.org/new' }])
@@ -762,9 +762,9 @@ describe('reading page', () => {
       await open('l1', [
         http.post(`${ideaUrl}/links`, () => HttpResponse.json(added(''), { status: 201 })),
       ])
-      await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
       await fireEvent.update(await screen.findByLabelText('Web address'), 'example.org/new')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
       expect(await screen.findByText(/Added “https:\/\/example\.org\/new”/)).toBeInTheDocument()
     })
 
@@ -774,10 +774,10 @@ describe('reading page', () => {
           HttpResponse.json({ error: 'That link is already in this idea.' }, { status: 409 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
       const box = await screen.findByLabelText('Web address')
       await fireEvent.update(box, 'example.org/paper')
-      await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+      await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
       expect(await screen.findByText('That link is already in this idea.')).toBeInTheDocument()
       expect(box).toHaveValue('example.org/paper')
     })
@@ -836,7 +836,7 @@ describe('reading page', () => {
     it('says it may have been removed, and goes back to the idea', async () => {
       await open('gone')
       expect(await screen.findByRole('alert')).toHaveTextContent('Sorry, we couldn’t open that')
-      expect(screen.getByRole('link', { name: 'Back to the reading list' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Back to the articles' })).toHaveAttribute(
         'href',
         '/p/ada-substack/ideas/i1/read',
       )

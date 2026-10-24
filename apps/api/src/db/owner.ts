@@ -1,5 +1,5 @@
 /**
- * Who a reading item or a note belongs to: an idea (its id), or a whole publication (`{ publicationId }`, for those
+ * Who an article or a note belongs to: an idea (its id), or a whole publication (`{ publicationId }`, for those
  * gathered before there is an idea). Both tables carry `publication_id` and a nullable `idea_id`, so this is the one
  * place that says how an owner is matched.
  */

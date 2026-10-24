@@ -4,7 +4,7 @@ import type { useMoveDestination } from '../lib/move'
 import MoveTo from './MoveTo.vue'
 
 /**
- * Where to move reading items or notes. It is the form in a list's toolbar for several selected rows, and the body of
+ * Where to move articles or notes. It is the form in a list's toolbar for several selected rows, and the body of
  * the dialog for one row's Move button, so both ask the same way. The toolbar form says how many ("Move 4 notes to");
  * the dialog's title already names the one row, so it leaves `count` out.
  */

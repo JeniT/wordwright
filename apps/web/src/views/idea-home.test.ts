@@ -254,7 +254,7 @@ describe('an idea’s landing page', () => {
       expect(within(region).queryByText(/up to a minute/)).toBeNull()
       expect(
         within(region).getByText(
-          /^This will send this publication’s description and this idea’s title and notes, reading list, and the areas you want to research to your AI\. It will not send your drafts\.$/,
+          /^This will send this publication’s description and this idea’s title and notes, articles, and the areas you want to research to your AI\. It will not send your drafts\.$/,
         ),
       ).toBeVisible()
     })
@@ -326,7 +326,7 @@ describe('an idea’s landing page', () => {
       const region = await screen.findByRole('region', { name: 'Read' })
       const list = await within(region).findByRole('list', { name: 'To read' })
       expect(within(list).getAllByRole('link')).toHaveLength(2)
-      expect(within(region).getByRole('link', { name: 'See the reading list' })).toHaveAttribute(
+      expect(within(region).getByRole('link', { name: 'See the articles' })).toHaveAttribute(
         'href',
         '/p/ada-substack/ideas/i1/read',
       )
@@ -336,9 +336,7 @@ describe('an idea’s landing page', () => {
       fakeIdea({ idea: idea([], []) })
       await renderAt('/p/ada-substack/ideas/i1')
       const region = await screen.findByRole('region', { name: 'Read' })
-      expect(
-        await within(region).findByText('Nothing on the reading list yet.'),
-      ).toBeInTheDocument()
+      expect(await within(region).findByText('Nothing in the articles yet.')).toBeInTheDocument()
     })
   })
 
@@ -370,11 +368,11 @@ describe('an idea’s landing page', () => {
       await screen.findByText('Note 1')
       const quick = within(screen.getByRole('region', { name: 'Quick add' }))
       // An idea's Quick add has no New idea tab: a new idea belongs to the publication.
-      expect(quick.getAllByRole('tab').map((t) => t.textContent?.trim())).toEqual([
+      expect(quick.getAllByRole('tab').map((t) => t.getAttribute('aria-label'))).toEqual([
         'Add a note',
-        'Add to reading list',
+        'Add article',
       ])
-      await fireEvent.update(quick.getByLabelText('Note'), 'A new thought')
+      await fireEvent.update(quick.getByRole('textbox', { name: 'Note' }), 'A new thought')
       await fireEvent.click(quick.getByRole('button', { name: 'Add note' }))
       expect(await screen.findByText(/Note added/)).toBeInTheDocument()
       const list = await screen.findByRole('list', { name: 'Recent notes' })
@@ -451,7 +449,7 @@ describe('an idea’s landing page', () => {
       // What leaves the system is said next to the button, in one line.
       expect(
         within(region).getByText(
-          /^This will send this publication’s description and this idea’s title and notes and reading list to your AI\. It will not send your drafts\.$/,
+          /^This will send this publication’s description and this idea’s title and notes and articles to your AI\. It will not send your drafts\.$/,
         ),
       ).toBeVisible()
       expect(button.parentElement).toBe(
@@ -588,8 +586,8 @@ describe('an idea’s landing page: tutorial mode (#232)', () => {
   }
   const texts = [
     /^This is your idea’s home\. Gather reading and notes, ask your AI to help you research and refine it, then start a draft\.$/,
-    /^Describe the areas you want to look into and your AI will suggest some pages worth reading\. You can choose whether to add them to your reading list\.$/,
-    /^Read the articles on this idea’s reading list and take notes on them\. Items can be tagged and moved to another idea\.$/,
+    /^Describe the areas you want to look into and your AI will suggest some pages worth reading\. You can choose whether to add them to your articles\.$/,
+    /^Read the articles on this idea’s list and take notes on them\. Items can be tagged and moved to another idea\.$/,
     /^Review, tag and arrange your notes\. They are what you draw on when you write\.$/,
     /^Use your AI to help you refine your idea\. It will ask you questions and suggest the points you make as notes\.$/,
     /^Write your draft\. You can ask for human reviews as well as getting your AI to critique or suggest options to rephrase a short passage\.$/,

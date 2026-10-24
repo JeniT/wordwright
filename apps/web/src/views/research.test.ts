@@ -255,35 +255,33 @@ describe('reviewing what research found', () => {
   it('warns about a page with no readable title, and rules out pages that do not exist or are not public', async () => {
     const { article } = await open()
     expect(article.getByText('We couldn’t confirm the title of this page.')).toBeInTheDocument()
-    expect(article.getByRole('button', { name: 'Add to reading list: Page B' })).toBeEnabled()
+    expect(article.getByRole('button', { name: 'Add article: Page B' })).toBeEnabled()
     expect(
       article.getByText('We couldn’t find a website at this address, so it can’t be added.'),
     ).toBeInTheDocument()
     expect(
       article.getByText('This address isn’t a public website, so it can’t be added.'),
     ).toBeInTheDocument()
-    expect(article.getByRole('button', { name: 'Add to reading list: Page C' })).toBeDisabled()
-    expect(article.getByRole('button', { name: 'Add to reading list: Page D' })).toBeDisabled()
+    expect(article.getByRole('button', { name: 'Add article: Page C' })).toBeDisabled()
+    expect(article.getByRole('button', { name: 'Add article: Page D' })).toBeDisabled()
     expect(article.getByRole('button', { name: 'Ignore: Page C' })).toBeEnabled() // clears it off the list
   })
 
-  it('adds a page with one click, then shows it as in the reading list with a way back, at the end', async () => {
+  it('adds a page with one click, then shows it as in the articles with a way back, at the end', async () => {
     const { api, article } = await open()
-    await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
+    await fireEvent.click(article.getByRole('button', { name: 'Add article: Page A' }))
     await waitFor(() => expect(api.posts).toEqual([{ add: ['a'] }]))
 
-    expect(await article.findByRole('img', { name: 'In the reading list' })).toBeInTheDocument()
+    expect(await article.findByRole('img', { name: 'In the articles' })).toBeInTheDocument()
     await waitFor(() =>
-      expect(
-        article.getByRole('button', { name: 'Take off the reading list: Page A' }),
-      ).toBeEnabled(),
+      expect(article.getByRole('button', { name: 'Take off the articles: Page A' })).toBeEnabled(),
     )
-    expect(article.queryByRole('button', { name: 'Add to reading list: Page A' })).toBeNull()
+    expect(article.queryByRole('button', { name: 'Add article: Page A' })).toBeNull()
     expect(article.getAllByText('Looks relevant to the area.')).toHaveLength(3) // the other three
     // Decided pages drop to the end, as on the Scan page.
     const rows = article.getAllByRole('listitem')
     expect(rows[rows.length - 1]).toHaveTextContent('Page A')
-    expect(await article.findByText('Added “Page A” to the reading list.')).toBeInTheDocument()
+    expect(await article.findByText('Added “Page A” to the articles.')).toBeInTheDocument()
   })
 
   it('ignores a page with one click, and can stop ignoring it', async () => {
@@ -309,17 +307,17 @@ describe('reviewing what research found', () => {
     await waitFor(() => expect(api.posts).toEqual([{ dismiss: ['c'] }]))
   })
 
-  it('taking an added page off the reading list brings its buttons back', async () => {
+  it('taking an added page off the articles brings its buttons back', async () => {
     const { api, article } = await open()
-    await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
+    await fireEvent.click(article.getByRole('button', { name: 'Add article: Page A' }))
     await fireEvent.click(
-      await article.findByRole('button', { name: 'Take off the reading list: Page A' }),
+      await article.findByRole('button', { name: 'Take off the articles: Page A' }),
     )
     await waitFor(() => expect(api.posts).toContainEqual({ reconsider: ['a'] }))
     await waitFor(() =>
-      expect(article.getByRole('button', { name: 'Add to reading list: Page A' })).toBeEnabled(),
+      expect(article.getByRole('button', { name: 'Add article: Page A' })).toBeEnabled(),
     )
-    expect(article.queryByRole('img', { name: 'In the reading list' })).toBeNull()
+    expect(article.queryByRole('img', { name: 'In the articles' })).toBeNull()
   })
 
   it('shows why a decision was refused, and leaves the page as it was', async () => {
@@ -328,7 +326,7 @@ describe('reviewing what research found', () => {
       [
         http.post(`${base}/r1/add`, () =>
           HttpResponse.json(
-            { error: '“Page A” is already on the reading list. Remove it.' },
+            { error: '“Page A” is already in the articles. Remove it.' },
             { status: 409 },
           ),
         ),
@@ -336,9 +334,9 @@ describe('reviewing what research found', () => {
     )
     await renderAt(page)
     const article = within(await screen.findByRole('article', { name: 'How fast bends migrate' }))
-    await fireEvent.click(article.getByRole('button', { name: 'Add to reading list: Page A' }))
-    expect(await article.findByRole('alert')).toHaveTextContent('already on the reading list')
-    expect(article.getByRole('button', { name: 'Add to reading list: Page A' })).toBeEnabled()
+    await fireEvent.click(article.getByRole('button', { name: 'Add article: Page A' }))
+    expect(await article.findByRole('alert')).toHaveTextContent('already in the articles')
+    expect(article.getByRole('button', { name: 'Add article: Page A' })).toBeEnabled()
     await fireEvent.click(article.getByRole('button', { name: 'Dismiss' }))
     expect(article.queryByRole('alert')).toBeNull()
   })
@@ -427,7 +425,7 @@ describe('paging through the research', () => {
 
 describe('the research page: tutorial mode', () => {
   const text =
-    /^Describe the areas you want to look into and your AI will suggest pages worth reading, aiming for a range of opinions\. Add the ones you want to your reading list\.$/
+    /^Describe the areas you want to look into and your AI will suggest pages worth reading, aiming for a range of opinions\. Add the ones you want to your articles\.$/
   const setup = async (on: boolean) => {
     mockResearch()
     server.use(signedInAs(on ? { ...testUser, tutorialMode: true } : testUser))

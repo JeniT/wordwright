@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 /**
- * The "This is a quotation" tick on a note taken from a reading item. Words pasted into an empty box (or over all of
+ * The "This is a quotation" tick on a note taken from an article. Words pasted into an empty box (or over all of
  * what's there) are almost always someone else's, and a quotation stored as the writer's own is the one mistake this
  * form must not make easily. Typing never ticks the box, nor does pasting into the middle of the writer's own words.
  */

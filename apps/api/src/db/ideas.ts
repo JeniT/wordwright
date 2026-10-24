@@ -142,7 +142,7 @@ export class IdeaStore {
 
   /**
    * Hands the idea, with its drafts, notes and links, to another publication. Everything that hangs off the idea or a
-   * draft (comments, reviews, critique rounds, the brainstorm thread, research) follows by their ids. A reading item
+   * draft (comments, reviews, critique rounds, the brainstorm thread, research) follows by their ids. An article
    * stops coming from a feed, since feeds belong to the publication they were added to.
    */
   moveToPublication(id: string, toPublicationId: string) {
@@ -164,7 +164,7 @@ export class IdeaStore {
     return this.reading.count(ideaId)
   }
 
-  /** Adds an item to the reading list; `origin` says what put it there (the writer, unless a feature did). */
+  /** Adds an item to the articles; `origin` says what put it there (the writer, unless a feature did). */
   addLink(
     ideaId: string,
     input: Omit<LinkWrite, 'authors'> & { authors?: string[]; why?: string },

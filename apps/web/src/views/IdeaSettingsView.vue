@@ -77,7 +77,7 @@ const remove = useMutation({
         :error="remove.isError.value ? errorMessage(remove.error.value) : undefined"
       >
         <p class="mb-3">
-          This can’t be undone. Its notes, reading items and drafts go too.
+          This can’t be undone. Its notes, articles and drafts go too.
           <RouterLink
             :to="{ name: 'publication-settings-download', params: { publicationId } }"
             class="underline"
@@ -101,7 +101,7 @@ const remove = useMutation({
         @confirm="remove.mutate()"
         @cancel="confirmingDelete = false"
       >
-        This can’t be undone. Its notes, reading items and drafts go too.
+        This can’t be undone. Its notes, articles and drafts go too.
       </ConfirmDialog>
     </div>
   </IdeaGate>

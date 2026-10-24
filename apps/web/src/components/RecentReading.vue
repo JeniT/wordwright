@@ -8,7 +8,7 @@ import QueryState from './QueryState.vue'
 import RowList from './RowList.vue'
 
 /**
- * A summary of a reading list for a landing page: the first few items still to read, and a link
+ * A summary of a list of articles for a landing page: the first few items still to read, and a link
  * to the whole list. It shares the list's query, so an item added here is on the Read page at once.
  */
 const props = defineProps<{
@@ -44,14 +44,14 @@ const host = (url: string) => {
     :explain="explain"
   >
     <template #actions>
-      <RouterLink :to="to" class="link text-sm"> See the reading list </RouterLink>
+      <RouterLink :to="to" class="link text-sm"> See the articles </RouterLink>
     </template>
-    <QueryState :query="list" what="the reading list">
+    <QueryState :query="list" what="the articles">
       <p v-if="!top.length" class="text-ink-soft">
         {{
           list.links.value?.length
             ? 'You have read everything on the list.'
-            : 'Nothing on the reading list yet.'
+            : 'Nothing in the articles yet.'
         }}
       </p>
       <RowList v-else :items="top" label="To read" bare>

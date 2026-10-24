@@ -19,7 +19,7 @@ import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
 
 /**
- * The reading list of an idea, or (no `ideaId`) of the publication: a box to add an item, then the items. A title
+ * The articles of an idea, or (no `ideaId`) of the publication: a box to add an item, then the items. A title
  * opens the item's own page, where notes are taken from it; the host name under it opens the article itself.
  */
 const props = defineProps<{
@@ -141,7 +141,7 @@ const mover = useMove(() => props.publicationId)
 const dest = useMoveDestination(
   () => props.publicationId,
   () => props.ideaId,
-  'the publication’s reading list',
+  'the publication’s articles',
 )
 const moving = ref(false)
 /** An item whose own Move button was pressed: its dialog is open, and it alone moves (whatever is selected). */
@@ -233,7 +233,7 @@ function removeChosen() {
 
 <template>
   <section aria-labelledby="links-heading" class="mb-10">
-    <QueryState :query="list" what="the reading list" loading="Loading the reading list…">
+    <QueryState :query="list" what="the articles" loading="Loading the articles…">
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
       <AddLinkForm
         class="mb-6"
@@ -247,7 +247,7 @@ function removeChosen() {
         tabindex="-1"
         class="mb-1 font-display text-xl font-semibold"
       >
-        Reading list
+        Articles
       </h2>
       <p v-if="ideaId" class="mb-3 text-sm text-ink-soft">
         Articles, papers or earlier posts that this idea builds on or responds to. Mark each one
@@ -287,7 +287,7 @@ function removeChosen() {
         <PageNav
           v-if="paging.pageCount.value > 1"
           v-bind="paging.nav.value"
-          label="Pages of the reading list, above the list"
+          label="Pages of the articles, above the list"
           announce
           class="mb-3"
           @go="paging.go"
@@ -353,7 +353,7 @@ function removeChosen() {
                 v-else
                 :dest="dest"
                 :from-idea="!!ideaId"
-                publication-label="The publication’s reading list"
+                publication-label="The publication’s articles"
                 :allow-new="!ideaId"
                 :count="chosen.length"
                 noun="item"
@@ -394,7 +394,7 @@ function removeChosen() {
         <PageNav
           v-if="paging.pageCount.value > 1"
           v-bind="paging.nav.value"
-          label="Pages of the reading list, below the list"
+          label="Pages of the articles, below the list"
           class="mb-4"
           @go="goFromBottom"
         />
@@ -423,7 +423,7 @@ function removeChosen() {
       <MoveFields
         :dest="dest"
         :from-idea="!!ideaId"
-        publication-label="The publication’s reading list"
+        publication-label="The publication’s articles"
         :allow-new="!ideaId"
       />
       <p v-if="mover.moveReading.isError.value" role="alert" class="mt-2 text-danger">
@@ -439,7 +439,7 @@ function removeChosen() {
       @confirm="removeChosen"
       @cancel="confirmingRemoveChosen = false"
     >
-      The selected items will be removed from the reading list. This can’t be undone.
+      The selected items will be removed from the articles. This can’t be undone.
     </ConfirmDialog>
   </section>
 </template>

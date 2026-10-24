@@ -184,7 +184,7 @@ export async function openFilters(page: Page) {
   if ((await funnel.getAttribute('aria-expanded')) !== 'true') await funnel.click()
 }
 
-/** Shows the read items of a reading list, which the filters fold away by default. */
+/** Shows the read items of a list of articles, which the filters fold away by default. */
 export async function showReadItems(page: Page) {
   await openFilters(page)
   await page.getByRole('switch', { name: /^Show read items/ }).check()

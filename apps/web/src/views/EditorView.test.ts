@@ -125,7 +125,7 @@ const saidBy = (id: string, name: string, over: object = {}) =>
   })
 /** What the server answers about a draft's critiques. */
 const state = (r: object | null, used = 1, allowed = 3) => ({ round: r, used, allowed })
-/** Shows one of the tabs beside the draft (notes, reading list, comments). */
+/** Shows one of the tabs beside the draft (notes, articles, comments). */
 const showTab = async (name: string) =>
   fireEvent.click(await screen.findByRole('tab', { name: new RegExp(`^${name}`) }))
 const commentsRegion = async () => screen.findByRole('region', { name: 'Comments' })
@@ -688,7 +688,7 @@ function mockDrafting(
     /** When the reading-list item (l1, "A paper") was marked read; null while it isn't. */
     readAt?: string | null
     authors?: string[]
-    /** Replaces the reading list (by default just l1, "A paper"). */
+    /** Replaces the articles (by default just l1, "A paper"). */
     links?: { id: string; title: string; tags: string[] }[]
   } = {},
 ) {
@@ -1002,10 +1002,10 @@ describe('the notes beside the draft', () => {
       )
     })
 
-    it('picks a reading item up by its rail too, carrying only its id', async () => {
+    it('picks an article up by its rail too, carrying only its id', async () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
+      await showTab('Articles')
       const drag = carrying(READING_DRAG_TYPE, '')
       const rail = (await screen.findByText('Not marked as read'))
         .closest('li')!
@@ -1015,7 +1015,7 @@ describe('the notes beside the draft', () => {
       expect(drag.dataTransfer.effectAllowed).toBe('copy')
     })
 
-    it('puts a dropped reading item in the draft as a link, with who wrote it, and saves', async () => {
+    it('puts a dropped article in the draft as a link, with who wrote it, and saves', async () => {
       const api = mockDrafting({
         readAt: '2026-01-02T00:00:00Z',
         authors: ['Ada Lovelace', 'Bo Chen'],
@@ -1031,7 +1031,7 @@ describe('the notes beside the draft', () => {
       expect(api.posted).toEqual([]) // a link is not a note: nothing is set aside
     })
 
-    it('asks first when the dropped reading item is not marked read, and inserts nothing yet', async () => {
+    it('asks first when the dropped article is not marked read, and inserts nothing yet', async () => {
       const api = mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await screen.findByText('Erosion loops.')
@@ -1042,12 +1042,12 @@ describe('the notes beside the draft', () => {
       expect(api.saved).toEqual([])
     })
 
-    it('says so when a dropped reading item is no longer on the list', async () => {
+    it('says so when a dropped article is no longer on the list', async () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
       await screen.findByText('Erosion loops.')
       await fireEvent.drop(editorEl(), carrying(READING_DRAG_TYPE, 'gone'))
-      expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that reading item")
+      expect(await screen.findByRole('alert')).toHaveTextContent("couldn't find that article")
     })
 
     it('ignores anything else dropped on the draft (a file, some text)', async () => {
@@ -1098,9 +1098,9 @@ describe('the notes beside the draft', () => {
     })
   })
 
-  describe('citing something from the reading list', () => {
+  describe('citing something from the articles', () => {
     const insertLink = async () => {
-      await showTab('Reading list')
+      await showTab('Articles')
       await fireEvent.click(
         await within(await screen.findByRole('complementary')).findByRole('button', {
           name: 'Insert at cursor: “A paper”',
@@ -1114,8 +1114,8 @@ describe('the notes beside the draft', () => {
     it('lists the items, saying which are read', async () => {
       mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
-      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      await showTab('Articles')
+      const list = within(await screen.findByRole('region', { name: 'Articles' }))
       expect(await list.findByText('A paper')).toBeInTheDocument()
       expect(list.queryByText('Not marked as read')).toBeNull() // read is the quiet default
     })
@@ -1123,8 +1123,8 @@ describe('the notes beside the draft', () => {
     it('shows who wrote an item, and offers to add it with one icon button named for it', async () => {
       mockDrafting({ readAt: '2026-01-02T00:00:00Z', authors: ['Ada Lovelace', 'Bo Chen'] })
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
-      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      await showTab('Articles')
+      const list = within(await screen.findByRole('region', { name: 'Articles' }))
       expect(await list.findByText('by Ada Lovelace and Bo Chen')).toBeInTheDocument()
       expect(list.getByRole('button', { name: 'Insert at cursor: “A paper”' })).toBeTruthy()
     })
@@ -1132,11 +1132,11 @@ describe('the notes beside the draft', () => {
     it('marks an item that has not been read, and no other', async () => {
       mockDrafting()
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
+      await showTab('Articles')
       expect(await screen.findByText('Not marked as read')).toBeInTheDocument()
     })
 
-    it('says so when there is nothing on the reading list', async () => {
+    it('says so when there is nothing in the articles', async () => {
       mockDrafting()
       server.use(
         http.get('*/api/publications/p1/ideas/i1', () =>
@@ -1154,8 +1154,8 @@ describe('the notes beside the draft', () => {
         ),
       )
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
-      expect(await screen.findByText(/Nothing on the reading list yet\./)).toBeInTheDocument()
+      await showTab('Articles')
+      expect(await screen.findByText(/Nothing in the articles yet\./)).toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'Add to it on the idea page.' })).toHaveAttribute(
         'href',
         '/p/p1/ideas/i1/read',
@@ -1200,7 +1200,7 @@ describe('the notes beside the draft', () => {
         await renderAt('/p/p1/drafts/d1')
         await insertLink()
         const box = await dialog()
-        expect(box).toHaveTextContent('“A paper” is on your reading list')
+        expect(box).toHaveTextContent('“A paper” is in your articles')
         const cancel = within(box).getByRole('button', { name: 'Cancel' })
         await waitFor(() => expect(cancel).toHaveFocus())
         expect(within(box).getByRole('button', { name: 'Read it now' })).toBeInTheDocument()
@@ -1235,7 +1235,7 @@ describe('the notes beside the draft', () => {
         expect(api.markedRead).toEqual([{ read: true }])
         expect(api.saved[0]!.body).toContain('[A paper](https://example.org/paper)')
         expect(screen.queryByRole('dialog')).toBeNull()
-        const list = within(screen.getByRole('region', { name: 'Reading list' }))
+        const list = within(screen.getByRole('region', { name: 'Articles' }))
         await waitFor(() => expect(list.queryByText('Not marked as read')).toBeNull()) // now shown as read
       })
 
@@ -1262,7 +1262,7 @@ describe('the notes beside the draft', () => {
         await renderAt('/p/p1/drafts/d1')
         await insertLink()
         await fireEvent.click(within(await dialog()).getByRole('button', { name: 'Mark as read' }))
-        const alert = await within(screen.getByRole('region', { name: 'Reading list' })).findByRole(
+        const alert = await within(screen.getByRole('region', { name: 'Articles' })).findByRole(
           'alert',
         )
         expect(alert).toHaveTextContent("couldn't mark it as read")
@@ -1318,7 +1318,7 @@ describe('the notes beside the draft', () => {
       ])
     })
 
-    it('are shown on the reading items, which can be narrowed to those with all the chosen tags', async () => {
+    it('are shown in the articles, which can be narrowed to those with all the chosen tags', async () => {
       mockDrafting({
         links: [
           { id: 'l1', title: 'A paper', tags: ['background', 'part 2'] },
@@ -1327,8 +1327,8 @@ describe('the notes beside the draft', () => {
         ],
       })
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
-      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      await showTab('Articles')
+      const list = within(await screen.findByRole('region', { name: 'Articles' }))
       await list.findByText('A paper')
       expect(list.getAllByRole('list', { name: 'Tags' })).toHaveLength(2)
       const select = list.getByRole('combobox', { name: 'Filter by tag' })
@@ -1342,7 +1342,7 @@ describe('the notes beside the draft', () => {
       expect(list.getByText('Bare')).toBeInTheDocument()
     })
 
-    it('says so when no reading item has all the chosen tags', async () => {
+    it('says so when no article has all the chosen tags', async () => {
       mockDrafting({
         links: [
           { id: 'l1', title: 'A paper', tags: ['a'] },
@@ -1350,8 +1350,8 @@ describe('the notes beside the draft', () => {
         ],
       })
       await renderAt('/p/p1/drafts/d1')
-      await showTab('Reading list')
-      const list = within(await screen.findByRole('region', { name: 'Reading list' }))
+      await showTab('Articles')
+      const list = within(await screen.findByRole('region', { name: 'Articles' }))
       const select = await list.findByRole('combobox', { name: 'Filter by tag' })
       await chooseTag(select, 'a')
       await chooseTag(select, 'b')
@@ -1430,13 +1430,13 @@ describe('the notes beside the draft', () => {
 })
 
 describe('the tabs beside the draft', () => {
-  it('has Notes, Reading list, Comments and (for the editor) Reviews, one in the tab order, with Notes first', async () => {
+  it('has Notes, Articles, Comments and (for the editor) Reviews, one in the tab order, with Notes first', async () => {
     mockDrafting()
     await renderAt('/p/p1/drafts/d1')
     const tabs = await screen.findAllByRole('tab')
     expect(tabs.map((t) => t.textContent?.trim())).toEqual([
       'Notes',
-      'Reading list',
+      'Articles',
       'Comments',
       'Reviews',
     ])
@@ -1458,10 +1458,10 @@ describe('the tabs beside the draft', () => {
     const notes = await screen.findByRole('tab', { name: 'Notes' })
     notes.focus()
     await fireEvent.keyDown(notes, { key: 'ArrowRight' })
-    const reading = screen.getByRole('tab', { name: 'Reading list' })
+    const reading = screen.getByRole('tab', { name: 'Articles' })
     expect(reading).toHaveAttribute('aria-selected', 'true')
     expect(reading).toHaveFocus()
-    expect(screen.getByRole('tabpanel', { name: 'Reading list' })).toBeVisible()
+    expect(screen.getByRole('tabpanel', { name: 'Articles' })).toBeVisible()
     await fireEvent.keyDown(reading, { key: 'End' })
     expect(screen.getByRole('tab', { name: 'Reviews' })).toHaveFocus()
     await fireEvent.keyDown(screen.getByRole('tab', { name: 'Reviews' }), { key: 'ArrowRight' })
@@ -1490,7 +1490,7 @@ describe('the tabs beside the draft', () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]))
     await renderAt('/p/p1/drafts/d1')
     await screen.findByRole('tab', { name: 'Notes' })
-    for (const name of ['Notes', 'Reading list', 'Comments']) {
+    for (const name of ['Notes', 'Articles', 'Comments']) {
       const heading = screen.getByRole('heading', { level: 2, name, hidden: true })
       expect(heading, name).toHaveClass('sr-only')
     }
@@ -1682,7 +1682,7 @@ describe('a draft has one editor (#154)', () => {
     ).toBeTruthy()
     expect(notes.queryByRole('button', { name: /^Add note/ })).toBeNull()
     expect(notes.queryByTestId('rail')).toBeNull()
-    await showTab('Reading list')
+    await showTab('Articles')
     expect(await screen.findByText('Not marked as read')).toBeTruthy() // the item is listed
     expect(screen.queryByRole('button', { name: /^Add a link/ })).toBeNull()
     expect(screen.queryByTestId('rail')).toBeNull()

@@ -18,19 +18,19 @@ import TextField from './TextField.vue'
 /**
  * Add an idea, a note or something to read without first opening the place it goes (#192). On Home a note or reading
  * item goes to the chosen publication's own list, never into an idea. On a publication's landing page `publications`
- * is just that publication (so there is no picker); on an idea's, `ideaId` names the idea, notes and reading items go
+ * is just that publication (so there is no picker); on an idea's, `ideaId` names the idea, notes and articles go
  * to it, and there is no "New idea" tab.
  *
- * On a reading item's page (`readingItemId`) it is the place to take notes from that item: "Add a note" comes first and
- * every note carries the item and, if ticked, the quotation flag; "Add to reading list" is the same form as at the
- * top of a reading list (`AddLinkForm`), so the two say and look alike.
+ * On an article's page (`readingItemId`) it is the place to take notes from that item: "Add a note" comes first and
+ * every note carries the item and, if ticked, the quotation flag; "Add article" is the same form as at the
+ * top of a list of articles (`AddLinkForm`), so the two say and look alike.
  */
 const props = defineProps<{
   publications: Publication[]
   ideaId?: string
   /** On the page it adds to (a landing page): the result is showing below, so the message needn't say where it went. */
   inPlace?: boolean
-  /** The reading item this is open beside. */
+  /** The article this is open beside. */
   readingItemId?: string
 }>()
 const emit = defineEmits<{ 'note-added': [noteId: string] }>()
@@ -63,12 +63,12 @@ function pick(event: Event) {
   rememberPublication(id)
 }
 
-const allTabs: { id: Kind; label: string }[] = [
-  { id: 'idea', label: 'New idea' },
-  { id: 'note', label: 'Add a note' },
-  { id: 'reading', label: 'Add to reading list' },
+const allTabs: { id: Kind; label: string; name: string }[] = [
+  { id: 'idea', label: 'Idea', name: 'New idea' },
+  { id: 'note', label: 'Note', name: 'Add a note' },
+  { id: 'reading', label: 'Article', name: 'Add article' },
 ]
-// Beside a reading item the note is what the writer came to do, so it comes first.
+// Beside an article the note is what the writer came to do, so it comes first.
 const ordered = props.readingItemId
   ? [...allTabs.filter((t) => t.id !== 'idea'), ...allTabs.filter((t) => t.id === 'idea')]
   : allTabs
@@ -139,9 +139,9 @@ const busy = computed(() => createIdea.isPending.value || addNote.isPending.valu
 
 <template>
   <section class="panel p-5" aria-label="Quick add">
-    <TabPanels v-model="tab" :tabs="tabs" label="Quick add">
+    <TabPanels v-model="tab" :tabs="tabs" label="Quick add" lead="Add:">
       <template v-for="kind in tabs.map((t) => t.id)" :key="kind" #[kind]>
-        <!-- The reading tab is the one form that sits above a reading list, wherever Quick add is. -->
+        <!-- The reading tab is the one form that sits above a list of articles, wherever Quick add is. -->
         <div v-if="kind === 'reading'" @input="typing()">
           <PublicationPicker
             v-if="tab === kind"
@@ -207,7 +207,7 @@ const busy = computed(() => createIdea.isPending.value || addNote.isPending.valu
               :saving="kind === 'idea' ? 'Creating…' : 'Adding…'"
             />
           </div>
-          <!-- Beside a reading item the new note is right there in its list, so the words are for screen readers only. -->
+          <!-- Beside an article the new note is right there in its list, so the words are for screen readers only. -->
           <p
             v-if="added && kind === 'note'"
             role="status"

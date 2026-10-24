@@ -118,7 +118,7 @@ export function sourceRoutes(
         )
       })
 
-      // Deciding about posts of the combined list: put on the publication's reading list, ignore, or take back.
+      // Deciding about posts of the combined list: put in the publication's articles, ignore, or take back.
       .post('/recent/add', validateJson(PostRefsSchema), (c) =>
         c.json(
           feedPosts.add(param(c, 'publicationId'), c.get('user').id, c.req.valid('json').posts),

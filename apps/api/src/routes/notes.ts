@@ -50,11 +50,11 @@ export function noteRoutes(
           throw fail(
             400,
             scope.ideaId
-              ? "That item isn't on this idea's reading list."
-              : "That item isn't on this publication's reading list.",
+              ? "That item isn't in this idea's articles."
+              : "That item isn't in this publication's articles.",
           )
         }
-        // A note taken from an item of the reading list is a note from reading.
+        // A note taken from an item of the list of articles is a note from reading.
         const note = notes.append(
           scope.publicationId,
           scope.ideaId,

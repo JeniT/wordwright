@@ -20,7 +20,7 @@ import QueryState from '../components/QueryState.vue'
 import RowList from '../components/RowList.vue'
 import { useInlineEdit } from '../lib/inline-edit'
 
-/** Reading one item of an idea's reading list, or (no `id`) of the publication's own, and taking notes from it. */
+/** Reading one item of an idea's articles, or (no `id`) of the publication's own, and taking notes from it. */
 const props = defineProps<{ publicationId: string; id?: string; linkId: string }>()
 const session = useSessionStore()
 const refineTo = computed(() => refineRoute(props.publicationId, props.id))
@@ -29,7 +29,7 @@ const owner = computed(() => ({ publicationId: props.publicationId, ideaId: prop
 const list = useReadingList(() => owner.value)
 const item = computed(() => list.links.value?.find((l) => l.id === props.linkId))
 const backTo = computed(() => readingBackRoute(owner.value))
-const backLabel = '← Back to the reading list'
+const backLabel = '← Back to the articles'
 
 const { publication } = usePublication(() => props.publicationId)
 
@@ -119,10 +119,10 @@ function toggleRead(read: boolean) {
     <div v-if="!item" role="alert" class="panel p-6">
       <h1 class="font-display text-lg">Sorry, we couldn’t open that</h1>
       <p class="mt-1 text-ink-soft">
-        It may have been removed from the reading list. Try reloading the page.
+        It may have been removed from the articles. Try reloading the page.
       </p>
       <RouterLink :to="backTo" class="mt-3 inline-block underline">
-        Back to the reading list
+        Back to the articles
       </RouterLink>
     </div>
 

@@ -8,7 +8,7 @@ import { useReadingList } from '../lib/reading'
 /** Step 03 of a publication: its own notes, made while reading or jotted down, before they belong to an idea. */
 const props = defineProps<{ publicationId: string }>()
 
-// Each note says which item of the reading list it was taken from.
+// Each note says which item of the articles it was taken from.
 const reading = useReadingList(() => ({ publicationId: props.publicationId, ideaId: null }))
 </script>
 

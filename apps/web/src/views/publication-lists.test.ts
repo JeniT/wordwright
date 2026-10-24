@@ -63,7 +63,7 @@ const note = (id: string, text: string, readingItemId: string | null = null, ext
   ...extra,
 })
 
-/** A small fake of the publication's own reading list and notes, remembering what it was sent. */
+/** A small fake of the publication's own articles and notes, remembering what it was sent. */
 function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof note>[] } = {}) {
   const state = {
     links: [...(initial.links ?? [])],
@@ -131,7 +131,7 @@ function fakePublication(initial: { links?: Link[]; notes?: ReturnType<typeof no
 }
 
 describe('the publication’s menu', () => {
-  it('leads to its three steps, which include the reading list and the notes', async () => {
+  it('leads to its three steps, which include the articles and the notes', async () => {
     fakePublication()
     await renderAt('/p/ada-substack')
     const menu = within(await screen.findByRole('navigation', { name: 'Publication' }))
@@ -148,7 +148,7 @@ describe('the publication’s menu', () => {
   })
 })
 
-describe('the publication’s reading list', () => {
+describe('the publication’s articles', () => {
   beforeEach(() => fakePublication())
 
   it('is the Read page, and the old addresses lead there', async () => {
@@ -163,7 +163,7 @@ describe('the publication’s reading list', () => {
     const { router } = await renderAt('/p/ada-substack/inspiration')
     expect(await screen.findByRole('heading', { level: 1, name: 'Scan' })).toBeInTheDocument()
     expect(router.currentRoute.value.path).toBe('/p/ada-substack/scan')
-    expect(screen.queryByRole('region', { name: 'Reading list' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Articles' })).not.toBeInTheDocument()
   })
 
   it('sends the address it had when it was called Search to Scan (#307)', async () => {
@@ -181,7 +181,7 @@ describe('the publication’s reading list', () => {
     )
     // The list's heading comes after the box for a new item.
     const box = screen.getByLabelText('Web address')
-    const heading = screen.getByRole('heading', { level: 2, name: 'Reading list' })
+    const heading = screen.getByRole('heading', { level: 2, name: 'Articles' })
     expect(box.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
@@ -193,7 +193,7 @@ describe('the publication’s reading list', () => {
     expect(box.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     // The button sits in the same row as the field, and the hint is the one line.
     expect(box.closest('.flex')).toContainElement(
-      screen.getByRole('button', { name: 'Add to reading list' }),
+      screen.getByRole('button', { name: 'Add article' }),
     )
     expect(screen.getByText('We will look up its title.')).toBeInTheDocument()
   })
@@ -209,7 +209,7 @@ describe('the publication’s reading list', () => {
       ),
     )
     await renderAt('/p/ada-substack/reading')
-    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load the reading list")
+    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load the articles")
     fail = false
     await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByText('A paper')).toBeInTheDocument()
@@ -233,7 +233,7 @@ describe('the publication’s reading list', () => {
     const state = fakePublication()
     await renderAt('/p/ada-substack/reading')
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     expect(await screen.findByText('Title of https://example.org/new')).toBeInTheDocument()
     expect(state.added).toEqual(['https://example.org/new'])
     expect(
@@ -248,13 +248,13 @@ describe('the publication’s reading list', () => {
     server.use(
       http.post('*/api/publications/ada-substack/reading', () =>
         HttpResponse.json(
-          { error: 'That link is already in this publication’s reading list.' },
+          { error: 'That link is already in this publication’s articles.' },
           { status: 409 },
         ),
       ),
     )
     await fireEvent.update(screen.getByLabelText('Web address'), 'https://example.org/new')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     expect(await screen.findByText(/already in this publication/)).toBeInTheDocument()
     expect(screen.getByLabelText('Web address')).toHaveValue('https://example.org/new')
   })
@@ -442,7 +442,7 @@ describe('the publication’s reading list', () => {
   })
 })
 
-describe('moving reading items', () => {
+describe('moving articles', () => {
   const ideaRows = [
     { id: 'i1', name: 'Rivers', draftCount: 0, updatedAt: '2026-01-01T00:00:00Z' },
     { id: 'i2', name: 'Lakes', draftCount: 1, updatedAt: '2026-01-01T00:00:00Z' },
@@ -619,7 +619,7 @@ describe('moving reading items', () => {
     await chooseDestination('i1')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     expect(
-      await within(screen.getByRole('region', { name: 'Reading list' })).findByRole('alert'),
+      await within(screen.getByRole('region', { name: 'Articles' })).findByRole('alert'),
     ).toHaveTextContent('An idea can have up to 50 links')
     expect(screen.getByRole('checkbox', { name: 'Select A paper' })).toBeChecked()
     expect(screen.getByLabelText(/^Move( .*)? to$/)).toHaveValue('i1')
@@ -713,7 +713,7 @@ describe('moving to another publication', () => {
     await fireEvent.update(into, 'publication')
     await fireEvent.click(screen.getByRole('button', { name: 'Move 1 item' }))
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Moved 1 item to “Poems”’s reading list.',
+      'Moved 1 item to “Poems”’s articles.',
     )
     expect(f.moves).toEqual([
       {
@@ -800,7 +800,7 @@ describe('moving to another publication', () => {
   })
 })
 
-describe('selecting, bulk actions and pages on the reading list', () => {
+describe('selecting, bulk actions and pages in the articles', () => {
   const seven = () =>
     Array.from({ length: 7 }, (_, i) => link(`l${i + 1}`, `Link ${i + 1}`, { origin: 'feed' }))
   const titles = () =>
@@ -916,14 +916,14 @@ describe('reading an item of the publication’s own list', () => {
     return { state, shown: renderAt('/p/ada-substack/reading/l1') }
   }
 
-  it('shows the item, and goes back to the reading list', async () => {
+  it('shows the item, and goes back to the articles', async () => {
     open()
     expect(await screen.findByRole('heading', { level: 1, name: 'A paper' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Open the page/ })).toHaveAttribute(
       'href',
       'https://example.org/l1',
     )
-    expect(screen.getByRole('link', { name: /Back to the reading list/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Back to the articles/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/read',
     )
@@ -933,17 +933,17 @@ describe('reading an item of the publication’s own list', () => {
     fakePublication()
     await renderAt('/p/ada-substack/reading/nope')
     expect(await screen.findByRole('alert')).toHaveTextContent('couldn’t open that')
-    expect(screen.getByRole('link', { name: 'Back to the reading list' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to the articles' })).toBeInTheDocument()
   })
 
   it('takes a note from the item as one of the publication’s notes, and a quote word for word', async () => {
     const { state } = open()
-    await fireEvent.update(await screen.findByLabelText('Note'), 'My thought')
+    await fireEvent.update(await screen.findByRole('textbox', { name: 'Note' }), 'My thought')
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText('My thought')).toBeInTheDocument()
     expect(state.sentNotes).toEqual([{ text: 'My thought', readingItemId: 'l1' }])
 
-    await fireEvent.update(screen.getByLabelText('Note'), 'Exact words')
+    await fireEvent.update(screen.getByRole('textbox', { name: 'Note' }), 'Exact words')
     await fireEvent.click(screen.getByRole('checkbox', { name: /quotation/ }))
     // The button is busy until the notes have been read again.
     const again = screen.getByRole('button', { name: 'Add note' })
@@ -958,11 +958,11 @@ describe('reading an item of the publication’s own list', () => {
     )
   })
 
-  it('adds another page to the publication’s reading list, and offers to read it', async () => {
+  it('adds another page to the publication’s articles, and offers to read it', async () => {
     const { state } = open()
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Add to reading list' }))
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Add article' }))
     await fireEvent.update(await screen.findByLabelText('Web address'), 'https://example.org/more')
-    await fireEvent.click(screen.getByRole('button', { name: 'Add to reading list' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
     const read = await screen.findByRole('link', { name: /^Open “/ })
     expect(state.added).toEqual(['https://example.org/more'])
     expect(read).toHaveAttribute('href', expect.stringMatching(/^\/p\/ada-substack\/reading\/n\d$/))
@@ -1079,7 +1079,7 @@ describe('moving notes', () => {
     await tick('From the paper')
     expect(screen.getByLabelText('Move 2 notes to')).toBeInTheDocument()
     expect(says()).toHaveTextContent(
-      /^The page they were taken from will be copied to its reading list\.$/,
+      /^The page they were taken from will be copied to its articles\.$/,
     )
     expect(document.body).not.toHaveTextContent('will move to')
   })
@@ -1122,7 +1122,7 @@ describe('moving notes', () => {
     await waitFor(() => expect(f.moves).toHaveLength(2))
     expect(f.moves[1]).toEqual({ ids: ['n1', 'n2'], to: { ideaId: null } })
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Moved back. The page copied to “Rivers” stays on its reading list.',
+      'Moved back. The page copied to “Rivers” stays in its articles.',
     )
   })
 
@@ -1320,7 +1320,7 @@ describe('the publication’s notes', () => {
     await renderAt('/p/ada-substack/notes')
     expect(await screen.findByRole('heading', { level: 1, name: 'Note' })).toBeInTheDocument()
     expect(await screen.findByText(/No notes yet\. Add one above, or take notes/)).toBeVisible()
-    expect(screen.getByRole('link', { name: 'your reading list' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'your articles' })).toHaveAttribute(
       'href',
       '/p/ada-substack/read',
     )
@@ -1330,7 +1330,7 @@ describe('the publication’s notes', () => {
   it('has the add form above the list, and nothing after the list', async () => {
     fakePublication({ notes: [note('n1', 'One'), note('n2', 'Two')] })
     await renderAt('/p/ada-substack/notes')
-    const box = await screen.findByLabelText('Note')
+    const box = await screen.findByRole('textbox', { name: 'Note' })
     const list = within(screen.getByRole('main')).getAllByRole('list')[0]!
     expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
@@ -1357,7 +1357,7 @@ describe('the publication’s notes', () => {
     expect(quote).not.toHaveClass('border-l-4')
   })
 
-  it('lists them with the reading item each came from', async () => {
+  it('lists them with the article each came from', async () => {
     fakePublication({
       links: [link('l1', 'A paper')],
       notes: [note('n1', 'Typed thought'), note('n2', 'From the paper', 'l1')],
@@ -1390,7 +1390,10 @@ describe('the publication’s notes', () => {
   it('adds a note of the publication’s own', async () => {
     const state = fakePublication()
     await renderAt('/p/ada-substack/notes')
-    await fireEvent.update(await screen.findByLabelText('Note'), 'Something I noticed')
+    await fireEvent.update(
+      await screen.findByRole('textbox', { name: 'Note' }),
+      'Something I noticed',
+    )
     await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
     expect(await screen.findByText('Something I noticed')).toBeInTheDocument()
     expect(state.sentNotes).toEqual([{ text: 'Something I noticed', first: true }])
@@ -1447,15 +1450,13 @@ describe('the Read page: tutorial mode (#262)', () => {
 
   it('writes out one note under the heading, and nothing else, when it is on', async () => {
     await setup({ ...testUser, tutorialMode: true })
-    expect(
-      screen.getByText(/This is your reading list\. Click through to take notes/),
-    ).toBeVisible()
-    expect(screen.getByText(/move them to an idea’s reading list/)).toBeVisible()
+    expect(screen.getByText(/These are your articles\. Click through to take notes/)).toBeVisible()
+    expect(screen.getByText(/move them to an idea’s articles/)).toBeVisible()
   })
 
   it('says nothing of it when it is off, and has no other tutorial text on the page', async () => {
     await setup({ ...testUser, tutorialMode: false })
-    expect(screen.queryByText(/This is your reading list/)).toBeNull()
+    expect(screen.queryByText(/These are your articles/)).toBeNull()
     expect(screen.queryByRole('button', { name: /^About/ })).toBeNull()
   })
 })

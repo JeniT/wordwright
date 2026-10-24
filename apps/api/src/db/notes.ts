@@ -72,7 +72,7 @@ export class NoteStore {
     ).n
   }
 
-  /** The notes taken from a reading item, in their order. */
+  /** The notes taken from an article, in their order. */
   byReadingItem(publicationId: string, readingItemId: string): string[] {
     return this.db
       .prepare(
