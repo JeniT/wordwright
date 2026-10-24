@@ -414,7 +414,7 @@ test('register, write, save and request a critique', async ({ page }) => {
   expect(topmost).toBe(true)
 
   // There the comments are in the drawer, and pressing one shows its paragraph and gets the drawer out of the way.
-  await page.getByRole('button', { name: 'Open panel' }).click()
+  await page.getByRole('button', { name: 'Draft panel' }).click()
   const drawer = page.getByRole('complementary')
   await drawer.getByRole('tab', { name: /^Comments/ }).click()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'comments in the drawer').toEqual(

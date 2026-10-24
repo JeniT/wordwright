@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, useTemplateRef, watch, watchEffect } from 'vue'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import SaveStatus from '../components/SaveStatus.vue'
@@ -20,6 +20,7 @@ import RephraseDialog from '../components/RephraseDialog.vue'
 import NewTabLink from '../components/NewTabLink.vue'
 import RichEditor from '../components/RichEditor.vue'
 import { useAutosave } from '../lib/autosave'
+import { sidePanel } from '../lib/panel'
 import { useMarkdownMode } from '../lib/markdown-mode'
 import TabPanels from '../components/TabPanels.vue'
 import { RouterLink, onBeforeRouteLeave, useRouter } from 'vue-router'
@@ -417,21 +418,40 @@ const sideTabs = computed(() => [
   ...(canSeeReviews.value ? [{ id: 'reviews', label: 'Reviews' }] : []),
 ])
 const sideTab = ref('notes')
-const notesOpen = ref(false)
+const notesOpen = sidePanel.open
 const openButton = useTemplateRef<HTMLButtonElement>('openButton')
 const closeButton = useTemplateRef<HTMLButtonElement>('closeButton')
 /** True when the side area is beside the draft rather than a drawer over it (jsdom has no media queries). */
 const sideIsBeside = () => window.matchMedia?.('(min-width: 1024px)').matches ?? true
-async function openNotes() {
+/** The in-page button (tablet width) opened it, so focus goes back there, not to the top bar's tab. */
+let openedFromPage = false
+function openFromPage() {
+  openedFromPage = true
+  openNotes()
+}
+function openNotes() {
   notesOpen.value = true
-  await nextTick()
-  closeButton.value?.focus()
 }
-async function closeNotes() {
+function closeNotes() {
   notesOpen.value = false
-  await nextTick()
-  openButton.value?.focus()
 }
+// The panel opens from the in-page button or, on a phone, the top bar's tab: focus goes into the drawer when it opens
+// and back to whichever of the two opened it when it closes.
+watch(
+  notesOpen,
+  (open) => {
+    const tab = document.querySelector<HTMLElement>('[data-panel-tab]')
+    if (open) return closeButton.value?.focus()
+    ;(openedFromPage ? openButton.value : (tab ?? openButton.value))?.focus()
+    openedFromPage = false
+  },
+  { flush: 'post' },
+)
+watchEffect(() => (sidePanel.available.value = !!draft.data.value?.ideaId))
+onBeforeUnmount(() => {
+  sidePanel.available.value = false
+  sidePanel.open.value = false
+})
 
 // ---- comments: the editor sees everyone's (the AI's critique included) and the others only their own; the server
 // decides which. The latest critique's summary and the looks used are the editor's alone.
@@ -455,7 +475,7 @@ const critique = useMutation({
   // Whatever came back (comments, or why not) is shown, even on a phone where the comments are in the drawer.
   onSettled: async () => {
     sideTab.value = 'comments'
-    if (!sideIsBeside()) await openNotes()
+    if (!sideIsBeside()) openNotes()
   },
 })
 // A comment is resolved (or not) as soon as the switch is flipped; if that cannot be saved the switch goes back.
@@ -517,7 +537,7 @@ async function startComment() {
     target: at && block ? { block: block.id, number: block.number, quote: at.quote } : null,
   }
   sideTab.value = 'comments'
-  if (!sideIsBeside() && !notesOpen.value) await openNotes()
+  if (!sideIsBeside() && !notesOpen.value) openNotes()
   void commentsPanel.value?.focusComposer()
 }
 const round = computed(() => lastCritique.data.value?.round)
@@ -573,7 +593,7 @@ const markPoints = computed<CommentMarkPoint[]>(() => [
 async function pickPoint(id: string) {
   activePointId.value = id
   sideTab.value = 'comments'
-  if (!sideIsBeside() && !notesOpen.value) await openNotes()
+  if (!sideIsBeside() && !notesOpen.value) openNotes()
   void commentsPanel.value?.focusPoint(id) // the comment to the top of its area...
   editor.value?.scrollToPoint(id) // ...and its paragraph to the top of the page, side by side
 }
@@ -581,7 +601,7 @@ async function pickPoint(id: string) {
 async function showInDraft(id: string) {
   activePointId.value = id
   void commentsPanel.value?.focusPoint(id, { focus: false })
-  if (notesOpen.value) await closeNotes()
+  if (notesOpen.value) closeNotes()
   editor.value?.focusPoint(id)
 }
 
@@ -748,10 +768,10 @@ async function requestCritique() {
             v-if="draft.data.value?.ideaId"
             ref="openButton"
             type="button"
-            class="btn btn-outline lg:hidden"
+            class="btn btn-outline max-md:hidden lg:hidden"
             aria-controls="draft-notes"
             :aria-expanded="notesOpen"
-            @click="openNotes"
+            @click="openFromPage"
           >
             Open panel
           </button>
@@ -807,7 +827,7 @@ async function requestCritique() {
 
       <div
         v-if="notesOpen"
-        class="fixed inset-0 z-30 bg-scrim lg:hidden"
+        class="fixed inset-x-0 top-(--bar-top,0px) bottom-0 z-30 bg-scrim lg:hidden"
         aria-hidden="true"
         @click="closeNotes"
       ></div>
@@ -816,7 +836,7 @@ async function requestCritique() {
         id="draft-notes"
         data-side-scroll
         aria-labelledby="draft-side-heading"
-        class="mt-8 lg:sticky lg:top-4 lg:mt-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:mt-0 max-lg:w-[min(22rem,90vw)] max-lg:overflow-y-auto max-lg:bg-sunken max-lg:p-4 max-lg:shadow-xl max-lg:transition-[transform,visibility] motion-reduce:transition-none"
+        class="mt-8 lg:sticky lg:top-4 lg:mt-0 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto max-lg:fixed max-lg:top-(--bar-top,0px) max-lg:bottom-0 max-lg:right-0 max-lg:z-40 max-lg:mt-0 max-lg:w-[min(22rem,90vw)] max-lg:overflow-y-auto max-lg:bg-sunken max-lg:p-4 max-lg:shadow-xl max-lg:transition-[transform,visibility] motion-reduce:transition-none"
         :class="notesOpen ? '' : 'max-lg:invisible max-lg:translate-x-full'"
         @keydown.esc="notesOpen && closeNotes()"
       >

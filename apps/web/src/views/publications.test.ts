@@ -639,12 +639,12 @@ describe('the pages of publication settings', () => {
     expect(screen.queryByText(/for example https/i)).toBeNull()
   })
 
-  it('titles each page, with the settings as the small link above', async () => {
+  it('titles each page, with the settings in the breadcrumb above', async () => {
     server.use(signedInAs(testUser), listPublications([substack]))
     await renderAt('/p/adalovelace-substack/settings/sharing')
     await screen.findByRole('heading', { level: 1, name: 'Sharing' })
     const main = within(screen.getByRole('main'))
-    expect(main.getByRole('link', { name: 'Publication settings' })).toHaveAttribute(
+    expect(main.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/p/adalovelace-substack/settings/details',
     )

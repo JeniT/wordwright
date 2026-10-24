@@ -3,12 +3,15 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import BrandMark from './components/BrandMark.vue'
+import Breadcrumb from './components/Breadcrumb.vue'
+import Icon from './components/Icon.vue'
 import NoticeBar from './components/NoticeBar.vue'
 import SettingsButton from './components/SettingsButton.vue'
 import SideMenu from './components/SideMenu.vue'
 import { api } from './lib/api'
 import { useModal } from './lib/modal'
 import { useNav } from './lib/nav'
+import { sidePanel } from './lib/panel'
 import { usePublicationAddressRedirect, usePublications } from './lib/usePublications'
 import ThemeChoice from './components/ThemeChoice.vue'
 import TutorialSwitch from './components/TutorialSwitch.vue'
@@ -23,16 +26,6 @@ usePublications() // loaded once for everything that needs the list (the menu, t
 usePublicationAddressRedirect()
 
 const nav = useNav()
-/** Where you are, for the phone's top bar while the menu is folded: "What the allotment…  03 Note". */
-const here = computed(() => {
-  if (nav.level.value === 'account')
-    return nav.accountPages.value.find((p) => p.key === nav.stepKey.value)?.label ?? ''
-  if (nav.level.value === 'publication-settings')
-    return nav.settingsPages.value.find((p) => p.key === nav.stepKey.value)?.label ?? ''
-  const step = nav.steps.value.find((s) => s.key === nav.stepKey.value)
-  return step ? `${step.number} ${step.label}` : ''
-})
-
 const signOut = useMutation({
   mutationFn: () => api.logout(),
   onSuccess: async () => {
@@ -48,6 +41,8 @@ const reload = () => window.location.reload()
 // it again.
 const menuOpen = ref(false)
 const menu = ref<HTMLElement | null>(null)
+/** The top bar is for signed-in people with a menu; the in-page headers serve the rest. */
+const barShown = computed(() => !!session.user && session.approved && !session.user.reviewerOnly)
 watch(
   () => route.fullPath,
   () => (menuOpen.value = false),
@@ -80,12 +75,58 @@ useModal({
   -->
   <div
     class="min-h-screen"
-    :class="
+    :class="[
       session.user && session.approved && !session.user.reviewerOnly && !nav.compact.value
         ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]'
-        : ''
-    "
+        : '',
+      barShown ? (nav.compact.value ? 'has-edge-bar-always' : 'has-edge-bar') : '',
+    ]"
   >
+    <!--
+      The phone's top bar (and at every width on pages read beside another window): a menu tab flush left, the mark
+      between, and on a page with a side panel a panel tab flush right. It sticks; the breadcrumb under it scrolls away.
+    -->
+    <nav
+      v-if="barShown"
+      aria-label="Top bar"
+      class="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-line bg-surface"
+      :class="nav.compact.value ? '' : 'md:hidden'"
+    >
+      <button
+        type="button"
+        class="btn-edge btn-edge-left"
+        aria-label="Menu"
+        aria-controls="side-menu"
+        :aria-expanded="menuOpen"
+        @click="menuOpen = !menuOpen"
+      >
+        <Icon :name="menuOpen ? 'left' : 'right'" />
+      </button>
+      <RouterLink to="/" class="flex items-center gap-2 font-semibold no-underline">
+        <BrandMark :height="28" />
+        <span class="sr-only">Wordwright</span>
+      </RouterLink>
+      <button
+        v-if="sidePanel.available.value"
+        type="button"
+        class="btn-edge btn-edge-right"
+        data-panel-tab
+        aria-label="Draft panel"
+        aria-controls="draft-notes"
+        :aria-expanded="sidePanel.open.value"
+        @click="sidePanel.toggle()"
+      >
+        <Icon :name="sidePanel.open.value ? 'right' : 'left'" />
+      </button>
+      <span v-else class="w-9" aria-hidden="true"></span>
+    </nav>
+    <div
+      v-if="barShown && nav.crumbs.value.length"
+      class="px-4 pt-3"
+      :class="nav.compact.value ? '' : 'md:hidden'"
+    >
+      <Breadcrumb :crumbs="nav.crumbs.value" />
+    </div>
     <!--
       A reviewer-only account has no menu: just its reviews, its name and a way out. An account that is not approved
       yet (#328) has the same bare header, since it has just its status page.
@@ -118,8 +159,8 @@ useModal({
     </header>
     <header
       v-else-if="session.user"
-      class="border-b border-line bg-surface"
-      :class="nav.compact.value ? '' : 'md:border-r md:border-b-0'"
+      class="bg-surface"
+      :class="nav.compact.value ? '' : 'md:border-r md:border-line'"
     >
       <div
         :class="
@@ -128,40 +169,19 @@ useModal({
             : 'md:sticky md:top-0 md:flex md:h-screen md:flex-col md:overflow-y-auto'
         "
       >
-        <div
-          class="flex items-center justify-between gap-3 px-5 py-4"
-          :class="nav.compact.value ? '' : 'md:py-5'"
-        >
+        <div v-if="!nav.compact.value" class="hidden items-center px-5 py-5 md:flex">
           <RouterLink to="/" class="flex items-center gap-3 font-semibold no-underline">
             <BrandMark :height="36" />
             <span class="text-lg">Wordwright</span>
           </RouterLink>
-          <button
-            type="button"
-            class="btn btn-neutral btn-sm"
-            :class="nav.compact.value ? '' : 'md:hidden'"
-            aria-controls="side-menu"
-            :aria-expanded="menuOpen"
-            @click="menuOpen = !menuOpen"
-          >
-            Menu
-          </button>
         </div>
-        <p
-          v-if="nav.eyebrow.value || here"
-          class="px-5 pb-3 text-sm break-words"
-          :class="nav.compact.value ? '' : 'md:hidden'"
-        >
-          {{ nav.eyebrow.value }}<template v-if="nav.eyebrow.value && here"> · </template
-          ><strong>{{ here }}</strong>
-        </p>
 
         <!-- Pressing outside the drawer closes it; the keyboard has Escape, so the scrim is not a control. -->
         <div
           v-if="menuOpen"
           data-scrim
           aria-hidden="true"
-          class="fixed inset-0 z-30 bg-scrim"
+          class="fixed inset-x-0 top-(--bar-top) bottom-0 z-30 bg-scrim"
           :class="nav.compact.value ? '' : 'md:hidden'"
           @click="menuOpen = false"
         ></div>
@@ -171,7 +191,7 @@ useModal({
           class="flex-col"
           :class="[
             menuOpen
-              ? 'drawer fixed inset-y-0 left-0 z-40 flex w-64 max-w-full overflow-y-auto border-r border-line bg-surface'
+              ? 'drawer fixed top-(--bar-top) bottom-0 left-0 z-40 flex w-64 max-w-full overflow-y-auto border-r border-line bg-surface'
               : 'hidden',
             nav.compact.value
               ? ''

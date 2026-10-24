@@ -432,7 +432,7 @@ watch(model, (value) => {
     <!-- Sticky, so formatting stays in reach in a long draft. -->
     <div
       v-if="editable !== false"
-      class="sticky top-0 z-10 mb-3 border-b border-line bg-paper py-1"
+      class="sticky top-(--bar-top,0px) z-10 mb-3 border-b border-line bg-paper py-1"
     >
       <!-- Above the buttons: the save state (the page's, in the slot) and how long the text is. -->
       <div class="mb-1 flex items-baseline justify-between gap-3 text-sm text-ink-soft">
@@ -455,7 +455,7 @@ watch(model, (value) => {
     </div>
     <div
       v-if="commentBar"
-      class="sticky top-0 z-10 mb-3 flex justify-end border-b border-line bg-paper py-1"
+      class="sticky top-(--bar-top,0px) z-10 mb-3 flex justify-end border-b border-line bg-paper py-1"
     >
       <button type="button" class="btn btn-outline btn-sm" @click="emit('comment')">
         <Icon name="comment" />

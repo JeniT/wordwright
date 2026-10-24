@@ -132,10 +132,13 @@ delete). It is not a level of the app and has no step. **Accounts** (`/admin`, `
 beside Help in the menu foot, the same level-less page of cards (waiting first, then everyone in a paged list), a chip for
 status and `btn-sm` Approve / Decline buttons whose accessible name includes the person's name.
 
-- **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a top bar with a **Menu** button
-  (`aria-expanded`, `aria-controls`) that folds the menu away and shows where you are while closed. Opened, the menu is
-  a **drawer** that slides in from the left over the page (it never pushes the content), behind the `scrim` that
-  closes it when pressed. It is a modal dialog while open (`useModal`: focus moves in and returns to the Menu button,
+- **Side menu** (16rem) on desktop; on phones, and at every width on `compact` pages, a sticky **top bar** (3rem, a
+  `nav` named "Top bar"): a **menu tab** flush left (`btn-edge`, `aria-expanded`, `aria-controls`), the **mark** between
+  (the link Home) and, on the drafting page, a **panel tab** flush right. The chevrons point the way each drawer comes
+  from and flip while it is open. Under the bar, row two is the **Breadcrumb** and scrolls away with the page; the
+  draft's formatting toolbar sticks directly under the bar (`--bar-top`, set in `theme.css`). Opened, the menu is
+  a **drawer** that slides in from the left under the bar and over the page (it never pushes the content), behind the `scrim` that
+  closes it when pressed. It is a modal dialog while open (`useModal`: focus moves in and returns to the menu tab,
   Tab stays inside, Escape closes) and it closes on navigation. No shadow: separation is the scrim and a 1px `line`
   edge. The slide is 0.15s and off under reduced motion. Signed-out pages have a centred name only.
 - **Content width:** `max-w-3xl` for reading and forms; routes with `meta.wide` get `max-w-6xl` (the drafting page

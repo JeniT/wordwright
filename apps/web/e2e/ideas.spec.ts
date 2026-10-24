@@ -329,7 +329,7 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   await createIdea(page, 'Tides', 'The moon pulls the sea.')
   await startDraft(page)
 
-  const open = page.getByRole('button', { name: 'Open panel' })
+  const open = page.getByRole('button', { name: 'Draft panel' })
   await expect(page.getByRole('complementary')).toBeHidden()
   await open.click()
   const side = page.getByRole('complementary')
@@ -341,6 +341,42 @@ test('on a phone the notes slide in over the draft', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Draft body' })).toContainText(
     'The moon pulls the sea.',
   )
+})
+
+test('on a phone the top bar stays put while the draft scrolls, and the breadcrumb leads up', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 })
+  await signUpWithPublication(page)
+  await createIdea(page, 'Tides', 'The moon pulls the sea.')
+  await startDraft(page)
+  const open = page.getByRole('button', { name: 'Draft panel' })
+  const side = page.getByRole('complementary')
+
+  // The bar sticks: scrolled well down, its tabs are still there, with the chevrons turning with the drawer.
+  await page.getByRole('textbox', { name: 'Draft body' }).fill('Line one.\n'.repeat(80))
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect(open).toBeInViewport()
+  await expect(open).toHaveAttribute('aria-expanded', 'false')
+  await open.click()
+  await expect(open).toHaveAttribute('aria-expanded', 'true')
+  await expect(side).toBeVisible()
+  await open.click()
+  await expect(side).toBeHidden()
+  const menu = page.getByRole('button', { name: 'Menu', exact: true })
+  await expect(menu).toBeInViewport()
+  await menu.click()
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible()
+  await menu.click()
+
+  // The breadcrumb is under the bar: Weekly letters › Tides, each a link; the mark leads home.
+  await page.evaluate(() => window.scrollTo(0, 0))
+  const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' }).filter({ visible: true })
+  await expect(crumbs.getByRole('link')).toHaveText(['Weekly letters', 'Tides'])
+  await crumbs.getByRole('link', { name: 'Tides' }).click()
+  await expect(page).toHaveURL(/\/ideas\/[^/]+$/)
+  await page.getByRole('link', { name: 'Wordwright' }).click()
+  await expect(page).toHaveURL(/\/$/)
 })
 
 test('reads an article and takes notes from it, on a phone too', async ({ page }) => {

@@ -670,9 +670,9 @@ test('publication settings are a menu of short pages, which fold behind the menu
   // On a phone the menu folds away behind its button, and nothing scrolls sideways.
   await page.setViewportSize({ width: 390, height: 800 })
   await page.emulateMedia({ colorScheme: 'dark' })
-  await page.getByRole('banner').getByRole('button', { name: 'Menu' }).click()
+  await page.getByRole('button', { name: 'Menu', exact: true }).click()
   await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).first().click()
-  await page.getByRole('banner').getByRole('button', { name: 'Menu' }).click()
+  await page.getByRole('button', { name: 'Menu', exact: true }).click()
   await openSettingsPage(page, 'Sharing')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

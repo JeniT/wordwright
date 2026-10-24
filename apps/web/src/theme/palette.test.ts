@@ -64,6 +64,8 @@ const PAIRS: [string, string, number, string][] = [
   ['ok', 'surface', 4.5, 'success text on panels'],
   ['line-strong', 'paper', 3, 'field and button borders on the page'],
   ['line-strong', 'surface', 3, 'field and button borders on panels'],
+  ['ink', 'surface', 4.5, 'chevron of an edge tab in the phone’s top bar'],
+  ['line-strong', 'surface', 3, 'border of an edge tab (btn-edge)'],
   ['focus', 'paper', 3, 'focus ring on the page'],
   ['focus', 'surface', 3, 'focus ring on panels'],
   ...[1, 2, 3, 4, 5, 6].map((n): [string, string, number, string] => [

@@ -359,7 +359,7 @@ describe('the menu folds away on pages read beside another window', () => {
     mockApp()
     await renderAt('/p/ada-substack/ideas')
     const button = await screen.findByRole('button', { name: 'Menu' })
-    expect(button).toHaveClass('md:hidden')
+    expect(button.closest('[class*="sticky"]')).toHaveClass('md:hidden')
   })
 
   it('but at every width when reading a source and taking notes', async () => {
@@ -369,7 +369,7 @@ describe('the menu folds away on pages read beside another window', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/articles/l1')
     const button = await screen.findByRole('button', { name: 'Menu' })
-    expect(button).not.toHaveClass('md:hidden')
+    expect(button.closest('[class*="sticky"]')).not.toHaveClass('md:hidden')
     expect(button).toHaveAttribute('aria-expanded', 'false')
     await fireEvent.click(button)
     expect(button).toHaveAttribute('aria-expanded', 'true')
@@ -517,5 +517,95 @@ describe('the menu in a publication’s settings', () => {
     await waitFor(() =>
       expect(router.currentRoute.value.path).toBe('/p/ada-substack/settings/description'),
     )
+  })
+})
+
+describe('the phone’s top bar', () => {
+  it('has a menu tab, and the mark between the tabs as the link home, and no panel tab off the drafting page', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1/notes')
+    const menuTab = await screen.findByRole('button', { name: 'Menu' })
+    const bar = menuTab.closest('[class*="sticky"]') as HTMLElement
+    expect(menuTab).toHaveClass('btn-edge-left')
+    expect(within(bar).getByRole('link', { name: 'Wordwright' })).toHaveAttribute('href', '/')
+    expect(within(bar).queryByRole('button', { name: 'Draft panel' })).toBeNull()
+  })
+
+  it('has a panel tab on a draft, which opens and closes the notes drawer and flips its chevron', async () => {
+    mockApp()
+    server.use(
+      http.get('*/api/publications/ada-substack/ideas/i1/notes', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/ada-substack/drafts/d1')
+    const tab = await screen.findByRole('button', { name: 'Draft panel' })
+    expect(tab).toHaveClass('btn-edge-right')
+    expect(tab).toHaveAttribute('aria-expanded', 'false')
+    await fireEvent.click(tab)
+    expect(tab).toHaveAttribute('aria-expanded', 'true')
+    await fireEvent.click(tab)
+    expect(tab).toHaveAttribute('aria-expanded', 'false')
+  })
+})
+
+describe('the breadcrumb', () => {
+  // One in the phone's bar and one over the page title; the stylesheet shows only one of them at a time.
+  const crumbs = async () =>
+    within((await screen.findAllByRole('navigation', { name: 'Breadcrumb' }))[0]!)
+
+  it('is Publication › Idea on an idea’s step, each a link, with the page itself left to its heading', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/ideas/i1/notes')
+    const nav = await screen.findAllByRole('navigation', { name: 'Breadcrumb' })
+    const first = within(nav[0]!)
+    await first.findByRole('link', { name: 'Why rivers meander' })
+    expect(first.getByRole('link', { name: 'Substack' })).toHaveAttribute('href', '/p/ada-substack')
+    expect(first.getByRole('link', { name: 'Why rivers meander' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/ideas/i1',
+    )
+    expect(first.queryByRole('link', { name: 'Note' })).toBeNull()
+    expect(first.queryByRole('link', { name: 'Home' })).toBeNull()
+  })
+
+  it('is just the publication on its step pages and on an idea’s landing page', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/notes')
+    const onStep = await crumbs()
+    expect(await onStep.findByRole('link', { name: 'Substack' })).toBeInTheDocument()
+    expect(onStep.getAllByRole('link')).toHaveLength(1)
+  })
+
+  it('has none on the publication’s own page', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack')
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb', hidden: true })).toBeNull()
+  })
+
+  it('is Publication › Settings on a publication’s settings pages', async () => {
+    mockApp()
+    await renderAt('/p/ada-substack/settings/sharing')
+    const nav = await crumbs()
+    expect(await nav.findByRole('link', { name: 'Substack' })).toBeInTheDocument()
+    expect(nav.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/p/ada-substack/settings/details',
+    )
+  })
+
+  it('is Account on the other account pages', async () => {
+    mockApp()
+    await renderAt('/account/display')
+    expect(await (await crumbs()).findByRole('link', { name: 'Account' })).toHaveAttribute(
+      'href',
+      '/account/details',
+    )
+  })
+
+  it('is left out on the first account page, which is its own heading', async () => {
+    mockApp()
+    await renderAt('/account/details')
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).toBeNull()
   })
 })

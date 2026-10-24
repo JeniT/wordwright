@@ -64,6 +64,12 @@ export const PUBLICATION_SETTINGS_PAGES: SettingsPage[] = [
   },
 ]
 
+/** One link in the breadcrumb. */
+export interface Crumb {
+  label: string
+  to: RouteLocationRaw
+}
+
 export type NavLevel = 'home' | 'publication' | 'publication-settings' | 'idea' | 'account'
 
 export const stepsFor = (level: NavLevel) =>
@@ -203,34 +209,40 @@ export function useNav() {
     })),
   )
 
-  /** What the page is called above its title: the idea or the publication, depending on level. */
-  const eyebrow = computed(() =>
-    level.value === 'idea'
-      ? idea.data.value?.name
-      : level.value === 'publication'
-        ? publication.value?.name
-        : level.value === 'account'
-          ? 'Account settings'
-          : level.value === 'publication-settings'
-            ? 'Publication settings'
-            : undefined,
-  )
-
-  /** Where the name above a page's title leads: a level's pages lead back to its landing page (not from it). */
-  const eyebrowTo = computed<RouteLocationRaw | undefined>(() => {
+  /**
+   * The breadcrumb: where this page sits, from the publication down. Every crumb is a link, and the page you are on is
+   * left to its heading, so a landing page does not list itself. Home has none (the mark and the menu lead there).
+   */
+  const crumbs = computed<Crumb[]>(() => {
     if (level.value === 'account')
-      return route.name === 'account-details' ? undefined : { name: 'account-details' }
+      return route.name === 'account-details'
+        ? []
+        : [{ label: 'Account', to: { name: 'account-details' } }]
+    const publicationCrumb: Crumb[] =
+      publication.value && publicationId.value && route.name !== 'publication'
+        ? [
+            {
+              label: publication.value.name,
+              to: { name: 'publication', params: { publicationId: publicationId.value } },
+            },
+          ]
+        : []
     if (level.value === 'publication-settings') {
       const first = settingsPages.value[0]
-      return !first || route.name === first.route ? undefined : first.to
+      return [
+        ...publicationCrumb,
+        ...(first && route.name !== first.route ? [{ label: 'Settings', to: first.to }] : []),
+      ]
     }
-    if (route.name === 'publication' || route.name === 'idea' || !publicationId.value)
-      return undefined
-    if (level.value === 'publication')
-      return { name: 'publication', params: { publicationId: publicationId.value } }
-    if (level.value === 'idea' && ideaId.value)
-      return { name: 'idea', params: { publicationId: publicationId.value, id: ideaId.value } }
-    return undefined
+    if (level.value === 'idea' && idea.data.value && route.name !== 'idea')
+      return [
+        ...publicationCrumb,
+        {
+          label: idea.data.value.name,
+          to: { name: 'idea', params: { publicationId: publicationId.value, id: ideaId.value } },
+        },
+      ]
+    return level.value === 'idea' || level.value === 'publication' ? publicationCrumb : []
   })
 
   return {
@@ -244,8 +256,7 @@ export function useNav() {
     settingsPages,
     stepKey,
     stepNumber: computed(() => stepNumber(level.value, stepKey.value)),
-    eyebrow,
-    eyebrowTo,
+    crumbs,
     /** Waiting to learn which idea a draft belongs to. */
     loading: draftLoading,
     /** The side menu folds away at every width (pages read beside another window). */

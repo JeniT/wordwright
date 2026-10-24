@@ -45,3 +45,10 @@ that are now step names in the menu.
 
 **Revisit if** people with many ideas find going up a level to switch tiresome (add an idea switcher, or reconsider the
 map).
+
+**Update (#362): phone top bar and Breadcrumb.** On a phone the Menu button and the draft's "Open panel" button were hard
+to reach or unseen, and the one-level name above a title was not a path. Below the desktop breakpoint every signed-in
+page now has a sticky bar: a menu tab flush left, the mark (Home) between, and on the drafting page a panel tab flush
+right, with chevrons that flip while a drawer is open. A **Breadcrumb** (Publication › Idea, with every crumb a link)
+replaces the single name: on a desktop above the title, on a phone as row two under the bar, never both. Not done: pinning
+the drafting toolbar to the bottom of the screen above the keyboard (asked for in the issue's comments; a separate issue).

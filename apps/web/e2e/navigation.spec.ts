@@ -234,8 +234,10 @@ test('on a phone the menu folds behind a button, and says where you are while cl
   const menuButton = page.getByRole('button', { name: 'Menu', exact: true })
   await expect(menuButton).toHaveAttribute('aria-expanded', 'false')
   await expect(page.getByRole('navigation', { name: 'Idea' })).toBeHidden()
-  await expect(page.getByRole('banner')).toContainText('What pruning teaches')
-  await expect(page.getByRole('banner')).toContainText('03 Note')
+  const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' }).filter({ visible: true })
+  await expect(crumbs.getByRole('link')).toHaveText(['Garden notes', 'What pruning teaches'])
+  // On a phone the in-page one is hidden, so a page never shows two.
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveCount(1)
   await menuButton.click()
   await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
   await noViolations(page, 'phone menu open')

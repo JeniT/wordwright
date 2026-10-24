@@ -90,12 +90,17 @@ The principles (they are the point of the pattern; keep them when you add a page
 | ![Idea, Research step](../screenshots/nav-idea-research.png) | ![Publication, Ideas step](../screenshots/nav-publication-ideas.png) |
 | ![Phone, menu open](../screenshots/nav-phone-menu-open.png)  |                                                                      |
 
+**The Breadcrumb** (`components/Breadcrumb.vue`, trail from `crumbs` in `lib/nav.ts`) is Publication › Idea; Publication ›
+Settings; Account. Every crumb is a link, the page you are on is left to its heading, and there is no Home crumb. On a
+desktop `StepHeading` shows it above the title; on a phone it is row two of the top bar and the in-page one is hidden, so
+a page never shows two. Long names truncate one by one, the last crumb getting room first.
+
 **How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea' | 'account', step: '<key>' }` in `router.ts`
 (`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
 (the research tool, reading one source) use their step's key, so it stays current. The title is
 `<StepHeading>Name</StepHeading>`; end the page with `<NextStep :to label>why this is next</NextStep>`. A page that is
 read beside another window (reading a source, taking notes) adds `compact: true`, which folds the menu behind the
-**Menu** button at every width so two windows fit side by side. The drafting page keeps the menu on a laptop and finds
+**Menu** tab at every width so two windows fit side by side. The drafting page keeps the menu on a laptop and finds
 its idea from the draft (`ideaFromDraft: true`).
 
 Adding a step (rare): add it to the step list in `lib/nav.ts`, give its route the meta, and update the table above.

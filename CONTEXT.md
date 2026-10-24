@@ -51,6 +51,10 @@ _Avoid_: Favicon, logo
 The Wordwright product's own symbol: a flame whose tip is a split pen nib. It names the product only, so it is never shown for a publication and never stands in for a Publication picture or Site icon.
 _Avoid_: Logo, favicon (the browser-tab copy is still just "the mark"), Wordwright icon
 
+**Breadcrumb**:
+The trail of links at the top of a page that says where it sits: Publication › Idea (Publication › Settings in a publication's settings; Account in the account's). Every crumb is a link and the page you are on is left to its heading. It has no Home crumb: the mark is Home on a phone, and the menu's Wordwright link on a desktop.
+_Avoid_: Eyebrow, path, trail
+
 **Owner**:
 A person who administers a publication (invites and removes people, makes other members owners, reassigns drafts). A publication can have several owners but never none. Not the same as the site's admin.
 _Avoid_: Admin

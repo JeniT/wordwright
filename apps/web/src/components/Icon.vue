@@ -31,6 +31,8 @@ import dotsThree from '@phosphor-icons/core/assets/bold/dots-three-bold.svg?raw'
 import arrowLineRight from '@phosphor-icons/core/assets/bold/arrow-line-right-bold.svg?raw'
 import arrowLineDown from '@phosphor-icons/core/assets/bold/arrow-line-down-bold.svg?raw'
 import chat from '@phosphor-icons/core/assets/bold/chat-bold.svg?raw'
+import caretLeft from '@phosphor-icons/core/assets/bold/caret-left-bold.svg?raw'
+import caretRight from '@phosphor-icons/core/assets/bold/caret-right-bold.svg?raw'
 
 // Phosphor Icons (MIT), bold weight, as raw SVG text. Only the files imported here are bundled. We keep the inside of
 // each file and draw it in our own <svg>, so size and colour (currentColor) stay under our control.
@@ -69,6 +71,8 @@ const PHOSPHOR = {
   move: arrowLineRight,
   insert: arrowLineDown,
   comment: chat,
+  left: caretLeft,
+  right: caretRight,
 }
 
 export type IconName = keyof typeof PHOSPHOR | 'ai'
