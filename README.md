@@ -100,6 +100,8 @@ tests inject fakes and nothing hits the network.
 ## Accounts, AI keys and features
 
 - [docs/accounts.md](docs/accounts.md): accounts and sign-in, publications and sharing, ideas, drafts, deletion, and email.
+- Admin: the first address in `ADMIN_EMAILS` gets an **Admin** account when the server starts, with no password. Ask for a
+  link at `/forgot-password` to set one. Details in [docs/deploy.md](docs/deploy.md#letting-people-in-the-private-alpha).
 - [docs/byok.md](docs/byok.md): each user's own LLM key, and how to add a provider.
 - [docs/ai-features.md](docs/ai-features.md): the brainstorm (Refine), Research, Critique and Rephrase, with their APIs and limits.
 

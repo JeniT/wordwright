@@ -294,8 +294,10 @@ reviewed list (`apps/api/src/errors.test.ts`), so a new log line forces a look a
 
 ## Letting people in (the private alpha)
 
-New accounts wait until an admin approves them (`ACCOUNT_APPROVAL=required`, the default). Put your own address in
-`ADMIN_EMAILS` in `.env` before the first deploy, sign up with it, and confirm the email: you are then an admin, with an
+New accounts wait until an admin approves them (`ACCOUNT_APPROVAL=required`, the default). Put the admin
+address in `ADMIN_EMAILS` in `.env` (`admin@wordwright.io`, a real inbox: it is the only way in). On the first start the
+server creates an **Admin** account for the _first_ address, with a confirmed email, approved, and no password. Open
+`/forgot-password`, ask for a link for that address, and choose a password: you are then signed in as an admin, with an
 **Accounts** link at the foot of the menu. Admin is never set in the app. To give or take it away later, on the server:
 
 ```bash
@@ -307,11 +309,12 @@ On a server whose `.env` already exists (the wizard does not write `ADMIN_EMAILS
 
 ```bash
 cd ~/wordwright
-grep -q '^ADMIN_EMAILS=' .env && sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=jeni@wordwright.io|' .env || echo 'ADMIN_EMAILS=jeni@wordwright.io' >> .env
+grep -q '^ADMIN_EMAILS=' .env && sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=admin@wordwright.io|' .env || echo 'ADMIN_EMAILS=admin@wordwright.io' >> .env
 docker compose up -d
 ```
 
-An account that already exists becomes an admin (and is approved) the next time it is used, once its email is confirmed.
+Your own account stops being listed there once Admin can sign in; then take its admin role away with the `revoke`
+command above. An account that already exists becomes an admin (and is approved) the next time it is used, once its email is confirmed.
 
 Approving and declining email the person, so email has to be working first (see above). Everyone who had an account
 before approval began is already approved.

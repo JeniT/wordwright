@@ -16,6 +16,7 @@ import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { HttpPageInfoFetcher } from './pages/http-page-info'
 import { AccountService } from './services/accounts'
+import { seedAdminAccount } from './services/admin'
 import { backfillIconShapes } from './services/icon-backfill'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
@@ -47,6 +48,10 @@ const store = (() => {
     return fail(err)
   }
 })()
+
+if (seedAdminAccount(store, config.ADMIN_EMAILS) === 'created') {
+  console.log('Admin: seeded the Admin account; set its password through "Forgot password"')
+}
 
 const providers: Providers = { search: [] }
 

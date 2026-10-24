@@ -360,12 +360,15 @@ export class AccountService {
 
   /**
    * Always resolves the same way, so the response can't be used to discover which emails
-   * have accounts. Only users with a local password get a link.
+   * have accounts. Only accounts that sign in with a password, or with nothing yet, get a link.
    */
   async requestPasswordReset(email: string): Promise<void> {
     const { store } = this.d
     const user = store.users.findByEmail(email)
-    if (!user || !store.users.getPasswordHash(user.id)) return
+    // An account with no password and no other way in (the seeded Admin, #367) gets a link to choose one.
+    if (!user) return
+    if (!store.users.getPasswordHash(user.id) && store.users.listProviders(user.id).length > 0)
+      return
     const token = generateToken()
     store.tokens.createReset(hashToken(token), user.id, this.expiresIn(RESET_TTL_MS))
     const link = `${this.d.publicUrl}/reset-password?token=${token}`

@@ -69,3 +69,32 @@ export function setAdminByEmail(
   })
   return 'done'
 }
+
+const SEEDED_ADMIN_HANDLE = 'admin'
+
+/**
+ * Makes the owner's Admin account at server start (#367), so the admin role can be handed over without the owner's
+ * own account carrying it. It is made for the **first** address in `ADMIN_EMAILS` only, with a confirmed address
+ * and no password: the owner sets one through "Forgot password". The reserved username is allowed here and still
+ * blocked at sign-up. Safe to run on every start.
+ */
+export function seedAdminAccount(
+  store: Store,
+  adminEmails: string[],
+): 'none' | 'exists' | 'created' {
+  const email = adminEmails[0]
+  if (!email) return 'none'
+  if (store.users.findByEmail(email) || store.users.handleTaken(SEEDED_ADMIN_HANDLE))
+    return 'exists'
+  store.transaction(() => {
+    const admin = store.users.create({
+      name: 'Admin',
+      email,
+      emailVerified: true,
+      handle: SEEDED_ADMIN_HANDLE,
+      approval: 'approved',
+    })
+    store.users.setAdmin(admin.id, true)
+  })
+  return 'created'
+}

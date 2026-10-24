@@ -205,6 +205,11 @@ Read this when you change sign-in, registration, passwords, publications and the
   person is approval:** a reviewer made by following a review link starts `approved` if the inviter is, and a `waiting`
   account that accepts a publication or review invitation from an approved person becomes `approved` (a `declined` one
   stays declined: the owner has decided). Existing accounts were made `approved` by the migration.
+  **Seeded Admin (#367):** at server start, if `ADMIN_EMAILS` is set and no account has its _first_ address, the server
+  creates **Admin** (username `admin`, confirmed email, approved, admin, **no password**; `seedAdminAccount` in
+  `services/admin.ts`). It bypasses the reserved-name block, which sign-up still enforces. The owner sets a password
+  through "Forgot password", which sends a link to any account with no password and no linked provider (so a
+  Google-only account still gets nothing), and answers the same whether or not the address has an account.
   **Admin:** `users.is_admin` is set only from `ADMIN_EMAILS` (comma-separated; applied when that confirmed address next
   uses the app, and the account is approved at the same time; a first sign-up with such an address is approved at once through Google, or as soon as the confirmation link is opened (even signed out) for the email form, and neither is held up by the sign-up allowance. An unconfirmed account with that address stays waiting, so knowing the owner's address is not a way in) or the command
   `pnpm --filter @wordwright/api admin grant|revoke <email>`; no route sets it, a changed email address clears it, and
