@@ -2,7 +2,7 @@
 
 Open tasks and owner decisions are issues in [JeniT/writing-assistant](https://github.com/JeniT/writing-assistant/issues).
 This file is only the history of what was finished before the move (T5b), so it no longer needs updating.
-Protocol for claiming and finishing tasks is in [AGENTS.md](AGENTS.md#working-in-parallel-with-other-agents).
+Protocol for claiming and finishing tasks is in [AGENTS.md](docs/agents/claim.md).
 
 | Look for                | Command                             |
 | ----------------------- | ----------------------------------- |
@@ -15,7 +15,7 @@ Issue titles keep the old `T<n>` ids so commits and `docs/` references still mak
 
 ## Done before the move to GitHub Issues
 
-- **T5b** · Task tracking moved to GitHub Issues (see above and [AGENTS.md](AGENTS.md#working-in-parallel-with-other-agents)):
+- **T5b** · Task tracking moved to GitHub Issues (see above and [AGENTS.md](docs/agents/claim.md)):
   open tasks and owner decisions became issues #1–#22, claiming a task is now an atomic branch creation, and this
   file is a frozen history.
 

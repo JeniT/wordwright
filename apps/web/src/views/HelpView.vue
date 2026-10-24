@@ -2,7 +2,7 @@
 import { RouterLink } from 'vue-router'
 import HelpPage from '../components/HelpPage.vue'
 
-/** The list of help pages. Add a page to the router and to this list; AGENTS.md says when. */
+/** The list of help pages. Add a page to the router and to this list; docs/agents/definition-of-done.md says when. */
 const pages = [
   {
     name: 'help-api-key',

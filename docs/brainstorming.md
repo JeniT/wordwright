@@ -166,7 +166,7 @@ threads get long enough to matter.
   The brainstorm page says so. In a shared publication, a message from a member is sent through _that_ member's
   provider.
 - **No content in logs:** conversations, prompts and keys are never logged; errors log a code and ids only
-  (AGENTS.md).
+  ([conventions-api.md](agents/conventions-api.md#conventions-for-the-api-core-and-database)).
 - **Throttling:** per-person limit on messages (it spends their money and our server time), one in flight per idea,
   and requests abort the provider call when the browser disconnects.
 - **Deletion:** the thread belongs to its idea (`ON DELETE CASCADE`), so deleting an idea, a publication or the last

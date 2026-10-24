@@ -374,7 +374,7 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
   they came straight here). Help is open to everyone, signed in or not, so it is `meta: { open: true }` and has no
   menu level or step. It is reached from **Help** in the side-menu footer (beside Sign out), the reviewer bar, and under
   the name on signed-out pages. To add a page: a view, a route (before the `/help/:rest(.*)` catch-all), and a line in
-  `HelpView`. Functionality that changes must update its help page (AGENTS.md, Definition of done).
+  `HelpView`. Functionality that changes must update its help page ([definition-of-done.md](agents/definition-of-done.md)).
 
 ## Actions and lists
 
