@@ -7,7 +7,7 @@ import { changeTags, sameTagList } from './tag-change'
 /**
  * Joining notes and cutting one in two. Notes say where they came from (typed, brainstormed, taken from a
  * source) and some must stay as written (quotations), so only notes that agree on that can be merged, and
- * nothing that is already in a draft is changed under it. The rules are written out in docs/decisions.md.
+ * nothing that is already in a draft is changed under it. The rules are written out in docs/adr/notes-and-articles/merging-and-splitting-notes.md.
  */
 export class NoteEditService {
   constructor(private readonly store: Store) {}

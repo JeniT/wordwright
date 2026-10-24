@@ -12,4 +12,4 @@ Roles map onto the repo's own labels (`inbox`, `question`, `ready`, `decision`, 
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. Project rationale lives in `docs/decisions.md`. See `docs/agents/domain.md`.
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. Project rationale lives in `docs/adr/`. See `docs/agents/domain.md`.

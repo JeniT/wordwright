@@ -1,6 +1,6 @@
 # Wordwright
 
-A web app that supports a writer's journey from idea to published writing, with AI that helps them judge their own words and never writes them. This file is the glossary; rationale lives in `docs/decisions.md` and `docs/adr/`.
+A web app that supports a writer's journey from idea to published writing, with AI that helps them judge their own words and never writes them. This file is the glossary; rationale lives in `docs/adr/` and `docs/adr/`.
 
 ## Language
 

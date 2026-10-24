@@ -17,7 +17,7 @@ export const NOT_ENOUGH_OPTIONS = `The AI didn't give enough usable options. Try
 /**
  * Checks a request before anything is sent or spent: the wording is something that can be rephrased, the Aim says
  * something, a title has enough draft to work from, and a further round has a different Aim. The server counts
- * nothing: how many rounds a window allows is the window's business (docs/decisions.md).
+ * nothing: how many rounds a window allows is the window's business (docs/adr/rephrase/rephrase-options-for-a-passage-or-title.md).
  */
 export function checkRephrase(req: RephraseRequest, draft: { body: string }) {
   const problem = wordingProblem(req.kind, req.wording)

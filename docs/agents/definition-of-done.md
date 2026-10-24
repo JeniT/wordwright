@@ -6,7 +6,7 @@ Read this before you commit, and when you plan a task's tests and docs.
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
 2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors. UI changes follow
    [design](../design/README.md) and have been looked at in light **and** dark mode and at phone width (390px).
-3. Docs updated where behaviour changed (README section, `.env.example`, `docs/decisions.md` for non-obvious choices).
+3. Docs updated where behaviour changed (README section, `.env.example`, `docs/adr/` for non-obvious choices (see [adr/README.md](../adr/README.md))).
    **The help area too:** a change to what people can do, or how, updates the matching help page under `/help`, or adds
    one if the feature has steps or explanation that don't fit on the page (see _Where explanatory text goes_ in
    [design](../design/explanatory-text.md#where-explanatory-text-goes)). A feature that calls an LLM also adds boundary evals, and an

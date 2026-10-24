@@ -5,7 +5,7 @@ Part of the [design system](README.md). Read this when deciding whether a piece 
 ## Where explanatory text goes
 
 Text lives in one of four places. Pick by what the person needs it for; how it reads is in the
-[style guide](style-guide.md).
+[style guide](../style-guide.md).
 
 **The test:** if the person skips this text, can they still finish the task without a mistake? If so, it doesn't belong
 on the page. Move it to an info icon or a help page, or cut it.
@@ -132,4 +132,4 @@ edge, and not sticky, so it scrolls away. A page can have more than one; **warn*
   they came straight here). Help is open to everyone, signed in or not, so it is `meta: { open: true }` and has no
   menu level or step. It is reached from **Help** in the side-menu footer (beside Sign out), the reviewer bar, and under
   the name on signed-out pages. To add a page: a view, a route (before the `/help/:rest(.*)` catch-all), and a line in
-  `HelpView`. Functionality that changes must update its help page ([definition-of-done.md](agents/definition-of-done.md)).
+  `HelpView`. Functionality that changes must update its help page ([definition-of-done.md](../agents/definition-of-done.md)).

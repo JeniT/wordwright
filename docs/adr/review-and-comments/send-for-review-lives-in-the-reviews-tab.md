@@ -1,0 +1,3 @@
+# Send for review lives in the Reviews tab (#345)
+
+**Send for review** moved from the draft's actions row to the top of the Reviews tab, since it creates what the tab lists. The tab is now always there for people who can load reviews (the editor and the owners), not only once a review exists, so there is somewhere to send from. Its empty state says what sending does and has the button. Owners who are not the editor see the tab but not the button, and the empty state tells them only the editor can send. Everyone else still has no tab. The actions row (`DraftActions`) now holds only handover buttons and is left out when it has none. There is no help page about reviewing yet, so none was changed.

@@ -108,7 +108,7 @@ The flag is `siteIconSquare` on a publication and `iconSquare` on a source (feed
 
 The person's own publication picture (`kind="publication"`, the default) is cropped to fill the same frame, since the writer
 chose it. When a publication has no picture but has a website whose icon we could fetch, `PublicationImage` is given
-`site-icon-url` and draws that icon as a guest (on the plate, as above); the person's picture always wins. Pictures are still fetched once and served from our own origin ([decisions.md](decisions.md)); this is only
+`site-icon-url` and draws that icon as a guest (on the plate, as above); the person's picture always wins. Pictures are still fetched once and served from our own origin ([the decision](../adr/publications/a-publications-website-icon-is-a-guest-stored-apart.md)); this is only
 how they are framed. Identity-provider buttons ("Continue with Google") should use the same plate for their logo.
 
 ## Dark mode
@@ -121,7 +121,7 @@ palette file, so components need no `dark:` variants. If you find yourself writi
 
 ## Layout
 
-A **reviewer-only account** (someone asked to read a draft, see decisions.md "Reviewers") has no side menu: a single top
+A **reviewer-only account** (someone asked to read a draft, see [Reviewers](../adr/review-and-comments/reviewers-how-they-were-built.md)) has no side menu: a single top
 bar with the name, the Appearance choice, a **Start writing** button (the way to upgrade to a full account) and
 Sign out, over one column. It has no settings gear: a reviewer-only account has no account page. Its pages (`ReviewsView`, `ReviewView`) use the
 same cards, callouts and chips as everywhere else.

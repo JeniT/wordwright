@@ -69,7 +69,7 @@ export interface ResearchDeps {
 /**
  * Research is kept apart from brainstorming: the writer describes the areas to look into, one request goes to their
  * own researcher, and what it finds is saved as a list to review. Nothing joins the articles until a person
- * adds it. Design: docs/decisions.md (T38).
+ * adds it. Design: docs/adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md.
  */
 export class ResearchService {
   private readonly checker: ReadingChecker

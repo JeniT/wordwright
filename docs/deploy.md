@@ -1,6 +1,6 @@
 # Deploying Wordwright
 
-Production is **one machine** (an UpCloud VM in London; see the decision in [decisions.md](decisions.md)) running two
+Production is **one machine** (an UpCloud VM in London; see the decision in [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
 
 - `api`: the Hono API and its SQLite database (a volume mounted at `/data`).

@@ -39,7 +39,7 @@ hitting publish, not session length, message count or return visits. So:
     (options for a passage or title, principle 4) has no quota per draft: the owner judged a number arbitrary. Its
     friction is that another round needs a _changed aim_ (the writer says what they want differently), plus a limit on
     rounds in one window (the same setting as critique looks). That limit is a UI limit, not a guarantee: closing and
-    reopening starts again, as adding a new draft gets round the critique limit. See `docs/decisions.md`, "Rephrase".
+    reopening starts again, as adding a new draft gets round the critique limit. See [Rephrase](adr/rephrase/rephrase-options-for-a-passage-or-title.md).
 - **Rate limits for cost are not a substitute.** The existing throttles protect money and servers; the caps above
   protect the writer.
 

@@ -329,7 +329,7 @@ export const SourceSchema = z.object({
 })
 export type Source = z.infer<typeof SourceSchema>
 
-/** A feed's recent posts as we last read them (see `docs/decisions.md`: we cache, and read politely). */
+/** A feed's recent posts as we last read them (see `docs/adr/research-and-feeds/feeds-are-read-through-a-port-with-the-address.md`: we cache, and read politely). */
 export const SourceItemsSchema = z.object({
   items: z.array(FeedItemSchema),
   /** When the feed was last asked; null if never. */
@@ -1260,7 +1260,7 @@ export type BrainstormEvent = z.infer<typeof BrainstormEventSchema>
 
 // ---- Research: a search for reading, kept apart from brainstorming ---------------------------------------
 // The writer describes the areas to look into; the app writes the rest of the prompt. Each run is saved with what it
-// found, as a list to review: the writer ticks the pages to add article. See docs/decisions.md (T38).
+// found, as a list to review: the writer ticks the pages to add article. See docs/adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md.
 
 /** The most pages one run brings back. */
 export const MAX_RESEARCH_RESULTS = 8

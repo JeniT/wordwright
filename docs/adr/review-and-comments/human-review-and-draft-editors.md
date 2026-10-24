@@ -1,0 +1,12 @@
+# Human review and draft editors (#26)
+
+Decided with the owner in triage. Terms are in `CONTEXT.md`; the hard-to-reverse choices are `docs/adr/0001-reviews-are-of-snapshots.md` and `docs/adr/0002-reviewer-only-accounts.md`. Built as #152–#159.
+
+- **One editor per draft.** The member currently responsible for its title and body; the creator at first. Only the editor saves, uses Add to draft, publishes, invites reviewers or asks for an AI critique. Saves are version-checked (409 on a stale save); no live collaboration. The publication role `editor` is renamed `member` (#152) so the word means one thing.
+- **Handover is explicit.** The editor offers the draft to a named member, who accepts; until then the offerer stays editor and can withdraw. Any member can ask, which only prompts the editor. An owner can reassign an absent editor's draft, and it passes to an owner when the editor leaves or deletes their account.
+- **One comment model; independent review.** AI critique points and people's comments are one kind of thing (anchored to a paragraph or the whole draft, never carrying replacement text). The editor sees all of them with authors, the AI's marked; every other person, including reviewers and owners who are not the editor, sees only their own. This keeps reviewers independent and leaves resolving disagreement to the editor. No replies for now. **Resolved** (editor only) hides a comment; nothing is deleted.
+- **Humans are not capped.** The rationing exists because an LLM always finds something to tweak. Human comments do not count against critique rounds.
+- **Reviewers.** Invited by email to a draft, they review a snapshot (ADR 0001) with a reviewer-only account (ADR 0002). A review is open, ended (the reviewer pressed End review, which emails the editor once with a comment count) or closed (the editor stopped accepting); ended and closed reviews are read-only and still show the snapshot and the reviewer's comments.
+- **Emails** only for a handover offer, a reviewer invitation and a finished review. Comments send none. In-app reminders for open handovers and reviews come last (#159).
+- **Names outlive accounts, by choice.** People get credit for their notes and comments in publications that continue. Deleting an account asks whether to keep the display name on them (default yes) or show "a former member"; the email and handle are never kept (#153).
+- **Not built:** human "suggested change" text (a later issue if wanted), replies, real-time editing.

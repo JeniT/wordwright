@@ -3,7 +3,7 @@
 How Wordwright looks, why, and how to keep it that way. This page is the entry point: the principles, where the
 design lives in the code, and how to apply or change it. The detail is in the files listed under _Which file to read_.
 The short version is in [AGENTS.md](../../AGENTS.md); the reasoning behind choosing this design, and the alternatives
-we dropped, are in [decisions.md](../decisions.md#visual-design-ember) and the archive in
+we dropped, are in [the decision](../adr/visual-design-and-navigation/visual-design-ember.md) and the archive in
 [design-concepts/](../design-concepts/README.md). How the words read (voice, buttons, errors, length) is in the
 [style guide](../style-guide.md); this design decides where text goes.
 

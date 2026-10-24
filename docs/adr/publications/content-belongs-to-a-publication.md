@@ -4,4 +4,4 @@ Everything a writer gathers or drafts lives in a publication (a publication's ow
 
 The cost is that a writer with a stray thought must pick a publication, so a writer's first publication can be a personal one (the describe page already supports one described as "personal, mostly for me"). If that proves too much friction, revisit this before adding a second owner type.
 
-See #175 and `docs/decisions.md` → "Every draft belongs to an idea".
+See #175 and [Every draft belongs to an idea](../drafts-and-editing/every-draft-belongs-to-an-idea.md).

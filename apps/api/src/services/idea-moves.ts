@@ -14,7 +14,7 @@ interface Plan {
 }
 
 /**
- * Moving whole ideas to another publication (docs/decisions.md, "Moving ideas between publications"). An idea goes
+ * Moving whole ideas to another publication (docs/adr/publications/moving-ideas-between-publications.md). An idea goes
  * with its drafts (comments, reviews, critique rounds), notes, links and brainstorm thread, as one transaction.
  * Callers have checked that the person belongs to the publication the ideas are in.
  */

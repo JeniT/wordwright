@@ -1,0 +1,3 @@
+# An idea's Research and Read are separate steps (#282)
+
+An idea's first step did two jobs: its articles and the AI research tool. A publication already separates finding (Search) from reading (**Read**), so an idea now does too: **01 Research** is the AI tool (the box and the research so far, with the box repeated on the landing page as one shared component), **02 Read** is the idea's own articles, working like the publication's, then **03 Notes**, **04 Refine**, **05 Draft**. The old `/research/find` address redirects to Research; `/research` used to be the articles and is now the AI page, and `/read` is the list. The menu's count under Read is "N to read", as on a publication. Wording on the landing page follows in #232.

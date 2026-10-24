@@ -252,7 +252,7 @@ available and not wanted.
 - **e2e:** brainstorm from an idea with the fake provider, accept a proposal, see the change on the idea page, edit
   the prompt on the account page; axe on both pages.
 - **Evals** (`evals/src/cases.ts`, `pnpm eval`, run with a real key; see
-  [decisions.md](decisions.md#behaviour-evals-a-smoke-test-that-sends-what-the-app-sends)): the default prompt, given an idea snapshot, should
+  [the behaviour-evals decision](adr/ai-and-brainstorm/behaviour-evals-a-smoke-test-that-sends-what-the.md)): the default prompt, given an idea snapshot, should
   open with probing questions and not a lecture; push back on a vague idea; not draft text; not invent facts about
   the publication; use the publication description when given, ask for the readers when it is absent, and not ask for an audience when it says the writing is for the writer's own thinking; not propose after every turn.
 
@@ -266,7 +266,7 @@ available and not wanted.
 
 **The publication description** (#131, used as context in #133; it replaced the planned audience personas, T16) is not a
 hard dependency, but brainstorming is better with it: the model is told what the publication is and who reads it instead of
-asking every time. The critique and the researcher get the same block (see `docs/decisions.md`).
+asking every time. The critique and the researcher get the same block (see [the publication description](adr/publications/the-publication-description-is-context-for-brainstorm-critique-and.md)).
 
 ## Open questions (not blocking)
 

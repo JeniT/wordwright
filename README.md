@@ -8,7 +8,7 @@ account deletion, multiple publications per user with sharing, drafts (Markdown-
 and an LLM-powered critique. The rest is built on the same provider architecture.
 
 > **Contributing or picking this up in a new session?** Start with [AGENTS.md](AGENTS.md), then
-> the [GitHub issues](https://github.com/JeniT/wordwright/issues). Design rationale is in [docs/decisions.md](docs/decisions.md).
+> the [GitHub issues](https://github.com/JeniT/wordwright/issues). Design rationale is in [docs/adr/](docs/adr/README.md).
 
 > The repository is on GitHub (private): `JeniT/wordwright`. CI runs the full check plus the browser tests on every push.
 
@@ -31,7 +31,7 @@ the design is easy to edit or swap:
 
 - [docs/design/](docs/design/README.md): the principles, colour roles, components, and how to apply the design to a change
 - [`apps/web/src/theme/`](apps/web/src/theme): `palette-ember.css` (the colours, light and dark) and `theme.css` (fonts, components)
-- [docs/decisions.md](docs/decisions.md#visual-design-ember): why Ember, and the other options we looked at
+- [docs/adr/visual-design-and-navigation/visual-design-ember.md](docs/adr/visual-design-and-navigation/visual-design-ember.md): why Ember, and the other options we looked at
   (screens and write-ups in [docs/design-concepts/](docs/design-concepts/README.md))
 
 Contrast is tested (`palette.test.ts`) and axe runs in the e2e suite; fonts are self-hosted (SIL OFL), so no
@@ -54,7 +54,7 @@ gentle "Next: …" suggestion. Home → publication → idea:
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
 source). See [docs/design/](docs/design/navigation.md#navigation-the-menu-follows-you) and the decision in
-[docs/decisions.md](docs/decisions.md#navigation-the-menu-follows-you).
+[docs/adr/visual-design-and-navigation/navigation-the-menu-follows-you.md](docs/adr/visual-design-and-navigation/navigation-the-menu-follows-you.md).
 
 ## Getting started
 
@@ -110,7 +110,7 @@ tests inject fakes and nothing hits the network.
 ## Accounts and sign-in
 
 - **Model:** a user has any number of _publications_; ideas belong to a publication, and every draft belongs to an idea. Publications are shared by
-  adding members (`owner` or `member`; a publication can have several owners, never none: see "Account deletion semantics" in `docs/decisions.md`). Registering does not create a publication: Home opens with a two-step checklist (01 create a publication, 02 connect an AI key) in either order, which disappears once both are done.
+  adding members (`owner` or `member`; a publication can have several owners, never none: see [Account deletion semantics](docs/adr/accounts-and-security/account-deletion-semantics.md)). Registering does not create a publication: Home opens with a two-step checklist (01 create a publication, 02 connect an AI key) in either order, which disappears once both are done.
 - **A publication is a place you publish** (a Substack, a blog, a magazine, a newsletter): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) then a Quick add panel (new idea, note, something to read), then its newest feed posts, the first items in its articles, its latest notes and its ideas (see _Navigation_ below for its steps);
@@ -129,7 +129,7 @@ tests inject fakes and nothing hits the network.
   and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
   item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
   taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own reading page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add article** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
-  (`PAGE_FETCHER=http` or `fake`); see `docs/decisions.md` for how it avoids reaching private networks.
+  (`PAGE_FETCHER=http` or `fake`); see [how it avoids reaching private networks](docs/adr/research-and-feeds/related-work-links-fetched-titles-and-why-fetching-user-supplied-addresses.md).
   **Moving articles:** on any articles, **Move items** lets you tick items and choose **Move to** the publication's
   articles, another idea, or (from the publication's list) a new idea named in your own words. The items go with the
   notes taken from them and keep whether they are read; the page says what moved ("Moved 2 items and 5 notes to
@@ -149,7 +149,7 @@ tests inject fakes and nothing hits the network.
   another). The page says how many ideas, drafts, notes and links will move and who will lose sight of them, before you confirm.
   An idea moves whole, with its drafts and everything on them; an owner of the publication it is in must do it if it has
   drafts, and each draft's editor must belong to the destination (`POST /api/publications/:id/move/ideas`, with
-  `…/ideas/preview` to check first). See `docs/decisions.md`.
+  `…/ideas/preview` to check first). See [Moving ideas between publications](docs/adr/publications/moving-ideas-between-publications.md).
   **Read items are hidden by default** on every articles (an idea's and the publication's), with a **Show read items**
   tick (and how many are hidden); one marked read during the visit stays in view until the list is shown again, so it
   can be unticked. The choice is for the visit, not saved.
@@ -357,7 +357,7 @@ tests inject fakes and nothing hits the network.
   publication, one per idea (notes, articles, links to drafts) and one per draft. Owners get every draft, members
   the drafts they edit or started; notes and articles are everyone's, with names. Comments, reviews, brainstorm
   chats, API keys and email addresses are never included. Built on request, throttled to 5 an hour per person; see
-  `docs/decisions.md`.
+  [Exporting your writing](docs/adr/drafts-and-editing/exporting-your-writing-markdown-only-by-role-built-on.md).
 - **Deleting an account** needs the account's password (`password` in `DELETE /api/account`; a wrong or missing one
   answers 403). An account that signs in only with Google must add a password first, as changing an email does, and the
   request answers 4xx saying so. It removes the user, credentials, sessions and memberships, and every publication
@@ -424,7 +424,7 @@ never shown), and each notes recorded is listed under the reply and each suggest
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
 "suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
 
-**Research** (the AI adds to the articles; decision in [docs/decisions.md](docs/decisions.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
+**Research** (the AI adds to the articles; decision in [docs/adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md](docs/adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
 shows the idea's research one run at a time (newest first; **Earlier research** and **Later research** step through the rest),
 each as a list laid out like the Scan page's. `GET`/`POST /api/publications/:id/ideas/:idea/research` (`{areas}`) list and run
 it with the person's own key; each run is saved with the pages it found, and `POST …/research/:run/add`, `/dismiss` and
@@ -449,7 +449,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 - **UI components:** Tailwind plus our own component classes ([docs/design/](docs/design/README.md)); add headless primitives
   (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
-  (the design is in [docs/decisions.md](docs/decisions.md#critique-points-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).
+  (the design is in [docs/adr/review-and-comments/critique-points-are-anchored-to-paragraphs-by-id-outside.md](docs/adr/review-and-comments/critique-points-are-anchored-to-paragraphs-by-id-outside.md)).
   The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
   gets 3 critiques by default (each person can choose 1 to 5 on Your AI), counted per draft.
 - **Rephrase** (`POST /api/publications/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage

@@ -26,7 +26,7 @@ yet triaged": `gh issue list --label inbox` is the queue, and an `inbox` issue i
 
 ## The triage conversation
 
-1. Read the issue, plus what already exists: the decisions in [decisions.md](../decisions.md), open issues
+1. Read the issue, plus what already exists: the decisions in [docs/adr/](../adr/README.md), open issues
    (`gh issue list --state all --search "<keywords>"`) and the code it touches. Say so if it duplicates or overlaps
    something; link the existing issue instead of filing a second copy.
 2. **Talk it through with the owner before filing anything.** Ask a few questions at a time, only ones whose answers

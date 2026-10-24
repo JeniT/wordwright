@@ -6,7 +6,7 @@ Part of the [design system](README.md). Read this when adding a page, a step or 
 
 How people are led through the app. The side menu **follows you**: what it lists depends on where you are, with a way
 back up and the name of the thing you are in. (We drew three approaches, a steady menu with steps on the page and a
-menu-as-a-map tree among them; this one won. See [decisions.md](decisions.md#navigation-the-menu-follows-you).)
+menu-as-a-map tree among them; this one won. See [the decision](../adr/visual-design-and-navigation/navigation-the-menu-follows-you.md).)
 
 | Level                | You are choosing…                            | The menu lists                                                                                                                                                             | Settings (a gear button)                                                                |
 | -------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -85,10 +85,10 @@ The principles (they are the point of the pattern; keep them when you add a page
 9. **The name leads back up to the landing page**: the publication's or idea's name in the menu, and the small name above
    a step's title, are links to it (current on the landing page itself, where the title is not a link).
 
-|                                                           |                                                                   |
-| --------------------------------------------------------- | ----------------------------------------------------------------- |
-| ![Idea, Research step](screenshots/nav-idea-research.png) | ![Publication, Ideas step](screenshots/nav-publication-ideas.png) |
-| ![Phone, menu open](screenshots/nav-phone-menu-open.png)  |                                                                   |
+|                                                              |                                                                      |
+| ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| ![Idea, Research step](../screenshots/nav-idea-research.png) | ![Publication, Ideas step](../screenshots/nav-publication-ideas.png) |
+| ![Phone, menu open](../screenshots/nav-phone-menu-open.png)  |                                                                      |
 
 **How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea' | 'account', step: '<key>' }` in `router.ts`
 (`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step

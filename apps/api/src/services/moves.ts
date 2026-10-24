@@ -15,7 +15,7 @@ import { fail } from '../errors'
  * Moving articles and notes between a publication's own lists and its ideas (and between ideas), and to another
  * publication the person belongs to. Each move is one transaction: it happens in full or not at all, refuses anything
  * that isn't the person's to move or to move to, and is written to the log of moves. What "move" keeps is written out
- * in docs/decisions.md; in short:
+ * in docs/adr/publications/articles-and-notes-can-belong-to-a-publication-moving.md; in short:
  *
  * - A **article** moves with its read date, authors, tags, address, title, why and origin, and the notes taken
  *   from it go with it. If the destination already has an item with the same address, the two become one: the

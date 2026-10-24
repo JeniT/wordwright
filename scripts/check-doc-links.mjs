@@ -71,7 +71,11 @@ export function findBroken(files, read = (f) => readFileSync(f, 'utf8'), exists 
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const files = execFileSync('git', ['ls-files', '*.md'], { encoding: 'utf8' })
+  const files = execFileSync(
+    'git',
+    ['ls-files', '--cached', '--others', '--exclude-standard', '*.md'],
+    { encoding: 'utf8' },
+  )
     .split('\n')
     .filter((f) => f && existsSync(f) && !SKIPPED.some((re) => re.test(f)))
   const broken = findBroken(files)

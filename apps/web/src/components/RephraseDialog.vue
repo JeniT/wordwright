@@ -23,7 +23,7 @@ import RephraseOptions from './RephraseOptions.vue'
  * (the Aim) and asks; the options that come back are ways they might say it. Choosing one only puts it in the
  * wording field, where it can be changed; "Use this" is what finally hands the words back. The window holds
  * everything: the server counts nothing, so closing it and opening it again starts from round 1.
- * See docs/responsible-ai.md (principle 4) and docs/decisions.md ("Rephrase").
+ * See docs/responsible-ai.md (principle 4) and docs/adr/rephrase/rephrase-options-for-a-passage-or-title.md.
  */
 const props = defineProps<{
   open: boolean

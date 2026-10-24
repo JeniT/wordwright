@@ -3,7 +3,7 @@ import { splitBlocks } from './blocks'
 /**
  * Every number behind Rephrase (options for a passage or a title) in one place, so a limit can be tuned without
  * hunting through the code. The server enforces the ones it can; the web app uses the same values for what it shows.
- * Why these exist and why they are not a quota: docs/decisions.md, "Rephrase: options for a passage or title".
+ * Why these exist and why they are not a quota: docs/adr/rephrase/rephrase-options-for-a-passage-or-title.md.
  */
 export const REPHRASE = {
   /** Words the writer must put in the Aim ("what should this do?"), so a single letter does not pass. */

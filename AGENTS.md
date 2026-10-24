@@ -34,7 +34,7 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | Ready to merge                                                          | [docs/agents/landing.md](docs/agents/landing.md)                       |
 | Triaging an `inbox` issue, or filing one                                | [docs/agents/triage.md](docs/agents/triage.md)                         |
 | Running a content crit                                                  | [docs/agents/content-crit.md](docs/agents/content-crit.md)             |
-| Asking why something is the way it is                                   | [docs/decisions.md](docs/decisions.md)                                 |
+| Asking why something is the way it is                                   | [docs/adr/](docs/adr/README.md)                                        |
 | Setting up, or learning accounts, BYOK and architecture                 | [README.md](README.md)                                                 |
 | Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md)                                       |
 
