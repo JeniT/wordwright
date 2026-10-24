@@ -1,6 +1,6 @@
 # A direct quotation is a note that can't be edited and goes into a draft as a blockquote (T32b)
 
-On the reading page, ticking **This is a direct quote** makes the note a quotation (`is_quote`, `quote` in the API).
+On the article's page, ticking **This is a direct quote** makes the note a quotation (`is_quote`, `quote` in the API).
 Unticked, it is the writer's own words about the page, as before. Why it matters: a quotation pasted into a draft as
 plain text is indistinguishable from the writer's own prose ([responsible-ai.md](../../responsible-ai.md), principle 5), and
 a quotation that has been "improved" is no longer a quotation.

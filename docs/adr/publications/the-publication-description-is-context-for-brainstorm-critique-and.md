@@ -13,6 +13,6 @@ Brainstorm's own prompt (`brainstorm-default.md`) and the three fixed prompts sa
 - **Adapt, not a mode.** Whether a publication is for readers or for writing to think in public (#25) is not a setting: the
   prompts tell the model to read the description, so a publication that says "personal, mostly for me" is not asked for an
   audience or a wider appeal, and critique then reads as a coach would. Whether that is enough, or the publication needs
-  an explicit mode, was decision #137: it does not (see above); the evals added here are what to watch.
+  an explicit mode, was decision #137: it does not ([Prompts do not vary by an explicit publication mode](prompts-do-not-vary-by-an-explicit-publication-mode.md)); the evals added here are what to watch.
 - **Shared by the publication.** The description belongs to the publication, so everyone in it sends the same block through
   their own key and model. The rules added after the brainstorming prompt carry the instructions about the description.

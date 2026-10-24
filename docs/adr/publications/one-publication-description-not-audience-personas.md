@@ -8,4 +8,4 @@ it is rendered by the same safe renderer as the AI's messages (no raw HTML, only
 
 Everyone who works in the publication can edit it, so it has its own route (`PUT /api/publications/:id/description`, members)
 instead of the owner-only `PATCH`. (It also once stored where the words came from and whether a person had accepted them, for AI drafts; those columns were
-dropped in #151, see the last decision below.)
+dropped in #151, see [Publication descriptions are written by the writer](publication-descriptions-are-written-by-the-writer-ai-drafting.md).)

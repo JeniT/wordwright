@@ -11,7 +11,7 @@ note says where it came from, and the notes now have rules about that, only some
   claim a source for words that didn't come from it ([responsible-ai.md](../../responsible-ai.md), principle 5). The
   writer who wants them together can retype the point as one note. Alternatives rejected: a "mixed" origin (needs
   a table rebuild and a new label everywhere) and silently taking the first note's origin.
-- **Same reading-list item** if they were taken from one.
+- **Same article** if they were taken from one.
 - **No quotations** (they have to stay exactly as written) **and nothing already in a draft** (its words are in
   the draft; "put it back first").
 - The author is the notes' author if they all share one, otherwise whoever merged them. Tags are every tag once

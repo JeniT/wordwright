@@ -15,7 +15,7 @@ person adds or accepts it. The page is `/p/<publication>/ideas/<idea>/refine` (t
 streams in word by word (read with `fetch`, so **Stop** works), its Markdown is rendered safely (HTML and images are
 never shown), and each notes recorded is listed under the reply and each suggestion is a card. With
 `FAKE_LLM=true` the editor is scripted: it opens with a question, and answers "suggest a title", "note that …" and
-"suggest a new idea" with the matching call, and "suggest some reading" with a reading-list suggestion.
+"suggest a new idea" with the matching call, and "suggest some reading" with a suggestion of pages to read.
 
 **Research** (the AI adds to the articles; decision in [adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md](adr/research-and-feeds/research-is-its-own-tool-and-the-ai-adds.md)): the Research step (`/p/<publication>/ideas/<idea>/research`), a page apart from brainstorming that takes a new request, a description of the areas to look into, and
 shows the idea's research one run at a time (newest first; **Earlier research** and **Later research** step through the rest),

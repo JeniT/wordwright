@@ -1,6 +1,6 @@
 # Every draft belongs to an idea
 
-An idea is a name, notes, links to related work and its drafts. Drafts first gained a nullable `idea_id` and the
+An idea is a name, notes, articles and its drafts. Drafts first gained a nullable `idea_id` and the
 ones that already existed stayed standalone (T20); T20c then finished the job: a migration wraps each leftover
 draft in an idea of its own, named after the draft (or "Untitled idea") and dated like it, so nothing is lost and
 people can regroup them later. Drafts can only be created through an idea (`POST /ideas/:id/drafts`); the

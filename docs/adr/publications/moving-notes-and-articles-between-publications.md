@@ -7,7 +7,7 @@
   either side, as within one publication). A destination the person doesn't belong to is refused with **404 "Not found"**,
   the same answer as for a publication that doesn't exist, so the move can't be used to find out whether one does. The
   destination idea must be one of that publication's. The member middleware on `:id` still protects the source.
-- **What crosses.** Everything that "move" keeps within a publication (see _What "move" keeps_ above), including the merge of
+- **What crosses.** Everything that "move" keeps within a publication (see [What "move" keeps](articles-and-notes-can-belong-to-a-publication-moving.md)), including the merge of
   items with the same address, the copy of a note's source and the destination's limits, all checked against the
   destination. The things change `publication_id` as well as `idea_id`, which is why every move updates both. An article
   loses its link to a feed (`source_id`) when it leaves the publication that owns the feed; it stays marked as having come

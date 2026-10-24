@@ -9,7 +9,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) then a Quick add panel (new idea, note, something to read), then its newest feed posts, the first items in its articles, its latest notes and its ideas (see _Navigation_ below for its steps);
   `/p/<id>/settings` edits it, shares it and deletes it. A publication also has a **description** (stored as Markdown, up to 5000 characters, but written in a small rich-text editor with bold, italic, lists and links, so nobody needs to know Markdown: what the publication is, who reads it, what kinds of writing go there), which anyone who shares the publication can edit (`PUT /api/publications/:id/description`); the name and website stay the owner's. The writer always writes it themselves: it is the **Description** page in the publication's settings (`/p/<id>/settings/description`, also reached from the publication page's "Describe this publication" step; `/p/<id>/describe` redirects there), a box with a link to a help page (`/help/description`) on what a description needs to say to be useful to your AI. Nothing drafts a description with AI any more (#150).
 - **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
-  external source. An idea has a name ("What's your core idea?"), free-form notes, links to related work (up to
+  external source. An idea has a name ("What's your core idea?"), free-form notes, articles (up to
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were
   added) for a linked set of posts. Anyone a publication is shared with can work on its ideas. Deleting an idea
   deletes its links and drafts. API:
@@ -21,7 +21,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   page's title up and lists the link by it, or by its address when there is none. A link can be edited later (address
   and title; clearing the title looks it up again), and ticked off as read (`PUT /:idea/links/:link/read`, `{read}`); each
   item also records where it came from (`entered`, `brainstorm` or `research`, so AI-suggested pages are visibly marked; `idea_generation` is for later). A note can be
-  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own reading page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add article** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
+  taken from an item (`POST /:idea/notes` with `readingItemId`: origin `reading`; add `quote: true` for a quotation, which can't be edited and goes into a draft as a blockquote); each item has its own page (`/p/:publication/ideas/:idea/reading/:item`) that opens the page in a new tab (a large button, with a Read switch beside it) and holds the Quick add tabs below it: **Add a note** (first; with a **quotation** tick), **Add article** and, on the publication's own item, **New idea**. Each item also has `authors` (names; found on the page with the title, editable via `PATCH …/links/:link` with `authors`). The lookup goes through the `PageInfoFetcher` port
   (`PAGE_FETCHER=http` or `fake`); see [how it avoids reaching private networks](adr/research-and-feeds/related-work-links-fetched-titles-and-why-fetching-user-supplied-addresses.md).
   **Moving articles:** on any articles, **Move items** lets you tick items and choose **Move to** the publication's
   articles, another idea, or (from the publication's list) a new idea named in your own words. The items go with the
@@ -51,8 +51,8 @@ Read this when you change sign-in, registration, passwords, publications and the
   **Dragging notes and articles into a draft:** the drafting side bar's notes and articles can be dragged by their rail onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor). An article goes in as a link with its authors (“Title by A and B”).
   **The publication's own articles and notes** have their own places: the list of articles is the publication's
-  **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each item opens its own reading page at
-  `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, reading page, notes with
+  **Read** step (`/p/<id>/read`; the old `/p/<id>/reading` and `/p/<id>/inspiration#reading-list` lead there; each article opens its own page at
+  `/p/<id>/reading/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, article page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
   publication as a whole, to be gathered before there is an idea. `GET/POST /api/publications/:id/reading`, `PATCH|DELETE

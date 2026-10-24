@@ -20,4 +20,4 @@ per row and a mode switch ("Move items") that changed what a row looked like. Th
 - **Pagination:** notes show everything; other lists page client-side, five at a time (`PAGE_SIZE`), above and below.
   A list is reorderable or paginated, not both.
 - Not done yet (follow-ups): applying the same rail, toolbar and icon buttons to notes, drafts and feeds; tags on
-  reading-list items with a bulk Tag… action (#87, needs a schema change).
+  articles with a bulk Tag… action (#87, needs a schema change).

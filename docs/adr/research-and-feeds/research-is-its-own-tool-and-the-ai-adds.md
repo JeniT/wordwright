@@ -1,7 +1,7 @@
 # Research is its own tool, and the AI adds to the articles only what a person ticks (T38)
 
 The research assistant's job is to put things in the articles, not to write notes (this replaces the
-reading-list part of T7). **Assistance-ladder rung:** none of 3–5. It points at pages for the writer to read and
+list-of-articles part of T7). **Assistance-ladder rung:** none of 3–5. It points at pages for the writer to read and
 originates no text they could publish; the closest rungs are 1–2. Evidence is one of the things
 [responsible-ai.md](../../responsible-ai.md) says to protect, so the writer chooses the areas to look into (they write
 them first), the AI only suggests, and a person decides on every page. The design was settled with the owner after
@@ -27,7 +27,7 @@ a first version built research into the brainstorm conversation was set aside.
   a page that doesn't exist, is already listed, or would overflow the list. Added items are marked `research`
   ("Found by research").
 - **The AI's reason is kept.** Each page has a reason from the researcher, shown as "Why the AI suggests it
-  (unchecked)". When a page is added, the reason is stored with the reading-list item (`idea_links.why`) and shown there
+  (unchecked)". When a page is added, the reason is stored with the article (`idea_links.why`) and shown there
   with the same label, so it can't pass for the writer's own note. Revisit after testing: the owner wants to see how
   this works in use.
 - **Search is a port.** `ResearchProvider.find()` takes the app's instructions and a brief and returns

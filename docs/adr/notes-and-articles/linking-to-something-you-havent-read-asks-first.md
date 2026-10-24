@@ -10,7 +10,7 @@ Enter does nothing; inserts nothing), **Read it now** and **Mark as read**.
 - **Notes from reading don't ask.** Adding a note taken from an item (its words come with a link to the item) does
   not ask whether the item is read, even if it isn't ticked: the note was taken on the item's own page, which is
   the reading. Asking would be nagging. Only putting a bare link in from the Articles asks.
-- **Read it now opens a new tab**, on the item's reading page (T32), and inserts nothing. The writer's draft is
+- **Read it now opens a new tab**, on the article's page (T32), and inserts nothing. The writer's draft is
   untouched, so nothing can be lost by leaving; a line in the drawer says where to pick up. Once they have read it
   (and taken notes, which marks it read) they come back and add it again. Navigating away in the same tab was
   rejected: it would mean saving a half-written draft just to ask a question.

@@ -11,8 +11,8 @@ aim: its name is the writer's own statement of the core idea, so that is its hea
 
 - **Who gets which drafts.** An **owner** gets every draft in the publication, including other members'. A **member** gets
   the drafts they are the editor of or started (a draft they started and handed away is still listed, marked "now edited
-  by someone else"); the idea file says how many drafts by other members aren't included. Notes and reading-list
-  items are everyone's and are all included. Members can read every draft in the app, so this is a rule about what
+  by someone else"); the idea file says how many drafts by other members aren't included. Notes and articles
+  are everyone's and are all included. Members can read every draft in the app, so this is a rule about what
   _leaves_ the system in bulk, not about reading; the README says so.
 - **Credits.** Notes carry their author's name and the date; a deleted account shows as "a former member". Reading
   items record when they were added but not by whom, so they show only the date (adding an author column would be a

@@ -20,7 +20,7 @@ an idea or the publication.
   the publication has no drafts, so no "added" state), and the articles uses `IdeaLinkService` with a `ListScope`
   (`{publicationId, ideaId}`). Limits are the same numbers, worded for what is full ("A publication can have up to ..."). A
   publication's order is its own list: reordering it never touches an idea's.
-- **What "move" keeps** (`MoveService`, all in one transaction, refusing anything outside the publication): _A reading item_
+- **What "move" keeps** (`MoveService`, all in one transaction, refusing anything outside the publication): _An article_
   moves as it is (read date, authors, title, why, origin, feed) and **its notes go with it**, to the end of the
   destination's notes. If the destination already has an item with the same address (compared as links are everywhere),
   the two become one: the one already there stays, counts as read if the moved one was, and the moved item's notes now
@@ -34,7 +34,7 @@ an idea or the publication.
 - **The pages are the idea's pages, parametrised by owner.** `lib/reading.ts` has `Owner` (`{publicationId, ideaId}`; null
   idea is the publication) and two composables: `useReadingList` (the list, from the idea's own query or the publication's) and
   `useReadingActions` (add, mark read, edit, remove, each keeping the server's answer in the right cache). `ReadingList`,
-  `IdeaLinkItem`, `IdeaNotes` and the reading page each take an owner instead of an idea, and the web client's note
+  `IdeaLinkItem`, `IdeaNotes` and the article's page each take an owner instead of an idea, and the web client's note
   functions take `ideaId: string | null`. The idea pages behave as before (their tests are unchanged); the publication's are
   `/p/:id/reading`, `/p/:id/reading/:item` and `/p/:id/notes`. Items from a feed (origin `feed`) are labelled "From a
   feed" without the highlighter, which stays for what the AI suggested.

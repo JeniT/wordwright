@@ -23,7 +23,7 @@ a calm page instead of one long scroll, and a clear way to choose what to work o
   copied). That arrived with T37d (**Move notes** on the publication's Notes step); the menu needed no change for it.
 - **The idea’s list of articles is separate from the publication's** (as the data already was). The publication's articles lives
   in Read (step 02); the idea's in Research (step 01).
-- **Publish** was for getting a finished draft out; see _Publishing moved to the Draft page_ below (#97).
+- **Publish** was for getting a finished draft out; see [Publishing moved to the Draft page](../drafts-and-editing/publishing-moved-to-the-draft-page.md) (#97).
 - **The menu stays on the editor** on a laptop or desktop, but **folds away on the reading and note-taking page**, where
   the writer has the source and the app side by side in narrow windows.
 
