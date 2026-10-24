@@ -57,3 +57,16 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   **Rephrase title** (#163): the button beside the title opens the same window with the title as the wording and no selection.
   It waits until the draft has at least `REPHRASE.titleMinBodyWords` (300) words and says so; **Use this** sets the title,
   saves, and records it with kind `title`. Options are short (a list of about 8, each at most 20 words).
+
+## Privacy: shared threads and the writer's provider
+
+**Threads are shared with every member of a publication.** That is a deliberate choice: someone who wants a private space
+makes a publication with no other members. The product must say so where it matters:
+
+- **Before the first brainstorm** in a publication with other members, and on the brainstorm page whenever there are:
+  "Everyone in this publication can read this conversation, and what you write here is sent to the AI provider of
+  whoever is sending the message. If you want to think privately, use a publication with no other members."
+- When a member sends a message, **earlier messages and notes by other members go to that member's provider** (the
+  whole thread is replayed). Say so in the same notice.
+- The brainstorm page and the account page say what is sent: the idea (title, notes, links, publication description) and
+  the thread; not draft text.

@@ -5,7 +5,7 @@ Read this when the owner asks for a content crit, or an issue is labelled `conte
 Each kind of page gets one review of every word on it, filed as an issue labelled `content-crit` (examples: #190,
 #201, #213). A review produces an agreed table of changes, not code; the rewrite is the issue it files.
 
-1. **Read first:** [style-guide.md](../style-guide.md) (its checklist is the test), _Where explanatory text goes_ and
+1. **Read first:** [style-guide.md](../style-guide.md) (its checklist is the test), with [worked examples](../style-guide-examples.md) of earlier crits, _Where explanatory text goes_ and
    _Tutorial mode_ in [design](../design/explanatory-text.md#where-explanatory-text-goes), and [CONTEXT.md](../../CONTEXT.md) for
    the words. Then read the page's view, its route (`meta`), its tests, and the pages it links to and from.
 2. **List every piece of text**, including labels, hints, buttons, links, empty and error states, and the text the

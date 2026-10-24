@@ -147,55 +147,9 @@ reply also does not invite further disclosure there. The prompt for this mode is
 
 Passing the port's contract suite shows an adapter is shaped correctly. It says nothing about whether the model
 declines to draft or resists flattery, and those behaviours differ between models. So a new LLM adapter, or a change
-to a prompt, must also be run against the **behaviour evals** (see below), and the results looked at. Those are a
+to a prompt, must also be run against the **behaviour evals** (see [evals.md](evals.md)), and the results looked at. Those are a
 rough spot-check, not proof: a model passing a case once does not show it behaves that way reliably. The things
 that are guaranteed are the structural ones (principle 10).
-
-## Privacy: shared threads and the writer's provider
-
-**Threads are shared with every member of a publication.** That is a deliberate choice: someone who wants a private space
-makes a publication with no other members. The product must say so where it matters:
-
-- **Before the first brainstorm** in a publication with other members, and on the brainstorm page whenever there are:
-  "Everyone in this publication can read this conversation, and what you write here is sent to the AI provider of
-  whoever is sending the message. If you want to think privately, use a publication with no other members."
-- When a member sends a message, **earlier messages and notes by other members go to that member's provider** (the
-  whole thread is replayed). Say so in the same notice.
-- The brainstorm page and the account page say what is sent: the idea (title, notes, links, publication description) and
-  the thread; not draft text.
-
-### Advice for people using their own key
-
-The writer's text goes to their own AI provider, so their provider settings matter. The app should say this where
-people add their key (the landing page and _Account → AI assistant_). Draft text, to be adapted for the app, with
-Anthropic specifics checked against the provider's current pages before it ships:
-
-> **Protect what you write.** Your writing is sent to Anthropic using your key. A few things to check:
->
-> - **Use an API key from the Anthropic Console, not a Claude chat subscription.** API use is under Anthropic's
->   commercial terms, which at the time of writing say Anthropic does not train its models on customer content; the
->   consumer Claude apps have a separate training setting that you control under your account's privacy settings.
->   Check [Anthropic's Privacy Center](https://privacy.claude.com) for the current wording.
-> - **Know how long it is kept.** Anthropic's published policy is that API inputs and outputs are deleted within a
->   set period (it has been described as 7 to 30 days, so check the
->   [data retention page](https://platform.claude.com/docs/en/build-with-claude/api-and-data-retention)). Shorter,
->   "zero data retention" arrangements exist but need an agreement with Anthropic and are mainly for organisations.
-> - **Make a key just for this app**, in its own Console workspace if you can, with a spending limit set, so you can
->   revoke it without disturbing anything else.
-> - **Revoke the key** in the Console if you stop using the service, or lose a device.
-> - **Don't put anything in that you couldn't send a trusted contractor**: other people's private details, or
->   material you are under a duty to keep confidential.
->
-> If you use a different provider, look for the same three things: whether API data is used for training, how long it
-> is kept, and whether you can set a spending limit.
-
-_Shipped (#47)._ The app's text is in `ProviderPrivacyAdvice.vue` (landing page and Account → AI assistant) and
-`SharedThreadNotice.vue` (brainstorm page, shown whenever the publication has other members). Checked on 2026-10-16:
-Anthropic's [commercial retention page](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)
-says API inputs and outputs are deleted within 30 days by default (longer for Usage Policy flags or by agreement), and
-its API data-retention page says retained data is never used for training without permission. The earlier "7 to 30
-days" wording was dropped. Recheck both pages if either text is changed. The review panel also says reviewers see
-only a frozen copy and their own comments, and that the AI never receives comments.
 
 ## Applying this to the roadmap
 
@@ -211,49 +165,4 @@ only a frozen copy and their own comments, and that the AI never receives commen
 | T33 Notes drawer (#33)                   | —    | Inserted passages keep the note's origin (5).                                                                                                                                                                                                                                                                                                                                                                                          |
 | #25 Writing to think                     | 1–2  | No publication mode (#137): the writer's publication description steers brainstorm and critique; reflect and ask only; principle 9.                                                                                                                                                                                                                                                                                                    |
 
-## How this is checked
-
-- **Triage.** Any idea or feature that calls an LLM states: its rung; what the writer does first; what text leaves
-  the system; what is capped; and its boundary evals. Without those it is not `ready`.
-- **Definition of done.** Features that call an LLM add boundary evals, and an invariant test where a boundary is
-  structural (for example: the brainstorm snapshot builder never includes a draft body; no tool input can name a
-  draft).
-- **Behaviour evals** (`evals/src/cases.ts`; `pnpm eval`, `pnpm eval:targets`) cover, for each prompt where it
-  applies (the list is the target; `cases.ts` is what exists):
-  - declines to draft when asked directly and when asked indirectly ("just show me an example opening");
-  - does not claim to be human, or to have read links it cannot open;
-  - holds a fair criticism when the writer pushes back; no unearned praise;
-  - ends or hands back ("you have enough") instead of asking another question, when the idea is clear;
-  - critique stays under a small number of points, never rewrites, and says when nothing important remains;
-  - a distress disclosure gets the short, warm reply of principle 9, not more questions;
-  - an injection in notes, a page title, a sample post or the writer's description of their publication is not followed;
-  - the publication description is used but never as a standard to hold the writer's voice to: a publication described as
-    personal thinking gets no demand for an audience or wider appeal (brainstorm and critique), and one with
-    described readers is not given invented facts about them (#133);
-  - does not make up or reconstruct a source's web address, declines to do research and points to the Research tool, and the researcher reports only pages a search found, with a range of views (#38);
-  - proposed notes reuse the writer's own phrases (#6).
-- **New LLM adapters** (T14 and any other provider) pass the contract suite, and are also run through the behaviour
-  evals: `pnpm eval:adapter -- --provider <id> --model <model>` (it asks for the key, hidden, and how many trials; a few
-  trials say more than one), with the summary pasted into the issue for the owner to judge. It is a checklist step and
-  a script, not a CI gate: the evals cost money, need a key, and rubric grading can flake.
-- **Structural boundaries are tests in `pnpm check`** (`apps/api/src/brainstorm-boundaries.test.ts`, and the
-  draft-text test in `brainstorm.test.ts`): the AI has exactly five tools (the fifth only labels its conversation); none can name a draft, an id, a publication or
-  a body; planted fields are dropped; a draft has nowhere to carry its text into the snapshot; the app's rules come
-  after the person's prompt. Adding a tool or a field to one fails them on purpose: it is a decision about what the AI
-  may change.
-- **Two groups of cases.** `current` is behaviour the prompts already ask for: a failure is a reason to look (rerun
-  with more trials), not proof of a regression.
-  `targets` defines work planned in #45, #46 and #49 and may fail until it lands; the issue that does the work moves
-  its cases to `current`.
-- **Changes to anything in `prompts/`** are changes to the product's behaviour; the owner reviews them.
-
-## Open work
-
-These come out of this page; each is an `inbox` issue to triage.
-
-- Brainstorm: fewer questions, a way to wrap up, and no "keep asking" default.
-- Critique: a per-draft cap, ranked output, and a "ready" verdict.
-- Privacy notices (shared threads; provider advice above) in the app.
-- ~~Distress, persona-honesty and no-flattery rules in the AI's instructions, with evals~~: done (#49), in `prompts/brainstorm-rules.md`.
-- Behaviour evals as part of accepting an adapter, plus invariant tests for the structural boundaries.
-- Provenance in drafts (#33). Publication descriptions are written by the writer; AI drafting of them was removed (#150).
+How this is checked is in [evals.md](evals.md). The privacy rules for shared threads are in [ai-features.md](ai-features.md#privacy-shared-threads-and-the-writers-provider); the advice shown to people using their own key is in [byok.md](byok.md#advice-for-people-using-their-own-key).

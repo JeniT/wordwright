@@ -27,6 +27,7 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | Changing anything people see                                            | [docs/design/](docs/design/README.md)                                  |
 | Writing or changing any UI words                                        | [docs/style-guide.md](docs/style-guide.md), [CONTEXT.md](CONTEXT.md)   |
 | Calling an LLM, or editing a prompt                                     | [docs/responsible-ai.md](docs/responsible-ai.md), `prompts/README.md`  |
+| Adding an LLM adapter, boundary evals or invariant tests                | [docs/evals.md](docs/evals.md)                                         |
 | Changing `apps/web`                                                     | [docs/agents/conventions-web.md](docs/agents/conventions-web.md)       |
 | Changing `apps/api`, `packages/core`, the database, or adding a service | [docs/agents/conventions-api.md](docs/agents/conventions-api.md)       |
 | Running tests, formatting or editing files                              | [docs/agents/testing.md](docs/agents/testing.md)                       |

@@ -34,7 +34,7 @@ yet triaged": `gh issue list --label inbox` is the queue, and an `inbox` issue i
    reproduce it first and say what you found. For an idea or feature, test it against the four priorities in
    [AGENTS.md](../../AGENTS.md) and name the cost (scope, new dependency, spending, migration). If it calls an LLM,
    also state its rung on the assistance ladder, what the writer does first, what text leaves the system, what is
-   capped, and which boundary evals it needs (see [responsible-ai.md](../responsible-ai.md)); without those it is
+   capped, and which boundary evals it needs (see [responsible-ai.md](../responsible-ai.md), [evals.md](../evals.md)); without those it is
    not `ready`.
 3. Agree the outcome with the owner, which is one or more of:
    - **Task issues** for work that is clear: a "why", then acceptance criteria that include the tests and docs the

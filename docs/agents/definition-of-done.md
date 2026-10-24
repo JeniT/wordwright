@@ -10,7 +10,7 @@ Read this before you commit, and when you plan a task's tests and docs.
    **The help area too:** a change to what people can do, or how, updates the matching help page under `/help`, or adds
    one if the feature has steps or explanation that don't fit on the page (see _Where explanatory text goes_ in
    [design](../design/explanatory-text.md#where-explanatory-text-goes)). A feature that calls an LLM also adds boundary evals, and an
-   invariant test where a boundary is structural (see [responsible-ai.md](../responsible-ai.md)). A change to anything
+   invariant test where a boundary is structural (see [responsible-ai.md](../responsible-ai.md) and [evals.md](../evals.md)). A change to anything
    in `prompts/` is a change to the product's behaviour: say so in the commit and ask the owner to review it.
 4. The task's issue closed by the landing commit (`Closes #7` in its message) and its `in-progress` label removed;
    follow-up work filed as new issues; the main checkout brought up to date with `origin/main`
