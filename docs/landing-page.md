@@ -38,10 +38,10 @@ One heading, “What it helps with”, then five short items in the app's own wo
 
 The five principles, close to the blog's wording:
 
-- **Not AI when it isn't needed.** “You find things to write about through feeds you subscribe to, not an AI search.”
-- **Your AI asks, and you answer.** “In Refine your AI acts as a coach and keeps your words so you have them later.”
-- **Limits on purpose.** “You get three critiques of a draft by default, and then it's time to publish. A critique can always find something wrong, and writing is never perfect.”
-- **Options, not suggestions.** “To Rephrase, you say what you want a passage to do. You then choose which option to use, and edit it.”
+- **No AI when it isn't needed.** “You find things to write about through feeds you subscribe to, not an AI search.”
+- **Your AI asks, and you answer.** “To refine your idea, your AI acts as a coach and keeps your words so you have them later.”
+- **Purposeful limits.** “A critique can always find something wrong, and writing is never perfect. You get three critiques of a draft by default, and then it's time to publish.”
+- **Options, not suggestions.** “When rephrasing, you say what you want a passage to do then choose which option to use, and edit it.”
 - **Challenge, not flattery.** “Research looks for articles that disagree with you. A critique says what to strengthen; it doesn't tell you the writing is rubbish or perfect.”
 
 Then one line: “You could do all this with your own prompts. Wordwright makes it the default, so you don't have to hold the line yourself.”
