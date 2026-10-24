@@ -34,7 +34,7 @@ One line per doc, worded as when to open it. Open the one that matches your task
 ## Archive (read only when asked)
 
 - [design-concepts/](design-concepts/README.md): the design options we compared before choosing Ember.
-- [research/](research/): background research, for example on idea-source feeds.
+- [research/](research/): background research, for example on [idea-source feeds](research/idea-source-feeds.md) and on other LLM providers: [ChatGPT (OpenAI)](research/openai-chatgpt-provider.md), [Gemini](research/gemini-support.md) and [DeepSeek](research/deepseek-support.md).
 - `screenshots/`: images used by the docs.
 
 Adding a doc? Add its line here, and start the file with a line saying when to read it.
