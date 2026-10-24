@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { FakeIdentityProvider } from './auth/identity'
 import { seedAdminAccount } from './services/admin'
 import { PASSWORD, lastResetToken, setup, signUp } from './test-helpers'
 
@@ -34,6 +35,33 @@ describe('the seeded Admin account', () => {
     await signUp(ctx.client(), ADMIN, 'Someone Else')
     expect(seedAdminAccount(ctx.store, [ADMIN])).toBe('exists')
     expect(ctx.store.users.findByEmail(ADMIN)!.name).toBe('Someone Else')
+  })
+
+  it('is not seeded, and says so, when the username is already taken', async () => {
+    const ctx = setup()
+    ctx.store.users.create({
+      name: 'Old',
+      email: 'old@example.com',
+      emailVerified: true,
+      handle: 'admin',
+    })
+    expect(seedAdminAccount(ctx.store, [ADMIN])).toBe('handle-taken')
+    expect(ctx.store.users.findByEmail(ADMIN)).toBeUndefined()
+  })
+
+  it('leaves a Google-only account without a reset link', async () => {
+    const idp = new FakeIdentityProvider(
+      { subject: 'g-1', email: 'gia@example.com', emailVerified: true, name: 'Gia' },
+      'google',
+      'Google',
+    )
+    const ctx = setup({ identityProviders: [idp] })
+    const start = await ctx.client().get('/api/auth/oauth/google/start')
+    const state = new URL(start.headers.get('location')!).searchParams.get('state')!
+    await ctx.client().get(`/api/auth/oauth/google/callback?code=good-code&state=${state}`)
+    const before = ctx.mailer.outbox.length
+    await ctx.client().post('/api/auth/forgot-password', { email: 'gia@example.com' })
+    expect(ctx.mailer.outbox).toHaveLength(before)
   })
 
   it('cannot sign in with a password, and sign-up still blocks the name', async () => {

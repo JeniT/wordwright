@@ -81,11 +81,11 @@ const SEEDED_ADMIN_HANDLE = 'admin'
 export function seedAdminAccount(
   store: Store,
   adminEmails: string[],
-): 'none' | 'exists' | 'created' {
+): 'none' | 'exists' | 'handle-taken' | 'created' {
   const email = adminEmails[0]
   if (!email) return 'none'
-  if (store.users.findByEmail(email) || store.users.handleTaken(SEEDED_ADMIN_HANDLE))
-    return 'exists'
+  if (store.users.findByEmail(email)) return 'exists'
+  if (store.users.handleTaken(SEEDED_ADMIN_HANDLE)) return 'handle-taken'
   store.transaction(() => {
     const admin = store.users.create({
       name: 'Admin',

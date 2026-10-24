@@ -49,8 +49,11 @@ const store = (() => {
   }
 })()
 
-if (seedAdminAccount(store, config.ADMIN_EMAILS) === 'created') {
+const seeded = seedAdminAccount(store, config.ADMIN_EMAILS)
+if (seeded === 'created') {
   console.log('Admin: seeded the Admin account; set its password through "Forgot password"')
+} else if (seeded === 'handle-taken') {
+  console.error('Admin: not seeded, because the username "admin" is already taken')
 }
 
 const providers: Providers = { search: [] }
