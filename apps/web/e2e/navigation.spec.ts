@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, goTo, test, createIdea } from './fixtures'
 
-// The side menu follows you: home, then a publication's three steps, then an idea's four. See docs/design.md.
+// The side menu follows you: home, then a publication's three steps, then an idea's four. See docs/design/navigation.md.
 
 async function signUpWithIdea(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`

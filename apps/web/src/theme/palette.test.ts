@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 // The palette file is the only place colours are chosen, so this is where the design's accessibility promise is
 // kept: every pair that appears on screen meets WCAG 2.2 AA, in light and in dark. Edit a colour and this tells
-// you at once if text or a control would stop being readable. See docs/design.md.
+// you at once if text or a control would stop being readable. See docs/design/colour-type-shape.md.
 const css = readFileSync(resolve(process.cwd(), 'src/theme/palette-ember.css'), 'utf8')
 
 function block(selector: string): Record<string, string> {

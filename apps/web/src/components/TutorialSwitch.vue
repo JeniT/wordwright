@@ -7,7 +7,7 @@ import SwitchField from './SwitchField.vue'
 /**
  * The Tutorial switch in the menu's account area (#314). It flips at once and saves in the background. If saving fails
  * it goes back to the saved setting and stays unavailable until the page is reloaded (held here, not in storage), with
- * its tooltip saying why, so there is no alert to dismiss. See "Tutorial mode" in docs/design.md.
+ * its tooltip saying why, so there is no alert to dismiss. See "Tutorial mode" in docs/design/explanatory-text.md.
  */
 const ON_TIP = 'Shows explanations on each page. Turn off once you know your way round.'
 const BROKEN_TIP = 'Sorry, we couldn’t save that. Please reload the page to try again.'

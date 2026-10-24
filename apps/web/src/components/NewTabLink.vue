@@ -6,7 +6,7 @@ import Icon from './Icon.vue'
 
 /**
  * A link that opens in a new tab. The icon says so to the eye; the hidden words say so to a screen reader, so the
- * wording lives here and nowhere else (docs/design.md). `detail` adds to the spoken name (for example the page's title)
+ * wording lives here and nowhere else (docs/design/explanatory-text.md). `detail` adds to the spoken name (for example the page's title)
  * when the visible words, such as "Open the page", would not tell a list of them apart.
  */
 const props = defineProps<{ href?: string; to?: string; detail?: string }>()

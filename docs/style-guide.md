@@ -3,8 +3,8 @@
 How Wordwright speaks. Read this before you write, critique or rewrite any text people see: labels, buttons, headings,
 instructions, empty states, errors, emails. One guide, so the owner can correct it once and every agent follows.
 
-**How it relates to [design.md](design.md).** `design.md` decides _where_ text goes (on the page, behind an info icon,
-or on a help page: see [Where explanatory text goes](design.md#where-explanatory-text-goes)). This file decides _how it reads_. Both apply.
+**How it relates to [design](design/README.md).** The design system decides _where_ text goes (on the page, behind an info icon,
+or on a help page: see [Where explanatory text goes](design/explanatory-text.md#where-explanatory-text-goes)). This file decides _how it reads_. Both apply.
 
 **What it does not cover.** The AI's own instructions in `prompts/` have their own [README](../prompts/README.md). What
 the AI says to the writer is shaped by those prompts and by [responsible-ai.md](responsible-ai.md), not by this guide.
@@ -133,7 +133,7 @@ them at a dead end.
   - Our fault: “Sorry, we couldn’t save that. Please try again.”
   - Their input: “That email address doesn’t look right. Check it and try again.”
   - A limit: “You have added a lot of sources. Try again later.”
-- **Name the field and the fix** for validation, next to the field, never only in colour (see `design.md`).
+- **Name the field and the fix** for validation, next to the field, never only in colour (see the [design system](design/accessibility.md)).
   - Before: “Invalid input”
   - After: “Enter an address that starts with https://”
 
@@ -156,7 +156,7 @@ People scan; they don’t read screens. Fewer words, then structure.
 - **No more than three blocks of text above the first thing the person can do.** The key setup today has five long
   steps, two paragraphs and a privacy callout above the field. Reduce to the steps they must follow, and move the rest.
 - **Anything longer than a short paragraph, or followed outside the app, goes on a help page**, linked by a plain link.
-  The test from `design.md`: if the person skips it, can they still finish without a mistake? If yes, it doesn’t belong
+  The test from [Where explanatory text goes](design/explanatory-text.md): if the person skips it, can they still finish without a mistake? If yes, it doesn’t belong
   on the page.
 - **Headings are for navigating**, one per section a person might jump to. A heading over a single sentence is a sign
   the sentence is the wrong size.
@@ -220,7 +220,7 @@ Run this against any text before committing it, and when critiquing someone else
 5. **Is the label specific?** Would a screen-reader user hear a verb and an object?
 6. **Are the words ours?** Checked against CONTEXT.md and the table above; British spelling, sentence case, curly
    quotes, no exclamation marks.
-7. **Is it in the right place** (page, info icon or help page)? See [design.md](design.md#where-explanatory-text-goes).
+7. **Is it in the right place** (page, info icon or help page)? See [design](design/explanatory-text.md#where-explanatory-text-goes).
 8. **Read it aloud.** If you run out of breath, cut.
 
 ## Worked example: the first-run checklist on Home

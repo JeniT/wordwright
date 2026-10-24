@@ -24,7 +24,7 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | When you are…                                                           | Read                                                                   |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | Choosing what to work on, or starting an issue                          | [docs/agents/claim.md](docs/agents/claim.md)                           |
-| Changing anything people see                                            | [docs/design.md](docs/design.md)                                       |
+| Changing anything people see                                            | [docs/design/](docs/design/README.md)                                  |
 | Writing or changing any UI words                                        | [docs/style-guide.md](docs/style-guide.md), [CONTEXT.md](CONTEXT.md)   |
 | Calling an LLM, or editing a prompt                                     | [docs/responsible-ai.md](docs/responsible-ai.md), `prompts/README.md`  |
 | Changing `apps/web`                                                     | [docs/agents/conventions-web.md](docs/agents/conventions-web.md)       |

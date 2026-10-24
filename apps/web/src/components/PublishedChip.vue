@@ -4,7 +4,7 @@ import Icon from './Icon.vue'
 
 /**
  * "Published Oct 20, 2026" with a tick: a draft its editor has marked published. The words and the tick carry it, so it
- * never relies on its green alone (docs/design.md).
+ * never relies on its green alone (docs/design/accessibility.md).
  */
 const props = defineProps<{ publishedAt: string }>()
 const date = computed(() =>

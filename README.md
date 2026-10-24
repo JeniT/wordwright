@@ -29,7 +29,7 @@ burnt-orange accent, clearly outlined controls, and a light and dark mode (it fo
 the foot of the side menu overrides it). Colours are chosen by _role_ in one palette file, never in components, so
 the design is easy to edit or swap:
 
-- [docs/design.md](docs/design.md): the principles, colour roles, components, and how to apply the design to a change
+- [docs/design/](docs/design/README.md): the principles, colour roles, components, and how to apply the design to a change
 - [`apps/web/src/theme/`](apps/web/src/theme): `palette-ember.css` (the colours, light and dark) and `theme.css` (fonts, components)
 - [docs/decisions.md](docs/decisions.md#visual-design-ember): why Ember, and the other options we looked at
   (screens and write-ups in [docs/design-concepts/](docs/design-concepts/README.md))
@@ -53,7 +53,7 @@ gentle "Next: …" suggestion. Home → publication → idea:
 
 Pages declare their level and step in their route's `meta` (`router.ts`); `lib/nav.ts` and `SideMenu.vue` do the rest.
 The menu folds behind a **Menu** button on phones, and at every width on pages read beside another window (reading a
-source). See [docs/design.md](docs/design.md#navigation-the-menu-follows-you) and the decision in
+source). See [docs/design/](docs/design/navigation.md#navigation-the-menu-follows-you) and the decision in
 [docs/decisions.md](docs/decisions.md#navigation-the-menu-follows-you).
 
 ## Getting started
@@ -446,7 +446,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   migrated.
 - **Storage:** stores in `apps/api/src/db` use `node:sqlite` with versioned migrations
   (`PRAGMA user_version`). Swap in Postgres or add an ORM (e.g. Drizzle) when you need to.
-- **UI components:** Tailwind plus our own component classes ([docs/design.md](docs/design.md)); add headless primitives
+- **UI components:** Tailwind plus our own component classes ([docs/design/](docs/design/README.md)); add headless primitives
   (Reka UI / shadcn-vue) when you need dialogs, menus and comboboxes, styled with the same roles.
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
   (the design is in [docs/decisions.md](docs/decisions.md#critique-points-are-anchored-to-paragraphs-by-id-outside-the-prose-t9a-90-part-of-14)).

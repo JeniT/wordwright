@@ -8,7 +8,7 @@ import SettingsButton from './SettingsButton.vue'
 /**
  * The menu that follows you. At home it lists Publications; inside a publication, that publication's
  * numbered steps; inside an idea, the idea's. Each level's settings are a gear button beside its name. A "back up" link and the thing's name sit at the top. The numbers
- * orient and never lock: every step is a link. docs/design.md explains the pattern.
+ * orient and never lock: every step is a link. docs/design/navigation.md explains the pattern.
  */
 const { level, publication, idea, steps, accountPages, settingsPages, stepKey, loading } = useNav()
 

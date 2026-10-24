@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer()
 
-// The side menu follows you: what it lists depends on where you are. See docs/design.md.
+// The side menu follows you: what it lists depends on where you are. See docs/design/navigation.md.
 
 const publication = {
   id: 'ada-substack',

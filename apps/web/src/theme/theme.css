@@ -1,7 +1,7 @@
 /*
  * THEME: how the design is built from a palette. Fonts, the Tailwind token map, base rules every screen shares
  * (focus, selection, reduced motion), and the component utilities (btn, field, panel, card, chip, callout ...).
- * Colours are never written here: they come from the palette file, by role. See docs/design.md.
+ * Colours are never written here: they come from the palette file, by role. See docs/design/colour-type-shape.md.
  */
 
 @font-face {
@@ -665,7 +665,7 @@
 }
 
 /*
- * Notices at the top of a page (docs/design.md, "Notices"). warn = something needs doing, in the accent colours of a
+ * Notices at the top of a page (docs/design/explanatory-text.md, "Notices"). warn = something needs doing, in the accent colours of a
  * callout; info = an offer, a quiet panel so it doesn't compete with what must be done.
  */
 @utility notice {

@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-/* To change the look: swap the palette file, or edit theme.css. docs/design.md explains the rules. */
+/* To change the look: swap the palette file, or edit theme.css. docs/design/README.md explains the rules. */
 @import './theme/palette-ember.css';
 @import './theme/theme.css';
 

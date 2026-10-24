@@ -5,8 +5,8 @@ one screen, in the order they were built rather than the order people need them.
 the new words and the decisions behind them. The work is split into tasks (see _Tasks_); each one links here.
 
 Rules this applies: [style-guide.md](style-guide.md) (length, one-word success, button names, no small print),
-[design.md](design.md#where-explanatory-text-goes) (what goes on the page, behind an info icon, or on a help page) and
-[design.md](design.md#navigation-the-menu-follows-you) (the menu follows you; settings sit apart from the steps).
+[design](design/explanatory-text.md#where-explanatory-text-goes) (what goes on the page, behind an info icon, or on a help page) and
+[design](design/navigation.md#navigation-the-menu-follows-you) (the menu follows you; settings sit apart from the steps).
 
 ## Structure
 
@@ -133,7 +133,7 @@ Filed as GitHub issues, each referring to this note.
 2. Discover available models (port method, adapter, fake, contract test, endpoint).
 3. Passwords: 8-character minimum.
 4. Deleting an account needs a password.
-5. Account settings: sub-pages and menu (level, routes, redirect, retargeted links, existing sections moved unchanged, tests, `design.md`).
+5. Account settings: sub-pages and menu (level, routes, redirect, retargeted links, existing sections moved unchanged, tests, `docs/design/`).
 6. Account settings: copy pass for Details, Display, Security, Download and Delete. Needs 5 (and 4 for Delete).
 7. Account settings: Your AI page and the help page "Your AI settings". Needs 1, 2 and 5.
 8. Home: owner and member badges on publications (to be shaped later).

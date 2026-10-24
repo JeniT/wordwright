@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
  * Every button that makes an AI request (and so spends the writer's tokens) is an `AiButton`, so the writer can
  * see that before pressing. The API functions that make such a request are tagged `@ai` in `api.ts`; this test
  * fails when one is used from a component that does not use `AiButton`, and when the list below changes.
- * Adding an AI function: tag it, add it here, and give its button the AI pattern (docs/design.md).
+ * Adding an AI function: tag it, add it here, and give its button the AI pattern (docs/design/components.md).
  */
 const AI_API_FUNCTIONS = ['critique', 'rephrase', 'runResearch', 'streamReply']
 

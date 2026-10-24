@@ -7,7 +7,7 @@ import { queryKeys, useDraft, useIdea, useIdeaNotes, useSources } from './querie
 import { usePublication } from './usePublications'
 
 /**
- * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design.md):
+ * Where a person is in the app, and what the side menu lists for it. The menu follows you (docs/design/navigation.md):
  *   home    -> Publications (account settings: the gear by the person's name in the menu foot)
  *   publication -> 01 Scan, 02 Read, 03 Note, (its settings: a gear beside its name)
  *   publication-settings -> Details, Description, Sharing, Download, Delete (plain links; the way up is the publication)

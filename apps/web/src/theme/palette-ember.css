@@ -1,7 +1,7 @@
 /*
  * PALETTE: Ember (burnt orange on warm stone), light and dark. This file is the only place a colour is chosen.
  * Names say what a colour is FOR, never what it looks like, so a palette can be swapped by replacing this file
- * (see docs/design.md). Every foreground/background pair listed in palette.test.ts must keep passing WCAG AA.
+ * (see docs/design/colour-type-shape.md). Every foreground/background pair listed in palette.test.ts must keep passing WCAG AA.
  *
  * Dark mode applies when the person chose it (data-theme="dark") or, if they haven't chosen, when their system does.
  */

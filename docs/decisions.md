@@ -1189,7 +1189,7 @@ provider.
 
 **Decision.** The look is **Ember**: a side menu, IBM Plex Sans for everything (the editor and chat included), warm
 stone neutrals, one burnt-orange accent (`#b0440c`), 1px outlines on every control, 6px/10px corners, no shadows,
-and a designed dark mode. How to apply it is in [design.md](design.md); the colour roles and components are in
+and a designed dark mode. How to apply it is in [design](design/README.md); the colour roles and components are in
 `apps/web/src/theme/`. The owner chose it after three rounds of concepts (screens, contrast checks and write-ups are
 kept in [design-concepts/](design-concepts/README.md); they are an archive, not code to import).
 
@@ -1225,7 +1225,7 @@ icons and logos from other websites.
 - **Orange next to red.** A standard red error colour is too close to burnt orange, so errors use raspberry
   (`#a8123f`). That is less conventional; errors always carry words and an icon so colour is never the only cue.
 - **The highlighter is pale blue**, not yellow, because yellow would sit too close to the orange wash. It means
-  "the AI suggested this" and nothing else; the rule is in design.md.
+  "the AI suggested this" and nothing else; the rule is in [the design system](design/colour-type-shape.md#the-mark).
 - **One family (Plex Sans).** Clean and legible, and consistent between the interface and the editor, but less
   characterful than a serif or a display face. The `font-display` role exists so a heading face can be added in one line.
 - **A side menu** takes 16rem on desktop and becomes a Menu button on phones. The drafting page's notes column
@@ -1246,7 +1246,7 @@ distinct heading typeface.
 **Decision.** The side menu **follows you** through three levels: Home (Publications), a publication (**01
 Search**, **02 Read**, **03 Notes**, **04 Ideas**) and an idea (**01 Research**, **02 Read**, **03 Notes**, **04 Refine**,
 **05 Draft**; settings at every level are one gear button beside the name (#180), not a menu item; **05 Publish** was a step until #97). The long Idea page was split into those steps, each its own page. How it
-works and how to extend it is in [design.md](design.md#navigation-the-menu-follows-you); the mock-ups we compared, with
+works and how to extend it is in [design](design/navigation.md#navigation-the-menu-follows-you); the mock-ups we compared, with
 screenshots, are in [design-concepts/navigation/](design-concepts/navigation/README.md).
 
 **What we wanted.** Lead people through the work without being a wizard: numbers on steps to orient, nothing locked,
@@ -1308,7 +1308,7 @@ idea's drafts so old links work, and the drafts list is the last step.
 
 The lists of articles had checkboxes meaning three different things (Read, Keep, and choose-to-move), four text buttons
 per row and a mode switch ("Move items") that changed what a row looked like. The owner's rules, now in
-[design.md](design.md#actions-and-lists):
+[design](design/actions-and-lists.md#actions-and-lists):
 
 - **A checkbox only selects an item** (for a bulk action). A **switch** sets a state of one item or of the view
   (Read, Keep, Show read items). Selecting is always on: there is no "Move items" mode. Move to… and Remove are bulk

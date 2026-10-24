@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The Wordwright mark: a flame whose tip is a split pen nib. It names the product and nothing else (never a
- * publication, never decoration), so it only appears in the page headers; see "The mark" in docs/design.md.
+ * publication, never decoration), so it only appears in the page headers; see "The mark" in docs/design/colour-type-shape.md.
  * Drawn inline, in the `accent` role, because people can pin Light or Dark whatever their system says, and an
  * <img> of the SVG file could not follow that. The path is `docs/design-concepts/icon/export/wordwright-mark.svg`.
  * It is decoration: the link that holds it always carries the name "Wordwright" as text.

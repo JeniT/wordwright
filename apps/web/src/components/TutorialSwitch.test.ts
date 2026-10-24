@@ -5,7 +5,7 @@ import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-u
 
 useMockServer({ warm: ['reviews'] })
 
-// The Tutorial switch in the account area of the menu (#314). See "Tutorial mode" in docs/design.md.
+// The Tutorial switch in the account area of the menu (#314). See "Tutorial mode" in docs/design/explanatory-text.md.
 
 const TIP = 'Shows explanations on each page. Turn off once you know your way round.'
 const BROKEN = 'Sorry, we couldn’t save that. Please reload the page to try again.'

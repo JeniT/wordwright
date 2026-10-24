@@ -13,7 +13,7 @@ import Icon from './Icon.vue'
  * label never changes, so the button keeps its width. The icon is explained in words as a tooltip and as the
  * button's description; while busy the button is disabled, `aria-busy`, and `busyText` is read out. Under reduced
  * motion the mark stays still. With no key saved yet, a link to where one is added sits beside it (the button still
- * works; the server's own error says the same if it is pressed). Buttons that make no AI call never use this. See docs/design.md.
+ * works; the server's own error says the same if it is pressed). Buttons that make no AI call never use this. See docs/design/components.md.
  */
 defineOptions({ inheritAttrs: false })
 const props = withDefaults(

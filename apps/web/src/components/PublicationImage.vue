@@ -19,7 +19,7 @@ const props = withDefaults(
     /**
      * `publication`: the person's own picture, cropped to fill the tile.
      * `source`: an icon fetched from another website. We can't control its shape or colours, so it sits on a light
-     * plate, contained and uncropped (see `source-mark` in theme/theme.css and docs/design.md).
+     * plate, contained and uncropped (see `source-mark` in theme/theme.css and docs/design/colour-type-shape.md).
      */
     kind?: 'publication' | 'source'
   }>(),
