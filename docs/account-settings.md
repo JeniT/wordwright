@@ -1,5 +1,7 @@
 # Account settings: structure and words
 
+Read this when you change the account settings pages, their menu or their words.
+
 The result of a content crit of `/account`. The page had twelve sections and about twenty blocks of small grey text on
 one screen, in the order they were built rather than the order people need them. This note records the new structure,
 the new words and the decisions behind them. The work is split into tasks (see _Tasks_); each one links here.

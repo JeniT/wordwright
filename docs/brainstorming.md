@@ -1,5 +1,7 @@
 # Brainstorming with an LLM: design (T20b)
 
+Read this when you change how the brainstorm conversation works: its tools, storage, replay, prompt or tests. The API summary is in [ai-features.md](ai-features.md).
+
 Status: **agreed; changed by T30 (notes were recorded as you chat), then by #295 (they are suggested: see _Notes are suggested, not added_ below, which supersedes the rows and sections it contradicts); built: T20b1 (the port), T20b2 (the API and storage), T20b3 (the account-page prompt), T20b4 (the chat page). Not yet: T20b5 (evals and tuning the default prompt).** Written after a design discussion with the owner. The work is split into tasks
 T20b1–T20b5 (finished ones in [TODO.md](../TODO.md), the rest in GitHub issues). Why things are the way they are is here; code and tests are the source of
 truth once it exists.

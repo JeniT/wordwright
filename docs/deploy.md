@@ -1,6 +1,10 @@
 # Deploying Wordwright
 
-Production is **one machine** (an UpCloud VM in London; see the decision in [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
+Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in.
+
+**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
+
+Production is **one machine** (an UpCloud VM in London; see [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
 
 - `api`: the Hono API and its SQLite database (a volume mounted at `/data`).
