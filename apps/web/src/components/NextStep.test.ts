@@ -20,7 +20,7 @@ const idea = {
   publicationId: 'p1',
   name: 'Why rivers meander',
   notes: '',
-  links: [],
+  articles: [],
   drafts: [],
   pendingSuggestions: 0,
   createdAt: '2026-01-01T00:00:00Z',
@@ -33,6 +33,7 @@ function signedIn(role: 'owner' | 'member' = 'owner') {
     http.get('*/api/publications', () => HttpResponse.json([publication(role)])),
     http.get('*/api/publications/p1', () => HttpResponse.json(publication(role))),
     http.get('*/api/publications/p1/ideas/i1', () => HttpResponse.json(idea)),
+    http.get('*/api/publications/p1/ideas/i1/research', () => HttpResponse.json([])),
   )
 }
 

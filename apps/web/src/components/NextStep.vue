@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { RouterLink } from 'vue-router'
 import { useNav } from '../lib/nav'
@@ -17,19 +18,20 @@ const props = defineProps<{
 }>()
 
 const { neighbours } = useNav()
-const previous = () => (props.to ? undefined : neighbours.value.previous)
-const next = () =>
+const previous = computed(() => (props.to ? undefined : neighbours.value.previous))
+const next = computed(() =>
   props.to
     ? { to: props.to, text: props.label ?? '' }
     : neighbours.value.next && {
         to: neighbours.value.next.to,
         text: `Next: ${neighbours.value.next.text}`,
-      }
+      },
+)
 </script>
 
 <template>
   <nav
-    v-if="previous() || next()"
+    v-if="previous || next"
     :aria-label="top || to ? 'Next step' : 'Previous and next'"
     class="flex flex-wrap items-center gap-4"
     :class="
@@ -37,11 +39,11 @@ const next = () =>
     "
   >
     <p v-if="$slots.default" class="meta max-w-md"><slot /></p>
-    <RouterLink v-if="previous()" :to="previous()!.to" class="btn btn-outline">
-      <span aria-hidden="true">←</span> Previous: {{ previous()!.text }}
+    <RouterLink v-if="previous" :to="previous.to" class="btn btn-outline">
+      <span aria-hidden="true">←</span> Previous: {{ previous.text }}
     </RouterLink>
-    <RouterLink v-if="next()" :to="next()!.to" class="btn btn-outline ml-auto">
-      {{ next()!.text }} <span aria-hidden="true">→</span>
+    <RouterLink v-if="next" :to="next.to" class="btn btn-outline ml-auto">
+      {{ next.text }} <span aria-hidden="true">→</span>
     </RouterLink>
   </nav>
 </template>

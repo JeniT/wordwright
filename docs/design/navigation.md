@@ -95,7 +95,7 @@ desktop `StepHeading` shows it above the title; on a phone it is row two of the 
 a page never shows two. Long names truncate one by one, the last crumb getting room first.
 
 **How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea' | 'account', step: '<key>' }` in `router.ts`
-(`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS` in `lib/nav.ts`; leave it off for settings). Sub-pages of a step
+(`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS`, or from `ACCOUNT_PAGES`/`PUBLICATION_SETTINGS_PAGES`, in `lib/nav.ts`). Sub-pages of a step
 (the research tool, reading one source) use their step's key, so it stays current. The title is
 `<StepHeading>Name</StepHeading>`; end the page with a bare `<NextStep />`, which finds the previous and next page from the route (`neighbours` in `useNav`); pass `to` and `label` only for a single link elsewhere. A page that is
 read beside another window (reading a source, taking notes) adds `compact: true`, which folds the menu behind the
