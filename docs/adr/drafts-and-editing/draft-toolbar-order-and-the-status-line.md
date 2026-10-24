@@ -1,6 +1,0 @@
-# Draft toolbar order, and the status line (#340, part of #338)
-
-- **Order follows the job:** text style, then emphasis and links, then lists and quote, then code. Sections (`DRAFT_SECTIONS`) are labelled groups separated by a thin rule that is the group's left border, not stand-alone separator elements (those sat at the top of a group's box and were misaligned); a section with nothing left on the bar draws no rule, so More never leaves one dangling. Comment, Rephrase and Edit as Markdown sit together on the right and are never in More.
-- **Ctrl or ⌘ + K opens the link dialog** from the rich-text editor (the toolbar listens on the editor's element), and the Link tooltip says so. In the Markdown box it does nothing, as there is no dialog to fill in.
-- **Status line above the toolbar:** `SaveStatus` on the left (its text is a polite status, so it changes only when the save state does, not on each key), the word count on the right. `SaveStatus` shows a tick beside "Saved" so the state is not words alone. The count is of the body's text, not its Markdown (so `##` and list markers are not words); with a selection it is "N of M words". The failure and conflict callouts below the draft stay, since they carry the Try again button; the status line points to them.
-- **Help page** (Formatting your draft) mentions the line and the Ctrl+K shortcut.

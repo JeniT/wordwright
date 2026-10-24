@@ -1,5 +1,20 @@
-# Who is reviewing, in a tab (#301)
+# The Reviews tab: who is reviewing, one request at a time, and where to send (#301, #302, #345)
 
-The list of reviews (snapshots sent, reviewers and their state, invitations waiting, Close review, Close all reviews) moved from the Send for review dialog to a **Reviews** tab beside Notes, Articles and Comments, for the editor and owners, shown once any review or invitation exists. It is a list to keep an eye on while writing and reading comments, not part of sending. The dialog is only the send form, and closes on sending, which brings the tab forward (opening the drawer on a phone). So an owner who is not the editor has no Reviews button: the tab is theirs. The dialogs put Cancel beside their main button; the Send for review warning is one sentence, and its older claims (only you see comments, your AI never receives them) are no longer said there.
+The list of reviews (snapshots sent, reviewers and their state, invitations waiting, Close review, Close all reviews) lives
+in a **Reviews** tab beside Notes, Articles and Comments, for the editor and owners. It is a list to keep an eye on while
+writing and reading comments, not part of sending.
 
-Handover and review were two closed disclosures above the title. They are now two things. **Notices**, under the notice bar, for what a handover is waiting for (an offer to you, a request to the editor: warn, with their buttons) and for what you have set going (your open offer or request: info, each with Withdraw), so nobody thinks Wordwright forgot what they did. **Buttons** in a quiet row beside “← All drafts” that open dialogs: Offer draft, Ask for this draft (a confirm, in case of an accidental press), Reassign draft, Send for review / Reviews, and Handover history (read-only, for every member). The opener hides while the thing it starts is already open, since the notice carries Withdraw. We rejected a “Draft settings” area (a new menu level that takes people off the writing page, and loses typed text unless saved) and left the notice bar's rule that a quiet page holds back info notices, narrowed to the bar's own notices. Saving before a snapshot is sent is #299's (autosave), which will flush first.
+- **Send for review is at the top of the tab** (#345), since it creates what the tab lists. The tab is always there for people
+  who can load reviews (the editor and the owners), not only once a review exists, so there is somewhere to send from. Its
+  empty state says what sending does and has the button. Owners who are not the editor see the tab but not the button, and
+  the empty state tells them only the editor can send. Everyone else has no tab. The send dialog is only the send form, and
+  closes on sending, which brings the tab forward (opening the drawer on a phone).
+- **One review request at a time** (#302), the latest first, with Previous review and Next review. A request is a snapshot,
+  its reviewers and the invitations still waiting. Its title is the date and time it was sent unless the editor or an owner
+  names it (80 characters; reviewers never see it).
+- **Progress is "1/2 complete · 3 comments":** who has finished, of those reading, finished or yet to answer (an invitation
+  not yet accepted counts as someone still to finish); closed ones don't count, and everyone closed reads "All closed". The
+  publication page's list uses the same line. Resolving comments is the Comments tab's job, so this tab does not count
+  unresolved ones.
+- **Closing is confirmed** in all three places (one reviewer, "Close these reviews", "Close all reviews"), since a closed
+  review can't be reopened. "Close all reviews" only shows when other requests also have open reviews.

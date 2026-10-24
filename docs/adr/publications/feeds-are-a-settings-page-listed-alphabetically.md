@@ -1,17 +1,23 @@
-# Feeds are a settings page, listed alphabetically (#242)
+# Feeds are a settings page, listed alphabetically (#242, #258)
 
-Feeds are configuration, like the description, so they moved off the Search step into publication settings
-(`/p/:id/settings/feeds`, between Description and Sharing). This reverses the decision that they are managed on Search;
-**Search keeps only Recent posts**, with a way to the feeds: a "Set up feeds →" button while there are none (the thing to do
-next), and a quiet "Manage feeds" link once there are some. The landing page's Search section has the same two. Any member
-can still add and remove them.
+Feeds are configuration, like the description, so they live in publication settings (`/p/:id/settings/feeds`, between
+Description and Sharing), not on the Scan step. **Scan keeps only Recent posts**, with a way to the feeds: a "Set up feeds →"
+button while there are none (the thing to do next), and a quiet "Manage feeds" link once there are some; the landing page's
+Scan section has the same two. Any member can add and remove feeds.
 
 - **No reordering.** The order was meant to rank posts, but Recent posts has always been sorted by date; the order only broke
-  ties, and a drag list is a lot of interface for that. Feeds are now **alphabetical by the name shown** (sorted in the
-  browser). `PUT …/sources/order`, `SourceOrderSchema`, the store's `reorder`, the tests and the drag e2e are gone; the
-  `position` column stays (migrations are append-only) and records the order added, which is the tie-break.
-- **The add form sits above the list**, since in settings the thing you come to do is add one; an empty list then reads
-  "No feeds yet. Add one above."
+  ties, and a drag list is a lot of interface for that. Feeds are **alphabetical by the name shown**. The `position` column
+  stays (migrations are append-only) and records the order added, which is the tie-break.
+- **The settings list is just the feeds** (#258). A feed's posts are on Scan, in one list with the feed's name, so showing
+  them under each feed was a second, slower way to the same thing. A failed feed's line says to check the address or remove it.
+- **The add form sits above the list**, since in settings the thing you come to do is add one.
 - **"Feed" in the words people see, "source" in the code.** The glossary term is **Feed** (CONTEXT.md); `Source`,
   `PublicationSources` and the API paths keep their names, since renaming them is churn for no gain.
-- The failed-feed line still says "Open its recent posts for details", because each feed's own recent posts stay on its row.
+- Addresses are normalised (https assumed, fragment dropped) so the same feed can't be listed twice.
+
+**What survived from the ordered list.** Feeds were once a drag-to-reorder list, saved by sending the whole order (the server
+refuses with 409 unless the ids are exactly the current ones, so a stale screen can't drop or resurrect a feed). The reusable
+part is `ReorderableList`, which notes and an idea's drafts still use: a move is **shown at once and saved in the
+background** (#60), because waiting for the server made reordering feel stuck; it sends one save at a time carrying the whole
+order as shown by then, so an older reply can never undo a newer move; if a save fails it goes back to the saved order,
+announces that, and the page shows the reason and refetches.
