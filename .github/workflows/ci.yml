@@ -15,10 +15,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
+      # Every check but build and e2e (scripts/check.mjs): the same list as on a developer's machine.
+      - run: pnpm check
       - run: pnpm build
 
   e2e:

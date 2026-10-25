@@ -11,6 +11,8 @@ export default tseslint.config(
       '**/coverage/**',
       '**/node_modules/**',
       '**/playwright-report/**',
+      // e2e data, including the built app the csp project serves.
+      '**/.e2e-data/**',
       '.worktrees/**',
     ],
   },

@@ -14,7 +14,9 @@ Several sessions share one machine, and the full suites take minutes. While deve
 - **Types:** `pnpm typecheck` (about 30s) once the code compiles in your head, not after every edit.
 
 Then run `pnpm check`, `pnpm build` and `pnpm test:e2e` **once** when you are done. A failure in a full run means
-rerunning **only the files that failed** (as above). If a test passes alone but timed out in the full run, the
+rerunning **only what failed**: `pnpm check` ends by naming the step that failed (`pnpm check: failed at …`; on this
+machine its first step also formats every file), and after an e2e run `apps/web/test-results/.last-run.json` lists the
+failed tests, which `pnpm --filter @wordwright/web exec playwright test --last-failed` reruns alone. If a test passes alone but timed out in the full run, the
 machine was busy: note it, and look at the test only if it fails alone too. Locally the runners take only a few cores
 each (`maxWorkers` in `apps/web/vite.config.ts`, `workers` in `apps/web/playwright.config.ts`); leave those as they are.
 
@@ -37,7 +39,7 @@ as `entry` patterns there too.
 This is fine. Each worktree gets its own web and API ports (hashed from its path; CI uses fixed ones) and its own
 database, and servers are never reused, so sessions don't test each other's code. A second run in the _same_
 worktree while one is going stops at once with "already used": wait for the first. If a port is taken by something
-unrelated, pick others with `E2E_WEB_PORT` and `E2E_API_PORT`. Leave other sessions' processes running.
+unrelated, pick others with `E2E_WEB_PORT` and `E2E_API_PORT` (and the `E2E_APPROVAL_*` and `E2E_CSP_*` pairs). Leave other sessions' processes running.
 
 `pnpm test:e2e` fails on any uncaught exception, `console.error`, failed request or 5xx.
 
@@ -48,3 +50,9 @@ This machine is macOS, so `sed` is BSD `sed`, not GNU. `sed -i 's/a/b/' file` fa
 `\b` and `\n` in replacements behave differently. It is not a permissions problem. For edits, use the Edit tool; for a
 repeated change across files, use `perl -pi -e 's/a/b/' <files>`. To read part of a file, use the Read tool with
 `offset` and `limit`.
+
+## The production Content-Security-Policy
+
+The `csp` e2e project (`e2e/csp.spec.ts`) builds the web app and serves it with `vite preview`, which sends the policy
+from `deploy/Caddyfile`. A change that needs something the policy forbids (an inline script, a picture or script from
+another site) fails there with a console error. Change the policy in `deploy/Caddyfile` only; the preview reads it.
