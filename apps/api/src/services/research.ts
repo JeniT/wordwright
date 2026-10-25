@@ -20,7 +20,7 @@ import { fail } from '../errors'
 import { escape, notesText, snapshotNotes, type SnapshotNote } from './idea-notes'
 
 /** A search that takes longer than this is abandoned. */
-export const RESEARCH_TIMEOUT_MS = 180_000
+const RESEARCH_TIMEOUT_MS = 180_000
 
 /**
  * What the researcher is given: what the writer wants to look into (the main thing), the idea's title and notes for

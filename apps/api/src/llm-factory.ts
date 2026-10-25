@@ -30,7 +30,7 @@ export const realResearchFactory: ResearchFactory = ({ provider, apiKey, model }
  * thing when the person asks for it in so many words ("suggest a title", "note that ...",
  * "suggest a new idea", a pasted address "for my articles"), so every part of the brainstorm page can be tried without a real AI.
  */
-export const fakeBrainstormReply: FakeChatResponder = (request) => {
+const fakeBrainstormReply: FakeChatResponder = (request) => {
   const last = request.messages.at(-1)
   const blocks = typeof last?.content === 'string' ? [] : (last?.content ?? [])
   const said =
@@ -100,7 +100,7 @@ export const fakeBrainstormReply: FakeChatResponder = (request) => {
  * The pretend editor of development and e2e runs: one point about the first paragraph, and, when the draft is long
  * enough to scroll, one about the last, so showing a comment that is far down the page can be tried.
  */
-export function fakeCritiqueReply(request: LLMRequest): string {
+function fakeCritiqueReply(request: LLMRequest): string {
   const text = request.messages.at(-1)?.content ?? ''
   const ids = [...text.matchAll(/^\[(b\d+)\] /gm)].map((m) => m[1]!)
   const points = [
@@ -124,7 +124,7 @@ export function fakeCritiqueReply(request: LLMRequest): string {
  * The pretend options-giver of development and e2e runs: as many short, different options as the message asks for
  * ("Offer N options."), numbered by round so a later round brings new ones.
  */
-export function fakeOptionsReply(request: LLMRequest): string {
+function fakeOptionsReply(request: LLMRequest): string {
   const text = request.messages.at(-1)?.content ?? ''
   const count = Number(text.match(/Offer (\d+) options/)?.[1] ?? 5)
   const round = (text.match(/<earlier_round>/g)?.length ?? 0) + 1
@@ -133,7 +133,7 @@ export function fakeOptionsReply(request: LLMRequest): string {
 }
 
 /** What a pretend one-shot request answers: options for Rephrase, otherwise a critique. */
-export const fakeCompletion = (request: LLMRequest): string =>
+const fakeCompletion = (request: LLMRequest): string =>
   /<wording kind="/.test(request.messages.at(-1)?.content ?? '')
     ? fakeOptionsReply(request)
     : fakeCritiqueReply(request)

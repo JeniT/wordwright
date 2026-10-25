@@ -16,7 +16,7 @@ const NAMED: Record<string, string> = {
   ldquo: '“',
 }
 
-export function decodeEntities(text: string): string {
+function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
     if (body[0] === '#') {
       const code =
@@ -27,12 +27,19 @@ export function decodeEntities(text: string): string {
   })
 }
 
+/** Text from a page as plain text: entities decoded, control characters and runs of spacing made one space. */
+export function plainText(raw: string): string {
+  return (
+    decodeEntities(raw)
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
+}
+
 function tidy(raw: string): string | null {
-  const text = decodeEntities(raw)
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const text = plainText(raw)
   if (!text) return null
   return text.length > MAX_TITLE ? `${text.slice(0, MAX_TITLE - 1)}…` : text
 }

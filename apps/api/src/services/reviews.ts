@@ -19,7 +19,7 @@ import { reviewFinishedEmail, reviewInvitationEmail, reviewRequestEmail } from '
 import type { AccountService, Session } from './accounts'
 import { addComment, deleteComment, editComment } from './comments'
 
-export const REVIEW_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const REVIEW_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface ReviewServiceDeps {
   store: Store

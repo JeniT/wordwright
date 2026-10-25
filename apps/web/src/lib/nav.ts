@@ -72,7 +72,7 @@ export interface Crumb {
 
 export type NavLevel = 'home' | 'publication' | 'publication-settings' | 'idea' | 'account'
 
-export const stepsFor = (level: NavLevel) =>
+const stepsFor = (level: NavLevel) =>
   level === 'idea' ? IDEA_STEPS : level === 'publication' ? PUBLICATION_STEPS : []
 
 /** "01", "02" ... for a step, or '' when the page isn't a numbered step. */

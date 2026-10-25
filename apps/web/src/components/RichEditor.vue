@@ -6,7 +6,7 @@ import { Mark } from '@tiptap/pm/model'
 import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
-import { DRAFT_SECTIONS, DRAFT_TOOLS } from '../lib/editor-tools'
+import { DRAFT_SECTIONS, DRAFT_TOOLS, openLinkOnModClick } from '../lib/editor-tools'
 import Icon from './Icon.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import {
@@ -129,13 +129,7 @@ const editor = useEditor({
         hand(drag, position)
         return true
       },
-      click: (_view, event) => {
-        const link = (event.target as HTMLElement).closest('a')
-        if (!link || !(event.ctrlKey || event.metaKey)) return false
-        event.preventDefault()
-        window.open(link.href, '_blank', 'noopener')
-        return true
-      },
+      click: (_view, event) => openLinkOnModClick(event),
     },
   },
   onFocus: () => {

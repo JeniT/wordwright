@@ -5,7 +5,7 @@ import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { computed, useId, useSlots, watch } from 'vue'
-import { DESCRIPTION_TOOLS } from '../lib/editor-tools'
+import { DESCRIPTION_TOOLS, openLinkOnModClick } from '../lib/editor-tools'
 import EditorToolbar from './EditorToolbar.vue'
 
 /**
@@ -69,13 +69,7 @@ const editor = useEditor({
       class: 'markdown description-editor',
     },
     handleDOMEvents: {
-      click: (_view, event) => {
-        const link = (event.target as HTMLElement).closest('a')
-        if (!link || !(event.ctrlKey || event.metaKey)) return false
-        event.preventDefault()
-        window.open(link.href, '_blank', 'noopener')
-        return true
-      },
+      click: (_view, event) => openLinkOnModClick(event),
     },
   },
   onUpdate: ({ editor }) => {

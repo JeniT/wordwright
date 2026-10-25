@@ -18,7 +18,7 @@ import {
 import { removeUserAndOwnedData } from './remove-user'
 import { isSoleOwnerOfSharedPublication, NEEDS_ANOTHER_OWNER } from './owners'
 
-export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
 export const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
 

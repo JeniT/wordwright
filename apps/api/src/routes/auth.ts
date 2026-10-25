@@ -267,5 +267,5 @@ export function authRoutes(d: AuthRouteDeps) {
   )
 }
 
-export const redirectUri = (publicUrl: string, providerId: string) =>
+const redirectUri = (publicUrl: string, providerId: string) =>
   `${publicUrl}/api/auth/oauth/${providerId}/callback`

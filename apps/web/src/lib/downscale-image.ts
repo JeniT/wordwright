@@ -1,7 +1,7 @@
 import { MAX_IMAGE_BYTES } from '@wordwright/core'
 
 /** The longest side of a stored picture. Pictures are shown small (a card, a menu header), so more is wasted bytes. */
-export const MAX_PICTURE_EDGE = 512
+const MAX_PICTURE_EDGE = 512
 
 /** Thrown when the browser cannot read the file as a picture. */
 export class UnreadablePicture extends Error {}

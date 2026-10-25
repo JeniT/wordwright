@@ -318,6 +318,21 @@ describe('reading one review', () => {
     expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
   })
 
+  it('says why when the review could not be ended, and leaves it open', async () => {
+    open({ ...summary(), draft: { title: 'Meanders', body: 'x' }, comments: [] })
+    server.use(
+      http.post('*/api/reviews/r1/end', () =>
+        HttpResponse.json({ error: 'The editor has closed this review.' }, { status: 409 }),
+      ),
+    )
+    await renderAt('/reviews/r1')
+    const [underDraft] = await screen.findAllByRole('button', { name: 'End review' })
+    await fireEvent.click(underDraft!)
+    expect(await screen.findByRole('alert')).toHaveTextContent('The editor has closed this review.')
+    expect(screen.getAllByRole('button', { name: 'End review' })).toHaveLength(2)
+    expect(screen.queryByTestId('review-ended')).toBeNull()
+  })
+
   it('keeps the draft and the comments when the editor has closed the review', async () => {
     open({
       ...summary({ state: 'closed' }),

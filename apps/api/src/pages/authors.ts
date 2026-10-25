@@ -1,33 +1,10 @@
 import { AUTHOR_NAME_MAX, MAX_AUTHORS } from '@wordwright/core'
-
-const NAMED: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-  nbsp: ' ',
-}
-
-function decode(text: string): string {
-  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
-    if (body[0] === '#') {
-      const code =
-        body[1]!.toLowerCase() === 'x' ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10)
-      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : ''
-    }
-    return NAMED[body.toLowerCase()] ?? whole
-  })
-}
+import { plainText } from './title'
 
 /** A name, tidied; null if it is empty or isn't a name (a publication address, which `article:author` often holds). */
 function tidyName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
-  const name = decode(raw)
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const name = plainText(raw)
   if (!name || /^(https?:)?\/\//i.test(name) || /^@/.test(name)) return null
   return name.length > AUTHOR_NAME_MAX ? null : name
 }
