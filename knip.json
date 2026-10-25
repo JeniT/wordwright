@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": ["docs/design-concepts/**"],
-  "ignoreExportsUsedInFile": true,
   "rules": { "types": "off" },
   "ignoreIssues": { "apps/web/e2e/fixtures.ts": ["exports"] },
   "workspaces": {
