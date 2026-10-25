@@ -24,5 +24,5 @@ Read this when you add or change code in `apps/api`, `packages/core` or `prompts
   request bodies, keys, tokens and reset links stay out of logs in production code paths.
 - **Per-user spending:** AI calls use the _requesting_ user's own key (`LlmKeyService.resolve`). There is no
   fallback to a shared key.
-- **New dependencies:** prefer the platform and what's already installed. Explain any new one in the commit.
+- **New dependencies:** prefer the platform and what's already installed. Explain any new one in the commit, and keep [dependencies.md](../dependencies.md) (licences, versions) true.
 - **LLM features** also need [responsible-ai.md](../responsible-ai.md) before you design or change them.

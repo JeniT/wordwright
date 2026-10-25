@@ -5,12 +5,12 @@ what terms.
 
 ## Versions in production
 
-| What    | Version                            | Where it is pinned                                                                  |
-| ------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
-| Node    | 24.22.1 (the 24 line, Active LTS)  | `.nvmrc` (CI) and `FROM node:24.22.1-slim` twice in `Dockerfile` (the api image)    |
-| pnpm    | 12.10.1                            | `packageManager` in `package.json`; CI and the Dockerfile read it through Corepack  |
-| Caddy   | the 2 line (`caddy:2-alpine`)      | `Dockerfile`, `web` target; serves static files only                                |
-| Package | exact versions in `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` everywhere, so a build never picks a newer release |
+| What    | Version                            | Where it is pinned                                                                                 |
+| ------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Node    | 24.22.1 (the 24 line, Active LTS)  | `.nvmrc` (CI) and `FROM node:24.22.1-slim` twice in `Dockerfile` (the api image)                   |
+| pnpm    | 12.10.1                            | `packageManager` in `package.json`; CI (`pnpm/action-setup`) and the Dockerfile (Corepack) read it |
+| Caddy   | the 2 line (`caddy:2-alpine`)      | `Dockerfile`, `web` target; serves static files only                                               |
+| Package | exact versions in `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` everywhere, so a build never picks a newer release                |
 
 `engines.node` stays `>=24`, a floor for developers. When you change Node, change `.nvmrc` and both `FROM` lines
 together; Dependabot's Docker updates raise the `FROM` change and you complete the `.nvmrc` half in the same pull request.
@@ -57,10 +57,10 @@ removed.
 
 ## Licences
 
-`pnpm check` runs `scripts/check-licences.mjs`, which fails when anything shipped (`pnpm licenses list --prod`)
+`scripts/check-licences.mjs` is the source of truth for this list. `pnpm check` runs it, and it fails when anything shipped (`pnpm licenses list --prod`)
 has a licence outside the list below. Reading a new licence and adding it here and in the script is the review.
 
-| Licence      | Packages (2026-10-25)                                                       | Obligation                        |
+| Licence      | Packages (snapshot, 2026-10-25)                                             | Obligation                        |
 | ------------ | --------------------------------------------------------------------------- | --------------------------------- |
 | MIT          | 150, including vue, hono, tiptap, zod, jose, markdown-it, the Anthropic SDK | Keep the copyright notice         |
 | MIT-0        | `nodemailer`                                                                | None                              |
@@ -81,7 +81,7 @@ images are built from them, so the notices travel with the code.
 - **Version updates:** `.github/dependabot.yml` raises a weekly pull request for npm minor and patch releases, and
   separate pull requests for GitHub Actions, the Docker base images and npm major releases. CI must be green before one
   is merged, like any other change.
-- **Release age:** pnpm refuses to install a release that is only hours old
+- **Release age:** pnpm's supply-chain policy refuses to install a release that is only hours old
   (`minimumReleaseAge`; the one exception is listed in `pnpm-workspace.yaml` with its reason). When an urgent
   security fix is younger than that, add it to `minimumReleaseAgeExclude`, and remove it once it has aged.
 - **Security alerts and security updates:** repository settings, not files. They are switched on under Settings →
