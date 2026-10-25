@@ -3,18 +3,27 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 import vue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
+import { readFileSync } from 'node:fs'
+
+/**
+ * .gitignore as ESLint ignore globs, so nothing git ignores (build output, e2e data) is linted and the two lists can't
+ * drift apart. A name with no slash but a trailing one matches at any depth, as in git; `!` lines stay exceptions.
+ */
+const gitignored = readFileSync(new URL('.gitignore', import.meta.url), 'utf8')
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line && !line.startsWith('#'))
+  .map((line) => {
+    const negated = line.startsWith('!')
+    const pattern = line.replace(/^!/, '').replace(/\/$/, '')
+    const anchored = pattern.includes('/') ? pattern.replace(/^\//, '') : `**/${pattern}`
+    return [negated ? `!${anchored}` : anchored, negated ? `!${anchored}/**` : `${anchored}/**`]
+  })
+  .flat()
 
 export default tseslint.config(
   {
-    ignores: [
-      '**/dist/**',
-      '**/coverage/**',
-      '**/node_modules/**',
-      '**/playwright-report/**',
-      // e2e data, including the built app the csp project serves.
-      '**/.e2e-data/**',
-      '.worktrees/**',
-    ],
+    ignores: [...gitignored, '.worktrees/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -21,7 +21,7 @@ your own branch, never `main`. Run these as **separate commands**, reading each 
    _Check CI before you start_ in [claim.md](claim.md).
 
 3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
-   Then check CI (`gh run list --branch main --limit 3`): the latest finished run must be green, unless your
+   Then check CI (`gh run list --branch main --workflow CI --limit 3`): the latest finished run must be green, unless your
    push is the fix.
 4. `git push origin HEAD:main`, with `Closes #7` in your last commit message so the issue closes. It is a plain
    fast-forward; if it is rejected, go back to step 1. Then `gh issue edit 7 --remove-label in-progress` and
