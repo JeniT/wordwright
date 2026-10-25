@@ -41,6 +41,22 @@ export const queryKeys = {
   /** The models the provider offers the saved key (the account page). */
   llmModels: () => ['llm-models'] as const,
   reviews: () => ['reviews'] as const,
+  /** The publications the person belongs to. */
+  publications: () => ['publications'] as const,
+  /** A publication the list does not have (moved or gone), asked for by its id. */
+  publicationMoved: (id: string) => ['publication-moved', id] as const,
+  /** The signed-in person, as the account page reads them. */
+  me: () => ['me'] as const,
+  /** Which ways of signing in the server offers. */
+  authConfig: () => ['auth-config'] as const,
+  critiqueSettings: () => ['critique-settings'] as const,
+  /** A publication's own articles (an idea's are part of the idea). */
+  articles: (publicationId: string) => ['articles', publicationId] as const,
+  /** The people invited to a publication, waiting to answer. */
+  invitations: (publicationId: string) => ['invitations', publicationId] as const,
+  /** An invitation to join a publication, previewed by the token in its link. */
+  invitation: (token: string) => ['invitation', token] as const,
+  reviewInvitation: (token: string) => ['review-invitation', token] as const,
   /** Who is waiting and who is in, for an admin (#328). */
   adminAccounts: () => ['admin-accounts'] as const,
   /** Invitations to join a publication that are waiting for this person. */
@@ -75,6 +91,7 @@ export type QueryRoot =
   | 'draft'
   | 'draft-handover'
   | 'devices'
+  | 'drafts'
   | 'draft-reviewers'
   | 'review'
   | 'reviews'
@@ -82,8 +99,11 @@ export type QueryRoot =
   | 'idea'
   | 'idea-move-preview'
   | 'ideas'
+  | 'invitations'
+  | 'me'
   | 'my-invitations'
   | 'notes'
+  | 'publications'
   | 'articles'
   | 'recent-posts'
   | 'research'
@@ -92,6 +112,10 @@ export type QueryRoot =
 /** Refreshes everything under each root. */
 export const invalidateRoots = (queryClient: QueryClient, ...roots: QueryRoot[]) =>
   Promise.all(roots.map((root) => queryClient.invalidateQueries({ queryKey: [root] })))
+
+/** Forgets everything under each root, without asking again until something wants it. */
+export const removeRoots = (queryClient: QueryClient, ...roots: QueryRoot[]) =>
+  roots.forEach((root) => queryClient.removeQueries({ queryKey: [root] }))
 
 /** After a change to notes that may also have changed the idea or the drafts that use them. */
 export const refreshNotesEverywhere = (queryClient: QueryClient) =>

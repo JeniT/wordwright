@@ -6,10 +6,11 @@ import { api, errorMessage } from '../lib/api'
 import InfoTip from './InfoTip.vue'
 import SaveStatus from './SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
+import { queryKeys } from '../lib/queries'
 
 const queryClient = useQueryClient()
 const settings = useQuery({
-  queryKey: ['critique-settings'],
+  queryKey: queryKeys.critiqueSettings(),
   queryFn: () => api.getCritiqueSettings(),
 })
 // A valid default, so the form can never submit nothing before the setting arrives.
@@ -21,7 +22,7 @@ const choices = Array.from(
 const unsaved = computed(() => rounds.value !== settings.data.value?.rounds)
 const save = useMutation({
   mutationFn: () => api.saveCritiqueSettings(rounds.value),
-  onSuccess: (saved) => queryClient.setQueryData(['critique-settings'], saved),
+  onSuccess: (saved) => queryClient.setQueryData(queryKeys.critiqueSettings(), saved),
 })
 </script>
 

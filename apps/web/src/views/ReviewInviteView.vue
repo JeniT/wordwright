@@ -5,6 +5,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import TextField from '../components/TextField.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 
 /**
@@ -19,7 +20,7 @@ const session = useSessionStore()
 const token = typeof route.query.token === 'string' ? route.query.token : ''
 
 const preview = useQuery({
-  queryKey: ['review-invitation', token],
+  queryKey: queryKeys.reviewInvitation(token),
   queryFn: () => api.previewReviewInvitation(token),
   enabled: !!token,
   retry: false,
@@ -55,7 +56,7 @@ const create = useMutation({
 const accept = useMutation({
   mutationFn: () => api.acceptReviewInvitation(token),
   onSuccess: async ({ reviewId }) => {
-    await queryClient.invalidateQueries({ queryKey: ['reviews'] })
+    await invalidateRoots(queryClient, 'reviews')
     await router.push({ name: 'review', params: { id: reviewId } })
   },
 })

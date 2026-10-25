@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { invalidateRoots, queryKeys, refreshIdea, refreshNotesEverywhere } from './queries'
+import {
+  invalidateRoots,
+  queryKeys,
+  refreshIdea,
+  refreshNotesEverywhere,
+  removeRoots,
+} from './queries'
 
 describe('queryKeys', () => {
   it('names the publication’s own notes the same wherever they are asked for', () => {
@@ -15,6 +21,18 @@ describe('queryKeys', () => {
     expect(queryKeys.sources('p')[0]).toBe('sources')
     expect(queryKeys.draft('p', 'd')[0]).toBe('draft')
     expect(queryKeys.recentPosts('p', 7, 'a,b')[0]).toBe('recent-posts')
+  })
+
+  it('keeps the shape of the keys that used to be spelled out in screens', () => {
+    expect(queryKeys.publications()).toEqual(['publications'])
+    expect(queryKeys.publicationMoved('x')).toEqual(['publication-moved', 'x'])
+    expect(queryKeys.me()).toEqual(['me'])
+    expect(queryKeys.authConfig()).toEqual(['auth-config'])
+    expect(queryKeys.critiqueSettings()).toEqual(['critique-settings'])
+    expect(queryKeys.articles('p')).toEqual(['articles', 'p'])
+    expect(queryKeys.invitations('p')).toEqual(['invitations', 'p'])
+    expect(queryKeys.invitation('t')).toEqual(['invitation', 't'])
+    expect(queryKeys.reviewInvitation('t')).toEqual(['review-invitation', 't'])
   })
 })
 
@@ -32,6 +50,15 @@ describe('refreshing', () => {
     const { client, keys } = fakeClient()
     await invalidateRoots(client, 'idea', 'ideas')
     expect(keys).toEqual([['idea'], ['ideas']])
+  })
+
+  it('removeRoots forgets each root', () => {
+    const removed: unknown[][] = []
+    const client = {
+      removeQueries: ({ queryKey }: { queryKey: unknown[] }) => removed.push(queryKey),
+    }
+    removeRoots(client as never, 'drafts', 'idea')
+    expect(removed).toEqual([['drafts'], ['idea']])
   })
 
   it('a change to notes refreshes the notes, the idea, the ideas list and the draft insertions', async () => {

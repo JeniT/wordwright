@@ -3,6 +3,7 @@ import { PUBLICATION_DESCRIPTION_MAX, type Publication } from '@wordwright/core'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 import { useSavedValue } from '../lib/forms'
 import NewTabLink from './NewTabLink.vue'
 import SaveStatus from './SaveStatus.vue'
@@ -21,7 +22,7 @@ const tooLong = computed(() => text.value.length > PUBLICATION_DESCRIPTION_MAX)
 const save = useMutation({
   mutationFn: () =>
     api.setPublicationDescription(props.publication.id, { description: text.value }),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['publications'] }),
+  onSuccess: () => invalidateRoots(queryClient, 'publications'),
 })
 </script>
 

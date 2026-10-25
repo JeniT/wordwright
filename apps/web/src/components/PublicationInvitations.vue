@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys } from '../lib/queries'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import RowList from './RowList.vue'
@@ -18,11 +19,11 @@ const email = ref('')
 const lastInvited = ref('')
 
 const pending = useQuery({
-  queryKey: ['invitations', () => props.publicationId],
+  queryKey: computed(() => queryKeys.invitations(props.publicationId)),
   queryFn: () => api.listInvitations(props.publicationId),
   enabled: () => props.confirmed,
 })
-const refresh = () => queryClient.invalidateQueries({ queryKey: ['invitations'] })
+const refresh = () => invalidateRoots(queryClient, 'invitations')
 
 const invite = useMutation({
   mutationFn: (address: string) => api.invite(props.publicationId, address),

@@ -129,7 +129,7 @@ export function useNav() {
   const atIdea = () => level.value === 'idea' && !!ideaId.value
   const feeds = useSources(() => publicationId.value, atPublication)
   const reading = useQuery({
-    queryKey: ['articles', () => publicationId.value],
+    queryKey: computed(() => queryKeys.articles(publicationId.value)),
     queryFn: () => api.listPublicationArticles(publicationId.value),
     enabled: atPublication,
   })

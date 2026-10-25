@@ -7,6 +7,7 @@ import ImageField from '../components/ImageField.vue'
 import PublicationDetailsFields from '../components/PublicationDetailsFields.vue'
 import PublicationImage from '../components/PublicationImage.vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 import { useSiteIconPreview } from '../lib/site-icon-preview'
 
 const router = useRouter()
@@ -41,11 +42,11 @@ const create = useMutation({
     return createdId.value
   },
   onSuccess: async (id) => {
-    await queryClient.invalidateQueries({ queryKey: ['publications'] })
+    await invalidateRoots(queryClient, 'publications')
     await router.push({ name: 'publication', params: { publicationId: id } })
   },
   // Even if the picture failed, the publication now exists and should appear in lists.
-  onError: () => queryClient.invalidateQueries({ queryKey: ['publications'] }),
+  onError: () => invalidateRoots(queryClient, 'publications'),
 })
 </script>
 

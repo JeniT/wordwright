@@ -4,6 +4,7 @@ import { computed, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 
 const route = useRoute()
@@ -13,7 +14,7 @@ const session = useSessionStore()
 const token = typeof route.query.token === 'string' ? route.query.token : ''
 
 const preview = useQuery({
-  queryKey: ['invitation', token],
+  queryKey: queryKeys.invitation(token),
   queryFn: () => api.previewInvitation(token),
   enabled: !!token,
   retry: false,
@@ -24,7 +25,7 @@ const accept = useMutation({
   onSuccess: async ({ publicationId }) => {
     // Their sign-in may have just been confirmed by the invitation, and they have a new publication.
     session.set(await api.me())
-    await queryClient.invalidateQueries({ queryKey: ['publications'] })
+    await invalidateRoots(queryClient, 'publications')
     await router.push({ name: 'publication', params: { publicationId } })
   },
 })

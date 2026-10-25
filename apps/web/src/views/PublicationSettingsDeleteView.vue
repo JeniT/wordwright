@@ -8,6 +8,7 @@ import DangerZone from '../components/DangerZone.vue'
 import PublicationGate from '../components/PublicationGate.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots, removeRoots } from '../lib/queries'
 import { usePublication } from '../lib/usePublications'
 
 const props = defineProps<{ publicationId: string }>()
@@ -28,8 +29,8 @@ const confirmingDelete = ref(false)
 const deletePublication = useMutation({
   mutationFn: () => api.deletePublication(props.publicationId),
   onSuccess: async () => {
-    queryClient.removeQueries({ queryKey: ['drafts'] })
-    await queryClient.invalidateQueries({ queryKey: ['publications'] })
+    removeRoots(queryClient, 'drafts')
+    await invalidateRoots(queryClient, 'publications')
     await router.push('/')
   },
   onSettled: () => (confirmingDelete.value = false),

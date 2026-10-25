@@ -5,6 +5,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSiteIconPreview } from '../lib/site-icon-preview'
 import { api, errorMessage } from '../lib/api'
+import { invalidateRoots, queryKeys } from '../lib/queries'
 import { displayHost } from '../lib/usePublications'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
@@ -20,7 +21,7 @@ const emit = defineEmits<{ renamed: [id: string] }>()
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
-const refresh = () => queryClient.invalidateQueries({ queryKey: ['publications'] })
+const refresh = () => invalidateRoots(queryClient, 'publications')
 // Computed because stepping down changes it while this page is open.
 const isOwner = computed(() => props.publication.role === 'owner')
 
@@ -47,7 +48,7 @@ const saveDetails = useMutation({
       // The new name gave the publication a new address. Until the page has moved there, the list
       // must know both ids, or this page would briefly look for a publication that isn't there.
       // The refresh below replaces the list with the server's, which has only the new one.
-      queryClient.setQueryData<Publication[]>(['publications'], (list) =>
+      queryClient.setQueryData<Publication[]>(queryKeys.publications(), (list) =>
         list?.flatMap((p) => (p.id === props.publication.id ? [p, saved] : [p])),
       )
       emit('renamed', saved.id)
