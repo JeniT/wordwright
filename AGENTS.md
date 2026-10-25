@@ -48,13 +48,13 @@ Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue li
 
 ## Commands (Node 24+, pnpm)
 
-|                 |                                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`      | web on :5173, API on :8787 (set `FAKE_LLM=true` to avoid real LLM calls)                                                        |
-| `pnpm check`    | format check + lint + typecheck + unused code (knip) + unit/component/API tests + doc links. **Must pass before every commit.** |
-| `pnpm test:e2e` | Playwright; fails on any uncaught exception, `console.error`, failed request or 5xx                                             |
-| `pnpm build`    | production build (`pnpm check` has already typechecked)                                                                         |
-| `pnpm eval`     | rough smoke test of the AI's behaviour; asks for a key (hidden) and trials; costs money                                         |
+|                 |                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| `pnpm dev`      | web on :5173, API on :8787 (set `FAKE_LLM=true` to avoid real LLM calls)                      |
+| `pnpm check`    | every check except build and e2e (see the `check` script). **Must pass before every commit.** |
+| `pnpm test:e2e` | Playwright; fails on any uncaught exception, `console.error`, failed request or 5xx           |
+| `pnpm build`    | production build (`pnpm check` has already typechecked)                                       |
+| `pnpm eval`     | rough smoke test of the AI's behaviour; asks for a key (hidden) and trials; costs money       |
 
 ## Gotchas nothing else records
 

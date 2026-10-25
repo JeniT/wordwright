@@ -25,6 +25,13 @@ summary and writes an HTML report to that package's `coverage/`. It is for findi
 "before" on a checkout of `origin/main`) and `diff` the two; they must match. Spec files stay under 800 lines
 (ESLint `max-lines` enforces it).
 
+## Unused code
+
+`pnpm knip` (part of `pnpm check`) fails on an unused file, export or dependency. Fix the finding: delete the code,
+or drop the `export` if the file still uses it. To keep something on purpose (a helper documented for agents, such as
+`savesAnswered`), add it under `ignoreIssues` in `knip.json`. Files loaded by a computed `import()` path are listed
+as `entry` patterns there too.
+
 ## e2e in several worktrees at once
 
 This is fine. Each worktree gets its own web and API ports (hashed from its path; CI uses fixed ones) and its own
