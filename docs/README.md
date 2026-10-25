@@ -27,9 +27,10 @@ One line per doc, worded as when to open it. Open the one that matches your task
 
 ## Operating
 
-| When you are…                                                              | Read                   |
-| -------------------------------------------------------------------------- | ---------------------- |
-| Deploying, backing up, rolling back, or setting up email or Google sign-in | [deploy.md](deploy.md) |
+| When you are…                                                                  | Read                               |
+| ------------------------------------------------------------------------------ | ---------------------------------- |
+| Deploying, backing up, rolling back, or setting up email or Google sign-in     | [deploy.md](deploy.md)             |
+| Adding or upgrading a dependency, or asked what we ship and under what licence | [dependencies.md](dependencies.md) |
 
 ## Archive (read only when asked)
 

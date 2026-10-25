@@ -22,8 +22,9 @@
     "eval:adapter": "pnpm --filter @wordwright/evals eval:adapter",
     "test:scripts": "node --test scripts/",
     "check:docs": "node scripts/check-doc-links.mjs",
+    "check:licences": "node scripts/check-licences.mjs",
     "knip": "knip",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm test:scripts && pnpm check:docs && pnpm test && echo 'pnpm check: all passed'"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm test:scripts && pnpm check:docs && pnpm check:licences && pnpm test && echo 'pnpm check: all passed'"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
