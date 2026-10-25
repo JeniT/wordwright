@@ -7,12 +7,12 @@ what terms.
 
 | What    | Version                            | Where it is pinned                                                                                 |
 | ------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Node    | 24.22.1 (the 24 line, Active LTS)  | `.nvmrc` (CI) and `FROM node:24.22.1-slim` twice in `Dockerfile` (the api image)                   |
+| Node    | 26.12.1 (the 26 line, Active LTS)  | `.nvmrc` (CI) and `FROM node:26.12.1-slim` twice in `Dockerfile` (the api image)                   |
 | pnpm    | 12.10.1                            | `packageManager` in `package.json`; CI (`pnpm/action-setup`) and the Dockerfile (Corepack) read it |
 | Caddy   | the 2 line (`caddy:2-alpine`)      | `Dockerfile`, `web` target; serves static files only                                               |
 | Package | exact versions in `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` everywhere, so a build never picks a newer release                |
 
-`engines.node` stays `>=24`, a floor for developers. When you change Node, change `.nvmrc`, both `FROM` lines and the table above together; `pnpm check` (`scripts/check-node-pins.mjs`) fails when they differ. Dependabot raises the `FROM` change on its own, so complete the rest in that pull request.
+`engines.node` is `>=26`, the same major as production, so no one develops on a line we no longer ship. When you change Node, change `.nvmrc`, both `FROM` lines and the table above together (on a new major, also `engines.node` and the "Node N+" lines in `README.md` and `AGENTS.md`); `pnpm check` (`scripts/check-node-pins.mjs`) fails when they differ. Dependabot raises the `FROM` change on its own, so complete the rest in that pull request.
 
 ## Direct dependencies
 

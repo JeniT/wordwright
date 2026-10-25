@@ -44,7 +44,7 @@ The side menu **follows you**: what it lists depends on where you are (home → 
 
 ## Getting started
 
-Requires Node 24+ and pnpm.
+Requires Node 26+ and pnpm.
 
 ```bash
 pnpm install

@@ -46,7 +46,7 @@ Any other doc: [docs/README.md](docs/README.md) says when to open each one.
 Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue list --label ready`.
 `docs/design-concepts/` is an archive of options considered; read it only when asked.
 
-## Commands (Node 24+, pnpm)
+## Commands (Node 26+, pnpm)
 
 |                 |                                                                                            |
 | --------------- | ------------------------------------------------------------------------------------------ |
