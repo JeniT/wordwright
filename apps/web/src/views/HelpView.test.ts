@@ -22,6 +22,19 @@ describe('Help', () => {
     )
   })
 
+  it('publishes an accessibility statement, linked from the help list', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/help')
+    await fireEvent.click(await screen.findByRole('link', { name: 'Accessibility statement' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Accessibility statement' }),
+    ).toBeVisible()
+    expect(screen.getByRole('link', { name: /report it on GitHub/ })).toHaveAttribute(
+      'target',
+      '_blank',
+    )
+  })
+
   it('walks through getting a key in five numbered steps with links to the Console', async () => {
     server.use(signedInAs(testUser))
     await renderAt('/help/api-key')

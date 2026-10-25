@@ -41,6 +41,11 @@ const pages = [
     about: 'Why a new account waits, and what happens when it is approved.',
   },
   {
+    name: 'help-accessibility',
+    title: 'Accessibility statement',
+    about: 'How we check that Wordwright works for everyone, and how to report a barrier.',
+  },
+  {
     name: 'help-tutorial-mode',
     title: 'About tutorial mode',
     about: 'The explanations written out on the page while you are getting to know the site.',
