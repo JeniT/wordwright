@@ -23,15 +23,16 @@ for (const [net, bits] of [
   blocked.addSubnet(net, bits, 'ipv4')
 }
 for (const [net, bits] of [
-  ['::', 128],
-  ['::1', 128],
+  ['::', 96], // the unspecified address, loopback (::1) and the deprecated IPv4-compatible form (::10.0.0.1)
   ['64:ff9b::', 96], // NAT64: embeds an IPv4 address we'd have to vet
+  ['64:ff9b:1::', 48], // local-use NAT64, the same
   ['100::', 64],
   ['2001::', 32], // Teredo
   ['2001:db8::', 32],
   ['2002::', 16], // 6to4: embeds an IPv4 address
   ['fc00::', 7],
   ['fe80::', 10],
+  ['fec0::', 10], // deprecated site-local
   ['ff00::', 8],
 ] as const) {
   blocked.addSubnet(net, bits, 'ipv6')

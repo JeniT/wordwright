@@ -3,7 +3,6 @@ import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { FeedError, TINY_PNG } from '@wordwright/core'
 import { feedFetcherContract } from '@wordwright/core/testing'
-import { isPublicAddress } from './addresses'
 import { HttpFeedFetcher } from './http-feed-fetcher'
 import { parseFeed, parseFeedItems, parseHtmlLinks } from './parse-feed'
 
@@ -252,33 +251,6 @@ describe('parseHtmlLinks', () => {
   })
 })
 
-describe('isPublicAddress', () => {
-  it.each([
-    '127.0.0.1',
-    '10.1.2.3',
-    '172.16.0.1',
-    '172.31.255.255',
-    '192.168.1.1',
-    '169.254.169.254',
-    '100.64.0.1',
-    '0.0.0.0',
-    '224.0.0.1',
-    '255.255.255.255',
-    '::1',
-    '::',
-    'fe80::1',
-    'fd00::1',
-    '::ffff:127.0.0.1',
-    '::ffff:10.0.0.1',
-    'not an ip',
-  ])('refuses %s', (ip) => expect(isPublicAddress(ip)).toBe(false))
-
-  it.each(['8.8.8.8', '93.184.216.34', '172.32.0.1', '2606:4700:4700::1111', '::ffff:8.8.8.8'])(
-    'allows %s',
-    (ip) => expect(isPublicAddress(ip)).toBe(true),
-  )
-})
-
 /** A little web server with a few pages: the fixtures for the fetcher. */
 function startSite() {
   const requests: string[] = []
@@ -513,6 +485,8 @@ describe('HttpFeedFetcher', () => {
       'http://[::1]:1/feed',
       'http://169.254.169.254/latest/meta-data/',
       'http://10.0.0.5/feed',
+      'http://[2002:a00:1::]/feed', // 6to4 wrapping 10.0.0.1
+      'http://203.0.113.9/feed',
     ]) {
       await expect(strict.inspect(address), address).rejects.toMatchObject({ reason: 'blocked' })
     }

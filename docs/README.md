@@ -17,13 +17,14 @@ One line per doc, worded as when to open it. Open the one that matches your task
 
 ## Feature specifications
 
-| When you change…                                                               | Read                                       |
-| ------------------------------------------------------------------------------ | ------------------------------------------ |
-| Sign-in, accounts, publications, sharing, ideas, drafts, deletion or email     | [accounts.md](accounts.md)                 |
-| Key storage, model choice, or adding an LLM provider                           | [byok.md](byok.md)                         |
-| Brainstorm (Refine), Research, Critique or Rephrase                            | [ai-features.md](ai-features.md)           |
-| The brainstorm conversation's design in depth (tools, storage, replay, prompt) | [brainstorming.md](brainstorming.md)       |
-| The account settings pages                                                     | [account-settings.md](account-settings.md) |
+| When you change…                                                               | Read                                           |
+| ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Sign-in, accounts, publications, sharing, ideas, drafts, deletion or email     | [accounts.md](accounts.md)                     |
+| Key storage, model choice, or adding an LLM provider                           | [byok.md](byok.md)                             |
+| Brainstorm (Refine), Research, Critique or Rephrase                            | [ai-features.md](ai-features.md)               |
+| Fetching a user-supplied address, feeding text to an AI, or showing AI output  | [ai-security-review.md](ai-security-review.md) |
+| The brainstorm conversation's design in depth (tools, storage, replay, prompt) | [brainstorming.md](brainstorming.md)           |
+| The account settings pages                                                     | [account-settings.md](account-settings.md)     |
 
 ## Operating
 
