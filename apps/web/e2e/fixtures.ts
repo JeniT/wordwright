@@ -1,4 +1,7 @@
-import { expect, test as base, type Locator, type Page } from '@playwright/test'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { e2eOutbox } from '../playwright.config'
+import { expect, test as base, type Browser, type Locator, type Page } from '@playwright/test'
 import { HOLD_MS } from '../src/lib/hold-settings'
 
 /**
@@ -195,4 +198,131 @@ export async function addFilterTag(filter: Locator, tag: string) {
   await filter.fill(tag)
   await filter.press('Enter')
   await expect(filter).toBeFocused()
+}
+
+// Shared by the account, auth, drafts, reviews and sharing specs.
+export const PASSWORD = 'a perfectly good password'
+
+/** Usernames are unique across the whole database, and tests run in parallel. */
+export const uniqueUsername = () =>
+  `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+
+/** Fills in the sign-up form (without submitting). Returns the email used. */
+export async function fillSignUp(page: Page, name: string, username = uniqueUsername()) {
+  const email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+  await page.getByLabel('What should we call you?').fill(name)
+  await page.getByLabel('Username').fill(username)
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(PASSWORD)
+  return email
+}
+
+/** From the landing page, creates a publication named "<name>'s writing" and opens it. */
+export async function createFirstPublication(page: Page, name: string) {
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Publication name', { exact: true }).fill(`${name}'s writing`)
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Wordwright' }).click()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+}
+
+/**
+ * Each test registers its own user, so tests are independent and can run in parallel. Most tests
+ * are about what happens after set-up, so this also creates a first publication, "<name>'s writing".
+ */
+export async function registerUser(
+  page: Page,
+  name = 'Ada Lovelace',
+  { withPublication = true } = {},
+) {
+  await page.goto('/register')
+  const email = await fillSignUp(page, name)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+  if (withPublication) await createFirstPublication(page, name)
+  return email
+}
+
+/** From the publication list, opens the first publication ("<name>'s writing"). */
+export async function openFirstPublication(page: Page) {
+  // Scoped to the publications list: Home's Keep writing rows also have "writing" in their link names, once loaded.
+  await page
+    .getByRole('region', { name: 'Your publications' })
+    .getByRole('link', { name: /writing/ })
+    .click()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+}
+
+/** One of the first publication's settings pages: Sharing, where it is shared, unless another is named. */
+export async function openSettings(page: Page, name = 'Sharing') {
+  await page.getByRole('link', { name: 'Wordwright' }).click()
+  await openFirstPublication(page)
+  await page.getByRole('banner').getByRole('link', { name: 'Publication settings' }).click()
+  await openSettingsPage(page, name)
+}
+
+export type Mail = { to: string; subject: string; text: string }
+
+/** Reads the "inbox": waits for an email to `to` with this subject, as the file mailer wrote it. */
+export async function waitForEmail(to: string, subject: string): Promise<Mail> {
+  let found: Mail | undefined
+  await expect
+    .poll(
+      () => {
+        const files = existsSync(e2eOutbox) ? readdirSync(e2eOutbox).sort() : []
+        const emails = files.map(
+          (f) => JSON.parse(readFileSync(join(e2eOutbox, f), 'utf8')) as Mail,
+        )
+        found = emails.filter((e) => e.to === to && e.subject === subject).at(-1)
+        return found !== undefined
+      },
+      { message: `an email "${subject}" to ${to}` },
+    )
+    .toBe(true)
+  return found!
+}
+
+export const linkIn = (mail: Mail, path: string) =>
+  mail.text.match(new RegExp(`https?://\\S+${path}\\?token=[\\w-]+`))?.[0]
+
+/** Follows the confirmation link from the signup email, then returns to the app. */
+export async function confirmEmail(page: Page, email: string) {
+  const link = linkIn(await waitForEmail(email, 'Confirm your email address'), '/verify-email')
+  expect(link, 'confirmation link in the email').toBeTruthy()
+  await page.goto(link!)
+  await expect(page.getByText('your email address is confirmed')).toBeVisible()
+  await page.getByRole('link', { name: 'Continue writing' }).click()
+  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+}
+
+/** Ada (signed in, confirmed) invites `email` from her account page, and we read the email they get. */
+export async function invite(page: Page, email: string, inviter = 'Ada') {
+  await openSettings(page)
+  await page.getByLabel('Email address').first().fill(email)
+  await page.getByRole('button', { name: 'Send invitation' }).first().click()
+  await expect(page.getByText(`Invitation sent to ${email}`)).toBeVisible()
+  const mail = await waitForEmail(email, `${inviter} invited you to write together`)
+  const link = linkIn(mail, '/accept-invite')
+  expect(link, 'invitation link in the email').toBeTruthy()
+  return link!
+}
+
+/** Invites a new person from `page` and has them register and join in their own browser; returns their page. */
+export async function joinFrom(
+  page: Page,
+  browser: Browser,
+  name: string,
+  email = `${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+) {
+  const link = await invite(page, email)
+  const them = await (await browser.newContext()).newPage()
+  await them.goto(link)
+  await them.getByRole('link', { name: 'Create an account' }).click()
+  await them.getByLabel('What should we call you?').fill(name)
+  await them.getByLabel('Username').fill(uniqueUsername())
+  await them.getByLabel('Password').fill(PASSWORD)
+  await them.getByRole('button', { name: 'Create account' }).click()
+  await expect(them.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+  return them
 }
