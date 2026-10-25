@@ -11,7 +11,7 @@ export class RateLimiter {
 
   constructor(
     private readonly max: number,
-    private readonly windowMs: number,
+    readonly windowMs: number,
     private readonly now: () => number = Date.now,
     private readonly maxKeys = 100_000,
   ) {}
@@ -29,6 +29,13 @@ export class RateLimiter {
     }
     entry.count++
     return entry.count <= this.max
+  }
+
+  /** The longest anyone refused has to wait, in words: "15 minutes", "an hour". */
+  get wait(): string {
+    const minutes = Math.round(this.windowMs / 60_000)
+    if (minutes % 60 === 0) return minutes === 60 ? 'an hour' : `${minutes / 60} hours`
+    return minutes === 1 ? 'a minute' : `${minutes} minutes`
   }
 
   /** How many keys it is keeping (for tests). */

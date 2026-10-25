@@ -11,6 +11,7 @@ import {
   type IdentityProvider,
   type Mailer,
 } from '@wordwright/core'
+import { forwardedClient } from './auth/client-address'
 import { requireUser, sameOriginOnly, type AppEnv } from './auth/middleware'
 import { createScryptHasher, type PasswordHasher } from './auth/password'
 import { RateLimiter } from './auth/rate-limit'
@@ -78,6 +79,11 @@ export interface AppDeps {
   adminEmails?: string[]
   /** Sign-ups allowed an hour, in one shared bucket (default 30). The e2e servers raise it: one run signs up many. */
   signupsPerHour?: number
+  /**
+   * The API is reached only through Caddy, which puts the client's address in X-Forwarded-For (#390). Only then is
+   * anything throttled per address; without it, the address is unknown.
+   */
+  trustProxy?: boolean
 }
 
 /** Builds the app from injected dependencies, so tests can supply fakes. */
@@ -91,8 +97,8 @@ export function createApp(deps: AppDeps) {
   })
   const clock = deps.now && (() => deps.now!().getTime())
   const limiter = (max: number, windowMs: number) => new RateLimiter(max, windowMs, clock)
-  // One shared bucket (the API doesn't see client IPs) for every way of making an account: each sends an email or
-  // adds a row. The email form and the Google callback both draw on it.
+  // One bucket shared by everyone (on top of the per-address one in authRoutes) for every way of making an account:
+  // each sends an email or adds a row. The email form and the Google callback both draw on it.
   const registerLimiter = limiter(deps.signupsPerHour ?? 30, HOUR)
   const hasher = deps.hasher ?? createScryptHasher()
   const accounts = new AccountService({
@@ -165,6 +171,14 @@ export function createApp(deps: AppDeps) {
       handleCheckLimiter: limiter(120, MINUTE),
       verificationLimiter: limiter(3, HOUR),
       registerLimiter,
+      clientAddress: deps.trustProxy ? forwardedClient : () => undefined,
+      // Per address (#390): roomy enough for a household or an office behind one address.
+      byAddress: {
+        login: limiter(30, 15 * MINUTE),
+        reset: limiter(10, 15 * MINUTE),
+        register: limiter(5, HOUR),
+        handleCheck: limiter(60, MINUTE),
+      },
     }),
   )
   const exportService = new ExportService(store, deps.now)

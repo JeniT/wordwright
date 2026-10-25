@@ -13,6 +13,12 @@ containers with Docker Compose:
 **There must be exactly one `api` container.** The rate limiter lives in its memory and the database is one file; a
 second copy would split the limits and fight over the file. Don't scale it.
 
+**The API trusts Caddy for the client's address.** The api image sets `TRUST_PROXY=true`, so sign-in and sign-up are also
+throttled per address, read from `X-Forwarded-For`. Caddy replaces whatever the client sent there with the address it
+saw. That is safe only because the api container publishes no port (`scripts/deploy-compose.test.mjs` checks): keep
+it that way, or anyone could set the header. If a CDN or another proxy is ever put in front of Caddy, every request
+would seem to come from that proxy and share one allowance: set Caddy's `trusted_proxies` to it first.
+
 The domain and DNS (Gandi), the Scaleway account and the Google sign-in are set up in their own dashboards (#349, #350);
 the server itself is set up by a wizard (next section). This page is what runs on it.
 

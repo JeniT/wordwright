@@ -39,6 +39,8 @@ export interface TestOptions {
   approvalRequired?: boolean
   adminEmails?: string[]
   signupsPerHour?: number
+  /** Behind a proxy: the client's address is read from X-Forwarded-For, as in production (#390). */
+  trustProxy?: boolean
 }
 
 /** A tiny cookie-keeping HTTP client over `app.request`, standing in for a browser. */
@@ -166,6 +168,7 @@ export function setup(options: TestOptions = {}) {
     approvalRequired: options.approvalRequired,
     adminEmails: options.adminEmails,
     signupsPerHour: options.signupsPerHour,
+    trustProxy: options.trustProxy,
     providers: { search: [] },
     feeds,
     llmFactory,

@@ -91,6 +91,7 @@ const app = createApp({
   approvalRequired: config.ACCOUNT_APPROVAL === 'required',
   adminEmails: config.ADMIN_EMAILS,
   signupsPerHour: config.SIGNUPS_PER_HOUR,
+  trustProxy: config.TRUST_PROXY,
 })
 
 // Housekeeping every 6 hours: forget abandoned signups and expired sessions/links.

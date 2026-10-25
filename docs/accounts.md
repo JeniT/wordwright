@@ -191,6 +191,13 @@ Read this when you change sign-in, registration, passwords, publications and the
   pending change. Accounts with no password (Google-only) add one first. The notice to the old address has a
   **"this wasn't me"** link (7 days, while the account still has the address it moved to): on a button press it
   restores the old address, signs out every device and emails a password-reset link there.
+- **Throttles.** Per account: 10 sign-in attempts and 10 reset requests in 15 minutes. Per client address, when the
+  API runs behind Caddy (`TRUST_PROXY=true`, set in the production image; #390): 30 sign-in attempts and 10 reset
+  requests in 15 minutes, 5 sign-ups an hour and 60 username checks a minute, so one person can't try a password
+  against many accounts. The address is the last entry of `X-Forwarded-For`, which Caddy sets; an IPv6 address counts
+  by its /64, since one connection usually has a whole /64 to choose from. Without
+  `TRUST_PROXY` (development, e2e) there is no per-address limit, since anyone could write that header. Each refusal
+  is a 429 that says how long to wait.
 - **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few

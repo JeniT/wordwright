@@ -59,6 +59,12 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ UNCONFIRMED_ACCOUNT_TTL_DAYS: '2.5' })).toThrow()
   })
 
+  it('trusts a proxy’s X-Forwarded-For only when told to (#390)', () => {
+    expect(loadConfig({}).TRUST_PROXY).toBe(false)
+    expect(loadConfig({ TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true)
+    expect(() => loadConfig({ TRUST_PROXY: 'yes' })).toThrow()
+  })
+
   it('needs both Google settings or neither', () => {
     expect(() => loadConfig({ GOOGLE_CLIENT_ID: 'id' })).toThrow(/GOOGLE_CLIENT/)
   })

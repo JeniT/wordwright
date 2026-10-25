@@ -172,12 +172,15 @@ describe('login and sessions', () => {
     await register(client())
     const c = client()
     let last = 0
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 11; i++) {
       last = (
         await c.post('/api/auth/login', { email: 'ada@example.com', password: 'wrong-wrong' })
       ).status
     }
     expect(last).toBe(429)
+    // It says how long to wait (#390).
+    const again = await c.post('/api/auth/login', { email: 'ada@example.com', password: 'x' })
+    expect((await again.json()).error).toBe('Too many attempts. Try again in 15 minutes.')
   })
 
   it('requires a session for protected routes', async () => {

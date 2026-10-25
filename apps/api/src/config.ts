@@ -60,8 +60,17 @@ const ConfigSchema = z.object({
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean),
     ),
-  /** Sign-ups allowed an hour across the whole site (the API doesn't see client IPs). */
+  /** Sign-ups allowed an hour across the whole site, whoever makes them (each address also has its own limit). */
   SIGNUPS_PER_HOUR: z.coerce.number().int().min(1).default(30),
+  /**
+   * The API is reached only through Caddy (the production image sets this). Caddy puts the client's address in
+   * X-Forwarded-For, so sign-in and sign-up can also be throttled per address (#390). Leave it off when the API can be
+   * reached any other way: then anyone could write that header.
+   */
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
 })

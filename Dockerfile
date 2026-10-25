@@ -26,8 +26,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM node:24-slim AS api
 LABEL org.opencontainers.image.source="https://github.com/JeniT/wordwright"
+# TRUST_PROXY: the api is reached only through Caddy (deploy/compose.yaml), which writes the client's address.
 ENV NODE_ENV=production \
     PORT=8787 \
+    TRUST_PROXY=true \
     DATABASE_PATH=/data/wordwright.sqlite
 WORKDIR /app
 COPY --from=api-deps --chown=node:node /app /app
