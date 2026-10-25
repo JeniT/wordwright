@@ -17,6 +17,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Every check but build and e2e (scripts/check.mjs): the same list as on a developer's machine.
       - run: pnpm check
+      # Needs the network, so it is here and not in pnpm check. A new advisory then fails CI, not every local commit.
+      - run: pnpm audit --prod --audit-level=high
       - run: pnpm build
 
   e2e:

@@ -12,8 +12,7 @@ what terms.
 | Caddy   | the 2 line (`caddy:2-alpine`)      | `Dockerfile`, `web` target; serves static files only                                               |
 | Package | exact versions in `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` everywhere, so a build never picks a newer release                |
 
-`engines.node` stays `>=24`, a floor for developers. When you change Node, change `.nvmrc` and both `FROM` lines
-together; Dependabot's Docker updates raise the `FROM` change and you complete the `.nvmrc` half in the same pull request.
+`engines.node` stays `>=24`, a floor for developers. When you change Node, change `.nvmrc`, both `FROM` lines and the table above together; `pnpm check` (`scripts/check-node-pins.mjs`) fails when they differ. Dependabot raises the `FROM` change on its own, so complete the rest in that pull request.
 
 ## Direct dependencies
 

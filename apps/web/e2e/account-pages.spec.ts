@@ -67,9 +67,11 @@ test('each page is accessible in light, in dark and on a phone, with no sideways
     await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
     await noViolations(page, `${label}, light`)
   }
-  await page.emulateMedia({ colorScheme: 'dark' })
+  // Reduced motion ends the colour transitions at once; axe measuring contrast halfway through one is a flake.
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
   for (const [label, path] of PAGES) {
     await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
     await noViolations(page, `${label}, dark`)
   }
   await page.setViewportSize({ width: 390, height: 800 })

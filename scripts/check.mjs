@@ -17,6 +17,7 @@ export function checkSteps(env) {
     'test:scripts',
     'check:docs',
     'check:licences',
+    'check:node-pins',
     'test',
   ]
 }

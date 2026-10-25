@@ -23,6 +23,7 @@
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "check:docs": "node scripts/check-doc-links.mjs",
     "check:licences": "node scripts/check-licences.mjs",
+    "check:node-pins": "node scripts/check-node-pins.mjs",
     "knip": "knip",
     "check": "node scripts/check.mjs"
   },
