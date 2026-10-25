@@ -11,7 +11,7 @@ your own branch, never `main`. Run these as **separate commands**, reading each 
 2. Decide what to rerun, using the script's answer from step 1. CI on `main` is the final gate, so a clean rebase
    doesn't earn a full rerun:
    - The rebase said the branch was already up to date: nothing has changed since your last green run, so skip this.
-   - The script said `overlap` (it also counts changes to shared files such as `domain.ts`, `package.json` and the
+   - The script said `overlap` (it also counts changes to shared files such as `domain.ts` and the
      lockfile; the list is `SHARED_SPOTS` in the script), or the rebase conflicted: rerun `pnpm check`,
      `pnpm build` and `pnpm test:e2e` on the rebased branch.
    - Otherwise (`no overlap`, no conflicts): run `pnpm typecheck` and the tests of the packages you changed (as in

@@ -52,6 +52,11 @@ export default tseslint.config(
             "Property[key.name='queryKey'] > CallExpression[callee.name='computed'] > ArrowFunctionExpression > :matches(ArrayExpression, Identifier, Literal)",
           message: 'Use a key from queryKeys in lib/queries.ts (refresh with invalidateRoots).',
         },
+        {
+          selector:
+            'CallExpression[callee.property.name=/^(setQueryData|getQueryData|invalidateQueries|removeQueries|cancelQueries)$/] > ArrayExpression.arguments:first-child',
+          message: 'Use a key from queryKeys in lib/queries.ts (refresh with invalidateRoots).',
+        },
       ],
     },
   },
