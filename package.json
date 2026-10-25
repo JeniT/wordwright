@@ -20,7 +20,7 @@
     "eval": "pnpm --filter @wordwright/evals eval",
     "eval:targets": "pnpm --filter @wordwright/evals eval:targets",
     "eval:adapter": "pnpm --filter @wordwright/evals eval:adapter",
-    "test:scripts": "node --test scripts/",
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "check:docs": "node scripts/check-doc-links.mjs",
     "check:licences": "node scripts/check-licences.mjs",
     "knip": "knip",
