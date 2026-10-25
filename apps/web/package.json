@@ -9,7 +9,8 @@
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage --coverage.include='src/**' --coverage.exclude='**/*.test.ts' --coverage.reporter=text-summary --coverage.reporter=html",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "e2e:titles": "playwright test --list | grep ' › ' | sed -E 's/^ *\\[[^]]*\\] › [^ ]+ › //' | sort"
   },
   "dependencies": {
     "@phosphor-icons/core": "^2.1.1",

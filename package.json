@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "test": "pnpm -r --workspace-concurrency=1 test",
     "test:e2e": "pnpm --filter @wordwright/web test:e2e",
+    "e2e:titles": "pnpm --silent --filter @wordwright/web e2e:titles",
     "coverage": "pnpm -r --workspace-concurrency=1 coverage",
     "eval": "pnpm --filter @wordwright/evals eval",
     "eval:targets": "pnpm --filter @wordwright/evals eval:targets",

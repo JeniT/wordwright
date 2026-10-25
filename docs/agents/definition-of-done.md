@@ -16,4 +16,4 @@ Read this before you commit, and when you plan a task's tests and docs.
    follow-up work filed as new issues; the main checkout brought up to date with `origin/main`
    (see [landing.md](landing.md)).
 5. **Committed** with a message that says what and why. Commit after each feature; for large ones, commit at
-   each green checkpoint. End the session with everything committed.
+   each green checkpoint. The final commit carries `Closes #7` (item 4). End the session with everything committed.

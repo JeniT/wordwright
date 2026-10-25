@@ -29,6 +29,12 @@ export default tseslint.config(
       'vue/multi-word-component-names': 'off',
     },
   },
+  // A spec file covers one flow; split by flow before it passes 800 lines (#385).
+  {
+    files: ['apps/web/e2e/**/*.spec.ts'],
+    ignores: ['apps/web/e2e/ideas.spec.ts'], // still over; remove once it is split
+    rules: { 'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }] },
+  },
   // Prettier owns formatting.
   {
     files: ['**/*.vue'],

@@ -21,6 +21,10 @@ each (`maxWorkers` in `apps/web/vite.config.ts`, `workers` in `apps/web/playwrig
 `pnpm coverage` (or `pnpm --filter @wordwright/api coverage`) runs a package's whole suite, prints a coverage
 summary and writes an HTML report to that package's `coverage/`. It is for finding untested code, not a gate.
 
+**Moving or renaming e2e tests:** `pnpm e2e:titles` prints the sorted test titles. Run it before and after (the
+"before" on a checkout of `origin/main`) and `diff` the two; they must match. Spec files stay under 800 lines
+(ESLint `max-lines` enforces it).
+
 ## e2e in several worktrees at once
 
 This is fine. Each worktree gets its own web and API ports (hashed from its path; CI uses fixed ones) and its own
