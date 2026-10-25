@@ -8,11 +8,19 @@
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Only our own files run (#317), so text that slips past escaping still can't run a script or send data away.
+		# The hash is the theme script inline in apps/web/index.html: change that and change this (a test checks).
+		# Styles allow inline because the editor sets them. `?`: an API response that has its own policy keeps it.
+		?Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-P9+7wJNW16jB3pOhoC+ZxMGfrcq1cSdjLv0uYNpaKQg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 		-Server
 	}
 
 	# The API streams the AI's replies as they are written, so nothing here may hold them back.
 	handle /api/* {
+		# A backstop; the API refuses anything over its own, smaller limit with a message.
+		request_body {
+			max_size 8MB
+		}
 		reverse_proxy api:8787 {
 			flush_interval -1
 		}

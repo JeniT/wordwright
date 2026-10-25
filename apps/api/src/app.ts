@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
 import {
   NoPageInfoFetcher,
@@ -36,11 +37,17 @@ import { ExportService } from './services/export'
 import { LlmKeyService } from './services/llm'
 import { EmailChangeService } from './services/email-change'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
-import { DomainError, describeError } from './errors'
+import { DomainError, describeError, fail } from './errors'
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
+
+/**
+ * The largest request the API reads (#317): roomy for a book-length draft and for a picture (`MAX_IMAGE_BYTES`, which
+ * its own route checks first), small enough that nobody can fill the server's memory with one.
+ */
+export const MAX_REQUEST_BYTES = 2 * 1024 * 1024
 
 export interface AppDeps {
   store: Store
@@ -133,6 +140,17 @@ export function createApp(deps: AppDeps) {
 
   const api = new Hono<AppEnv>()
   api.use(sameOriginOnly(new URL(publicUrl).origin))
+  const limitRequest = bodyLimit({
+    maxSize: MAX_REQUEST_BYTES,
+    onError: () => {
+      throw fail(413, 'That’s too large to send in one go. Make it shorter and try again.')
+    },
+  })
+  // A picture upload has its own, smaller limit, and a message that says how small the picture must be.
+  const pictureUpload = /^\/api\/publications\/[^/]+\/image$/
+  api.use((c, next) =>
+    c.req.method === 'PUT' && pictureUpload.test(c.req.path) ? next() : limitRequest(c, next),
+  )
   api.route(
     '/auth',
     authRoutes({

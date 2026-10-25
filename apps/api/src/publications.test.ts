@@ -451,6 +451,14 @@ describe('publication image', () => {
     expect((await ada.get(url())).status).toBe(404)
   })
 
+  it('says the same about a photo far over the limit (the route’s own limit, not the API’s general one)', async () => {
+    const photo = new Uint8Array(5 * 1024 * 1024)
+    photo.set(PNG_BYTES)
+    const res = await ada.putBytes(url(), photo, 'image/png')
+    expect(res.status).toBe(413)
+    expect((await res.json()).error).toMatch(/under 1 MB/)
+  })
+
   it('can be seen by members, changed only by the owner, and is hidden from everyone else', async () => {
     await ada.putBytes(url(), PNG_BYTES)
     expect((await bob.get(url())).status).toBe(404)

@@ -41,21 +41,26 @@ see exactly what runs as root.
 
 ## The files
 
-| File                            | What it is                                                                                      |
-| ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `Dockerfile`                    | Builds both images (`--target api` and `--target web`).                                         |
-| `deploy/compose.yaml`           | The two services, the volumes, the health check, and a cap on log size (the disk is small).     |
-| `deploy/Caddyfile`              | HTTPS, security headers, the web app with its fallback page, `/api/*` and `/health` to the API. |
-| `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed. |
-| `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                     |
-| `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                              |
-| `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                     |
-| `deploy/backup.sh`              | One backup onto the server's own disk, and off-site if set up; the nightly timer runs it.       |
-| `deploy/rollback.sh`            | Back to an older build and the database from before the update.                                 |
-| `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                        |
-| `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                       |
-| `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                      |
-| `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                   |
+| File                            | What it is                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Dockerfile`                    | Builds both images (`--target api` and `--target web`).                                                                            |
+| `deploy/compose.yaml`           | The two services, the volumes, the health check, and a cap on log size (the disk is small).                                        |
+| `deploy/Caddyfile`              | HTTPS, security headers (with the Content-Security-Policy), the web app with its fallback page, `/api/*` and `/health` to the API. |
+| `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed.                                    |
+| `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                                                        |
+| `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                                                                 |
+| `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                                                        |
+| `deploy/backup.sh`              | One backup onto the server's own disk, and off-site if set up; the nightly timer runs it.                                          |
+| `deploy/rollback.sh`            | Back to an older build and the database from before the update.                                                                    |
+| `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                                                           |
+| `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                                                          |
+| `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                                                         |
+| `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                                                      |
+
+**The Content-Security-Policy** in `deploy/Caddyfile` lets the page run only its own files and the one inline script in
+`apps/web/index.html`, which it names by hash. Change that script and the page stops applying a saved theme until the hash
+is updated too; `pnpm test:scripts` fails until it is. A request to `/api` over 8 MB is refused by Caddy, and the API
+refuses anything over 2 MB itself (a picture: over 1 MB) with a message.
 
 `/health` says the process is up (it is published, for uptime monitors). `/ready` says the database is open and every
 migration has run; the container's health check uses it, and Caddy does not publish it. The API runs from its
