@@ -74,8 +74,8 @@ test('each page is accessible in light, in dark and on a phone, with no sideways
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
     // The dev server adds each stylesheet as its script runs; on a busy machine axe could measure the page
-    // with the dark background applied and the text still black. Wait for the dark ink (--ink, #f1e9e1).
-    await expect(page.locator('body')).toHaveCSS('color', 'rgb(241, 233, 225)')
+    // with some of them missing (dark background, black links). Idle network means they have all arrived.
+    await page.waitForLoadState('networkidle')
     await noViolations(page, `${label}, dark`)
   }
   await page.setViewportSize({ width: 390, height: 800 })
@@ -89,6 +89,7 @@ test('each page is accessible in light, in dark and on a phone, with no sideways
   for (const [label, path] of PAGES) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    await page.waitForLoadState('networkidle')
     await noViolations(page, `${label}, phone`)
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
