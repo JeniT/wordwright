@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useTemplateRef, watch } from 'vue'
 import { api } from '../lib/api'
+import { invalidateRoots, queryKeys } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 import QueryState from './QueryState.vue'
 import RowList from './RowList.vue'
@@ -10,16 +11,15 @@ import SwitchField from './SwitchField.vue'
 
 const session = useSessionStore()
 const queryClient = useQueryClient()
-const key = ['invitation-blocks']
 
 // Managing blocks needs a confirmed address, so an unconfirmed account can't lift someone else's.
 const blocks = useQuery({
-  queryKey: key,
+  queryKey: queryKeys.invitationBlocks(),
   queryFn: () => api.getInvitationBlocks(),
   enabled: !!session.user?.emailVerified,
   retry: false,
 })
-const refresh = () => queryClient.invalidateQueries({ queryKey: key })
+const refresh = () => invalidateRoots(queryClient, 'invitation-blocks')
 const setAll = useMutation({
   mutationFn: (blocked: boolean) => api.setBlockAllInvitations(blocked),
   onSuccess: refresh,

@@ -8,8 +8,8 @@ calls the API, and it validates responses with the shared schemas. `src/theme/` 
 (`palette-ember.css`, the only place a colour is chosen) and the components built on it (`theme.css`).
 
 - **Web queries:** query keys and the queries screens share (`useIdea`, `useIdeas`, `useIdeaNotes`, `useSources`,
-  `useDraft`) live in `apps/web/src/lib/queries.ts`. Take keys from there, never a key literal in a component; refresh
-  with `invalidateRoots` / `refreshNotesEverywhere`.
+  `useDraft`) live in `apps/web/src/lib/queries.ts`, and lint requires every `queryKey` to come from `queryKeys`
+  there. Refresh with `invalidateRoots` / `refreshNotesEverywhere`.
 - **Loading and errors:** wrap anything fetched with `useQuery` in `QueryState` (or `IdeaGate` / `PublicationGate`
   for a whole page), which supplies the loading and error text.
 - **Saving:** show a form's result with `SaveStatus`, and fill fields from saved values with `useSavedValue`

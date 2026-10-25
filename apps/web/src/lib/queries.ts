@@ -61,6 +61,8 @@ export const queryKeys = {
   adminAccounts: () => ['admin-accounts'] as const,
   /** Invitations to join a publication that are waiting for this person. */
   myInvitations: () => ['my-invitations'] as const,
+  /** The inviters this person has blocked, and whether they block everyone. */
+  invitationBlocks: () => ['invitation-blocks'] as const,
   /** The drafts to keep writing, within a publication or an idea or (neither) across all of them, `limit` of them. */
   activeDrafts: (scope: ActiveScope, limit: number) =>
     ['active-drafts', scope.publicationId ?? null, scope.ideaId ?? null, limit] as const,
@@ -87,7 +89,6 @@ export type QueryRoot =
   | 'comments'
   | 'critique'
   | 'conversation'
-  | 'critique'
   | 'draft'
   | 'draft-handover'
   | 'devices'
@@ -99,6 +100,7 @@ export type QueryRoot =
   | 'idea'
   | 'idea-move-preview'
   | 'ideas'
+  | 'invitation-blocks'
   | 'invitations'
   | 'me'
   | 'my-invitations'

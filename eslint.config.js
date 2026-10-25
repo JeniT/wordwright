@@ -35,6 +35,26 @@ export default tseslint.config(
     ignores: ['apps/web/e2e/ideas.spec.ts'], // still over; remove once it is split
     rules: { 'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }] },
   },
+  // Query keys come from lib/queries.ts, so a typo or renamed root can't silently stop a page refreshing (#387).
+  {
+    files: ['apps/web/src/**/*.{ts,vue}'],
+    ignores: ['apps/web/src/lib/queries.ts', '**/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Property[key.name='queryKey']:not([value.callee.object.name='queryKeys']):not([value.callee.name='computed'])",
+          message: 'Use a key from queryKeys in lib/queries.ts (refresh with invalidateRoots).',
+        },
+        {
+          selector:
+            "Property[key.name='queryKey'] > CallExpression[callee.name='computed'] > ArrowFunctionExpression > :matches(ArrayExpression, Identifier, Literal)",
+          message: 'Use a key from queryKeys in lib/queries.ts (refresh with invalidateRoots).',
+        },
+      ],
+    },
+  },
   // A test may define small host components around the one it tests.
   {
     files: ['**/*.test.ts'],
