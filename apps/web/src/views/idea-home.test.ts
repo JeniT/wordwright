@@ -177,7 +177,7 @@ describe('an idea’s landing page', () => {
     ).toBeInTheDocument()
     expect(router.currentRoute.value.name).toBe('idea')
     expect(
-      within(screen.getByRole('main')).getByRole('link', { name: 'Substack' }),
+      await within(screen.getByRole('main')).findByRole('link', { name: 'Substack' }),
     ).toHaveAttribute('href', '/p/ada-substack')
     // It is none of the steps, so the menu marks nothing current.
     const nav = screen.getByRole('navigation', { name: 'Idea' })

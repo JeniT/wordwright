@@ -569,7 +569,7 @@ describe('moving articles', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(f.moves).toHaveLength(2))
     expect(f.moves[1]).toEqual({ ids: ['l1'], to: { ideaId: null } }) // back to the publication's own list
-    expect(await screen.findByRole('status')).toHaveTextContent('Moved back.')
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Moved back.'))
     expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
   })
 

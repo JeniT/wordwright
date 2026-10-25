@@ -97,7 +97,7 @@ export const server = setupServer(
  */
 export function useMockServer({ warm = [] }: { warm?: string[] } = {}) {
   beforeAll(async () => {
-    server.listen({ onUnhandledRequest: 'error' })
+    server.listen({ onUnhandledFrame: 'error' })
     await Promise.all([import('./App.vue'), ...warm.map(loadRoute)])
   })
   // Every account page loads this section, so tests about something else needn't mock it.

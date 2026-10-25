@@ -809,7 +809,7 @@ describe('the notes beside the draft', () => {
       'href',
       '/p/p1/ideas/i1/refine',
     )
-    expect(notes.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
+    expect(await notes.findByRole('link', { name: /A paper/ })).toBeInTheDocument()
     expect(notes.getAllByText('Bob')[0]).toHaveClass('rounded-full') // the person, as a chip, not "by Bob"
     expect(notes.queryByText('Already used.')).toBeNull()
   })
@@ -877,6 +877,8 @@ describe('the notes beside the draft', () => {
     it('adds a link to the article a note came from', async () => {
       const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await fireEvent.click(
         await screen.findByRole('button', { name: /^Insert at cursor: note “A useful quote\.”/ }),
       )
@@ -989,6 +991,8 @@ describe('the notes beside the draft', () => {
     it('keeps the source link with a note taken from a source, as the button does', async () => {
       const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await screen.findByText('A useful quote.')
       await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n3'))
       await waitFor(() => expect(api.posted).toHaveLength(1))
@@ -1021,6 +1025,8 @@ describe('the notes beside the draft', () => {
         authors: ['Ada Lovelace', 'Bo Chen'],
       })
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await screen.findByText('Erosion loops.')
       await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'l1'))
 
@@ -1034,6 +1040,8 @@ describe('the notes beside the draft', () => {
     it('asks first when the dropped article is not marked read, and inserts nothing yet', async () => {
       const api = mockDrafting()
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await screen.findByText('Erosion loops.')
       await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'l1'))
       expect(
@@ -1175,7 +1183,7 @@ describe('the notes beside the draft', () => {
     })
 
     it('makes the link something that can be opened: Ctrl or Cmd and click opens it, a plain click only edits', async () => {
-      mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
+      const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       const open = vi.spyOn(window, 'open').mockImplementation(() => null)
       await renderAt('/p/p1/drafts/d1')
       await insertLink()
@@ -1192,12 +1200,16 @@ describe('the notes beside the draft', () => {
       expect(open).toHaveBeenCalledWith('https://example.org/paper', '_blank', 'noopener')
       await fireEvent.click(link, { metaKey: true })
       expect(open).toHaveBeenCalledTimes(2)
+      // Inserting the link saves the draft; wait for that, so it can't arrive during the next test.
+      await waitFor(() => expect(api.saved).toHaveLength(1))
     })
 
     describe('when it is not marked read', () => {
       it('asks first, with the safe choice focused, and offers to read it, mark it read, or cancel', async () => {
         const api = mockDrafting()
         await renderAt('/p/p1/drafts/d1')
+        // The article list arrives separately from the notes; the insert needs it.
+        await screen.findByRole('link', { name: /A paper/ })
         await insertLink()
         const box = await dialog()
         expect(box).toHaveTextContent('“A paper” is in your articles')

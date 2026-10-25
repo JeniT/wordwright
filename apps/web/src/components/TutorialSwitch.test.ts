@@ -59,10 +59,18 @@ describe('the Tutorial switch in the menu', () => {
 
   it('turns on again from off', async () => {
     signedInWith(false)
-    server.use(http.put('*/api/account/tutorial', () => HttpResponse.json({ on: true })))
+    const puts: unknown[] = []
+    server.use(
+      http.put('*/api/account/tutorial', async ({ request }) => {
+        puts.push(await request.json())
+        return HttpResponse.json({ on: true })
+      }),
+    )
     await renderAt('/')
     await fireEvent.click(await tutorialSwitch())
     await waitFor(async () => expect(await tutorialSwitch()).toBeChecked())
+    // Wait for the save, so it can't arrive during the next test and reach that test's handlers.
+    await waitFor(() => expect(puts).toEqual([{ on: true }]))
   })
 
   it('goes back and becomes unavailable until the page is reloaded when it could not be saved', async () => {

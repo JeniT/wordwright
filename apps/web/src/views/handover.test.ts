@@ -188,8 +188,9 @@ describe('handing a draft over (#155)', () => {
     expect(offered).toHaveTextContent('Ada Lovelace has offered you this draft')
     await fireEvent.click(within(offered).getByRole('button', { name: 'Decline' }))
     await fireEvent.click(within(offered).getByRole('button', { name: 'Accept' }))
+    // Both are sent at once, so the order they arrive in is not the test's business.
     await waitFor(() =>
-      expect(calls.map((c) => c.path)).toEqual(['/offer/decline', '/offer/accept']),
+      expect(calls.map((c) => c.path).sort()).toEqual(['/offer/accept', '/offer/decline']),
     )
   })
 
