@@ -35,6 +35,11 @@ export default tseslint.config(
     ignores: ['apps/web/e2e/ideas.spec.ts'], // still over; remove once it is split
     rules: { 'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }] },
   },
+  // A test may define small host components around the one it tests.
+  {
+    files: ['**/*.test.ts'],
+    rules: { 'vue/one-component-per-file': 'off' },
+  },
   // Prettier owns formatting.
   {
     files: ['**/*.vue'],

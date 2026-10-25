@@ -27,10 +27,10 @@ defineEmits<{ press: [] }>()
 
 <template>
   <button
+    v-tip="title"
     type="button"
     class="btn btn-sm btn-icon btn-ghost"
     :aria-label="label"
-    v-tip="title"
     :aria-pressed="popup === 'true' || momentary ? undefined : pressed"
     :disabled="disabled"
     :aria-disabled="unavailable ? true : undefined"

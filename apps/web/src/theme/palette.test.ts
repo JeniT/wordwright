@@ -7,12 +7,14 @@ import { describe, expect, it } from 'vitest'
 // you at once if text or a control would stop being readable. See docs/design/colour-type-shape.md.
 const css = readFileSync(resolve(process.cwd(), 'src/theme/palette-ember.css'), 'utf8')
 
-function block(selector: string): Record<string, string> {
+function body(selector: string): string {
   const start = css.indexOf(selector + ' {')
   expect(start, `${selector} block`).toBeGreaterThanOrEqual(0)
-  const body = css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start))
+  return css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start))
+}
+function block(selector: string): Record<string, string> {
   return Object.fromEntries(
-    [...body.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]!]),
+    [...body(selector).matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]!]),
   )
 }
 const light = block(':root')
@@ -98,4 +100,15 @@ describe('the dark palette', () => {
   it('has every colour the light palette has', () => {
     expect(Object.keys(dark).sort()).toEqual(Object.keys(light).sort())
   })
+})
+
+describe('the palette file', () => {
+  // A token set twice in one block hides the first value: only the last one counts.
+  it.each([':root', ":root[data-theme='dark']", ":root:not([data-theme='light'])"])(
+    'sets each token once in %s',
+    (selector) => {
+      const names = [...body(selector).matchAll(/(--[\w-]+):/g)].map((m) => m[1]!)
+      expect(names.filter((name, i) => names.indexOf(name) !== i)).toEqual([])
+    },
+  )
 })

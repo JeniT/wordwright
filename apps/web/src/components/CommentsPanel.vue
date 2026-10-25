@@ -62,7 +62,7 @@ const props = withDefaults(
     /** Shows the Add comment button; a page with its own (a reviewer's) turns it off. */
     canComment?: boolean
   }>(),
-  { canComment: true },
+  { canComment: true, resolveProblem: undefined },
 )
 const emit = defineEmits<{
   /** A comment was pressed: show it in the draft. */

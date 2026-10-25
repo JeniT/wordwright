@@ -18,7 +18,7 @@ const props = withDefaults(
     /** False keeps the confirm button disabled, for a dialog that asks for a choice first. */
     canConfirm?: boolean
   }>(),
-  { canConfirm: true },
+  { canConfirm: true, busyLabel: undefined, alternateLabel: undefined, confirmTone: undefined },
 )
 const emit = defineEmits<{ confirm: []; cancel: []; alternate: [] }>()
 
