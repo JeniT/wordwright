@@ -61,6 +61,7 @@ test('the gear opens the account level, the menu moves between its pages, and /a
 test('each page is accessible in light, in dark and on a phone, with no sideways scroll', async ({
   page,
 }) => {
+  test.slow() // about 25s on its own, so a busy machine passes the 30s default
   await signUp(page)
   for (const [label, path] of PAGES) {
     await page.goto(path)
@@ -72,6 +73,9 @@ test('each page is accessible in light, in dark and on a phone, with no sideways
   for (const [label, path] of PAGES) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    // The dev server adds each stylesheet as its script runs; on a busy machine axe could measure the page
+    // with the dark background applied and the text still black. Wait for the dark ink (--ink, #f1e9e1).
+    await expect(page.locator('body')).toHaveCSS('color', 'rgb(241, 233, 225)')
     await noViolations(page, `${label}, dark`)
   }
   await page.setViewportSize({ width: 390, height: 800 })
