@@ -12,22 +12,22 @@
     "coverage": "vitest run --coverage --coverage.include='src/**' --coverage.exclude='**/*.test.ts' --coverage.reporter=text-summary --coverage.reporter=html"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.4",
+    "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
     "@wordwright/core": "workspace:*",
     "@wordwright/prompts": "workspace:*",
     "fast-xml-parser": "^5.11.2",
     "hono": "^4.13.13",
-    "jose": "^6.2.12",
+    "jose": "^6.2.13",
     "nodemailer": "^10.2.1",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/nodemailer": "^8.0.2",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.5",
     "mailparser": "^3.12.4",
     "smtp-server": "^3.21.1",
     "vitest": "^5.0.5"
