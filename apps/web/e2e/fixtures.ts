@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { e2eOutbox } from '../playwright.config'
@@ -325,4 +326,35 @@ export async function joinFrom(
   await them.getByRole('button', { name: 'Create account' }).click()
   await expect(them.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   return them
+}
+
+export async function signUpWithPublication(page: Page) {
+  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+  await page.goto('/register')
+  await page.getByLabel('What should we call you?').fill('Ida')
+  await page.getByLabel('Username').fill(`u${id}`)
+  await page.getByLabel('Email').fill(`ida-${id}@example.com`)
+  await page.getByLabel('Password').fill('a perfectly good password')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await page.getByRole('link', { name: 'New publication' }).click()
+  await page.getByLabel('Publication name', { exact: true }).fill('Weekly letters')
+  await page.getByRole('button', { name: 'Create publication' }).click()
+  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
+}
+
+/** Goes to the Draft step, adds a draft and waits for the editor, so we don't type into the old page. */
+export async function startDraft(page: Page) {
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await expect(page.getByRole('link', { name: '← All drafts' })).toBeVisible()
+}
+
+export const noViolations = async (page: Page, what: string) =>
+  expect((await new AxeBuilder({ page }).analyze()).violations, what).toEqual([])
+
+/** Signs up with a publication and creates the idea "Why rivers meander" (with its first note), ending on the idea's page. */
+export async function startIdea(page: Page) {
+  await signUpWithPublication(page)
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/) // the idea's own page
 }

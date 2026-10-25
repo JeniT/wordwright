@@ -32,7 +32,6 @@ export default tseslint.config(
   // A spec file covers one flow; split by flow before it passes 800 lines (#385).
   {
     files: ['apps/web/e2e/**/*.spec.ts'],
-    ignores: ['apps/web/e2e/ideas.spec.ts'], // still over; remove once it is split
     rules: { 'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }] },
   },
   // Query keys come from lib/queries.ts, so a typo or renamed root can't silently stop a page refreshing (#387).
