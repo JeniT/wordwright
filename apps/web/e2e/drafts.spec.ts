@@ -419,7 +419,7 @@ test('rephrases a passage: select words, state an aim, choose and edit an option
   await list
     .getByRole('listitem')
     .nth(1)
-    .getByRole('button', { name: /Replace the wording/ })
+    .getByRole('button', { name: /Replace wording/ })
     .click()
   await expect(dialog.getByLabel('Current wording')).toHaveValue('Fake option 2 of round 2.')
   await dialog.getByLabel('Current wording').fill('Fake option 2 of round 2, in my words.')
@@ -489,7 +489,7 @@ test('rephrases the title once the draft is long enough, and records the option 
   await list
     .getByRole('listitem')
     .first()
-    .getByRole('button', { name: /Replace the wording/ })
+    .getByRole('button', { name: /Replace wording/ })
     .click()
   await dialog.getByRole('button', { name: 'Use this' }).click()
   await expect(dialog).toHaveCount(0)
