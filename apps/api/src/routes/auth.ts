@@ -12,8 +12,8 @@ import {
   safeNextPath,
   VerifyEmailInputSchema,
   type AuthConfig,
+  type IdentityProvider,
 } from '@wordwright/core'
-import type { IdentityProvider } from '../auth/identity'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { describeDevice } from '../auth/device'

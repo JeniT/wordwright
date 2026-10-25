@@ -1,6 +1,7 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { identityProviderContract } from '@wordwright/core/testing'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { googleProvider, OidcProvider } from './identity'
+import { googleProvider, OidcProvider } from './oidc'
 
 const ISSUER = 'https://idp.example'
 const CLIENT_ID = 'client-123'
@@ -27,7 +28,7 @@ function idToken(claims: Record<string, unknown> = {}, key = signingKey, aud = C
     ...claims,
   })
     .setProtectedHeader({ alg: 'RS256' })
-    .setSubject('sub-1')
+    .setSubject(typeof claims.sub === 'string' ? claims.sub : 'sub-1')
     .setIssuer(ISSUER)
     .setAudience(aud)
     .setIssuedAt()
@@ -35,7 +36,7 @@ function idToken(claims: Record<string, unknown> = {}, key = signingKey, aud = C
     .sign(key)
 }
 
-function provider(respond: () => Promise<Response>) {
+function provider(respond: (body: URLSearchParams) => Promise<Response>, clientSecret = 'shh') {
   const requests: { url: string; body: URLSearchParams }[] = []
   const p = new OidcProvider({
     id: 'test',
@@ -45,11 +46,11 @@ function provider(respond: () => Promise<Response>) {
     tokenEndpoint: `${ISSUER}/token`,
     jwksUri: `${ISSUER}/jwks`,
     clientId: CLIENT_ID,
-    clientSecret: 'shh',
+    clientSecret,
     jwks,
     fetch: async (url, init) => {
       requests.push({ url: String(url), body: init!.body as URLSearchParams })
-      return respond()
+      return respond(init!.body as URLSearchParams)
     },
   })
   return { p, requests }
@@ -57,6 +58,27 @@ function provider(respond: () => Promise<Response>) {
 
 const exchange = { code: 'c', codeVerifier: 'v', redirectUri: 'https://app/cb', nonce: 'n-1' }
 const tokenResponse = async (token: Promise<string>) => Response.json({ id_token: await token })
+
+// The token endpoint is stubbed: it accepts one code and answers with an ID token, signed by the
+// test key, for whoever the contract asks the identity provider to vouch for.
+identityProviderContract('oidc', async ({ identity, nonce }) => {
+  const clientSecret = 'client-secret-7d3f'
+  const { p } = provider(async (body) => {
+    if (body.get('code') !== 'good-code') {
+      return Response.json({ error: 'invalid_grant' }, { status: 400 })
+    }
+    return tokenResponse(
+      idToken({
+        sub: identity.subject,
+        email: identity.email,
+        email_verified: identity.emailVerified,
+        name: identity.name,
+        nonce,
+      }),
+    )
+  }, clientSecret)
+  return { provider: p, goodCode: 'good-code', badCode: 'bad-code', secrets: [clientSecret] }
+})
 
 describe('OidcProvider', () => {
   it('builds an authorization URL with state, nonce and an S256 PKCE challenge', () => {

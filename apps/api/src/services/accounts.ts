@@ -1,5 +1,11 @@
-import type { Approval, RegisterInput, SignedInDevice, User } from '@wordwright/core'
-import type { IdentityClaims } from '../auth/identity'
+import type {
+  Approval,
+  RegisterInput,
+  SignedInDevice,
+  User,
+  IdentityClaims,
+  Mailer,
+} from '@wordwright/core'
 import { UNKNOWN_DEVICE } from '../auth/device'
 import type { PasswordHasher } from '../auth/password'
 import { generateToken, hashToken } from '../auth/secrets'
@@ -7,7 +13,6 @@ import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { fail, notFound } from '../errors'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
 import {
   passwordChangedEmail,
   passwordResetEmail,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FakeIdentityProvider } from './auth/identity'
+import { FakeIdentityProvider } from '@wordwright/core'
 import { seedAdminAccount } from './services/admin'
 import { PASSWORD, lastResetToken, setup, signUp } from './test-helpers'
 

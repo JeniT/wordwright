@@ -87,7 +87,9 @@ Application code depends on **ports** in `packages/core/src/providers`, never on
 - `ResearchProvider` — finds pages for the Research step (`AnthropicResearchProvider`, `FakeResearchProvider`).
 - `FeedFetcher` and `PageInfoFetcher` — read a feed, or a page's title and authors, from an address a person typed
   (SSRF-guarded; fakes for tests).
-- `Mailer` (`apps/api/src/mail`) — email: `console`, `file` or `smtp`.
+- `Mailer` — email. Adapters in `apps/api/src/mail` (`console`, `file`, `smtp`); `MemoryMailer` for tests.
+- `IdentityProvider` — "log in with X". `OidcProvider` (`apps/api/src/auth/oidc.ts`) covers Google and any other
+  OpenID Connect service; `FakeIdentityProvider` for tests.
 - `SearchProvider` — for news, web and scholarly sources (Crossref, OpenAlex, ...). Only a fake exists so far.
 
 **Prompts** (the instructions given to the AI) are not in code: they are Markdown files in [`prompts/`](prompts/README.md).

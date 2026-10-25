@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Email, Mailer } from './mailer'
+import type { Email, Mailer } from '@wordwright/core'
 
 /**
  * Writes each email as a JSON file in a directory instead of sending it. Handy for local

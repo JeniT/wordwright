@@ -1,4 +1,5 @@
-import { ConsoleMailer, type Mailer } from './mailer'
+import type { Mailer } from '@wordwright/core'
+import { ConsoleMailer } from './console-mailer'
 import { FileMailer } from './file-mailer'
 import { SmtpMailer } from './smtp-mailer'
 

@@ -1,9 +1,8 @@
-import type { AdminAccounts, AdminDecision } from '@wordwright/core'
+import type { AdminAccounts, AdminDecision, Mailer } from '@wordwright/core'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { fail } from '../errors'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
 import { approvedEmail, declinedEmail } from '../mail/templates'
 
 export interface AdminServiceDeps {

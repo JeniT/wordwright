@@ -13,15 +13,16 @@ import {
   type LLMRequest,
   type ResearchFinding,
   type ResearchRequest,
+  type IdentityProvider,
+  MemoryMailer,
+  type Mailer,
 } from '@wordwright/core'
 import { crc32, inflateRawSync } from 'node:zlib'
 import { createApp } from './app'
 import { exampleFeeds } from './feeds/factory'
-import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
 import { openDatabase } from './db/database'
 import { createStore } from './db/store'
-import { MemoryMailer, type Mailer } from './mail/mailer'
 
 export const PUBLIC_URL = 'http://localhost:5173'
 

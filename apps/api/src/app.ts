@@ -7,14 +7,14 @@ import {
   type ResearchFactory,
   type PageInfoFetcher,
   type Providers,
+  type IdentityProvider,
+  type Mailer,
 } from '@wordwright/core'
-import type { IdentityProvider } from './auth/identity'
 import { requireUser, sameOriginOnly, type AppEnv } from './auth/middleware'
 import { createScryptHasher, type PasswordHasher } from './auth/password'
 import { RateLimiter } from './auth/rate-limit'
 import { createSecretBox } from './auth/secret-box'
 import type { Store } from './db/store'
-import type { Mailer } from './mail/mailer'
 import { accountRoutes } from './routes/account'
 import { adminRoutes } from './routes/admin'
 import { AdminService } from './services/admin'

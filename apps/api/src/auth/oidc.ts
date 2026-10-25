@@ -1,33 +1,5 @@
+import type { AuthorizationParams, CodeExchange, IdentityProvider } from '@wordwright/core'
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose'
-
-export interface IdentityClaims {
-  /** Stable, provider-scoped user id. Never use the email as the identity key. */
-  subject: string
-  email: string
-  emailVerified: boolean
-  name: string
-}
-
-/**
- * Port for "log in with X". Anything speaking OpenID Connect can be added with
- * `OidcProvider`; others implement this interface directly.
- */
-export interface IdentityProvider {
-  readonly id: string
-  readonly label: string
-  authorizationUrl(params: {
-    state: string
-    nonce: string
-    codeChallenge: string
-    redirectUri: string
-  }): string
-  exchangeCode(params: {
-    code: string
-    codeVerifier: string
-    redirectUri: string
-    nonce: string
-  }): Promise<IdentityClaims>
-}
 
 export interface OidcProviderOptions {
   id: string
@@ -58,12 +30,7 @@ export class OidcProvider implements IdentityProvider {
     this.jwks = o.jwks ?? createRemoteJWKSet(new URL(o.jwksUri))
   }
 
-  authorizationUrl(p: {
-    state: string
-    nonce: string
-    codeChallenge: string
-    redirectUri: string
-  }) {
+  authorizationUrl(p: AuthorizationParams) {
     const url = new URL(this.o.authorizationEndpoint)
     url.search = new URLSearchParams({
       response_type: 'code',
@@ -78,12 +45,7 @@ export class OidcProvider implements IdentityProvider {
     return url.toString()
   }
 
-  async exchangeCode(p: {
-    code: string
-    codeVerifier: string
-    redirectUri: string
-    nonce: string
-  }) {
+  async exchangeCode(p: CodeExchange) {
     const res = await this.fetch(this.o.tokenEndpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -127,30 +89,4 @@ export function googleProvider(clientId: string, clientSecret: string): OidcProv
     clientId,
     clientSecret,
   })
-}
-
-/** Test double: "authenticates" as whatever claims it was given, checking only the plumbing. */
-export class FakeIdentityProvider implements IdentityProvider {
-  readonly exchanged: { code: string; codeVerifier: string; nonce: string }[] = []
-
-  constructor(
-    public claims: IdentityClaims,
-    readonly id = 'fake',
-    readonly label = 'Fake',
-  ) {}
-
-  authorizationUrl(p: {
-    state: string
-    nonce: string
-    codeChallenge: string
-    redirectUri: string
-  }) {
-    return `https://idp.test/authorize?state=${p.state}&nonce=${p.nonce}&cc=${p.codeChallenge}`
-  }
-
-  async exchangeCode(p: { code: string; codeVerifier: string; nonce: string }) {
-    if (p.code !== 'good-code') throw new Error('bad code')
-    this.exchanged.push({ code: p.code, codeVerifier: p.codeVerifier, nonce: p.nonce })
-    return this.claims
-  }
 }

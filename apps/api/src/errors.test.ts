@@ -75,7 +75,7 @@ describe('logging', () => {
       'app.ts',
       'server.ts',
       'mail/background.ts',
-      'mail/mailer.ts', // the console mailer, which production refuses to start with
+      'mail/console-mailer.ts', // the console mailer, which production refuses to start with
       'routes/assist.ts',
       'services/brainstorm.ts',
       'services/icon-backfill.ts',

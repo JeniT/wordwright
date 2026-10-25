@@ -1,10 +1,9 @@
-import type { Draft, HandoverState } from '@wordwright/core'
+import type { Draft, HandoverState, Mailer } from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { fail } from '../errors'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
 import { handoverOfferEmail } from '../mail/templates'
 import { requireEditor } from './draft-editor'
 

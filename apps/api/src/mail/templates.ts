@@ -1,4 +1,4 @@
-import type { Email } from './mailer'
+import type { Email } from '@wordwright/core'
 
 const escapeHtml = (s: string) =>
   s.replace(

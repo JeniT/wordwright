@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FakeIdentityProvider } from './auth/identity'
+import { FakeIdentityProvider } from '@wordwright/core'
 import { loadConfig } from './config'
 import { setAdminByEmail } from './services/admin'
 import {
@@ -397,7 +397,8 @@ describe('the owner signing up for the first time', () => {
     const state = new URL(start.headers.get('location')!).searchParams.get('state')!
     const res = await client.get(`/api/auth/oauth/google/callback?code=good-code&state=${state}`)
     expect(res.headers.get('location')).not.toContain('error=')
-    expect(ctx.store.users.findByEmail('Owner@Example.com')?.approval).toBe('approved')
+    // Identity providers lower-case the address, as OidcProvider does.
+    expect(ctx.store.users.findByEmail('owner@example.com')?.approval).toBe('approved')
     expect(await (await client.get('/api/auth/me')).json()).toMatchObject({
       approval: 'approved',
       isAdmin: true,

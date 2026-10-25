@@ -4,6 +4,7 @@ import type {
   InvitationBlocks,
   InvitationPreview,
   MyInvitation,
+  Mailer,
 } from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
@@ -11,7 +12,6 @@ import type { InvitationRecord } from '../db/invitations'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
 import { invitationEmail } from '../mail/templates'
 import type { AccountService } from './accounts'
 
