@@ -46,7 +46,7 @@ function whenInPage(selector: string): Promise<string | null> {
 }
 
 /** Pages a reviewer-only account may open (the others are open to everyone, or for guests). */
-const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing'])
+const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing', 'account-delete'])
 
 export const routes: RouteRecordRaw[] = [
   {

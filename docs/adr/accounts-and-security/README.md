@@ -10,6 +10,7 @@ Read this when you change sessions, passwords, email, linking, deleting an accou
 - [Changing your display name](changing-your-display-name.md): the name others see is read live, never copied
 - [Email confirmation: gate sharing, not writing](email-confirmation-gate-sharing-not-writing.md)
 - [Email: provider-neutral SMTP; sent after responding; zero-setup default](email-provider-neutral-smtp-sent-after-responding-zero-setup-default.md)
+- [Open to under-18s: no age gate, and no 18+ statement](open-to-under-18s-no-age-gate.md): the Online Safety Act reasoning; risk is kept low by design
 - [Passwords: scrypt from `node:crypto`](passwords-scrypt-from-nodecrypto.md)
 - [Sessions: opaque cookie, hashed in the database](sessions-opaque-cookie-hashed-in-the-database.md)
 - [Where you're signed in: a label and a time, nothing else (#165)](where-youre-signed-in-a-label-and-a-time.md): sessions show a device label and a time, with no IP or location

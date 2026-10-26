@@ -84,7 +84,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   edits, and the dialog says so (sending again makes a new copy). People by email get a 7-day link (`/review-invite`)
   bound to that address, with the same quiet `202`, throttles and blocks as publication invitations; a new person makes a
   **reviewer-only account** with just a name and password (no username, no publication) and lands on the review itself, and every route outside
-  `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. Members of the
+  `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. The web app offers the deletion as a **Delete your account** link at the foot of the reviewer's Drafts to review page (`/account/delete`, the one account page a reviewer-only account may open; it leaves out the download step, since they have nothing to download) (#408). Members of the
   publication can be asked directly and find the review on their home page. A review is _open_, _ended_ (the reviewer
   pressed **End review**: the editor is emailed once, "X has finished reviewing Y and left N comments") or _closed_
   (the editor or an owner stopped accepting, `DELETE …/reviewers/:review` or `POST …/reviewers/close`); the last two are

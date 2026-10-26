@@ -67,5 +67,9 @@ const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { date
       </p>
       <RouterLink :to="{ name: 'start-writing' }" class="btn btn-outline">Start writing</RouterLink>
     </section>
+
+    <p v-if="session.user?.reviewerOnly" class="mt-8 text-sm">
+      <RouterLink :to="{ name: 'account-delete' }" class="link">Delete your account</RouterLink>
+    </p>
   </div>
 </template>

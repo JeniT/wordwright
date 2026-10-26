@@ -78,6 +78,10 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
       >
         Create account
       </button>
+      <p class="mt-3 text-sm text-ink-soft">
+        Wordwright is for writers of any age. The AI features need your own key from an AI provider,
+        and providers require adult account holders.
+      </p>
     </form>
     <p class="mt-4 text-sm">
       Already have an account?

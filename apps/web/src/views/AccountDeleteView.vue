@@ -38,10 +38,12 @@ const deleteAccount = useMutation({
     <DangerZone title="Delete account" hide-title>
       <p class="mb-2">
         This can't be undone.
-        <RouterLink :to="{ name: 'account-download' }" class="underline"
-          >Download your writing</RouterLink
-        >
-        first.
+        <template v-if="!session.user.reviewerOnly">
+          <RouterLink :to="{ name: 'account-download' }" class="underline"
+            >Download your writing</RouterLink
+          >
+          first.
+        </template>
       </p>
       <p class="mb-4 text-sm">
         Deletes your account and any publication only you belong to. You're removed from shared
@@ -90,6 +92,6 @@ const deleteAccount = useMutation({
         <p>This can't be undone.</p>
       </ConfirmDialog>
     </DangerZone>
-    <NextStep />
+    <NextStep v-if="!session.user.reviewerOnly" />
   </div>
 </template>
