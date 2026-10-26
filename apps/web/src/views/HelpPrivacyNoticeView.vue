@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import HelpPage from '../components/HelpPage.vue'
+import NewTabLink from '../components/NewTabLink.vue'
 </script>
 
 <template>
@@ -31,14 +32,15 @@ import HelpPage from '../components/HelpPage.vue'
           </li>
           <li>
             <strong>Your writing:</strong> your publications, ideas, notes, articles, drafts,
-            comments and brainstorm conversations. It may mention other people. We keep it for you,
-            as set out in the
+            comments and conversations with your AI. It may mention other people. We keep it for
+            you, as set out in the
             <RouterLink :to="{ name: 'help-terms' }" class="link">terms</RouterLink>, and read it
             only if you ask us for help or the law requires it.
           </li>
           <li>
             <strong>Your devices:</strong> for each place you are signed in, a label such as “Safari
-            on macOS” and the times you used it. We do not keep your IP address.
+            on macOS” and the times you used it. We do not store your IP address. Our web server may
+            log it briefly when something goes wrong.
           </li>
           <li>
             <strong>Your AI key:</strong> encrypted, so that the AI buttons can use it for you.
@@ -86,13 +88,13 @@ import HelpPage from '../components/HelpPage.vue'
           from our server to the AI provider you chose (Anthropic today), using your own key. This
           happens only when you press the button. Anthropic usually handles it in the United States,
           outside the UK, and under the agreement you made with it, not ours. We keep no copy except
-          a brainstorm conversation you can see and delete.
+          a conversation with your AI that you can see and delete.
         </p>
         <p class="mt-2">
-          In a publication with other members, a brainstorm conversation is shared, so each message
-          you send sends the whole conversation so far, including earlier messages from other
-          members. Comments, and anything a reviewer writes, are never sent to an AI. Don’t enter
-          anything you couldn’t send to a trusted contractor. Read
+          In a publication with other members, a conversation with your AI is shared, so each
+          message you send sends the whole conversation so far, including earlier messages from
+          other members. Comments, and anything a reviewer writes, are never sent to an AI. Don’t
+          enter anything you couldn’t send to a trusted contractor. Read
           <RouterLink :to="{ name: 'help-privacy' }" class="link"
             >Privacy and your writing</RouterLink
           >
@@ -148,8 +150,8 @@ import HelpPage from '../components/HelpPage.vue'
           <li>
             <strong>Email records:</strong> Scaleway deletes the content of an email soon after it
             is delivered, but keeps a record of who it went to for as long as our sending address is
-            in use. If you want your address removed from these records, ask us and we will ask
-            Scaleway.
+            in use. Deleting your account does not remove your address from these records. Ask us
+            and we will ask Scaleway to remove it.
           </li>
         </ul>
       </section>
@@ -194,8 +196,9 @@ import HelpPage from '../components/HelpPage.vue'
         <h2 id="pn-complain" class="mb-1 font-display text-xl font-semibold">If you’re unhappy</h2>
         <p>
           Tell us first, and we will try to put it right. You can also complain to the ICO at
-          <a href="https://ico.org.uk/make-a-complaint/" class="link">ico.org.uk</a>, or by calling
-          0303 123 1113.
+          <NewTabLink href="https://ico.org.uk/make-a-complaint/" class="link"
+            >ico.org.uk</NewTabLink
+          >, or by calling 0303 123 1113.
         </p>
       </section>
 

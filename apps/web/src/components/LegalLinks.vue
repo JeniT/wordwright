@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 
-/** The legal and policy pages (#321), linked from the footer, sign-up and the Help list. One list, so they agree. */
+/** The legal and policy pages (#321), listed in the footer of every page. */
 const links = [
   { name: 'help-privacy-notice', label: 'Privacy notice' },
   { name: 'help-terms', label: 'Terms of use' },
   { name: 'help-cookies', label: 'Cookies' },
-  { name: 'help-accessibility', label: 'Accessibility' },
+  { name: 'help-accessibility', label: 'Accessibility statement' },
 ]
 </script>
 

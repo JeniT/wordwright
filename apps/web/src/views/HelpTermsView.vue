@@ -55,9 +55,9 @@ import HelpPage from '../components/HelpPage.vue'
           </li>
           <li>
             When you press an AI button, the text it needs is sent to your provider, usually outside
-            the UK. In a publication with other members, a brainstorm sends the whole shared
-            conversation, including other members’ messages, to the provider of whoever sends the
-            next message.
+            the UK. In a publication with other members, a Refine conversation sends the whole
+            shared conversation, including other members’ messages, to the provider of whoever sends
+            the next message.
           </li>
           <li>
             We try to make the AI useful, but it can be wrong. Judge what it says yourself. We are

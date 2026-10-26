@@ -19,8 +19,8 @@ import HelpPage from '../components/HelpPage.vue'
             <dt class="inline font-semibold">wordwright_session</dt>
             <dd class="inline">
               keeps you signed in on this device. It is set when you sign in and removed when you
-              sign out or after 30 days. Pages can’t read it, and it is not sent to other sites. It
-              is strictly necessary, so the law lets us set it without asking you.
+              sign out or after 30 days. Scripts on the page can’t read it. It is strictly
+              necessary, so the law lets us set it without asking you.
             </dd>
           </div>
         </dl>

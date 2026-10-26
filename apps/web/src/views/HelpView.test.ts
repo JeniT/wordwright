@@ -186,7 +186,7 @@ describe('Help', () => {
     await renderAt(path)
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible()
     expect(screen.getByRole('main')).toHaveTextContent(text)
-    expect(screen.getByRole('main')).not.toHaveTextContent(/!|\bwe'll\b/i)
+    expect(screen.getByRole('main')).not.toHaveTextContent(/!|\bwe[’']ll\b/i)
   })
 
   it.each(['/help/privacy-notice', '/help/accessibility'])(
