@@ -44,3 +44,15 @@ mv .env.tmp .env
 chmod 600 .env
 
 ./deploy.sh
+
+# People who deleted their account after that backup are back. Say how to delete them again (docs/deploy.md).
+stamp=$(basename "$file" | sed -n 's/^wordwright-\([0-9]\{8\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)\.sqlite$/\1T\2:\3:\4Z/p')
+if [ -n "$stamp" ]; then
+  when="${stamp:0:4}-${stamp:4:2}-${stamp:6:2}${stamp:8}"
+else
+  when="<the time the backup was taken, as 2026-10-23T02:30:00Z>"
+fi
+echo
+echo "Now repeat the account deletions made since that backup (nothing has been changed yet):"
+echo "  docker compose exec api ./node_modules/.bin/tsx src/replay-deletions-cli.ts $when"
+echo "then run it again with --apply on the end."

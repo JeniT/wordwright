@@ -23,6 +23,7 @@ import { exampleFeeds } from './feeds/factory'
 import { createScryptHasher } from './auth/password'
 import { openDatabase } from './db/database'
 import { createStore } from './db/store'
+import { MemoryDeletionJournal } from './services/deletion-journal'
 
 export const PUBLIC_URL = 'http://localhost:5173'
 
@@ -159,6 +160,7 @@ export function setup(options: TestOptions = {}) {
     })
   const feeds = options.feeds ?? exampleFeeds()
   const clock = { now: new Date('2026-01-01T00:00:00Z') }
+  const deletionJournal = new MemoryDeletionJournal()
   const app = createApp({
     store,
     mailer,
@@ -169,6 +171,7 @@ export function setup(options: TestOptions = {}) {
     adminEmails: options.adminEmails,
     signupsPerHour: options.signupsPerHour,
     trustProxy: options.trustProxy,
+    deletionJournal,
     providers: { search: [] },
     feeds,
     llmFactory,
@@ -211,6 +214,8 @@ export function setup(options: TestOptions = {}) {
     feeds,
     pageFetcher,
     clock,
+    /** The deletions the app has noted (#410). */
+    deletionJournal,
     /** A fresh "browser" with its own cookie jar. */
     client: () => new TestClient(app),
   }

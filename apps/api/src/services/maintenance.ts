@@ -1,5 +1,6 @@
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
+import { noteDeletion, type DeletionJournal } from './deletion-journal'
 import { removeUserAndOwnedData } from './remove-user'
 
 /** Signups that never confirm their email and are never used are removed after this long. */
@@ -9,6 +10,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const ACCEPTED_INVITATION_KEEP_DAYS = 30
 /** How long before deletion an unconfirmed account is warned (shorter for very short limits). */
 const REMINDER_LEAD_DAYS = 3
+/** Longer than the 30 days off-site backups are kept (plus 7 for an old version), so no backup is older than the list. */
+const DELETION_JOURNAL_KEEP_DAYS = 45
 const BATCH = 100
 const MAX_BATCHES_PER_RUN = 50
 
@@ -20,6 +23,8 @@ export interface MaintenanceDeps {
   reminders?: { sendDeletionReminder(user: UserRecord, daysLeft: number): void }
   now?: () => Date
   logger?: Pick<Console, 'log' | 'error'>
+  /** Notes each account removed, and forgets entries older than any backup (#410). */
+  deletionJournal?: DeletionJournal
 }
 
 export interface MaintenanceResult {
@@ -52,7 +57,14 @@ export class MaintenanceService {
     for (let i = 0; i < MAX_BATCHES_PER_RUN; i++) {
       const batch = store.users.findStaleUnconfirmed(cutoff, BATCH)
       if (batch.length === 0) break
-      for (const user of batch) store.transaction(() => removeUserAndOwnedData(store, user))
+      for (const user of batch) {
+        store.transaction(() => removeUserAndOwnedData(store, user))
+        noteDeletion(
+          this.d.deletionJournal,
+          { at: this.now().toISOString(), userId: user.id, keepName: false },
+          this.d.logger,
+        )
+      }
       purged += batch.length
     }
     return purged
@@ -91,6 +103,7 @@ export class MaintenanceService {
   pruneExpired(): Pick<MaintenanceResult, 'expiredSessions' | 'expiredLinks'> {
     const { store } = this.d
     const now = this.now()
+    this.d.deletionJournal?.prune(new Date(now.getTime() - DELETION_JOURNAL_KEEP_DAYS * DAY_MS))
     const tokens = store.tokens.deleteExpired(now)
     const invitations = store.invitations.deleteExpired(
       now,

@@ -5,4 +5,5 @@ Read this when you change hosting, production, backups, and the private alpha. O
 - [Go live: hosting, domain and email (#22, #20)](go-live-hosting-domain-and-email.md): one UpCloud VM in London, SQLite, Caddy, Gandi, Scaleway
 - [Off-site backups: Scaleway Object Storage, encrypted before upload (#17)](off-site-backups-scaleway-object-storage-encrypted-before-upload.md)
 - [Private alpha: approval by the owner, and a small admin area (#315, #328)](private-alpha-approval-by-the-owner-and-a-small.md): sign-up needs the owner's approval via a small admin area
+- [A list of account deletions outside the database repeats them after a restore (#410)](a-list-of-account-deletions-outside-the-database-repeats-them-after-a-restore.md): ids only; replayed by a command after a rollback
 - [Production runs as two containers on one machine (#17)](production-runs-as-two-containers-on-one-machine.md): api and Caddy containers; exactly one api

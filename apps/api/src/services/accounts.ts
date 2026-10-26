@@ -20,6 +20,7 @@ import {
   deletionReminderEmail,
   verifyEmailEmail,
 } from '../mail/templates'
+import { noteDeletion, type DeletionJournal } from './deletion-journal'
 import { removeUserAndOwnedData } from './remove-user'
 import { isSoleOwnerOfSharedPublication, NEEDS_ANOTHER_OWNER } from './owners'
 
@@ -64,6 +65,8 @@ export interface AccountServiceDeps {
   unconfirmedTtlDays?: number
   /** Where delivery failures are reported. */
   logger?: Pick<Console, 'error'>
+  /** Notes each deletion, so it can be repeated after a restore (#410). */
+  deletionJournal?: DeletionJournal
   /**
    * The private alpha (#328): whether a new account waits for the owner's approval. False makes every account
    * approved from the start (development, tests, and a site that is open to anyone).
@@ -567,6 +570,12 @@ export class AccountService {
       }
       removeUserAndOwnedData(store, user, { keepName })
     })
+    // After the commit, so a deletion that was rolled back is never noted (replaying one would delete a live account).
+    noteDeletion(
+      this.d.deletionJournal,
+      { at: this.now().toISOString(), userId: user.id, keepName },
+      this.d.logger,
+    )
   }
 
   // ---- internals ----------------------------------------------------------

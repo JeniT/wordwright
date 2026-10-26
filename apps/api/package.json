@@ -8,6 +8,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "start": "tsx src/server.ts",
     "admin": "tsx src/admin-cli.ts",
+    "replay-deletions": "tsx src/replay-deletions-cli.ts",
     "test": "vitest run",
     "coverage": "vitest run --coverage --coverage.include='src/**' --coverage.exclude='**/*.test.ts' --coverage.reporter=text-summary --coverage.reporter=html"
   },

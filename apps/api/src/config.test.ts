@@ -81,3 +81,15 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ GOOGLE_CLIENT_ID: 'id' })).toThrow(/GOOGLE_CLIENT/)
   })
 })
+
+describe('the deletion journal path', () => {
+  it('sits beside the database unless set', () => {
+    expect(loadConfig({ DATABASE_PATH: '/data/wordwright.sqlite' }).DELETION_JOURNAL_PATH).toBe(
+      '/data/deletions.jsonl',
+    )
+    expect(
+      loadConfig({ DATABASE_PATH: '/data/w.sqlite', DELETION_JOURNAL_PATH: '/elsewhere/d.jsonl' })
+        .DELETION_JOURNAL_PATH,
+    ).toBe('/elsewhere/d.jsonl')
+  })
+})

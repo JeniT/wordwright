@@ -18,6 +18,7 @@ import { HttpPageInfoFetcher } from './pages/http-page-info'
 import { AccountService } from './services/accounts'
 import { seedAdminAccount } from './services/admin'
 import { backfillIconShapes } from './services/icon-backfill'
+import { FileDeletionJournal } from './services/deletion-journal'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
 
@@ -73,6 +74,8 @@ if (mailer instanceof SmtpMailer) {
   )
 }
 
+const deletionJournal = new FileDeletionJournal(config.DELETION_JOURNAL_PATH)
+
 const app = createApp({
   store,
   providers,
@@ -92,12 +95,14 @@ const app = createApp({
   adminEmails: config.ADMIN_EMAILS,
   signupsPerHour: config.SIGNUPS_PER_HOUR,
   trustProxy: config.TRUST_PROXY,
+  deletionJournal,
 })
 
 // Housekeeping every 6 hours: forget abandoned signups and expired sessions/links.
 const maintenance = new MaintenanceService({
   store,
   unconfirmedTtlDays: config.UNCONFIRMED_ACCOUNT_TTL_DAYS,
+  deletionJournal,
   // Only its email-sending is used here; the hasher is never called.
   reminders: new AccountService({
     store,

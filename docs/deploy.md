@@ -2,7 +2,7 @@
 
 Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in.
 
-**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
+**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
 
 Production is **one machine** (an UpCloud VM in London; see [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
@@ -57,7 +57,7 @@ see exactly what runs as root.
 | `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                                                                 |
 | `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                                                        |
 | `deploy/backup.sh`              | One backup onto the server's own disk, and off-site if set up; the nightly timer runs it.                                          |
-| `deploy/rollback.sh`            | Back to an older build and the database from before the update.                                                                    |
+| `deploy/rollback.sh`            | Back to an older build and the database from before the update; says how to repeat the deletions since.                            |
 | `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                                                           |
 | `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                                                          |
 | `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                                                         |
@@ -182,6 +182,28 @@ works whoever owns the file on the server.
 Find the older hash in the Images runs on GitHub (Actions → Images), or the line `WORDWRIGHT_TAG=` in your notes from the
 last deploy. If the old build only needs a configuration fix, change `.env` and run `docker compose up -d` instead;
 nothing about the data changes.
+
+### After a rollback or restore, repeat the deletions
+
+Going back to an older database brings back anyone who deleted their account since that backup, which they did not agree
+to. The app therefore notes every deletion (the time and the account's id, nothing personal) in `deletions.jsonl` in the
+data volume, which a rollback does not touch; it keeps 45 days of them, and `backup.sh` copies it into `~/backups` and the
+off-site copy ([the decision](adr/go-live-and-operations/a-list-of-account-deletions-outside-the-database-repeats-them-after-a-restore.md)).
+Right after any rollback or restore, **before anyone uses the app**, in `~/wordwright`, with the time the backup was taken
+(`rollback.sh` prints the whole command, taking the time from the backup's name):
+
+```bash
+docker compose exec api ./node_modules/.bin/tsx src/replay-deletions-cli.ts 2026-10-23T02:30:00Z          # shows what it would do
+docker compose exec api ./node_modules/.bin/tsx src/replay-deletions-cli.ts 2026-10-23T02:30:00Z --apply  # does it
+```
+
+It prints how many were recorded since that time, how many it deleted again, and how many were not in this database (people who
+joined after the backup, or were already gone). It is safe to run twice. The people who left will have lost nothing else:
+only deletions are repeated, and anything else written after the backup is lost, as `rollback.sh` says.
+
+If the server was lost too, restore as above and then bring the list back before you replay: `./offsite.sh fetch
+deletions.jsonl`, then `docker compose run --rm --no-deps -T api sh -c 'cat >> /data/deletions.jsonl' < ~/restored/deletions.jsonl`.
+Without a list, the deletions cannot be repeated: say so in the breach log's terms if it matters ([breach-procedure.md](breach-procedure.md)), and treat anyone who wrote to `hello@` asking to be deleted as still to be deleted.
 
 A rehearsal on the real server is part of #17: deploy a build, register a test account, roll back to the previous build,
 and check the test account is gone and the app is healthy. Try it before the alpha has real accounts.

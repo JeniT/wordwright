@@ -16,6 +16,10 @@ docker compose cp "api:$file" "$out/"
 find "$out" -name 'wordwright-*.sqlite' -mtime +"$keep_days" -delete
 echo "Backed up to $out/$(basename "$file")"
 
+# The list of account deletions (ids only) lives beside the database and is not replaced by a rollback. A copy goes with the
+# backups so it is also in the off-site copy: after losing the server it says whose deletions to repeat (docs/deploy.md).
+docker compose cp api:/data/deletions.jsonl "$out/deletions.jsonl" 2>/dev/null || true
+
 # Then an encrypted copy in a bucket at another provider, if that has been set up (deploy/offsite-wizard.sh). If it fails
 # the local backup above is still there, but this exits non-zero so the nightly run shows as failed.
 if [ -f offsite.env ]; then

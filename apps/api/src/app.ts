@@ -25,6 +25,7 @@ import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
 import { publicationRoutes } from './routes/publications'
 import { AccountService } from './services/accounts'
+import type { DeletionJournal } from './services/deletion-journal'
 import { BrainstormService } from './services/brainstorm'
 import { FeedItemService } from './services/feed-items'
 import { ResearchService } from './services/research'
@@ -84,6 +85,8 @@ export interface AppDeps {
    * anything throttled per address; without it, the address is unknown.
    */
   trustProxy?: boolean
+  /** Notes each account deletion so it can be repeated after a restore (#410). */
+  deletionJournal?: DeletionJournal
 }
 
 /** Builds the app from injected dependencies, so tests can supply fakes. */
@@ -112,6 +115,7 @@ export function createApp(deps: AppDeps) {
     approvalRequired: deps.approvalRequired,
     adminEmails: deps.adminEmails?.map((e) => e.trim().toLowerCase()).filter(Boolean),
     signupAllowed: () => registerLimiter.allow('register'),
+    deletionJournal: deps.deletionJournal,
   })
 
   const emailChanges = new EmailChangeService({

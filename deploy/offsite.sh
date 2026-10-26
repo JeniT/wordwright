@@ -26,7 +26,7 @@ case "${1:-}" in
     mkdir -p "$backups"
     # "copy" never deletes in the bucket: the bucket's own expiry rule removes old copies. Same name and size are skipped.
     docker run --rm -e RCLONE_LOG_LEVEL=ERROR --env-file offsite.env -v "$backups":/backups:ro "$RCLONE_IMAGE" \
-      copy /backups OFFSITE: --include 'wordwright-*.sqlite' --transfers 2 --retries 3
+      copy /backups OFFSITE: --include 'wordwright-*.sqlite' --include 'deletions.jsonl' --transfers 2 --retries 3
     echo "Off-site copy is up to date."
     ;;
   list)
