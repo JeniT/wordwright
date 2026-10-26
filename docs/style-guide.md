@@ -169,6 +169,15 @@ People scan; they don’t read screens. Fewer words, then structure.
 - **No small print.** Secondary text (`text-sm`, `ink-soft`) is for dates, counts and brief hints. If it matters, it
   isn’t small.
 
+## Legal pages
+
+The privacy notice, terms of use and cookie statement (#321) are help pages that the law makes long. They follow every rule above, with two agreed exceptions:
+
+- **“We” is allowed.** Each page says once that “we” means Jeni Tennison Consulting Ltd, and may use it after that.
+- **A paragraph may run to three sentences** where the law needs the qualifier. The 20-word sentence limit stays, and parallel items are a list.
+
+The privacy notice and terms open with **In short** (the cookie statement is short enough without): three or four plain bullets. Use the legal term only where the law needs it, with its plain meaning first. All four legal pages end with “Last updated: {date}”; change it, and the wording, in the same commit as any change to what the app stores or who handles it ([data-map.md](data-map.md)).
+
 ## Words we use and avoid
 
 The domain words are in [CONTEXT.md](../CONTEXT.md), each with the words _not_ to use for it. Beyond those:

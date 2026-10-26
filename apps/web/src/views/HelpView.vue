@@ -11,7 +11,7 @@ const pages = [
   },
   {
     name: 'help-privacy',
-    title: 'Privacy and your writing',
+    title: 'Your AI provider and privacy',
     about: 'What is sent to Anthropic when you use the AI, and what to check.',
   },
   {

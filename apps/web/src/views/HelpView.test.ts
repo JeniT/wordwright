@@ -16,10 +16,9 @@ describe('Help', () => {
       'href',
       '/help/api-key',
     )
-    expect(within(list).getByRole('link', { name: 'Privacy and your writing' })).toHaveAttribute(
-      'href',
-      '/help/privacy',
-    )
+    expect(
+      within(list).getByRole('link', { name: 'Your AI provider and privacy' }),
+    ).toHaveAttribute('href', '/help/privacy')
   })
 
   it('publishes an accessibility statement, linked from the help list', async () => {
@@ -61,7 +60,7 @@ describe('Help', () => {
     server.use(signedInAs(testUser))
     await renderAt('/help/privacy')
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Privacy and your writing' }),
+      await screen.findByRole('heading', { level: 1, name: 'Your AI provider and privacy' }),
     ).toBeVisible()
     expect(screen.getByText(/within 30 days/)).toBeInTheDocument()
   })
@@ -186,6 +185,8 @@ describe('Help', () => {
     await renderAt(path)
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible()
     expect(screen.getByRole('main')).toHaveTextContent(text)
+    if (path !== '/help/cookies')
+      expect(screen.getByRole('heading', { name: 'In short' })).toBeVisible()
     expect(screen.getByRole('main')).not.toHaveTextContent(/!|\bwe[’']ll\b/i)
   })
 

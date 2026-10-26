@@ -6,7 +6,7 @@ import HelpPage from '../components/HelpPage.vue'
 <template>
   <HelpPage title="Accessibility statement">
     <div class="space-y-4">
-      <p class="text-ink-soft">
+      <p>
         We want Wordwright to work for everyone who writes, whether they use a mouse, a keyboard, a
         screen reader, a phone or a magnified screen. We aim to meet the Web Content Accessibility
         Guidelines (WCAG) 2.2, level AA.
@@ -44,7 +44,7 @@ import HelpPage from '../components/HelpPage.vue'
           accessibility problems as bugs.
         </p>
       </section>
-      <p class="text-sm text-ink-soft">Last reviewed: 26 October 2026.</p>
+      <p class="text-sm text-ink-soft">Last updated: 26 October 2026.</p>
     </div>
   </HelpPage>
 </template>

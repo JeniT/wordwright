@@ -5,7 +5,7 @@ import ProviderPrivacyAdvice from '../components/ProviderPrivacyAdvice.vue'
 </script>
 
 <template>
-  <HelpPage title="Privacy and your writing">
+  <HelpPage title="Your AI provider and privacy">
     <p class="mb-4 text-ink-soft">
       The AI buttons send the text you are working on to Anthropic, using your own key. These are
       the things worth checking before you start.

@@ -64,10 +64,10 @@ test('the key screen links to help in a new tab, so a half-typed key is kept', a
   // From the list, with the keyboard, to a page and Back to where we were; the other help page is accessible too.
   await page.getByRole('link', { name: 'Help', exact: true }).focus()
   await page.keyboard.press('Enter')
-  await page.getByRole('link', { name: 'Privacy and your writing' }).focus()
+  await page.getByRole('link', { name: 'Your AI provider and privacy' }).focus()
   await page.keyboard.press('Enter')
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Privacy and your writing' }),
+    page.getByRole('heading', { level: 1, name: 'Your AI provider and privacy' }),
   ).toBeVisible()
   await noViolations(page, 'privacy page, signed in')
   await page.getByRole('link', { name: /Back/ }).click()
