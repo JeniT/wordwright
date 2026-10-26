@@ -6,7 +6,7 @@ const links = [
   { name: 'help-privacy-notice', label: 'Privacy notice' },
   { name: 'help-terms', label: 'Terms of use' },
   { name: 'help-cookies', label: 'Cookies' },
-  { name: 'help-accessibility', label: 'Accessibility statement' },
+  { name: 'help-accessibility', label: 'Accessibility' },
 ]
 </script>
 
