@@ -2,7 +2,7 @@
 
 Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in.
 
-**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
+**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [Removing a kept name](#removing-a-kept-display-name-on-request) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
 
 Production is **one machine** (an UpCloud VM in London; see [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
@@ -324,6 +324,30 @@ Production logs must hold no request bodies, AI keys, tokens, reset or invitatio
 
 Two tests keep it so: an unexpected error is logged without its message, and every file that writes to the log is on a
 reviewed list (`apps/api/src/errors.test.ts`), so a new log line forces a look at what it prints.
+
+## Removing a kept display name on request
+
+When someone deletes their account they choose whether their display name stays on what they wrote in publications that
+continue ([account deletion](adr/accounts-and-security/account-deletion-semantics.md)). They cannot undo that in the app,
+because the account is gone. If they ask you to remove it (an email to `hello@wordwright.io`):
+
+1. **Be satisfied it is them.** The name is not tied to an address any more, so the database cannot confirm who is asking. Ask them for the publication it was in, and the rough date they left. Do not act on a bare name you have doubts about.
+2. **See what it would change**, in `~/wordwright`, with the name exactly as it appears:
+
+   ```bash
+   docker compose exec api ./node_modules/.bin/tsx src/forget-kept-name-cli.ts "Ada Lovelace"
+   ```
+
+   It lists where the name is held and how many places, and changes nothing. **It matches the name, not the person**, so
+   it also clears anyone else who kept the same name. If the count is larger than you expect, or the name is a common one,
+   check with the person which publication they mean before going on.
+
+3. **Do it**: run the same command with `--apply` on the end. Their work then reads "a former member", in the app and in
+   downloads.
+4. **Tell them**, within the month, and that copies in backups go when the backups expire (up to about 37 days). The
+   backups are not edited; after a restore, run step 3 again.
+
+Keep the request and the date, as for any right ([data-map.md](data-map.md)). No personal data goes in the log.
 
 ## Letting people in (the private alpha)
 

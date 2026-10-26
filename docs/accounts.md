@@ -272,7 +272,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   whether to **keep their name** on their notes, brainstorming messages, research runs and draft insertions in
   publications that continue (the default; `keepName` in `DELETE /api/account`) or show them as "a former member".
   Only the display name is copied (into `kept_name` columns, at deletion; never the email or username), and
-  choosing not to leaves no trace of it on any row. Leaving or being removed from a publication keeps the name anyway.
+  choosing not to leaves no trace of it on any row. Leaving or being removed from a publication keeps the name anyway. To take a kept name back afterwards, the owner runs `forget-kept-name-cli.ts` ([deploy.md](deploy.md#removing-a-kept-display-name-on-request)); every column that can hold one is in `KEPT_NAME_COLUMNS` in `db/users.ts`, and a new one is added there.
 - **Email:** see below.
 
 ## Email

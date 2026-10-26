@@ -25,6 +25,23 @@ export interface UserRecord {
   isAdmin: boolean
 }
 
+/**
+ * Every column that can hold a display name kept at account deletion (#153), and the column that said who the row was
+ * by. One list for keeping a name and for taking it back, so a new column cannot be added to one and forgotten in the other.
+ */
+const KEPT_NAME_COLUMNS = [
+  { table: 'idea_notes', column: 'kept_name', by: 'created_by' },
+  { table: 'idea_messages', column: 'kept_name', by: 'author_id' },
+  { table: 'idea_research', column: 'kept_name', by: 'created_by' },
+  { table: 'draft_insertions', column: 'kept_note_author_name', by: 'note_author_id' },
+  { table: 'draft_insertions', column: 'kept_inserted_by_name', by: 'inserted_by' },
+  { table: 'draft_handovers', column: 'kept_actor_name', by: 'actor_id' },
+  { table: 'draft_handovers', column: 'kept_member_name', by: 'member_id' },
+  { table: 'draft_comments', column: 'kept_name', by: 'author_id' },
+  { table: 'draft_reviews', column: 'kept_inviter_name', by: 'invited_by' },
+  { table: 'idea_proposals', column: 'kept_decided_by_name', by: 'decided_by' },
+] as const
+
 /** No sign of use: no drafts or ideas, no saved API key, and no one else in any of their publications. */
 const UNUSED_ACCOUNT = `
   AND NOT EXISTS (SELECT 1 FROM publication_members m JOIN drafts d ON d.publication_id = m.publication_id
@@ -263,18 +280,37 @@ export class UserStore {
    * would otherwise lose their author when the account goes. Call just before `delete`.
    */
   keepNameOnContributions(id: string, name: string) {
-    const set = (table: string, column: string, by: string) =>
+    for (const { table, column, by } of KEPT_NAME_COLUMNS) {
       this.db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${by} = ?`).run(name, id)
-    set('idea_notes', 'kept_name', 'created_by')
-    set('idea_messages', 'kept_name', 'author_id')
-    set('idea_research', 'kept_name', 'created_by')
-    set('draft_insertions', 'kept_note_author_name', 'note_author_id')
-    set('draft_insertions', 'kept_inserted_by_name', 'inserted_by')
-    set('draft_handovers', 'kept_actor_name', 'actor_id')
-    set('draft_handovers', 'kept_member_name', 'member_id')
-    set('draft_comments', 'kept_name', 'author_id')
-    set('draft_reviews', 'kept_inviter_name', 'invited_by')
-    set('idea_proposals', 'kept_decided_by_name', 'decided_by')
+    }
+  }
+
+  /**
+   * Clears a kept display name wherever it is held, on the request of the person it was (#411). Their rows then read as
+   * "a former member". Matches the whole name exactly, so it also clears another person who kept the same name: the
+   * caller shows `countKeptName` first. Returns the number of rows changed.
+   */
+  forgetKeptName(name: string): number {
+    let changed = 0
+    for (const { table, column } of KEPT_NAME_COLUMNS) {
+      const result = this.db
+        .prepare(`UPDATE ${table} SET ${column} = NULL WHERE ${column} = ?`)
+        .run(name)
+      changed += Number(result.changes)
+    }
+    return changed
+  }
+
+  /** How many rows hold this kept name, by table, for `forgetKeptName` to be checked before it is run. */
+  countKeptName(name: string): Record<string, number> {
+    const counts: Record<string, number> = {}
+    for (const { table, column } of KEPT_NAME_COLUMNS) {
+      const row = this.db
+        .prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${column} = ?`)
+        .get(name) as { n: number }
+      counts[`${table}.${column}`] = row.n
+    }
+    return counts
   }
 
   delete(id: string) {
