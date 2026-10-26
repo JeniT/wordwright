@@ -37,11 +37,14 @@ import HelpPage from '../components/HelpPage.vue'
           If something doesn’t work for you, please
           <NewTabLink href="https://github.com/JeniT/wordwright/issues/new" class="link"
             >report it on GitHub</NewTabLink
-          >, saying the page, what you were trying to do, and any assistive technology you use. We
-          treat accessibility problems as bugs.
+          >
+          or write to
+          <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>, saying the
+          page, what you were trying to do, and any assistive technology you use. We treat
+          accessibility problems as bugs.
         </p>
       </section>
-      <p class="text-sm text-ink-soft">Last reviewed: 25 October 2026.</p>
+      <p class="text-sm text-ink-soft">Last reviewed: 26 October 2026.</p>
     </div>
   </HelpPage>
 </template>

@@ -41,6 +41,21 @@ const pages = [
     about: 'Why a new account waits, and what happens when it is approved.',
   },
   {
+    name: 'help-privacy-notice',
+    title: 'Privacy notice',
+    about: 'What Wordwright keeps about you, who handles it, and your rights.',
+  },
+  {
+    name: 'help-terms',
+    title: 'Terms of use',
+    about: 'The rules for using Wordwright, including your AI key and the alpha.',
+  },
+  {
+    name: 'help-cookies',
+    title: 'Cookies',
+    about: 'The one cookie we set, and the settings kept on your device.',
+  },
+  {
     name: 'help-accessibility',
     title: 'Accessibility statement',
     about: 'How we check that Wordwright works for everyone, and how to report a barrier.',

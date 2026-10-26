@@ -291,3 +291,7 @@ Production refuses to start unless it's `smtp` with a `MAIL_FROM`. At startup th
 the SMTP server and logs a warning if not. Emails are sent _after_ the response, so the forgot-password
 answer is the same, and just as fast, whether or not the address has an account; delivery failures are
 logged (user id and error code only, never the link).
+
+## Legal and policy pages (#321)
+
+The privacy notice, terms of use and cookie statement are help pages (`/help/privacy-notice`, `/help/terms`, `/help/cookies`), open to everyone, as is the accessibility statement. `LegalLinks` lists them in the footer of every page; sign-up links to the terms and notice. They restate [data-map.md](data-map.md) and [processors.md](processors.md): change them in the same commit as any change to what is stored, who processes it, how long it is kept, or the cookies and `localStorage` entries. The contact address is `hello@wordwright.io`. The wording awaits the owner's review and a lawyer's check (#405).

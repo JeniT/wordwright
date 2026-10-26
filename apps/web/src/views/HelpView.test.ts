@@ -157,4 +157,45 @@ describe('Help', () => {
     }
     expect(within(main).getByText(/The Comment and Rephrase buttons wait/)).toBeInTheDocument()
   })
+
+  it('publishes the privacy notice, terms and cookie statement, listed in Help and linked from the footer', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    for (const [title, href] of [
+      ['Privacy notice', '/help/privacy-notice'],
+      ['Terms of use', '/help/terms'],
+      ['Cookies', '/help/cookies'],
+    ]) {
+      expect(within(list).getByRole('link', { name: title }), title).toHaveAttribute('href', href)
+      expect(
+        within(screen.getByRole('navigation', { name: 'Legal' })).getByRole('link', {
+          name: title,
+        }),
+        title,
+      ).toHaveAttribute('href', href)
+    }
+  })
+
+  it.each([
+    ['/help/privacy-notice', 'Privacy notice', /ZB302880/],
+    ['/help/terms', 'Terms of use', /This is an alpha/],
+    ['/help/cookies', 'Cookies', /wordwright_session/],
+  ])('shows %s to someone who is signed out', async (path, title, text) => {
+    server.use(signedInAs(null))
+    await renderAt(path)
+    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible()
+    expect(screen.getByRole('main')).toHaveTextContent(text)
+    expect(screen.getByRole('main')).not.toHaveTextContent(/!|\bwe'll\b/i)
+  })
+
+  it.each(['/help/privacy-notice', '/help/accessibility'])(
+    'gives the contact address on %s',
+    async (path) => {
+      server.use(signedInAs(null))
+      await renderAt(path)
+      const links = await screen.findAllByRole('link', { name: 'hello@wordwright.io' })
+      for (const link of links) expect(link).toHaveAttribute('href', 'mailto:hello@wordwright.io')
+    },
+  )
 })

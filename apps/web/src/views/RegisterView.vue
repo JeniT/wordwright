@@ -82,6 +82,12 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
         Wordwright is for writers of any age. The AI features need your own key from an AI provider,
         and providers require adult account holders.
       </p>
+      <p class="mt-3 text-sm text-ink-soft">
+        By creating an account you agree to the
+        <RouterLink :to="{ name: 'help-terms' }" class="link">terms of use</RouterLink>. The
+        <RouterLink :to="{ name: 'help-privacy-notice' }" class="link">privacy notice</RouterLink>
+        says what we keep.
+      </p>
     </form>
     <p class="mt-4 text-sm">
       Already have an account?

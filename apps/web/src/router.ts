@@ -409,6 +409,24 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/help/privacy-notice',
+    name: 'help-privacy-notice',
+    component: () => import('./views/HelpPrivacyNoticeView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/terms',
+    name: 'help-terms',
+    component: () => import('./views/HelpTermsView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/cookies',
+    name: 'help-cookies',
+    component: () => import('./views/HelpCookiesView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/help/waiting-for-approval',
     name: 'help-waiting',
     component: () => import('./views/HelpWaitingView.vue'),
