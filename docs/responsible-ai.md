@@ -24,8 +24,7 @@ hitting publish, not session length, message count or return visits. So:
   add usage analytics that treat more AI use as better.
 - **The assistant must be able to say "that's enough".** A brainstorm ends when the idea is clear enough to start
   drafting, and the assistant says so rather than inventing another question. It asks the one question that matters
-  most, not always one more. (The default prompt's "keep asking questions that draw out more" is the wrong default;
-  see _Open work_.)
+  most, not always one more. (`prompts/brainstorm-rules.md` says when to stop.)
 - **Critique is rationed.** An LLM critic will _always_ find something to tweak, and each round of tweaking pushes the
   text further from the writer's voice and further from done. So:
   - Each draft gets a **small, fixed number of critique rounds** (default 3, which the owner chose; each writer can change it from 1 to 5 in their account settings).

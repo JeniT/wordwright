@@ -51,8 +51,8 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   shows the wording (editable), asks "What should it do?" (the Aim), and **Generate options** (saving the draft first, since
   the AI reads the saved draft) brings a list (short wording) or carousel (longer) with a **Replace wording** button on
   each; **Use this** replaces exactly the selected words, saves the draft and, if the words began as an option, records it
-  (`POST …/drafts/:id/option-insertions`, in `draft_insertions` with origin `option`, shown in the draft's "Where some of the
-  words came from" list). The record is the writer's own report of what was offered, because the server keeps nothing between
+  (`POST …/drafts/:id/option-insertions`, in `draft_insertions` with origin `option`; kept, though the draft page no longer
+  lists it: #341). The record is the writer's own report of what was offered, because the server keeps nothing between
   rounds. Words the writer wrote themselves leave no record. The fake LLM (`FAKE_LLM=true`) answers with numbered options.
   **Rephrase title** (#163): the button beside the title opens the same window with the title as the wording and no selection.
   It waits until the draft has at least `REPHRASE.titleMinBodyWords` (300) words and says so; **Use this** sets the title,
