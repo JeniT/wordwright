@@ -118,7 +118,7 @@ A reviewer-only account has no account pages, but its Drafts to review page link
 
 Open: gap 2 and the lawyer's check of gaps 5 and 6 (#405); gap 3 (#406, Beta features); gap 9's later work (#413, Beta features); a way to report abuse (#412); and the privacy notice and terms that must carry the wording these gaps ask for (#321). The rest are done.
 
-1. **Controller and ICO registration** (done, #404, #321). Jeni Tennison Consulting Ltd, ZB302880. The privacy notice (#321) names the company and number, and says the company trades as Wordwright. The terms say only that “we” means the company.
+1. **Controller and ICO registration** (done, #404, #321). Jeni Tennison Consulting Ltd, ZB302880. The privacy notice (#321) names the company and number, and says the company trades as Wordwright. The terms say the same.
 2. **Roles for the writer's content** (open, #405, lawyer). Confirm we are processor for the writing and controller for the account, and put the Article 28 terms in the terms of use (#321).
 3. **Subject access is only partly met by the export** (open, #406). Decided 26 October 2026: not built now, to avoid a new feature; it waits for Beta features (#406). Until then the owner compiles the missing data by hand from the database on request, within the month, and decides what to withhold where it holds other people's data.
 4. **Scaleway's log retention** (answered, #407). Metadata is kept while the domain is active; ask support to delete a person's records when they ask, and tell people in the privacy notice. Reconsider when Scaleway shortens it in 2027.

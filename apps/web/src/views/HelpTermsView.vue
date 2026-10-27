@@ -7,8 +7,8 @@ import HelpPage from '../components/HelpPage.vue'
   <HelpPage title="Terms of use">
     <div class="space-y-6">
       <p>
-        These are the terms for using Wordwright. “We” means Jeni Tennison Consulting Ltd. By
-        creating an account you agree to them.
+        These are the terms for using Wordwright. “We” means Jeni Tennison Consulting Ltd, trading
+        as Wordwright. By creating an account you agree to them.
       </p>
 
       <section class="callout" aria-labelledby="t-short">
