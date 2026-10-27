@@ -27,6 +27,33 @@
 .prose-editor .ProseMirror h3 {
   font-size: 1.25rem;
 }
+/* Lists: the reset strips their markers and indent. Each item's words are a paragraph, so close those up. */
+.prose-editor .ProseMirror ul,
+.prose-editor .ProseMirror ol {
+  margin: 0 0 1em;
+  padding-left: 1.4em;
+}
+.prose-editor .ProseMirror ul {
+  list-style: disc;
+}
+.prose-editor .ProseMirror ul ul {
+  list-style: circle;
+}
+.prose-editor .ProseMirror ol {
+  list-style: decimal;
+}
+.prose-editor .ProseMirror li > p {
+  margin: 0;
+}
+.prose-editor .ProseMirror li + li,
+.prose-editor .ProseMirror li > ul,
+.prose-editor .ProseMirror li > ol {
+  margin-top: 0.25em;
+}
+.prose-editor .ProseMirror li > ul,
+.prose-editor .ProseMirror li > ol {
+  margin-bottom: 0;
+}
 .prose-editor .ProseMirror code {
   background: var(--color-sunken);
   border-radius: 0.25rem;

@@ -177,6 +177,25 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await expect(body.locator('p').first()).toHaveText('My opening paragraph.')
 })
 
+test('bullet and numbered lists in the draft show their bullets and numbers', async ({ page }) => {
+  await signUpWithPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await startDraft(page)
+  const body = page.getByRole('textbox', { name: 'Draft body' })
+  await body.click()
+  await body.pressSequentially('- Erosion\nDeposition\n\n1. Bend\nOxbow')
+
+  // The reset strips lists of their markers and indent; the editor puts them back.
+  const bullets = body.locator('ul')
+  await expect(bullets.locator('li')).toHaveText(['Erosion', 'Deposition'])
+  await expect(bullets).toHaveCSS('list-style-type', 'disc')
+  await expect(bullets).not.toHaveCSS('padding-left', '0px')
+  const numbers = body.locator('ol')
+  await expect(numbers.locator('li')).toHaveText(['Bend', 'Oxbow'])
+  await expect(numbers).toHaveCSS('list-style-type', 'decimal')
+  await expect(numbers).not.toHaveCSS('padding-left', '0px')
+})
+
 test('a note taken from a source goes into the draft with a real link to it, which looks like one', async ({
   page,
 }) => {
