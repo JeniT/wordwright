@@ -17,9 +17,9 @@ Written 27 October 2026 for #322. Done on the real server: a deploy and a rollba
 
 - [ ] Choose a monitoring service and set up the two checks below (#414), then test both alerts.
 - [ ] The restore rehearsal, including a fresh server, and the breach procedure on paper ([below](#the-restore-rehearsal)).
-- [ ] Ask Scaleway where Transactional Email keeps its sending logs and message content, and for how long; put the
-      answer in [data-map.md](data-map.md) and [processors.md](processors.md).
-- [ ] Tighten DMARC to `p=quarantine` once two weeks of reports have come in clean ([Email](#email)).
+- [x] Scaleway's email log retention: answered in [data-map.md](data-map.md) (#407).
+
+Later, for the beta: tighten DMARC to `p=quarantine` (#415).
 
 ## Monitoring and alerts
 
@@ -252,5 +252,4 @@ These are judgements, not measurements: nothing has been load-tested. Look again
 Deliverability was checked on 23 October 2026 (#349): `dkim=pass` for `wordwright.io`, `spf=pass` and `dmarc=pass`, with
 DMARC at `p=none`. How to check again is in [deploy.md](deploy.md#checking-deliverability). Once two weeks of DMARC
 reports show only our own mail passing, change the DMARC record at Gandi to `p=quarantine` and check a sign-up email
-again. Scaleway keeps sending logs, and perhaps message content, for a time we have not yet confirmed (see
-[Where it stands](#where-it-stands)).
+again (#415). How long Scaleway keeps sending logs and message content is in [data-map.md](data-map.md).

@@ -269,7 +269,7 @@ refusal.
 After any change to the sender or the DNS, sign up with a Gmail (or other) address and read the message's headers
 (Gmail: ⋮ → Show original). Look for `dkim=pass` for `wordwright.io`, `spf=pass` and `dmarc=pass`. The first
 real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, with DMARC at `p=none`; tightening that to
-`quarantine` once a couple of weeks of reports have come in clean is a later step ([runbook.md](runbook.md#email)).
+`quarantine` once a couple of weeks of reports have come in clean is a later step (#415).
 
 ## Google sign-in
 
