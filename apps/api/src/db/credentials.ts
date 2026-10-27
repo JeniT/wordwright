@@ -47,4 +47,14 @@ export class CredentialStore {
   delete(userId: string) {
     this.db.prepare('DELETE FROM llm_credentials WHERE user_id = ?').run(userId)
   }
+
+  /** How many people have a key saved (for `forget-ai-keys-cli.ts`). */
+  count(): number {
+    return (this.db.prepare('SELECT COUNT(*) AS n FROM llm_credentials').get() as { n: number }).n
+  }
+
+  /** Every saved key, gone: for when `KEY_ENCRYPTION_SECRET` has leaked (docs/runbook.md). Returns how many. */
+  deleteAll(): number {
+    return Number(this.db.prepare('DELETE FROM llm_credentials').run().changes)
+  }
 }

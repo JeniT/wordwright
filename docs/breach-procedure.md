@@ -1,6 +1,6 @@
 # Personal data breach procedure
 
-Read this the moment you suspect that personal data has been lost, stolen, sent to the wrong person or seen by someone who should not have seen it, and when you review how the service responds to incidents. The data is described in [data-map.md](data-map.md); server commands are in [deploy.md](deploy.md). For an outage with no data exposed, see #322.
+Read this the moment you suspect that personal data has been lost, stolen, sent to the wrong person or seen by someone who should not have seen it, and when you review how the service responds to incidents. The data is described in [data-map.md](data-map.md); server commands are in [deploy.md](deploy.md). For an outage with no data exposed, see [runbook.md](runbook.md).
 
 A breach is not only an attack. Examples: a stolen laptop or SSH key; a leaked `.env`, `KEY_ENCRYPTION_SECRET` or backup password; a bug that shows one person another's writing; an email sent to the wrong address; a lost or exposed backup; a processor telling us they were breached.
 
@@ -53,4 +53,4 @@ Every breach and near miss goes here, whether or not it is reported (Article 33(
 
 ## Practise it
 
-Run this once before the public launch as part of the restore rehearsal (#322): pretend `.env` leaked, walk steps 1 to 3 on paper, and time how long each takes.
+Run this once before the public launch as part of [the restore rehearsal](runbook.md#the-restore-rehearsal): pretend `.env` leaked, walk steps 1 to 3 on paper, and time how long each takes.

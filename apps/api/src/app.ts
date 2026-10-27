@@ -272,6 +272,8 @@ export function createApp(deps: AppDeps) {
         feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
         feedLimiter: limiter(30, HOUR),
+        // Critique and Rephrase share one allowance: far more than a writer uses, but not a loop on a stolen session.
+        assistLimiter: limiter(30, 10 * MINUTE),
         feedItems: new FeedItemService(
           store,
           deps.feeds,

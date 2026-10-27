@@ -35,6 +35,7 @@ One line per doc, worded as when to open it. Open the one that matches your task
 | Changing what personal data is stored, kept or sent on, or answering a data-protection request | [data-map.md](data-map.md), [dpia.md](dpia.md) |
 | Adding or changing a service that handles personal data, or asked who processes it             | [processors.md](processors.md)                 |
 | Personal data may have been lost, leaked or seen by the wrong person                           | [breach-procedure.md](breach-procedure.md)     |
+| Something is wrong with the live service; monitoring, secrets, limits or the restore rehearsal | [runbook.md](runbook.md)                       |
 | Adding or upgrading a dependency, or asked what we ship and under what licence                 | [dependencies.md](dependencies.md)             |
 
 ## Archive (read only when asked)

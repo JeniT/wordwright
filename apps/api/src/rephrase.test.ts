@@ -178,6 +178,21 @@ describe('POST /assist/rephrase', () => {
     expect(JSON.stringify(allRows(ctx))).toBe(before)
   })
 
+  it('slows down someone asking very quickly, sharing one allowance with critique', async () => {
+    const { ctx, client, base, draft, ask } = await ada()
+    for (let i = 0; i < 30; i++)
+      expect((await ask({ aim: `Aim number ${i} here` })).status).toBe(200)
+    ctx.llmCalls.length = 0
+    const limited = await ask({ aim: 'One more aim please' })
+    expect(limited.status).toBe(429)
+    expect((await limited.json()).error).toBe(
+      'You’re asking your AI very quickly. Wait a few minutes and try again.',
+    )
+    const critique = await client.post(`${base}/assist/critique`, { draftId: draft.id })
+    expect(critique.status).toBe(429)
+    expect(ctx.llmCalls).toHaveLength(0)
+  })
+
   it('offers options for a title once the draft has enough body', async () => {
     const { ask } = await ada()
     const res = await ask({ kind: 'title', wording: 'Why rivers bend', aim: 'A plain claim' })

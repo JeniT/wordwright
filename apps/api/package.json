@@ -10,6 +10,7 @@
     "admin": "tsx src/admin-cli.ts",
     "replay-deletions": "tsx src/replay-deletions-cli.ts",
     "forget-kept-name": "tsx src/forget-kept-name-cli.ts",
+    "forget-ai-keys": "tsx src/forget-ai-keys-cli.ts",
     "test": "vitest run",
     "coverage": "vitest run --coverage --coverage.include='src/**' --coverage.exclude='**/*.test.ts' --coverage.reporter=text-summary --coverage.reporter=html"
   },

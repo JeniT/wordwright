@@ -1,8 +1,8 @@
 # Deploying Wordwright
 
-Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in.
+Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in. When something is wrong, or for monitoring, secrets and limits, see [runbook.md](runbook.md).
 
-**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [Removing a kept name](#removing-a-kept-display-name-on-request) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
+**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [Removing a kept name](#removing-a-kept-display-name-on-request) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Logs](#logs) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
 
 Production is **one machine** (an UpCloud VM in London; see [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
@@ -110,6 +110,9 @@ The wizard installs a timer that runs `deploy/backup.sh` at 02:30 every night: t
 result into `~/backups` on the server (14 days kept; `BACKUP_KEEP_DAYS` changes it). Fetch them with
 `rsync -a wordwright@<server>:backups/ <a folder on your computer>/`.
 
+The script refuses to back up when the disk is 90% full or more, and, once `~/wordwright/monitor.env` is set up, ends by
+pinging a heartbeat monitor; a night without a ping is the alert ([runbook.md](runbook.md#monitoring-and-alerts)).
+
 Those copies are on the server's own disk, so by themselves they do not survive losing the server. Two more things
 keep them safe: the encrypted off-site copy below, and the secrets kept apart from the data (`KEY_ENCRYPTION_SECRET`
 in particular: without it stored AI keys cannot be read, and without `SESSION_SECRET` everyone is signed out). Keep
@@ -161,7 +164,7 @@ If the server is gone: make a new one with `deploy/setup-wizard.sh`, then before
 **saved** `KEY_ENCRYPTION_SECRET` (and `SESSION_SECRET`) into `~/wordwright/.env` in place of the new ones the wizard
 made (a new key secret makes every stored AI key unreadable), run `deploy/offsite-wizard.sh` and answer **no** to "is
 this the first time" to enter the saved encryption password and salt, then fetch the newest backup and roll back to it as
-above. This path is written but has not been practised yet: the restore rehearsal in #322 should do it once.
+above. This path is written but has not been practised yet: [the restore rehearsal](runbook.md#the-restore-rehearsal) does it.
 
 ## Rolling back
 
@@ -266,7 +269,7 @@ refusal.
 After any change to the sender or the DNS, sign up with a Gmail (or other) address and read the message's headers
 (Gmail: ⋮ → Show original). Look for `dkim=pass` for `wordwright.io`, `spf=pass` and `dmarc=pass`. The first
 real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, with DMARC at `p=none`; tightening that to
-`quarantine` once a couple of weeks of reports have come in clean is a later step (#322).
+`quarantine` once a couple of weeks of reports have come in clean is a later step ([runbook.md](runbook.md#email)).
 
 ## Google sign-in
 
@@ -311,6 +314,8 @@ read `.env` again). Or edit by hand: `nano .env`, set both lines (the app refuse
 3. Sign in with a Google account that is not on the test list: Google should refuse with "access blocked".
 4. If Google shows `redirect_uri_mismatch`, compare the URI in the error with the one above.
 
+## Logs
+
 Production logs must hold no request bodies, AI keys, tokens, reset or invitation links, or writing. What is there:
 
 - **The app** (`docker compose logs api`): start-up lines (the SMTP check, the address it listens on), the method and path
@@ -321,6 +326,9 @@ Production logs must hold no request bodies, AI keys, tokens, reset or invitatio
 - **Caddy** (`docker compose logs web`): start-up and certificate lines, and errors (which can include a visitor's IP
   address). It writes no access log.
 - **Nothing sensitive travels in a URL**: tokens and keys go in request bodies, and only the path is ever logged.
+
+Checked for #322 (27 October 2026): every logging call in `apps/api/src` was read; mail failures pass through the
+SMTP mailer's summary (code and SMTP status) before they are logged, and AI errors are logged by name only.
 
 Two tests keep it so: an unexpected error is logged without its message, and every file that writes to the log is on a
 reviewed list (`apps/api/src/errors.test.ts`), so a new log line forces a look at what it prints.

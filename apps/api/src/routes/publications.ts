@@ -59,6 +59,8 @@ export interface PublicationRouteDeps {
   feeds: FeedFetcher
   /** Per person: each new source makes the server fetch pages. */
   feedLimiter: RateLimiter
+  /** Per person, for Critique and Rephrase together: each spends their money and holds a request open. */
+  assistLimiter: RateLimiter
   feedItems: FeedItemService
   articleService: ArticleService
   brainstorm: BrainstormService
@@ -76,6 +78,7 @@ export function publicationRoutes({
   exportLimiter,
   feeds,
   feedLimiter,
+  assistLimiter,
   feedItems,
   articleService,
   brainstorm,
@@ -304,7 +307,7 @@ export function publicationRoutes({
       )
       .route(
         '/:publicationId/assist',
-        new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys)),
+        new Hono<AppEnv>().use(member).route('/', assistRoutes(store, llmKeys, assistLimiter)),
       )
   )
 }

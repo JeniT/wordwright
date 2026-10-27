@@ -74,6 +74,7 @@ describe('logging', () => {
       'admin-cli.ts', // a command run by hand: prints fixed sentences and the address the operator typed
       'replay-deletions-cli.ts', // a command run by hand: prints counts and the time the operator typed
       'forget-kept-name-cli.ts', // a command run by hand: prints counts and the name the operator typed
+      'forget-ai-keys-cli.ts', // a command run by hand: prints counts only
       'app.ts',
       'server.ts',
       'mail/background.ts',

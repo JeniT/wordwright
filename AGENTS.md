@@ -40,7 +40,7 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | Changing sign-in, accounts, publications, sharing, ideas or drafts      | [docs/accounts.md](docs/accounts.md)                                   |
 | Changing key handling or adding an LLM provider                         | [docs/byok.md](docs/byok.md)                                           |
 | Changing brainstorm, Research, Critique or Rephrase                     | [docs/ai-features.md](docs/ai-features.md)                             |
-| Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md)                                       |
+| Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md), [docs/runbook.md](docs/runbook.md)   |
 
 Any other doc: [docs/README.md](docs/README.md) says when to open each one.
 Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue list --label ready`.
