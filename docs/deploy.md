@@ -275,9 +275,9 @@ real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, 
 
 Optional: without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` the app works with email sign-in only (#350).
 
-**Where it stands (23 Oct 2026):** the Google Cloud project, consent screen and OAuth client exist, with the app in
-**Testing** (not published). The privacy notice and terms links on the consent screen wait for #321, and the proper
-verification waits until after #320 and #321.
+**Where it stands (27 Oct 2026):** the Google Cloud project, consent screen and OAuth client exist, with the app in
+**Testing** (not published), and production offers Google sign-in (`/api/auth/config` lists it). The privacy notice
+and terms are live (#321), so the consent screen can link to them (below). Verification waits until the alpha needs it.
 
 ### The decision: stay in Testing for the private alpha
 
@@ -292,7 +292,13 @@ once the privacy notice and terms are live.
 
 ### The Google Cloud settings
 
-- **Project** `Wordwright`; **consent screen** type External, app name `Wordwright`, support and developer contact emails.
+- **Project** `Wordwright`; **consent screen** type External, app name `Wordwright`, user support email
+  `hello@wordwright.io`, and a developer contact email.
+- **Branding** (Google Auth Platform → Branding): application home page `https://wordwright.io`, privacy policy
+  `https://app.wordwright.io/help/privacy-notice`, terms of service `https://app.wordwright.io/help/terms`, and
+  authorised domain `wordwright.io` (it covers `app.`). Before submitting for verification, the home page must describe
+  the app and link to the privacy notice: the `wordwright.io` holding page does neither yet, so give it those or use
+  `https://app.wordwright.io` as the home page then.
 - **Scopes:** `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`. Add no others.
 - **OAuth client** (Web application): authorised redirect URI exactly
   `https://app.wordwright.io/api/auth/oauth/google/callback` (`PUBLIC_URL` plus the path; a trailing slash or `http` makes
