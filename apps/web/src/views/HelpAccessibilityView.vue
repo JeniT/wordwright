@@ -15,9 +15,9 @@ import HelpPage from '../components/HelpPage.vue'
         <h2 id="a11y-checked" class="font-semibold">What we check</h2>
         <ul class="mt-1 list-disc space-y-1 pl-5">
           <li>
-            Every page is tested automatically with axe, in the light and dark themes, at phone
-            width (390 pixels) and at 320 pixels, which is what a page looks like at 400% zoom.
-            Those pages must not scroll sideways.
+            We test every page automatically with axe, in the light and dark themes, at phone width
+            (390 pixels) and at 320 pixels, which is what a page looks like at 400% zoom. We check
+            those pages do not scroll sideways.
           </li>
           <li>Pages can be used with the keyboard alone, and show where the focus is.</li>
           <li>Lists you can reorder by dragging also have buttons that move an item up or down.</li>
@@ -39,9 +39,9 @@ import HelpPage from '../components/HelpPage.vue'
             >report it on GitHub</NewTabLink
           >
           or write to
-          <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>, saying the
-          page, what you were trying to do, and any assistive technology you use. We treat
-          accessibility problems as bugs.
+          <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>, telling us
+          which page you were on, what you were trying to do, and any assistive technology you use.
+          We treat accessibility problems as bugs.
         </p>
       </section>
       <p class="text-sm text-ink-soft">Last updated: 26 October 2026.</p>

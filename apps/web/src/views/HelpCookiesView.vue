@@ -7,15 +7,15 @@ import HelpPage from '../components/HelpPage.vue'
   <HelpPage title="Cookies">
     <div class="space-y-6">
       <p>
-        Wordwright sets one cookie, which keeps you signed in. It sets no others, so there is
-        nothing to accept or decline. We have no advertising or tracking.
+        Wordwright sets one cookie, which keeps you signed in. It doesn't set any other cookies, so
+        there is nothing to accept or decline. We have no advertising or tracking.
       </p>
 
       <section aria-labelledby="c-cookie">
         <h2 id="c-cookie" class="mb-1 font-display text-xl font-semibold">The cookie</h2>
         <p>
-          The cookie is called wordwright_session. It is set when you sign in, and removed when you
-          sign out or after 30 days. Scripts on the page can’t read it.
+          The cookie is called <code>wordwright_session</code>. It is set when you sign in, and
+          removed when you sign out or after 30 days. Scripts on the page can’t read it.
         </p>
         <p class="mt-2">
           The law calls it strictly necessary, so we may set it without asking you.
@@ -31,9 +31,9 @@ import HelpPage from '../components/HelpPage.vue'
           your device and are never sent to us:
         </p>
         <ul class="mt-2 list-disc space-y-1 pl-5">
-          <li>whether you chose the light theme, the dark theme or your device’s;</li>
-          <li>whether you switched on editing a draft as Markdown;</li>
-          <li>the last publication you opened.</li>
+          <li>whether you chose the light theme, the dark theme or your device’s</li>
+          <li>whether you switched on editing a draft as Markdown</li>
+          <li>the last publication you opened</li>
         </ul>
         <p class="mt-2">Clearing your browser’s site data removes them, and the cookie too.</p>
       </section>

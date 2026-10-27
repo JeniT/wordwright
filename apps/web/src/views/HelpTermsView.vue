@@ -15,9 +15,7 @@ import HelpPage from '../components/HelpPage.vue'
         <h2 id="t-short" class="mb-1 font-medium">In short</h2>
         <ul class="list-disc space-y-1 pl-5">
           <li>Wordwright is an alpha. It may change, break or end.</li>
-          <li>
-            What you write is yours. We don’t publish it, train an AI on it or write it for you.
-          </li>
+          <li>What you write is yours. We don’t publish it or train an AI on it.</li>
           <li>You use your own AI key, and you pay your provider for it.</li>
           <li>You can delete your account at any time.</li>
         </ul>
@@ -27,7 +25,7 @@ import HelpPage from '../components/HelpPage.vue'
         <h2 id="t-alpha" class="mb-1 font-display text-xl font-semibold">This is an alpha</h2>
         <p>
           Wordwright is still being built, and only people we approve can use it. It may change,
-          have faults or be unavailable.
+          have faults or be unavailable at times.
         </p>
         <p class="mt-2">
           We may end it or remove an account. We will give reasonable notice and a chance to
@@ -51,10 +49,11 @@ import HelpPage from '../components/HelpPage.vue'
           You give us permission only to store it and show it to the people you share it with. You
           also let us send the parts you choose to your AI provider.
         </p>
-        <p class="mt-2">
-          We don’t publish it, train any AI on it or write any of it for you. The AI points and
-          asks. The words are yours.
+        <p>
+          If you hand over a draft to another user, they take ownership of it. They might share
+          parts of it with their AI provider. Only hand over drafts to people you trust.
         </p>
+        <p class="mt-2">We don’t publish it or train any AI on it. The words are yours.</p>
       </section>
 
       <section aria-labelledby="t-ai">
@@ -62,7 +61,7 @@ import HelpPage from '../components/HelpPage.vue'
         <ul class="list-disc space-y-1 pl-5">
           <li>
             Wordwright has no AI of its own. You use your own key from a provider such as Anthropic,
-            and you pay the provider for what the key is used for.
+            and you pay the provider for the use of your AI through Wordwright.
           </li>
           <li>
             You agree the provider’s terms with it, not us. Check them, and that the key is yours to
@@ -73,9 +72,9 @@ import HelpPage from '../components/HelpPage.vue'
             the UK.
           </li>
           <li>
-            In a publication with other members, a Refine conversation is shared. Each message sends
-            the whole conversation to the provider of whoever sent it, including other members’
-            earlier messages.
+            In a publication with other members, conversations with AIs are shared. Each message
+            sends the whole conversation to the provider of whoever sent it. That can include other
+            members’ earlier messages.
           </li>
           <li>
             Providers require an adult to hold the account, so a young person needs an adult to hold
@@ -99,13 +98,13 @@ import HelpPage from '../components/HelpPage.vue'
         <h2 id="t-use" class="mb-1 font-display text-xl font-semibold">How to use it</h2>
         <p>Don’t:</p>
         <ul class="list-disc space-y-1 pl-5">
-          <li>break the law, or use Wordwright to harass, deceive or threaten anyone;</li>
-          <li>send invitations or review requests to people who don’t want them;</li>
+          <li>break the law, or use Wordwright to harass, deceive or threaten anyone</li>
+          <li>send invitations or review requests to people who don’t want them</li>
           <li>
             try to get into other people’s accounts or writing, or to overload or interfere with the
-            service;
+            service
           </li>
-          <li>share your account, or use someone else’s.</li>
+          <li>share your account, or use someone else’s</li>
         </ul>
         <p class="mt-2">
           We may suspend or delete an account that breaks these rules. We will say why, unless the
@@ -116,9 +115,9 @@ import HelpPage from '../components/HelpPage.vue'
       <section aria-labelledby="t-sharing">
         <h2 id="t-sharing" class="mb-1 font-display text-xl font-semibold">Sharing with others</h2>
         <p>
-          Members of a publication see its notes, drafts and conversations. A reviewer sees the
-          draft they are asked to read. Share only with people you trust, and only what you may
-          share. If you invite someone, you need a good reason to.
+          Members of a shared publication see its notes, drafts and conversations. A reviewer sees
+          the draft they are asked to read. If you hand over a draft, the new editor gets to choose
+          what is done with it. Share only with people you trust.
         </p>
       </section>
 
@@ -132,25 +131,24 @@ import HelpPage from '../components/HelpPage.vue'
           We promise to:
         </p>
         <ul class="mt-2 list-disc space-y-1 pl-5">
-          <li>use it only to run Wordwright for you, as you tell us through the app;</li>
-          <li>keep everyone who works with it bound to confidentiality;</li>
-          <li>keep it secure, and tell you without undue delay if it is lost or exposed;</li>
+          <li>only use it to run Wordwright for you, as you tell us through the app</li>
+          <li>keep everyone who works with it bound to confidentiality</li>
+          <li>keep it secure, and tell you without undue delay if it is lost or exposed</li>
           <li>
-            use only the companies named in the
+            only use the companies named in the
             <RouterLink :to="{ name: 'help-privacy-notice' }" class="link"
               >privacy notice</RouterLink
-            >, under terms like these, and tell you before we add one;
+            >, under terms like these, and tell you before we add one
           </li>
           <li>
-            help you answer the people it is about, and delete it when you delete your account
-            (backups clear within about 37 days);
+            help you answer questions from the people it is about, and delete it when you delete
+            your account (backups clear within about 37 days)
           </li>
-          <li>show you how we meet these promises, if you ask.</li>
+          <li>show you how we meet these promises, if you ask</li>
         </ul>
         <p class="mt-2">
           You promise to have a lawful reason to put it there. Don’t enter anything you couldn’t
-          send to a trusted contractor. For your own name and email address, we decide, as the
-          privacy notice says.
+          send to a trusted contractor.
         </p>
       </section>
 
@@ -163,9 +161,9 @@ import HelpPage from '../components/HelpPage.vue'
           We don’t promise it will be uninterrupted or free of faults.
         </p>
         <p class="mt-2">
-          We are not liable for losses we couldn’t reasonably have foreseen, or for a provider’s
-          acts. Nothing here limits what the law says we owe you. That includes death or injury
-          caused by negligence, fraud, your consumer rights and data protection law.
+          We are not liable for losses we couldn’t reasonably have foreseen, or for a provider does.
+          Nothing here limits what the law says we owe you. That includes death or injury caused by
+          negligence, fraud, your consumer rights and data protection law.
         </p>
       </section>
 
@@ -177,11 +175,11 @@ import HelpPage from '../components/HelpPage.vue'
         </p>
         <p class="mt-2">
           We will email account holders before we change these terms in a way that matters. You may
-          delete your account if you disagree.
+          delete your account if you disagree with the new terms.
         </p>
         <p class="mt-2">
           The law of England and Wales applies, and its courts decide any dispute. If you live
-          elsewhere in the UK, you may use your own courts. Questions:
+          elsewhere in the UK, you may use your own courts. Send any questions to
           <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>.
         </p>
       </section>
