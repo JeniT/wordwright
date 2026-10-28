@@ -71,6 +71,23 @@ describe('parseCritique', () => {
     })
   })
 
+  it('takes the later critique when the model corrects itself, text and all', () => {
+    const first = reply([], { summary: 'First attempt.' })
+    const second = reply([point('b1')], { summary: 'Second attempt, with a {brace} in it.' })
+    const result = parseCritique(
+      `${first}\n\nWait, that is wrong. Here it is again:\n\n${second}`,
+      blocks,
+    )
+    expect(result?.summary).toBe('Second attempt, with a {brace} in it.')
+    expect(result?.points).toHaveLength(1)
+  })
+
+  it('ignores a later object that is not a critique', () => {
+    expect(parseCritique(`${reply([point('b1')])}\n\nNote: {"a": 1}`, blocks)?.points).toHaveLength(
+      1,
+    )
+  })
+
   it('refuses anything else', () => {
     expect(parseCritique('Tighten the opening.', blocks)).toBeNull()
     expect(parseCritique('{"summary": 1}', blocks)).toBeNull()

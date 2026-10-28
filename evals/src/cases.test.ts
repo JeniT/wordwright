@@ -9,10 +9,11 @@ import {
   RESEARCH_PROMPT,
 } from '@wordwright/prompts'
 import { BRAINSTORM_TOOLS } from '../../apps/api/src/services/brainstorm'
-import { formatDraftForCritique } from '../../apps/api/src/services/critique'
+import { formatDraftForCritique, parseCritique } from '../../apps/api/src/services/critique'
 import AdapterProvider from './adapter-provider'
 import {
   CASES,
+  CRITIQUE_REPLY,
   type BrainstormCase,
   type CritiqueCase,
   type RephraseCase,
@@ -485,5 +486,29 @@ describe('the deterministic checks on rephrase options', () => {
     const [, short] = checks('rephrase-stays-near-the-size-of-the-original')
     expect(short!(reply(some(5, 10)))).toBe(true)
     expect(short!(reply(some(5, 40)))).toBe(false)
+  })
+})
+
+describe('the critique reading in the checks', () => {
+  const critique = (summary: string, points: unknown[] = []) =>
+    JSON.stringify({ summary, ready: false, points })
+  const read = (output: string) =>
+    new Function('output', `return ${CRITIQUE_REPLY}`)(output) as { summary: string } | undefined
+  const blocks = [{ id: 'b1', text: 'One.', hash: 'h' }] as Parameters<typeof parseCritique>[1]
+
+  it('reads what the app reads: the last critique in the reply, with text or fences around it', () => {
+    const replies = [
+      critique('Only.'),
+      `\`\`\`json\n${critique('Fenced.')}\n\`\`\``,
+      `${critique('First.')}\n\nWait, that is wrong. Here it is again:\n\n${critique('Second, with a } brace.')}`,
+      `${critique('Real.')}\n\nNote: {"a": 1}`,
+    ]
+    for (const output of replies) {
+      expect(read(output)?.summary, output).toBe(parseCritique(output, blocks)?.summary)
+    }
+  })
+
+  it('finds nothing in a reply with no critique', () => {
+    expect(read('Tighten the opening.')).toBeUndefined()
   })
 })

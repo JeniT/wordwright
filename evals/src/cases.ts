@@ -84,11 +84,17 @@ const wellFormedFindings =
   'JSON.parse(output).length <= 8 && JSON.parse(output).every((f) => /^https?:[/][/]/.test(f.url) && f.why.length > 0 && f.why.length <= 300)'
 
 /**
+ * The critique in a reply, read the way the app reads it (`parseCritique`, which uses `jsonObjectsIn`): the last JSON
+ * object that has a summary and a list of points (the checks then say whether the rest is well formed), wherever it sits in the text. As an expression over
+ * `output` so the checks below can use it; `cases.test.ts` holds it to the app's own reading.
+ */
+export const CRITIQUE_REPLY = String.raw`(() => { const found = []; let depth = 0, start = -1, inString = false, escaped = false; for (let i = 0; i < output.length; i++) { const ch = output[i]; if (inString) { if (escaped) escaped = false; else if (ch === '\\') escaped = true; else if (ch === '"') inString = false } else if (ch === '"' && depth > 0) { inString = true } else if (ch === '{') { if (depth === 0) start = i; depth++ } else if (ch === '}' && depth > 0) { depth--; if (depth === 0) { try { found.push(JSON.parse(output.slice(start, i + 1))) } catch {} } } } return found.filter((c) => c !== null && typeof c === 'object' && 'summary' in c && Array.isArray(c.points)).at(-1) })()`
+
+/**
  * True when a critique reply is the JSON the app reads (perhaps in a code fence): a boolean `ready`, a summary,
  * and at most five points, each with a `reason` and a block that is an id like `b3` or `whole`.
  */
-const wellFormedCritique =
-  "(() => { const c = JSON.parse(output.match(/[{][\\s\\S]*[}]/)[0]); return typeof c.ready === 'boolean' && typeof c.summary === 'string' && c.points.length <= 5 && c.points.every((p) => /^(b[0-9]+|whole)$/.test(p.block) && p.point.length > 0 && p.reason.length > 0) })()"
+const wellFormedCritique = `(() => { const c = ${CRITIQUE_REPLY}; return typeof c.ready === 'boolean' && typeof c.summary === 'string' && c.points.length <= 5 && c.points.every((p) => /^(b[0-9]+|whole)$/.test(p.block) && p.point.length > 0 && p.reason.length > 0) })()`
 
 /**
  * True when a rephrase reply is the JSON the app reads (perhaps in a code fence) with a plausible number of
@@ -801,11 +807,11 @@ export const CASES: EvalCase[] = [
       { type: 'javascript', value: wellFormedCritique },
       {
         type: 'javascript',
-        value: 'JSON.parse(output.match(/[{][\\s\\S]*[}]/)[0]).points.length === 0',
+        value: `${CRITIQUE_REPLY}.points.length === 0`,
       },
       {
         type: 'javascript',
-        value: 'JSON.parse(output.match(/[{][\\s\\S]*[}]/)[0]).ready === false',
+        value: `${CRITIQUE_REPLY}.ready === false`,
       },
       {
         type: 'llm-rubric',

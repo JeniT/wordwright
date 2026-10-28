@@ -11,6 +11,7 @@ import {
   type Critique,
 } from '@wordwright/core'
 import type { Store } from '../db/store'
+import { jsonObjectsIn } from './model-json'
 import { publicationDescriptionBlock } from './publication-context'
 
 /**
@@ -41,16 +42,12 @@ export function formatDraftForCritique(
  * not a critique at all, or when every point it made was about something we never showed it.
  */
 export function parseCritique(reply: string, blocks: readonly Block[]): Critique | null {
-  const json = reply.match(/\{[\s\S]*\}/)?.[0]
-  if (!json) return null
-  let raw: unknown
-  try {
-    raw = JSON.parse(json)
-  } catch {
-    return null
-  }
-  const parsed = ModelCritiqueSchema.safeParse(raw)
-  if (!parsed.success) return null
+  // The last critique in the reply: a model that corrects itself ("Wait, here it is again") means the later one.
+  const parsed = jsonObjectsIn(reply)
+    .map((raw) => ModelCritiqueSchema.safeParse(raw))
+    .filter((result) => result.success)
+    .at(-1)
+  if (!parsed?.success) return null
 
   const byId = new Map(blocks.map((b) => [b.id, b]))
   const points = parsed.data.points

@@ -37,7 +37,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
   (the design is in [adr/review-and-comments/critique-points-are-anchored-to-paragraphs-by-id-outside.md](adr/review-and-comments/critique-points-are-anchored-to-paragraphs-by-id-outside.md)).
   The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
-  gets 3 critiques by default (each person can choose 1 to 5 on Your AI), counted per draft.
+  gets 3 critiques by default (each person can choose 1 to 5 on Your AI), counted per draft. The reply is read for its last JSON object (`jsonObjectsIn`), so a model that corrects itself in the same reply still gives a critique. For a draft that discloses distress the prompt asks for no points and a short warm summary pointing to support.
 - **Rephrase** (`POST /api/publications/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage
   or the title: `{draftId, kind: 'title'|'passage', wording, aim, earlier}` gives `{size, options}`. `earlier` holds the
   rounds already asked in this window, so the AI is told what it has offered and a later round needs a different aim.

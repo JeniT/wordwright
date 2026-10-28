@@ -74,6 +74,9 @@ describe('prompts', () => {
     expect(critique).toMatch(/in distress, grieving or at risk/)
     expect(critique).toMatch(/"points" empty, "ready" false/)
     expect(critique).toMatch(/Do not ask for more about how they feel/)
+    // The first eval runs sometimes left out the pointer to support, then corrected themselves in a second JSON object.
+    expect(critique).toMatch(/never leave it out/)
+    expect(critique).toMatch(/send one JSON object only, never a second attempt/)
   })
 
   it('the critique prompt asks for ranked points, at most five, about blocks by id, and a ready verdict', () => {
