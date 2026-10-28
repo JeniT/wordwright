@@ -15,23 +15,24 @@ restoring, rolling back, email) are in [deploy.md](deploy.md); if personal data 
 Written 27 October 2026 for #322. Done on the real server: a deploy and a rollback rehearsal (23 October 2026), and
 `./offsite.sh verify`. Still to do, all by the owner, before the alpha has real accounts:
 
-- [ ] Choose a monitoring service and set up the two checks below (#414), then test both alerts.
+- [x] The nightly heartbeat on healthchecks.io (#414), alert tested 28 October 2026.
 - [x] The restore rehearsal onto a fresh server (28 October 2026, [below](#the-restore-rehearsal)).
-- [ ] The breach procedure on paper (step 7 of the rehearsal).
+- [ ] The breach procedure on paper (step 7 of the rehearsal, #426).
 - [x] Scaleway's email log retention: answered in [data-map.md](data-map.md) (#407).
 
-Later, for the beta: tighten DMARC to `p=quarantine` (#415).
+Later, for the beta: the uptime check, and a second look at which monitoring services we use (#427); tighten DMARC
+to `p=quarantine` (#415).
 
 ## Monitoring and alerts
 
-There is one server and one person running it, so monitoring is two outside checks that email (or text) the owner. Any
-service that does both kinds will do; which one is the owner's choice. Prefer one that keeps its data in the UK or EU,
-since a monitor sees nothing personal but is still a service we rely on.
+There is one server and one person running it, so monitoring is outside checks that email (or text) the owner. The
+heartbeat runs on healthchecks.io; the uptime check waits for the beta (#427). When choosing a service, prefer one that
+keeps its data in the UK or EU: a monitor sees nothing personal but is still a service we rely on.
 
-| Check         | What it watches                                                                                                   | Set it to                                                                                                         |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Uptime**    | `https://app.wordwright.io/health` answers 200. It catches the server, Caddy, the API or the certificate failing. | Every 5 minutes; alert after 2 failures in a row. If the service offers a certificate-expiry warning, turn it on. |
-| **Heartbeat** | The nightly backup pings a private URL when it has worked; the monitor alerts when a day passes without a ping.   | Expect a ping every 24 hours, with 3 hours' grace (the backup runs at 02:30, so an alert arrives in the morning). |
+| Check                   | What it watches                                                                                                   | Set it to                                                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Uptime** (beta, #427) | `https://app.wordwright.io/health` answers 200. It catches the server, Caddy, the API or the certificate failing. | Every 5 minutes; alert after 2 failures in a row. If the service offers a certificate-expiry warning, turn it on. |
+| **Heartbeat**           | The nightly backup pings a private URL when it has worked; the monitor alerts when a day passes without a ping.   | Expect a ping every 24 hours, with 3 hours' grace (the backup runs at 02:30, so an alert arrives in the morning). |
 
 The heartbeat covers more than backups. `deploy/backup.sh` pings only after the backup, the copy and the off-site upload
 have all worked, and it refuses to back up when the disk is 90% full or more (`BACKUP_MAX_DISK_PERCENT`). So a missed
@@ -57,9 +58,10 @@ read -rsp 'Heartbeat URL: ' url && echo && (umask 077 && echo "HEARTBEAT_URL=$ur
 
 Write the date each alert was tested in [Where it stands](#where-it-stands).
 
-**Not monitored**, and why that is acceptable for the alpha: unexpected errors (500s) appear only in the log, so they
-are part of the weekly look; email that bounces or is blocked shows only in Scaleway's console; an AI provider's outage
-is the writer's to see (the app says so) and not ours to fix.
+**Not monitored**, and why that is acceptable for the alpha: the site going down, until the uptime check (#427), since
+the few alpha writers can say so; unexpected errors (500s) appear only in the log, so they are part of the weekly look;
+email that bounces or is blocked shows only in Scaleway's console; an AI provider's outage is the writer's to see (the
+app says so) and not ours to fix.
 
 ## A weekly look
 
