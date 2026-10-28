@@ -200,7 +200,9 @@ finish() {
 # ──────────────────────────────────────────────────────────────────────────
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${ENV_FILE:-$DEPLOY_DIR/.env.server-setup}" # ignored by git (.env.*); answers that are not secret
+# Answers that are not secret, kept beside these scripts (ignored by git: .env.*). The library above has already
+# defaulted ENV_FILE to .env in whatever folder you ran this from, so that default is replaced here (#425).
+if [[ "$ENV_FILE" == ".env" ]]; then ENV_FILE="$DEPLOY_DIR/.env.server-setup"; fi
 APP_USER="wordwright"
 REMOTE_DIR="wordwright" # under the app user's home
 RCLONE_IMAGE=$(grep '^RCLONE_IMAGE=' "$DEPLOY_DIR/offsite.sh" | cut -d'"' -f2) # one place pins the version

@@ -16,7 +16,8 @@ Written 27 October 2026 for #322. Done on the real server: a deploy and a rollba
 `./offsite.sh verify`. Still to do, all by the owner, before the alpha has real accounts:
 
 - [ ] Choose a monitoring service and set up the two checks below (#414), then test both alerts.
-- [ ] The restore rehearsal, including a fresh server, and the breach procedure on paper ([below](#the-restore-rehearsal)).
+- [x] The restore rehearsal onto a fresh server (28 October 2026, [below](#the-restore-rehearsal)).
+- [ ] The breach procedure on paper (step 7 of the rehearsal).
 - [x] Scaleway's email log retention: answered in [data-map.md](data-map.md) (#407).
 
 Later, for the beta: tighten DMARC to `p=quarantine` (#415).
@@ -204,9 +205,9 @@ that has not been tried: losing the server.
 6. Time each step. Throw the spare server away.
 7. Walk the [breach procedure](breach-procedure.md#practise-it) on paper, pretending `.env` leaked, and time it.
 
-| Date | What was rehearsed | How long | What went wrong, and the fix |
-| ---- | ------------------ | -------- | ---------------------------- |
-| —    | Not yet            |          |                              |
+| Date            | What was rehearsed                                                                                                                                  | How long                                                  | What went wrong, and the fix                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 28 October 2026 | Steps 1–6: the off-site copy restored onto a new server, which replaced the live one; the AI key worked and the deleted test account stayed deleted | Not timed: spread over a day, with a wait for DNS to move | The setup wizard could not be re-run after it stopped (#422). `offsite.sh fetch` claimed to fetch a file the bucket did not have, because the step 3 backup had not been taken (#423; that step now says so). The saved key secret was typed into `.env` by hand with a typo, so the AI key failed (#423: `restore-key-secret.sh` takes it pasted). The wizards kept their answers in the wrong file (#425). |
 
 ## Limits
 

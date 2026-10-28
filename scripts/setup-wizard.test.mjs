@@ -1,7 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -98,7 +106,20 @@ exit 0`,
     })
   const calls = () => (existsSync(log) ? readFileSync(log, 'utf8') : '')
   const remoteEnv = () => readFileSync(join(state, 'remote-env'), 'utf8')
-  return { run, calls, remoteEnv }
+  /** Runs a copy of the wizard in <dir>/deploy, from <dir>, with no ENV_FILE set, as you would from the repository. */
+  const runFromRepo = (answers) => {
+    mkdirSync(join(dir, 'deploy'))
+    copyFileSync(script, join(dir, 'deploy', 'setup-wizard.sh'))
+    const outer = { ...process.env }
+    delete outer.ENV_FILE
+    return spawnSync('bash', [join(dir, 'deploy', 'setup-wizard.sh')], {
+      cwd: dir,
+      encoding: 'utf8',
+      input: answers.map((a) => `${a}\n`).join(''),
+      env: { ...outer, PATH: `${bin}:${process.env.PATH}`, HOME: dir },
+    })
+  }
+  return { run, runFromRepo, calls, remoteEnv, dir }
 }
 
 test('on a new server it runs the base setup as root, then switches root login off', () => {
@@ -142,4 +163,14 @@ test('run again after root login was switched off, it skips what is done and ask
     remoteEnv(),
     /^SMTP_URL=smtps:\/\/project-id:a-secret@smtp\.tem\.scaleway\.com:465$/m,
   )
+})
+
+test('its answers are kept beside it in deploy/.env.server-setup, not in the .env of the folder it is run from', () => {
+  const { runFromRepo, dir } = world()
+  runFromRepo(['', '203.0.113.7', join(dir, 'key')])
+  assert.match(
+    readFileSync(join(dir, 'deploy', '.env.server-setup'), 'utf8'),
+    /^SERVER_IP='203\.0\.113\.7'$/m,
+  )
+  assert.equal(existsSync(join(dir, '.env')), false)
 })

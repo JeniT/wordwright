@@ -32,12 +32,12 @@ function world() {
   }
   fake(
     'ssh',
-    `while [ $# -gt 0 ]; do a=$1; shift; case "$a" in *@*) echo "ssh $a" >> '${log}'; break ;; esac; done
-HOME='${server}' exec bash -c "$*"`,
+    `cmd="\${@: -1}"; echo "ssh \${*:1:$#-1}" >> '${log}'
+HOME='${server}' exec bash -c "$cmd"`,
   )
   fake('docker', `echo "docker $*" >> '${log}'`)
-  const run = (input) =>
-    spawnSync('bash', [script], {
+  const run = (input, args = []) =>
+    spawnSync('bash', [script, ...args], {
       encoding: 'utf8',
       input,
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ENV_FILE: answers },
@@ -52,7 +52,7 @@ test('the pasted secret replaces the one on the server, and the app restarts wit
   assert.match(env(), new RegExp(`^KEY_ENCRYPTION_SECRET=${saved.replace(/[+/]/g, '\\$&')}$`, 'm'))
   assert.doesNotMatch(env(), /made-by-the-wizard/)
   assert.match(env(), /^SESSION_SECRET=keep-me$/m, 'the rest of .env is kept')
-  assert.match(calls(), /ssh wordwright@203\.0\.113\.7/)
+  assert.match(calls(), /^ssh .* wordwright@203\.0\.113\.7$/m)
   assert.match(calls(), /docker compose up -d --force-recreate api/)
   assert.doesNotMatch(
     result.stdout + result.stderr,
@@ -67,4 +67,12 @@ test('something too short to be the secret is asked for again, and nothing is se
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, /4 characters/)
   assert.match(env(), /^KEY_ENCRYPTION_SECRET=made-by-the-wizard$/m)
+})
+
+test('an ssh destination on the command line is used as it is, so your ssh config supplies the rest', () => {
+  const { run, env, calls } = world()
+  const result = run(`${saved}\n`, ['wordwright'])
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(calls(), /^ssh wordwright$/m)
+  assert.match(env(), /^KEY_ENCRYPTION_SECRET=q7Vx/m)
 })

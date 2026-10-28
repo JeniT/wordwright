@@ -168,7 +168,8 @@ If the server is gone, in this order, before anyone uses the new one:
 
 1. Make a new server with `deploy/setup-wizard.sh`. When it shows a new `KEY_ENCRYPTION_SECRET`, do **not** save it
    over your old one.
-2. Put the **saved** `KEY_ENCRYPTION_SECRET` on it: run `deploy/restore-key-secret.sh` on your computer and paste it at
+2. Put the **saved** `KEY_ENCRYPTION_SECRET` on it: run `deploy/restore-key-secret.sh` on your computer (add the
+   server, as `wordwright@<address>` or a Host from your `~/.ssh/config`, if the wizard was run elsewhere) and paste it at
    the hidden prompt. It restarts the app with it. With the wizard's new one, every stored AI key is unreadable. The new
    `SESSION_SECRET` can stay: it only signs the cookie used part way through Google sign-in.
 3. Run `deploy/offsite-wizard.sh` and answer **no** to "is this the first time", to enter the saved encryption password
