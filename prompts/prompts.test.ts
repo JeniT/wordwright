@@ -6,6 +6,7 @@ import {
   CREATE_IDEA_TOOL_PROMPT,
   CRITIQUE_PROMPT,
   DEFAULT_BRAINSTORM_PROMPT,
+  NAME_CONVERSATION_TOOL_PROMPT,
   OPTIONS_PROMPT,
   RESEARCH_PROMPT,
   UPDATE_IDEA_TOOL_PROMPT,
@@ -161,5 +162,24 @@ describe('prompts', () => {
     ]) {
       expect(BRAINSTORM_RULES_PROMPT.replace(/\s+/g, ' ')).toContain(phrase.replace(/\s+/g, ' '))
     }
+  })
+})
+
+describe('the fixes from the first #418 eval run', () => {
+  it('Rephrase options are told not to add generalisations, effects or explanations, and may stop short rather than add', () => {
+    const options = OPTIONS_PROMPT.replace(/\s+/g, ' ')
+    expect(options).toMatch(/must not say more than the wording says/)
+    expect(options).toMatch(/"always", "never"/)
+    expect(options).toMatch(/offer a few fewer rather than add/)
+    expect(options).toMatch(/never explains it in a full sentence/)
+  })
+
+  it('the conversation label is not a question or a copy of the idea title', () => {
+    expect(NAME_CONVERSATION_TOOL_PROMPT).toMatch(/never start it with Why, How or What/)
+    expect(NAME_CONVERSATION_TOOL_PROMPT).toMatch(/do not copy the idea's own title/)
+  })
+
+  it('the kick-off asks for one opening question and no second one', () => {
+    expect(BRAINSTORM_KICKOFF_PROMPT).toMatch(/one question only/)
   })
 })
