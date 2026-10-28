@@ -39,6 +39,9 @@ read-only token for the private images; makes the two secrets and sends them to 
 details; takes the Google sign-in ID and secret if you have them; starts the app and checks `https://app.wordwright.io/health`; walks you through checking real email; and
 installs a nightly backup timer and fetches a first copy to your computer.
 
+If it stops part way, fix what it says and run it again. It notices the base setup and the SSH lock-down already done
+(root can no longer log in by then) and skips them; decline a new image build and a new token to keep them.
+
 Secrets go from your keyboard to the server and are never written on your computer. The one file it keeps
 (`deploy/.env.server-setup`, ignored by git) holds only non-secret answers, so you can stop with Ctrl-C and run it again
 where it left off. It keeps secrets the server already has, rather than making new ones: **a new
