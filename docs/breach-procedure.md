@@ -9,7 +9,7 @@ A breach is not only an attack. Examples: a stolen laptop or SSH key; a leaked `
 ## 1. Contain (first hour)
 
 - Stop the harm before understanding it. Cut off whoever has access: `docker compose stop api` (sign everyone out of a live bug), revoke the leaked token or key, remove a compromised SSH key, rotate the exposed secret.
-- Rotating `SESSION_SECRET` signs everyone out. Rotating `KEY_ENCRYPTION_SECRET` makes every saved AI key unreadable (there is no rotation tool yet, #169): do it only if the secret itself leaked, and tell writers to re-enter their keys.
+- Rotating `SESSION_SECRET` does not sign anyone out: it only signs the cookie used part way through Google sign-in, and sessions live in the database. There is no command to sign everyone out yet (#424); until then, `docker compose stop api` is the only way to cut every session off. Rotating `KEY_ENCRYPTION_SECRET` makes every saved AI key unreadable (there is no rotation tool yet, #169): do it only if the secret itself leaked, and tell writers to re-enter their keys.
 - If AI keys may have leaked, writers must revoke them in their provider's console; the app cannot.
 - **Preserve evidence.** Note the time, who found it, and what you saw. Copy the logs (`docker compose logs api > ~/incident-<date>.log`) before they rotate (50 MB cap). Do not "tidy up".
 

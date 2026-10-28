@@ -382,6 +382,8 @@ else
   SESSION_SECRET=$(openssl rand -base64 48 | tr -d '\n')
   KEY_ENCRYPTION_SECRET=$(openssl rand -base64 48 | tr -d '\n')
   printf '\n'
+  warn "Rebuilding a server to restore its backups? Do NOT save this over your old one: keep the old one, and after this"
+  warn "wizard put it on the server with deploy/restore-key-secret.sh (docs/deploy.md). Otherwise:"
   warn "Save this in your password manager now, named 'Wordwright KEY_ENCRYPTION_SECRET'."
   say "Without it, a restored backup holds AI keys nobody can read, and every writer must enter theirs again:"
   printf '\n    %s%s%s\n\n' "$BOLD" "$KEY_ENCRYPTION_SECRET" "$RESET"

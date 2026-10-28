@@ -63,6 +63,7 @@ see exactly what runs as root.
 | `deploy/rollback.sh`            | Back to an older build and the database from before the update; says how to repeat the deletions since.                            |
 | `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                                                           |
 | `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                                                          |
+| `deploy/restore-key-secret.sh`  | Puts your saved `KEY_ENCRYPTION_SECRET` on a rebuilt server, pasted at a hidden prompt.                                            |
 | `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                                                         |
 | `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                                                      |
 
@@ -117,8 +118,8 @@ The script refuses to back up when the disk is 90% full or more, and, once `~/wo
 pinging a heartbeat monitor; a night without a ping is the alert ([runbook.md](runbook.md#monitoring-and-alerts)).
 
 Those copies are on the server's own disk, so by themselves they do not survive losing the server. Two more things
-keep them safe: the encrypted off-site copy below, and the secrets kept apart from the data (`KEY_ENCRYPTION_SECRET`
-in particular: without it stored AI keys cannot be read, and without `SESSION_SECRET` everyone is signed out). Keep
+keep them safe: the encrypted off-site copy below, and the secrets kept apart from the data (`KEY_ENCRYPTION_SECRET`:
+without it stored AI keys cannot be read). Keep
 the retention short: a deleted account's data should not linger in old copies.
 
 ### Off-site copies (Scaleway Object Storage)
@@ -163,11 +164,20 @@ If the server is fine but the database is not, fetch a backup and roll back to i
 ./rollback.sh <the build you want> ~/restored/wordwright-20261023-023000.sqlite
 ```
 
-If the server is gone: make a new one with `deploy/setup-wizard.sh`, then before anyone uses it, stop the app, put your
-**saved** `KEY_ENCRYPTION_SECRET` (and `SESSION_SECRET`) into `~/wordwright/.env` in place of the new ones the wizard
-made (a new key secret makes every stored AI key unreadable), run `deploy/offsite-wizard.sh` and answer **no** to "is
-this the first time" to enter the saved encryption password and salt, then fetch the newest backup and roll back to it as
-above. This path is written but has not been practised yet: [the restore rehearsal](runbook.md#the-restore-rehearsal) does it.
+If the server is gone, in this order, before anyone uses the new one:
+
+1. Make a new server with `deploy/setup-wizard.sh`. When it shows a new `KEY_ENCRYPTION_SECRET`, do **not** save it
+   over your old one.
+2. Put the **saved** `KEY_ENCRYPTION_SECRET` on it: run `deploy/restore-key-secret.sh` on your computer and paste it at
+   the hidden prompt. It restarts the app with it. With the wizard's new one, every stored AI key is unreadable. The new
+   `SESSION_SECRET` can stay: it only signs the cookie used part way through Google sign-in.
+3. Run `deploy/offsite-wizard.sh` and answer **no** to "is this the first time", to enter the saved encryption password
+   and salt.
+4. Fetch the backup and roll back to it as above, with the build that made it (a build refuses a database made by a
+   newer one), then bring back `deletions.jsonl` and repeat the deletions
+   ([below](#after-a-rollback-or-restore-repeat-the-deletions)).
+
+[The restore rehearsal](runbook.md#the-restore-rehearsal) practises this.
 
 ## Rolling back
 

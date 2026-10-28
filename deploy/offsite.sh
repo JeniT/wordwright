@@ -36,7 +36,10 @@ case "${1:-}" in
     name="${2:?Usage: ./offsite.sh fetch <name> [folder]}"
     dest="${3:-$HOME/restored}"
     mkdir -p "$dest"
+    rm -f "$dest/$name" # a copy from an earlier fetch must not pass for this one
     docker run --rm -e RCLONE_LOG_LEVEL=ERROR --env-file offsite.env -v "$dest":/restore "$RCLONE_IMAGE" copy "OFFSITE:$name" /restore
+    # rclone's copy succeeds when nothing by that name is there, so look (#423).
+    [ -f "$dest/$name" ] || { echo "The bucket has nothing called $name. ./offsite.sh list shows what is there." >&2; exit 1; }
     echo "Fetched to $dest/$name"
     ;;
   verify)
