@@ -43,7 +43,7 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
 
 <template>
   <AuthCard title="Create your account">
-    <p v-if="accountDeleted" role="status" class="mb-4">Your account is deleted.</p>
+    <p v-if="accountDeleted" role="status" class="mb-4">Your old account has been deleted.</p>
     <form @submit.prevent="register.mutate()">
       <!-- "given-name" asks browsers to autofill just their first name, which is what we use. -->
       <TextField

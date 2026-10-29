@@ -116,7 +116,7 @@ describe('registration', () => {
   it('says the account is deleted only when sent here by the delete page', async () => {
     server.use(signedInAs(null))
     await renderAt('/register?deleted=1')
-    expect(await screen.findByRole('status')).toHaveTextContent('Your account is deleted')
+    expect(await screen.findByRole('status')).toHaveTextContent('Your old account has been deleted')
     // The flag is not passed on to the sign-in link.
     expect(screen.getByRole('link', { name: 'Sign in' })).not.toHaveAttribute(
       'href',

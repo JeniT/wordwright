@@ -100,7 +100,7 @@ test('deletes an account', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Delete account' }).click()
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
   await expect(
-    page.getByRole('status').filter({ hasText: 'Your account is deleted' }),
+    page.getByRole('status').filter({ hasText: 'Your old account has been deleted' }),
   ).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
