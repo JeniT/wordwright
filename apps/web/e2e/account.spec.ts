@@ -99,6 +99,10 @@ test('deletes an account', async ({ page }) => {
   await page.getByRole('button', { name: 'Delete account' }).click()
   await dialog.getByRole('button', { name: 'Delete account' }).click()
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Your account is deleted' }),
+  ).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 
   await page.goto('/login')
   await page.getByLabel('Email').fill(email)

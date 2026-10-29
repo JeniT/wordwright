@@ -19,6 +19,9 @@ const name = ref('')
 const handle = ref('')
 const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
+// Set by the delete-account page, so the person is told it worked.
+const accountDeleted = route.query.deleted === '1'
+const linkQuery = { ...route.query, deleted: undefined }
 
 const register = useMutation({
   mutationFn: () =>
@@ -40,6 +43,7 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
 
 <template>
   <AuthCard title="Create your account">
+    <p v-if="accountDeleted" role="status" class="mb-4">Your account is deleted.</p>
     <form @submit.prevent="register.mutate()">
       <!-- "given-name" asks browsers to autofill just their first name, which is what we use. -->
       <TextField
@@ -91,7 +95,7 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
     </form>
     <p class="mt-4 text-sm">
       Already have an account?
-      <RouterLink :to="{ name: 'login', query: route.query }" class="text-accent underline"
+      <RouterLink :to="{ name: 'login', query: linkQuery }" class="text-accent underline"
         >Sign in</RouterLink
       >
     </p>

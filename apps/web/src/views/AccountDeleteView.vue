@@ -23,7 +23,7 @@ const deleteAccount = useMutation({
   onSuccess: async () => {
     session.set(null)
     queryClient.clear()
-    await router.push('/register')
+    await router.push({ path: '/register', query: { deleted: '1' } })
   },
   // Back to the form, where the error (e.g. a wrong password) is shown.
   onError: () => {
@@ -89,7 +89,20 @@ const deleteAccount = useMutation({
         @confirm="deleteAccount.mutate()"
         @cancel="confirmingDelete = false"
       >
-        <p>This can't be undone.</p>
+        <p class="mb-2">This can't be undone. Deleting your account removes:</p>
+        <ul class="mb-2 list-disc pl-5">
+          <li>every publication only you belong to, with its ideas, notes and drafts</li>
+          <li>your own ideas, notes and drafts</li>
+          <li>your saved AI key</li>
+        </ul>
+        <p>
+          You're removed from shared publications.
+          {{
+            keepName
+              ? 'Your name stays on your notes and comments there.'
+              : 'Your notes and comments there show as “a former member”.'
+          }}
+        </p>
       </ConfirmDialog>
     </DangerZone>
     <NextStep v-if="!session.user.reviewerOnly" />

@@ -113,6 +113,24 @@ describe('registration', () => {
     expect(screen.getByLabelText('Username')).toHaveAttribute('autocomplete', 'off')
   })
 
+  it('says the account is deleted only when sent here by the delete page', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/register?deleted=1')
+    expect(await screen.findByRole('status')).toHaveTextContent('Your account is deleted')
+    // The flag is not passed on to the sign-in link.
+    expect(screen.getByRole('link', { name: 'Sign in' })).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('deleted'),
+    )
+  })
+
+  it('has no deletion note on an ordinary visit', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/register')
+    await screen.findByLabelText('What should we call you?')
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('sends the chosen username with the rest of the details', async () => {
     let body: unknown
     server.use(

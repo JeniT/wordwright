@@ -41,7 +41,10 @@ last and alone, so nobody meets it by scrolling past something else.
 - **Two sentences or fewer per block, success is one word, no small print.** What was cut: "updates everywhere" and "emails
   already sent keep the old one" (Name); the AI-mark paragraph and the long privacy block (Your AI, which links to the help page
   instead); the explanation of why the critique limit exists moved behind an info icon.
-- **Delete account:** "This can't be undone. Download your writing first." The form asks for the password (no "confirm your
+- **Delete account:** "This can't be undone. Download your writing first." The confirmation dialog lists what goes
+  (publications only you belong to, your ideas, notes and drafts, your saved AI key) and repeats the name choice. After
+  deleting, the person lands on Create account with "Your account is deleted." (`/register?deleted=1`, a flag with no personal
+  data, dropped from the Sign in link; #430). The form asks for the password (no "confirm your
   email" field; see [Account deletion semantics](adr/accounts-and-security/account-deletion-semantics.md)); someone with no
   password is told to add one first. The "After you leave" choice keeps or hides the person's display name only: the legend
   promises email and username are never kept. The app has several owners, not a transfer action, so the sole owner of a shared

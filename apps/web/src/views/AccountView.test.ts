@@ -93,10 +93,36 @@ describe('AccountView', () => {
     expect(body).toBeUndefined() // nothing is deleted until the person confirms
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete account' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
+    expect(router.currentRoute.value.query).toEqual({ deleted: '1' })
     expect(body).toEqual({
       password: 'my password 123',
       keepName: true,
     })
+  })
+
+  it('names what the deletion removes and what happens to their name', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+    )
+    await renderAt('/account/delete')
+    await fireEvent.update(
+      await screen.findByLabelText('Password', { selector: 'input' }),
+      'my password 123',
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    let dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
+    expect(within(dialog).getByText(/every publication only you belong to/)).toBeTruthy()
+    expect(within(dialog).getByText(/your own ideas, notes and drafts/)).toBeTruthy()
+    expect(within(dialog).getByText(/your saved AI key/)).toBeTruthy()
+    expect(
+      within(dialog).getByText(/Your name stays on your notes and comments there/),
+    ).toBeTruthy()
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
+    expect(within(dialog).getByText(/show as “a former member”/)).toBeTruthy()
   })
 
   it('asks whether to keep their name on their notes, and sends the answer', async () => {
