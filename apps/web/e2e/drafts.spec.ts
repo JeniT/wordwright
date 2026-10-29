@@ -631,3 +631,40 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   await page.keyboard.press('Escape')
   await expect(more).toBeFocused()
 })
+
+test('the Critique tip fits inside the side panel, and its tutorial text goes under the button (#428)', async ({
+  page,
+}) => {
+  await registerUser(page)
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Why rivers meander')
+  const side = page.getByRole('complementary')
+  await side.getByRole('tab', { name: /^Comments/ }).click()
+
+  // A new account has tutorial mode on: the text is written out, full width, under the button.
+  const critique = side.getByRole('button', { name: 'Critique', exact: true })
+  const note = side.getByText(/your AI will give you comments on how to improve/)
+  await expect(note).toBeVisible()
+  expect((await note.boundingBox())!.y).toBeGreaterThan((await critique.boundingBox())!.y)
+  const panel = (await side.boundingBox())!
+  expect((await note.boundingBox())!.width).toBeGreaterThan(panel.width / 2)
+
+  // With it off, the icon's tip opens inside the panel.
+  const res = await page.request.put('/api/account/tutorial', { data: { on: false } })
+  expect(res.ok()).toBe(true)
+  // On a narrow phone the panel is a drawer only 288px wide, narrower than the tip's usual width.
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.reload()
+  await page.getByRole('button', { name: 'Draft panel' }).click()
+  await side.getByRole('tab', { name: /^Comments/ }).click()
+  await side.getByRole('button', { name: 'About Critique' }).hover()
+  const tip = side.getByRole('tooltip')
+  await expect(tip).toBeVisible()
+  const box = (await tip.boundingBox())!
+  const inside = (await side.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(inside.x)
+  expect(box.x + box.width).toBeLessThanOrEqual(inside.x + inside.width)
+})

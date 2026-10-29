@@ -74,16 +74,37 @@ describe('InfoTip', () => {
       vi.spyOn(root(), 'getBoundingClientRect').mockReturnValue(at)
     }
 
-    it('opens rightwards and downwards from an icon near the left of a narrow panel', async () => {
-      inBox(rect(0, 0, 352, 600), rect(120, 40))
+    const tipLeft = () => parseFloat(tip().style.left)
+    const tipWidth = () => parseFloat(tip().style.width)
+
+    it('starts at the icon and opens below it when there is room', async () => {
+      inBox(rect(0, 0, 600, 600), rect(120, 40))
       await fireEvent.mouseEnter(root())
-      expect(tip()).toHaveClass('left-0', 'top-full')
+      expect(tipLeft()).toBe(0)
+      expect(tipWidth()).toBe(256)
+      expect(tip()).toHaveClass('top-full')
     })
 
-    it('opens leftwards from an icon near the right edge', async () => {
+    it('slides left to stay inside a panel when the icon is near its right edge', async () => {
       inBox(rect(0, 0, 352, 600), rect(320, 40))
       await fireEvent.mouseEnter(root())
-      expect(tip()).toHaveClass('right-0')
+      expect(320 + tipLeft() + tipWidth()).toBeLessThanOrEqual(352 - 8)
+      expect(320 + tipLeft()).toBeGreaterThanOrEqual(8)
+    })
+
+    it('slides and narrows when neither side has the full width, as in a narrow panel', async () => {
+      inBox(rect(0, 0, 300, 600), rect(140, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tipWidth()).toBe(256)
+      expect(140 + tipLeft() + tipWidth()).toBeLessThanOrEqual(300 - 8)
+      expect(140 + tipLeft()).toBeGreaterThanOrEqual(8)
+    })
+
+    it('narrows to the panel when the panel is narrower than the tip', async () => {
+      inBox(rect(0, 0, 200, 600), rect(100, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tipWidth()).toBe(184)
+      expect(100 + tipLeft()).toBe(8)
     })
 
     it('opens upwards from an icon near the bottom', async () => {
