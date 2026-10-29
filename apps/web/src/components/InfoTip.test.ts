@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/vue'
 import { nextTick } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import InfoTip from './InfoTip.vue'
 
 function show() {
@@ -55,5 +55,41 @@ describe('InfoTip', () => {
     show()
     await escape()
     expect(dismissed()).toBe(false)
+  })
+
+  describe('where it opens', () => {
+    const rect = (left: number, top: number, width = 28, height = 28) =>
+      ({ left, top, right: left + width, bottom: top + height, width, height }) as DOMRect
+    /** The icon sits in a clipping box, as the side panel is, with these edges. */
+    function inBox(box: DOMRect, at: DOMRect) {
+      const panel = document.createElement('div')
+      panel.style.overflowY = 'auto'
+      document.body.append(panel)
+      vi.spyOn(panel, 'getBoundingClientRect').mockReturnValue(box)
+      render(InfoTip, {
+        props: { label: 'About this' },
+        slots: { default: 'Why we ask.' },
+        container: panel,
+      })
+      vi.spyOn(root(), 'getBoundingClientRect').mockReturnValue(at)
+    }
+
+    it('opens rightwards and downwards from an icon near the left of a narrow panel', async () => {
+      inBox(rect(0, 0, 352, 600), rect(120, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tip()).toHaveClass('left-0', 'top-full')
+    })
+
+    it('opens leftwards from an icon near the right edge', async () => {
+      inBox(rect(0, 0, 352, 600), rect(320, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tip()).toHaveClass('right-0')
+    })
+
+    it('opens upwards from an icon near the bottom', async () => {
+      inBox(rect(0, 0, 352, 300), rect(20, 270))
+      await fireEvent.mouseEnter(root())
+      expect(tip()).toHaveClass('bottom-full')
+    })
   })
 })

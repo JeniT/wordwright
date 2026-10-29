@@ -873,7 +873,7 @@ async function requestCritique() {
             >
               <template #after>
                 <div v-if="canEdit" class="mt-6 border-t border-line pt-4">
-                  <div class="flex items-center gap-1">
+                  <div class="flex flex-wrap items-center gap-1">
                     <AiButton
                       class="btn btn-outline"
                       :busy="critiquing"
