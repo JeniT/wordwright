@@ -1636,7 +1636,7 @@ describe('what the editing page says, and where', () => {
     const button = await findCritique()
     expect(button.closest('[role="tabpanel"]')).toHaveAccessibleName(/^Comments/)
     expect(button.closest('article')).toBeNull()
-    expect(screen.getByText(/No comments yet\. Press Critique below/)).toBeInTheDocument()
+    expect(await screen.findByText(/No comments yet\. Press Critique below/)).toBeInTheDocument() // once the comments have loaded
   })
 
   it('keeps the explanations behind info icons while tutorial mode is off', async () => {

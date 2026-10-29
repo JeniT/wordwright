@@ -184,6 +184,11 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await expect(page.getByRole('button', { name: 'Handover draft', exact: true })).toBeVisible()
   await offer()
   // Bob is told on the draft page and declines.
+  // Critique is in the Comments tab, so the editor's tools show once it is open.
+  await page
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
   await expect(page.getByRole('button', { name: 'Critique' })).toBeVisible()
   await bob.goto(draftUrl)
   const offered = bob.getByTestId('offered-to-me')
@@ -209,6 +214,10 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await page.getByRole('button', { name: 'Handover draft to Bob' }).click()
   await bob.reload()
   await bob.getByTestId('offered-to-me').getByRole('button', { name: 'Accept' }).click()
+  await bob
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
   await expect(bob.getByRole('button', { name: 'Critique' })).toBeVisible()
   await expect(bob.getByTestId('read-only')).toHaveCount(0)
   expect((await new AxeBuilder({ page: bob }).analyze()).violations).toEqual([])
