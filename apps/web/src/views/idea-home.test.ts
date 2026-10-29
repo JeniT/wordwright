@@ -179,6 +179,13 @@ describe('an idea’s landing page', () => {
     expect(
       await within(screen.getByRole('main')).findByRole('link', { name: 'Substack' }),
     ).toHaveAttribute('href', '/p/ada-substack')
+    // On a phone the breadcrumb under the top bar names the publication, so this link steps aside: one way up at
+    // each width (#429).
+    const own = screen.getByRole('main').querySelector('a[href="/p/ada-substack"]')
+    expect(own?.parentElement).toHaveClass('max-md:hidden')
+    const shell = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(shell).getByRole('link', { name: 'Substack' })).toBeInTheDocument()
+    expect(shell.parentElement).toHaveClass('md:hidden')
     // It is none of the steps, so the menu marks nothing current.
     const nav = screen.getByRole('navigation', { name: 'Idea' })
     expect(nav.querySelector('[aria-current="page"]')).toBeNull()
