@@ -187,6 +187,11 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
+  // Critique is in the Comments tab beside the draft, not under it.
+  await page
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
   // No key yet: the button waits, and we're pointed at account settings.
   await expect(page.getByRole('button', { name: 'Critique' })).toBeDisabled()
   await page.getByRole('link', { name: 'Add your AI key' }).click()
@@ -205,6 +210,10 @@ test('register, write, save and request a critique', async ({ page }) => {
   await page.getByRole('link', { name: /^Why rivers meander \d+ drafts?$/ }).click()
   await goTo(page, 'Draft')
   await page.getByRole('link', { name: /^Why rivers meander .*Last changed/ }).click()
+  await page
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
   await page.getByRole('button', { name: 'Critique' }).click()
 
   // The comments come beside the draft, in the tab that opens for them.
@@ -302,6 +311,10 @@ test('register, write, save and request a critique', async ({ page }) => {
   ).toBeVisible()
   await page.goBack()
   // The page reloads on the way back, which can be slow on a busy machine.
+  await page
+    .getByRole('complementary')
+    .getByRole('tab', { name: /^Comments/ })
+    .click()
   await expect(page.getByText(/You have had your 1 look at this draft/)).toBeVisible({
     timeout: 20_000,
   })
